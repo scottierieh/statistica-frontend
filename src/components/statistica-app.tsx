@@ -66,7 +66,7 @@ export default function StatisticaApp() {
   const [report, setReport] = useState<{ title: string, content: string } | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
+  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | null>(null);
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -135,7 +135,7 @@ export default function StatisticaApp() {
     setNumericHeaders([]);
     setCategoricalHeaders([]);
     setFileName('');
-    setActiveAnalysis('stats');
+    setActiveAnalysis(null);
   };
 
   const handleGenerateReport = async () => {
@@ -171,7 +171,7 @@ export default function StatisticaApp() {
     URL.revokeObjectURL(url);
   };
   
-  const ActivePageComponent = analysisPages[activeAnalysis];
+  const ActivePageComponent = activeAnalysis ? analysisPages[activeAnalysis] : null;
 
   return (
     <SidebarProvider>
@@ -195,24 +195,23 @@ export default function StatisticaApp() {
               {fileName && <p className="mt-2 text-xs text-muted-foreground text-center truncate">파일: {fileName}</p>}
             </div>
             
-            {data.length > 0 && (
-                <SidebarMenu>
-                    {(Object.keys(analysisInfo) as AnalysisType[]).map(key => {
-                        const Icon = analysisInfo[key].icon;
-                        return (
-                            <SidebarMenuItem key={key}>
-                                <SidebarMenuButton
-                                    onClick={() => setActiveAnalysis(key)}
-                                    isActive={activeAnalysis === key}
-                                >
-                                    <Icon />
-                                    <span>{analysisInfo[key].label}</span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        )
-                    })}
-                </SidebarMenu>
-            )}
+            <SidebarMenu>
+                {(Object.keys(analysisInfo) as AnalysisType[]).map(key => {
+                    const Icon = analysisInfo[key].icon;
+                    return (
+                        <SidebarMenuItem key={key}>
+                            <SidebarMenuButton
+                                onClick={() => setActiveAnalysis(key)}
+                                isActive={activeAnalysis === key}
+                                disabled={data.length === 0 && activeAnalysis !== key}
+                            >
+                                <Icon />
+                                <span>{analysisInfo[key].label}</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    )
+                })}
+            </SidebarMenu>
 
           </SidebarContent>
           <SidebarFooter>
@@ -235,7 +234,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {data.length > 0 ? (
+            {ActivePageComponent ? (
               <ActivePageComponent 
                 key={activeAnalysis} // Add key to force re-mount on analysis change
                 data={data}

@@ -94,6 +94,23 @@ export default function DescriptiveStatsPage({ data, allHeaders, numericHeaders 
     setStats(result);
   }, [data, selectedHeaders]);
 
+  const canRun = useMemo(() => data.length > 0, [data]);
+
+  if (!canRun) {
+      return (
+        <div className="flex flex-1 items-center justify-center">
+            <Card className="w-full max-w-lg text-center">
+                <CardHeader>
+                    <CardTitle className="font-headline">기술 통계 분석</CardTitle>
+                    <CardDescription>
+                        분석을 시작하려면 먼저 데이터를 업로드하거나 예제 데이터셋을 선택해주세요.
+                    </CardDescription>
+                </CardHeader>
+            </Card>
+        </div>
+      )
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <Card>

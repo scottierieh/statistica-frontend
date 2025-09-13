@@ -154,8 +154,8 @@ export default function VisualizationPage({ data, numericHeaders }: Visualizatio
   const [analysisResult, setAnalysisResult] = useState<any>(null);
 
   const canRun = useMemo(() => {
-    return numericHeaders.length > 0;
-  }, [numericHeaders]);
+    return data.length > 0 && numericHeaders.length > 0;
+  }, [data, numericHeaders]);
 
   const handleAnalysis = useCallback(() => {
     let result;
@@ -252,7 +252,7 @@ export default function VisualizationPage({ data, numericHeaders }: Visualizatio
       <TabsContent value="histogram" className="mt-4">
         <div className="flex gap-4 items-center mb-4 p-4 border rounded-lg">
             <label className="font-medium">변수:</label>
-            <Select value={histColumn} onValueChange={setHistColumn}>
+            <Select value={histColumn} onValueChange={setHistColumn} disabled={numericHeaders.length === 0}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
             </Select>
@@ -262,12 +262,12 @@ export default function VisualizationPage({ data, numericHeaders }: Visualizatio
       <TabsContent value="scatter" className="mt-4">
         <div className="flex flex-wrap gap-4 items-center mb-4 p-4 border rounded-lg">
             <label className="font-medium">X축:</label>
-            <Select value={scatterX} onValueChange={setScatterX}>
+            <Select value={scatterX} onValueChange={setScatterX} disabled={numericHeaders.length === 0}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
             </Select>
             <label className="font-medium">Y축:</label>
-            <Select value={scatterY} onValueChange={setScatterY}>
+            <Select value={scatterY} onValueChange={setScatterY} disabled={numericHeaders.length === 0}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>{numericHeaders.filter(h => h !== scatterX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
             </Select>
@@ -277,12 +277,12 @@ export default function VisualizationPage({ data, numericHeaders }: Visualizatio
       <TabsContent value="line" className="mt-4">
         <div className="flex flex-wrap gap-4 items-center mb-4 p-4 border rounded-lg">
             <label className="font-medium">X축 (변수):</label>
-            <Select value={lineX} onValueChange={setLineX}>
+            <Select value={lineX} onValueChange={setLineX} disabled={numericHeaders.length === 0}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
             </Select>
             <label className="font-medium">Y축 (값):</label>
-            <Select value={lineY} onValueChange={setLineY}>
+            <Select value={lineY} onValueChange={setLineY} disabled={numericHeaders.length === 0}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>{numericHeaders.filter(h => h !== lineX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
             </Select>

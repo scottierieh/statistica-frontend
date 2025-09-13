@@ -40,8 +40,8 @@ export default function CorrelationPage({ data, numericHeaders }: CorrelationPag
   }, [data, selectedHeaders]);
 
   const canRun = useMemo(() => {
-    return numericHeaders.length >= 2;
-  }, [numericHeaders]);
+    return data.length > 0 && numericHeaders.length >= 2;
+  }, [data, numericHeaders]);
 
   if (!canRun) {
     return (

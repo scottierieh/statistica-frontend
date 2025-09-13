@@ -53,8 +53,8 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders }: 
     const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
 
     const canRun = useMemo(() => {
-      return numericHeaders.length > 0 && categoricalHeaders.length > 0;
-    }, [numericHeaders, categoricalHeaders]);
+      return data.length > 0 && numericHeaders.length > 0 && categoricalHeaders.length > 0;
+    }, [data, numericHeaders, categoricalHeaders]);
 
     const handleAnalysis = useCallback(() => {
         if (!groupVar || !valueVar) {
@@ -121,20 +121,20 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders }: 
                     <div className="grid md:grid-cols-2 gap-4 items-center">
                         <div>
                             <label className="text-sm font-medium mb-1 block">그룹 변수 (범주형)</label>
-                            <Select value={groupVar} onValueChange={setGroupVar}>
+                            <Select value={groupVar} onValueChange={setGroupVar} disabled={categoricalHeaders.length === 0}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div>
                             <label className="text-sm font-medium mb-1 block">값 변수 (숫자형)</label>
-                            <Select value={valueVar} onValueChange={setValueVar}>
+                            <Select value={valueVar} onValueChange={setValueVar} disabled={numericHeaders.length === 0}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                     </div>
-                    <Button onClick={handleAnalysis} className="w-full md:w-auto self-end">
+                    <Button onClick={handleAnalysis} className="w-full md:w-auto self-end" disabled={!groupVar || !valueVar}>
                         <Sigma className="mr-2"/>
                         분석 실행
                     </Button>
