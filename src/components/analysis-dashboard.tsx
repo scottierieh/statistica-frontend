@@ -7,12 +7,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Sigma, Link2, BarChart2 } from 'lucide-react';
 import type { DataSet } from '@/lib/stats';
 import VisualizationSuite from './visualization-suite';
+import { Badge } from '@/components/ui/badge';
 
 interface AnalysisDashboardProps {
   data: DataSet;
   headers: string[];
   stats: Record<string, any>;
   correlationMatrix: (number | null)[][];
+}
+
+const formatValue = (value: any) => {
+    if (typeof value === 'number') {
+        return value.toFixed(3);
+    }
+    if (Array.isArray(value)) {
+        return value.map(v => v.toFixed(2)).join(', ');
+    }
+    return value;
 }
 
 const StatCard = ({ title, data }: { title: string; data: any }) => (
@@ -24,8 +35,16 @@ const StatCard = ({ title, data }: { title: string; data: any }) => (
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
         {Object.entries(data).map(([key, value]) => (
           <>
-            <dt className="capitalize text-muted-foreground">{key.replace('p', 'P')}</dt>
-            <dd className="font-mono text-right">{(value as number).toFixed(3)}</dd>
+            <dt className="capitalize text-muted-foreground">{key.replace('p25', 'P25').replace('p75', 'P75').replace('iqr', 'IQR')}</dt>
+            <dd className="font-mono text-right flex justify-end items-center gap-1">
+                {Array.isArray(value) ? (
+                    <div className="flex flex-wrap gap-1 justify-end">
+                        {(value as any[]).map((v, i) => <Badge key={i} variant="secondary">{formatValue(v)}</Badge>)}
+                    </div>
+                ) : (
+                    formatValue(value)
+                )}
+            </dd>
           </>
         ))}
       </dl>
@@ -49,7 +68,7 @@ export default function AnalysisDashboard({ data, headers, stats, correlationMat
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pr-4">
                 {isLoading
                 ? headers.map((h) => (
-                    <Card key={h}><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><div className="space-y-2">{Array(6).fill(0).map((_,i)=><Skeleton key={i} className="h-4 w-full"/>)}</div></CardContent></Card>
+                    <Card key={h}><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><div className="space-y-2">{Array(13).fill(0).map((_,i)=><Skeleton key={i} className="h-4 w-full"/>)}</div></CardContent></Card>
                     ))
                 : headers.map((header) => (
                     stats[header] && <StatCard key={header} title={header} data={stats[header]} />
