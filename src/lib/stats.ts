@@ -14,7 +14,10 @@ export const parseData = (
   const data: DataSet = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(/[\t,]/);
+    // Handles CSVs that might have commas inside quoted strings.
+    // This is a basic parser; for very complex CSVs, a more robust library would be better.
+    const values = lines[i].match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g)?.map(v => v.trim().replace(/"/g, '')) || lines[i].split(/[\t,]/);
+
     if (values.length !== rawHeaders.length) continue;
 
     const dataPoint: DataPoint = {};
@@ -274,3 +277,4 @@ export const calculateCorrelationMatrix = (data: DataSet, headers: string[]) => 
     }
     return matrix;
 };
+

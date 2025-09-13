@@ -31,6 +31,7 @@ import {
   Network,
   FlaskConical,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import {
   type DataSet,
   parseData,
@@ -41,18 +42,20 @@ import { getSummaryReport } from '@/app/actions';
 import DescriptiveStatsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
 import AnovaPage from './pages/anova-page';
+import VisualizationPage from './pages/visualization-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'anova';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'visuals';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
     correlation: CorrelationPage,
     anova: AnovaPage,
+    visuals: VisualizationPage,
 };
 
 const analysisMenu = [
@@ -65,6 +68,13 @@ const analysisMenu = [
       { id: 'crosstab', label: 'Crosstab Analysis', implemented: false },
       { id: 'ttest', label: 't-test', implemented: false },
       { id: 'anova', label: 'ANOVA', implemented: true },
+    ]
+  },
+   {
+    field: 'Data Visualization',
+    icon: BarChart2,
+    methods: [
+      { id: 'visuals', label: 'Charts & Graphs', implemented: true },
     ]
   },
   {
@@ -136,7 +146,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Data Visualization', 'Correlation / Regression']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
@@ -171,24 +181,51 @@ export default function StatisticaApp() {
   const handleFileSelected = (file: File) => {
     if (!file) return;
 
-    if (file.type !== 'text/csv' && !file.name.endsWith('.csv') && file.type !== 'text/plain' && !file.name.endsWith('.txt')) {
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    const isExcel = ['xls', 'xlsx'].includes(fileExtension || '');
+    const isText = ['csv', 'txt'].includes(fileExtension || '');
+
+    if (!isExcel && !isText) {
       toast({
         variant: 'destructive',
         title: 'Invalid File Type',
-        description: 'Please upload a CSV or TXT file.',
+        description: 'Please upload a CSV, TXT, or Excel file.',
       });
       return;
     }
     
     const reader = new FileReader();
+    
     reader.onload = (e) => {
-      const content = e.target?.result as string;
-      processData(content, file.name);
+      const data = e.target?.result;
+      if (!data) {
+        toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not read file content.' });
+        return;
+      }
+
+      if (isExcel) {
+        try {
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const csvString = XLSX.utils.sheet_to_csv(worksheet);
+          processData(csvString, file.name);
+        } catch (error) {
+           toast({ variant: 'destructive', title: 'Excel Parse Error', description: 'Failed to parse the Excel file.' });
+        }
+      } else { // CSV or TXT
+         processData(data as string, file.name);
+      }
     };
     reader.onerror = () => {
         toast({variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.'});
     }
-    reader.readAsText(file);
+
+    if (isExcel) {
+      reader.readAsBinaryString(file);
+    } else {
+      reader.readAsText(file);
+    }
   };
 
 
@@ -215,7 +252,7 @@ export default function StatisticaApp() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName || 'statistica_data.csv';
+      a.download = fileName.replace(/\.[^/.]+$/, "") + ".csv" || 'statistica_data.csv';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
