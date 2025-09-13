@@ -277,4 +277,3 @@ export const calculateCorrelationMatrix = (data: DataSet, headers: string[]) => 
     }
     return matrix;
 };
-
