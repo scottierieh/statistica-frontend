@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "empty-state-chart",
+      "description": "An abstract representation of data charts and graphs.",
+      "imageUrl": "https://picsum.photos/seed/stat1/600/400",
+      "imageHint": "data abstract"
+    }
+  ]
 }
