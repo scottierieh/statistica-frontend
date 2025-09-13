@@ -2,7 +2,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { calculateCorrelationMatrix } from '@/lib/stats';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,13 +10,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Sigma } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 
 interface CorrelationPageProps {
     data: DataSet;
     numericHeaders: string[];
+    onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function CorrelationPage({ data, numericHeaders }: CorrelationPageProps) {
+export default function CorrelationPage({ data, numericHeaders, onLoadExample }: CorrelationPageProps) {
   const [selectedHeaders, setSelectedHeaders] = useState<string[]>(numericHeaders.slice(0, 5));
   const [results, setResults] = useState<{ headers: string[], matrix: (number | null)[][] } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,21 +40,47 @@ export default function CorrelationPage({ data, numericHeaders }: CorrelationPag
     setResults({ headers: selectedHeaders, matrix });
     setIsLoading(false);
   }, [data, selectedHeaders]);
-
+  
   const canRun = useMemo(() => {
     return data.length > 0 && numericHeaders.length >= 2;
   }, [data, numericHeaders]);
 
   if (!canRun) {
+    const corrExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('correlation'));
     return (
       <div className="flex flex-1 items-center justify-center">
-          <Card className="w-full max-w-lg text-center">
+          <Card className="w-full max-w-2xl text-center">
               <CardHeader>
                   <CardTitle className="font-headline">Correlation Analysis</CardTitle>
                   <CardDescription>
-                      To perform a correlation analysis, you need to upload data with at least two numeric variables.
+                      To perform a correlation analysis, you need to upload data with at least two numeric variables. Try one of our example datasets.
                   </CardDescription>
               </CardHeader>
+              <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {corrExamples.map((ex) => {
+                          const Icon = ex.icon;
+                          return (
+                          <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
+                              <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                                      <Icon className="h-6 w-6 text-secondary-foreground" />
+                                  </div>
+                                  <div>
+                                      <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                      <CardDescription className="text-xs">{ex.description}</CardDescription>
+                                  </div>
+                              </CardHeader>
+                              <CardFooter>
+                                  <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                      Load this data
+                                  </Button>
+                              </CardFooter>
+                          </Card>
+                          )
+                      })}
+                  </div>
+              </CardContent>
           </Card>
       </div>
     )

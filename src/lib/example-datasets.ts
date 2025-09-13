@@ -1,10 +1,12 @@
 import { Car, Coffee, Database } from "lucide-react";
+import { AnalysisType } from "@/components/statistica-app";
 
 export interface ExampleDataSet {
     id: string;
     name: string;
     description: string;
     icon: React.ComponentType<any>;
+    analysisTypes: AnalysisType[];
     data: string;
 }
 
@@ -55,20 +57,23 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Database,
+        analysisTypes: ['stats', 'correlation', 'anova', 'visuals'],
         data: irisData
     },
     {
         id: 'tips',
-        name: 'Tips',
-        description: 'Tips received by a restaurant server, along with customer and bill info.',
+        name: 'Restaurant Tips',
+        description: 'Tips received by a server, along with customer and bill info.',
         icon: Coffee,
+        analysisTypes: ['stats', 'anova', 'visuals'],
         data: tipsData
     },
     {
         id: 'cars',
-        name: 'Cars',
-        description: 'Miles per gallon (MPG) and other specs for various car models.',
+        name: 'Classic Cars',
+        description: 'MPG and other specs for various car models from the 70s.',
         icon: Car,
+        analysisTypes: ['stats', 'correlation', 'visuals'],
         data: carsData
     }
 ]

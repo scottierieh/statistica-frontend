@@ -14,7 +14,6 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   Calculator,
@@ -32,14 +31,12 @@ import {
   parseData,
 } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { getSummaryReport } from '@/app/actions';
 import DescriptiveStatsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
 import AnovaPage from './pages/anova-page';
 import VisualizationPage from './pages/visualization-page';
-import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { type ExampleDataSet } from '@/lib/example-datasets';
 
 type AnalysisType = 'stats' | 'correlation' | 'anova' | 'visuals';
 
@@ -66,7 +63,7 @@ export default function StatisticaApp() {
   const [report, setReport] = useState<{ title: string, content: string } | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | null>(null);
+  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,8 +79,9 @@ export default function StatisticaApp() {
         setAllHeaders(newHeaders);
         setNumericHeaders(newNumericHeaders);
         setCategoricalHeaders(newCategoricalHeaders);
-        setActiveAnalysis('stats');
         setFileName(name);
+        // Don't switch view, stay on the current analysis page
+        // setActiveAnalysis('stats'); 
 
       } catch (error: any) {
         toast({
@@ -135,7 +133,6 @@ export default function StatisticaApp() {
     setNumericHeaders([]);
     setCategoricalHeaders([]);
     setFileName('');
-    setActiveAnalysis(null);
   };
 
   const handleGenerateReport = async () => {
@@ -203,7 +200,6 @@ export default function StatisticaApp() {
                             <SidebarMenuButton
                                 onClick={() => setActiveAnalysis(key)}
                                 isActive={activeAnalysis === key}
-                                disabled={data.length === 0 && activeAnalysis !== key}
                             >
                                 <Icon />
                                 <span>{analysisInfo[key].label}</span>
@@ -234,67 +230,15 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {ActivePageComponent ? (
+            {ActivePageComponent && (
               <ActivePageComponent 
-                key={activeAnalysis} // Add key to force re-mount on analysis change
+                key={activeAnalysis} 
                 data={data}
                 allHeaders={allHeaders}
                 numericHeaders={numericHeaders}
                 categoricalHeaders={categoricalHeaders}
+                onLoadExample={handleLoadExampleData}
                />
-            ) : (
-              <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-4xl text-center shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="font-headline text-3xl">Welcome to Statistica</CardTitle>
-                    <CardDescription>Your intelligent partner for statistical analysis.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex flex-col items-center gap-6">
-                    <Image
-                      src={PlaceHolderImages[0].imageUrl}
-                      alt={PlaceHolderImages[0].description}
-                      width={600}
-                      height={400}
-                      data-ai-hint={PlaceHolderImages[0].imageHint}
-                      className="rounded-lg object-cover"
-                    />
-                    <p className="max-w-md text-muted-foreground">
-                      To get started, upload a CSV or TXT file, or select one of the example datasets below.
-                    </p>
-                    <Button onClick={triggerFileUpload} size="lg" className="w-full max-w-xs">
-                      <Upload className="mr-2 h-5 w-5" />
-                      Upload your first file
-                    </Button>
-
-                    <div className="w-full pt-4">
-                        <h3 className="mb-4 text-lg font-medium text-muted-foreground">Or start with an example dataset:</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            {exampleDatasets.map((ex) => {
-                                const Icon = ex.icon;
-                                return (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                            <Icon className="h-6 w-6 text-secondary-foreground" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-lg font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </div>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => handleLoadExampleData(ex)} className="w-full">
-                                            Load this data
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                                )
-                            })}
-                        </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
             )}
           </div>
         </SidebarInset>
