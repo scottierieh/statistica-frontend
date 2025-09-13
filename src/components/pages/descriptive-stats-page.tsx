@@ -62,7 +62,7 @@ const StatCard = ({ title, data, isNumeric }: { title: string; data: any; isNume
             .replace('unique', 'Unique Values');
             
           return (
-            <>
+            <React.Fragment key={key}>
               <dt className="capitalize text-muted-foreground">{formattedKey}</dt>
               <dd className="font-mono text-right flex justify-end items-center gap-1">
                   {Array.isArray(value) && value.length > 0 ? (
@@ -73,7 +73,7 @@ const StatCard = ({ title, data, isNumeric }: { title: string; data: any; isNume
                       formatValue(value)
                   )}
               </dd>
-            </>
+            </React.Fragment>
           )
         })}
       </dl>
