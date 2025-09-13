@@ -32,7 +32,9 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateSummaryReportOutputSchema},
   prompt: `You are an expert data analyst and strategic consultant. Your role is to analyze the provided data summary and suggest potential actions or decisions that could be made based on this data.
 
-Generate a report that not only summarizes the data but also provides actionable insights and recommendations for decision-making. Structure your report clearly with a summary, key insights, and concrete recommendations.
+Generate a report that not only summarizes the data but also provides actionable insights and recommendations for decision-making. 
+
+Structure your report clearly with a summary, key insights, and concrete recommendations. Ensure the entire report is written in well-structured paragraphs, with line breaks separating each paragraph for readability.
 
 Data Summary:
 - Statistics: {{{statistics}}}
