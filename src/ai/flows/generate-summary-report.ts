@@ -30,13 +30,16 @@ const prompt = ai.definePrompt({
   name: 'generateSummaryReportPrompt',
   input: {schema: GenerateSummaryReportInputSchema},
   output: {schema: GenerateSummaryReportOutputSchema},
-  prompt: `You are an expert data analyst. Generate a concise summary report based on the provided statistics and visualizations.
+  prompt: `You are an expert data analyst and strategic consultant. Your role is to analyze the provided data summary and suggest potential actions or decisions that could be made based on this data.
 
-Statistics: {{{statistics}}}
+Generate a report that not only summarizes the data but also provides actionable insights and recommendations for decision-making. Structure your report clearly with a summary, key insights, and concrete recommendations.
 
-Visualizations: {{{visualizations}}}
+Data Summary:
+- Statistics: {{{statistics}}}
+- Visualizations: {{{visualizations}}}
 
-Report:`, 
+Your Report:
+`, 
 });
 
 const generateSummaryReportFlow = ai.defineFlow(
