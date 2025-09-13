@@ -51,10 +51,10 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
 };
 
 const analysisInfo = {
-    stats: { icon: Sigma, label: '기술 통계 분석' },
-    correlation: { icon: Link2, label: '상관 관계 분석' },
-    anova: { icon: SigmaSquare, label: '분산 분석 (ANOVA)' },
-    visuals: { icon: BarChart2, label: '데이터 시각화' },
+    stats: { icon: Sigma, label: 'Descriptive Stats' },
+    correlation: { icon: Link2, label: 'Correlation' },
+    anova: { icon: SigmaSquare, label: 'ANOVA' },
+    visuals: { icon: BarChart2, label: 'Visualization' },
 };
 
 export default function StatisticaApp() {
@@ -76,7 +76,7 @@ export default function StatisticaApp() {
         const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
         
         if (newData.length === 0 || newHeaders.length === 0) {
-          throw new Error("파일에서 유효한 데이터를 찾을 수 없습니다.");
+          throw new Error("No valid data found in the file.");
         }
         setData(newData);
         setAllHeaders(newHeaders);
@@ -88,8 +88,8 @@ export default function StatisticaApp() {
       } catch (error: any) {
         toast({
           variant: 'destructive',
-          title: '파일 처리 오류',
-          description: error.message || '파일을 파싱할 수 없습니다. 형식을 확인해주세요.',
+          title: 'File Processing Error',
+          description: error.message || 'Could not parse file. Please check the format.',
         });
         handleClearData();
       }
@@ -102,8 +102,8 @@ export default function StatisticaApp() {
     if (file.type !== 'text/csv' && !file.name.endsWith('.csv') && file.type !== 'text/plain' && !file.name.endsWith('.txt')) {
       toast({
         variant: 'destructive',
-        title: '잘못된 파일 형식',
-        description: 'CSV 또는 TXT 파일을 업로드해주세요.',
+        title: 'Invalid File Type',
+        description: 'Please upload a CSV or TXT file.',
       });
       return;
     }
@@ -116,7 +116,7 @@ export default function StatisticaApp() {
       setIsUploading(false);
     };
     reader.onerror = () => {
-        toast({variant: 'destructive', title: '파일 읽기 오류', description: '파일을 읽는 중에 오류가 발생했습니다.'});
+        toast({variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.'});
         setIsUploading(false);
     }
     reader.readAsText(file);
@@ -140,20 +140,20 @@ export default function StatisticaApp() {
 
   const handleGenerateReport = async () => {
     if (data.length === 0) {
-      toast({ title: '보고할 데이터 없음', description: '먼저 파일을 업로드해주세요.' });
+      toast({ title: 'No Data to Report', description: 'Please upload a file first.' });
       return;
     }
     setIsGeneratingReport(true);
     // This is a simplified version. A real implementation might want to gather
     // results from all analysis pages.
-    const statsString = `로드된 데이터의 열: ${allHeaders.join(', ')}`;
-    const vizString = "로드된 데이터에 대한 시각화.";
+    const statsString = `Columns in the loaded data: ${allHeaders.join(', ')}`;
+    const vizString = "Visualizations for the loaded data.";
 
     const result = await getSummaryReport({ statistics: statsString, visualizations: vizString });
     if (result.success && result.report) {
-      setReport({ title: '요약 보고서', content: result.report });
+      setReport({ title: 'Summary Report', content: result.report });
     } else {
-      toast({ variant: 'destructive', title: '보고서 생성 실패', description: result.error });
+      toast({ variant: 'destructive', title: 'Failed to generate report', description: result.error });
     }
     setIsGeneratingReport(false);
   };
@@ -190,9 +190,9 @@ export default function StatisticaApp() {
               <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv,.txt" className="hidden" />
               <Button onClick={triggerFileUpload} className="w-full" disabled={isUploading}>
                 {isUploading ? <Loader2 className="animate-spin" /> : <Upload />}
-                {isUploading ? '처리 중...' : '데이터 업로드'}
+                {isUploading ? 'Processing...' : 'Upload Data'}
               </Button>
-              {fileName && <p className="mt-2 text-xs text-muted-foreground text-center truncate">파일: {fileName}</p>}
+              {fileName && <p className="mt-2 text-xs text-muted-foreground text-center truncate">File: {fileName}</p>}
             </div>
             
             <SidebarMenu>
@@ -217,11 +217,11 @@ export default function StatisticaApp() {
           <SidebarFooter>
             <Button onClick={handleGenerateReport} disabled={isGeneratingReport || data.length === 0} className="w-full">
               {isGeneratingReport ? <Loader2 className="animate-spin" /> : <FileText />}
-              {isGeneratingReport ? '생성 중...' : '보고서 생성'}
+              {isGeneratingReport ? 'Generating...' : 'Generate Report'}
             </Button>
             <Button variant="destructive" onClick={handleClearData} className="w-full" disabled={data.length === 0}>
               <Trash2 />
-              데이터 지우기
+              Clear Data
             </Button>
           </SidebarFooter>
         </Sidebar>
@@ -246,8 +246,8 @@ export default function StatisticaApp() {
               <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-4xl text-center shadow-lg">
                   <CardHeader>
-                    <CardTitle className="font-headline text-3xl">Statistica에 오신 것을 환영합니다</CardTitle>
-                    <CardDescription>통계 분석을 위한 지능형 파트너입니다.</CardDescription>
+                    <CardTitle className="font-headline text-3xl">Welcome to Statistica</CardTitle>
+                    <CardDescription>Your intelligent partner for statistical analysis.</CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col items-center gap-6">
                     <Image
@@ -259,15 +259,15 @@ export default function StatisticaApp() {
                       className="rounded-lg object-cover"
                     />
                     <p className="max-w-md text-muted-foreground">
-                      시작하려면 CSV 또는 TXT 파일을 업로드하거나 아래의 예제 데이터셋 중 하나를 선택하세요.
+                      To get started, upload a CSV or TXT file, or select one of the example datasets below.
                     </p>
                     <Button onClick={triggerFileUpload} size="lg" className="w-full max-w-xs">
                       <Upload className="mr-2 h-5 w-5" />
-                      첫 파일 업로드하기
+                      Upload your first file
                     </Button>
 
                     <div className="w-full pt-4">
-                        <h3 className="mb-4 text-lg font-medium text-muted-foreground">또는 예제 데이터셋으로 시작해보세요:</h3>
+                        <h3 className="mb-4 text-lg font-medium text-muted-foreground">Or start with an example dataset:</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             {exampleDatasets.map((ex) => {
                                 const Icon = ex.icon;
@@ -284,7 +284,7 @@ export default function StatisticaApp() {
                                     </CardHeader>
                                     <CardFooter>
                                         <Button onClick={() => handleLoadExampleData(ex)} className="w-full">
-                                            이 데이터 로드
+                                            Load this data
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -305,14 +305,14 @@ export default function StatisticaApp() {
           <DialogHeader>
             <DialogTitle className="font-headline">{report?.title}</DialogTitle>
             <DialogDescription>
-              데이터 분석에 대한 AI 생성 요약입니다.
+              An AI-generated summary of your data analysis.
             </DialogDescription>
           </DialogHeader>
           <div className="prose prose-sm dark:prose-invert max-h-[60vh] overflow-y-auto rounded-md border p-4 whitespace-pre-wrap">
             {report?.content}
           </div>
           <DialogFooter>
-            <Button onClick={downloadReport}>.txt로 다운로드</Button>
+            <Button onClick={downloadReport}>Download as .txt</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

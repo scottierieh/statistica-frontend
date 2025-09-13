@@ -37,27 +37,27 @@ const StatCard = ({ title, data, isNumeric }: { title: string; data: any; isNume
   <Card>
     <CardHeader>
       <CardTitle className="font-headline">{title}</CardTitle>
-      <CardDescription>{isNumeric ? "숫자형" : "범주형"}</CardDescription>
+      <CardDescription>{isNumeric ? "Numeric" : "Categorical"}</CardDescription>
     </CardHeader>
     <CardContent>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
         {Object.entries(data).map(([key, value]) => {
           const formattedKey = key
-            .replace('p25', '25분위')
-            .replace('p75', '75분위')
+            .replace('p25', '25th Pctl.')
+            .replace('p75', '75th Pctl.')
             .replace('iqr', 'IQR')
-            .replace('stdDev', '표준편차')
-            .replace('mean', '평균')
-            .replace('median', '중앙값')
-            .replace('variance', '분산')
-            .replace('min', '최소값')
-            .replace('max', '최대값')
-            .replace('range', '범위')
-            .replace('count', '개수')
-            .replace('mode', '최빈값')
-            .replace('skewness', '왜도')
-            .replace('kurtosis', '첨도')
-            .replace('unique', '고유값 수');
+            .replace('stdDev', 'Std. Dev.')
+            .replace('mean', 'Mean')
+            .replace('median', 'Median')
+            .replace('variance', 'Variance')
+            .replace('min', 'Min')
+            .replace('max', 'Max')
+            .replace('range', 'Range')
+            .replace('count', 'Count')
+            .replace('mode', 'Mode')
+            .replace('skewness', 'Skewness')
+            .replace('kurtosis', 'Kurtosis')
+            .replace('unique', 'Unique Values');
             
           return (
             <>
@@ -101,9 +101,9 @@ export default function DescriptiveStatsPage({ data, allHeaders, numericHeaders 
         <div className="flex flex-1 items-center justify-center">
             <Card className="w-full max-w-lg text-center">
                 <CardHeader>
-                    <CardTitle className="font-headline">기술 통계 분석</CardTitle>
+                    <CardTitle className="font-headline">Descriptive Statistics</CardTitle>
                     <CardDescription>
-                        분석을 시작하려면 먼저 데이터를 업로드하거나 예제 데이터셋을 선택해주세요.
+                        To get started, please upload data or select an example dataset.
                     </CardDescription>
                 </CardHeader>
             </Card>
@@ -115,8 +115,8 @@ export default function DescriptiveStatsPage({ data, allHeaders, numericHeaders 
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">기술 통계 분석 설정</CardTitle>
-          <CardDescription>분석할 변수들을 선택한 후 '분석 실행' 버튼을 클릭하세요.</CardDescription>
+          <CardTitle className="font-headline">Descriptive Statistics Setup</CardTitle>
+          <CardDescription>Select the variables to analyze, then click 'Run Analysis'.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
             <ScrollArea className="h-48 border rounded-md p-4">
@@ -137,7 +137,7 @@ export default function DescriptiveStatsPage({ data, allHeaders, numericHeaders 
             </ScrollArea>
            <Button onClick={handleAnalysis} className="w-full md:w-auto self-end">
               <Sigma className="mr-2"/>
-              분석 실행
+              Run Analysis
             </Button>
         </CardContent>
       </Card>
@@ -151,14 +151,14 @@ export default function DescriptiveStatsPage({ data, allHeaders, numericHeaders 
                 ))
               ) : (
                 <div className="col-span-full text-center text-muted-foreground">
-                    <p>결과가 없습니다.</p>
+                    <p>No results to display.</p>
                 </div>
               )}
             </div>
         </ScrollArea>
       ) : (
         <div className="text-center text-muted-foreground py-10">
-          <p>분석할 변수를 선택하고 '분석 실행' 버튼을 클릭하세요.</p>
+          <p>Select variables and click 'Run Analysis' to see the results.</p>
         </div>
       )}
     </div>

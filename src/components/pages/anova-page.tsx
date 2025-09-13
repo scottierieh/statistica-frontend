@@ -58,13 +58,13 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders }: 
 
     const handleAnalysis = useCallback(() => {
         if (!groupVar || !valueVar) {
-            toast({variant: 'destructive', title: '변수 선택 오류', description: '그룹 변수와 값 변수를 모두 선택해주세요.'});
+            toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select both a group variable and a value variable.'});
             return;
         };
         try {
             const result = calculateAnova(data, groupVar, valueVar);
             if (!result) {
-                toast({variant: 'destructive', title: 'ANOVA 계산 오류', description: '분산 분석을 계산할 수 없습니다. 그룹에 데이터가 충분한지 확인하세요.'});
+                toast({variant: 'destructive', title: 'ANOVA Calculation Error', description: 'Could not compute ANOVA. Ensure groups have sufficient data.'});
                 setAnovaResult(null);
                 setAiPromise(null);
                 return;
@@ -80,14 +80,14 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders }: 
                 if (res.success) {
                     return res.interpretation ?? null;
                 }
-                toast({variant: 'destructive', title: 'AI 해석 오류', description: res.error});
+                toast({variant: 'destructive', title: 'AI Interpretation Error', description: res.error});
                 return null;
             });
             setAiPromise(promise);
 
         } catch(e: any) {
             console.error(e);
-            toast({variant: 'destructive', title: 'ANOVA 오류', description: e.message || '데이터 형식을 확인해주세요.'})
+            toast({variant: 'destructive', title: 'ANOVA Error', description: e.message || 'Please check the data format.'})
             setAnovaResult(null);
             setAiPromise(null);
         }
@@ -98,9 +98,9 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders }: 
         <div className="flex flex-1 items-center justify-center">
             <Card className="w-full max-w-lg text-center">
                 <CardHeader>
-                    <CardTitle className="font-headline">분산 분석 (ANOVA)</CardTitle>
+                    <CardTitle className="font-headline">Analysis of Variance (ANOVA)</CardTitle>
                     <CardDescription>
-                        분산 분석을 수행하려면 최소 하나 이상의 숫자형 변수와 하나 이상의 범주형 변수가 포함된 데이터를 업로드해야 합니다.
+                        To perform ANOVA, you need to upload data with at least one numeric and one categorical variable.
                     </CardDescription>
                 </CardHeader>
             </Card>
@@ -112,22 +112,22 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders }: 
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">분산 분석 (ANOVA) 설정</CardTitle>
+                    <CardTitle className="font-headline">ANOVA Setup</CardTitle>
                     <CardDescription>
-                        그룹 간 평균 차이를 비교하기 위해 그룹 변수(범주형)와 값 변수(숫자형)를 선택한 후, '분석 실행' 버튼을 클릭하세요.
+                        Select a group variable (categorical) and a value variable (numeric) to compare means across groups, then click 'Run Analysis'.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                     <div className="grid md:grid-cols-2 gap-4 items-center">
                         <div>
-                            <label className="text-sm font-medium mb-1 block">그룹 변수 (범주형)</label>
+                            <label className="text-sm font-medium mb-1 block">Group Variable (Categorical)</label>
                             <Select value={groupVar} onValueChange={setGroupVar} disabled={categoricalHeaders.length === 0}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div>
-                            <label className="text-sm font-medium mb-1 block">값 변수 (숫자형)</label>
+                            <label className="text-sm font-medium mb-1 block">Value Variable (Numeric)</label>
                             <Select value={valueVar} onValueChange={setValueVar} disabled={numericHeaders.length === 0}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
@@ -136,7 +136,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders }: 
                     </div>
                     <Button onClick={handleAnalysis} className="w-full md:w-auto self-end" disabled={!groupVar || !valueVar}>
                         <Sigma className="mr-2"/>
-                        분석 실행
+                        Run Analysis
                     </Button>
                 </CardContent>
             </Card>
@@ -144,46 +144,46 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders }: 
             {anovaResult ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle className="font-headline">분산 분석 결과</CardTitle>
+                        <CardTitle className="font-headline">ANOVA Results</CardTitle>
                         <AIGeneratedInterpretation promise={aiPromise}/>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="grid md:grid-cols-2 gap-4">
                             <Card>
-                                <CardHeader><CardTitle className="text-lg">요약</CardTitle></CardHeader>
+                                <CardHeader><CardTitle className="text-lg">Summary</CardTitle></CardHeader>
                                 <CardContent>
                                     <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                                        <dt className="text-muted-foreground">F-통계량</dt>
+                                        <dt className="text-muted-foreground">F-Statistic</dt>
                                         <dd className="font-mono text-right">{anovaResult.fStat.toFixed(4)}</dd>
-                                        <dt className="text-muted-foreground">p-값</dt>
+                                        <dt className="text-muted-foreground">p-value</dt>
                                         <dd className="font-mono text-right flex justify-end items-center gap-2">
                                             {anovaResult.pValue < 0.0001 ? "< 0.0001" : anovaResult.pValue.toFixed(4)}
-                                            {anovaResult.pValue < 0.05 && <Badge variant="destructive">유의함</Badge>}
+                                            {anovaResult.pValue < 0.05 && <Badge variant="destructive">Significant</Badge>}
                                         </dd>
                                     </dl>
                                 </CardContent>
                             </Card>
                              <Card>
-                                <CardHeader><CardTitle className="text-lg">ANOVA 테이블</CardTitle></CardHeader>
+                                <CardHeader><CardTitle className="text-lg">ANOVA Table</CardTitle></CardHeader>
                                 <CardContent>
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead>요인</TableHead>
-                                                <TableHead className="text-right">자유도</TableHead>
-                                                <TableHead className="text-right">제곱합</TableHead>
-                                                <TableHead className="text-right">평균제곱</TableHead>
+                                                <TableHead>Source</TableHead>
+                                                <TableHead className="text-right">DF</TableHead>
+                                                <TableHead className="text-right">Sum of Sq.</TableHead>
+                                                <TableHead className="text-right">Mean Sq.</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             <TableRow>
-                                                <TableCell>그룹 간</TableCell>
+                                                <TableCell>Between Groups</TableCell>
                                                 <TableCell className="text-right font-mono">{anovaResult.dfBetween}</TableCell>
                                                 <TableCell className="text-right font-mono">{anovaResult.ssb.toFixed(2)}</TableCell>
                                                 <TableCell className="text-right font-mono">{anovaResult.msb.toFixed(2)}</TableCell>
                                             </TableRow>
                                             <TableRow>
-                                                <TableCell>그룹 내</TableCell>
+                                                <TableCell>Within Groups</TableCell>
                                                 <TableCell className="text-right font-mono">{anovaResult.dfWithin}</TableCell>
                                                 <TableCell className="text-right font-mono">{anovaResult.ssw.toFixed(2)}</TableCell>
                                                 <TableCell className="text-right font-mono">{anovaResult.msw.toFixed(2)}</TableCell>
@@ -195,14 +195,14 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders }: 
                         </div>
                         
                         <div>
-                            <h3 className="font-semibold mb-2">그룹별 통계</h3>
+                            <h3 className="font-semibold mb-2">Group Statistics</h3>
                              <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>그룹 ({groupVar})</TableHead>
-                                        <TableHead className="text-right">개수</TableHead>
-                                        <TableHead className="text-right">평균</TableHead>
-                                        <TableHead className="text-right">표준편차</TableHead>
+                                        <TableHead>Group ({groupVar})</TableHead>
+                                        <TableHead className="text-right">Count</TableHead>
+                                        <TableHead className="text-right">Mean</TableHead>
+                                        <TableHead className="text-right">Std. Dev.</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -221,7 +221,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders }: 
                 </Card>
             ) : (
                  <div className="text-center text-muted-foreground py-10">
-                    <p>분석할 변수를 선택하고 '분석 실행' 버튼을 클릭하세요.</p>
+                    <p>Select variables and click 'Run Analysis' to see the results.</p>
                 </div>
             )}
         </div>

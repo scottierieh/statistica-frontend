@@ -63,12 +63,12 @@ const Histogram = ({ data, column, onAnalyze }: { data: DataSet; column: string 
   
   const { bins, aiPromise } = onAnalyze() || {};
   
-  const chartConfig = column ? { [column]: { label: "빈도", color: "hsl(var(--chart-1))" } } : {};
+  const chartConfig = column ? { [column]: { label: "Frequency", color: "hsl(var(--chart-1))" } } : {};
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">분포: {column}</CardTitle>
+        <CardTitle className="font-headline">Distribution: {column}</CardTitle>
         <AIGeneratedDescription promise={aiPromise} />
       </CardHeader>
       <CardContent>
@@ -82,7 +82,7 @@ const Histogram = ({ data, column, onAnalyze }: { data: DataSet; column: string 
                     <Bar dataKey="count" fill="var(--color-primary)" radius={4} />
                 </BarChart>
             </ResponsiveContainer>
-        ) : <div className="h-80 w-full flex items-center justify-center text-muted-foreground">분석 실행 버튼을 눌러주세요.</div>}
+        ) : <div className="h-80 w-full flex items-center justify-center text-muted-foreground">Click 'Run Analysis' to generate the chart.</div>}
       </CardContent>
     </Card>
   );
@@ -95,7 +95,7 @@ const ScatterPlot = ({ data, xCol, yCol, onAnalyze }: { data: DataSet; xCol: str
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">{xCol}와(과) {yCol}의 관계</CardTitle>
+        <CardTitle className="font-headline">Relationship between {xCol} and {yCol}</CardTitle>
         <AIGeneratedDescription promise={aiPromise} />
       </CardHeader>
       <CardContent>
@@ -109,7 +109,7 @@ const ScatterPlot = ({ data, xCol, yCol, onAnalyze }: { data: DataSet; xCol: str
               <Scatter name={`${yCol} vs ${xCol}`} data={chartData} fill="var(--color-primary)" />
             </ScatterChart>
           </ResponsiveContainer>
-        ) : <div className="h-80 w-full flex items-center justify-center text-muted-foreground">분석 실행 버튼을 눌러주세요.</div>}
+        ) : <div className="h-80 w-full flex items-center justify-center text-muted-foreground">Click 'Run Analysis' to generate the chart.</div>}
       </CardContent>
     </Card>
   );
@@ -122,7 +122,7 @@ const LinePlot = ({ data, xCol, yCol, onAnalyze }: { data: DataSet; xCol: string
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="font-headline">{xCol}에 따른 {yCol}의 추세</CardTitle>
+                <CardTitle className="font-headline">Trend of {yCol} over {xCol}</CardTitle>
                  <AIGeneratedDescription promise={aiPromise} />
             </CardHeader>
             <CardContent>
@@ -136,7 +136,7 @@ const LinePlot = ({ data, xCol, yCol, onAnalyze }: { data: DataSet; xCol: string
                         <Line type="monotone" dataKey={yCol} stroke="var(--color-primary)" strokeWidth={2} dot={false} />
                     </LineChart>
                 </ResponsiveContainer>
-              ): <div className="h-80 w-full flex items-center justify-center text-muted-foreground">분석 실행 버튼을 눌러주세요.</div>}
+              ): <div className="h-80 w-full flex items-center justify-center text-muted-foreground">Click 'Run Analysis' to generate the chart.</div>}
             </CardContent>
         </Card>
     )
@@ -226,9 +226,9 @@ export default function VisualizationPage({ data, numericHeaders }: Visualizatio
         <div className="flex flex-1 items-center justify-center">
             <Card className="w-full max-w-lg text-center">
                 <CardHeader>
-                    <CardTitle className="font-headline">데이터 시각화</CardTitle>
+                    <CardTitle className="font-headline">Data Visualization</CardTitle>
                     <CardDescription>
-                        데이터를 시각화하려면 최소 하나 이상의 숫자형 변수가 포함된 데이터를 업로드해야 합니다.
+                        To visualize data, you need to upload data with at least one numeric variable.
                     </CardDescription>
                 </CardHeader>
             </Card>
@@ -240,18 +240,18 @@ export default function VisualizationPage({ data, numericHeaders }: Visualizatio
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
       <div className="flex flex-wrap gap-4 justify-between items-center">
         <TabsList>
-            <TabsTrigger value="histogram"><AreaChart className="mr-2" />히스토그램</TabsTrigger>
-            <TabsTrigger value="scatter" disabled={numericHeaders.length < 2}><ScatterIcon className="mr-2" />산점도</TabsTrigger>
-            <TabsTrigger value="line" disabled={numericHeaders.length < 2}><LineChartIcon className="mr-2" />선 그래프</TabsTrigger>
+            <TabsTrigger value="histogram"><AreaChart className="mr-2" />Histogram</TabsTrigger>
+            <TabsTrigger value="scatter" disabled={numericHeaders.length < 2}><ScatterIcon className="mr-2" />Scatter Plot</TabsTrigger>
+            <TabsTrigger value="line" disabled={numericHeaders.length < 2}><LineChartIcon className="mr-2" />Line Plot</TabsTrigger>
         </TabsList>
          <Button onClick={handleAnalysis}>
             <Sigma className="mr-2"/>
-            분석 실행
+            Run Analysis
         </Button>
       </div>
       <TabsContent value="histogram" className="mt-4">
         <div className="flex gap-4 items-center mb-4 p-4 border rounded-lg">
-            <label className="font-medium">변수:</label>
+            <label className="font-medium">Variable:</label>
             <Select value={histColumn} onValueChange={setHistColumn} disabled={numericHeaders.length === 0}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
@@ -261,12 +261,12 @@ export default function VisualizationPage({ data, numericHeaders }: Visualizatio
       </TabsContent>
       <TabsContent value="scatter" className="mt-4">
         <div className="flex flex-wrap gap-4 items-center mb-4 p-4 border rounded-lg">
-            <label className="font-medium">X축:</label>
+            <label className="font-medium">X-Axis:</label>
             <Select value={scatterX} onValueChange={setScatterX} disabled={numericHeaders.length === 0}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
             </Select>
-            <label className="font-medium">Y축:</label>
+            <label className="font-medium">Y-Axis:</label>
             <Select value={scatterY} onValueChange={setScatterY} disabled={numericHeaders.length === 0}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>{numericHeaders.filter(h => h !== scatterX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
@@ -276,12 +276,12 @@ export default function VisualizationPage({ data, numericHeaders }: Visualizatio
       </TabsContent>
       <TabsContent value="line" className="mt-4">
         <div className="flex flex-wrap gap-4 items-center mb-4 p-4 border rounded-lg">
-            <label className="font-medium">X축 (변수):</label>
+            <label className="font-medium">X-Axis (Variable):</label>
             <Select value={lineX} onValueChange={setLineX} disabled={numericHeaders.length === 0}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
             </Select>
-            <label className="font-medium">Y축 (값):</label>
+            <label className="font-medium">Y-Axis (Value):</label>
             <Select value={lineY} onValueChange={setLineY} disabled={numericHeaders.length === 0}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>{numericHeaders.filter(h => h !== lineX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>

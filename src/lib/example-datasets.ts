@@ -53,21 +53,21 @@ export const exampleDatasets: ExampleDataSet[] = [
     {
         id: 'iris',
         name: 'Iris Flowers',
-        description: '붓꽃 품종(setosa, versicolor, virginica)에 대한 꽃받침과 꽃잎 측정 데이터입니다.',
+        description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Database,
         data: irisData
     },
     {
         id: 'tips',
         name: 'Tips',
-        description: '식당 직원이 받은 팁과 고객, 청구서 정보에 대한 데이터입니다.',
+        description: 'Tips received by a restaurant server, along with customer and bill info.',
         icon: Coffee,
         data: tipsData
     },
     {
         id: 'cars',
         name: 'Cars',
-        description: '다양한 자동차 모델의 연비(MPG) 및 기타 사양에 대한 데이터입니다.',
+        description: 'Miles per gallon (MPG) and other specs for various car models.',
         icon: Car,
         data: carsData
     }

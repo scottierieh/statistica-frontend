@@ -6,7 +6,7 @@ export const parseData = (
 ): { headers: string[]; data: DataSet; numericHeaders: string[]; categoricalHeaders: string[] } => {
   const lines = fileContent.trim().split('\n').filter(line => line.trim() !== '');
   if (lines.length < 2) {
-      throw new Error("CSV 파일은 헤더와 최소 한 줄의 데이터를 포함해야 합니다.");
+      throw new Error("The file must contain a header and at least one row of data.");
   }
   
   const rawHeaders = lines[0].split(/[\t,]/).map(h => h.trim().replace(/"/g, ''));
@@ -27,7 +27,7 @@ export const parseData = (
   }
 
   if (data.length === 0) {
-      throw new Error("파일에서 파싱할 수 있는 데이터 행이 없습니다.");
+      throw new Error("No parsable data rows found in the file.");
   }
 
   const numericHeaders: string[] = [];

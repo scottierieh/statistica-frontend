@@ -48,9 +48,9 @@ export default function CorrelationPage({ data, numericHeaders }: CorrelationPag
       <div className="flex flex-1 items-center justify-center">
           <Card className="w-full max-w-lg text-center">
               <CardHeader>
-                  <CardTitle className="font-headline">상관 관계 분석</CardTitle>
+                  <CardTitle className="font-headline">Correlation Analysis</CardTitle>
                   <CardDescription>
-                      상관 관계 분석을 수행하려면 최소 2개 이상의 숫자형 변수가 포함된 데이터를 업로드해야 합니다.
+                      To perform a correlation analysis, you need to upload data with at least two numeric variables.
                   </CardDescription>
               </CardHeader>
           </Card>
@@ -62,8 +62,8 @@ export default function CorrelationPage({ data, numericHeaders }: CorrelationPag
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">상관 관계 분석 설정</CardTitle>
-          <CardDescription>분석할 숫자형 변수들을 선택한 후 '분석 실행' 버튼을 클릭하세요. (2개 이상 선택)</CardDescription>
+          <CardTitle className="font-headline">Correlation Analysis Setup</CardTitle>
+          <CardDescription>Select at least two numeric variables to analyze, then click 'Run Analysis'.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
             <ScrollArea className="h-48 border rounded-md p-4">
@@ -84,7 +84,7 @@ export default function CorrelationPage({ data, numericHeaders }: CorrelationPag
             </ScrollArea>
            <Button onClick={handleAnalysis} className="w-full md:w-auto self-end" disabled={selectedHeaders.length < 2}>
               <Sigma className="mr-2"/>
-              분석 실행
+              Run Analysis
             </Button>
         </CardContent>
       </Card>
@@ -94,8 +94,8 @@ export default function CorrelationPage({ data, numericHeaders }: CorrelationPag
       {results && !isLoading && (
         <Card>
           <CardHeader>
-              <CardTitle className="font-headline">상관 행렬</CardTitle>
-              <CardDescription>피어슨 상관 계수 (-1: 완전 음의 상관, 1: 완전 양의 상관)</CardDescription>
+              <CardTitle className="font-headline">Correlation Matrix</CardTitle>
+              <CardDescription>Pearson correlation coefficient (-1: perfect negative correlation, 1: perfect positive correlation)</CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-auto max-h-[70vh] w-full">
@@ -136,7 +136,7 @@ export default function CorrelationPage({ data, numericHeaders }: CorrelationPag
       )}
       {!results && !isLoading && (
         <div className="text-center text-muted-foreground py-10">
-          <p>분석할 변수를 선택하고 '분석 실행' 버튼을 클릭하세요.</p>
+          <p>Select variables and click 'Run Analysis' to see the results.</p>
         </div>
       )}
     </div>
