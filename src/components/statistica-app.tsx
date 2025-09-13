@@ -12,6 +12,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenu,
+  SidebarInput,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -20,7 +21,6 @@ import {
   FileText,
   Loader2,
   Link2,
-  SigmaSquare,
   BarChart2,
   Sigma,
   ChevronDown,
@@ -28,7 +28,6 @@ import {
   Bot,
   BrainCircuit,
   Presentation,
-  Book,
   Network,
   FlaskConical,
 } from 'lucide-react';
@@ -147,7 +146,7 @@ export default function StatisticaApp() {
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
   const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Visualization']);
-
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
   
@@ -279,6 +278,28 @@ export default function StatisticaApp() {
     )
   }
 
+  const filteredMenu = useMemo(() => {
+    if (!searchQuery) return analysisMenu;
+    const lowercasedQuery = searchQuery.toLowerCase();
+    
+    const filtered = analysisMenu.map(category => {
+      const filteredMethods = category.methods.filter(method => 
+        method.label.toLowerCase().includes(lowercasedQuery)
+      );
+      if (filteredMethods.length > 0 || category.field.toLowerCase().includes(lowercasedQuery)) {
+        return { ...category, methods: filteredMethods.length > 0 ? filteredMethods : category.methods };
+      }
+      return null;
+    }).filter((c): c is NonNullable<typeof c> => c !== null);
+
+    // Auto-expand categories that have search results
+    const categoriesToOpen = filtered.map(c => c.field);
+    setOpenCategories(categoriesToOpen);
+
+    return filtered;
+
+  }, [searchQuery]);
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -290,6 +311,11 @@ export default function StatisticaApp() {
               </div>
               <h1 className="text-xl font-headline font-bold">Statistica</h1>
             </div>
+             <SidebarInput 
+              placeholder="Search analyses..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </SidebarHeader>
           <SidebarContent className="flex flex-col gap-2 p-2">
             <div className='p-2'>
@@ -307,9 +333,20 @@ export default function StatisticaApp() {
             </div>
             
             <div className="flex-1 overflow-y-auto">
-              {analysisMenu.map((category) => {
+              {filteredMenu.map((category) => {
                 const Icon = category.icon;
                 const isOpen = openCategories.includes(category.field);
+                
+                // If searching, only show categories that match. If method matches, category should also show.
+                if (searchQuery && !category.field.toLowerCase().includes(searchQuery.toLowerCase()) && !category.methods.some(m => m.label.toLowerCase().includes(searchQuery.toLowerCase()))) {
+                  return null;
+                }
+
+                const methodsToShow = searchQuery ? category.methods.filter(m => m.label.toLowerCase().includes(searchQuery.toLowerCase())) : category.methods;
+
+                if(searchQuery && methodsToShow.length === 0 && !category.field.toLowerCase().includes(searchQuery.toLowerCase())) return null;
+
+
                 return (
                   <Collapsible key={category.field} open={isOpen} onOpenChange={() => toggleCategory(category.field)}>
                     <CollapsibleTrigger className="w-full">
@@ -321,7 +358,11 @@ export default function StatisticaApp() {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pl-6 py-1">
                       <SidebarMenu>
-                        {category.methods.map(method => (
+                        {category.methods.map(method => {
+                           if (searchQuery && !method.label.toLowerCase().includes(searchQuery.toLowerCase())) {
+                            return null;
+                          }
+                          return (
                           <SidebarMenuItem key={method.id}>
                               <SidebarMenuButton
                                   onClick={() => setActiveAnalysis(method.id as AnalysisType)}
@@ -332,7 +373,8 @@ export default function StatisticaApp() {
                                   <span>{method.label}</span>
                               </SidebarMenuButton>
                           </SidebarMenuItem>
-                        ))}
+                          )
+                        })}
                       </SidebarMenu>
                     </CollapsibleContent>
                   </Collapsible>
