@@ -68,6 +68,22 @@ export const parseData = (
   return { headers: rawHeaders, data: sanitizedData, numericHeaders, categoricalHeaders };
 };
 
+export const unparseData = (
+    { headers, data }: { headers: string[]; data: DataSet }
+): string => {
+    const headerRow = headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',');
+    const dataRows = data.map(row => {
+        return headers.map(header => {
+            const value = row[header];
+            if (typeof value === 'string') {
+                return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+        }).join(',');
+    });
+    return [headerRow, ...dataRows].join('\n');
+};
+
 
 const getColumn = (data: DataSet, column: string): (number | string)[] => {
     return data.map(row => row[column]).filter(val => val !== undefined && val !== null && val !== '');

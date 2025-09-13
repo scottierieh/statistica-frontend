@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -18,7 +18,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import {
   Calculator,
   FileText,
-  Trash2,
   Loader2,
   Link2,
   SigmaSquare,
@@ -28,6 +27,7 @@ import {
 import {
   type DataSet,
   parseData,
+  unparseData,
 } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
 import { getSummaryReport } from '@/app/actions';
@@ -37,6 +37,7 @@ import AnovaPage from './pages/anova-page';
 import VisualizationPage from './pages/visualization-page';
 import { type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
+import DataPreview from './data-preview';
 
 type AnalysisType = 'stats' | 'correlation' | 'anova' | 'visuals';
 
@@ -130,6 +131,28 @@ export default function StatisticaApp() {
     setFileName('');
   };
 
+  const handleDownloadData = () => {
+    if (data.length === 0) {
+      toast({ title: 'No Data to Download', description: 'There is no data currently loaded.' });
+      return;
+    }
+    try {
+      const csvContent = unparseData({ headers: allHeaders, data });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || 'statistica_data.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download data:', error);
+      toast({ variant: 'destructive', title: 'Download Error', description: 'Could not prepare data for download.' });
+    }
+  };
+
   const handleGenerateReport = async () => {
     if (data.length === 0) {
       toast({ title: 'No Data to Report', description: 'Please upload a file first.' });
@@ -163,6 +186,8 @@ export default function StatisticaApp() {
   
   const ActivePageComponent = activeAnalysis ? analysisPages[activeAnalysis] : null;
 
+  const hasData = data.length > 0;
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -183,8 +208,7 @@ export default function StatisticaApp() {
               />
               {fileName && (
                 <div className="mt-2 text-center">
-                  <p className="text-xs text-muted-foreground truncate">Active file: {fileName}</p>
-                   <Button variant="link" size="sm" className="text-xs h-auto p-0" onClick={handleClearData}>
+                   <Button variant="link" size="sm" className="text-xs h-auto p-0 text-muted-foreground hover:text-primary" onClick={handleClearData}>
                     Clear data
                   </Button>
                 </div>
@@ -210,7 +234,7 @@ export default function StatisticaApp() {
 
           </SidebarContent>
           <SidebarFooter>
-            <Button onClick={handleGenerateReport} disabled={isGeneratingReport || data.length === 0} className="w-full">
+            <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="w-full">
               {isGeneratingReport ? <Loader2 className="animate-spin" /> : <FileText />}
               {isGeneratingReport ? 'Generating...' : 'Generate Report'}
             </Button>
@@ -218,13 +242,22 @@ export default function StatisticaApp() {
         </Sidebar>
 
         <SidebarInset>
-          <div className="p-4 md:p-6 h-full flex flex-col">
-            <header className="flex items-center justify-between md:justify-end mb-4">
+          <div className="p-4 md:p-6 h-full flex flex-col gap-4">
+            <header className="flex items-center justify-between md:justify-end">
                 <SidebarTrigger className="md:hidden"/>
                 <h1 className="text-2xl font-headline font-bold md:hidden">Statistica</h1>
                 <div />
             </header>
             
+            {hasData && (
+              <DataPreview 
+                fileName={fileName}
+                data={data}
+                headers={allHeaders}
+                onDownload={handleDownloadData}
+              />
+            )}
+
             {ActivePageComponent && (
               <ActivePageComponent 
                 key={activeAnalysis} 
