@@ -20,6 +20,7 @@ import {
   Trash2,
   Filter,
   Loader2,
+  ListTree,
 } from 'lucide-react';
 import {
   type DataSet,
@@ -37,6 +38,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type Filter = {
   column: string;
@@ -47,6 +50,7 @@ type Filter = {
 export default function StatisticaApp() {
   const [data, setData] = useState<DataSet>([]);
   const [headers, setHeaders] = useState<string[]>([]);
+  const [selectedHeaders, setSelectedHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
   const [filters, setFilters] = useState<Filter[]>([]);
   const [report, setReport] = useState<{ title: string, content: string } | null>(null);
@@ -68,13 +72,13 @@ export default function StatisticaApp() {
 
   const stats = useMemo(() => {
     if (filteredData.length === 0) return {};
-    return calculateDescriptiveStats(filteredData, headers);
-  }, [filteredData, headers]);
+    return calculateDescriptiveStats(filteredData, selectedHeaders);
+  }, [filteredData, selectedHeaders]);
 
   const correlationMatrix = useMemo(() => {
     if (filteredData.length === 0) return [];
-    return calculateCorrelationMatrix(filteredData, headers);
-  }, [filteredData, headers]);
+    return calculateCorrelationMatrix(filteredData, selectedHeaders);
+  }, [filteredData, selectedHeaders]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -101,6 +105,7 @@ export default function StatisticaApp() {
         }
         setData(newData);
         setHeaders(newHeaders);
+        setSelectedHeaders(newHeaders);
         // Initialize filters
         const initialFilters = newHeaders.map(h => {
             const columnData = newData.map(row => row[h]);
@@ -129,6 +134,7 @@ export default function StatisticaApp() {
   const handleClearData = () => {
     setData([]);
     setHeaders([]);
+    setSelectedHeaders([]);
     setFileName('');
     setFilters([]);
   };
@@ -140,7 +146,7 @@ export default function StatisticaApp() {
     }
     setIsGeneratingReport(true);
     const statsString = JSON.stringify(stats, null, 2);
-    const vizString = "Charts for " + headers.join(', ');
+    const vizString = "Charts for " + selectedHeaders.join(', ');
 
     const result = await getSummaryReport({ statistics: statsString, visualizations: vizString });
     if (result.success && result.report) {
@@ -156,6 +162,12 @@ export default function StatisticaApp() {
       prevFilters.map(f =>
         f.column === column ? { ...f, min: newRange[0], max: newRange[1] } : f
       )
+    );
+  };
+
+  const handleHeaderSelectionChange = (header: string, checked: boolean) => {
+    setSelectedHeaders(prev => 
+      checked ? [...prev, header] : prev.filter(h => h !== header)
     );
   };
 
@@ -194,8 +206,8 @@ export default function StatisticaApp() {
               <h1 className="text-xl font-headline font-bold">Statistica</h1>
             </div>
           </SidebarHeader>
-          <SidebarContent className="flex flex-col gap-4">
-            <div>
+          <SidebarContent className="flex flex-col">
+            <div className='p-2'>
               <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv,.txt" className="hidden" />
               <Button onClick={triggerFileUpload} className="w-full" disabled={isUploading}>
                 {isUploading ? <Loader2 className="animate-spin" /> : <Upload />}
@@ -205,29 +217,55 @@ export default function StatisticaApp() {
             </div>
             
             {data.length > 0 && (
-                <div className="flex-grow overflow-y-auto px-2 space-y-4">
-                    <div className="flex items-center gap-2">
-                        <Filter className="w-4 h-4" />
-                        <h3 className="font-semibold">Data Filters</h3>
-                    </div>
-                    <Separator />
-                    {filters.map((filter, index) => (
-                        <div key={index} className="space-y-3">
-                            <Label className="text-sm font-medium">{filter.column}</Label>
-                             <div className='flex gap-2 items-center text-xs text-muted-foreground'>
-                                <span>{filter.min.toFixed(2)}</span>
-                                <Slider
-                                    min={dataExtents[filter.column]?.min}
-                                    max={dataExtents[filter.column]?.max}
-                                    step={(dataExtents[filter.column]?.max - dataExtents[filter.column]?.min) / 100}
-                                    value={[filter.min, filter.max]}
-                                    onValueChange={(newRange) => handleFilterChange(filter.column, newRange)}
-                                />
-                                <span>{filter.max.toFixed(2)}</span>
-                            </div>
+                <ScrollArea className="flex-grow px-2">
+                    <div className="space-y-4 p-2">
+                        <div className="flex items-center gap-2">
+                            <ListTree className="w-4 h-4" />
+                            <h3 className="font-semibold">Variables</h3>
                         </div>
-                    ))}
-                </div>
+                        <Separator />
+                        <div className='space-y-2'>
+                          {headers.map(header => (
+                            <div key={header} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={header}
+                                checked={selectedHeaders.includes(header)}
+                                onCheckedChange={(checked) => handleHeaderSelectionChange(header, checked as boolean)}
+                              />
+                              <label
+                                htmlFor={header}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                {header}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                    </div>
+                    <div className="space-y-4 p-2">
+                        <div className="flex items-center gap-2">
+                            <Filter className="w-4 h-4" />
+                            <h3 className="font-semibold">Data Filters</h3>
+                        </div>
+                        <Separator />
+                        {filters.map((filter, index) => (
+                            <div key={index} className="space-y-3">
+                                <Label className="text-sm font-medium">{filter.column}</Label>
+                                <div className='flex gap-2 items-center text-xs text-muted-foreground'>
+                                    <span>{filter.min.toFixed(2)}</span>
+                                    <Slider
+                                        min={dataExtents[filter.column]?.min}
+                                        max={dataExtents[filter.column]?.max}
+                                        step={(dataExtents[filter.column]?.max - dataExtents[filter.column]?.min) / 100}
+                                        value={[filter.min, filter.max]}
+                                        onValueChange={(newRange) => handleFilterChange(filter.column, newRange)}
+                                    />
+                                    <span>{filter.max.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
             )}
 
           </SidebarContent>
@@ -254,7 +292,7 @@ export default function StatisticaApp() {
             {data.length > 0 ? (
               <AnalysisDashboard
                 data={filteredData}
-                headers={headers}
+                headers={selectedHeaders}
                 stats={stats}
                 correlationMatrix={correlationMatrix}
               />

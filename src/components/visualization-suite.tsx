@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,8 +12,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
-  ResponsiveContainer,
   Scatter,
   Line,
 } from 'recharts';
@@ -32,12 +30,16 @@ const AIGeneratedDescription = ({ promise }: { promise: Promise<string | null> }
   const [description, setDescription] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useMemo(() => {
+  useEffect(() => {
+    let isMounted = true;
     setLoading(true);
     promise.then((desc) => {
-        setDescription(desc);
-        setLoading(false);
+        if (isMounted) {
+            setDescription(desc);
+            setLoading(false);
+        }
     });
+    return () => { isMounted = false; };
   }, [promise]);
   
   if (loading) return <Skeleton className="h-12 w-full" />;
@@ -68,7 +70,7 @@ const Histogram = ({ data, column }: { data: DataSet; column: string }) => {
       }
     });
     return newBins;
-  }, [data, column]);
+  }, [data, column, min, binWidth, binCount, values]);
   
   const aiPromise = useMemo(() => getVisualizationDescription({
       dataDescription: `A dataset with a column '${column}'`,
@@ -167,7 +169,6 @@ const LinePlot = ({ data, xCol, yCol }: { data: DataSet; xCol: string; yCol: str
                         <XAxis dataKey={xCol} name={xCol} type="number" domain={['dataMin', 'dataMax']} allowDuplicatedCategory={false} />
                         <YAxis dataKey={yCol} name={yCol} />
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Legend />
                         <Line type="monotone" dataKey={yCol} stroke="var(--color-primary)" strokeWidth={2} dot={false} />
                     </LineChart>
                 </ChartContainer>
@@ -179,9 +180,29 @@ const LinePlot = ({ data, xCol, yCol }: { data: DataSet; xCol: string; yCol: str
 export default function VisualizationSuite({ data, headers }: VisualizationSuiteProps) {
   const [histColumn, setHistColumn] = useState(headers[0]);
   const [scatterX, setScatterX] = useState(headers[0]);
-  const [scatterY, setScatterY] = useState(headers[1] || headers[0]);
+  const [scatterY, setScatterY] = useState(headers.length > 1 ? headers[1] : headers[0]);
   const [lineX, setLineX] = useState(headers[0]);
-  const [lineY, setLineY] = useState(headers[1] || headers[0]);
+  const [lineY, setLineY] = useState(headers.length > 1 ? headers[1] : headers[0]);
+
+  useEffect(() => {
+    if (!headers.includes(histColumn)) {
+        setHistColumn(headers[0]);
+    }
+    if (!headers.includes(scatterX)) {
+        setScatterX(headers[0]);
+    }
+    if (!headers.includes(scatterY) || scatterX === scatterY) {
+        const newY = headers.find(h => h !== scatterX) || headers[0];
+        setScatterY(newY);
+    }
+     if (!headers.includes(lineX)) {
+        setLineX(headers[0]);
+    }
+    if (!headers.includes(lineY) || lineX === lineY) {
+        const newY = headers.find(h => h !== lineX) || headers[0];
+        setLineY(newY);
+    }
+  }, [headers, histColumn, scatterX, scatterY, lineX, lineY]);
   
 
   return (

@@ -21,7 +21,7 @@ const formatValue = (value: any) => {
         return value.toFixed(3);
     }
     if (Array.isArray(value)) {
-        return value.map(v => v.toFixed(2)).join(', ');
+        return value.map(v => typeof v === 'number' ? v.toFixed(2) : v).join(', ');
     }
     return value;
 }
@@ -35,7 +35,7 @@ const StatCard = ({ title, data }: { title: string; data: any }) => (
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
         {Object.entries(data).map(([key, value]) => (
           <>
-            <dt className="capitalize text-muted-foreground">{key.replace('p25', 'P25').replace('p75', 'P75').replace('iqr', 'IQR')}</dt>
+            <dt className="capitalize text-muted-foreground">{key.replace('p25', 'P25').replace('p75', 'P75').replace('iqr', 'IQR').replace('stdDev', 'Std Dev')}</dt>
             <dd className="font-mono text-right flex justify-end items-center gap-1">
                 {Array.isArray(value) ? (
                     <div className="flex flex-wrap gap-1 justify-end">
@@ -53,26 +53,32 @@ const StatCard = ({ title, data }: { title: string; data: any }) => (
 );
 
 export default function AnalysisDashboard({ data, headers, stats, correlationMatrix }: AnalysisDashboardProps) {
-  const isLoading = Object.keys(stats).length === 0;
+  const isLoading = Object.keys(stats).length === 0 && headers.length > 0;
+  const hasData = headers.length > 0;
 
   return (
     <Tabs defaultValue="stats" className="flex-grow flex flex-col">
       <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="stats"><Sigma className="mr-2" />Descriptive Statistics</TabsTrigger>
-        <TabsTrigger value="correlation"><Link2 className="mr-2" />Correlation Analysis</TabsTrigger>
-        <TabsTrigger value="visuals"><BarChart2 className="mr-2" />Data Visualization</TabsTrigger>
+        <TabsTrigger value="stats" disabled={!hasData}><Sigma className="mr-2" />Descriptive Statistics</TabsTrigger>
+        <TabsTrigger value="correlation" disabled={!hasData}><Link2 className="mr-2" />Correlation Analysis</TabsTrigger>
+        <TabsTrigger value="visuals" disabled={!hasData}><BarChart2 className="mr-2" />Data Visualization</TabsTrigger>
       </TabsList>
 
       <TabsContent value="stats" className="flex-grow mt-4">
         <ScrollArea className="h-full">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pr-4">
-                {isLoading
+                {isLoading 
                 ? headers.map((h) => (
                     <Card key={h}><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><div className="space-y-2">{Array(13).fill(0).map((_,i)=><Skeleton key={i} className="h-4 w-full"/>)}</div></CardContent></Card>
                     ))
                 : headers.map((header) => (
                     stats[header] && <StatCard key={header} title={header} data={stats[header]} />
                 ))}
+                {!isLoading && headers.length === 0 && (
+                  <div className="col-span-full text-center text-muted-foreground">
+                    <p>Select variables from the sidebar to see descriptive statistics.</p>
+                  </div>
+                )}
             </div>
         </ScrollArea>
       </TabsContent>
@@ -84,6 +90,7 @@ export default function AnalysisDashboard({ data, headers, stats, correlationMat
                 <CardDescription>Pearson correlation coefficients between variables. Values range from -1 (total negative correlation) to 1 (total positive correlation).</CardDescription>
             </CardHeader>
             <CardContent>
+              {headers.length > 0 ? (
                 <ScrollArea className="h-[60vh] w-full">
                     <Table>
                         <TableHeader>
@@ -104,7 +111,7 @@ export default function AnalysisDashboard({ data, headers, stats, correlationMat
                                         const opacity = !isNaN(value as number) ? Math.abs(value!) : 0;
                                         return (
                                             <TableCell key={h2} className={`text-center font-mono transition-colors ${colorClass}`} style={{opacity: opacity*0.7 + 0.3}}>
-                                                {value !== null ? isNaN(value) ? 'N/A' : value.toFixed(3) : <Skeleton className="h-5 w-12 mx-auto" />}
+                                                {value !== null && value !== undefined ? isNaN(value) ? 'N/A' : value.toFixed(3) : <Skeleton className="h-5 w-12 mx-auto" />}
                                             </TableCell>
                                         )
                                     })}
@@ -113,12 +120,23 @@ export default function AnalysisDashboard({ data, headers, stats, correlationMat
                         </TableBody>
                     </Table>
                 </ScrollArea>
+              ) : (
+                <div className="h-[60vh] flex items-center justify-center text-muted-foreground">
+                  <p>Select two or more variables to see the correlation matrix.</p>
+                </div>
+              )}
             </CardContent>
         </Card>
       </TabsContent>
 
       <TabsContent value="visuals" className="flex-grow mt-4">
-        <VisualizationSuite data={data} headers={headers} />
+        {headers.length > 0 ? (
+          <VisualizationSuite data={data} headers={headers} />
+        ) : (
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <p>Select variables from the sidebar to generate visualizations.</p>
+          </div>
+        )}
       </TabsContent>
     </Tabs>
   );
