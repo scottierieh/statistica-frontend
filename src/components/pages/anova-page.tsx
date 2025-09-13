@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sigma, AlertCircle } from 'lucide-react';
+import { Sigma, AlertCircle, Loader2 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
