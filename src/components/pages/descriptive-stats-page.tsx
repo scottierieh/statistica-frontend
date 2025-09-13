@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 import { useState, useMemo, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { calculateDescriptiveStats } from '@/lib/stats';
