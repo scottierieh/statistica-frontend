@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sigma, Link2, BarChart2, BetweenHorizontalStart } from 'lucide-react';
+import { Sigma, Link2, BarChart2, SigmaSquare } from 'lucide-react';
 import type { DataSet } from '@/lib/stats';
 import VisualizationSuite from './visualization-suite';
 import AnovaTab from './anova-tab';
@@ -67,7 +67,7 @@ export default function AnalysisDashboard({ data, numericHeaders, categoricalHea
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="stats" disabled={!hasData}><Sigma className="mr-2" />Descriptive Statistics</TabsTrigger>
         <TabsTrigger value="correlation" disabled={!hasData || numericHeaders.length < 2}><Link2 className="mr-2" />Correlation Analysis</TabsTrigger>
-        <TabsTrigger value="anova" disabled={!hasData || !hasNumericData || !hasCategoricalData}><BetweenHorizontalStart className="mr-2" />ANOVA</TabsTrigger>
+        <TabsTrigger value="anova" disabled={!hasData || !hasNumericData || !hasCategoricalData}><SigmaSquare className="mr-2" />ANOVA</TabsTrigger>
         <TabsTrigger value="visuals" disabled={!hasData || !hasNumericData}><BarChart2 className="mr-2" />Data Visualization</TabsTrigger>
       </TabsList>
 
