@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AreaChart, LineChart, ScatterChart as ScatterIcon } from 'lucide-react';
+import { AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -12,7 +12,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ScatterChart,
   Scatter,
+  LineChart,
   Line,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -50,13 +52,15 @@ const AIGeneratedDescription = ({ promise }: { promise: Promise<string | null> }
 
 const Histogram = ({ data, column }: { data: DataSet; column: string }) => {
   const {toast} = useToast();
-  const values = data.map(d => d[column]);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const binCount = Math.max(10, Math.floor(Math.sqrt(data.length)));
-  const binWidth = (max - min) / binCount;
+  const values = useMemo(() => data.map(d => d[column]).filter(v => typeof v === 'number') as number[], [data, column]);
+  
+  const { bins, binCount } = useMemo(() => {
+    if (values.length === 0) return { bins: [], binCount: 0 };
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const binCount = Math.max(10, Math.floor(Math.sqrt(values.length)));
+    const binWidth = (max - min) / binCount;
 
-  const bins = useMemo(() => {
     const newBins = Array.from({ length: binCount }, (_, i) => ({
       name: `${(min + i * binWidth).toFixed(1)}-${(min + (i + 1) * binWidth).toFixed(1)}`,
       count: 0,
@@ -64,13 +68,13 @@ const Histogram = ({ data, column }: { data: DataSet; column: string }) => {
 
     values.forEach(value => {
       let binIndex = Math.floor((value - min) / binWidth);
-      if (binIndex === binCount) binIndex--;
+      if (binIndex >= binCount) binIndex = binCount - 1;
       if (newBins[binIndex]) {
         newBins[binIndex].count++;
       }
     });
-    return newBins;
-  }, [data, column, min, binWidth, binCount, values]);
+    return { bins: newBins, binCount };
+  }, [values]);
   
   const aiPromise = useMemo(() => getVisualizationDescription({
       dataDescription: `A dataset with a column '${column}'`,
@@ -107,7 +111,7 @@ const Histogram = ({ data, column }: { data: DataSet; column: string }) => {
 
 const ScatterPlot = ({ data, xCol, yCol }: { data: DataSet; xCol: string; yCol: string }) => {
   const {toast} = useToast();
-  const chartData = data.map(d => ({ [xCol]: d[xCol], [yCol]: d[yCol] }));
+  const chartData = useMemo(() => data.map(d => ({ [xCol]: d[xCol], [yCol]: d[yCol] })).filter(d => typeof d[xCol] === 'number' && typeof d[yCol] === 'number'), [data, xCol, yCol]);
   const chartConfig = { [yCol]: { label: yCol, color: "hsl(var(--chart-1))" } };
 
   const aiPromise = useMemo(() => getVisualizationDescription({
@@ -143,7 +147,7 @@ const ScatterPlot = ({ data, xCol, yCol }: { data: DataSet; xCol: string; yCol: 
 
 const LinePlot = ({ data, xCol, yCol }: { data: DataSet; xCol: string; yCol: string }) => {
     const {toast} = useToast();
-    const chartData = useMemo(() => data.map(d => ({ [xCol]: d[xCol], [yCol]: d[yCol] })).sort((a,b) => a[xCol] - b[xCol]), [data, xCol, yCol]);
+    const chartData = useMemo(() => data.map(d => ({ [xCol]: d[xCol], [yCol]: d[yCol] })).filter(d => typeof d[xCol] === 'number' && typeof d[yCol] === 'number').sort((a,b) => (a[xCol] as number) - (b[xCol] as number)), [data, xCol, yCol]);
     const chartConfig = { [yCol]: { label: yCol, color: "hsl(var(--chart-1))" } };
 
     const aiPromise = useMemo(() => getVisualizationDescription({
@@ -210,7 +214,7 @@ export default function VisualizationSuite({ data, headers }: VisualizationSuite
       <TabsList>
         <TabsTrigger value="histogram"><AreaChart className="mr-2" />Histogram</TabsTrigger>
         <TabsTrigger value="scatter" disabled={headers.length < 2}><ScatterIcon className="mr-2" />Scatter Plot</TabsTrigger>
-        <TabsTrigger value="line" disabled={headers.length < 2}><LineChart className="mr-2" />Line Chart</TabsTrigger>
+        <TabsTrigger value="line" disabled={headers.length < 2}><LineChartIcon className="mr-2" />Line Chart</TabsTrigger>
       </TabsList>
       <TabsContent value="histogram" className="mt-4">
         <div className="flex gap-4 items-center mb-4">

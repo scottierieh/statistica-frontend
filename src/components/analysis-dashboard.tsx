@@ -4,14 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sigma, Link2, BarChart2 } from 'lucide-react';
+import { Sigma, Link2, BarChart2, BetweenHorizontalStart } from 'lucide-react';
 import type { DataSet } from '@/lib/stats';
 import VisualizationSuite from './visualization-suite';
+import AnovaTab from './anova-tab';
 import { Badge } from '@/components/ui/badge';
 
 interface AnalysisDashboardProps {
   data: DataSet;
-  headers: string[];
+  numericHeaders: string[];
+  categoricalHeaders: string[];
+  allSelectedHeaders: string[];
   stats: Record<string, any>;
   correlationMatrix: (number | null)[][];
 }
@@ -21,15 +24,16 @@ const formatValue = (value: any) => {
         return value.toFixed(3);
     }
     if (Array.isArray(value)) {
-        return value.map(v => typeof v === 'number' ? v.toFixed(2) : v).join(', ');
+        return value.map(v => typeof v === 'number' ? v.toFixed(2) : String(v)).join(', ');
     }
-    return value;
+    return String(value);
 }
 
-const StatCard = ({ title, data }: { title: string; data: any }) => (
+const StatCard = ({ title, data, isNumeric }: { title: string; data: any; isNumeric: boolean }) => (
   <Card>
     <CardHeader>
       <CardTitle className="font-headline">{title}</CardTitle>
+      <CardDescription>{isNumeric ? "Numeric" : "Categorical"}</CardDescription>
     </CardHeader>
     <CardContent>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -52,29 +56,32 @@ const StatCard = ({ title, data }: { title: string; data: any }) => (
   </Card>
 );
 
-export default function AnalysisDashboard({ data, headers, stats, correlationMatrix }: AnalysisDashboardProps) {
-  const isLoading = Object.keys(stats).length === 0 && headers.length > 0;
-  const hasData = headers.length > 0;
+export default function AnalysisDashboard({ data, numericHeaders, categoricalHeaders, allSelectedHeaders, stats, correlationMatrix }: AnalysisDashboardProps) {
+  const isLoading = Object.keys(stats).length === 0 && allSelectedHeaders.length > 0;
+  const hasData = allSelectedHeaders.length > 0;
+  const hasNumericData = numericHeaders.length > 0;
+  const hasCategoricalData = categoricalHeaders.length > 0;
 
   return (
     <Tabs defaultValue="stats" className="flex-grow flex flex-col">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="stats" disabled={!hasData}><Sigma className="mr-2" />Descriptive Statistics</TabsTrigger>
-        <TabsTrigger value="correlation" disabled={!hasData}><Link2 className="mr-2" />Correlation Analysis</TabsTrigger>
-        <TabsTrigger value="visuals" disabled={!hasData}><BarChart2 className="mr-2" />Data Visualization</TabsTrigger>
+        <TabsTrigger value="correlation" disabled={!hasData || numericHeaders.length < 2}><Link2 className="mr-2" />Correlation Analysis</TabsTrigger>
+        <TabsTrigger value="anova" disabled={!hasData || !hasNumericData || !hasCategoricalData}><BetweenHorizontalStart className="mr-2" />ANOVA</TabsTrigger>
+        <TabsTrigger value="visuals" disabled={!hasData || !hasNumericData}><BarChart2 className="mr-2" />Data Visualization</TabsTrigger>
       </TabsList>
 
       <TabsContent value="stats" className="flex-grow mt-4">
         <ScrollArea className="h-full">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pr-4">
                 {isLoading 
-                ? headers.map((h) => (
-                    <Card key={h}><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><div className="space-y-2">{Array(13).fill(0).map((_,i)=><Skeleton key={i} className="h-4 w-full"/>)}</div></CardContent></Card>
+                ? allSelectedHeaders.map((h) => (
+                    <Card key={h}><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><div className="space-y-2">{Array(8).fill(0).map((_,i)=><Skeleton key={i} className="h-4 w-full"/>)}</div></CardContent></Card>
                     ))
-                : headers.map((header) => (
-                    stats[header] && <StatCard key={header} title={header} data={stats[header]} />
+                : allSelectedHeaders.map((header) => (
+                    stats[header] && <StatCard key={header} title={header} data={stats[header]} isNumeric={numericHeaders.includes(header)} />
                 ))}
-                {!isLoading && headers.length === 0 && (
+                {!isLoading && allSelectedHeaders.length === 0 && (
                   <div className="col-span-full text-center text-muted-foreground">
                     <p>Select variables from the sidebar to see descriptive statistics.</p>
                   </div>
@@ -87,23 +94,23 @@ export default function AnalysisDashboard({ data, headers, stats, correlationMat
         <Card className="h-full">
             <CardHeader>
                 <CardTitle className="font-headline">Correlation Matrix</CardTitle>
-                <CardDescription>Pearson correlation coefficients between variables. Values range from -1 (total negative correlation) to 1 (total positive correlation).</CardDescription>
+                <CardDescription>Pearson correlation coefficients between numeric variables. Values range from -1 (total negative correlation) to 1 (total positive correlation).</CardDescription>
             </CardHeader>
             <CardContent>
-              {headers.length > 0 ? (
+              {numericHeaders.length > 1 ? (
                 <ScrollArea className="h-[60vh] w-full">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead></TableHead>
-                                {headers.map(h => <TableHead key={h} className="text-center">{h}</TableHead>)}
+                                {numericHeaders.map(h => <TableHead key={h} className="text-center">{h}</TableHead>)}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {headers.map((h1, i) => (
+                            {numericHeaders.map((h1, i) => (
                                 <TableRow key={h1}>
                                     <TableHead>{h1}</TableHead>
-                                    {headers.map((h2, j) => {
+                                    {numericHeaders.map((h2, j) => {
                                         const value = correlationMatrix[i]?.[j];
                                         const colorClass = !isNaN(value as number)
                                             ? value! > 0 ? `bg-sky-100/50 dark:bg-sky-900/50` : `bg-red-100/50 dark:bg-red-900/50`
@@ -122,19 +129,29 @@ export default function AnalysisDashboard({ data, headers, stats, correlationMat
                 </ScrollArea>
               ) : (
                 <div className="h-[60vh] flex items-center justify-center text-muted-foreground">
-                  <p>Select two or more variables to see the correlation matrix.</p>
+                  <p>Select two or more numeric variables to see the correlation matrix.</p>
                 </div>
               )}
             </CardContent>
         </Card>
       </TabsContent>
 
-      <TabsContent value="visuals" className="flex-grow mt-4">
-        {headers.length > 0 ? (
-          <VisualizationSuite data={data} headers={headers} />
+       <TabsContent value="anova" className="flex-grow mt-4">
+        {hasNumericData && hasCategoricalData ? (
+          <AnovaTab data={data} numericHeaders={numericHeaders} categoricalHeaders={categoricalHeaders} />
         ) : (
           <div className="h-full flex items-center justify-center text-muted-foreground">
-            <p>Select variables from the sidebar to generate visualizations.</p>
+            <p>ANOVA requires at least one numeric and one categorical variable to be selected.</p>
+          </div>
+        )}
+      </TabsContent>
+
+      <TabsContent value="visuals" className="flex-grow mt-4">
+        {numericHeaders.length > 0 ? (
+          <VisualizationSuite data={data} headers={numericHeaders} />
+        ) : (
+          <div className="h-full flex items-center justify-center text-muted-foreground">
+            <p>Select numeric variables from the sidebar to generate visualizations.</p>
           </div>
         )}
       </TabsContent>

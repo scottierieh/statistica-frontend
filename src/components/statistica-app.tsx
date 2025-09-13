@@ -24,7 +24,6 @@ import {
 } from 'lucide-react';
 import {
   type DataSet,
-  type DataPoint,
   parseData,
   calculateDescriptiveStats,
   calculateCorrelationMatrix,
@@ -49,7 +48,9 @@ type Filter = {
 
 export default function StatisticaApp() {
   const [data, setData] = useState<DataSet>([]);
-  const [headers, setHeaders] = useState<string[]>([]);
+  const [allHeaders, setAllHeaders] = useState<string[]>([]);
+  const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
+  const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
   const [selectedHeaders, setSelectedHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
   const [filters, setFilters] = useState<Filter[]>([]);
@@ -65,6 +66,7 @@ export default function StatisticaApp() {
     return data.filter(row => {
       return filters.every(filter => {
         const value = row[filter.column];
+        if (typeof value !== 'number') return true; // Don't filter non-numeric columns this way
         return value >= filter.min && value <= filter.max;
       });
     });
@@ -77,8 +79,10 @@ export default function StatisticaApp() {
 
   const correlationMatrix = useMemo(() => {
     if (filteredData.length === 0) return [];
-    return calculateCorrelationMatrix(filteredData, selectedHeaders);
-  }, [filteredData, selectedHeaders]);
+    // Only use numeric headers for correlation matrix
+    const selectedNumericHeaders = selectedHeaders.filter(h => numericHeaders.includes(h));
+    return calculateCorrelationMatrix(filteredData, selectedNumericHeaders);
+  }, [filteredData, selectedHeaders, numericHeaders]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -99,21 +103,26 @@ export default function StatisticaApp() {
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        const { headers: newHeaders, data: newData } = parseData(content);
+        const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
+        
         if (newData.length === 0 || newHeaders.length === 0) {
-          throw new Error("No valid numerical data found in the file.");
+          throw new Error("No valid data found in the file.");
         }
         setData(newData);
-        setHeaders(newHeaders);
+        setAllHeaders(newHeaders);
+        setNumericHeaders(newNumericHeaders);
+        setCategoricalHeaders(newCategoricalHeaders);
         setSelectedHeaders(newHeaders);
-        // Initialize filters
-        const initialFilters = newHeaders.map(h => {
-            const columnData = newData.map(row => row[h]);
+        
+        // Initialize filters only for numeric columns
+        const initialFilters = newNumericHeaders.map(h => {
+            const columnData = newData.map(row => row[h]).filter(v => typeof v === 'number') as number[];
             const min = Math.min(...columnData);
             const max = Math.max(...columnData);
             return { column: h, min, max, currentMin: min, currentMax: max };
         });
         setFilters(initialFilters.map(f => ({ column: f.column, min: f.currentMin, max: f.currentMax })));
+
       } catch (error: any) {
         toast({
           variant: 'destructive',
@@ -133,7 +142,9 @@ export default function StatisticaApp() {
 
   const handleClearData = () => {
     setData([]);
-    setHeaders([]);
+    setAllHeaders([]);
+    setNumericHeaders([]);
+    setCategoricalHeaders([]);
     setSelectedHeaders([]);
     setFileName('');
     setFilters([]);
@@ -186,12 +197,14 @@ export default function StatisticaApp() {
 
   const dataExtents = useMemo(() => {
     const extents: Record<string, { min: number, max: number }> = {};
-    headers.forEach(h => {
-        const columnData = data.map(row => row[h]);
-        extents[h] = { min: Math.min(...columnData), max: Math.max(...columnData) };
+    numericHeaders.forEach(h => {
+        const columnData = data.map(row => row[h]).filter(v => typeof v === 'number') as number[];
+        if (columnData.length > 0) {
+            extents[h] = { min: Math.min(...columnData), max: Math.max(...columnData) };
+        }
     });
     return extents;
-  }, [data, headers]);
+  }, [data, numericHeaders]);
 
 
   return (
@@ -225,7 +238,7 @@ export default function StatisticaApp() {
                         </div>
                         <Separator />
                         <div className='space-y-2'>
-                          {headers.map(header => (
+                          {allHeaders.map(header => (
                             <div key={header} className="flex items-center space-x-2">
                               <Checkbox
                                 id={header}
@@ -242,29 +255,33 @@ export default function StatisticaApp() {
                           ))}
                         </div>
                     </div>
-                    <div className="space-y-4 p-2">
-                        <div className="flex items-center gap-2">
-                            <Filter className="w-4 h-4" />
-                            <h3 className="font-semibold">Data Filters</h3>
-                        </div>
-                        <Separator />
-                        {filters.map((filter, index) => (
-                            <div key={index} className="space-y-3">
-                                <Label className="text-sm font-medium">{filter.column}</Label>
-                                <div className='flex gap-2 items-center text-xs text-muted-foreground'>
-                                    <span>{filter.min.toFixed(2)}</span>
-                                    <Slider
-                                        min={dataExtents[filter.column]?.min}
-                                        max={dataExtents[filter.column]?.max}
-                                        step={(dataExtents[filter.column]?.max - dataExtents[filter.column]?.min) / 100}
-                                        value={[filter.min, filter.max]}
-                                        onValueChange={(newRange) => handleFilterChange(filter.column, newRange)}
-                                    />
-                                    <span>{filter.max.toFixed(2)}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    {numericHeaders.length > 0 && filters.length > 0 && (
+                      <div className="space-y-4 p-2">
+                          <div className="flex items-center gap-2">
+                              <Filter className="w-4 h-4" />
+                              <h3 className="font-semibold">Data Filters</h3>
+                          </div>
+                          <Separator />
+                          {filters.map((filter) => (
+                              <div key={filter.column} className="space-y-3">
+                                  <Label className="text-sm font-medium">{filter.column}</Label>
+                                  {dataExtents[filter.column] && (
+                                    <div className='flex gap-2 items-center text-xs text-muted-foreground'>
+                                        <span>{filter.min.toFixed(2)}</span>
+                                        <Slider
+                                            min={dataExtents[filter.column]?.min}
+                                            max={dataExtents[filter.column]?.max}
+                                            step={(dataExtents[filter.column]?.max - dataExtents[filter.column]?.min) / 100}
+                                            value={[filter.min, filter.max]}
+                                            onValueChange={(newRange) => handleFilterChange(filter.column, newRange)}
+                                        />
+                                        <span>{filter.max.toFixed(2)}</span>
+                                    </div>
+                                  )}
+                              </div>
+                          ))}
+                      </div>
+                    )}
                 </ScrollArea>
             )}
 
@@ -292,7 +309,9 @@ export default function StatisticaApp() {
             {data.length > 0 ? (
               <AnalysisDashboard
                 data={filteredData}
-                headers={selectedHeaders}
+                numericHeaders={numericHeaders.filter(h => selectedHeaders.includes(h))}
+                categoricalHeaders={categoricalHeaders.filter(h => selectedHeaders.includes(h))}
+                allSelectedHeaders={selectedHeaders}
                 stats={stats}
                 correlationMatrix={correlationMatrix}
               />

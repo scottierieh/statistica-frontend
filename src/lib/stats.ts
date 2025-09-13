@@ -1,44 +1,66 @@
-export type DataPoint = Record<string, number>;
+export type DataPoint = Record<string, number | string>;
 export type DataSet = DataPoint[];
 
-export const parseData = (fileContent: string): { headers: string[]; data: DataSet } => {
+export const parseData = (
+  fileContent: string
+): { headers: string[]; data: DataSet; numericHeaders: string[]; categoricalHeaders: string[] } => {
   const lines = fileContent.trim().split('\n');
   const rawHeaders = lines[0].split(/[\t,]/).map(h => h.trim());
-  
-  const data: Record<string, any>[] = [];
+
+  const data: DataPoint[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(/[\t,]/);
     if (values.length !== rawHeaders.length) continue;
-    
-    const dataPoint: Record<string, any> = {};
+
+    const dataPoint: DataPoint = {};
     rawHeaders.forEach((header, index) => {
-        const trimmedValue = values[index]?.trim();
-        const numValue = parseFloat(trimmedValue);
-        dataPoint[header] = isNaN(numValue) ? trimmedValue : numValue;
+      const trimmedValue = values[index]?.trim();
+      const numValue = parseFloat(trimmedValue);
+      dataPoint[header] = isNaN(numValue) || trimmedValue === '' ? trimmedValue : numValue;
     });
-    data.push(dataPoint);
+    data.push(data);
   }
-  
-  const numericHeaders = rawHeaders.filter(header => 
-      data.every(row => typeof row[header] === 'number')
-  );
-  
-  const numericData = data.map(row => {
-      const newRow: DataPoint = {};
-      numericHeaders.forEach(header => {
-          newRow[header] = row[header];
-      });
-      return newRow;
-  }).filter(row => numericHeaders.every(header => typeof row[header] === 'number'));
 
-  return { headers: numericHeaders, data: numericData };
+  const numericHeaders: string[] = [];
+  const categoricalHeaders: string[] = [];
+
+  rawHeaders.forEach(header => {
+    const isNumeric = data.every(row => {
+        const value = row[header];
+        return typeof value === 'number' || value === '' || value === undefined;
+    });
+
+    if (isNumeric) {
+        numericHeaders.push(header);
+    } else {
+        categoricalHeaders.push(header);
+    }
+  });
+  
+  const sanitizedData = data.map(row => {
+    const newRow: DataPoint = {};
+    rawHeaders.forEach(header => {
+      if (numericHeaders.includes(header)) {
+        newRow[header] = typeof row[header] === 'number' ? row[header] : NaN;
+      } else {
+        newRow[header] = row[header];
+      }
+    });
+    return newRow;
+  });
+
+  return { headers: rawHeaders, data: sanitizedData, numericHeaders, categoricalHeaders };
 };
 
 
-const getColumn = (data: DataSet, column: string): number[] => {
-    return data.map(row => row[column]).filter(val => val !== undefined && !isNaN(val));
+const getColumn = (data: DataSet, column: string): (number | string)[] => {
+    return data.map(row => row[column]).filter(val => val !== undefined);
 };
+
+const getNumericColumn = (data: DataSet, column: string): number[] => {
+    return data.map(row => row[column]).filter(val => typeof val === 'number' && !isNaN(val)) as number[];
+}
 
 const mean = (arr: number[]): number => arr.length === 0 ? 0 : arr.reduce((a, b) => a + b, 0) / arr.length;
 
@@ -67,11 +89,12 @@ const percentile = (arr: number[], p: number): number => {
     return sorted[lower] * (upper - index) + sorted[upper] * (index - lower);
 };
 
-const mode = (arr: number[]): number | number[] | string => {
+const mode = (arr: (number|string)[]): number | string | (number|string)[] => {
     if (arr.length === 0) return 'N/A';
-    const counts: {[key: number]: number} = {};
-    arr.forEach(num => {
-        counts[num] = (counts[num] || 0) + 1;
+    const counts: {[key: string]: number} = {};
+    arr.forEach(val => {
+        const key = String(val);
+        counts[key] = (counts[key] || 0) + 1;
     });
 
     let maxFreq = 0;
@@ -81,11 +104,14 @@ const mode = (arr: number[]): number | number[] | string => {
         }
     }
 
-    if (maxFreq === 1) return 'N/A'; // No mode
+    if (maxFreq <= 1 && arr.length > 1) return 'N/A'; // No mode or all unique
 
     const modes = Object.keys(counts)
-        .filter(key => counts[Number(key)] === maxFreq)
-        .map(Number);
+        .filter(key => counts[key] === maxFreq)
+        .map(key => {
+            const num = parseFloat(key);
+            return isNaN(num) ? key : num;
+        });
     
     return modes.length === 1 ? modes[0] : modes;
 }
@@ -115,7 +141,7 @@ const kurtosis = (arr: number[]): number => {
 export const calculateDescriptiveStats = (data: DataSet, headers: string[]) => {
     const stats: Record<string, any> = {};
     headers.forEach(header => {
-        const columnData = getColumn(data, header);
+        const columnData = getNumericColumn(data, header);
         if (columnData.length > 0) {
             const p25 = percentile(columnData, 25);
             const p75 = percentile(columnData, 75);
@@ -135,6 +161,15 @@ export const calculateDescriptiveStats = (data: DataSet, headers: string[]) => {
                 skewness: skewness(columnData),
                 kurtosis: kurtosis(columnData),
             };
+        } else {
+             const catColumnData = getColumn(data, header);
+             if(catColumnData.length > 0) {
+                 stats[header] = {
+                     count: catColumnData.length,
+                     unique: new Set(catColumnData).size,
+                     mode: mode(catColumnData),
+                 }
+             }
         }
     });
     return stats;
@@ -169,13 +204,15 @@ export const calculateCorrelationMatrix = (data: DataSet, headers: string[]) => 
 
     for (let i = 0; i < headers.length; i++) {
         for (let j = i; j < headers.length; j++) {
-            const col1 = getColumn(data, headers[i]);
-            const col2 = getColumn(data, headers[j]);
+            const col1 = getNumericColumn(data, headers[i]);
+            const col2 = getNumericColumn(data, headers[j]);
             if (i === j) {
                 matrix[i][j] = 1;
             } else {
-                if (col1.length === col2.length && col1.length > 1) {
-                    const correlation = pearsonCorrelation(col1, col2);
+                if (col1.length > 1 && col2.length > 1) {
+                    // This is a simplification. For real-world use, you might need to handle pairs of observations.
+                    const minLen = Math.min(col1.length, col2.length);
+                    const correlation = pearsonCorrelation(col1.slice(0, minLen), col2.slice(0, minLen));
                     matrix[i][j] = correlation;
                     matrix[j][i] = correlation;
                 } else {
@@ -187,3 +224,84 @@ export const calculateCorrelationMatrix = (data: DataSet, headers: string[]) => 
     }
     return matrix;
 };
+
+// Simplified F-distribution to p-value (for demonstration purposes)
+// A proper implementation would use a library like jStat
+const fToPValue = (f: number, df1: number, df2: number): number => {
+    // This is a very rough approximation and not statistically sound.
+    // For a real application, use a statistical library.
+    if (isNaN(f) || df1 <= 0 || df2 <= 0) return NaN;
+    const x = df1 * f / (df1 * f + df2);
+    const p = 1 - x;
+    return p < 0.0001 ? 0.0001 : p;
+};
+
+
+export const calculateAnova = (data: DataSet, groupVar: string, valueVar: string) => {
+    if (!groupVar || !valueVar) return null;
+
+    const groups: Record<string, number[]> = {};
+    data.forEach(row => {
+        const group = row[groupVar];
+        const value = row[valueVar];
+        if (group !== undefined && typeof value === 'number' && !isNaN(value)) {
+            const groupKey = String(group);
+            if (!groups[groupKey]) {
+                groups[groupKey] = [];
+            }
+            groups[groupKey].push(value);
+        }
+    });
+
+    const groupKeys = Object.keys(groups);
+    if (groupKeys.length < 2) return null; // ANOVA requires at least 2 groups
+
+    const allValues = Object.values(groups).flat();
+    if (allValues.length < 3) return null;
+    
+    const grandMean = mean(allValues);
+    const n = allValues.length;
+    const k = groupKeys.length;
+
+    const ssb = groupKeys.reduce((sum, key) => {
+        const groupData = groups[key];
+        return sum + groupData.length * Math.pow(mean(groupData) - grandMean, 2);
+    }, 0);
+    
+    const ssw = groupKeys.reduce((sum, key) => {
+        const groupData = groups[key];
+        const groupMean = mean(groupData);
+        return sum + groupData.reduce((innerSum, val) => innerSum + Math.pow(val - groupMean, 2), 0);
+    }, 0);
+
+    const dfBetween = k - 1;
+    const dfWithin = n - k;
+
+    if (dfWithin <= 0) return null;
+
+    const msb = ssb / dfBetween;
+    const msw = ssw / dfWithin;
+
+    const fStat = msw === 0 ? 0 : msb / msw;
+    const pValue = fToPValue(fStat, dfBetween, dfWithin);
+    
+    return {
+        dfBetween,
+        dfWithin,
+        ssb,
+        ssw,
+        msb,
+        msw,
+        fStat,
+        pValue,
+        groupStats: groupKeys.reduce((acc, key) => {
+            const groupData = groups[key];
+            acc[key] = {
+                n: groupData.length,
+                mean: mean(groupData),
+                stdDev: stdDev(groupData)
+            };
+            return acc;
+        }, {} as Record<string, {n: number, mean: number, stdDev: number}>)
+    };
+}
