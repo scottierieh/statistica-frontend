@@ -9,7 +9,6 @@ import {
   SidebarFooter,
   SidebarInset,
   SidebarTrigger,
-  SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
@@ -23,6 +22,14 @@ import {
   SigmaSquare,
   BarChart2,
   Sigma,
+  ChevronDown,
+  PieChart,
+  Bot,
+  BrainCircuit,
+  Presentation,
+  Book,
+  Network,
+  FlaskConical,
 } from 'lucide-react';
 import {
   type DataSet,
@@ -38,6 +45,8 @@ import VisualizationPage from './pages/visualization-page';
 import { type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 type AnalysisType = 'stats' | 'correlation' | 'anova' | 'visuals';
 
@@ -48,12 +57,83 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     visuals: VisualizationPage,
 };
 
-const analysisInfo = {
-    stats: { icon: Sigma, label: 'Descriptive Stats' },
-    correlation: { icon: Link2, label: 'Correlation' },
-    anova: { icon: SigmaSquare, label: 'ANOVA' },
-    visuals: { icon: BarChart2, label: 'Visualization' },
-};
+const analysisMenu = [
+  {
+    field: 'Basic Statistics / Tests',
+    icon: Sigma,
+    methods: [
+      { id: 'stats', label: 'Descriptive Statistics', implemented: true },
+      { id: 'frequency', label: 'Frequency Analysis', implemented: false },
+      { id: 'crosstab', label: 'Crosstab Analysis', implemented: false },
+      { id: 'ttest', label: 't-test', implemented: false },
+      { id: 'anova', label: 'ANOVA', implemented: true },
+    ]
+  },
+  {
+    field: 'Correlation / Regression',
+    icon: Link2,
+    methods: [
+      { id: 'correlation', label: 'Correlation Analysis', implemented: true },
+      { id: 'linear-regression', label: 'Linear Regression', implemented: false },
+      { id: 'logistic-regression', label: 'Logistic Regression', implemented: false },
+    ]
+  },
+   {
+    field: 'Visualization',
+    icon: BarChart2,
+    methods: [
+      { id: 'visuals', label: 'Data Visualization', implemented: true },
+    ]
+  },
+  {
+    field: 'Factor / Dimension Reduction',
+    icon: BrainCircuit,
+    methods: [
+      { id: 'pca', label: 'PCA', implemented: false },
+      { id: 'efa', label: 'EFA', implemented: false },
+    ]
+  },
+  {
+    field: 'Clustering / Classification',
+    icon: PieChart,
+    methods: [
+      { id: 'kmeans', label: 'K-means Clustering', implemented: false },
+      { id: 'decision-tree', label: 'Decision Tree', implemented: false },
+    ]
+  },
+  {
+    field: 'Machine Learning / AI',
+    icon: Bot,
+    methods: [
+      { id: 'random-forest', label: 'Random Forest', implemented: false },
+      { id: 'svm', label: 'Support Vector Machine', implemented: false },
+    ]
+  },
+    {
+    field: 'Marketing / Management',
+    icon: Presentation,
+    methods: [
+        { id: 'conjoint', label: 'Conjoint Analysis', implemented: false },
+        { id: 'rfm', label: 'RFM Analysis', implemented: false },
+    ]
+  },
+  {
+    field: 'Text / Network',
+    icon: Network,
+    methods: [
+      { id: 'sentiment', label: 'Sentiment Analysis', implemented: false },
+      { id: 'topic-modeling', label: 'Topic Modeling', implemented: false },
+    ]
+  },
+  {
+    field: 'Advanced / Specialized',
+    icon: FlaskConical,
+    methods: [
+      { id: 'bayesian', label: 'Bayesian Inference', implemented: false },
+      { id: 'survival', label: 'Survival Analysis', implemented: false },
+    ]
+  }
+];
 
 export default function StatisticaApp() {
   const [data, setData] = useState<DataSet>([]);
@@ -65,6 +145,8 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
+  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Visualization']);
+
 
   const { toast } = useToast();
   
@@ -184,9 +266,17 @@ export default function StatisticaApp() {
     URL.revokeObjectURL(url);
   };
   
-  const ActivePageComponent = activeAnalysis ? analysisPages[activeAnalysis] : null;
+  const ActivePageComponent = activeAnalysis ? analysisPages[activeAnalysis as AnalysisType] : DescriptiveStatsPage;
 
   const hasData = data.length > 0;
+  
+  const toggleCategory = (category: string) => {
+    setOpenCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    )
+  }
 
   return (
     <SidebarProvider>
@@ -200,7 +290,7 @@ export default function StatisticaApp() {
               <h1 className="text-xl font-headline font-bold">Statistica</h1>
             </div>
           </SidebarHeader>
-          <SidebarContent className="flex flex-col">
+          <SidebarContent className="flex flex-col gap-2 p-2">
             <div className='p-2'>
               <DataUploader 
                 onFileSelected={handleFileSelected}
@@ -215,22 +305,37 @@ export default function StatisticaApp() {
               )}
             </div>
             
-            <SidebarMenu>
-                {(Object.keys(analysisInfo) as AnalysisType[]).map(key => {
-                    const Icon = analysisInfo[key].icon;
-                    return (
-                        <SidebarMenuItem key={key}>
+            <div className="flex-1 overflow-y-auto">
+              {analysisMenu.map((category) => {
+                const Icon = category.icon;
+                const isOpen = openCategories.includes(category.field);
+                return (
+                  <Collapsible key={category.field} open={isOpen} onOpenChange={() => toggleCategory(category.field)}>
+                    <CollapsibleTrigger className="w-full">
+                      <div className={cn("flex items-center gap-2 rounded-md p-2 text-sm font-medium hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", isOpen && "bg-sidebar-accent text-sidebar-accent-foreground")}>
+                        <Icon className="h-4 w-4" />
+                        <span>{category.field}</span>
+                        <ChevronDown className={cn("h-4 w-4 ml-auto transition-transform", isOpen ? "rotate-180" : "")} />
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pl-6 py-1 space-y-1">
+                      {category.methods.map(method => (
+                        <SidebarMenuItem key={method.id}>
                             <SidebarMenuButton
-                                onClick={() => setActiveAnalysis(key)}
-                                isActive={activeAnalysis === key}
+                                onClick={() => setActiveAnalysis(method.id as AnalysisType)}
+                                isActive={activeAnalysis === method.id}
+                                disabled={!method.implemented}
+                                className="justify-start w-full h-8 text-xs"
                             >
-                                <Icon />
-                                <span>{analysisInfo[key].label}</span>
+                                <span>{method.label}</span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                    )
-                })}
-            </SidebarMenu>
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )
+              })}
+            </div>
 
           </SidebarContent>
           <SidebarFooter>
@@ -258,8 +363,7 @@ export default function StatisticaApp() {
               />
             )}
 
-            {ActivePageComponent && (
-              <ActivePageComponent 
+            <ActivePageComponent 
                 key={activeAnalysis} 
                 data={data}
                 allHeaders={allHeaders}
@@ -267,7 +371,6 @@ export default function StatisticaApp() {
                 categoricalHeaders={categoricalHeaders}
                 onLoadExample={handleLoadExampleData}
                />
-            )}
           </div>
         </SidebarInset>
       </div>
