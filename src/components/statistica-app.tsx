@@ -41,20 +41,18 @@ import { getSummaryReport } from '@/app/actions';
 import DescriptiveStatsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
 import AnovaPage from './pages/anova-page';
-import VisualizationPage from './pages/visualization-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'visuals';
+type AnalysisType = 'stats' | 'correlation' | 'anova';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
     correlation: CorrelationPage,
     anova: AnovaPage,
-    visuals: VisualizationPage,
 };
 
 const analysisMenu = [
@@ -76,13 +74,6 @@ const analysisMenu = [
       { id: 'correlation', label: 'Correlation Analysis', implemented: true },
       { id: 'linear-regression', label: 'Linear Regression', implemented: false },
       { id: 'logistic-regression', label: 'Logistic Regression', implemented: false },
-    ]
-  },
-   {
-    field: 'Visualization',
-    icon: BarChart2,
-    methods: [
-      { id: 'visuals', label: 'Data Visualization', implemented: true },
     ]
   },
   {
@@ -145,7 +136,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Visualization']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();

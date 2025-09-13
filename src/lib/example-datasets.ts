@@ -2,7 +2,7 @@ import { Car, Coffee, Database, LucideIcon } from "lucide-react";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'visuals';
+type AnalysisType = 'stats' | 'correlation' | 'anova';
 
 
 export interface ExampleDataSet {
@@ -61,7 +61,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Database,
-        analysisTypes: ['stats', 'correlation', 'anova', 'visuals'],
+        analysisTypes: ['stats', 'correlation', 'anova'],
         data: irisData
     },
     {
@@ -69,7 +69,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Restaurant Tips',
         description: 'Tips received by a server, along with customer and bill info.',
         icon: Coffee,
-        analysisTypes: ['stats', 'anova', 'visuals'],
+        analysisTypes: ['stats', 'anova'],
         data: tipsData
     },
     {
@@ -77,7 +77,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Classic Cars',
         description: 'MPG and other specs for various car models from the 70s.',
         icon: Car,
-        analysisTypes: ['stats', 'correlation', 'visuals'],
+        analysisTypes: ['stats', 'correlation'],
         data: carsData
     }
 ]
