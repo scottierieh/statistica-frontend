@@ -11,6 +11,7 @@ import {
   SidebarTrigger,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenu,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -42,7 +43,7 @@ import DescriptiveStatsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
 import AnovaPage from './pages/anova-page';
 import VisualizationPage from './pages/visualization-page';
-import { type ExampleDataSet } from '@/lib/example-datasets';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
@@ -318,19 +319,21 @@ export default function StatisticaApp() {
                         <ChevronDown className={cn("h-4 w-4 ml-auto transition-transform", isOpen ? "rotate-180" : "")} />
                       </div>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-6 py-1 space-y-1">
-                      {category.methods.map(method => (
-                        <SidebarMenuItem key={method.id}>
-                            <SidebarMenuButton
-                                onClick={() => setActiveAnalysis(method.id as AnalysisType)}
-                                isActive={activeAnalysis === method.id}
-                                disabled={!method.implemented}
-                                className="justify-start w-full h-8 text-xs"
-                            >
-                                <span>{method.label}</span>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
+                    <CollapsibleContent className="pl-6 py-1">
+                      <SidebarMenu>
+                        {category.methods.map(method => (
+                          <SidebarMenuItem key={method.id}>
+                              <SidebarMenuButton
+                                  onClick={() => setActiveAnalysis(method.id as AnalysisType)}
+                                  isActive={activeAnalysis === method.id}
+                                  disabled={!method.implemented}
+                                  className="justify-start w-full h-8 text-xs"
+                              >
+                                  <span>{method.label}</span>
+                              </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
                     </CollapsibleContent>
                   </Collapsible>
                 )
