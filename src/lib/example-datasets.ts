@@ -1,11 +1,15 @@
-import { Car, Coffee, Database } from "lucide-react";
-import { AnalysisType } from "@/components/statistica-app";
+import { Car, Coffee, Database, LucideIcon } from "lucide-react";
+
+// The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
+// Let's define it here locally for this file's purpose.
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'visuals';
+
 
 export interface ExampleDataSet {
     id: string;
     name: string;
     description: string;
-    icon: React.ComponentType<any>;
+    icon: LucideIcon;
     analysisTypes: AnalysisType[];
     data: string;
 }

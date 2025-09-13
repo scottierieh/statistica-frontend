@@ -17,14 +17,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
   Calculator,
-  Upload,
   FileText,
   Trash2,
   Loader2,
-  Sigma,
   Link2,
   SigmaSquare,
-  BarChart2
+  BarChart2,
+  Sigma,
 } from 'lucide-react';
 import {
   type DataSet,
@@ -37,6 +36,7 @@ import CorrelationPage from './pages/correlation-page';
 import AnovaPage from './pages/anova-page';
 import VisualizationPage from './pages/visualization-page';
 import { type ExampleDataSet } from '@/lib/example-datasets';
+import DataUploader from './data-uploader';
 
 type AnalysisType = 'stats' | 'correlation' | 'anova' | 'visuals';
 
@@ -66,9 +66,9 @@ export default function StatisticaApp() {
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
 
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const processData = useCallback((content: string, name: string) => {
+    setIsUploading(true);
     try {
         const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
         
@@ -80,8 +80,7 @@ export default function StatisticaApp() {
         setNumericHeaders(newNumericHeaders);
         setCategoricalHeaders(newCategoricalHeaders);
         setFileName(name);
-        // Don't switch view, stay on the current analysis page
-        // setActiveAnalysis('stats'); 
+        toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
 
       } catch (error: any) {
         toast({
@@ -90,11 +89,12 @@ export default function StatisticaApp() {
           description: error.message || 'Could not parse file. Please check the format.',
         });
         handleClearData();
+      } finally {
+        setIsUploading(false);
       }
   }, [toast]);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleFileSelected = (file: File) => {
     if (!file) return;
 
     if (file.type !== 'text/csv' && !file.name.endsWith('.csv') && file.type !== 'text/plain' && !file.name.endsWith('.txt')) {
@@ -106,27 +106,22 @@ export default function StatisticaApp() {
       return;
     }
     
-    setIsUploading(true);
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
       processData(content, file.name);
-      setIsUploading(false);
     };
     reader.onerror = () => {
         toast({variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.'});
-        setIsUploading(false);
     }
     reader.readAsText(file);
-    event.target.value = ''; // Reset file input
   };
+
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
     processData(example.data, example.name);
   };
   
-  const triggerFileUpload = () => fileInputRef.current?.click();
-
   const handleClearData = () => {
     setData([]);
     setAllHeaders([]);
@@ -141,8 +136,6 @@ export default function StatisticaApp() {
       return;
     }
     setIsGeneratingReport(true);
-    // This is a simplified version. A real implementation might want to gather
-    // results from all analysis pages.
     const statsString = `Columns in the loaded data: ${allHeaders.join(', ')}`;
     const vizString = "Visualizations for the loaded data.";
 
@@ -184,12 +177,18 @@ export default function StatisticaApp() {
           </SidebarHeader>
           <SidebarContent className="flex flex-col">
             <div className='p-2'>
-              <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv,.txt" className="hidden" />
-              <Button onClick={triggerFileUpload} className="w-full" disabled={isUploading}>
-                {isUploading ? <Loader2 className="animate-spin" /> : <Upload />}
-                {isUploading ? 'Processing...' : 'Upload Data'}
-              </Button>
-              {fileName && <p className="mt-2 text-xs text-muted-foreground text-center truncate">File: {fileName}</p>}
+              <DataUploader 
+                onFileSelected={handleFileSelected}
+                loading={isUploading}
+              />
+              {fileName && (
+                <div className="mt-2 text-center">
+                  <p className="text-xs text-muted-foreground truncate">Active file: {fileName}</p>
+                   <Button variant="link" size="sm" className="text-xs h-auto p-0" onClick={handleClearData}>
+                    Clear data
+                  </Button>
+                </div>
+              )}
             </div>
             
             <SidebarMenu>
@@ -214,10 +213,6 @@ export default function StatisticaApp() {
             <Button onClick={handleGenerateReport} disabled={isGeneratingReport || data.length === 0} className="w-full">
               {isGeneratingReport ? <Loader2 className="animate-spin" /> : <FileText />}
               {isGeneratingReport ? 'Generating...' : 'Generate Report'}
-            </Button>
-            <Button variant="destructive" onClick={handleClearData} className="w-full" disabled={data.length === 0}>
-              <Trash2 />
-              Clear Data
             </Button>
           </SidebarFooter>
         </Sidebar>
