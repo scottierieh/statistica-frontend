@@ -9,6 +9,9 @@ import {
   SidebarFooter,
   SidebarInset,
   SidebarTrigger,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,32 +21,39 @@ import {
   Upload,
   FileText,
   Trash2,
-  Filter,
   Loader2,
-  ListTree,
+  Sigma,
+  Link2,
+  SigmaSquare,
+  BarChart2
 } from 'lucide-react';
 import {
   type DataSet,
   parseData,
-  calculateDescriptiveStats,
-  calculateCorrelationMatrix,
 } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
-import AnalysisDashboard from './analysis-dashboard';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { getSummaryReport } from '@/app/actions';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Separator } from '@/components/ui/separator';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import DescriptiveStatsPage from './pages/descriptive-stats-page';
+import CorrelationPage from './pages/correlation-page';
+import AnovaPage from './pages/anova-page';
+import VisualizationPage from './pages/visualization-page';
 
-type Filter = {
-  column: string;
-  min: number;
-  max: number;
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'visuals';
+
+const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
+    stats: DescriptiveStatsPage,
+    correlation: CorrelationPage,
+    anova: AnovaPage,
+    visuals: VisualizationPage,
+};
+
+const analysisInfo = {
+    stats: { icon: Sigma, label: '기술 통계 분석' },
+    correlation: { icon: Link2, label: '상관 관계 분석' },
+    anova: { icon: SigmaSquare, label: '분산 분석 (ANOVA)' },
+    visuals: { icon: BarChart2, label: '데이터 시각화' },
 };
 
 export default function StatisticaApp() {
@@ -51,39 +61,15 @@ export default function StatisticaApp() {
   const [allHeaders, setAllHeaders] = useState<string[]>([]);
   const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
   const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
-  const [selectedHeaders, setSelectedHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
-  const [filters, setFilters] = useState<Filter[]>([]);
   const [report, setReport] = useState<{ title: string, content: string } | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const filteredData = useMemo(() => {
-    if (filters.length === 0) return data;
-    return data.filter(row => {
-      return filters.every(filter => {
-        const value = row[filter.column];
-        if (typeof value !== 'number') return true; // Don't filter non-numeric columns this way
-        return value >= filter.min && value <= filter.max;
-      });
-    });
-  }, [data, filters]);
-
-  const stats = useMemo(() => {
-    if (filteredData.length === 0) return {};
-    return calculateDescriptiveStats(filteredData, selectedHeaders);
-  }, [filteredData, selectedHeaders]);
-
-  const correlationMatrix = useMemo(() => {
-    if (filteredData.length === 0) return [];
-    // Only use numeric headers for correlation matrix
-    const selectedNumericHeaders = selectedHeaders.filter(h => numericHeaders.includes(h));
-    return calculateCorrelationMatrix(filteredData, selectedNumericHeaders);
-  }, [filteredData, selectedHeaders, numericHeaders]);
-
+  
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -112,16 +98,7 @@ export default function StatisticaApp() {
         setAllHeaders(newHeaders);
         setNumericHeaders(newNumericHeaders);
         setCategoricalHeaders(newCategoricalHeaders);
-        setSelectedHeaders(newHeaders);
-        
-        // Initialize filters only for numeric columns
-        const initialFilters = newNumericHeaders.map(h => {
-            const columnData = newData.map(row => row[h]).filter(v => typeof v === 'number') as number[];
-            const min = Math.min(...columnData);
-            const max = Math.max(...columnData);
-            return { column: h, min, max, currentMin: min, currentMax: max };
-        });
-        setFilters(initialFilters.map(f => ({ column: f.column, min: f.currentMin, max: f.currentMax })));
+        setActiveAnalysis('stats');
 
       } catch (error: any) {
         toast({
@@ -145,19 +122,20 @@ export default function StatisticaApp() {
     setAllHeaders([]);
     setNumericHeaders([]);
     setCategoricalHeaders([]);
-    setSelectedHeaders([]);
     setFileName('');
-    setFilters([]);
+    setActiveAnalysis('stats');
   };
 
   const handleGenerateReport = async () => {
-    if (filteredData.length === 0) {
+    if (data.length === 0) {
       toast({ title: 'No data to report', description: 'Please upload a file first.' });
       return;
     }
     setIsGeneratingReport(true);
-    const statsString = JSON.stringify(stats, null, 2);
-    const vizString = "Charts for " + selectedHeaders.join(', ');
+    // This is a simplified version. A real implementation might want to gather
+    // results from all analysis pages.
+    const statsString = `Data with columns: ${allHeaders.join(', ')}`;
+    const vizString = "Visualizations for the loaded data.";
 
     const result = await getSummaryReport({ statistics: statsString, visualizations: vizString });
     if (result.success && result.report) {
@@ -166,20 +144,6 @@ export default function StatisticaApp() {
       toast({ variant: 'destructive', title: 'Report Generation Failed', description: result.error });
     }
     setIsGeneratingReport(false);
-  };
-  
-  const handleFilterChange = (column: string, newRange: number[]) => {
-    setFilters(prevFilters =>
-      prevFilters.map(f =>
-        f.column === column ? { ...f, min: newRange[0], max: newRange[1] } : f
-      )
-    );
-  };
-
-  const handleHeaderSelectionChange = (header: string, checked: boolean) => {
-    setSelectedHeaders(prev => 
-      checked ? [...prev, header] : prev.filter(h => h !== header)
-    );
   };
 
   const downloadReport = () => {
@@ -194,18 +158,8 @@ export default function StatisticaApp() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-
-  const dataExtents = useMemo(() => {
-    const extents: Record<string, { min: number, max: number }> = {};
-    numericHeaders.forEach(h => {
-        const columnData = data.map(row => row[h]).filter(v => typeof v === 'number') as number[];
-        if (columnData.length > 0) {
-            extents[h] = { min: Math.min(...columnData), max: Math.max(...columnData) };
-        }
-    });
-    return extents;
-  }, [data, numericHeaders]);
-
+  
+  const ActivePageComponent = analysisPages[activeAnalysis];
 
   return (
     <SidebarProvider>
@@ -230,59 +184,22 @@ export default function StatisticaApp() {
             </div>
             
             {data.length > 0 && (
-                <ScrollArea className="flex-grow px-2">
-                    <div className="space-y-4 p-2">
-                        <div className="flex items-center gap-2">
-                            <ListTree className="w-4 h-4" />
-                            <h3 className="font-semibold">Variables</h3>
-                        </div>
-                        <Separator />
-                        <div className='space-y-2'>
-                          {allHeaders.map(header => (
-                            <div key={header} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={header}
-                                checked={selectedHeaders.includes(header)}
-                                onCheckedChange={(checked) => handleHeaderSelectionChange(header, checked as boolean)}
-                              />
-                              <label
-                                htmlFor={header}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                {header}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                    </div>
-                    {numericHeaders.length > 0 && filters.length > 0 && (
-                      <div className="space-y-4 p-2">
-                          <div className="flex items-center gap-2">
-                              <Filter className="w-4 h-4" />
-                              <h3 className="font-semibold">Data Filters</h3>
-                          </div>
-                          <Separator />
-                          {filters.map((filter) => (
-                              <div key={filter.column} className="space-y-3">
-                                  <Label className="text-sm font-medium">{filter.column}</Label>
-                                  {dataExtents[filter.column] && (
-                                    <div className='flex gap-2 items-center text-xs text-muted-foreground'>
-                                        <span>{filter.min.toFixed(2)}</span>
-                                        <Slider
-                                            min={dataExtents[filter.column]?.min}
-                                            max={dataExtents[filter.column]?.max}
-                                            step={(dataExtents[filter.column]?.max - dataExtents[filter.column]?.min) / 100}
-                                            value={[filter.min, filter.max]}
-                                            onValueChange={(newRange) => handleFilterChange(filter.column, newRange)}
-                                        />
-                                        <span>{filter.max.toFixed(2)}</span>
-                                    </div>
-                                  )}
-                              </div>
-                          ))}
-                      </div>
-                    )}
-                </ScrollArea>
+                <SidebarMenu>
+                    {(Object.keys(analysisInfo) as AnalysisType[]).map(key => {
+                        const Icon = analysisInfo[key].icon;
+                        return (
+                            <SidebarMenuItem key={key}>
+                                <SidebarMenuButton
+                                    onClick={() => setActiveAnalysis(key)}
+                                    isActive={activeAnalysis === key}
+                                >
+                                    <Icon />
+                                    <span>{analysisInfo[key].label}</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        )
+                    })}
+                </SidebarMenu>
             )}
 
           </SidebarContent>
@@ -307,14 +224,13 @@ export default function StatisticaApp() {
             </header>
             
             {data.length > 0 ? (
-              <AnalysisDashboard
-                data={filteredData}
-                numericHeaders={numericHeaders.filter(h => selectedHeaders.includes(h))}
-                categoricalHeaders={categoricalHeaders.filter(h => selectedHeaders.includes(h))}
-                allSelectedHeaders={selectedHeaders}
-                stats={stats}
-                correlationMatrix={correlationMatrix}
-              />
+              <ActivePageComponent 
+                key={activeAnalysis} // Add key to force re-mount on analysis change
+                data={data}
+                allHeaders={allHeaders}
+                numericHeaders={numericHeaders}
+                categoricalHeaders={categoricalHeaders}
+               />
             ) : (
               <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center shadow-lg">
