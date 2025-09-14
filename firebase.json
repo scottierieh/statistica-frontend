@@ -1,0 +1,9 @@
+{
+  "functions": [
+    {
+      "source": "backend",
+      "codebase": "default",
+      "runtime": "python312"
+    }
+  ]
+}
