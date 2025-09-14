@@ -103,7 +103,7 @@ const analysisMenu = [
         subMethods: [
           { id: 'one-way-anova', label: 'One-Way ANOVA', implemented: true },
           { id: 'two-way-anova', label: 'Two-Way ANOVA', implemented: true, icon: Copy },
-          { id: 'manova', label: 'MANOVA', implemented: true },
+          { id: 'manova', label: 'MANOVA', implemented: true, icon: Users },
         ]
       },
       { id: 'frequency', label: 'Frequency Analysis', implemented: false },
@@ -420,7 +420,7 @@ export default function StatisticaApp() {
                     <CollapsibleContent className="pl-6 py-1">
                       <SidebarMenu>
                         {category.methods.map(method => {
-                           if (searchQuery && !method.label.toLowerCase().includes(searchQuery.toLowerCase()) && !(method.subMethods && method.subMethods.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase())))) {
+                           if (searchQuery && !method.label.toLowerCase().includes(searchQuery.toLowerCase()) && !(method.subMethods && method.subMethods.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase()))))) {
                             return null;
                           }
                           const MethodIcon = method.icon;
@@ -428,32 +428,36 @@ export default function StatisticaApp() {
                             return (
                               <SidebarMenuItem key={method.id}>
                                 <Collapsible>
-                                    <CollapsibleTrigger asChild className="w-full">
-                                        <div className="flex items-center justify-start w-full h-8 text-xs font-normal peer/menu-button rounded-md p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                                            {MethodIcon && <MethodIcon className="h-4 w-4 mr-2" />}
-                                            <span>{method.label}</span>
-                                             <ChevronDown className={cn("h-4 w-4 ml-auto transition-transform")} />
-                                        </div>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent className="pl-6 py-1">
-                                        <SidebarMenuSub>
-                                            {method.subMethods.map(subMethod => (
-                                                <SidebarMenuSubItem key={subMethod.id}>
-                                                    <SidebarMenuSubButton
-                                                        onClick={() => setActiveAnalysis(subMethod.id as AnalysisType)}
-                                                        isActive={activeAnalysis === subMethod.id}
-                                                        disabled={!subMethod.implemented}
-                                                    >
-                                                        {subMethod.icon && <subMethod.icon />}
-                                                        {subMethod.label}
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
+                                  <CollapsibleTrigger asChild>
+                                    <div
+                                      className="flex items-center justify-between w-full h-8 text-xs font-normal peer/menu-button rounded-md p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {MethodIcon && <MethodIcon className="h-4 w-4" />}
+                                        <span>{method.label}</span>
+                                      </div>
+                                      <ChevronDown className="h-4 w-4 ml-auto transition-transform" />
+                                    </div>
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent className="pl-6 py-1">
+                                    <SidebarMenuSub>
+                                      {method.subMethods.map(subMethod => (
+                                        <SidebarMenuSubItem key={subMethod.id}>
+                                          <SidebarMenuSubButton
+                                            onClick={() => setActiveAnalysis(subMethod.id as AnalysisType)}
+                                            isActive={activeAnalysis === subMethod.id}
+                                            disabled={!subMethod.implemented}
+                                          >
+                                            {subMethod.icon && <subMethod.icon />}
+                                            {subMethod.label}
+                                          </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                      ))}
+                                    </SidebarMenuSub>
+                                  </CollapsibleContent>
                                 </Collapsible>
                               </SidebarMenuItem>
-                            )
+                            );
                           }
                           return (
                           <SidebarMenuItem key={method.id}>
