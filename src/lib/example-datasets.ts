@@ -46,9 +46,9 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 export const exampleDatasets: ExampleDataSet[] = [
     {
-        id: 'big5-personality',
-        name: 'Big 5 Personality',
-        description: 'Survey data for the Big Five personality traits. Ideal for EFA.',
+        id: 'well-being-survey',
+        name: 'Well-being Survey',
+        description: 'Survey data for Anxiety, Depression, and Stress. Ideal for EFA.',
         icon: BrainCircuit,
         analysisTypes: ['stats', 'reliability', 'efa'],
         recommendedAnalysis: 'efa',
