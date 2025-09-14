@@ -61,6 +61,7 @@ def main():
         model.fit(X, y)
 
         y_pred = model.predict(X)
+        residuals = y - y_pred
 
         # --- 3. 모델 성능 지표 계산 ---
         r2 = r2_score(y, y_pred)
@@ -74,7 +75,9 @@ def main():
             'rSquared': r2,
             'adjustedRSquared': adj_r2,
             'rmse': np.sqrt(mean_squared_error(y, y_pred)),
-            'mae': mean_absolute_error(y, y_pred)
+            'mae': mean_absolute_error(y, y_pred),
+            'predictions': y_pred.tolist(),
+            'residuals': residuals.tolist()
         }
 
         # --- 4. 부분가치(Part-Worths) 계산 ---

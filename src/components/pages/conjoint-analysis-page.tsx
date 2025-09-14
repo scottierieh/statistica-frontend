@@ -487,7 +487,9 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                                 <XAxis type="number" dataKey="prediction" name="Fitted Value" />
                                                                 <YAxis type="number" dataKey="residual" name="Residual" />
                                                                 <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
-                                                                <Scatter data={analysisResult.regression.predictions.map((p, i) => ({prediction: p, residual: analysisResult.regression.residuals[i]}))} fill="hsl(var(--primary))" />
+                                                                {analysisResult.regression.predictions && analysisResult.regression.residuals &&
+                                                                    <Scatter data={analysisResult.regression.predictions.map((p, i) => ({prediction: p, residual: analysisResult.regression.residuals[i]}))} fill="hsl(var(--primary))" />
+                                                                }
                                                             </ScatterChart>
                                                         </ResponsiveContainer>
                                                     </CardContent>
