@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -343,30 +342,37 @@ export default function StatisticaApp() {
         ? prev.filter(c => c !== category)
         : [...prev, category]
     )
-  }
+  };
 
   const filteredMenu = useMemo(() => {
     if (!searchQuery) return analysisMenu;
     const lowercasedQuery = searchQuery.toLowerCase();
     
-    const filtered = analysisMenu.map(category => {
-      const filteredMethods = category.methods.filter(method => 
-        method.label.toLowerCase().includes(lowercasedQuery) ||
-        (method.subMethods && method.subMethods.some(sub => sub.label.toLowerCase().includes(lowercasedQuery)))
-      );
-      if (filteredMethods.length > 0 || category.field.toLowerCase().includes(lowercasedQuery)) {
-        return { ...category, methods: filteredMethods.length > 0 ? filteredMethods : category.methods };
-      }
-      return null;
+    return analysisMenu.map(category => {
+        const methods = category.methods.filter(method => 
+            method.label.toLowerCase().includes(lowercasedQuery) ||
+            (method.subMethods && method.subMethods.some(sub => sub.label.toLowerCase().includes(lowercasedQuery)))
+        );
+
+        if (methods.length > 0) {
+            return { ...category, methods };
+        }
+        
+        if (category.field.toLowerCase().includes(lowercasedQuery)) {
+            return category;
+        }
+
+        return null;
     }).filter((c): c is NonNullable<typeof c> => c !== null);
-
-    // Auto-expand categories that have search results
-    const categoriesToOpen = filtered.map(c => c.field);
-    setOpenCategories(categoriesToOpen);
-
-    return filtered;
-
   }, [searchQuery]);
+
+  useEffect(() => {
+      if(searchQuery && filteredMenu.length > 0) {
+          const categoriesToOpen = filteredMenu.map(c => c.field);
+          setOpenCategories(categoriesToOpen);
+      }
+  }, [searchQuery, filteredMenu]);
+
 
   return (
     <SidebarProvider>
@@ -404,10 +410,6 @@ export default function StatisticaApp() {
               {filteredMenu.map((category) => {
                 const Icon = category.icon;
                 const isOpen = openCategories.includes(category.field);
-                
-                if (searchQuery && !category.field.toLowerCase().includes(searchQuery.toLowerCase()) && !category.methods.some(m => m.label.toLowerCase().includes(searchQuery.toLowerCase()) || (m.subMethods && m.subMethods.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase()))))) {
-                  return null;
-                }
 
                 return (
                   <Collapsible key={category.field} open={isOpen} onOpenChange={() => toggleCategory(category.field)}>
@@ -421,21 +423,16 @@ export default function StatisticaApp() {
                     <CollapsibleContent className="pl-6 py-1">
                       <SidebarMenu>
                         {category.methods.map(method => {
-                           if (searchQuery && !method.label.toLowerCase().includes(searchQuery.toLowerCase()) && !(method.subMethods && method.subMethods.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase()))))) {
-                            return null;
-                          }
                           const MethodIcon = method.icon;
                           if (method.subMethods) {
                             return (
                               <SidebarMenuItem key={method.id}>
                                 <Collapsible>
-                                  <CollapsibleTrigger asChild>
-                                    <div
-                                      className="flex items-center justify-between w-full h-8 text-xs font-normal peer/menu-button rounded-md p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                                    >
+                                   <CollapsibleTrigger asChild>
+                                    <div className={cn('flex items-center justify-between w-full text-xs font-normal peer/menu-button rounded-md p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground')}>
                                       <div className="flex items-center gap-2">
-                                        {MethodIcon && <MethodIcon className="h-4 w-4" />}
-                                        <span>{method.label}</span>
+                                          {MethodIcon && <MethodIcon className="h-4 w-4" />}
+                                          <span>{method.label}</span>
                                       </div>
                                       <ChevronDown className="h-4 w-4 ml-auto transition-transform" />
                                     </div>
