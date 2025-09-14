@@ -3,6 +3,7 @@ import sys
 import json
 import pandas as pd
 import pingouin as pg
+import numpy as np
 
 def main():
     try:
@@ -35,7 +36,24 @@ def main():
             raise ValueError("Not enough valid data for analysis after handling missing values.")
 
         alpha_results = pg.cronbach_alpha(data=df_items, nan_policy='listwise')
-        item_total_corr = pg.item_reliability(df_items)
+        
+        # Manual calculation for item-total statistics
+        item_stats = {}
+        total_score = df_items.sum(axis=1)
+        
+        corrected_item_total_correlations = {}
+        alpha_if_deleted = {}
+
+        for item in df_items.columns:
+            # Corrected Item-Total Correlation
+            item_score = df_items[item]
+            rest_score = total_score - item_score
+            correlation = pg.corr(item_score, rest_score)['r'].iloc[0]
+            corrected_item_total_correlations[item] = correlation
+            
+            # Cronbach's Alpha if item deleted
+            alpha_if_del = pg.cronbach_alpha(data=df_items.drop(columns=item))[0]
+            alpha_if_deleted[item] = alpha_if_del
 
         response = {
             'alpha': alpha_results[0],
@@ -46,21 +64,20 @@ def main():
             'item_statistics': {
                 'means': df_items.mean().to_dict(),
                 'stds': df_items.std().to_dict(),
-                'corrected_item_total_correlations': item_total_corr['item-total_corr'].to_dict(),
-                'alpha_if_deleted': item_total_corr['alpha_if_deleted'].to_dict(),
+                'corrected_item_total_correlations': corrected_item_total_correlations,
+                'alpha_if_deleted': alpha_if_deleted,
             },
             'scale_statistics': {
-                'mean': df_items.sum(axis=1).mean(),
-                'std': df_items.sum(axis=1).std(),
-                'variance': df_items.sum(axis=1).var(),
-                'avg_inter_item_correlation': df_items.corr().values[df_items.corr().values != 1].mean()
+                'mean': total_score.mean(),
+                'std': total_score.std(),
+                'variance': total_score.var(),
+                'avg_inter_item_correlation': df_items.corr().values[np.triu_indices_from(df_items.corr().values, k=1)].mean()
             }
         }
         
         print(json.dumps(response))
 
     except Exception as e:
-        # Instead of printing to stdout, print errors to stderr
         print(json.dumps({"error": str(e)}), file=sys.stderr)
         sys.exit(1)
 
