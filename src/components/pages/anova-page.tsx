@@ -12,7 +12,6 @@ import { Sigma, AlertCircle, Loader2 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { getAnovaInterpretation } from '@/app/actions';
-import { URL } from 'url';
 
 // Type definitions for the ANOVA results
 interface AnovaResults {
@@ -96,7 +95,7 @@ const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null
   return (
     <Card>
         <CardHeader>
-            <CardTitle className="font-headline text-lg flex items-center gap-2"><AlertCircle /> AI Interpretation</CardTitle>
+            <CardTitle className="flex items-center gap-2"><AlertCircle /> AI Interpretation</CardTitle>
         </CardHeader>
         <CardContent>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>
@@ -146,24 +145,15 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
             return;
         };
 
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-        if (!backendUrl) {
-            toast({
-                variant: 'destructive',
-                title: 'Configuration Error',
-                description: 'The backend URL is not configured. Please check your environment variables.',
-            });
-            return;
-        }
-
+        const backendUrl = 'https://us-central1-studio-7415103661-752d9.cloudfunctions.net/anova';
+       
         setIsLoading(true);
         setAnovaResult(null);
         setAiPromise(null);
 
         try {
-            const anovaUrl = new URL('anova', backendUrl).href;
-            console.log('Sending request to:', anovaUrl);
-            const response = await fetch(anovaUrl, {
+            console.log('Sending request to:', backendUrl);
+            const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -174,7 +164,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
+                 const errorText = await response.text();
                 let errorJson;
                 try {
                     errorJson = JSON.parse(errorText);
@@ -213,7 +203,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
                     <CardHeader>
-                        <CardTitle className="font-headline">Analysis of Variance (ANOVA)</CardTitle>
+                        <CardTitle>Analysis of Variance (ANOVA)</CardTitle>
                         <CardDescription>
                            To perform ANOVA, you need to upload data with at least one numeric and one categorical variable. Try one of our example datasets.
                         </CardDescription>
@@ -252,7 +242,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">ANOVA Setup</CardTitle>
+                    <CardTitle>ANOVA Setup</CardTitle>
                     <CardDescription>
                         Select a group variable (categorical) and a value variable (numeric) to compare means across groups, then click 'Run Analysis'.
                     </CardDescription>
@@ -298,7 +288,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                     <div className="lg:col-span-2 flex flex-col gap-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="font-headline">ANOVA Summary</CardTitle>
+                                <CardTitle>ANOVA Summary</CardTitle>
                                 <CardDescription>
                                     F({anovaResult.anova.df_between}, {anovaResult.anova.df_within}) = {anovaResult.anova.f_statistic.toFixed(3)}, p = {anovaResult.anova.p_value.toFixed(4)}
                                 </CardDescription>

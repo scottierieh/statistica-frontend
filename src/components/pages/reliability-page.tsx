@@ -15,7 +15,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { getReliabilityInterpretation } from '@/app/actions';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
-import { URL } from 'url';
 
 // Type definitions for the rich Reliability results
 interface ReliabilityResults {
@@ -65,7 +64,7 @@ const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null
   return (
     <Card>
         <CardHeader>
-            <CardTitle className="font-headline text-lg flex items-center gap-2"><ShieldCheck /> AI Interpretation</CardTitle>
+            <CardTitle className="flex items-center gap-2"><ShieldCheck /> AI Interpretation</CardTitle>
         </CardHeader>
         <CardContent>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>
@@ -127,25 +126,16 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
             toast({variant: 'destructive', title: 'Selection Error', description: 'Please select at least two items for the analysis.'});
             return;
         };
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-        if (!backendUrl) {
-            toast({
-                variant: 'destructive',
-                title: 'Configuration Error',
-                description: 'The backend URL is not configured. Please check your environment variables.',
-            });
-            return;
-        }
+        
+        const backendUrl = 'https://us-central1-studio-7415103661-752d9.cloudfunctions.net/reliability';
 
         setIsLoading(true);
         setReliabilityResult(null);
         setAiPromise(null);
 
         try {
-            const reliabilityUrl = new URL('reliability', backendUrl).href;
-            console.log('Sending request to:', reliabilityUrl);
-
-            const response = await fetch(reliabilityUrl, {
+            console.log('Sending request to:', backendUrl);
+            const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -191,7 +181,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
                     <CardHeader>
-                        <CardTitle className="font-headline">Reliability Analysis</CardTitle>
+                        <CardTitle>Reliability Analysis</CardTitle>
                         <CardDescription>
                            To perform a reliability analysis, you need data with multiple numeric items (e.g., a survey scale). Please upload data or try an example dataset.
                         </CardDescription>
@@ -232,7 +222,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Reliability Analysis Setup</CardTitle>
+                    <CardTitle>Reliability Analysis Setup</CardTitle>
                     <CardDescription>
                         Select the numeric items that form a single scale to calculate internal consistency reliability (Cronbach's Alpha).
                     </CardDescription>
@@ -310,7 +300,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                     <div className="lg:col-span-2 flex flex-col gap-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="font-headline">Reliability Summary (Cronbach's Alpha)</CardTitle>
+                                <CardTitle>Reliability Summary (Cronbach's Alpha)</CardTitle>
                                 <CardDescription>
                                     A measure of internal consistency for a set of scale items.
                                 </CardDescription>
