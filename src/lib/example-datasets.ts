@@ -12,11 +12,12 @@ import { manovaData } from "./example-datasets/manova-data";
 import { twoWayAnovaData } from "./example-datasets/two-way-anova-data";
 import { tTestData } from "./example-datasets/t-test-data";
 import { regressionData } from "./example-datasets/regression-data";
+import { semData } from "./example-datasets/sem-data";
 
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem';
 
 
 export interface ExampleDataSet {
@@ -56,6 +57,15 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 
 export const exampleDatasets: ExampleDataSet[] = [
+    {
+        id: 'sem-satisfaction',
+        name: 'Customer Satisfaction Model',
+        description: 'Quality, satisfaction, trust, and loyalty data for SEM.',
+        icon: Network,
+        analysisTypes: ['stats', 'sem', 'correlation', 'reliability'],
+        recommendedAnalysis: 'sem',
+        data: semData,
+    },
     {
         id: 't-test-suite',
         name: 'T-Test Suite',

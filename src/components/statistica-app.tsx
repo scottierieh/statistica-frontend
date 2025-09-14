@@ -70,13 +70,14 @@ import RegressionPage from './pages/regression-page';
 import KMeansPage from './pages/kmeans-page';
 import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import CrosstabPage from './pages/crosstab-page';
+import SemPage from './pages/sem-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -98,6 +99,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     kmeans: KMeansPage,
     frequency: FrequencyAnalysisPage,
     crosstab: CrosstabPage,
+    sem: SemPage,
 };
 
 const analysisMenu = [
@@ -150,33 +152,10 @@ const analysisMenu = [
     ]
   },
   {
-    field: 'Machine Learning / AI',
-    icon: Bot,
-    methods: [
-      { id: 'random-forest', label: 'Random Forest', implemented: false },
-      { id: 'svm', label: 'Support Vector Machine', implemented: false },
-    ]
-  },
-    {
-    field: 'Marketing / Management',
-    icon: Presentation,
-    methods: [
-        { id: 'conjoint', label: 'Conjoint Analysis', implemented: false },
-        { id: 'rfm', label: 'RFM Analysis', implemented: false },
-    ]
-  },
-  {
-    field: 'Text / Network',
-    icon: Network,
-    methods: [
-      { id: 'sentiment', label: 'Sentiment Analysis', implemented: false },
-      { id: 'topic-modeling', label: 'Topic Modeling', implemented: false },
-    ]
-  },
-  {
     field: 'Advanced / Specialized',
     icon: FlaskConical,
     methods: [
+      { id: 'sem', label: 'Structural Equation Modeling (SEM)', implemented: true, icon: Network },
       { id: 'bayesian', label: 'Bayesian Inference', implemented: false },
       { id: 'survival', label: 'Survival Analysis', implemented: false },
     ]
@@ -193,7 +172,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | 'visuals'>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Clustering / Classification']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Clustering / Classification', 'Advanced / Specialized']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
