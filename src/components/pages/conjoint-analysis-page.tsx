@@ -264,31 +264,33 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                            To perform this analysis, you need data with attributes and a preference/rating column. Try an example dataset.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {conjointExamples.map((ex) => {
-                                const Icon = ex.icon;
-                                return (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                            <Icon className="h-6 w-6 text-secondary-foreground" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </div>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                            Load this data
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
+                     {conjointExamples.length > 0 && (
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {conjointExamples.map((ex) => {
+                                    const Icon = ex.icon;
+                                    return (
+                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
+                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                                                <Icon className="h-6 w-6 text-secondary-foreground" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
+                                            </div>
+                                        </CardHeader>
+                                        <CardFooter>
+                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                                Load this data
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                    )
+                                })}
+                            </div>
+                        </CardContent>
+                    )}
                 </Card>
             </div>
         )
@@ -377,7 +379,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                 <ResponsiveContainer width="100%" height={300}>
                                                     <PieChart>
                                                         <Pie data={analysisResult.importance} dataKey="importance" nameKey="attribute" cx="50%" cy="50%" outerRadius={100} label={p => `${p.attribute} (${p.importance.toFixed(1)}%)`}>
-                                                            {analysisResult.importance.map((entry, index) => <Cell key={`cell-${index}`} fill={`var(--color-${entry.attribute})`} />)}
+                                                            {analysisResult.importance.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                                         </Pie>
                                                         <Tooltip content={<ChartTooltipContent />} />
                                                     </PieChart>
