@@ -138,6 +138,27 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         }
     }, [data, attributes, targetVariable, toast]);
 
+    const independentVariables = Object.values(attributes).filter((attr: any) => attr.includeInAnalysis);
+    
+    const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"];
+
+    const importanceChartConfig = useMemo(() => {
+      if (!analysisResult) return {};
+      return analysisResult.importance.reduce((acc, item, index) => {
+        acc[item.attribute] = {
+          label: item.attribute,
+          color: COLORS[index % COLORS.length],
+        };
+        return acc;
+      }, {} as any);
+    }, [analysisResult]);
+
+    const partWorthChartConfig = {
+      value: {
+        label: "Part-Worth",
+      },
+    };
+
     if (!canRun) {
         const conjointExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('conjoint'));
         return (
@@ -178,27 +199,6 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
             </div>
         )
     }
-
-    const independentVariables = Object.values(attributes).filter((attr: any) => attr.includeInAnalysis);
-    
-    const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"];
-
-    const importanceChartConfig = useMemo(() => {
-      if (!analysisResult) return {};
-      return analysisResult.importance.reduce((acc, item, index) => {
-        acc[item.attribute] = {
-          label: item.attribute,
-          color: COLORS[index % COLORS.length],
-        };
-        return acc;
-      }, {} as any);
-    }, [analysisResult]);
-
-    const partWorthChartConfig = {
-      value: {
-        label: "Part-Worth",
-      },
-    };
 
     return (
         <div className="space-y-4">
