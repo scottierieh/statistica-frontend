@@ -100,6 +100,7 @@ const analysisMenu = [
         id: 'anova',
         label: 'ANOVA / MANOVA',
         implemented: true,
+        icon: Copy,
         subMethods: [
           { id: 'one-way-anova', label: 'One-Way ANOVA', implemented: true },
           { id: 'two-way-anova', label: 'Two-Way ANOVA', implemented: true, icon: Copy },
