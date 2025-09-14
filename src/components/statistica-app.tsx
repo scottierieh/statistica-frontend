@@ -193,6 +193,42 @@ export default function StatisticaApp() {
 
   const { toast } = useToast();
   
+  const handleClearData = () => {
+    setData([]);
+    setAllHeaders([]);
+    setNumericHeaders([]);
+    setCategoricalHeaders([]);
+    setFileName('');
+  };
+
+  const processData = useCallback((content: string, name: string) => {
+    setIsUploading(true);
+    try {
+        const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
+        
+        if (newData.length === 0 || newHeaders.length === 0) {
+          throw new Error("No valid data found in the file.");
+        }
+        setData(newData);
+        setAllHeaders(newHeaders);
+        setNumericHeaders(newNumericHeaders);
+        setCategoricalHeaders(newCategoricalHeaders);
+        setFileName(name);
+        toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
+        // setActiveAnalysis('stats'); // Bug: This was resetting the view. Removed.
+
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'File Processing Error',
+          description: error.message || 'Could not parse file. Please check the format.',
+        });
+        handleClearData();
+      } finally {
+        setIsUploading(false);
+      }
+  }, [toast]);
+  
   const handleFileSelected = useCallback((file: File) => {
     setIsUploading(true);
     const reader = new FileReader();
@@ -226,48 +262,12 @@ export default function StatisticaApp() {
         reader.readAsText(file);
     }
   }, [processData, toast]);
-  
-  const processData = useCallback((content: string, name: string) => {
-    setIsUploading(true);
-    try {
-        const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
-        
-        if (newData.length === 0 || newHeaders.length === 0) {
-          throw new Error("No valid data found in the file.");
-        }
-        setData(newData);
-        setAllHeaders(newHeaders);
-        setNumericHeaders(newNumericHeaders);
-        setCategoricalHeaders(newCategoricalHeaders);
-        setFileName(name);
-        toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
-        // setActiveAnalysis('stats'); // Bug: This was resetting the view. Removed.
-
-      } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: 'File Processing Error',
-          description: error.message || 'Could not parse file. Please check the format.',
-        });
-        handleClearData();
-      } finally {
-        setIsUploading(false);
-      }
-  }, [toast]);
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
     processData(example.data, example.name);
     if(example.recommendedAnalysis) {
       setActiveAnalysis(example.recommendedAnalysis as AnalysisType);
     }
-  };
-  
-  const handleClearData = () => {
-    setData([]);
-    setAllHeaders([]);
-    setNumericHeaders([]);
-    setCategoricalHeaders([]);
-    setFileName('');
   };
 
   const handleDownloadData = () => {
