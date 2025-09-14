@@ -1,10 +1,10 @@
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen } from "lucide-react";
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant';
 
 
 export interface ExampleDataSet {
@@ -56,9 +56,9 @@ export const exampleDatasets: ExampleDataSet[] = [
         id: 'iris',
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
-        icon: Database,
-        analysisTypes: ['stats', 'correlation', 'anova', 'visuals'],
-        recommendedAnalysis: 'anova',
+        icon: Users,
+        analysisTypes: ['stats', 'correlation', 'anova', 'visuals', 'discriminant'],
+        recommendedAnalysis: 'discriminant',
         data: irisData
     },
     {

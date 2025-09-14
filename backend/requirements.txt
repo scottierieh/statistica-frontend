@@ -2,3 +2,4 @@ pandas
 pingouin
 numpy
 scipy
+scikit-learn

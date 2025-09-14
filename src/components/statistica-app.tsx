@@ -31,6 +31,7 @@ import {
   Network,
   FlaskConical,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -45,19 +46,21 @@ import CorrelationPage from './pages/correlation-page';
 import AnovaPage from './pages/anova-page';
 import VisualizationPage from './pages/visualization-page';
 import ReliabilityPage from './pages/reliability-page';
+import DiscriminantPage from './pages/discriminant-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'discriminant';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
     correlation: CorrelationPage,
     anova: AnovaPage,
     reliability: ReliabilityPage,
+    discriminant: DiscriminantPage,
 };
 
 const analysisMenu = [
@@ -82,18 +85,13 @@ const analysisMenu = [
       { id: 'logistic-regression', label: 'Logistic Regression', implemented: false },
     ]
   },
-  {
-    field: 'Factor / Dimension Reduction',
-    icon: BrainCircuit,
+   {
+    field: 'Clustering / Classification',
+    icon: Users,
     methods: [
+      { id: 'discriminant', label: 'Discriminant Analysis', implemented: true, icon: Users },
       { id: 'pca', label: 'PCA', implemented: false },
       { id: 'efa', label: 'EFA', implemented: false },
-    ]
-  },
-  {
-    field: 'Clustering / Classification',
-    icon: PieChart,
-    methods: [
       { id: 'kmeans', label: 'K-means Clustering', implemented: false },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
@@ -142,7 +140,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Clustering / Classification']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
