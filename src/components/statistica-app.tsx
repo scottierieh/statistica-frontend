@@ -53,6 +53,7 @@ import DescriptiveStatsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
 import AnovaPage from './pages/anova-page';
 import TwoWayAnovaPage from './pages/two-way-anova-page';
+import AncovaPage from './pages/ancova-page';
 import VisualizationPage from './pages/visualization-page';
 import ReliabilityPage from './pages/reliability-page';
 import DiscriminantPage from './pages/discriminant-page';
@@ -72,13 +73,14 @@ import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
     correlation: CorrelationPage,
     'one-way-anova': AnovaPage,
     'two-way-anova': TwoWayAnovaPage,
+    ancova: AncovaPage,
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
     efa: EfaPage,
@@ -107,7 +109,8 @@ const analysisMenu = [
         icon: Copy,
         subMethods: [
           { id: 'one-way-anova', label: 'One-Way ANOVA', implemented: true },
-          { id: 'two-way-anova', label: 'Two-Way ANOVA', implemented: true, icon: Copy },
+          { id: 'two-way-anova', label: 'Two-Way ANOVA', implemented: true },
+          { id: 'ancova', label: 'ANCOVA', implemented: true },
           { id: 'manova', label: 'MANOVA', implemented: true, icon: Users },
         ]
       },
