@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -50,6 +51,13 @@ interface ParameterEstimates {
     factor_covariances: { [key: string]: number };
 }
 
+interface Effect {
+    estimate: number;
+    se?: number;
+    z_value?: number;
+    p_value?: number;
+}
+
 interface SemResults {
     model_name: string;
     model_spec: {
@@ -65,10 +73,10 @@ interface SemResults {
     parameter_estimates: ParameterEstimates;
     fit_indices: FitIndices;
     effects: {
-        direct_effects: { [key: string]: any };
-        indirect_effects: { [key: string]: any };
-        total_effects: { [key: string]: any };
-        r_squared: { [key: string]: number };
+        direct_effects: { [path: string]: Effect };
+        indirect_effects: { [path: string]: Effect };
+        total_effects: { [path: string]: Effect };
+        r_squared: { [variable: string]: number };
     };
     reliability: {
         [key: string]: {
@@ -96,6 +104,14 @@ const getFitInterpretation = (fit: FitIndices | undefined) => {
     if (fit.cfi >= 0.90 && fit.tli >= 0.90 && fit.rmsea <= 0.08 && fit.srmr <= 0.10) return { level: "Good", color: "bg-yellow-500" };
     return { level: "Poor", color: "bg-red-500" };
 }
+
+const getSignificanceStars = (p: number | undefined) => {
+    if (p === undefined || p === null) return '';
+    if (p < 0.001) return '***';
+    if (p < 0.01) return '**';
+    if (p < 0.05) return '*';
+    return '';
+};
 
 interface SemPageProps {
     data: DataSet;
@@ -253,6 +269,29 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
     const latentVariableNames = latentVariables.map(lv => lv.name).filter(Boolean);
     const results = analysisResult?.results;
 
+    const EffectsTable = ({ title, effects }: { title: string, effects: { [path: string]: Effect } }) => {
+        if (!effects || Object.keys(effects).length === 0) return null;
+        return (
+            <Card>
+                <CardHeader><CardTitle className="font-headline">{title}</CardTitle></CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Path</TableHead><TableHead className="text-right">Estimate</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {Object.entries(effects).map(([path, effect]) => (
+                                <TableRow key={path}>
+                                    <TableCell>{path}</TableCell>
+                                    <TableCell className="font-mono text-right">{effect.estimate.toFixed(3)}</TableCell>
+                                    <TableCell className="font-mono text-right">{effect.p_value?.toFixed(4) ?? 'N/A'} {getSignificanceStars(effect.p_value)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        );
+    };
+
     return (
         <div className="space-y-4">
             <Card>
@@ -352,6 +391,12 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
                              </p>
                         </CardContent>
                     </Card>
+                    
+                    <div className="grid lg:grid-cols-3 gap-4">
+                        <EffectsTable title="Direct Effects" effects={results.effects.direct_effects} />
+                        <EffectsTable title="Indirect Effects" effects={results.effects.indirect_effects} />
+                        <EffectsTable title="Total Effects" effects={results.effects.total_effects} />
+                    </div>
 
                     <div className="grid lg:grid-cols-2 gap-4">
                         <Card>
@@ -375,44 +420,26 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
                                 </Table>
                             </CardContent>
                         </Card>
-                        <div className="space-y-4">
-                            {Object.keys(results.parameter_estimates.structural_paths).length > 0 && (
-                                <Card>
-                                    <CardHeader><CardTitle className="font-headline">Structural Model (Paths)</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <Table>
-                                            <TableHeader><TableRow><TableHead>Path</TableHead><TableHead className="text-right">Coefficient</TableHead></TableRow></TableHeader>
-                                            <TableBody>
-                                                {Object.entries(results.parameter_estimates.structural_paths).map(([path, coeff]) => (
-                                                    <TableRow key={path}>
-                                                        <TableCell>{path.replace(/_/g, ' → ')}</TableCell>
-                                                        <TableCell className="font-mono text-right">{coeff.toFixed(3)}</TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
-                            )}
-                             {results.effects && Object.keys(results.effects.r_squared).length > 0 && (
-                                <Card>
-                                    <CardHeader><CardTitle className="font-headline">Explained Variance (R²)</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <Table>
-                                            <TableHeader><TableRow><TableHead>Endogenous Variable</TableHead><TableHead className="text-right">R²</TableHead></TableRow></TableHeader>
-                                            <TableBody>
-                                                {Object.entries(results.effects.r_squared).map(([variable, r2]) => (
-                                                    <TableRow key={variable}>
-                                                        <TableCell>{variable}</TableCell>
-                                                        <TableCell className="font-mono text-right">{r2.toFixed(3)}</TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
+                        
+                        {results.effects && Object.keys(results.effects.r_squared).length > 0 && (
+                            <Card>
+                                <CardHeader><CardTitle className="font-headline">Explained Variance (R²)</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Endogenous Variable</TableHead><TableHead className="text-right">R²</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {Object.entries(results.effects.r_squared).map(([variable, r2]) => (
+                                                <TableRow key={variable}>
+                                                    <TableCell>{variable}</TableCell>
+                                                    <TableCell className="font-mono text-right">{r2.toFixed(3)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        )}
+                        
                     </div>
                 </div>
             ) : (
@@ -423,3 +450,5 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
         </div>
     )
 }
+
+  
