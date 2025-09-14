@@ -245,6 +245,13 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         });
         setSensitivityResult(results);
     };
+    
+    const sensitivityChartConfig = {
+      utility: {
+        label: 'Utility',
+        color: 'hsl(var(--chart-1))',
+      },
+    };
 
     if (!canRun) {
         const conjointExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('conjoint'));
@@ -453,15 +460,17 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                 <Button onClick={runSensitivityAnalysis}>Analyze</Button>
                                             </div>
                                             {sensitivityResult && (
-                                                <ResponsiveContainer width="100%" height={300}>
-                                                    <LineChart data={sensitivityResult}>
-                                                        <CartesianGrid strokeDasharray="3 3" />
-                                                        <XAxis dataKey="level" />
-                                                        <YAxis />
-                                                        <Tooltip content={<ChartTooltipContent />} />
-                                                        <Line type="monotone" dataKey="utility" name="Utility" stroke="hsl(var(--primary))" />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
+                                                 <ChartContainer config={sensitivityChartConfig} className="w-full h-[300px]">
+                                                    <ResponsiveContainer width="100%" height={300}>
+                                                        <LineChart data={sensitivityResult}>
+                                                            <CartesianGrid strokeDasharray="3 3" />
+                                                            <XAxis dataKey="level" />
+                                                            <YAxis />
+                                                            <Tooltip content={<ChartTooltipContent />} />
+                                                            <Line type="monotone" dataKey="utility" name="Utility" stroke="hsl(var(--primary))" />
+                                                        </LineChart>
+                                                    </ResponsiveContainer>
+                                                </ChartContainer>
                                             )}
                                         </CardContent>
                                     </Card>
@@ -481,17 +490,19 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                  <Card>
                                                     <CardHeader><CardTitle>Residuals vs. Fitted</CardTitle></CardHeader>
                                                     <CardContent>
-                                                        <ResponsiveContainer width="100%" height={300}>
-                                                            <ScatterChart>
-                                                                <CartesianGrid />
-                                                                <XAxis type="number" dataKey="prediction" name="Fitted Value" />
-                                                                <YAxis type="number" dataKey="residual" name="Residual" />
-                                                                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
-                                                                {analysisResult.regression.predictions && analysisResult.regression.residuals &&
-                                                                    <Scatter data={analysisResult.regression.predictions.map((p, i) => ({prediction: p, residual: analysisResult.regression.residuals[i]}))} fill="hsl(var(--primary))" />
-                                                                }
-                                                            </ScatterChart>
-                                                        </ResponsiveContainer>
+                                                        <ChartContainer config={{}} className="w-full h-[300px]">
+                                                            <ResponsiveContainer width="100%" height={300}>
+                                                                <ScatterChart>
+                                                                    <CartesianGrid />
+                                                                    <XAxis type="number" dataKey="prediction" name="Fitted Value" />
+                                                                    <YAxis type="number" dataKey="residual" name="Residual" />
+                                                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
+                                                                    {analysisResult.regression.predictions && analysisResult.regression.residuals &&
+                                                                        <Scatter data={analysisResult.regression.predictions.map((p, i) => ({prediction: p, residual: analysisResult.regression.residuals[i]}))} fill="hsl(var(--primary))" />
+                                                                    }
+                                                                </ScatterChart>
+                                                            </ResponsiveContainer>
+                                                        </ChartContainer>
                                                     </CardContent>
                                                  </Card>
                                                  <Card>
@@ -517,3 +528,5 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         </div>
     );
 }
+
+    
