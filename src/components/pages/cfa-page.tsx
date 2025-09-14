@@ -11,9 +11,9 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { Label } from '../ui/label';
+import { Checkbox } from '../ui/checkbox';
+
 
 // CFA Results Types
 interface CfaResults {
@@ -44,32 +44,6 @@ interface CfaResults {
     convergence: boolean;
 }
 
-const DraggableItem = ({ id, isDragging }: { id: string, isDragging?: boolean }) => {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-    const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, };
-    return <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="p-2 rounded cursor-grab hover:bg-muted bg-background border my-1">{id}</div>;
-};
-
-const FactorCard = ({ factor, items, onFactorNameChange, onRemoveFactor }: { factor: { id: string, name: string }, items: string[], onFactorNameChange: (id: string, name: string) => void, onRemoveFactor: (id: string) => void }) => {
-    return (
-        <Card className="w-full">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <Input value={factor.name} onChange={(e) => onFactorNameChange(factor.id, e.target.value)} className="text-lg font-bold border-none shadow-none focus-visible:ring-0" />
-                <Button variant="ghost" size="icon" onClick={() => onRemoveFactor(factor.id)}><Trash2 className="h-4 w-4" /></Button>
-            </CardHeader>
-            <CardContent>
-                 <SortableContext id={factor.id} items={items} strategy={verticalListSortingStrategy}>
-                    <ScrollArea className="h-40 border rounded-md p-2 bg-muted/20 min-h-[10rem]">
-                            {items.length > 0 ? (
-                                items.map(item => <DraggableItem key={item} id={item} />)
-                            ) : <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-4 text-center">Drop items here</div>}
-                    </ScrollArea>
-                </SortableContext>
-            </CardContent>
-        </Card>
-    );
-};
-
 const getFitInterpretation = (fit: CfaResults['fit_indices']) => {
     const cfiOk = fit.cfi >= 0.95;
     const tliOk = fit.tli >= 0.95;
@@ -81,6 +55,12 @@ const getFitInterpretation = (fit: CfaResults['fit_indices']) => {
     return { level: "Poor", color: "bg-red-500" };
 }
 
+interface Factor {
+    id: string;
+    name: string;
+    items: string[];
+}
+
 interface CfaPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -89,108 +69,40 @@ interface CfaPageProps {
 
 export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPageProps) {
     const { toast } = useToast();
-    const [factors, setFactors] = useState<{ id: string, name: string }[]>([]);
-    const [items, setItems] = useState<Record<string, string[]>>({ available: numericHeaders });
-    const [activeId, setActiveId] = useState<string | null>(null);
-
+    const [factors, setFactors] = useState<Factor[]>([{id: `factor-0`, name: 'Factor 1', items: []}]);
+    
     const [analysisResult, setAnalysisResult] = useState<CfaResults | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
-    const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
-
     useEffect(() => {
-        setItems({ available: numericHeaders });
-        setFactors([]);
+        setFactors([{id: `factor-0`, name: 'Factor 1', items: []}]);
         setAnalysisResult(null);
     }, [numericHeaders, data]);
     
     const canRunAnalysis = useMemo(() => {
-        return data.length > 0 && factors.length > 0 && factors.every(f => (items[f.id]?.length || 0) > 0 && f.name.trim() !== '');
-    }, [data, factors, items]);
+        return data.length > 0 && factors.length > 0 && factors.every(f => f.items.length > 0 && f.name.trim() !== '');
+    }, [data, factors]);
 
     const handleAddFactor = () => {
-        const newFactorId = `factor-${Date.now()}`;
-        setFactors(prev => [...prev, { id: newFactorId, name: `Factor ${prev.length + 1}` }]);
-        setItems(prev => ({ ...prev, [newFactorId]: [] }));
+        setFactors(prev => [...prev, { id: `factor-${prev.length}`, name: `Factor ${prev.length + 1}`, items: [] }]);
     };
     
     const handleRemoveFactor = (id: string) => {
-        const factorItems = items[id] || [];
-        setItems(prev => {
-            const newItems = { ...prev };
-            delete newItems[id];
-            newItems.available = [...(newItems.available || []), ...factorItems].sort();
-            return newItems;
-        });
         setFactors(prev => prev.filter(f => f.id !== id));
     };
     
     const handleFactorNameChange = (id: string, newName: string) => {
         setFactors(prev => prev.map(f => f.id === id ? { ...f, name: newName } : f));
     };
-
-    const findContainer = (id: string) => {
-        if (id in items) {
-          return id;
-        }
-        return Object.keys(items).find((key) => items[key].includes(id));
-    };
-
-    const handleDragStart = (event: DragStartEvent) => {
-        setActiveId(event.active.id.toString());
-    };
-
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        setActiveId(null);
     
-        if (!over) {
-            return;
-        }
-    
-        const activeContainer = findContainer(active.id.toString());
-        const overContainer = findContainer(over.id.toString());
-    
-        if (!activeContainer || !overContainer) {
-            return;
-        }
-
-        if (activeContainer !== overContainer) {
-             setItems((prev) => {
-                const activeItems = prev[activeContainer];
-                const overItems = prev[overContainer];
-                const activeIndex = activeItems.indexOf(active.id.toString());
-                const overIndex = overItems.indexOf(over.id.toString());
-
-                let newIndex;
-                if (over.id in prev) {
-                    newIndex = overItems.length + 1;
-                } else {
-                    const isBelowLastItem = over && overIndex === overItems.length - 1;
-                    const modifier = isBelowLastItem ? 1 : 0;
-                    newIndex = overIndex >= 0 ? overIndex + modifier : overItems.length + 1;
-                }
-
-                return {
-                    ...prev,
-                    [activeContainer]: [...prev[activeContainer].filter((item) => item !== active.id)],
-                    [overContainer]: [
-                        ...prev[overContainer].slice(0, newIndex),
-                        items[activeContainer][activeIndex],
-                        ...prev[overContainer].slice(newIndex, prev[overContainer].length),
-                    ],
-                };
-             });
-        } else {
-            const activeIndex = items[activeContainer].indexOf(active.id.toString());
-            const overIndex = items[overContainer].indexOf(over.id.toString());
-            if (activeIndex !== overIndex) {
-                 setItems(items => ({
-                    ...items,
-                    [overContainer]: arrayMove(items[overContainer], activeIndex, overIndex)
-                }));
+    const handleItemSelectionChange = (factorId: string, item: string, checked: boolean) => {
+        setFactors(prev => prev.map(f => {
+            if (f.id === factorId) {
+                const newItems = checked ? [...f.items, item] : f.items.filter(i => i !== item);
+                return { ...f, items: newItems };
             }
-        }
+            return f;
+        }));
     };
     
     const handleAutoSpec = () => {
@@ -207,7 +119,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         setAnalysisResult(null);
 
         const modelSpec = factors.reduce((acc, factor) => {
-            acc[factor.name] = items[factor.id] || [];
+            acc[factor.name] = factor.items;
             return acc;
         }, {} as { [key: string]: string[] });
 
@@ -236,7 +148,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         } finally {
             setIsLoading(false);
         }
-    }, [data, factors, items, canRunAnalysis, toast]);
+    }, [data, factors, canRunAnalysis, toast]);
     
     const canRunPage = useMemo(() => data.length > 0 && numericHeaders.length >= 3, [data, numericHeaders]);
 
@@ -282,164 +194,198 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     }
 
     return (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="flex flex-col gap-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">CFA Model Specification</CardTitle>
-                        <CardDescription>Define your measurement model by creating factors and dragging items into them.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="md:col-span-1">
-                            <CardHeader><CardTitle className="text-lg">Available Items</CardTitle></CardHeader>
+        <div className="flex flex-col gap-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">CFA Model Specification</CardTitle>
+                    <CardDescription>Define your measurement model by creating factors and assigning variables to them.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="mb-4">
+                        <Label>Number of Factors</Label>
+                        <div className='flex gap-2 items-center'>
+                           <Input 
+                                type="number" 
+                                value={factors.length}
+                                onChange={(e) => {
+                                    const newCount = parseInt(e.target.value, 10);
+                                    if (newCount > factors.length) {
+                                        const toAdd = newCount - factors.length;
+                                        const newFactors = Array.from({length: toAdd}, (_, i) => ({
+                                            id: `factor-${factors.length + i}`,
+                                            name: `Factor ${factors.length + i + 1}`,
+                                            items: []
+                                        }));
+                                        setFactors(prev => [...prev, ...newFactors]);
+                                    } else if (newCount < factors.length) {
+                                        setFactors(prev => prev.slice(0, newCount));
+                                    }
+                                }}
+                                min="1" 
+                                className="w-24"
+                           />
+                           <Button variant="outline" size="icon" onClick={handleAddFactor}><Plus/></Button>
+                        </div>
+                    </div>
+
+                    <ScrollArea className="w-full h-[400px] p-1">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {factors.map((factor, idx) => (
+                                <Card key={factor.id}>
+                                    <CardHeader className="flex-row items-center justify-between">
+                                        <Input value={factor.name} onChange={(e) => handleFactorNameChange(factor.id, e.target.value)} className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto"/>
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveFactor(factor.id)} disabled={factors.length <= 1}>
+                                            <Trash2 className="h-4 w-4 text-muted-foreground"/>
+                                        </Button>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <ScrollArea className="h-48 border rounded-md p-2">
+                                            <div className="space-y-2">
+                                                {numericHeaders.map(item => (
+                                                    <div key={`${factor.id}-${item}`} className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`${factor.id}-${item}`}
+                                                            checked={factor.items.includes(item)}
+                                                            onCheckedChange={(checked) => handleItemSelectionChange(factor.id, item, checked as boolean)}
+                                                        />
+                                                        <label htmlFor={`${factor.id}-${item}`} className="text-sm">{item}</label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </ScrollArea>
+
+                    <div className="flex justify-end gap-2 pt-4">
+                        <Button variant="ghost" onClick={handleAutoSpec}><Wand2 className="mr-2" /> Auto-specify (EFA)</Button>
+                        <Button onClick={handleAnalysis} disabled={!canRunAnalysis || isLoading}>
+                            {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+            
+            {isLoading && <Card><CardHeader><Skeleton className="h-96 w-full"/></CardHeader></Card>}
+
+            {analysisResult && (
+                <>
+                    <div className="grid lg:grid-cols-3 gap-4">
+                        <Card className="lg:col-span-3">
+                            <CardHeader>
+                                <CardTitle className="font-headline">Model Fit Summary</CardTitle>
+                                <CardDescription>Overall assessment of how well the specified model fits the data. <Badge className={`${getFitInterpretation(analysisResult.fit_indices).color} text-white`}>{getFitInterpretation(analysisResult.fit_indices).level}</Badge></CardDescription>
+                            </CardHeader>
                             <CardContent>
-                                <SortableContext id="available" items={items.available || []} strategy={verticalListSortingStrategy}>
-                                    <ScrollArea className="h-80 border rounded-md p-2 bg-muted/20 min-h-[10rem]">
-                                        {(items.available || []).map(item => <DraggableItem key={item} id={item} />)}
-                                        {items.available?.length === 0 && <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-4 text-center">All items assigned</div>}
-                                    </ScrollArea>
-                                </SortableContext>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                    <div className="p-4 bg-muted rounded-lg">
+                                        <p className="text-sm text-muted-foreground">CFI</p>
+                                        <p className="text-2xl font-bold">{analysisResult.fit_indices.cfi.toFixed(3)}</p>
+                                    </div>
+                                     <div className="p-4 bg-muted rounded-lg">
+                                        <p className="text-sm text-muted-foreground">TLI</p>
+                                        <p className="text-2xl font-bold">{analysisResult.fit_indices.tli.toFixed(3)}</p>
+                                    </div>
+                                     <div className="p-4 bg-muted rounded-lg">
+                                        <p className="text-sm text-muted-foreground">RMSEA</p>
+                                        <p className="text-2xl font-bold">{analysisResult.fit_indices.rmsea.toFixed(3)}</p>
+                                    </div>
+                                     <div className="p-4 bg-muted rounded-lg">
+                                        <p className="text-sm text-muted-foreground">SRMR</p>
+                                        <p className="text-2xl font-bold">{analysisResult.fit_indices.srmr.toFixed(3)}</p>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
-                        <div className="md:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            {factors.map(factor => (
-                                <FactorCard key={factor.id} factor={factor} items={items[factor.id] || []} onFactorNameChange={handleFactorNameChange} onRemoveFactor={handleRemoveFactor}/>
-                            ))}
-                            <Button variant="outline" className="h-full w-full border-dashed" onClick={handleAddFactor}><Plus className="mr-2"/> Add Factor</Button>
-                        </div>
-                    </CardContent>
-                    <CardContent>
-                         <div className="flex justify-end gap-2">
-                            <Button variant="ghost" onClick={handleAutoSpec}><Wand2 className="mr-2" /> Auto-specify (EFA)</Button>
-                            <Button onClick={handleAnalysis} disabled={!canRunAnalysis || isLoading}>
-                                {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                {isLoading && <Card><CardHeader><Skeleton className="h-96 w-full"/></CardHeader></Card>}
-
-                {analysisResult && (
-                    <>
-                        <div className="grid lg:grid-cols-3 gap-4">
-                            <Card className="lg:col-span-3">
-                                <CardHeader>
-                                    <CardTitle className="font-headline">Model Fit Summary</CardTitle>
-                                    <CardDescription>Overall assessment of how well the specified model fits the data. <Badge className={`${getFitInterpretation(analysisResult.fit_indices).color} text-white`}>{getFitInterpretation(analysisResult.fit_indices).level}</Badge></CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                        <div className="p-4 bg-muted rounded-lg">
-                                            <p className="text-sm text-muted-foreground">CFI</p>
-                                            <p className="text-2xl font-bold">{analysisResult.fit_indices.cfi.toFixed(3)}</p>
-                                        </div>
-                                         <div className="p-4 bg-muted rounded-lg">
-                                            <p className="text-sm text-muted-foreground">TLI</p>
-                                            <p className="text-2xl font-bold">{analysisResult.fit_indices.tli.toFixed(3)}</p>
-                                        </div>
-                                         <div className="p-4 bg-muted rounded-lg">
-                                            <p className="text-sm text-muted-foreground">RMSEA</p>
-                                            <p className="text-2xl font-bold">{analysisResult.fit_indices.rmsea.toFixed(3)}</p>
-                                        </div>
-                                         <div className="p-4 bg-muted rounded-lg">
-                                            <p className="text-sm text-muted-foreground">SRMR</p>
-                                            <p className="text-2xl font-bold">{analysisResult.fit_indices.srmr.toFixed(3)}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                        <div className="grid lg:grid-cols-2 gap-4">
-                             <Card>
-                                <CardHeader>
-                                    <CardTitle className="font-headline">Standardized Factor Loadings</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead>Indicator</TableHead><TableHead className="text-right">Loading</TableHead><TableHead className="text-right">R²</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {analysisResult.model_spec.factors.map((factor, fIndex) => {
-                                                const factorItems = factors.find(f=>f.name === factor)?.id ? (items[factors.find(f=>f.name === factor)!.id] || []) : [];
-                                                return factorItems.map((item, iIndex) => {
-                                                    const itemIndex = analysisResult.model_spec.indicators.indexOf(item);
-                                                    if(itemIndex === -1 || !analysisResult.standardized_solution) return null;
-                                                    const loading = analysisResult.standardized_solution.loadings[itemIndex]?.[fIndex] ?? 0;
-                                                    const rSquared = loading * loading;
-                                                    return (
-                                                        <TableRow key={`${fIndex}-${iIndex}`}>
-                                                            {iIndex === 0 && <TableCell rowSpan={factorItems.length} className="font-semibold align-top">{factor}</TableCell>}
-                                                            <TableCell>{item}</TableCell>
-                                                            <TableCell className="text-right font-mono">{loading.toFixed(3)}</TableCell>
-                                                            <TableCell className="text-right font-mono">{rSquared.toFixed(3)}</TableCell>
-                                                        </TableRow>
-                                                    )
-                                                })
-                                            })}
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                            <div className="space-y-4">
-                                {analysisResult.model_spec.factors.length > 1 && (
-                                     <Card>
-                                        <CardHeader><CardTitle className="font-headline">Factor Correlations</CardTitle></CardHeader>
-                                        <CardContent>
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead></TableHead>
-                                                        {analysisResult.model_spec.factors.map(f => <TableHead key={f} className="text-center">{f}</TableHead>)}
+                    </div>
+                    <div className="grid lg:grid-cols-2 gap-4">
+                         <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Standardized Factor Loadings</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead>Indicator</TableHead><TableHead className="text-right">Loading</TableHead><TableHead className="text-right">R²</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {analysisResult.model_spec.factors.map((factor, fIndex) => {
+                                            const factorItems = factors.find(f=>f.name === factor)?.items || [];
+                                            return factorItems.map((item, iIndex) => {
+                                                const itemIndex = analysisResult.model_spec.indicators.indexOf(item);
+                                                if(itemIndex === -1 || !analysisResult.standardized_solution) return null;
+                                                const loading = analysisResult.standardized_solution.loadings[itemIndex]?.[fIndex] ?? 0;
+                                                const rSquared = loading * loading;
+                                                return (
+                                                    <TableRow key={`${fIndex}-${iIndex}`}>
+                                                        {iIndex === 0 && <TableCell rowSpan={factorItems.length} className="font-semibold align-top">{factor}</TableCell>}
+                                                        <TableCell>{item}</TableCell>
+                                                        <TableCell className="text-right font-mono">{loading.toFixed(3)}</TableCell>
+                                                        <TableCell className="text-right font-mono">{rSquared.toFixed(3)}</TableCell>
                                                     </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {analysisResult.model_spec.factors.map((f1, i) => (
-                                                        <TableRow key={f1}>
-                                                            <TableHead>{f1}</TableHead>
-                                                            {analysisResult.model_spec.factors.map((f2, j) => (
-                                                                <TableCell key={f2} className="text-center font-mono">
-                                                                    {i === j ? '1.00' : analysisResult.standardized_solution?.factor_correlations[i][j]?.toFixed(3) ?? '-'}
-                                                                </TableCell>
-                                                            ))}
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </CardContent>
-                                    </Card>
-                                )}
-                                <Card>
-                                    <CardHeader><CardTitle className="font-headline">Factor Reliability</CardTitle></CardHeader>
+                                                )
+                                            })
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                        <div className="space-y-4">
+                            {analysisResult.model_spec.factors.length > 1 && (
+                                 <Card>
+                                    <CardHeader><CardTitle className="font-headline">Factor Correlations</CardTitle></CardHeader>
                                     <CardContent>
                                         <Table>
-                                            <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Composite Reliability (CR)</TableHead><TableHead className="text-right">Avg. Variance Extracted (AVE)</TableHead></TableRow></TableHeader>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead></TableHead>
+                                                    {analysisResult.model_spec.factors.map(f => <TableHead key={f} className="text-center">{f}</TableHead>)}
+                                                </TableRow>
+                                            </TableHeader>
                                             <TableBody>
-                                                {Object.entries(analysisResult.reliability).map(([factor, rel]) => (
-                                                    <TableRow key={factor}>
-                                                        <TableCell className="font-semibold">{factor}</TableCell>
-                                                        <TableCell className="text-right font-mono">{rel.composite_reliability.toFixed(3)}</TableCell>
-                                                        <TableCell className="text-right font-mono">{rel.average_variance_extracted.toFixed(3)}</TableCell>
+                                                {analysisResult.model_spec.factors.map((f1, i) => (
+                                                    <TableRow key={f1}>
+                                                        <TableHead>{f1}</TableHead>
+                                                        {analysisResult.model_spec.factors.map((f2, j) => (
+                                                            <TableCell key={f2} className="text-center font-mono">
+                                                                {i === j ? '1.00' : analysisResult.standardized_solution?.factor_correlations[i][j]?.toFixed(3) ?? '-'}
+                                                            </TableCell>
+                                                        ))}
                                                     </TableRow>
                                                 ))}
                                             </TableBody>
                                         </Table>
                                     </CardContent>
                                 </Card>
-                            </div>
+                            )}
+                            <Card>
+                                <CardHeader><CardTitle className="font-headline">Factor Reliability</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Composite Reliability (CR)</TableHead><TableHead className="text-right">Avg. Variance Extracted (AVE)</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {Object.entries(analysisResult.reliability).map(([factor, rel]) => (
+                                                <TableRow key={factor}>
+                                                    <TableCell className="font-semibold">{factor}</TableCell>
+                                                    <TableCell className="text-right font-mono">{rel.composite_reliability.toFixed(3)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{rel.average_variance_extracted.toFixed(3)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
                         </div>
-                    </>
-                )}
-
-                 {!analysisResult && !isLoading && (
-                    <div className="text-center text-muted-foreground py-10">
-                        <BrainCircuit className="mx-auto h-12 w-12 text-gray-400"/>
-                        <p className="mt-2">Define your factors and click 'Run Analysis' to see the results.</p>
                     </div>
-                )}
-            </div>
-            <DragOverlay>
-                {activeId ? <div className="p-2 rounded cursor-grabbing bg-background border shadow-lg">{activeId}</div> : null}
-            </DragOverlay>
-        </DndContext>
+                </>
+            )}
+
+             {!analysisResult && !isLoading && (
+                <div className="text-center text-muted-foreground py-10">
+                    <BrainCircuit className="mx-auto h-12 w-12 text-gray-400"/>
+                    <p className="mt-2">Define your factors and click 'Run Analysis' to see the results.</p>
+                </div>
+            )}
+        </div>
     );
 }
