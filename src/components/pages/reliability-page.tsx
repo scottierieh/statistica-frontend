@@ -122,8 +122,9 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
     };
 
     const handleAnalysis = useCallback(async () => {
-        if (!process.env.NEXT_PUBLIC_RELIABILITY_BACKEND_URL) {
-            toast({variant: 'destructive', title: 'Backend Error', description: 'The reliability backend URL is not configured.'});
+        const backendUrl = process.env.NEXT_PUBLIC_RELIABILITY_BACKEND_URL;
+        if (!backendUrl) {
+            toast({variant: 'destructive', title: 'Configuration Error', description: 'The reliability backend URL is not configured. Please check your environment variables.'});
             return;
         }
         if (selectedItems.length < 2) {
@@ -135,7 +136,6 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         setAiPromise(null);
 
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_RELIABILITY_BACKEND_URL;
             const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
