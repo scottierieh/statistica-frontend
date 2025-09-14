@@ -428,12 +428,12 @@ export default function StatisticaApp() {
                             return (
                               <SidebarMenuItem key={method.id}>
                                 <Collapsible>
-                                    <CollapsibleTrigger className="w-full">
-                                        <SidebarMenuButton className="justify-start w-full h-8 text-xs font-normal">
-                                            {MethodIcon && <MethodIcon className="h-4 w-4" />}
+                                    <CollapsibleTrigger asChild className="w-full">
+                                        <div className="flex items-center justify-start w-full h-8 text-xs font-normal peer/menu-button rounded-md p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                                            {MethodIcon && <MethodIcon className="h-4 w-4 mr-2" />}
                                             <span>{method.label}</span>
                                              <ChevronDown className={cn("h-4 w-4 ml-auto transition-transform")} />
-                                        </SidebarMenuButton>
+                                        </div>
                                     </CollapsibleTrigger>
                                     <CollapsibleContent className="pl-6 py-1">
                                         <SidebarMenuSub>
@@ -534,7 +534,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
-    
-
-    
