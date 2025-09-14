@@ -43,10 +43,11 @@ class AncovaAnalysis:
         self.clean_data = self.data[all_vars].dropna().copy()
         
         # Sanitize column names for formula
-        self.clean_data.columns = [col.replace(' ', '_').replace('.', '') for col in self.clean_data.columns]
         self.dependent_var_clean = self.dependent_var.replace(' ', '_').replace('.', '')
         self.factor_var_clean = self.factor_var.replace(' ', '_').replace('.', '')
         self.covariate_vars_clean = [c.replace(' ', '_').replace('.', '') for c in self.covariate_vars]
+        
+        self.clean_data.columns = [self.dependent_var_clean, self.factor_var_clean] + self.covariate_vars_clean
 
     def run_analysis(self):
         covariates_formula = ' + '.join([f'Q("{c}")' for c in self.covariate_vars_clean])
@@ -63,8 +64,26 @@ class AncovaAnalysis:
         
         self.results['model_summary'] = str(model.summary())
         
+        # Clean up source names
+        cleaned_index = {}
+        cleaned_index[f'C(Q("{self.factor_var_clean}"), Sum)'] = self.factor_var
+        for cov in self.covariate_vars_clean:
+            cleaned_index[f'Q("{cov}")'] = cov
+        
+        interaction_term = f'C(Q("{self.factor_var_clean}"), Sum):Q("{self.covariate_vars_clean[0]}")' # Simple assumption for now
+        cleaned_index[interaction_term] = f'{self.factor_var} * {self.covariate_vars[0]}'
+
+        # More robust cleaning for multiple covariates
+        for cov in self.covariate_vars_clean:
+             interaction_key = f'C(Q("{self.factor_var_clean}"), Sum):Q("{cov}")'
+             original_cov_name = self.covariate_vars[self.covariate_vars_clean.index(cov)]
+             cleaned_index[interaction_key] = f'{self.factor_var} * {original_cov_name}'
+
+
+        anova_table = anova_table.rename(index=cleaned_index)
+
         # Replace NaN with None before converting to dict
-        self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source'}).replace({np.nan: None}).to_dict('records')
+        self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p_value'}).replace({np.nan: None}).to_dict('records')
         self.results['residuals'] = model.resid.tolist()
         
         self._test_assumptions(model)
@@ -90,14 +109,24 @@ class AncovaAnalysis:
 
         # Interaction plot
         if self.covariate_vars_clean:
+            # Use original names for plotting
+            original_cov_name_to_plot = self.covariate_vars[0]
+            clean_cov_name_to_plot = self.covariate_vars_clean[0]
+            
+            temp_plot_data = self.clean_data.rename(columns={
+                self.dependent_var_clean: self.dependent_var,
+                self.factor_var_clean: self.factor_var,
+                clean_cov_name_to_plot: original_cov_name_to_plot
+            })
+
             sns.lmplot(
-                x=self.covariate_vars_clean[0], 
-                y=self.dependent_var_clean, 
-                hue=self.factor_var_clean, 
-                data=self.clean_data, 
+                x=original_cov_name_to_plot, 
+                y=self.dependent_var, 
+                hue=self.factor_var, 
+                data=temp_plot_data, 
                 ci=None
             )
-            plt.title(f'Interaction Plot: {self.dependent_var_clean} vs {self.covariate_vars_clean[0]} by {self.factor_var_clean}')
+            plt.title(f'Interaction Plot: {self.dependent_var} vs {original_cov_name_to_plot} by {self.factor_var}')
             
             # Need to capture lmplot to a buffer as it creates its own figure
             lmplot_buf = io.BytesIO()

@@ -22,7 +22,7 @@ interface AnovaRow {
     sum_sq: number;
     df: number;
     F: number;
-    'PR(>F)': number;
+    p_value: number;
     eta_sq_partial: number;
 }
 
@@ -231,7 +231,7 @@ export default function AncovaPage({ data, numericHeaders, categoricalHeaders, o
                                             <TableCell className="text-right font-mono">{row.sum_sq?.toFixed(3)}</TableCell>
                                             <TableCell className="text-right font-mono">{row.df}</TableCell>
                                             <TableCell className="text-right font-mono">{row.F?.toFixed(3) ?? ''}</TableCell>
-                                            <TableCell className="text-right font-mono">{row['PR(>F)'] < 0.001 ? "<.001" : row['PR(>F)']?.toFixed(4) ?? ''} {getSignificanceStars(row['PR(>F)'])}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.p_value < 0.001 ? "<.001" : row.p_value?.toFixed(4) ?? ''} {getSignificanceStars(row.p_value)}</TableCell>
                                             <TableCell className="text-right font-mono">{row.eta_sq_partial?.toFixed(3) ?? ''}</TableCell>
                                         </TableRow>
                                     ))}
@@ -259,4 +259,3 @@ export default function AncovaPage({ data, numericHeaders, categoricalHeaders, o
         </div>
     );
 }
-
