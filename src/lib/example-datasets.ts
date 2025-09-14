@@ -1,3 +1,4 @@
+
 import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
@@ -15,7 +16,7 @@ import { semData } from "./example-datasets/sem-data";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint';
 
 
 export interface ExampleDataSet {
@@ -55,6 +56,22 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 
 export const exampleDatasets: ExampleDataSet[] = [
+     {
+        id: 'conjoint-smartphone',
+        name: 'Smartphone Preferences',
+        description: 'Simulated user ratings for smartphones with different attributes.',
+        icon: Network,
+        analysisTypes: ['conjoint', 'stats'],
+        recommendedAnalysis: 'conjoint',
+        data: `brand,price,screen,battery,rating
+Apple,999,6.7,5000,9
+Samsung,899,6.4,4000,8
+Google,699,6.1,3000,7
+OnePlus,799,6.7,5000,8
+Apple,699,6.1,4000,8
+Samsung,999,6.7,3000,7
+`
+    },
     {
         id: 'sem-satisfaction',
         name: 'Customer Satisfaction Model',
