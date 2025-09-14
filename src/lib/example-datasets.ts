@@ -1,4 +1,5 @@
 
+
 import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
@@ -12,6 +13,7 @@ import { twoWayAnovaData } from "./example-datasets/two-way-anova-data";
 import { tTestData } from "./example-datasets/t-test-data";
 import { regressionData } from "./example-datasets/regression-data";
 import { semData } from "./example-datasets/sem-data";
+import { conjointSmartphoneData } from "./example-datasets/conjoint-smartphone-data";
 
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
@@ -63,14 +65,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         icon: Network,
         analysisTypes: ['conjoint', 'stats'],
         recommendedAnalysis: 'conjoint',
-        data: `brand,price,screen,battery,rating
-Apple,999,6.7,5000,9
-Samsung,899,6.4,4000,8
-Google,699,6.1,3000,7
-OnePlus,799,6.7,5000,8
-Apple,699,6.1,4000,8
-Samsung,999,6.7,3000,7
-`
+        data: conjointSmartphoneData
     },
     {
         id: 'sem-satisfaction',
