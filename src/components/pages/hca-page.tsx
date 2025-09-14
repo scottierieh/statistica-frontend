@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,6 +24,7 @@ interface HcaResults {
             size: number;
             percentage: number;
             centroid: { [key: string]: number };
+            std: { [key: string]: number };
         }
     };
     final_metrics?: {
@@ -31,7 +32,13 @@ interface HcaResults {
         calinski_harabasz: number;
         davies_bouldin: number;
     };
-    optimal_k_recommendation?: number;
+    optimal_k_recommendation?: {
+        [key: string]: number;
+    };
+    stability?: {
+        mean: number;
+        std: number;
+    };
 }
 
 interface FullHcaResponse {
@@ -129,11 +136,11 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
                                             <CardDescription className="text-xs">{ex.description}</CardDescription>
                                         </div>
                                     </CardHeader>
-                                    <CardFooter>
+                                    <CardContent>
                                         <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
                                             Load this data
                                         </Button>
-                                    </CardFooter>
+                                    </CardContent>
                                 </Card>
                             ))}
                         </div>
@@ -199,7 +206,7 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
                             <Label>Number of Clusters (Optional)</Label>
                             <Input 
                                 type="number" 
-                                placeholder={`Auto (Recommended: ${results?.optimal_k_recommendation || '...'})`}
+                                placeholder={`Auto (e.g. ${results?.optimal_k_recommendation?.silhouette || '...'})`}
                                 value={nClusters ?? ''}
                                 onChange={e => setNClusters(e.target.value ? parseInt(e.target.value) : null)}
                             />
@@ -219,21 +226,21 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
                  <div className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Dendrogram</CardTitle>
+                            <CardTitle className="font-headline">Analysis Visualizations</CardTitle>
                             <CardDescription>
-                                A tree diagram illustrating the arrangement of the clusters. The red dotted line indicates the cut for {results.n_clusters} clusters.
+                                A comprehensive overview of the clustering results, including the dendrogram, validation plots, and cluster distributions.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Image src={analysisResult.plot} alt="Dendrogram" width={800} height={400} className="w-full rounded-md border"/>
+                            <Image src={analysisResult.plot} alt="Comprehensive HCA Plots" width={1500} height={1800} className="w-full rounded-md border"/>
                         </CardContent>
                     </Card>
 
-                    <div className="grid lg:grid-cols-2 gap-4">
-                        <Card>
+                    <div className="grid lg:grid-cols-3 gap-4">
+                        <Card className="lg:col-span-2">
                             <CardHeader>
                                 <CardTitle className="font-headline">Cluster Profiles</CardTitle>
-                                <CardDescription>Mean values of each variable for the clusters.</CardDescription>
+                                <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ScrollArea className="h-72">
@@ -241,7 +248,7 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
                                         <TableHeader>
                                             <TableRow>
                                                 <TableHead>Cluster</TableHead>
-                                                <TableHead>Size</TableHead>
+                                                <TableHead>Size (%)</TableHead>
                                                 {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
                                             </TableRow>
                                         </TableHeader>
@@ -265,29 +272,42 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
                                 </ScrollArea>
                             </CardContent>
                         </Card>
-                         <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Cluster Validation</CardTitle>
-                                <CardDescription>Metrics to evaluate the quality of the clustering.</CardDescription>
-                            </CardHeader>
-                             <CardContent className="space-y-4">
-                                <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
-                                    <div className="space-y-1">
-                                        <dt className="font-medium text-muted-foreground">Silhouette Score</dt>
-                                        <dd className="text-xl font-bold font-mono">{results.final_metrics?.silhouette.toFixed(3)}</dd>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <dt className="font-medium text-muted-foreground">Calinski-Harabasz</dt>
-                                        <dd className="text-xl font-bold font-mono">{results.final_metrics?.calinski_harabasz.toFixed(2)}</dd>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <dt className="font-medium text-muted-foreground">Davies-Bouldin</dt>
-                                        <dd className="text-xl font-bold font-mono">{results.final_metrics?.davies_bouldin.toFixed(3)}</dd>
-                                    </div>
-                                </dl>
-                                {results.optimal_k_recommendation && <Badge>Recommended clusters: {results.optimal_k_recommendation}</Badge>}
-                            </CardContent>
-                        </Card>
+                         <div className="space-y-4">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="font-headline">Cluster Validation</CardTitle>
+                                    <CardDescription>Metrics to evaluate the quality of the clustering.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                        <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Silhouette Score</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.silhouette.toFixed(3)}</dd></div>
+                                        <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Calinski-Harabasz</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.calinski_harabasz.toFixed(2)}</dd></div>
+                                        <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Davies-Bouldin</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.davies_bouldin.toFixed(3)}</dd></div>
+                                    </dl>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader><CardTitle className="font-headline">Optimal Cluster Recommendations</CardTitle></CardHeader>
+                                <CardContent>
+                                    <ul className="space-y-2 text-sm">
+                                      {results.optimal_k_recommendation && Object.entries(results.optimal_k_recommendation).map(([method, k]) => (
+                                        <li key={method} className="flex justify-between"><span>{method}:</span><Badge>{k} Clusters</Badge></li>
+                                      ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                             {results.stability && (
+                                <Card>
+                                <CardHeader><CardTitle className="font-headline">Cluster Stability</CardTitle></CardHeader>
+                                <CardContent>
+                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                        <dt className="text-sm font-medium text-muted-foreground">Mean Stability</dt><dd className="text-base font-mono">{results.stability.mean.toFixed(3)}</dd>
+                                        <dt className="text-sm font-medium text-muted-foreground">Std. Dev.</dt><dd className="text-base font-mono">{results.stability.std.toFixed(3)}</dd>
+                                    </dl>
+                                </CardContent>
+                            </Card>
+                            )}
+                         </div>
                     </div>
                 </div>
             )}
@@ -300,5 +320,3 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
         </div>
     );
 }
-
-    
