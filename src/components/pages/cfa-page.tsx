@@ -281,17 +281,6 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
             {analysisResult && results && (
                 <>
-                    {analysisResult.plot && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Path Diagram</CardTitle>
-                                <CardDescription>A visual representation of the confirmatory factor analysis model.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.plot} alt="CFA Path Diagram" width={1000} height={800} className="w-full rounded-md border"/>
-                            </CardContent>
-                        </Card>
-                    )}
                     <div className="grid lg:grid-cols-3 gap-4">
                         <Card className="lg:col-span-3">
                             <CardHeader>

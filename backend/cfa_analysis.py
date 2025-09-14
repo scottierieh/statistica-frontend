@@ -253,74 +253,6 @@ class ConfirmatoryFactorAnalysis:
             reliability[factor_name] = {'composite_reliability': cr, 'average_variance_extracted': ave}
         return reliability
 
-    def plot_cfa_model(self, results):
-        spec = results['model_spec']
-        std_sol = results['standardized_solution']
-        if not std_sol:
-            return None
-
-        factors = spec['factors']
-        indicators = spec['indicators']
-        
-        fig, ax = plt.subplots(figsize=(5, 4))
-        ax.set_xlim(0, 10)
-        ax.set_ylim(0, 10)
-        ax.axis('off')
-
-        # Positions
-        factor_pos = {}
-        for i, factor in enumerate(factors):
-            factor_pos[factor] = (2, 8 - i * (8 / (len(factors) -1)) if len(factors) > 1 else 5)
-
-        indicator_pos = {}
-        for i, ind in enumerate(indicators):
-            indicator_pos[ind] = (8, 9.5 - i * (9 / (len(indicators)-1)))
-        
-        # Draw factors
-        for factor, pos in factor_pos.items():
-            ax.add_patch(plt.matplotlib.patches.Ellipse(pos, 1.2, 0.7, fill=True, facecolor='skyblue', alpha=0.6))
-            ax.text(pos[0], pos[1], factor, ha='center', va='center', fontweight='bold')
-
-        # Draw indicators
-        for ind, pos in indicator_pos.items():
-            ax.add_patch(plt.matplotlib.patches.Rectangle((pos[0] - 0.4, pos[1] - 0.2), 0.8, 0.4, fill=True, facecolor='lightgreen', alpha=0.6))
-            ax.text(pos[0], pos[1], ind, ha='center', va='center')
-
-        # Draw loadings
-        for f_idx, factor in enumerate(factors):
-            for i_idx, ind in enumerate(indicators):
-                loading = std_sol['loadings'][i_idx][f_idx]
-                if abs(loading) > 1e-6:
-                    ax.arrow(factor_pos[factor][0], factor_pos[factor][1], 
-                             indicator_pos[ind][0] - factor_pos[factor][0],
-                             indicator_pos[ind][1] - factor_pos[factor][1],
-                             head_width=0.1, head_length=0.1, fc='black', ec='black')
-                    mid_x = (factor_pos[factor][0] + indicator_pos[ind][0]) / 2
-                    mid_y = (factor_pos[factor][1] + indicator_pos[ind][1]) / 2
-                    ax.text(mid_x, mid_y + 0.1, f'{loading:.2f}', ha='center', va='center', backgroundcolor='white')
-
-        # Draw factor correlations
-        if len(factors) > 1:
-            for i in range(len(factors)):
-                for j in range(i + 1, len(factors)):
-                    corr = std_sol['factor_correlations'][i][j]
-                    f1_pos, f2_pos = factor_pos[factors[i]], factor_pos[factors[j]]
-                    control_point = (1, (f1_pos[1] + f2_pos[1])/2)
-                    path = plt.matplotlib.path.Path([(f1_pos[0], f1_pos[1]), control_point, (f2_pos[0], f2_pos[1])],
-                                                     [plt.matplotlib.path.Path.MOVETO, plt.matplotlib.path.Path.CURVE3, plt.matplotlib.path.Path.CURVE3])
-                    patch = plt.matplotlib.patches.PathPatch(path, facecolor='none', edgecolor='red', lw=1.5, ls='--')
-                    ax.add_patch(patch)
-                    ax.text(control_point[0], control_point[1], f'{corr:.2f}', color='red', ha='center', va='center', backgroundcolor='white')
-
-
-        plt.title("CFA Path Diagram (Standardized)", fontsize=16)
-        
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight')
-        plt.close(fig)
-        buf.seek(0)
-        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
-
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -337,11 +269,9 @@ def main():
         cfa.specify_model(model_name, model_spec)
         results = cfa.run_cfa(model_name)
 
-        plot_image = cfa.plot_cfa_model(results)
-
         response = {
             'results': results,
-            'plot': plot_image
+            'plot': None
         }
         
         print(json.dumps(response, default=_to_native_type))
@@ -352,6 +282,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
