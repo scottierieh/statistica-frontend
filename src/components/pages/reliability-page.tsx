@@ -145,11 +145,18 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                 })
             });
 
-            const result = await response.json();
             if (!response.ok) {
-                throw new Error(result.error || `HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                let errorJson;
+                try {
+                    errorJson = JSON.parse(errorText);
+                } catch(e) {
+                    // Not a valid JSON, use the raw text
+                }
+                throw new Error(errorJson?.error || `HTTP error! status: ${response.status} - ${errorText}`);
             }
 
+            const result = await response.json();
             setReliabilityResult(result);
             
             // Trigger AI interpretation
