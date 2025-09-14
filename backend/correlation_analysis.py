@@ -65,7 +65,7 @@ def main():
                         'variable_2': var2,
                         'correlation': corr,
                         'p_value': p_value,
-                        'significant': p_value < alpha
+                        'significant': bool(p_value < alpha)
                     })
 
         # Summary statistics
@@ -73,12 +73,12 @@ def main():
         upper_triangle_clean = upper_triangle[~np.isnan(upper_triangle)]
 
         summary_stats = {
-            'mean_correlation': np.mean(upper_triangle_clean) if len(upper_triangle_clean) > 0 else 0,
-            'median_correlation': np.median(upper_triangle_clean) if len(upper_triangle_clean) > 0 else 0,
-            'std_dev': np.std(upper_triangle_clean) if len(upper_triangle_clean) > 0 else 0,
-            'range': [np.min(upper_triangle_clean).item(), np.max(upper_triangle_clean).item()] if len(upper_triangle_clean) > 0 else [0, 0],
-            'significant_correlations': sum(1 for c in all_correlations if c['significant']),
-            'total_pairs': len(all_correlations)
+            'mean_correlation': float(np.mean(upper_triangle_clean)) if len(upper_triangle_clean) > 0 else 0,
+            'median_correlation': float(np.median(upper_triangle_clean)) if len(upper_triangle_clean) > 0 else 0,
+            'std_dev': float(np.std(upper_triangle_clean)) if len(upper_triangle_clean) > 0 else 0,
+            'range': [float(np.min(upper_triangle_clean)), float(np.max(upper_triangle_clean))] if len(upper_triangle_clean) > 0 else [0, 0],
+            'significant_correlations': int(sum(1 for c in all_correlations if c['significant'])),
+            'total_pairs': int(len(all_correlations))
         }
         
         # Effect Sizes
