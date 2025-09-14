@@ -25,7 +25,7 @@ import {
   Cell,
   ReferenceLine,
 } from 'recharts';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 interface CorrelationResults {
   correlation_matrix: { [key: string]: { [key: string]: number } };
@@ -119,6 +119,12 @@ const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strong
         name: `${item.variable_1.substring(0,10)} & ${item.variable_2.substring(0,10)}`,
         correlation: item.correlation
     })).reverse();
+    
+    const chartConfig = {
+      correlation: {
+        label: "Correlation",
+      },
+    };
 
     return (
         <Card>
@@ -127,10 +133,10 @@ const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strong
                  <CardDescription>Top 10 strongest relationships found in the data.</CardDescription>
             </CardHeader>
             <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
+                <ChartContainer config={chartConfig} className="w-full h-[300px]">
                     <RechartsBarChart layout="vertical" data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
-                        <XAxis type="number" domain={[-1, 1]}/>
+                        <XAxis type="number" dataKey="correlation" domain={[-1, 1]}/>
                         <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 10 }} />
                         <Tooltip content={<ChartTooltipContent />} cursor={{fill: 'hsl(var(--muted))'}} />
                         <ReferenceLine x={0} stroke="#666" />
@@ -140,7 +146,7 @@ const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strong
                             ))}
                         </Bar>
                     </RechartsBarChart>
-                </ResponsiveContainer>
+                </ChartContainer>
             </CardContent>
         </Card>
     );
