@@ -33,8 +33,6 @@ def reliability():
 
         for col in reverse_code_items:
             if col in df_items.columns:
-                # Ensure column is numeric before performing arithmetic
-                df_items[col] = pd.to_numeric(df_items[col], errors='coerce')
                 max_val = df_items[col].max()
                 min_val = df_items[col].min()
                 df_items[col] = max_val + min_val - df_items[col]
@@ -43,33 +41,26 @@ def reliability():
         if df_items.shape[0] < 2:
             return jsonify({"error": "Not enough valid data for analysis after handling missing values."}), 400
 
-        alpha_results = pg.cronbach_alpha(data=df_items)
+        alpha_results = pg.cronbach_alpha(data=df_items, nan_policy='listwise')
         
-        # pg.item_reliability might fail with few items, handle it gracefully
-        item_total_corr = None
-        if df_items.shape[1] > 2:
-            try:
-                item_total_corr = pg.item_reliability(df_items)
-            except Exception:
-                item_total_corr = None
-
+        item_total_corr = pg.item_reliability(df_items)
 
         response = {
             'alpha': alpha_results[0],
             'n_items': df_items.shape[1],
             'n_cases': df_items.shape[0],
             'confidence_interval': list(alpha_results[1]),
-            'sem': df_items.sum(axis=1).std(ddof=1) * (1 - alpha_results[0])**0.5 if alpha_results[0] is not None else None,
+            'sem': df_items.sum(axis=1).std() * (1 - alpha_results[0])**0.5,
             'item_statistics': {
                 'means': df_items.mean().to_dict(),
-                'stds': df_items.std(ddof=1).to_dict(),
-                'corrected_item_total_correlations': item_total_corr['item-total_corr'].to_dict() if item_total_corr is not None else {item: None for item in items},
-                'alpha_if_deleted': item_total_corr['alpha_if_deleted'].to_dict() if item_total_corr is not None else {item: None for item in items},
+                'stds': df_items.std().to_dict(),
+                'corrected_item_total_correlations': item_total_corr['item-total_corr'].to_dict(),
+                'alpha_if_deleted': item_total_corr['alpha_if_deleted'].to_dict(),
             },
             'scale_statistics': {
                 'mean': df_items.sum(axis=1).mean(),
-                'std': df_items.sum(axis=1).std(ddof=1),
-                'variance': df_items.sum(axis=1).var(ddof=1),
+                'std': df_items.sum(axis=1).std(),
+                'variance': df_items.sum(axis=1).var(),
                 'avg_inter_item_correlation': df_items.corr().values[df_items.corr().values != 1].mean()
             }
         }
@@ -95,6 +86,7 @@ def anova():
 
         df = pd.DataFrame(data)
         
+        # Ensure correct dtypes
         df[dependent_var] = pd.to_numeric(df[dependent_var], errors='coerce')
         df[independent_var] = df[independent_var].astype('category')
         df.dropna(subset=[dependent_var, independent_var], inplace=True)
@@ -132,7 +124,7 @@ def anova():
                 'msb': anova_res['MS'][0],
                 'msw': anova_res['MS'][1],
                 'eta_squared': anova_res['np2'][0],
-                'omega_squared': pg.compute_effsize(df[independent_var], df[dependent_var], eftype='omega') if anova_res['np2'][0] is not None else None,
+                'omega_squared': pg.compute_effsize(df[independent_var], df[dependent_var], eftype='omega')
             },
             "assumptions": {
                 "normality": {str(group): {'statistic': stat, 'p_value': p, 'normal': normal} for group, stat, p, normal in zip(normality_res['group'], normality_res['W'], normality_res['pval'], normality_res['normal'])},
