@@ -56,10 +56,15 @@ class AncovaAnalysis:
         anova_table = anova_lm(model, typ=2)
         
         # Add partial eta-squared
-        anova_table['eta_sq_partial'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
+        if 'Residual' in anova_table.index and 'sum_sq' in anova_table.columns:
+            anova_table['eta_sq_partial'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
+        else:
+            anova_table['eta_sq_partial'] = np.nan
         
         self.results['model_summary'] = str(model.summary())
-        self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source'}).to_dict('records')
+        
+        # Replace NaN with None before converting to dict
+        self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source'}).replace({np.nan: None}).to_dict('records')
         self.results['residuals'] = model.resid.tolist()
         
         self._test_assumptions(model)
@@ -84,34 +89,36 @@ class AncovaAnalysis:
         fig.suptitle('ANCOVA Results', fontsize=16)
 
         # Interaction plot
-        sns.lmplot(
-            x=self.covariate_vars_clean[0], 
-            y=self.dependent_var_clean, 
-            hue=self.factor_var_clean, 
-            data=self.clean_data, 
-            ci=None
-        )
-        plt.title(f'Interaction Plot: {self.dependent_var_clean} vs {self.covariate_vars_clean[0]} by {self.factor_var_clean}')
-        
-        # Need to capture lmplot to a buffer as it creates its own figure
-        lmplot_buf = io.BytesIO()
-        plt.savefig(lmplot_buf, format='png', bbox_inches='tight')
-        plt.close() # Close the figure created by lmplot
-        lmplot_buf.seek(0)
-        
-        # Use a single buffer for all plots
-        buf = io.BytesIO()
-        final_fig, final_ax = plt.subplots(1,1, figsize=(8,6))
-        final_ax.imshow(plt.imread(lmplot_buf))
-        final_ax.axis('off')
-        final_fig.suptitle(f'Interaction Plot', fontsize=14)
+        if self.covariate_vars_clean:
+            sns.lmplot(
+                x=self.covariate_vars_clean[0], 
+                y=self.dependent_var_clean, 
+                hue=self.factor_var_clean, 
+                data=self.clean_data, 
+                ci=None
+            )
+            plt.title(f'Interaction Plot: {self.dependent_var_clean} vs {self.covariate_vars_clean[0]} by {self.factor_var_clean}')
+            
+            # Need to capture lmplot to a buffer as it creates its own figure
+            lmplot_buf = io.BytesIO()
+            plt.savefig(lmplot_buf, format='png', bbox_inches='tight')
+            plt.close() # Close the figure created by lmplot
+            lmplot_buf.seek(0)
+            
+            # Use a single buffer for all plots
+            buf = io.BytesIO()
+            final_fig, final_ax = plt.subplots(1,1, figsize=(8,6))
+            final_ax.imshow(plt.imread(lmplot_buf))
+            final_ax.axis('off')
+            final_fig.suptitle(f'Interaction Plot', fontsize=14)
 
-        plt.tight_layout()
-        plt.savefig(buf, format='png')
-        plt.close(final_fig)
-        buf.seek(0)
-        
-        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+            plt.tight_layout()
+            plt.savefig(buf, format='png')
+            plt.close(final_fig)
+            buf.seek(0)
+            
+            return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+        return None
 
 def main():
     try:
