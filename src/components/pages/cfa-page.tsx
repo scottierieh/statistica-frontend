@@ -11,7 +11,7 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, DragOverlay } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -99,7 +99,6 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
     useEffect(() => {
-        const newItems: Record<string, string[]> = { available: numericHeaders };
         setItems({ available: numericHeaders });
         setFactors([]);
         setAnalysisResult(null);
@@ -120,7 +119,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         setItems(prev => {
             const newItems = { ...prev };
             delete newItems[id];
-            newItems.available = [...newItems.available, ...factorItems].sort();
+            newItems.available = [...(newItems.available || []), ...factorItems].sort();
             return newItems;
         });
         setFactors(prev => prev.filter(f => f.id !== id));
@@ -131,12 +130,14 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     };
 
     const findContainer = (id: string) => {
-        if (id in items) return id;
-        return Object.keys(items).find(key => items[key].includes(id));
+        if (id in items) {
+          return id;
+        }
+        return Object.keys(items).find((key) => items[key].includes(id));
     };
 
-    const handleDragStart = (event: any) => {
-        setActiveId(event.active.id);
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(event.active.id.toString());
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
@@ -147,38 +148,49 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
             return;
         }
     
-        const activeContainer = findContainer(active.id as string);
-        const overContainer = findContainer(over.id as string);
+        const activeContainer = findContainer(active.id.toString());
+        const overContainer = findContainer(over.id.toString());
     
-        if (!activeContainer || !overContainer || activeContainer === overContainer) {
-             if(activeContainer) {
-                const activeIndex = items[activeContainer].indexOf(active.id as string);
-                const overIndex = items[overContainer!].indexOf(over.id as string);
-                if (activeIndex !== overIndex) {
-                    setItems(prev => ({
-                        ...prev,
-                        [overContainer!]: arrayMove(prev[overContainer!], activeIndex, overIndex)
-                    }));
-                }
-            }
+        if (!activeContainer || !overContainer) {
             return;
         }
-    
-        setItems(prev => {
-            const activeItems = prev[activeContainer];
-            const overItems = prev[overContainer];
-    
-            const activeIndex = activeItems.indexOf(active.id as string);
-            const overIndex = overItems.indexOf(over.id as string);
-    
-            const newItems = { ...prev };
-            const [movedItem] = newItems[activeContainer].splice(activeIndex, 1);
-            
-            const newOverIndex = overIndex >= 0 ? overIndex : newItems[overContainer].length;
-            newItems[overContainer].splice(newOverIndex, 0, movedItem);
 
-            return newItems;
-        });
+        if (activeContainer !== overContainer) {
+             setItems((prev) => {
+                const activeItems = prev[activeContainer];
+                const overItems = prev[overContainer];
+                const activeIndex = activeItems.indexOf(active.id.toString());
+                const overIndex = overItems.indexOf(over.id.toString());
+
+                let newIndex;
+                if (over.id in prev) {
+                    newIndex = overItems.length + 1;
+                } else {
+                    const isBelowLastItem = over && overIndex === overItems.length - 1;
+                    const modifier = isBelowLastItem ? 1 : 0;
+                    newIndex = overIndex >= 0 ? overIndex + modifier : overItems.length + 1;
+                }
+
+                return {
+                    ...prev,
+                    [activeContainer]: [...prev[activeContainer].filter((item) => item !== active.id)],
+                    [overContainer]: [
+                        ...prev[overContainer].slice(0, newIndex),
+                        items[activeContainer][activeIndex],
+                        ...prev[overContainer].slice(newIndex, prev[overContainer].length),
+                    ],
+                };
+             });
+        } else {
+            const activeIndex = items[activeContainer].indexOf(active.id.toString());
+            const overIndex = items[overContainer].indexOf(over.id.toString());
+            if (activeIndex !== overIndex) {
+                 setItems(items => ({
+                    ...items,
+                    [overContainer]: arrayMove(items[overContainer], activeIndex, overIndex)
+                }));
+            }
+        }
     };
     
     const handleAutoSpec = () => {
@@ -284,6 +296,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                 <SortableContext id="available" items={items.available || []} strategy={verticalListSortingStrategy}>
                                     <ScrollArea className="h-80 border rounded-md p-2 bg-muted/20 min-h-[10rem]">
                                         {(items.available || []).map(item => <DraggableItem key={item} id={item} />)}
+                                        {items.available?.length === 0 && <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-4 text-center">All items assigned</div>}
                                     </ScrollArea>
                                 </SortableContext>
                             </CardContent>
