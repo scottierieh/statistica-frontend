@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -187,7 +185,7 @@ export default function StatisticaApp() {
   const [report, setReport] = useState<{ title: string, content: string } | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
+  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | 'visuals'>('stats');
   const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Clustering / Classification']);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -323,7 +321,11 @@ export default function StatisticaApp() {
     URL.revokeObjectURL(url);
   };
   
-  const ActivePageComponent = activeAnalysis ? analysisPages[activeAnalysis as AnalysisType] : DescriptiveStatsPage;
+  const ActivePageComponent = activeAnalysis && analysisPages[activeAnalysis as AnalysisType] 
+    ? analysisPages[activeAnalysis as AnalysisType]
+    : activeAnalysis === 'visuals'
+      ? VisualizationPage
+      : DescriptiveStatsPage;
 
   const hasData = data.length > 0;
   
@@ -397,6 +399,17 @@ export default function StatisticaApp() {
                 </div>
               )}
             </div>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton
+                    onClick={() => setActiveAnalysis('visuals')}
+                    isActive={activeAnalysis === 'visuals'}
+                    >
+                    <BarChart2 />
+                    <span>Visualizations</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
             
             <div className="flex-1 overflow-y-auto">
               {filteredMenu.map((category) => {
@@ -487,7 +500,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && (
+            {hasData && activeAnalysis !== 'stats' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
