@@ -11,6 +11,7 @@ import { Sigma, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface CorrelationResult {
     correlation: number;
