@@ -15,6 +15,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
+import { Skeleton } from '../ui/skeleton';
 
 interface LatentVariable {
     id: string;
@@ -262,8 +263,8 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
                 <CardContent className="space-y-6">
                     {/* Measurement Model */}
                     <div>
-                        <Label className="text-lg font-semibold flex items-center gap-2"><Spline/> Measurement Model</Label>
-                        <p className="text-sm text-muted-foreground mb-4">Define latent variables and assign their indicators.</p>
+                        <Label className="text-lg font-semibold flex items-center gap-2"><Spline/> 1. Measurement Model (Latent Variables & Indicators)</Label>
+                        <p className="text-sm text-muted-foreground mb-4">Define latent variables (unobserved constructs) and assign their observed indicators (your data columns).</p>
                         <ScrollArea className="w-full h-[400px] p-1">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {latentVariables.map((lv) => (
@@ -298,18 +299,18 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
                     </div>
                      {/* Structural Model */}
                      <div>
-                        <Label className="text-lg font-semibold flex items-center gap-2"><Link /> Structural Model</Label>
-                        <p className="text-sm text-muted-foreground mb-4">Define the paths between your latent variables.</p>
+                        <Label className="text-lg font-semibold flex items-center gap-2"><Link /> 2. Structural Model (Paths between Latent Variables)</Label>
+                        <p className="text-sm text-muted-foreground mb-4">Define the causal paths (parameters) between your latent variables.</p>
                         <div className="space-y-2">
                              {structuralPaths.map((path) => (
                                 <div key={path.id} className="flex items-center gap-2 p-2 border rounded-lg">
                                     <Select value={path.from} onValueChange={(v) => updateStructuralPath(path.id, 'from', v)}>
-                                        <SelectTrigger><SelectValue placeholder="From"/></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="From (Predictor)"/></SelectTrigger>
                                         <SelectContent>{latentVariableNames.filter(n => n !== path.to).map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
                                     </Select>
                                     <span className="font-bold">→</span>
                                      <Select value={path.to} onValueChange={(v) => updateStructuralPath(path.id, 'to', v)}>
-                                        <SelectTrigger><SelectValue placeholder="To"/></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="To (Outcome)"/></SelectTrigger>
                                         <SelectContent>{latentVariableNames.filter(n => n !== path.from).map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
                                     </Select>
                                     <Button variant="ghost" size="icon" onClick={() => removeStructuralPath(path.id)}>
@@ -318,7 +319,7 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
                                 </div>
                             ))}
                         </div>
-                        <Button variant="outline" size="sm" onClick={addStructuralPath} className="mt-2"><Plus className="mr-2"/> Add Path</Button>
+                        <Button variant="outline" size="sm" onClick={addStructuralPath} className="mt-2"><Plus className="mr-2"/> Add Path (Parameter)</Button>
                     </div>
                 </CardContent>
                  <CardFooter className="flex justify-end">
@@ -330,7 +331,7 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
 
             {isLoading && <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto"/> <p>Running SEM...</p></CardContent></Card>}
             
-             {results && (
+             {results ? (
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
@@ -393,7 +394,7 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
                                     </CardContent>
                                 </Card>
                             )}
-                             {Object.keys(results.effects.r_squared).length > 0 && (
+                             {results.effects && Object.keys(results.effects.r_squared).length > 0 && (
                                 <Card>
                                     <CardHeader><CardTitle className="font-headline">Explained Variance (R²)</CardTitle></CardHeader>
                                     <CardContent>
@@ -413,6 +414,10 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
                             )}
                         </div>
                     </div>
+                </div>
+            ) : (
+                 !isLoading && <div className="text-center text-muted-foreground py-10">
+                    <p>Build your model and click 'Run Analysis' to see the results.</p>
                 </div>
             )}
         </div>
