@@ -1,6 +1,6 @@
 firebase-admin
 firebase-functions
-flask
+Flask
 matplotlib
 numpy
 pandas
