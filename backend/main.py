@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
 import pingouin as pg
-import json
 from firebase_functions import https_fn
 
 # Initialize Flask App
@@ -34,6 +33,8 @@ def reliability():
 
         for col in reverse_code_items:
             if col in df_items.columns:
+                # Ensure column is numeric before performing arithmetic
+                df_items[col] = pd.to_numeric(df_items[col], errors='coerce')
                 max_val = df_items[col].max()
                 min_val = df_items[col].min()
                 df_items[col] = max_val + min_val - df_items[col]
@@ -42,26 +43,33 @@ def reliability():
         if df_items.shape[0] < 2:
             return jsonify({"error": "Not enough valid data for analysis after handling missing values."}), 400
 
-        alpha_results = pg.cronbach_alpha(data=df_items, nan_policy='listwise')
+        alpha_results = pg.cronbach_alpha(data=df_items)
         
-        item_total_corr = pg.item_reliability(df_items)
+        # pg.item_reliability might fail with few items, handle it gracefully
+        item_total_corr = None
+        if df_items.shape[1] > 2:
+            try:
+                item_total_corr = pg.item_reliability(df_items)
+            except Exception:
+                item_total_corr = None
+
 
         response = {
             'alpha': alpha_results[0],
             'n_items': df_items.shape[1],
             'n_cases': df_items.shape[0],
             'confidence_interval': list(alpha_results[1]),
-            'sem': df_items.sum(axis=1).std() * (1 - alpha_results[0])**0.5,
+            'sem': df_items.sum(axis=1).std(ddof=1) * (1 - alpha_results[0])**0.5 if alpha_results[0] is not None else None,
             'item_statistics': {
                 'means': df_items.mean().to_dict(),
-                'stds': df_items.std().to_dict(),
-                'corrected_item_total_correlations': item_total_corr['item-total_corr'].to_dict(),
-                'alpha_if_deleted': item_total_corr['alpha_if_deleted'].to_dict(),
+                'stds': df_items.std(ddof=1).to_dict(),
+                'corrected_item_total_correlations': item_total_corr['item-total_corr'].to_dict() if item_total_corr is not None else {item: None for item in items},
+                'alpha_if_deleted': item_total_corr['alpha_if_deleted'].to_dict() if item_total_corr is not None else {item: None for item in items},
             },
             'scale_statistics': {
                 'mean': df_items.sum(axis=1).mean(),
-                'std': df_items.sum(axis=1).std(),
-                'variance': df_items.sum(axis=1).var(),
+                'std': df_items.sum(axis=1).std(ddof=1),
+                'variance': df_items.sum(axis=1).var(ddof=1),
                 'avg_inter_item_correlation': df_items.corr().values[df_items.corr().values != 1].mean()
             }
         }
@@ -87,7 +95,6 @@ def anova():
 
         df = pd.DataFrame(data)
         
-        # Ensure correct dtypes
         df[dependent_var] = pd.to_numeric(df[dependent_var], errors='coerce')
         df[independent_var] = df[independent_var].astype('category')
         df.dropna(subset=[dependent_var, independent_var], inplace=True)
@@ -125,7 +132,7 @@ def anova():
                 'msb': anova_res['MS'][0],
                 'msw': anova_res['MS'][1],
                 'eta_squared': anova_res['np2'][0],
-                'omega_squared': pg.compute_effsize(df[independent_var], df[dependent_var], eftype='omega')
+                'omega_squared': pg.compute_effsize(df[independent_var], df[dependent_var], eftype='omega') if anova_res['np2'][0] is not None else None,
             },
             "assumptions": {
                 "normality": {str(group): {'statistic': stat, 'p_value': p, 'normal': normal} for group, stat, p, normal in zip(normality_res['group'], normality_res['W'], normality_res['pval'], normality_res['normal'])},
@@ -146,9 +153,8 @@ def anova():
         return jsonify({"error": str(e)}), 500
 
 # This is the entry point for the Google Cloud Function.
+# It dispatches requests to the Flask app.
 @https_fn.on_request()
 def api(req: https_fn.Request) -> https_fn.Response:
-    # Dispatch the request to the Flask app.
-    # The Flask app will handle the routing based on the request path.
     with app.request_context(req.environ):
         return app.full_dispatch_request()
