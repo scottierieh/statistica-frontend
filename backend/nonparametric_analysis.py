@@ -243,17 +243,17 @@ def main():
         plot_image = None
         
         if test_type == 'mann_whitney':
-            result = tester.mann_whitney_u_test(params['group_col'], params['value_col'], groups=params.get('groups'))
+            result = tester.mann_whitney_u_test(**params)
             result['group_col'] = params['group_col']
             result['value_col'] = params['value_col']
         elif test_type == 'wilcoxon':
-            result = tester.wilcoxon_signed_rank_test(params['var1'], params['var2'])
+            result = tester.wilcoxon_signed_rank_test(**params)
         elif test_type == 'kruskal_wallis':
-            result = tester.kruskal_wallis_test(params['group_col'], params['value_col'])
+            result = tester.kruskal_wallis_test(**params)
             result['group_col'] = params['group_col']
             result['value_col'] = params['value_col']
         elif test_type == 'friedman':
-            result = tester.friedman_test(params['variables'])
+            result = tester.friedman_test(**params)
         else:
             raise ValueError(f"Unknown test type: {test_type}")
 
@@ -268,5 +268,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
