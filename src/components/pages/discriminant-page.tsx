@@ -6,13 +6,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Users } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from '@/lib/utils';
+import {
+  ResponsiveContainer,
+  BarChart,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Bar,
+  CartesianGrid,
+  Cell,
+  Legend,
+} from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+
 
 // Type definitions for the Discriminant Analysis results
 interface AnalysisResults {
@@ -26,6 +39,7 @@ interface MethodResult {
     metrics: {
         accuracy: number;
         confusion_matrix: number[][];
+        per_group_accuracy: { [key: string]: number };
     };
     coefficients?: number[][];
     intercepts?: number[];
@@ -36,6 +50,16 @@ interface MethodResult {
 }
 
 const ConfusionMatrix = ({ matrix, groups }: { matrix: number[][], groups: string[] }) => {
+    const total = matrix.flat().reduce((acc, val) => acc + val, 0);
+    const maxVal = Math.max(...matrix.flat());
+
+    const getCellColor = (value: number, row: number, col: number) => {
+        if (row === col) {
+            return `hsl(var(--primary) / ${Math.max(0.1, value / maxVal)})`;
+        }
+        return `hsl(var(--destructive) / ${Math.max(0.1, value / maxVal)})`;
+    }
+
     return (
         <Table>
             <TableHeader>
@@ -49,7 +73,13 @@ const ConfusionMatrix = ({ matrix, groups }: { matrix: number[][], groups: strin
                     <TableRow key={g}>
                         <TableHead>{g}</TableHead>
                         {groups.map((_, colIndex) => (
-                            <TableCell key={`${g}-${colIndex}`} className="text-center font-mono">{matrix[rowIndex][colIndex]}</TableCell>
+                            <TableCell 
+                                key={`${g}-${colIndex}`} 
+                                className="text-center font-mono"
+                                style={{backgroundColor: getCellColor(matrix[rowIndex][colIndex], rowIndex, colIndex) }}
+                            >
+                                {matrix[rowIndex][colIndex]}
+                            </TableCell>
                         ))}
                     </TableRow>
                 ))}
@@ -58,31 +88,74 @@ const ConfusionMatrix = ({ matrix, groups }: { matrix: number[][], groups: strin
     );
 };
 
-const ResultDisplay = ({ results, methodName }: { results: MethodResult, methodName: string }) => {
-    if (results.error) {
-        return <p className="text-destructive">Error in {methodName.toUpperCase()} analysis: {results.error}</p>
+const GroupMeansChart = ({ means, groups, predictors }: { means: number[][], groups: string[], predictors: string[] }) => {
+    
+    const chartData = predictors.map((predictor, predIndex) => {
+        const entry: {[key:string]: string | number} = { name: predictor };
+        groups.forEach((group, groupIndex) => {
+            entry[group] = means[groupIndex][predIndex];
+        });
+        return entry;
+    });
+
+    const chartConfig = groups.reduce((config, group, i) => {
+        config[group] = { label: group, color: `hsl(var(--chart-${i + 1}))`};
+        return config;
+    }, {} as any);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline">Group Means Comparison</CardTitle>
+                <CardDescription>Comparing the average standardized values of predictors across groups.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <ChartContainer config={chartConfig} className="w-full h-[300px]">
+                     <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} tick={{fontSize: 12}} />
+                        <YAxis />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Legend verticalAlign='top'/>
+                        {groups.map((group, i) => (
+                            <Bar key={group} dataKey={group} fill={`var(--color-${group})`} radius={4} />
+                        ))}
+                    </BarChart>
+                </ChartContainer>
+            </CardContent>
+        </Card>
+    )
+}
+
+const ResultDisplay = ({ analysisResults, methodName }: { analysisResults: AnalysisResults, methodName: 'lda' | 'qda' }) => {
+    const results = analysisResults[methodName];
+    if (!results || results.error) {
+        return <p className="text-destructive">Error in {methodName.toUpperCase()} analysis: {results?.error}</p>
     }
 
     const accuracyPercent = (results.metrics.accuracy * 100).toFixed(2);
     
     return (
         <div className="space-y-4">
-             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Overall Performance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-4xl font-bold">{accuracyPercent}%</p>
-                    <p className="text-sm text-muted-foreground">Overall Classification Accuracy</p>
-                </CardContent>
-            </Card>
+             <div className="grid md:grid-cols-2 gap-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Overall Performance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-4xl font-bold">{accuracyPercent}%</p>
+                        <p className="text-sm text-muted-foreground">Overall Classification Accuracy</p>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader><CardTitle className="font-headline">Confusion Matrix</CardTitle></CardHeader>
+                    <CardContent>
+                        <ConfusionMatrix matrix={results.metrics.confusion_matrix} groups={analysisResults.groups} />
+                    </CardContent>
+                </Card>
+             </div>
 
-            <Card>
-                <CardHeader><CardTitle className="font-headline">Confusion Matrix</CardTitle></CardHeader>
-                <CardContent>
-                    <ConfusionMatrix matrix={results.metrics.confusion_matrix} groups={results.group_means.map((_, i) => `Group ${i+1}`)} />
-                </CardContent>
-            </Card>
+            <GroupMeansChart means={results.group_means} groups={analysisResults.groups} predictors={analysisResults.predictor_vars} />
 
             {results.coefficients && results.intercepts && (
                 <Card>
@@ -97,11 +170,11 @@ const ResultDisplay = ({ results, methodName }: { results: MethodResult, methodN
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {results.coefficients[0].map((_, varIndex) => (
-                                        <TableRow key={varIndex}>
-                                            <TableCell>Predictor {varIndex + 1}</TableCell>
+                                    {analysisResults.predictor_vars.map((variable, varIndex) => (
+                                        <TableRow key={variable}>
+                                            <TableCell>{variable}</TableCell>
                                              {results.coefficients?.map((func, funcIndex) => (
-                                                <TableCell key={funcIndex} className="text-right font-mono">{func[varIndex].toFixed(4)}</TableCell>
+                                                <TableCell key={funcIndex} className="text-right font-mono">{func[varIndex]?.toFixed(4) || 'N/A'}</TableCell>
                                              ))}
                                         </TableRow>
                                     ))}
@@ -118,31 +191,6 @@ const ResultDisplay = ({ results, methodName }: { results: MethodResult, methodN
                 </Card>
             )}
 
-            <Card>
-                <CardHeader><CardTitle className="font-headline">Group Means</CardTitle></CardHeader>
-                <CardContent>
-                     <ScrollArea className="h-64">
-                        <Table>
-                             <TableHeader>
-                                <TableRow>
-                                    <TableHead>Group</TableHead>
-                                    {Array.from({length: results.group_means[0].length}, (_,i) => i+1).map(i => <TableHead key={i} className="text-right">Predictor {i}</TableHead>)}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {results.group_means.map((means, groupIndex) => (
-                                    <TableRow key={groupIndex}>
-                                        <TableCell>Group {groupIndex + 1}</TableCell>
-                                        {means.map((mean, i) => (
-                                            <TableCell key={i} className="text-right font-mono">{mean.toFixed(3)}</TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
         </div>
     )
 }
@@ -325,10 +373,10 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
                         <TabsTrigger value="qda" disabled={!analysisResult.qda || !!analysisResult.qda.error}>Quadratic (QDA)</TabsTrigger>
                     </TabsList>
                     <TabsContent value="lda" className="mt-4">
-                        {analysisResult.lda && <ResultDisplay results={analysisResult.lda} methodName="lda" />}
+                        {analysisResult.lda && <ResultDisplay analysisResults={analysisResult} methodName="lda" />}
                     </TabsContent>
                     <TabsContent value="qda" className="mt-4">
-                        {analysisResult.qda && <ResultDisplay results={analysisResult.qda} methodName="qda" />}
+                        {analysisResult.qda && <ResultDisplay analysisResults={analysisResult} methodName="qda" />}
                     </TabsContent>
                 </Tabs>
             ) : (
