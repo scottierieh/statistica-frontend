@@ -157,7 +157,7 @@ const ResultDisplay = ({ analysisResults, methodName }: { analysisResults: Analy
 
             <GroupMeansChart means={results.group_means} groups={analysisResults.groups} predictors={analysisResults.predictor_vars} />
 
-            {results.coefficients && results.intercepts && (
+            {methodName === 'lda' && results.coefficients && results.intercepts && (
                 <Card>
                     <CardHeader><CardTitle className="font-headline">Discriminant Function Coefficients</CardTitle></CardHeader>
                     <CardContent>
@@ -191,7 +191,7 @@ const ResultDisplay = ({ analysisResults, methodName }: { analysisResults: Analy
                 </Card>
             )}
             
-            {results.explained_variance_ratio && (
+            {methodName === 'lda' && results.explained_variance_ratio && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Explained Variance Ratio</CardTitle>
