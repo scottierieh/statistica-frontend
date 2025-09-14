@@ -4,6 +4,7 @@ import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
 import { stressSupportData } from "./example-datasets/stress-support-data";
 import { cfaData } from "./example-datasets/cfa-data";
+import { nonparametricData } from "./example-datasets/nonparametric-data";
 
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
@@ -85,11 +86,20 @@ export const exampleDatasets: ExampleDataSet[] = [
         data: likertScaleData,
     },
     {
+        id: 'nonparametric-suite',
+        name: 'Non-Parametric Suite',
+        description: 'A unified dataset for Mann-Whitney, Wilcoxon, Kruskal-Wallis, and Friedman tests.',
+        icon: FlaskConical,
+        analysisTypes: ['stats', 'nonparametric'],
+        recommendedAnalysis: 'nonparametric',
+        data: nonparametricData,
+    },
+    {
         id: 'iris',
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Users,
-        analysisTypes: ['stats', 'correlation', 'anova', 'visuals', 'discriminant', 'nonparametric'],
+        analysisTypes: ['stats', 'correlation', 'anova', 'visuals', 'discriminant'],
         recommendedAnalysis: 'discriminant',
         data: irisData
     },
@@ -98,7 +108,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Restaurant Tips',
         description: 'Tips received by a server, along with customer and bill info.',
         icon: Coffee,
-        analysisTypes: ['stats', 'anova', 'visuals', 'nonparametric'],
+        analysisTypes: ['stats', 'anova', 'visuals'],
         data: tipsData
     },
     {

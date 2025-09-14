@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,16 +27,29 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
     const [activeTest, setActiveTest] = useState<TestType>('mann_whitney');
     
     // State for each test
-    const [mwGroupCol, setMwGroupCol] = useState(categoricalHeaders[0]);
-    const [mwValueCol, setMwValueCol] = useState(numericHeaders[0]);
-    const [wxVar1, setWxVar1] = useState(numericHeaders[0]);
-    const [wxVar2, setWxVar2] = useState(numericHeaders[1]);
-    const [kwGroupCol, setKwGroupCol] = useState(categoricalHeaders[0]);
-    const [kwValueCol, setKwValueCol] = useState(numericHeaders[0]);
-    const [friedmanVars, setFriedmanVars] = useState(numericHeaders.slice(0,3));
+    const [mwGroupCol, setMwGroupCol] = useState(categoricalHeaders.find(h => h === 'group2') || categoricalHeaders[0]);
+    const [mwValueCol, setMwValueCol] = useState(numericHeaders.find(h => h === 'score') || numericHeaders[0]);
+    const [wxVar1, setWxVar1] = useState(numericHeaders.find(h => h === 'pre_score') || numericHeaders[0]);
+    const [wxVar2, setWxVar2] = useState(numericHeaders.find(h => h === 'post_score') || numericHeaders[1]);
+    const [kwGroupCol, setKwGroupCol] = useState(categoricalHeaders.find(h => h === 'group3') || categoricalHeaders[0]);
+    const [kwValueCol, setKwValueCol] = useState(numericHeaders.find(h => h === 'score') || numericHeaders[0]);
+    const [friedmanVars, setFriedmanVars] = useState(numericHeaders.filter(h => ['time1', 'time2', 'time3'].includes(h)));
+
 
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        setMwGroupCol(categoricalHeaders.find(h => h === 'group2') || categoricalHeaders[0]);
+        setMwValueCol(numericHeaders.find(h => h === 'score') || numericHeaders[0]);
+        setWxVar1(numericHeaders.find(h => h === 'pre_score') || numericHeaders[0]);
+        setWxVar2(numericHeaders.find(h => h === 'post_score') || numericHeaders[1]);
+        setKwGroupCol(categoricalHeaders.find(h => h === 'group3') || categoricalHeaders[0]);
+        setKwValueCol(numericHeaders.find(h => h === 'score') || numericHeaders[0]);
+        const friedmanDefault = numericHeaders.filter(h => ['time1', 'time2', 'time3'].includes(h));
+        setFriedmanVars(friedmanDefault.length > 2 ? friedmanDefault : numericHeaders.slice(0,3));
+        setAnalysisResult(null);
+    }, [numericHeaders, categoricalHeaders, data]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
@@ -164,7 +177,7 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4">
                             {nonParametricExamples.map((ex) => {
                                 const Icon = ex.icon;
                                 return (

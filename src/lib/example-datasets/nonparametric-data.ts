@@ -1,0 +1,22 @@
+export const nonparametricData = `id,group2,group3,score,pre_score,post_score,time1,time2,time3
+S1,Control,GroupA,68,65,68,65,68,70
+S2,Control,GroupA,72,68,71,68,71,73
+S3,Treatment,GroupB,85,72,80,72,80,87
+S4,Treatment,GroupB,88,75,83,75,83,90
+S5,Control,GroupC,75,70,74,70,74,76
+S6,Control,GroupA,69,66,69,66,69,71
+S7,Treatment,GroupB,82,71,79,71,79,86
+S8,Treatment,GroupC,79,73,78,73,78,82
+S9,Control,GroupA,71,67,70,67,70,72
+S10,Treatment,GroupB,86,74,82,74,82,88
+S11,Control,GroupC,73,69,73,69,73,75
+S12,Treatment,GroupA,78,70,77,70,77,81
+S13,Control,GroupB,74,68,72,68,72,74
+S14,Treatment,GroupC,81,72,79,72,79,84
+S15,Control,GroupA,70,66,70,66,70,72
+S16,Treatment,GroupB,84,73,81,73,81,87
+S17,Control,GroupC,76,71,75,71,75,77
+S18,Treatment,GroupA,79,71,78,71,78,82
+S19,Control,GroupB,72,67,71,67,71,73
+S20,Treatment,GroupC,83,74,80,74,80,85
+`;
