@@ -53,21 +53,18 @@ interface AnovaTable {
 interface AssumptionChecks {
     normality: { [key: string]: { statistic: number | null; p_value: number | null; normal: boolean | null } };
     homogeneity: { levene_statistic: number; levene_p_value: number; equal_variances: boolean };
-    bartlett: { bartlett_statistic: number; bartlett_p_value: number; equal_variances: boolean };
-    outliers: { [key: string]: { n_outliers: number } };
 }
 
 interface PostHocResult {
     group1: string;
     group2: string;
-    mean_diff: number;
-    p_value: number;
-    significant: boolean;
+    meandiff: number;
+    p_adj: number;
+    reject: boolean;
 }
 
 interface EffectSizeInterpretation {
     eta_squared_interpretation: string;
-    omega_squared_interpretation: string;
 }
 
 
@@ -99,15 +96,16 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
     
     // Set initial state based on available headers
     useEffect(() => {
-        if (categoricalHeaders.length > 0 && !groupVar) {
-            setGroupVar(categoricalHeaders[0]);
-        }
-        if (numericHeaders.length > 0 && !valueVar) {
-            setValueVar(numericHeaders[0]);
-        }
-    }, [categoricalHeaders, numericHeaders, groupVar, valueVar]);
+        setGroupVar(categoricalHeaders[0] || '');
+        setValueVar(numericHeaders[0] || '');
+        setAnovaResult(null);
+    }, [categoricalHeaders, numericHeaders, data]);
 
     const handleAnalysis = useCallback(async () => {
+        if (!process.env.NEXT_PUBLIC_BACKEND_URL) {
+            toast({variant: 'destructive', title: 'Backend Error', description: 'The backend URL is not configured.'});
+            return;
+        }
         if (!groupVar || !valueVar) {
             toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select both a group variable and a value variable.'});
             return;
@@ -116,7 +114,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         setAnovaResult(null);
 
         try {
-            const response = await fetch('/api/analysis/anova', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/anova`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -126,12 +124,12 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                 })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-            }
+            const result = await response.json();
 
-            const result: AnovaResults = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || `HTTP error! status: ${response.status}`);
+            }
+            
             setAnovaResult(result);
 
         } catch(e: any) {
@@ -355,9 +353,9 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                                     {anovaResult.post_hoc_tukey.map((comp, i) => (
                                         <TableRow key={i}>
                                             <TableCell>{comp.group1} vs. {comp.group2}</TableCell>
-                                            <TableCell className="text-right font-mono">{comp.mean_diff.toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">{comp.p_value.toFixed(4)}</TableCell>
-                                            <TableCell className="text-right">{comp.significant ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
+                                            <TableCell className="text-right font-mono">{comp.meandiff.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{comp.p_adj.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right">{comp.reject ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

@@ -5,10 +5,15 @@ import numpy as np
 from onewayanova import OneWayANOVA
 from reliability import ReliabilityAnalysis
 
+from firebase_functions import https_fn
+from firebase_admin import initialize_app
+
+initialize_app()
+
 def convert_numpy(obj):
     """Recursively convert numpy and pandas types for JSON serialization."""
-    if isinstance(obj, (np.generic, pd.NA)):
-        return None if pd.isna(obj) else obj.item()
+    if isinstance(obj, np.generic):
+        return obj.item() if not pd.isna(obj) else None
     if isinstance(obj, pd.DataFrame):
         return obj.to_dict(orient='records')
     if isinstance(obj, pd.Series):
@@ -23,8 +28,10 @@ def convert_numpy(obj):
         return None
     return obj
 
-def anova(req_data: dict) -> dict:
+@https_fn.on_request(cors=https_fn.CorsOptions(cors_origins="*", cors_methods=["get", "post"]))
+def anova(req: https_fn.Request) -> https_fn.Response:
     try:
+        req_data = req.get_json(silent=True)
         data = req_data.get('data')
         independent_var = req_data.get('independentVar')
         dependent_var = req_data.get('dependentVar')
@@ -37,14 +44,16 @@ def anova(req_data: dict) -> dict:
         analyzer.analyze()
         results = convert_numpy(analyzer.results)
         
-        return results
+        return https_fn.Response(json.dumps(results), status=200, headers={"Content-Type": "application/json"})
 
     except Exception as e:
         print(f"Error in ANOVA endpoint: {e}")
-        raise e
+        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers={"Content-Type": "application/json"})
 
-def reliability(req_data: dict) -> dict:
+@https_fn.on_request(cors=https_fn.CorsOptions(cors_origins="*", cors_methods=["get", "post"]))
+def reliability(req: https_fn.Request) -> https_fn.Response:
     try:
+        req_data = req.get_json(silent=True)
         data = req_data.get('data')
         items = req_data.get('items')
         reverse_code = req_data.get('reverseCodeItems', [])
@@ -57,8 +66,8 @@ def reliability(req_data: dict) -> dict:
         analysis_result = analyzer.cronbach_alpha(item_cols=items, reverse_code=reverse_code)
         results = convert_numpy(analysis_result)
         
-        return results
+        return https_fn.Response(json.dumps(results), status=200, headers={"Content-Type": "application/json"})
 
     except Exception as e:
         print(f"Error in Reliability endpoint: {e}")
-        raise e
+        return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers={"Content-Type": "application/json"})

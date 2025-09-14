@@ -122,6 +122,10 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
     };
 
     const handleAnalysis = useCallback(async () => {
+        if (!process.env.NEXT_PUBLIC_BACKEND_URL) {
+            toast({variant: 'destructive', title: 'Backend Error', description: 'The backend URL is not configured.'});
+            return;
+        }
         if (selectedItems.length < 2) {
             toast({variant: 'destructive', title: 'Selection Error', description: 'Please select at least two items for the analysis.'});
             return;
@@ -131,7 +135,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         setAiPromise(null);
 
         try {
-            const response = await fetch('/api/analysis/reliability', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/reliability`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -141,12 +145,11 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                 })
             });
 
+            const result = await response.json();
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                throw new Error(result.error || `HTTP error! status: ${response.status}`);
             }
 
-            const result: ReliabilityResults = await response.json();
             setReliabilityResult(result);
             
             // Trigger AI interpretation
