@@ -42,11 +42,23 @@ interface SimpleSlope {
     p_value: number;
 }
 
+interface EffectSize {
+    f_squared: number;
+    interpretation: string;
+}
+
+interface JNResult {
+    has_significant_regions: boolean;
+    significant_range: [number, number] | null;
+}
+
 interface ModerationResults {
     step1: RegressionResult;
     step2: RegressionResult;
     r_squared_change: RsquaredChange;
     simple_slopes: SimpleSlope[];
+    effect_size: EffectSize;
+    jn_summary: JNResult;
 }
 
 interface FullAnalysisResponse {
@@ -243,30 +255,31 @@ export default function ModerationPage({ data, numericHeaders, onLoadExample }: 
                         </CardContent>
                     </Card>
 
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Hierarchical Regression Results</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Variable</TableHead>
+                                        <TableHead className="text-right">Coefficient (B)</TableHead>
+                                        <TableHead className="text-right">Std. Error</TableHead>
+                                        <TableHead className="text-right">p-value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow><TableCell>(Intercept)</TableCell><TableCell className="text-right font-mono">{model.coefficients[0].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[0].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[0].toFixed(4)} {getSignificanceStars(model.p_values[0])}</TableCell></TableRow>
+                                    <TableRow><TableCell>{xVar} (X)</TableCell><TableCell className="text-right font-mono">{model.coefficients[1].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[1].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[1].toFixed(4)} {getSignificanceStars(model.p_values[1])}</TableCell></TableRow>
+                                    <TableRow><TableCell>{mVar} (M)</TableCell><TableCell className="text-right font-mono">{model.coefficients[2].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[2].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[2].toFixed(4)} {getSignificanceStars(model.p_values[2])}</TableCell></TableRow>
+                                    <TableRow className="font-bold"><TableCell>X * M Interaction</TableCell><TableCell className="text-right font-mono">{model.coefficients[3].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[3].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[3].toFixed(4)} {getSignificanceStars(model.p_values[3])}</TableCell></TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+
                     <div className="grid lg:grid-cols-2 gap-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Hierarchical Regression Results</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Variable</TableHead>
-                                            <TableHead className="text-right">Coefficient (B)</TableHead>
-                                            <TableHead className="text-right">Std. Error</TableHead>
-                                            <TableHead className="text-right">p-value</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow><TableCell>(Intercept)</TableCell><TableCell className="text-right font-mono">{model.coefficients[0].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[0].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[0].toFixed(4)} {getSignificanceStars(model.p_values[0])}</TableCell></TableRow>
-                                        <TableRow><TableCell>{xVar} (X)</TableCell><TableCell className="text-right font-mono">{model.coefficients[1].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[1].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[1].toFixed(4)} {getSignificanceStars(model.p_values[1])}</TableCell></TableRow>
-                                        <TableRow><TableCell>{mVar} (M)</TableCell><TableCell className="text-right font-mono">{model.coefficients[2].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[2].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[2].toFixed(4)} {getSignificanceStars(model.p_values[2])}</TableCell></TableRow>
-                                        <TableRow className="font-bold"><TableCell>X * M Interaction</TableCell><TableCell className="text-right font-mono">{model.coefficients[3].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[3].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[3].toFixed(4)} {getSignificanceStars(model.p_values[3])}</TableCell></TableRow>
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
                         <Card>
                             <CardHeader>
                                 <CardTitle className="font-headline">Simple Slopes Analysis</CardTitle>
@@ -293,6 +306,37 @@ export default function ModerationPage({ data, numericHeaders, onLoadExample }: 
                                 </Table>
                             </CardContent>
                         </Card>
+                        <div className='space-y-4'>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="font-headline">Effect Size</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                        <dt className="font-medium text-muted-foreground">Cohen's f²</dt>
+                                        <dd className="font-mono text-right">{results.effect_size.f_squared.toFixed(4)}</dd>
+                                        <dt className="font-medium text-muted-foreground">Interpretation</dt>
+                                        <dd className="text-right"><Badge variant="secondary">{results.effect_size.interpretation}</Badge></dd>
+                                    </dl>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle className="font-headline">Johnson-Neyman Regions</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {results.jn_summary.has_significant_regions ? (
+                                        <>
+                                            <p className='text-sm font-semibold'>Significant regions found!</p>
+                                            <p className='text-sm text-muted-foreground'>The effect of {xVar} is significant when {mVar} is between <span className='font-mono font-semibold'>{results.jn_summary.significant_range?.[0].toFixed(3)}</span> and <span className='font-mono font-semibold'>{results.jn_summary.significant_range?.[1].toFixed(3)}</span>.</p>
+                                        </>
+                                    ) : (
+                                        <p className='text-sm text-muted-foreground'>No significant regions found within the observed range of the moderator.</p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+
                     </div>
                 </>
             )}
