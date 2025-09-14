@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -28,34 +29,33 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
     const [activeTest, setActiveTest] = useState<TestType>('mann_whitney');
     
     // State for each test
-    const [mwGroupCol, setMwGroupCol] = useState(categoricalHeaders.find(h => h === 'group2') || categoricalHeaders[0]);
-    const [mwValueCol, setMwValueCol] = useState(numericHeaders.find(h => h === 'score') || numericHeaders[0]);
-    const [wxVar1, setWxVar1] = useState(numericHeaders.find(h => h === 'pre_score') || numericHeaders[0]);
-    const [wxVar2, setWxVar2] = useState(numericHeaders.find(h => h === 'post_score') || numericHeaders[1]);
-    const [kwGroupCol, setKwGroupCol] = useState(categoricalHeaders.find(h => h === 'group3') || categoricalHeaders[0]);
-    const [kwValueCol, setKwValueCol] = useState(numericHeaders.find(h => h === 'score') || numericHeaders[0]);
-    const [friedmanVars, setFriedmanVars] = useState(numericHeaders.filter(h => ['time1', 'time2', 'time3'].includes(h)));
+    const [mwGroupCol, setMwGroupCol] = useState(categoricalHeaders.find(h => data.map(d => d[h]).filter(g => g != null).length === 2) || categoricalHeaders[0]);
+    const [mwValueCol, setMwValueCol] = useState(numericHeaders[0]);
+    const [wxVar1, setWxVar1] = useState(numericHeaders[0]);
+    const [wxVar2, setWxVar2] = useState(numericHeaders[1]);
+    const [kwGroupCol, setKwGroupCol] = useState(categoricalHeaders.find(h => data.map(d => d[h]).filter(g => g != null).length >= 3) || categoricalHeaders[0]);
+    const [kwValueCol, setKwValueCol] = useState(numericHeaders[0]);
+    const [friedmanVars, setFriedmanVars] = useState<string[]>(numericHeaders.slice(0, 3));
 
 
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        setMwGroupCol(categoricalHeaders.find(h => h === 'group2') || categoricalHeaders[0]);
-        setMwValueCol(numericHeaders.find(h => h === 'score') || numericHeaders[0]);
-        setWxVar1(numericHeaders.find(h => h === 'pre_score') || numericHeaders[0]);
-        setWxVar2(numericHeaders.find(h => h === 'post_score') || numericHeaders[1]);
-        setKwGroupCol(categoricalHeaders.find(h => h === 'group3') || categoricalHeaders[0]);
-        setKwValueCol(numericHeaders.find(h => h === 'score') || numericHeaders[0]);
-        const friedmanDefault = numericHeaders.filter(h => ['time1', 'time2', 'time3'].includes(h));
-        setFriedmanVars(friedmanDefault.length > 2 ? friedmanDefault : numericHeaders.slice(0,3));
+        setMwGroupCol(categoricalHeaders.find(h => new Set(data.map(d => d[h]).filter(g => g != null)).size === 2) || categoricalHeaders[0]);
+        setMwValueCol(numericHeaders[0]);
+        setWxVar1(numericHeaders[0]);
+        setWxVar2(numericHeaders[1]);
+        setKwGroupCol(categoricalHeaders.find(h => new Set(data.map(d => d[h]).filter(g => g != null)).size >= 3) || categoricalHeaders[0]);
+        setKwValueCol(numericHeaders[0]);
+        setFriedmanVars(numericHeaders.slice(0,3));
         setAnalysisResult(null);
     }, [numericHeaders, categoricalHeaders, data]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
     const handleAnalysis = useCallback(async () => {
-        let params;
+        let params: any;
         switch(activeTest) {
             case 'mann_whitney':
                 if (!mwGroupCol || !mwValueCol) {
