@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -136,11 +137,11 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
                                             <CardDescription className="text-xs">{ex.description}</CardDescription>
                                         </div>
                                     </CardHeader>
-                                    <CardContent>
+                                    <CardFooter>
                                         <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
                                             Load this data
                                         </Button>
-                                    </CardContent>
+                                    </CardFooter>
                                 </Card>
                             ))}
                         </div>
