@@ -61,6 +61,8 @@ interface PostHocResult {
     group2: string;
     meandiff: number;
     p_adj: number;
+    lower: number;
+    upper: number;
     reject: boolean;
 }
 
@@ -168,6 +170,9 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
             }
             
             const result = await response.json();
+             if (result.error) {
+                throw new Error(result.error);
+            }
             setAnovaResult(result);
 
             if (result.anova) {
@@ -283,7 +288,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                             <CardHeader>
                                 <CardTitle className="font-headline">ANOVA Summary</CardTitle>
                                 <CardDescription>
-                                    F({anovaResult.anova.df_between}, {anovaResult.anova.df_within}) = {anovaResult.anova.f_statistic.toFixed(3)}, p = {anovaResult.anova.p_value.toFixed(4)}
+                                    F({anovaResult.anova.df_between}, {anovaResult.anova.df_within}) = {anovaResult.anova.f_statistic.toFixed(3)}, p = {anovaResult.anova.p_value < 0.001 ? "< .001" : anovaResult.anova.p_value.toFixed(4)}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -302,6 +307,8 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                                         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm border p-4 rounded-md">
                                             <dt className="text-muted-foreground">Eta-squared (η²)</dt>
                                             <dd className="font-mono text-right">{anovaResult.anova.eta_squared.toFixed(4)}</dd>
+                                             <dt className="text-muted-foreground">Omega-squared (ω²)</dt>
+                                            <dd className="font-mono text-right">{anovaResult.anova.omega_squared.toFixed(4)}</dd>
                                             <dt className="text-muted-foreground">Interpretation</dt>
                                             <dd className="text-right"><Badge variant="secondary">{anovaResult.effect_size_interpretation.eta_squared_interpretation}</Badge></dd>
                                         </dl>
@@ -403,6 +410,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                                     <TableHead>Comparison</TableHead>
                                     <TableHead className="text-right">Mean Difference</TableHead>
                                     <TableHead className="text-right">p-value</TableHead>
+                                    <TableHead className="text-right">95% CI</TableHead>
                                     <TableHead className="text-right">Significant</TableHead>
                                 </TableRow></TableHeader>
                                 <TableBody>
@@ -410,7 +418,8 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                                         <TableRow key={i}>
                                             <TableCell>{comp.group1} vs. {comp.group2}</TableCell>
                                             <TableCell className="text-right font-mono">{comp.meandiff.toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">{comp.p_adj.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right font-mono">{comp.p_adj < 0.001 ? "<.001" : comp.p_adj.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right font-mono">[{comp.lower.toFixed(2)}, {comp.upper.toFixed(2)}]</TableCell>
                                             <TableCell className="text-right">{comp.reject ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                                         </TableRow>
                                     ))}
@@ -428,3 +437,5 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
+
+    
