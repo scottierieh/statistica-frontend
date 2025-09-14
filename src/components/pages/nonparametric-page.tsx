@@ -130,6 +130,14 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
         const { results, plot } = analysisResult;
         return (
             <div className="space-y-4">
+                 {plot && (
+                    <Card>
+                        <CardHeader><CardTitle>Visualization</CardTitle></CardHeader>
+                        <CardContent>
+                            <Image src={plot} alt={`${results.test_type} plot`} width={800} height={400} className="rounded-md border mx-auto" />
+                        </CardContent>
+                    </Card>
+                )}
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">{results.test_type} Results</CardTitle>
@@ -141,27 +149,17 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
                         <p>{results.interpretation.conclusion}. The effect size was {results.effect_size_interpretation.text.toLowerCase()}.</p>
                     </CardContent>
                 </Card>
-                <div className="grid md:grid-cols-2 gap-4">
-                    {plot && (
-                         <Card>
-                            <CardHeader><CardTitle>Visualization</CardTitle></CardHeader>
-                            <CardContent>
-                                <Image src={plot} alt={`${results.test_type} plot`} width={600} height={400} className="rounded-md border" />
-                            </CardContent>
-                        </Card>
-                    )}
-                     <Card>
-                        <CardHeader><CardTitle>Statistics</CardTitle></CardHeader>
-                        <CardContent>
-                             <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                                <dt>Statistic</dt><dd className="font-mono text-right">{results.statistic.toFixed(3)}</dd>
-                                <dt>P-value</dt><dd className="font-mono text-right">{results.p_value.toFixed(4)}</dd>
-                                {results.df && <><dt>Degrees of Freedom</dt><dd className="font-mono text-right">{results.df}</dd></>}
-                                <dt>Effect Size</dt><dd className="font-mono text-right">{results.effect_size.toFixed(3)}</dd>
-                            </dl>
-                        </CardContent>
-                    </Card>
-                </div>
+                 <Card>
+                    <CardHeader><CardTitle>Statistics</CardTitle></CardHeader>
+                    <CardContent>
+                            <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+                            <dt>Statistic</dt><dd className="font-mono text-right">{results.statistic.toFixed(3)}</dd>
+                            <dt>P-value</dt><dd className="font-mono text-right">{results.p_value.toFixed(4)}</dd>
+                            {results.df && <><dt>Degrees of Freedom</dt><dd className="font-mono text-right">{results.df}</dd></>}
+                            <dt>Effect Size</dt><dd className="font-mono text-right">{results.effect_size.toFixed(3)}</dd>
+                        </dl>
+                    </CardContent>
+                </Card>
             </div>
         )
     };
