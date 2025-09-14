@@ -1,6 +1,0 @@
-firebase-admin
-firebase-functions
-numpy
-pandas
-scipy
-statsmodels

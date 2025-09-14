@@ -16,7 +16,7 @@ import { getReliabilityInterpretation } from '@/app/actions';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
 
-// Type definitions for the rich Reliability results from Python
+// Type definitions for the rich Reliability results
 interface ReliabilityResults {
     alpha: number;
     n_items: number;
@@ -122,11 +122,6 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
     };
 
     const handleAnalysis = useCallback(async () => {
-        const backendUrl = process.env.NEXT_PUBLIC_RELIABILITY_BACKEND_URL;
-        if (!backendUrl) {
-            toast({variant: 'destructive', title: 'Configuration Error', description: 'The reliability backend URL is not configured. Please check your environment variables.'});
-            return;
-        }
         if (selectedItems.length < 2) {
             toast({variant: 'destructive', title: 'Selection Error', description: 'Please select at least two items for the analysis.'});
             return;
@@ -136,8 +131,8 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         setAiPromise(null);
 
         try {
-            console.log('Sending request to:', backendUrl);
-            const response = await fetch(backendUrl, {
+            console.log('Sending request to: /api/analysis/reliability');
+            const response = await fetch('/api/analysis/reliability', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -161,7 +156,6 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
             const result = await response.json();
             setReliabilityResult(result);
             
-            // Trigger AI interpretation
             const promise = getReliabilityInterpretation({
                 cronbachAlpha: result.alpha,
                 numItems: result.n_items,
@@ -291,7 +285,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                     <CardContent className="p-6">
                         <div className="flex flex-col items-center gap-4">
                             <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                            <p className="text-muted-foreground">Performing reliability analysis with Python backend...</p>
+                            <p className="text-muted-foreground">Performing reliability analysis...</p>
                             <Skeleton className="h-96 w-full" />
                         </div>
                     </CardContent>
