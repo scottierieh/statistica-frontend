@@ -75,6 +75,7 @@ const Histogram = ({ data, column, onAnalyze }: { data: DataSet; column: string 
       </CardHeader>
       <CardContent>
         {bins ? (
+          <ChartContainer config={chartConfig} className="w-full h-[320px]">
             <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={bins}>
                     <CartesianGrid vertical={false} />
@@ -84,6 +85,7 @@ const Histogram = ({ data, column, onAnalyze }: { data: DataSet; column: string 
                     <Bar dataKey="count" fill="var(--color-primary)" radius={4} />
                 </BarChart>
             </ResponsiveContainer>
+          </ChartContainer>
         ) : <div className="h-80 w-full flex items-center justify-center text-muted-foreground">Click 'Run Analysis' to generate the chart.</div>}
       </CardContent>
     </Card>
@@ -102,6 +104,7 @@ const ScatterPlot = ({ data, xCol, yCol, onAnalyze }: { data: DataSet; xCol: str
       </CardHeader>
       <CardContent>
         {chartData ? (
+          <ChartContainer config={chartConfig} className="w-full h-[320px]">
           <ResponsiveContainer width="100%" height={320}>
             <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
               <CartesianGrid />
@@ -111,6 +114,7 @@ const ScatterPlot = ({ data, xCol, yCol, onAnalyze }: { data: DataSet; xCol: str
               <Scatter name={`${yCol} vs ${xCol}`} data={chartData} fill="var(--color-primary)" />
             </ScatterChart>
           </ResponsiveContainer>
+          </ChartContainer>
         ) : <div className="h-80 w-full flex items-center justify-center text-muted-foreground">Click 'Run Analysis' to generate the chart.</div>}
       </CardContent>
     </Card>
@@ -129,6 +133,7 @@ const LinePlot = ({ data, xCol, yCol, onAnalyze }: { data: DataSet; xCol: string
             </CardHeader>
             <CardContent>
               {chartData ? (
+                 <ChartContainer config={chartConfig} className="w-full h-[320px]">
                 <ResponsiveContainer width="100%" height={320}>
                     <LineChart data={chartData}>
                         <CartesianGrid vertical={false} />
@@ -138,6 +143,7 @@ const LinePlot = ({ data, xCol, yCol, onAnalyze }: { data: DataSet; xCol: string
                         <Line type="monotone" dataKey={yCol} stroke="var(--color-primary)" strokeWidth={2} dot={false} />
                     </LineChart>
                 </ResponsiveContainer>
+                </ChartContainer>
               ): <div className="h-80 w-full flex items-center justify-center text-muted-foreground">Click 'Run Analysis' to generate the chart.</div>}
             </CardContent>
         </Card>
