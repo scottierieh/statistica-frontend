@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -78,7 +79,7 @@ class ConfirmatoryFactorAnalysis:
         
         results = self._estimate_ml(sample_cov, param_setup, model_spec)
         
-        implied_cov = self._calculate_implied_covariance(results['parameters'], param_setup)
+        implied_cov = self._calculate_implied_covariance(results['parameters'])
         
         fit_indices = self._calculate_fit_indices(
             sample_cov, implied_cov, results.get('chi_square', 0), 
@@ -267,3 +268,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
