@@ -76,17 +76,16 @@ class RegressionAnalysis:
         metrics = self._calculate_metrics(self.y, y_pred, len(X_scaled.columns))
         diagnostics = self._calculate_diagnostics(X_scaled, self.y, y_pred, sm_model)
         
-        results = {
+        self.results[model_name] = {
             'model_name': model_name,
             'model_type': 'linear_regression',
             'features': list(X_scaled.columns),
             'metrics': metrics,
             'diagnostics': diagnostics,
         }
-        self.results[model_name] = results
         self.y_pred = y_pred
         self.X_scaled = X_scaled
-        return results
+        return self.results[model_name]
 
     def _calculate_metrics(self, y_true, y_pred, n_features):
         n = len(y_true)
@@ -215,6 +214,8 @@ def main():
 
         response = {
             'results': results,
+            'model_name': results['model_name'],
+            'model_type': results['model_type'],
             'plot': plot_image
         }
 

@@ -17,14 +17,7 @@ import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 
-interface CoeffRow {
-    coefficient: number;
-    std_error: number;
-    t_value: number;
-    p_value: number;
-}
-
-interface RegressionResults {
+interface RegressionResultsData {
     model_name: string;
     model_type: string;
     features: string[];
@@ -53,6 +46,12 @@ interface RegressionResults {
             breusch_pagan: { statistic: number; p_value: number; };
         }
     };
+}
+
+interface FullAnalysisResponse {
+    results: RegressionResultsData;
+    model_name: string;
+    model_type: string;
     plot: string;
 }
 
@@ -82,7 +81,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
 
     const [modelType, setModelType] = useState('simple');
     
-    const [analysisResult, setAnalysisResult] = useState<RegressionResults | null>(null);
+    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== targetVar), [numericHeaders, targetVar]);
@@ -106,19 +105,21 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
         }
 
         let features: string[] = [];
-        let currentModelType = 'linear'; // default model type for the backend
+        let currentModelName = 'linear_model';
         if (modelType === 'simple') {
             if (!simpleFeatureVar) {
                 toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a feature variable for simple regression.'});
                 return;
             }
             features = [simpleFeatureVar];
+            currentModelName = 'simple_linear';
         } else if (modelType === 'multiple') {
-            if (multipleFeatureVars.length < 2) {
-                toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select at least two features for multiple regression.'});
+            if (multipleFeatureVars.length < 1) {
+                toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select at least one feature for multiple regression.'});
                 return;
             }
             features = multipleFeatureVars;
+            currentModelName = 'multiple_linear';
         } else {
             toast({variant: 'destructive', title: 'Not Implemented', description: `Analysis for ${modelType} regression is not yet implemented.`});
             return;
@@ -131,7 +132,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
             const response = await fetch('/api/analysis/regression', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, targetVar, features, modelType: currentModelType })
+                body: JSON.stringify({ data, targetVar, features, modelType: currentModelName })
             });
 
             if (!response.ok) {
@@ -139,7 +140,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                 throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
             
-            const result: RegressionResults = await response.json();
+            const result: FullAnalysisResponse = await response.json();
             if ((result as any).error) throw new Error((result as any).error);
             
             setAnalysisResult(result);
@@ -191,7 +192,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
         )
     }
 
-    const results = analysisResult;
+    const results = analysisResult?.results;
     const coeffs = results?.diagnostics?.coefficient_tests;
 
     const coefficientTableData = coeffs ? Object.keys(coeffs.params).map(key => ({
@@ -206,7 +207,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
     if(modelType === 'simple') {
         analysisButtonDisabled = analysisButtonDisabled || !simpleFeatureVar;
     } else if (modelType === 'multiple') {
-        analysisButtonDisabled = analysisButtonDisabled || multipleFeatureVars.length < 1; // Allow single feature for multiple tab
+        analysisButtonDisabled = analysisButtonDisabled || multipleFeatureVars.length < 1;
     }
 
 
@@ -283,25 +284,25 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {results && (
+            {analysisResult && results && (
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">Model Summary</CardTitle>
-                            <CardDescription>Key performance metrics for the {results.model_type.replace(/_/g, ' ')} model.</CardDescription>
+                            <CardDescription>Key performance metrics for the {analysisResult.model_type.replace(/_/g, ' ')} model.</CardDescription>
                         </CardHeader>
                         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">R-squared</p><p className="text-2xl font-bold">{results.metrics.r2.toFixed(4)}</p></div>
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Adj. R-squared</p><p className="text-2xl font-bold">{results.metrics.adj_r2.toFixed(4)}</p></div>
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{results.metrics.rmse.toFixed(3)}</p></div>
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{results.metrics.mae.toFixed(3)}</p></div>
+                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">R-squared</p><p className="text-2xl font-bold">{results.metrics?.r2.toFixed(4)}</p></div>
+                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Adj. R-squared</p><p className="text-2xl font-bold">{results.metrics?.adj_r2.toFixed(4)}</p></div>
+                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{results.metrics?.rmse.toFixed(3)}</p></div>
+                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{results.metrics?.mae.toFixed(3)}</p></div>
                         </CardContent>
                     </Card>
                     
-                    {results.plot && (
+                    {analysisResult.plot && (
                         <Card>
                             <CardHeader><CardTitle>Diagnostic Plots</CardTitle></CardHeader>
-                            <CardContent><Image src={results.plot} alt="Regression Diagnostics" width={1500} height={1200} className="w-full rounded-md border"/></CardContent>
+                            <CardContent><Image src={analysisResult.plot} alt="Regression Diagnostics" width={1500} height={1200} className="w-full rounded-md border"/></CardContent>
                         </Card>
                     )}
 
