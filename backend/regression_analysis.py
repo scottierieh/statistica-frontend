@@ -62,13 +62,11 @@ class RegressionAnalysis:
         sklearn_model = LinearRegression()
         sklearn_model.fit(X_scaled, self.y)
         
-        sm_model_summary = None
         sm_model = None
         if HAS_STATSMODELS:
             X_with_const = sm.add_constant(X_scaled)
             try:
                 sm_model = sm.OLS(self.y, X_with_const).fit()
-                sm_model_summary = sm_model.summary().as_text()
             except Exception as e:
                 sm_model = None
 
@@ -82,6 +80,80 @@ class RegressionAnalysis:
             'features': list(X_scaled.columns),
             'metrics': metrics,
             'diagnostics': diagnostics,
+        }
+        self.y_pred = y_pred
+        self.X_scaled = X_scaled
+        return self.results[model_name]
+
+    def polynomial_regression(self, model_name="polynomial", degree=2, features=None):
+        if features is None:
+            X_selected = self.X
+        else:
+            X_selected = self.X[features]
+
+        poly = PolynomialFeatures(degree=degree, include_bias=False)
+        X_poly = poly.fit_transform(X_selected)
+        poly_feature_names = poly.get_feature_names_out(X_selected.columns)
+        X_poly_df = pd.DataFrame(X_poly, columns=poly_feature_names, index=X_selected.index)
+
+        sklearn_model = LinearRegression()
+        sklearn_model.fit(X_poly_df, self.y)
+        
+        sm_model = None
+        if HAS_STATSMODELS:
+            X_with_const = sm.add_constant(X_poly_df)
+            try:
+                sm_model = sm.OLS(self.y, X_with_const).fit()
+            except:
+                sm_model = None
+
+        y_pred = sklearn_model.predict(X_poly_df)
+        metrics = self._calculate_metrics(self.y, y_pred, len(poly_feature_names))
+        diagnostics = self._calculate_diagnostics(X_poly_df, self.y, y_pred, sm_model)
+        
+        self.results[model_name] = {
+            'model_name': model_name, 'model_type': 'polynomial_regression', 'features': list(poly_feature_names),
+            'metrics': metrics, 'diagnostics': diagnostics,
+        }
+        self.y_pred = y_pred
+        self.X_scaled = X_poly_df
+        return self.results[model_name]
+
+    def regularized_regression(self, model_name, reg_type, alpha_reg, features=None, standardize=True):
+        if features is None:
+            X_selected = self.X
+        else:
+            X_selected = self.X[features]
+
+        if standardize:
+            X_scaled = pd.DataFrame(self.scaler.fit_transform(X_selected), columns=X_selected.columns, index=X_selected.index)
+        else:
+            X_scaled = X_selected
+
+        if reg_type == "ridge":
+            model = Ridge(alpha=alpha_reg)
+        elif reg_type == "lasso":
+            model = Lasso(alpha=alpha_reg)
+        else:
+            raise ValueError("reg_type must be 'ridge' or 'lasso'")
+
+        model.fit(X_scaled, self.y)
+
+        y_pred = model.predict(X_scaled)
+        metrics = self._calculate_metrics(self.y, y_pred, len(X_scaled.columns))
+        
+        # Can't use statsmodels directly for coefficients of regularized models in this simple setup
+        diagnostics = self._basic_diagnostics(X_scaled, self.y, y_pred)
+        
+        # Manually create coefficient table
+        diagnostics['coefficient_tests'] = {
+            'params': {'const': model.intercept_, **dict(zip(X_scaled.columns, model.coef_))},
+            'pvalues': {}, 'bse': {}, 'tvalues': {}
+        }
+
+        self.results[model_name] = {
+            'model_name': model_name, 'model_type': f'{reg_type}_regression', 'features': list(X_scaled.columns),
+            'metrics': metrics, 'diagnostics': diagnostics,
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -115,7 +187,7 @@ class RegressionAnalysis:
                 diagnostics['durbin_watson'] = None
 
             try:
-                vif = {X.columns[i]: variance_inflation_factor(X.values, i) for i in range(X.shape[1])}
+                vif = {X.columns[i]: variance_inflation_factor(X.values, i) for i in range(X.shape[1])} if X.shape[1] > 1 else {}
                 diagnostics['vif'] = vif
             except Exception:
                 diagnostics['vif'] = {}
@@ -138,8 +210,22 @@ class RegressionAnalysis:
             except:
                  diagnostics['heteroscedasticity_tests'] = {}
 
+        else:
+            diagnostics = self._basic_diagnostics(X, y_true, y_pred)
+
 
         return diagnostics
+    
+    def _basic_diagnostics(self, X, y_true, y_pred):
+        diagnostics = {}
+        residuals = y_true - y_pred
+        try:
+            sw_stat, sw_p = stats.shapiro(residuals)
+            diagnostics['normality_tests'] = {'shapiro_wilk': {'statistic': sw_stat, 'p_value': sw_p}}
+        except:
+            diagnostics['normality_tests'] = {}
+        return diagnostics
+
     
     def plot_results(self, model_name):
         residuals = self.y - self.y_pred
@@ -152,7 +238,7 @@ class RegressionAnalysis:
         ax.plot([self.y.min(), self.y.max()], [self.y.min(), self.y.max()], 'r--', lw=2)
         ax.set_xlabel('Actual Values')
         ax.set_ylabel('Predicted Values')
-        ax.set_title(f'Actual vs Predicted (R² = {self.results[model_name]["metrics"]["r2"]:.4f})')
+        ax.set_title(f"Actual vs Predicted (R² = {self.results[model_name]['metrics']['r2']:.4f})")
         ax.grid(True, alpha=0.3)
         
         # Residuals vs Fitted
@@ -195,7 +281,7 @@ def main():
         data = payload.get('data')
         target_variable = payload.get('targetVar')
         features = payload.get('features')
-        model_type = payload.get('modelType', 'linear')
+        model_type = payload.get('modelType', 'multiple')
 
         if not all([data, target_variable, features]):
             raise ValueError("Missing 'data', 'targetVar', or 'features'")
@@ -204,11 +290,17 @@ def main():
         
         reg_analysis = RegressionAnalysis(df, target_variable)
         
-        results = reg_analysis.linear_regression(
-            model_name=model_type, 
-            features=features, 
-            standardize=True
-        )
+        results = None
+        if model_type == 'simple' or model_type == 'multiple':
+            results = reg_analysis.linear_regression(model_name=model_type, features=features, standardize=True)
+        elif model_type == 'polynomial':
+            degree = payload.get('degree', 2)
+            results = reg_analysis.polynomial_regression(model_name=model_type, features=features, degree=degree)
+        elif model_type in ['ridge', 'lasso']:
+            alpha = payload.get('alpha', 1.0)
+            results = reg_analysis.regularized_regression(model_name=model_type, reg_type=model_type, alpha_reg=alpha, features=features)
+        else:
+            raise ValueError(f"Unsupported model type: {model_type}")
 
         plot_image = reg_analysis.plot_results(model_type)
 
