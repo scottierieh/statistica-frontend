@@ -1,10 +1,11 @@
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users } from "lucide-react";
+
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant' | 'efa';
 
 
 export interface ExampleDataSet {
@@ -42,15 +43,25 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 14.78,3.22,Male,No,Sun,Dinner,2
 `;
 
+const big5Data = `E1,E2,E3,E4,E5,N1,N2,N3,N4,N5,A1,A2,A3,A4,A5,C1,C2,C3,C4,C5,O1,O2,O3,O4,O5
+4,2,5,2,5,2,5,5,4,5,1,5,5,5,4,4,1,5,5,5,5,2,5,5,4
+2,3,4,3,4,4,4,3,3,3,3,4,4,3,3,3,3,4,3,4,3,3,4,4,3
+5,2,6,1,6,1,7,6,7,7,1,6,6,1,2,6,2,7,1,7,6,1,7,1,6
+3,4,4,3,4,3,4,4,3,3,4,4,4,4,4,4,3,4,3,4,4,3,4,4,4
+5,1,7,1,7,1,7,7,7,7,1,7,7,1,1,7,1,7,1,7,7,1,7,1,7
+2,5,3,5,4,5,4,3,3,3,3,4,5,4,3,4,4,3,4,3,4,4,4,4,5
+`;
+
+
 export const exampleDatasets: ExampleDataSet[] = [
     {
-        id: 'reliability',
-        name: 'Survey Scale',
-        description: 'Example personality survey data for calculating scale reliability.',
-        icon: ShieldCheck,
-        analysisTypes: ['stats', 'reliability'],
-        recommendedAnalysis: 'reliability',
-        data: likertScaleData,
+        id: 'big5-personality',
+        name: 'Big 5 Personality',
+        description: 'Survey data for the Big Five personality traits. Ideal for EFA.',
+        icon: BrainCircuit,
+        analysisTypes: ['stats', 'reliability', 'efa'],
+        recommendedAnalysis: 'efa',
+        data: big5Data,
     },
     {
         id: 'iris',

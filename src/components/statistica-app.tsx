@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -47,13 +48,14 @@ import AnovaPage from './pages/anova-page';
 import VisualizationPage from './pages/visualization-page';
 import ReliabilityPage from './pages/reliability-page';
 import DiscriminantPage from './pages/discriminant-page';
+import EfaPage from './pages/efa-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'discriminant';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'discriminant' | 'efa';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -61,6 +63,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     anova: AnovaPage,
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
+    efa: EfaPage,
 };
 
 const analysisMenu = [
@@ -90,8 +93,8 @@ const analysisMenu = [
     icon: Users,
     methods: [
       { id: 'discriminant', label: 'Discriminant Analysis', implemented: true, icon: Users },
+      { id: 'efa', label: 'EFA', implemented: true, icon: BrainCircuit },
       { id: 'pca', label: 'PCA', implemented: false },
-      { id: 'efa', label: 'EFA', implemented: false },
       { id: 'kmeans', label: 'K-means Clustering', implemented: false },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
