@@ -138,6 +138,7 @@ class OneWayANOVA:
                                          alpha=0.05)
 
         results_df = pd.DataFrame(data=tukey_result._results_table.data[1:], columns=tukey_result._results_table.data[0])
+        results_df.rename(columns={'p-adj': 'p_adj'}, inplace=True) # Rename p-adj to p_adj
         self.results['post_hoc_tukey'] = results_df.to_dict('records')
         return self.results['post_hoc_tukey']
 
@@ -183,5 +184,3 @@ if __name__ == '__main__':
         subprocess.check_call([sys.executable, "-m", "pip", "install", "statsmodels"])
 
     main()
-
-    
