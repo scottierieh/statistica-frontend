@@ -15,6 +15,8 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import Image from 'next/image';
 import { Label } from '../ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
+import { Input } from '../ui/input';
 
 interface RegressionResults {
     model_name: string;
@@ -156,34 +158,52 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Regression Analysis Setup</CardTitle>
-                    <CardDescription>Select a target variable and one or more feature variables.</CardDescription>
+                    <CardDescription>Select a regression model type, then configure its variables and parameters.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                             <Label>Target Variable (Y)</Label>
-                            <Select value={targetVar} onValueChange={setTargetVar}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>Feature Variables (X)</Label>
-                             <ScrollArea className="h-32 border rounded-md p-4">
-                                <div className="space-y-2">
-                                    {availableFeatures.map(h => (
-                                        <div key={h} className="flex items-center space-x-2">
-                                            <Checkbox id={`feat-${h}`} checked={featureVars.includes(h)} onCheckedChange={(c) => handleFeatureSelectionChange(h, c as boolean)} />
-                                            <label htmlFor={`feat-${h}`}>{h}</label>
-                                        </div>
-                                    ))}
+                <CardContent>
+                    <Tabs value={modelType} onValueChange={setModelType} className="w-full">
+                        <TabsList className='mb-4'>
+                            <TabsTrigger value="linear">Linear</TabsTrigger>
+                            <TabsTrigger value="polynomial" disabled>Polynomial</TabsTrigger>
+                            <TabsTrigger value="ridge" disabled>Ridge</TabsTrigger>
+                            <TabsTrigger value="lasso" disabled>Lasso</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="linear">
+                            <div className="space-y-4">
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                        <Label>Target Variable (Y)</Label>
+                                        <Select value={targetVar} onValueChange={setTargetVar}>
+                                            <SelectTrigger><SelectValue/></SelectTrigger>
+                                            <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label>Feature Variables (X)</Label>
+                                        <ScrollArea className="h-32 border rounded-md p-4">
+                                            <div className="space-y-2">
+                                                {availableFeatures.map(h => (
+                                                    <div key={h} className="flex items-center space-x-2">
+                                                        <Checkbox id={`feat-${h}`} checked={featureVars.includes(h)} onCheckedChange={(c) => handleFeatureSelectionChange(h, c as boolean)} />
+                                                        <label htmlFor={`feat-${h}`}>{h}</label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                    </div>
                                 </div>
-                            </ScrollArea>
-                        </div>
-                     </div>
-                      <Button onClick={handleAnalysis} className="w-full md:w-auto self-end" disabled={isLoading || !targetVar || featureVars.length < 1}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
-                    </Button>
+                            </div>
+                        </TabsContent>
+                        {/* Placeholder for other model types */}
+                        <TabsContent value="polynomial">...</TabsContent>
+                        <TabsContent value="ridge">...</TabsContent>
+                        <TabsContent value="lasso">...</TabsContent>
+                    </Tabs>
+                    <div className="flex justify-end mt-4">
+                        <Button onClick={handleAnalysis} disabled={isLoading || !targetVar || featureVars.length < 1}>
+                            {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
