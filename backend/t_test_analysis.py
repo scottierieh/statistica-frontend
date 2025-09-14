@@ -59,7 +59,8 @@ class TTestAnalysis:
             'p_value': p_value,
             'significant': p_value < self.alpha,
             'confidence_interval': (ci_lower, ci_upper),
-            'cohens_d': cohens_d
+            'cohens_d': cohens_d,
+            'data_values': data_values
         }
         return self.results['one_sample']
     
@@ -93,8 +94,7 @@ class TTestAnalysis:
             cohens_d = (mean1 - mean2) / pooled_std if pooled_std > 0 else 0
         
         self.results['independent_samples'] = {
-            'test_type': 'independent_samples',
-            'variable': variable, 'group_variable': group_variable, 'groups': groups, 'equal_var': equal_var,
+            'test_type': 'independent_samples', 'variable': variable, 'group_variable': group_variable, 'groups': list(groups), 'equal_var': equal_var,
             'n1': n1, 'n2': n2, 'mean1': mean1, 'mean2': mean2, 'std1': std1, 'std2': std2,
             't_statistic': t_stat, 'degrees_of_freedom': df, 'p_value': p_value, 'significant': p_value < self.alpha,
             'cohens_d': cohens_d, 'data1': group1_data, 'data2': group2_data
@@ -121,7 +121,8 @@ class TTestAnalysis:
         self.results['paired_samples'] = {
             'test_type': 'paired_samples', 'variable1': variable1, 'variable2': variable2, 'n': n,
             'mean_diff': mean_diff, 't_statistic': t_stat, 'degrees_of_freedom': df, 'p_value': p_value,
-            'significant': p_value < self.alpha, 'cohens_d': cohens_d, 'differences': differences
+            'significant': p_value < self.alpha, 'cohens_d': cohens_d, 
+            'data1': data1, 'data2': data2, 'differences': differences
         }
         return self.results['paired_samples']
 
@@ -144,8 +145,8 @@ class TTestAnalysis:
             axes[0, 1].set_title('Q-Q Plot')
 
         elif test_type == 'independent_samples':
-            sns.histplot(result['data1'], ax=axes[0,0], color='skyblue', label=result['groups'][0], kde=True)
-            sns.histplot(result['data2'], ax=axes[0,0], color='lightcoral', label=result['groups'][1], kde=True)
+            sns.histplot(result['data1'], ax=axes[0,0], color='skyblue', label=str(result['groups'][0]), kde=True)
+            sns.histplot(result['data2'], ax=axes[0,0], color='lightcoral', label=str(result['groups'][1]), kde=True)
             axes[0,0].set_title('Group Distributions')
             axes[0,0].legend()
             
@@ -154,8 +155,10 @@ class TTestAnalysis:
             axes[0,1].set_title('Group Boxplots')
 
         elif test_type == 'paired_samples':
+            min_val = min(np.min(result['data1']), np.min(result['data2']))
+            max_val = max(np.max(result['data1']), np.max(result['data2']))
+            
             axes[0, 0].scatter(result['data1'], result['data2'], alpha=0.6)
-            min_val, max_val = min(np.min(result['data1']), np.min(result['data2'])), max(np.max(result['data1']), np.max(result['data2']))
             axes[0, 0].plot([min_val, max_val], [min_val, max_val], 'r--')
             axes[0, 0].set_xlabel(result['variable1'])
             axes[0, 0].set_ylabel(result['variable2'])
@@ -211,3 +214,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
