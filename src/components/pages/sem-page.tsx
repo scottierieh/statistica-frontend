@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -450,5 +449,3 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
         </div>
     )
 }
-
-  
