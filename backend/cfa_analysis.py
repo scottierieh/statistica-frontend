@@ -278,12 +278,12 @@ class ConfirmatoryFactorAnalysis:
         
         # Draw factors
         for factor, pos in factor_pos.items():
-            ax.add_patch(plt.Ellipse(pos, 1.5, 0.8, fill=True, facecolor='skyblue', alpha=0.6))
+            ax.add_patch(plt.matplotlib.patches.Ellipse(pos, 1.5, 0.8, fill=True, facecolor='skyblue', alpha=0.6))
             ax.text(pos[0], pos[1], factor, ha='center', va='center', fontweight='bold')
 
         # Draw indicators
         for ind, pos in indicator_pos.items():
-            ax.add_patch(plt.Rectangle((pos[0] - 0.5, pos[1] - 0.25), 1, 0.5, fill=True, facecolor='lightgreen', alpha=0.6))
+            ax.add_patch(plt.matplotlib.patches.Rectangle((pos[0] - 0.5, pos[1] - 0.25), 1, 0.5, fill=True, facecolor='lightgreen', alpha=0.6))
             ax.text(pos[0], pos[1], ind, ha='center', va='center')
 
         # Draw loadings
@@ -352,4 +352,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
