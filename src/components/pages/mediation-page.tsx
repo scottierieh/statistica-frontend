@@ -9,10 +9,34 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Network } from 'lucide-react';
+import { Sigma, Loader2, Network, CheckCircle, XCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+
+interface PathResult {
+    coef: number;
+    se: number;
+    t_stat: number;
+    p_value: number;
+    r_squared?: number; // Optional as it might not be on all path results from backend
+}
+
+interface SobelResult {
+    effect: number;
+    se: number;
+    z_stat: number;
+    p_value: number;
+}
+
+interface BootstrapResult {
+    mean_effect: number;
+    se: number;
+    ci_lower: number;
+    ci_upper: number;
+    n_bootstrap: number;
+    significant: boolean;
+}
 
 interface MediationResults {
     baron_kenny: {
@@ -23,22 +47,8 @@ interface MediationResults {
         indirect_effect: number;
         sobel_test: SobelResult;
     };
+    bootstrap?: BootstrapResult;
     mediation_type: string;
-}
-
-interface PathResult {
-    coef: number;
-    se: number;
-    t_stat: number;
-    p_value: number;
-    r_squared: number;
-}
-
-interface SobelResult {
-    effect: number;
-    se: number;
-    z_stat: number;
-    p_value: number;
 }
 
 interface FullAnalysisResponse {
@@ -47,7 +57,8 @@ interface FullAnalysisResponse {
 }
 
 
-const getSignificanceStars = (p: number) => {
+const getSignificanceStars = (p: number | undefined) => {
+    if (p === undefined || p === null) return '';
     if (p < 0.001) return '***';
     if (p < 0.01) return '**';
     if (p < 0.05) return '*';
@@ -159,14 +170,16 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
     const availableForM = numericHeaders.filter(h => h !== xVar);
     const availableForY = numericHeaders.filter(h => h !== xVar && h !== mVar);
     
-    const bk = analysisResult?.results.baron_kenny;
+    const results = analysisResult?.results;
+    const bk = results?.baron_kenny;
+    const boot = results?.bootstrap;
 
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Mediation Analysis Setup</CardTitle>
-                    <CardDescription>Select your Independent (X), Mediator (M), and Dependent (Y) variables.</CardDescription>
+                    <CardDescription>Select your Independent (X), Mediator (M), and Dependent (Y) variables. Analysis uses standardized variables.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                     <div className="grid md:grid-cols-3 gap-4">
@@ -191,22 +204,89 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {analysisResult && bk && (
+            {analysisResult && results && bk && (
                 <>
                 <Card>
                     <CardHeader>
-                        <CardTitle className="font-headline">Mediation Analysis Summary</CardTitle>
+                        <CardTitle className="font-headline">Analysis Conclusion</CardTitle>
                          <CardDescription>
-                            The analysis suggests a <Badge>{analysisResult.results.mediation_type}</Badge> effect.
+                            The analysis suggests a <Badge>{results.mediation_type}</Badge> effect.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className='grid md:grid-cols-2 gap-4'>
                          <Image src={analysisResult.plot} alt="Mediation Plot" width={1200} height={500} className="w-full rounded-md border" />
+                         <div>
+                            <h3 className='font-semibold mb-2'>Interpretation</h3>
+                            {results.mediation_type === "No Mediation" ? (
+                                <p className='text-sm text-muted-foreground'>
+                                    No significant mediation effect was found. The independent variable's effect on the dependent variable is not explained by the mediator.
+                                </p>
+                            ) : (
+                                <p className='text-sm text-muted-foreground'>
+                                    The relationship between <span className='font-bold'>{xVar}</span> and <span className='font-bold'>{yVar}</span> is significantly mediated by <span className='font-bold'>{mVar}</span>. 
+                                    {results.mediation_type === "Full Mediation" ? " The effect of the independent variable is fully transmitted through the mediator." : " The independent variable has both a direct effect and an indirect effect transmitted through the mediator."}
+                                </p>
+                            )}
+                         </div>
                     </CardContent>
                 </Card>
+
+                <div className='grid lg:grid-cols-2 gap-4'>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Effect Decomposition</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                <div className="space-y-1"><dt className="font-medium text-muted-foreground">Total Effect (c)</dt><dd className="text-xl font-bold font-mono">{bk.path_c.coef.toFixed(4)}</dd></div>
+                                <div className="space-y-1"><dt className="font-medium text-muted-foreground">Direct Effect (c')</dt><dd className="text-xl font-bold font-mono">{bk.path_c_prime.coef.toFixed(4)}</dd></div>
+                                <div className="space-y-1"><dt className="font-medium text-muted-foreground">Indirect Effect (a*b)</dt><dd className="text-xl font-bold font-mono">{bk.indirect_effect.toFixed(4)}</dd></div>
+                                <div className="space-y-1"><dt className="font-medium text-muted-foreground">Percent Mediated</dt><dd className="text-xl font-bold font-mono">{Math.abs(bk.indirect_effect / bk.path_c.coef * 100).toFixed(2)}%</dd></div>
+                            </dl>
+                        </CardContent>
+                    </Card>
+                    {boot ? (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Bootstrap Results</CardTitle>
+                                <CardDescription>A more robust test of the indirect effect.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">Indirect Effect</dt><dd className="text-xl font-bold font-mono">{boot.mean_effect.toFixed(4)}</dd></div>
+                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">Bootstrap SE</dt><dd className="text-xl font-bold font-mono">{boot.se.toFixed(4)}</dd></div>
+                                    <div className="col-span-2 space-y-1"><dt className="font-medium text-muted-foreground">95% Confidence Interval</dt><dd className="text-xl font-bold font-mono">[{boot.ci_lower.toFixed(4)}, {boot.ci_upper.toFixed(4)}]</dd></div>
+                                </dl>
+                                 <div className="mt-4">
+                                    {boot.significant ? (
+                                        <div className='flex items-center text-green-600'><CheckCircle className='mr-2' /> The confidence interval does not contain zero, indicating a significant indirect effect.</div>
+                                    ) : (
+                                        <div className='flex items-center text-destructive'><XCircle className='mr-2' /> The confidence interval contains zero, indicating the indirect effect is not significant.</div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                         <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Sobel Test</CardTitle>
+                                 <CardDescription>A traditional test of the indirect effect.</CardDescription>
+                            </CardHeader>
+                             <CardContent>
+                                <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">Indirect Effect (a*b)</dt><dd className="text-xl font-bold font-mono">{bk.sobel_test.effect.toFixed(4)}</dd></div>
+                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">Sobel Z-statistic</dt><dd className="text-xl font-bold font-mono">{bk.sobel_test.z_stat.toFixed(3)}</dd></div>
+                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">Standard Error</dt><dd className="text-lg font-mono">{bk.sobel_test.se.toFixed(4)}</dd></div>
+                                    <div className="space-y-1"><dt className="font-medium text-muted-foreground">p-value</dt><dd className="text-lg font-mono">{bk.sobel_test.p_value.toFixed(4)} {getSignificanceStars(bk.sobel_test.p_value)}</dd></div>
+                                </dl>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+                
                 <Card>
                     <CardHeader>
-                        <CardTitle className="font-headline">Path Coefficients (Baron & Kenny)</CardTitle>
+                        <CardTitle className="font-headline">Path Coefficients Details (Baron & Kenny)</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -229,19 +309,7 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
                         </Table>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Indirect Effect & Sobel Test</CardTitle>
-                    </CardHeader>
-                     <CardContent>
-                        <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
-                            <div className="space-y-1"><dt className="font-medium text-muted-foreground">Indirect Effect (a*b)</dt><dd className="text-2xl font-bold font-mono">{bk.indirect_effect.toFixed(4)}</dd></div>
-                            <div className="space-y-1"><dt className="font-medium text-muted-foreground">Sobel Test Z-statistic</dt><dd className="text-2xl font-bold font-mono">{bk.sobel_test.z_stat.toFixed(3)}</dd></div>
-                            <div className="space-y-1"><dt className="font-medium text-muted-foreground">Standard Error</dt><dd className="text-lg font-mono">{bk.sobel_test.se.toFixed(4)}</dd></div>
-                            <div className="space-y-1"><dt className="font-medium text-muted-foreground">p-value</dt><dd className="text-lg font-mono">{bk.sobel_test.p_value.toFixed(4)} {getSignificanceStars(bk.sobel_test.p_value)}</dd></div>
-                        </dl>
-                    </CardContent>
-                </Card>
+                
                 </>
             )}
 
@@ -254,3 +322,4 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
     );
 }
 
+    

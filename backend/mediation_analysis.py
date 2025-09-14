@@ -38,7 +38,7 @@ class MediationAnalysis:
             scaler = StandardScaler()
             self.X = scaler.fit_transform(self.X.reshape(-1, 1)).flatten()
             self.M = scaler.fit_transform(self.M.reshape(-1, 1)).flatten()
-            self.Y = scaler.fit_transform(self.Y.reshape(-1, 1)).flatten()
+            self.Y = scaler.fit_transform(self.Y.reshape(-self.Y_name, 1)).flatten()
             
         self.n = len(self.X)
         
@@ -52,12 +52,12 @@ class MediationAnalysis:
         
         ss_res = np.sum(residuals ** 2)
         ss_tot = np.sum((Y - np.mean(Y)) ** 2)
-        r_squared = 1 - (ss_res / ss_tot)
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
         
         mse = ss_res / (len(Y) - 2)
         x_mean = np.mean(X)
         ss_x = np.sum((X - x_mean) ** 2)
-        se_coef = np.sqrt(mse / ss_x)
+        se_coef = np.sqrt(mse / ss_x) if ss_x > 0 else np.nan
         
         t_stat = model.coef_[0] / se_coef if se_coef != 0 else np.inf
         p_value = 2 * (1 - stats.t.cdf(np.abs(t_stat), len(Y) - 2))
@@ -77,7 +77,7 @@ class MediationAnalysis:
         
         ss_res = np.sum(residuals ** 2)
         ss_tot = np.sum((Y - np.mean(Y)) ** 2)
-        r_squared = 1 - (ss_res / ss_tot)
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
         
         mse = ss_res / (len(Y) - 3)
         X_design = np.column_stack([np.ones(len(X1)), X1, X2])
@@ -120,16 +120,52 @@ class MediationAnalysis:
         }
         return self.results['baron_kenny']
 
-    def analyze(self, method='baron_kenny'):
-        if method == 'baron_kenny':
+    def bootstrap_analysis(self, n_bootstrap=5000, confidence_level=0.95):
+        np.random.seed(42)
+        indirect_effects = []
+        for _ in range(n_bootstrap):
+            indices = np.random.choice(self.n, self.n, replace=True)
+            X_boot, M_boot, Y_boot = self.X[indices], self.M[indices], self.Y[indices]
+            
+            path_a_boot = self._simple_regression(X_boot, M_boot)
+            path_bc_boot = self._multiple_regression(X_boot, M_boot, Y_boot)
+            
+            indirect_effect_boot = path_a_boot['coef'] * path_bc_boot['coef2']
+            indirect_effects.append(indirect_effect_boot)
+            
+        indirect_effects = np.array(indirect_effects)
+        alpha = 1 - confidence_level
+        ci_lower = np.percentile(indirect_effects, 100 * alpha / 2)
+        ci_upper = np.percentile(indirect_effects, 100 * (1 - alpha / 2))
+        
+        self.results['bootstrap'] = {
+            'indirect_effects': indirect_effects.tolist(),
+            'mean_effect': np.mean(indirect_effects),
+            'se': np.std(indirect_effects),
+            'ci_lower': ci_lower,
+            'ci_upper': ci_upper,
+            'confidence_level': confidence_level,
+            'n_bootstrap': n_bootstrap,
+            'significant': not (ci_lower <= 0 <= ci_upper)
+        }
+        return self.results['bootstrap']
+    
+    def analyze(self, method='both', n_bootstrap=1000):
+        if method in ['baron_kenny', 'both']:
             self.baron_kenny_analysis()
+        if method in ['bootstrap', 'both']:
+            self.bootstrap_analysis(n_bootstrap=n_bootstrap)
+
         self._determine_mediation_type()
         
     def _determine_mediation_type(self):
         if 'baron_kenny' not in self.results: return
         bk = self.results['baron_kenny']
         
-        indirect_sig = bk['sobel_test']['p_value'] < 0.05
+        indirect_sig = self.results.get('bootstrap', {}).get('significant')
+        if indirect_sig is None:
+            indirect_sig = bk['sobel_test']['p_value'] < 0.05
+
         path_c_prime_sig = bk['path_c_prime']['p_value'] < 0.05
         
         if indirect_sig and not path_c_prime_sig: mediation_type = "Full Mediation"
@@ -194,8 +230,9 @@ def main():
 
         df = pd.DataFrame(data)
         
+        # Always standardize for mediation analysis as it's best practice
         ma = MediationAnalysis(df, X=x_var, M=m_var, Y=y_var, standardize=True)
-        ma.analyze(method='baron_kenny')
+        ma.analyze(method='both', n_bootstrap=1000)
         
         results = ma.results
         plot_image = ma.plot_results()
@@ -205,7 +242,18 @@ def main():
             'plot': plot_image
         }
         
-        print(json.dumps(response, default=lambda x: x.tolist() if isinstance(x, np.ndarray) else x))
+        # Custom JSON encoder to handle numpy types
+        class NpEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, np.integer):
+                    return int(obj)
+                if isinstance(obj, np.floating):
+                    return float(obj)
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                return super(NpEncoder, self).default(obj)
+
+        print(json.dumps(response, cls=NpEncoder))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
@@ -213,3 +261,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
