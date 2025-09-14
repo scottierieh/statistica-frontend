@@ -118,18 +118,26 @@ const AnalysisDisplayShell = ({ chart, table, insights, variableName }: { chart:
   
 const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+    const chartConfig = {
+      count: {
+        label: 'Count',
+      },
+    };
+
     return (
       <AnalysisDisplayShell
         variableName={varName}
         chart={
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} outerRadius={80} fill="#8884d8" dataKey="count">
-                {chartData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-              </Pie>
-              <Tooltip content={<ChartTooltipContent />} />
-            </PieChart>
-          </ResponsiveContainer>
+          <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+            <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} outerRadius={80} fill="#8884d8" dataKey="count">
+                    {chartData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                </Pie>
+                <Tooltip content={<ChartTooltipContent />} />
+                </PieChart>
+            </ResponsiveContainer>
+          </ChartContainer>
         }
         table={
           <Table><TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
@@ -142,20 +150,28 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
 };
   
 const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
+    const chartConfig = {
+      count: {
+        label: 'Frequency',
+        color: 'hsl(var(--primary))',
+      },
+    };
     
     return (
         <AnalysisDisplayShell
             variableName={varName}
             chart={
-                <ResponsiveContainer width="100%" height={300}>
-                    <RechartsBarChart data={chartData.bins}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="range" />
-                        <YAxis />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="count" fill="hsl(var(--primary))" />
-                    </RechartsBarChart>
-                </ResponsiveContainer>
+                <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height={300}>
+                        <RechartsBarChart data={chartData.bins}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="range" />
+                            <YAxis />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="count" fill="hsl(var(--primary))" radius={4} />
+                        </RechartsBarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
             }
             table={
                 <Table><TableHeader><TableRow><TableHead>Metric</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
