@@ -179,11 +179,11 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
     const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"];
 
     const importanceChartConfig = useMemo(() => {
-        if (!analysisResult) return {};
-        return analysisResult.importance.reduce((acc, item, index) => {
-            acc[item.attribute] = { label: item.attribute, color: COLORS[index % COLORS.length] };
-            return acc;
-        }, {} as any);
+      if (!analysisResult) return {};
+      return analysisResult.importance.reduce((acc, item, index) => {
+        acc[item.attribute] = { label: item.attribute, color: COLORS[index % COLORS.length] };
+        return acc;
+      }, {} as any);
     }, [analysisResult]);
 
     const partWorthChartConfig = { value: { label: "Part-Worth" } };
@@ -433,15 +433,17 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                             <Button onClick={runSimulation}>Run Simulation</Button>
                                             {simulationResult && (
                                                 <div className="mt-4">
-                                                    <ResponsiveContainer width="100%" height={300}>
-                                                        <BarChart data={simulationResult}>
-                                                            <CartesianGrid strokeDasharray="3 3" />
-                                                            <XAxis dataKey="name" />
-                                                            <YAxis />
-                                                            <Tooltip content={<ChartTooltipContent />} />
-                                                            <Bar dataKey="marketShare" name="Market Share (%)" fill="hsl(var(--primary))" />
-                                                        </BarChart>
-                                                    </ResponsiveContainer>
+                                                    <ChartContainer config={{marketShare: {label: 'Market Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
+                                                      <ResponsiveContainer width="100%" height={300}>
+                                                          <BarChart data={simulationResult}>
+                                                              <CartesianGrid strokeDasharray="3 3" />
+                                                              <XAxis dataKey="name" />
+                                                              <YAxis />
+                                                              <Tooltip content={<ChartTooltipContent />} />
+                                                              <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
+                                                          </BarChart>
+                                                      </ResponsiveContainer>
+                                                    </ChartContainer>
                                                 </div>
                                             )}
                                         </CardContent>
@@ -467,7 +469,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                             <XAxis dataKey="level" />
                                                             <YAxis />
                                                             <Tooltip content={<ChartTooltipContent />} />
-                                                            <Line type="monotone" dataKey="utility" name="Utility" stroke="hsl(var(--primary))" />
+                                                            <Line type="monotone" dataKey="utility" name="Utility" stroke="var(--color-utility)" />
                                                         </LineChart>
                                                     </ResponsiveContainer>
                                                 </ChartContainer>
@@ -528,5 +530,3 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         </div>
     );
 }
-
-    
