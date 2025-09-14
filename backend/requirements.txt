@@ -1,10 +1,7 @@
 firebase-admin
 firebase-functions
-Flask
-matplotlib
-numpy
 pandas
-scikit-learn
+numpy
 scipy
-seaborn
 statsmodels
+scikit-learn

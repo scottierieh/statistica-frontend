@@ -1,7 +1,5 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from scipy import stats
 from scipy.stats import pearsonr
 from sklearn.preprocessing import StandardScaler
@@ -67,7 +65,7 @@ class ReliabilityAnalysis:
         sum_item_vars = item_vars.sum()
         alpha = (n_items / (n_items - 1)) * (1 - sum_item_vars / total_var) if n_items > 1 else 1.0
         
-        corrected_item_total_corr = {col: pearsonr(item_data[col], total_scores - item_data[col])[0] for col in item_cols}
+        corrected_item_total_corr = {col: pearsonr(item_data[col], total_scores - item_data[col])[0] if (total_scores - item_data[col]).var() > 0 else np.nan for col in item_cols}
         
         alpha_if_deleted = {}
         for col in item_cols:
