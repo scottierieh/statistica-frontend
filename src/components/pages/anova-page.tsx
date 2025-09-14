@@ -102,8 +102,8 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
     }, [categoricalHeaders, numericHeaders, data]);
 
     const handleAnalysis = useCallback(async () => {
-        if (!process.env.NEXT_PUBLIC_BACKEND_URL) {
-            toast({variant: 'destructive', title: 'Backend Error', description: 'The backend URL is not configured.'});
+        if (!process.env.NEXT_PUBLIC_ANOVA_BACKEND_URL) {
+            toast({variant: 'destructive', title: 'Backend Error', description: 'The ANOVA backend URL is not configured.'});
             return;
         }
         if (!groupVar || !valueVar) {
@@ -114,7 +114,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         setAnovaResult(null);
 
         try {
-            const backendUrl = new URL('anova', process.env.NEXT_PUBLIC_BACKEND_URL).toString();
+            const backendUrl = process.env.NEXT_PUBLIC_ANOVA_BACKEND_URL;
             const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
