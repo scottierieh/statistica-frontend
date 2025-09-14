@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -13,6 +14,7 @@ import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
+import Image from 'next/image';
 
 
 // CFA Results Types
@@ -44,6 +46,11 @@ interface CfaResults {
     convergence: boolean;
 }
 
+interface FullCfaResponse {
+    results: CfaResults;
+    plot: string | null;
+}
+
 const getFitInterpretation = (fit: CfaResults['fit_indices']) => {
     const cfiOk = fit.cfi >= 0.95;
     const tliOk = fit.tli >= 0.95;
@@ -71,7 +78,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     const { toast } = useToast();
     const [factors, setFactors] = useState<Factor[]>([{id: `factor-0`, name: 'Factor 1', items: []}]);
     
-    const [analysisResult, setAnalysisResult] = useState<CfaResults | null>(null);
+    const [analysisResult, setAnalysisResult] = useState<FullCfaResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
     useEffect(() => {
@@ -135,11 +142,11 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                 throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
 
-            const result = await response.json();
-            if (result.error) throw new Error(result.error);
+            const result: FullCfaResponse = await response.json();
+            if ((result as any).error) throw new Error((result as any).error);
 
             setAnalysisResult(result);
-            toast({ title: 'CFA Complete', description: result.convergence ? 'Model converged successfully.' : 'Model did not converge.' });
+            toast({ title: 'CFA Complete', description: result.results.convergence ? 'Model converged successfully.' : 'Model did not converge.' });
 
         } catch (e: any) {
             console.error('CFA Analysis error:', e);
@@ -192,6 +199,8 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
             </div>
         )
     }
+    
+    const results = analysisResult?.results;
 
     return (
         <div className="flex flex-col gap-4">
@@ -270,31 +279,42 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
             
             {isLoading && <Card><CardHeader><Skeleton className="h-96 w-full"/></CardHeader></Card>}
 
-            {analysisResult && (
+            {analysisResult && results && (
                 <>
+                    {analysisResult.plot && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Path Diagram</CardTitle>
+                                <CardDescription>A visual representation of the confirmatory factor analysis model.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Image src={analysisResult.plot} alt="CFA Path Diagram" width={1000} height={800} className="w-full rounded-md border"/>
+                            </CardContent>
+                        </Card>
+                    )}
                     <div className="grid lg:grid-cols-3 gap-4">
                         <Card className="lg:col-span-3">
                             <CardHeader>
                                 <CardTitle className="font-headline">Model Fit Summary</CardTitle>
-                                <CardDescription>Overall assessment of how well the specified model fits the data. <Badge className={`${getFitInterpretation(analysisResult.fit_indices).color} text-white`}>{getFitInterpretation(analysisResult.fit_indices).level}</Badge></CardDescription>
+                                <CardDescription>Overall assessment of how well the specified model fits the data. <Badge className={`${getFitInterpretation(results.fit_indices).color} text-white`}>{getFitInterpretation(results.fit_indices).level}</Badge></CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                                     <div className="p-4 bg-muted rounded-lg">
                                         <p className="text-sm text-muted-foreground">CFI</p>
-                                        <p className="text-2xl font-bold">{analysisResult.fit_indices.cfi.toFixed(3)}</p>
+                                        <p className="text-2xl font-bold">{results.fit_indices.cfi.toFixed(3)}</p>
                                     </div>
                                      <div className="p-4 bg-muted rounded-lg">
                                         <p className="text-sm text-muted-foreground">TLI</p>
-                                        <p className="text-2xl font-bold">{analysisResult.fit_indices.tli.toFixed(3)}</p>
+                                        <p className="text-2xl font-bold">{results.fit_indices.tli?.toFixed(3) ?? 'N/A'}</p>
                                     </div>
                                      <div className="p-4 bg-muted rounded-lg">
                                         <p className="text-sm text-muted-foreground">RMSEA</p>
-                                        <p className="text-2xl font-bold">{analysisResult.fit_indices.rmsea.toFixed(3)}</p>
+                                        <p className="text-2xl font-bold">{results.fit_indices.rmsea.toFixed(3)}</p>
                                     </div>
                                      <div className="p-4 bg-muted rounded-lg">
                                         <p className="text-sm text-muted-foreground">SRMR</p>
-                                        <p className="text-2xl font-bold">{analysisResult.fit_indices.srmr.toFixed(3)}</p>
+                                        <p className="text-2xl font-bold">{results.fit_indices.srmr.toFixed(3)}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -309,12 +329,12 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                 <Table>
                                     <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead>Indicator</TableHead><TableHead className="text-right">Loading</TableHead><TableHead className="text-right">R²</TableHead></TableRow></TableHeader>
                                     <TableBody>
-                                        {analysisResult.model_spec.factors.map((factor, fIndex) => {
+                                        {results.model_spec.factors.map((factor, fIndex) => {
                                             const factorItems = factors.find(f=>f.name === factor)?.items || [];
                                             return factorItems.map((item, iIndex) => {
-                                                const itemIndex = analysisResult.model_spec.indicators.indexOf(item);
-                                                if(itemIndex === -1 || !analysisResult.standardized_solution) return null;
-                                                const loading = analysisResult.standardized_solution.loadings[itemIndex]?.[fIndex] ?? 0;
+                                                const itemIndex = results.model_spec.indicators.indexOf(item);
+                                                if(itemIndex === -1 || !results.standardized_solution) return null;
+                                                const loading = results.standardized_solution.loadings[itemIndex]?.[fIndex] ?? 0;
                                                 const rSquared = loading * loading;
                                                 return (
                                                     <TableRow key={`${fIndex}-${iIndex}`}>
@@ -331,7 +351,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                             </CardContent>
                         </Card>
                         <div className="space-y-4">
-                            {analysisResult.model_spec.factors.length > 1 && (
+                            {results.model_spec.factors.length > 1 && (
                                  <Card>
                                     <CardHeader><CardTitle className="font-headline">Factor Correlations</CardTitle></CardHeader>
                                     <CardContent>
@@ -339,16 +359,16 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                             <TableHeader>
                                                 <TableRow>
                                                     <TableHead></TableHead>
-                                                    {analysisResult.model_spec.factors.map(f => <TableHead key={f} className="text-center">{f}</TableHead>)}
+                                                    {results.model_spec.factors.map(f => <TableHead key={f} className="text-center">{f}</TableHead>)}
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {analysisResult.model_spec.factors.map((f1, i) => (
+                                                {results.model_spec.factors.map((f1, i) => (
                                                     <TableRow key={f1}>
                                                         <TableHead>{f1}</TableHead>
-                                                        {analysisResult.model_spec.factors.map((f2, j) => (
+                                                        {results.model_spec.factors.map((f2, j) => (
                                                             <TableCell key={f2} className="text-center font-mono">
-                                                                {i === j ? '1.00' : analysisResult.standardized_solution?.factor_correlations[i][j]?.toFixed(3) ?? '-'}
+                                                                {i === j ? '1.00' : results.standardized_solution?.factor_correlations[i][j]?.toFixed(3) ?? '-'}
                                                             </TableCell>
                                                         ))}
                                                     </TableRow>
@@ -364,7 +384,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                     <Table>
                                         <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Composite Reliability (CR)</TableHead><TableHead className="text-right">Avg. Variance Extracted (AVE)</TableHead></TableRow></TableHeader>
                                         <TableBody>
-                                            {Object.entries(analysisResult.reliability).map(([factor, rel]) => (
+                                            {Object.entries(results.reliability).map(([factor, rel]) => (
                                                 <TableRow key={factor}>
                                                     <TableCell className="font-semibold">{factor}</TableCell>
                                                     <TableCell className="text-right font-mono">{rel.composite_reliability.toFixed(3)}</TableCell>
