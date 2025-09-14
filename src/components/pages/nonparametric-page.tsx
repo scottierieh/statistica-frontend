@@ -142,6 +142,14 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
                     </CardContent>
                 </Card>
                 <div className="grid md:grid-cols-2 gap-4">
+                    {plot && (
+                         <Card>
+                            <CardHeader><CardTitle>Visualization</CardTitle></CardHeader>
+                            <CardContent>
+                                <Image src={plot} alt={`${results.test_type} plot`} width={600} height={400} className="rounded-md border" />
+                            </CardContent>
+                        </Card>
+                    )}
                      <Card>
                         <CardHeader><CardTitle>Statistics</CardTitle></CardHeader>
                         <CardContent>
@@ -153,14 +161,6 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
                             </dl>
                         </CardContent>
                     </Card>
-                    {plot && (
-                         <Card>
-                            <CardHeader><CardTitle>Visualization</CardTitle></CardHeader>
-                            <CardContent>
-                                <Image src={plot} alt={`${results.test_type} plot`} width={600} height={400} className="rounded-md border" />
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
             </div>
         )
