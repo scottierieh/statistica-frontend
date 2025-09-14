@@ -1,12 +1,13 @@
-
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network } from "lucide-react";
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
+import { stressSupportData } from "./example-datasets/stress-support-data";
+
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'mediation';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'mediation' | 'moderation';
 
 
 export interface ExampleDataSet {
@@ -46,7 +47,16 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 
 export const exampleDatasets: ExampleDataSet[] = [
-     {
+    {
+        id: 'stress-support',
+        name: 'Stress & Social Support',
+        description: 'How social support moderates the effect of stress on performance.',
+        icon: TrendingUp,
+        analysisTypes: ['stats', 'correlation', 'moderation'],
+        recommendedAnalysis: 'moderation',
+        data: stressSupportData,
+    },
+    {
         id: 'work-stress',
         name: 'Work Stress & Performance',
         description: 'Job stress, exhaustion, and performance data. Ideal for Mediation Analysis.',

@@ -33,6 +33,7 @@ import {
   FlaskConical,
   ShieldCheck,
   Users,
+  TrendingUp,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -50,13 +51,14 @@ import ReliabilityPage from './pages/reliability-page';
 import DiscriminantPage from './pages/discriminant-page';
 import EfaPage from './pages/efa-page';
 import MediationPage from './pages/mediation-page';
+import ModerationPage from './pages/moderation-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'discriminant' | 'efa' | 'mediation';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'discriminant' | 'efa' | 'mediation' | 'moderation';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -66,6 +68,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     discriminant: DiscriminantPage,
     efa: EfaPage,
     mediation: MediationPage,
+    moderation: ModerationPage,
 };
 
 const analysisMenu = [
@@ -87,6 +90,7 @@ const analysisMenu = [
     methods: [
       { id: 'correlation', label: 'Correlation Analysis', implemented: true },
       { id: 'mediation', label: 'Mediation Analysis', implemented: true, icon: Network },
+      { id: 'moderation', label: 'Moderation Analysis', implemented: true, icon: TrendingUp },
       { id: 'linear-regression', label: 'Linear Regression', implemented: false },
       { id: 'logistic-regression', label: 'Logistic Regression', implemented: false },
     ]
