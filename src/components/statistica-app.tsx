@@ -133,8 +133,6 @@ const analysisMenu = [
     methods: [
       { id: 'correlation', label: 'Correlation Analysis', implemented: true },
       { id: 'regression', label: 'Regression Analysis', implemented: true, icon: TrendingUp },
-      { id: 'mediation', label: 'Mediation Analysis', implemented: true, icon: Network },
-      { id: 'moderation', label: 'Moderation Analysis', implemented: true, icon: TrendingUp },
       { id: 'logistic-regression', label: 'Logistic Regression', implemented: false },
     ]
   },
@@ -145,8 +143,6 @@ const analysisMenu = [
       { id: 'kmeans', label: 'K-Means Clustering', implemented: true, icon: Binary },
       { id: 'hca', label: 'Hierarchical Clustering', implemented: true, icon: Binary },
       { id: 'discriminant', label: 'Discriminant Analysis', implemented: true, icon: Users },
-      { id: 'efa', label: 'Exploratory Factor Analysis (EFA)', implemented: true, icon: BrainCircuit },
-      { id: 'cfa', label: 'Confirmatory Factor Analysis (CFA)', implemented: true, icon: BrainCircuit },
       { id: 'pca', label: 'Principal Component Analysis (PCA)', implemented: false },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
@@ -155,6 +151,10 @@ const analysisMenu = [
     field: 'Advanced / Specialized',
     icon: FlaskConical,
     methods: [
+      { id: 'efa', label: 'Exploratory Factor Analysis (EFA)', implemented: true, icon: BrainCircuit },
+      { id: 'cfa', label: 'Confirmatory Factor Analysis (CFA)', implemented: true, icon: BrainCircuit },
+      { id: 'mediation', label: 'Mediation Analysis', implemented: true, icon: Network },
+      { id: 'moderation', label: 'Moderation Analysis', implemented: true, icon: TrendingUp },
       { id: 'sem', label: 'Structural Equation Modeling (SEM)', implemented: true, icon: Network },
       { id: 'bayesian', label: 'Bayesian Inference', implemented: false },
       { id: 'survival', label: 'Survival Analysis', implemented: false },
