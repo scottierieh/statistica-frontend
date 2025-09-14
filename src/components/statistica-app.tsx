@@ -61,6 +61,7 @@ import CfaPage from './pages/cfa-page';
 import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
 import NonParametricPage from './pages/nonparametric-page';
+import TTestPage from './pages/t-test-page';
 import HcaPage from './pages/hca-page';
 import ManovaPage from './pages/manova-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
@@ -69,7 +70,7 @@ import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' ;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -83,6 +84,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     mediation: MediationPage,
     moderation: ModerationPage,
     nonparametric: NonParametricPage,
+    't-test': TTestPage,
     hca: HcaPage,
     manova: ManovaPage,
 };
@@ -106,7 +108,7 @@ const analysisMenu = [
       },
       { id: 'frequency', label: 'Frequency Analysis', implemented: false },
       { id: 'crosstab', label: 'Crosstab Analysis', implemented: false },
-      { id: 'ttest', label: 't-test', implemented: false },
+      { id: 't-test', label: 't-Test', implemented: true },
       { id: 'nonparametric', label: 'Non-parametric Tests', implemented: true, icon: FlaskConical },
     ]
   },

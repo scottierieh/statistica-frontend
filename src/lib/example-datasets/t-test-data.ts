@@ -1,0 +1,23 @@
+export const tTestData = `group,score,pre_score,post_score
+control,75,70,72
+control,82,78,80
+control,68,65,68
+treatment,88,72,85
+treatment,91,75,90
+treatment,85,71,88
+control,77,72,75
+control,79,74,78
+control,81,76,79
+treatment,95,78,92
+treatment,89,74,88
+treatment,92,76,91
+control,73,68,71
+control,76,71,74
+control,78,73,76
+treatment,86,70,84
+treatment,88,73,86
+treatment,90,75,89
+control,80,75,78
+control,74,69,72
+treatment,93,77,91
+`;

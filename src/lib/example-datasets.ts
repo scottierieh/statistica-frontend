@@ -8,11 +8,12 @@ import { nonparametricData } from "./example-datasets/nonparametric-data";
 import { customerSegmentsData } from "./example-datasets/customer-segments";
 import { manovaData } from "./example-datasets/manova-data";
 import { twoWayAnovaData } from "./example-datasets/two-way-anova-data";
+import { tTestData } from "./example-datasets/t-test-data";
 
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test';
 
 
 export interface ExampleDataSet {
@@ -52,6 +53,15 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 
 export const exampleDatasets: ExampleDataSet[] = [
+    {
+        id: 't-test-suite',
+        name: 'T-Test Suite',
+        description: 'Data for one-sample, independent, and paired t-tests.',
+        icon: Sigma,
+        analysisTypes: ['stats', 't-test'],
+        recommendedAnalysis: 't-test',
+        data: tTestData,
+    },
     {
         id: 'two-way-anova-factorial',
         name: '2x3 Factorial Design',
