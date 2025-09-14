@@ -216,57 +216,6 @@ export default function StatisticaApp() {
       }
   }, [toast]);
 
-  const handleFileSelected = (file: File) => {
-    if (!file) return;
-
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
-    const isExcel = ['xls', 'xlsx'].includes(fileExtension || '');
-    const isText = ['csv', 'txt'].includes(fileExtension || '');
-
-    if (!isExcel && !isText) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid File Type',
-        description: 'Please upload a CSV, TXT, or Excel file.',
-      });
-      return;
-    }
-    
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      const data = e.target?.result;
-      if (!data) {
-        toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not read file content.' });
-        return;
-      }
-
-      if (isExcel) {
-        try {
-          const workbook = XLSX.read(data, { type: 'binary' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const csvString = XLSX.utils.sheet_to_csv(worksheet);
-          processData(csvString, file.name);
-        } catch (error) {
-           toast({ variant: 'destructive', title: 'Excel Parse Error', description: 'Failed to parse the Excel file.' });
-        }
-      } else { // CSV or TXT
-         processData(data as string, file.name);
-      }
-    };
-    reader.onerror = () => {
-        toast({variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.'});
-    }
-
-    if (isExcel) {
-      reader.readAsBinaryString(file);
-    } else {
-      reader.readAsText(file);
-    }
-  };
-
-
   const handleLoadExampleData = (example: ExampleDataSet) => {
     processData(example.data, example.name);
     if(example.recommendedAnalysis) {
@@ -351,7 +300,7 @@ export default function StatisticaApp() {
     if (!searchQuery) return analysisMenu;
     const lowercasedQuery = searchQuery.toLowerCase();
     
-    return analysisMenu.map(category => {
+    const filtered = analysisMenu.map(category => {
         const methods = category.methods.filter(method => 
             method.label.toLowerCase().includes(lowercasedQuery) ||
             (method.subMethods && method.subMethods.some(sub => sub.label.toLowerCase().includes(lowercasedQuery)))
@@ -367,13 +316,14 @@ export default function StatisticaApp() {
 
         return null;
     }).filter((c): c is NonNullable<typeof c> => c !== null);
+    return filtered;
   }, [searchQuery]);
 
-  useEffect(() => {
-      if(searchQuery && filteredMenu.length > 0) {
-          const categoriesToOpen = filteredMenu.map(c => c.field);
-          setOpenCategories(categoriesToOpen);
-      }
+ useEffect(() => {
+    if (searchQuery && filteredMenu.length > 0) {
+      const categoriesToOpen = filteredMenu.map(c => c.field);
+      setOpenCategories(categoriesToOpen);
+    }
   }, [searchQuery, filteredMenu]);
 
 

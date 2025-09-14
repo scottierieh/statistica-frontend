@@ -73,8 +73,12 @@ interface RegressionPageProps {
 export default function RegressionPage({ data, numericHeaders, onLoadExample }: RegressionPageProps) {
     const { toast } = useToast();
     const [targetVar, setTargetVar] = useState<string | undefined>(numericHeaders[numericHeaders.length - 1]);
-    const [featureVars, setFeatureVars] = useState<string[]>(numericHeaders.slice(0, numericHeaders.length - 1));
-    const [modelType, setModelType] = useState('multiple');
+    
+    // State for different models
+    const [simpleFeatureVar, setSimpleFeatureVar] = useState<string | undefined>(numericHeaders[0]);
+    const [multipleFeatureVars, setMultipleFeatureVars] = useState<string[]>(numericHeaders.slice(0, numericHeaders.length - 1));
+    
+    const [modelType, setModelType] = useState('simple');
 
     // Model specific params
     const [polyDegree, setPolyDegree] = useState(2);
@@ -89,12 +93,16 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
     useEffect(() => {
         const newTarget = numericHeaders[numericHeaders.length - 1];
         setTargetVar(newTarget);
-        setFeatureVars(numericHeaders.filter(h => h !== newTarget));
+        
+        const initialFeatures = numericHeaders.filter(h => h !== newTarget);
+        setSimpleFeatureVar(initialFeatures[0])
+        setMultipleFeatureVars(initialFeatures);
+
         setAnalysisResult(null);
     }, [data, numericHeaders]);
 
-    const handleFeatureSelectionChange = (header: string, checked: boolean) => {
-        setFeatureVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+    const handleMultiFeatureSelectionChange = (header: string, checked: boolean) => {
+        setMultipleFeatureVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     };
 
     const handleAnalysis = useCallback(async () => {
@@ -102,26 +110,34 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
             toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a target variable.'});
             return;
         }
-        if (featureVars.length < 1) {
-            toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select at least one feature.'});
-            return;
+
+        let features: string[] = [];
+        let params: any = { data, targetVar, modelType };
+
+        switch (modelType) {
+            case 'simple':
+                if (!simpleFeatureVar) {
+                    toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a feature variable.'});
+                    return;
+                }
+                features = [simpleFeatureVar];
+                break;
+            case 'multiple':
+            case 'polynomial':
+            case 'ridge':
+            case 'lasso':
+                if (multipleFeatureVars.length < 1) {
+                    toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select at least one feature.'});
+                    return;
+                }
+                features = multipleFeatureVars;
+                if (modelType === 'polynomial') params.degree = polyDegree;
+                if (modelType === 'ridge') params.alpha = ridgeAlpha;
+                if (modelType === 'lasso') params.alpha = lassoAlpha;
+                break;
         }
 
-        let params: any = {
-            data,
-            targetVar,
-            features: featureVars,
-            modelType,
-        };
-
-        if (modelType === 'polynomial') {
-            params.degree = polyDegree;
-        } else if (modelType === 'ridge') {
-            params.alpha = ridgeAlpha;
-        } else if (modelType === 'lasso') {
-            params.alpha = lassoAlpha;
-        }
-
+        params.features = features;
 
         setIsLoading(true);
         setAnalysisResult(null);
@@ -150,7 +166,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
         } finally {
             setIsLoading(false);
         }
-    }, [data, targetVar, featureVars, modelType, polyDegree, ridgeAlpha, lassoAlpha, toast]);
+    }, [data, targetVar, modelType, simpleFeatureVar, multipleFeatureVars, polyDegree, ridgeAlpha, lassoAlpha, toast]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
     
@@ -201,34 +217,28 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
         pValue: coeffs.pvalues[key]
     })) : [];
 
-    const analysisButtonDisabled = isLoading || !targetVar || featureVars.length === 0;
+    const getAnalysisButtonDisabled = () => {
+        if (isLoading || !targetVar) return true;
+        if (modelType === 'simple' && !simpleFeatureVar) return true;
+        if (modelType !== 'simple' && multipleFeatureVars.length === 0) return true;
+        return false;
+    }
 
-    const renderFeatureSelector = (isMultiple: boolean) => (
-        <div className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                    <Label>Target Variable (Y)</Label>
-                    <Select value={targetVar} onValueChange={setTargetVar}>
-                        <SelectTrigger><SelectValue/></SelectTrigger>
-                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                    </Select>
-                </div>
-                <div>
-                    <Label>Feature Variable(s) (X)</Label>
-                     <ScrollArea className="h-32 border rounded-md p-4">
-                        <div className="space-y-2">
-                            {availableFeatures.map(h => (
-                                <div key={h} className="flex items-center space-x-2">
-                                    <Checkbox id={`feat-${h}`} checked={featureVars.includes(h)} onCheckedChange={(c) => handleFeatureSelectionChange(h, c as boolean)} />
-                                    <label htmlFor={`feat-${h}`}>{h}</label>
-                                </div>
-                            ))}
+    const renderMultiFeatureSelector = () => (
+        <div>
+            <Label>Feature Variables (X)</Label>
+                <ScrollArea className="h-32 border rounded-md p-4">
+                <div className="space-y-2">
+                    {availableFeatures.map(h => (
+                        <div key={h} className="flex items-center space-x-2">
+                            <Checkbox id={`feat-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
+                            <label htmlFor={`feat-${h}`}>{h}</label>
                         </div>
-                    </ScrollArea>
+                    ))}
                 </div>
-            </div>
+            </ScrollArea>
         </div>
-    );
+    )
 
     return (
         <div className="flex flex-col gap-4">
@@ -240,38 +250,93 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                 <CardContent>
                     <Tabs value={modelType} onValueChange={(v) => {setModelType(v); setAnalysisResult(null);}} className="w-full">
                         <TabsList className='mb-4'>
+                            <TabsTrigger value="simple">Simple Linear</TabsTrigger>
                             <TabsTrigger value="multiple">Multiple Linear</TabsTrigger>
                             <TabsTrigger value="polynomial">Polynomial</TabsTrigger>
                             <TabsTrigger value="ridge">Ridge</TabsTrigger>
                             <TabsTrigger value="lasso">Lasso</TabsTrigger>
                         </TabsList>
+                        <TabsContent value="simple">
+                           <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Target Variable (Y)</Label>
+                                    <Select value={targetVar} onValueChange={setTargetVar}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label>Feature Variable (X)</Label>
+                                    <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>{availableFeatures.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </TabsContent>
                         <TabsContent value="multiple">
-                           {renderFeatureSelector(true)}
+                           <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Target Variable (Y)</Label>
+                                    <Select value={targetVar} onValueChange={setTargetVar}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                {renderMultiFeatureSelector()}
+                            </div>
                         </TabsContent>
                         <TabsContent value="polynomial">
-                           {renderFeatureSelector(true)}
-                           <div className='mt-4'>
-                                <Label htmlFor="poly-degree">Polynomial Degree</Label>
-                                <Input id="poly-degree" type="number" value={polyDegree} onChange={(e) => setPolyDegree(Number(e.target.value))} min="2" className="w-32" />
-                           </div>
+                           <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Target Variable (Y)</Label>
+                                    <Select value={targetVar} onValueChange={setTargetVar}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <div className='mt-4'>
+                                        <Label htmlFor="poly-degree">Polynomial Degree</Label>
+                                        <Input id="poly-degree" type="number" value={polyDegree} onChange={(e) => setPolyDegree(Number(e.target.value))} min="2" className="w-32" />
+                                   </div>
+                                </div>
+                                {renderMultiFeatureSelector()}
+                            </div>
                         </TabsContent>
                         <TabsContent value="ridge">
-                           {renderFeatureSelector(true)}
-                           <div className='mt-4'>
-                                <Label htmlFor="ridge-alpha">Alpha (Regularization Strength)</Label>
-                                <Input id="ridge-alpha" type="number" value={ridgeAlpha} onChange={(e) => setRidgeAlpha(Number(e.target.value))} min="0" step="0.1" className="w-32" />
-                           </div>
+                           <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Target Variable (Y)</Label>
+                                    <Select value={targetVar} onValueChange={setTargetVar}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <div className='mt-4'>
+                                        <Label htmlFor="ridge-alpha">Alpha (Regularization Strength)</Label>
+                                        <Input id="ridge-alpha" type="number" value={ridgeAlpha} onChange={(e) => setRidgeAlpha(Number(e.target.value))} min="0" step="0.1" className="w-32" />
+                                   </div>
+                                </div>
+                                {renderMultiFeatureSelector()}
+                            </div>
                         </TabsContent>
                         <TabsContent value="lasso">
-                           {renderFeatureSelector(true)}
-                           <div className='mt-4'>
-                                <Label htmlFor="lasso-alpha">Alpha (Regularization Strength)</Label>
-                                <Input id="lasso-alpha" type="number" value={lassoAlpha} onChange={(e) => setLassoAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
-                           </div>
+                           <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Target Variable (Y)</Label>
+                                    <Select value={targetVar} onValueChange={setTargetVar}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <div className='mt-4'>
+                                        <Label htmlFor="lasso-alpha">Alpha (Regularization Strength)</Label>
+                                        <Input id="lasso-alpha" type="number" value={lassoAlpha} onChange={(e) => setLassoAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
+                                   </div>
+                                </div>
+                               {renderMultiFeatureSelector()}
+                            </div>
                         </TabsContent>
                     </Tabs>
                     <div className="flex justify-end mt-4">
-                        <Button onClick={handleAnalysis} disabled={analysisButtonDisabled}>
+                        <Button onClick={handleAnalysis} disabled={getAnalysisButtonDisabled()}>
                             {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
                         </Button>
                     </div>
@@ -285,7 +350,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">Model Summary</CardTitle>
-                            <CardDescription>Key performance metrics for the {analysisResult.model_type.replace(/_/g, ' ')} model.</CardDescription>
+                            <CardDescription>Key performance metrics for the {analysisResult.model_type?.replace(/_/g, ' ')} model.</CardDescription>
                         </CardHeader>
                         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">R-squared</p><p className="text-2xl font-bold">{results.metrics?.r2.toFixed(4)}</p></div>
@@ -320,10 +385,10 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                                         {coefficientTableData.map(row => (
                                             <TableRow key={row.key}>
                                                 <TableCell>{row.key === 'const' ? 'Intercept' : row.key}</TableCell>
-                                                <TableCell className="text-right font-mono">{row.coefficient.toFixed(4)}</TableCell>
-                                                <TableCell className="text-right font-mono">{row.stdError.toFixed(4)}</TableCell>
-                                                <TableCell className="text-right font-mono">{row.tValue.toFixed(3)}</TableCell>
-                                                <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '<.001' : row.pValue.toFixed(4)} {getSignificanceStars(row.pValue)}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.coefficient?.toFixed(4) ?? 'N/A'}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.stdError?.toFixed(4) ?? 'N/A'}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.tValue?.toFixed(3) ?? 'N/A'}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4) ?? 'N/A'} {getSignificanceStars(row.pValue)}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
