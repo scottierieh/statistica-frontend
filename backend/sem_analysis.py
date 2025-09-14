@@ -1682,7 +1682,7 @@ if __name__ == "__main__":
     print("\n" + "="*80)
     print("USAGE GUIDE:")
     print("="*80)
-    print(\'\'\'
+    print("""
 Basic Usage:
 ```python
 # 1. Load your data
@@ -1746,7 +1746,7 @@ Key Features:
 - Model Comparison: Statistical model comparison and selection
 - Reliability Assessment: Composite reliability, AVE, Cronbach's alpha
 - Diagnostics: Residual analysis, outlier detection, modification indices
-    \'\'\')
+    """)
     
     print("\nSEM analysis completed!")
     print("Use this implementation for testing complex structural relationships in your data.")
