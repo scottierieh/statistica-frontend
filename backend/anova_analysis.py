@@ -38,6 +38,17 @@ def main():
         
         descriptives = df.groupby(independent_var)[dependent_var].agg(['count', 'mean', 'std', 'var', 'min', 'max', 'median', lambda x: x.quantile(0.25), lambda x: x.quantile(0.75), 'sem']).reset_index()
         descriptives.columns = ['group', 'n', 'mean', 'std', 'var', 'min', 'max', 'median', 'q1', 'q3', 'se']
+        
+        # Calculate omega squared manually if possible, or rely on eta-squared
+        # omega_squared = (SSb - (DFb * MSW)) / (SST + MSW)
+        ssb = anova_res['SS'][0]
+        ssw = anova_res['SS'][1]
+        dfb = anova_res['DF'][0]
+        msw = anova_res['MS'][1]
+        sst = ssb + ssw
+        
+        omega_squared_val = (ssb - (dfb * msw)) / (sst + msw) if (sst + msw) != 0 else 0
+
 
         response = {
             "descriptives": {str(row['group']): row.drop('group').to_dict() for _, row in descriptives.iterrows()},
@@ -45,16 +56,17 @@ def main():
                 'f_statistic': anova_res['F'][0],
                 'p_value': anova_res['p-unc'][0],
                 'significant': is_significant,
-                'ssb': anova_res['SS'][0],
-                'ssw': anova_res['SS'][1],
-                'sst': anova_res['SS'][0] + anova_res['SS'][1],
-                'df_between': int(anova_res['DF'][0]),
+                'ssb': ssb,
+                'ssw': ssw,
+                'sst': sst,
+                'df_between': int(dfb),
                 'df_within': int(anova_res['DF'][1]),
-                'df_total': int(anova_res['DF'][0] + anova_res['DF'][1]),
+                'df_total': int(dfb + anova_res['DF'][1]),
                 'msb': anova_res['MS'][0],
-                'msw': anova_res['MS'][1],
+                'msw': msw,
                 'eta_squared': anova_res['np2'][0],
-                'omega_squared': pg.compute_effsize(df[independent_var], df[dependent_var], eftype='omega')
+
+                'omega_squared': omega_squared_val
             },
             "assumptions": {
                 "normality": {str(group): {'statistic': stat, 'p_value': p, 'normal': normal} for group, stat, p, normal in zip(normality_res['group'], normality_res['W'], normality_res['pval'], normality_res['normal'])},
