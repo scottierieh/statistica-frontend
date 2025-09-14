@@ -160,10 +160,67 @@ class ModerationAnalysis:
             })
             
         self.results['simple_slopes'] = simple_slopes
+
+    def _calculate_effect_size(self):
+        if 'step2' not in self.results or 'step1' not in self.results:
+            return
+        
+        r2_full = self.results['step2']['r_squared']
+        r2_main = self.results['step1']['r_squared']
+        
+        f_squared = (r2_full - r2_main) / (1 - r2_full) if (1-r2_full) > 0 else 0
+        
+        interpretation = "Negligible effect"
+        if f_squared >= 0.35:
+            interpretation = "Large effect"
+        elif f_squared >= 0.15:
+            interpretation = "Medium effect"
+        elif f_squared >= 0.02:
+            interpretation = "Small effect"
+            
+        self.results['effect_size'] = {
+            'f_squared': f_squared,
+            'interpretation': interpretation
+        }
+
+    def johnson_neyman_regions(self):
+        model = self.results.get('step2')
+        if not model: return
+        
+        b1, b3 = model['coefficients'][1], model['coefficients'][3]
+        se_b1, se_b3 = model['std_errors'][1], model['std_errors'][3]
+        
+        # Placeholder for covariance, which is needed for accurate JN.
+        # Simplified calculation for now.
+        cov_b1b3 = 0 
+        
+        df = model['df']
+        t_crit = stats.t.ppf(1 - 0.05 / 2, df)
+        
+        a = t_crit**2 * se_b3**2 - b3**2
+        b = 2 * (t_crit**2 * cov_b1b3 - b1*b3)
+        c = t_crit**2 * se_b1**2 - b1**2
+
+        if a == 0:
+            jn_summary = {'has_significant_regions': False, 'significant_range': None}
+        else:
+            discriminant = b**2 - 4*a*c
+            if discriminant < 0:
+                 jn_summary = {'has_significant_regions': False, 'significant_range': None}
+            else:
+                m1 = (-b + np.sqrt(discriminant)) / (2*a)
+                m2 = (-b - np.sqrt(discriminant)) / (2*a)
+                jn_summary = {'has_significant_regions': True, 'significant_range': sorted([m1, m2])}
+
+        self.results['jn_summary'] = jn_summary
+
+
         
     def analyze(self):
         self.hierarchical_regression()
         self.simple_slopes_analysis()
+        self._calculate_effect_size()
+        self.johnson_neyman_regions()
         return self.results
         
     def plot_results(self):

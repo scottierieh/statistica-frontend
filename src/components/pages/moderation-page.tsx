@@ -31,7 +31,7 @@ interface RegressionResult {
 interface RsquaredChange {
     delta_r2: number;
     f_change: number;
-    p_change: number;
+p_change: number;
 }
 
 interface SimpleSlope {
@@ -57,8 +57,8 @@ interface ModerationResults {
     step2: RegressionResult;
     r_squared_change: RsquaredChange;
     simple_slopes: SimpleSlope[];
-    effect_size: EffectSize;
-    jn_summary: JNResult;
+    effect_size?: EffectSize;
+    jn_summary?: JNResult;
 }
 
 interface FullAnalysisResponse {
@@ -307,34 +307,38 @@ export default function ModerationPage({ data, numericHeaders, onLoadExample }: 
                             </CardContent>
                         </Card>
                         <div className='space-y-4'>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="font-headline">Effect Size</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                        <dt className="font-medium text-muted-foreground">Cohen's f²</dt>
-                                        <dd className="font-mono text-right">{results.effect_size.f_squared.toFixed(4)}</dd>
-                                        <dt className="font-medium text-muted-foreground">Interpretation</dt>
-                                        <dd className="text-right"><Badge variant="secondary">{results.effect_size.interpretation}</Badge></dd>
-                                    </dl>
-                                </CardContent>
-                            </Card>
-                             <Card>
-                                <CardHeader>
-                                    <CardTitle className="font-headline">Johnson-Neyman Regions</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {results.jn_summary.has_significant_regions ? (
-                                        <>
-                                            <p className='text-sm font-semibold'>Significant regions found!</p>
-                                            <p className='text-sm text-muted-foreground'>The effect of {xVar} is significant when {mVar} is between <span className='font-mono font-semibold'>{results.jn_summary.significant_range?.[0].toFixed(3)}</span> and <span className='font-mono font-semibold'>{results.jn_summary.significant_range?.[1].toFixed(3)}</span>.</p>
-                                        </>
-                                    ) : (
-                                        <p className='text-sm text-muted-foreground'>No significant regions found within the observed range of the moderator.</p>
-                                    )}
-                                </CardContent>
-                            </Card>
+                            {results.effect_size && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="font-headline">Effect Size</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                            <dt className="font-medium text-muted-foreground">Cohen's f²</dt>
+                                            <dd className="font-mono text-right">{results.effect_size.f_squared.toFixed(4)}</dd>
+                                            <dt className="font-medium text-muted-foreground">Interpretation</dt>
+                                            <dd className="text-right"><Badge variant="secondary">{results.effect_size.interpretation}</Badge></dd>
+                                        </dl>
+                                    </CardContent>
+                                </Card>
+                            )}
+                            {results.jn_summary && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="font-headline">Johnson-Neyman Regions</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {results.jn_summary.has_significant_regions ? (
+                                            <>
+                                                <p className='text-sm font-semibold'>Significant regions found!</p>
+                                                <p className='text-sm text-muted-foreground'>The effect of {xVar} is significant when {mVar} is between <span className='font-mono font-semibold'>{results.jn_summary.significant_range?.[0].toFixed(3)}</span> and <span className='font-mono font-semibold'>{results.jn_summary.significant_range?.[1].toFixed(3)}</span>.</p>
+                                            </>
+                                        ) : (
+                                            <p className='text-sm text-muted-foreground'>No significant regions found within the observed range of the moderator.</p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
                         </div>
 
                     </div>
