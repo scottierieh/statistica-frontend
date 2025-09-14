@@ -355,6 +355,41 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
             <div className="grid gap-4 md:grid-cols-1">
                  <StrongestCorrelationsChart data={results.strongest_correlations} />
             </div>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Strongest Correlations (Table)</CardTitle>
+                    <CardDescription>Top 10 strongest relationships found in the data, sorted by absolute correlation value.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Rank</TableHead>
+                                <TableHead>Variable 1</TableHead>
+                                <TableHead>Variable 2</TableHead>
+                                <TableHead className="text-right">Correlation (r)</TableHead>
+                                <TableHead className="text-right">P-value</TableHead>
+                                <TableHead className="text-center">Significant</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {results.strongest_correlations.map((corr, index) => (
+                                <TableRow key={index}>
+                                    <TableCell>{index + 1}</TableCell>
+                                    <TableCell>{corr.variable_1}</TableCell>
+                                    <TableCell>{corr.variable_2}</TableCell>
+                                    <TableCell className="text-right font-mono">{corr.correlation.toFixed(3)}</TableCell>
+                                    <TableCell className="text-right font-mono">{corr.p_value < 0.001 ? "<.001" : corr.p_value.toFixed(3)}</TableCell>
+                                    <TableCell className="text-center">
+                                        {corr.significant ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
         </>
       )}
       {!results && !isLoading && (
