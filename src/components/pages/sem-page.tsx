@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Network, Plus, Trash2, Wand2, Link, Spline } from 'lucide-react';
+import { Sigma, Loader2, Network, Plus, Trash2, Link, Spline } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
@@ -13,6 +13,8 @@ import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Badge } from '../ui/badge';
 
 interface LatentVariable {
     id: string;
@@ -24,6 +26,74 @@ interface StructuralPath {
     id: string;
     from: string;
     to: string;
+}
+
+// --- CFA/SEM Results Types ---
+interface FitIndices {
+    chi_square: number;
+    df: number;
+    p_value?: number; // Kept from CFA, might not exist in SEM py
+    chi_square_p?: number; // From SEM py
+    cfi: number;
+    tli: number;
+    rmsea: number;
+    srmr: number;
+}
+
+interface ParameterEstimates {
+    loadings: { [key: string]: number };
+    structural_paths: { [key: string]: number };
+    error_variances: { [key: string]: number };
+    disturbances: { [key: string]: number };
+    factor_variances: { [key: string]: number };
+    factor_covariances: { [key: string]: number };
+}
+
+interface SemResults {
+    model_name: string;
+    model_spec: {
+        name: string;
+        measurement_model: { [key: string]: string[] };
+        structural_model: [string, string][];
+        observed_variables: string[];
+        latent_variables: string[];
+        n_observed: number;
+        n_latent: number;
+    };
+    n_observations: number;
+    parameter_estimates: ParameterEstimates;
+    fit_indices: FitIndices;
+    effects: {
+        direct_effects: { [key: string]: any };
+        indirect_effects: { [key: string]: any };
+        total_effects: { [key: string]: any };
+        r_squared: { [key: string]: number };
+    };
+    reliability: {
+        [key: string]: {
+            composite_reliability: number;
+            average_variance_extracted: number;
+        }
+    };
+}
+
+
+interface FullAnalysisResponse {
+    results: SemResults;
+    plot: string | null;
+}
+
+
+const getFitInterpretation = (fit: FitIndices | undefined) => {
+    if (!fit) return { level: "Unknown", color: "bg-gray-400" };
+    const cfiOk = fit.cfi >= 0.95;
+    const tliOk = fit.tli >= 0.95;
+    const rmseaOk = fit.rmsea <= 0.06;
+    const srmrOk = fit.srmr <= 0.08;
+    const count = [cfiOk, tliOk, rmseaOk, srmrOk].filter(Boolean).length;
+    if (count >= 3) return { level: "Excellent", color: "bg-green-600" };
+    if (fit.cfi >= 0.90 && fit.tli >= 0.90 && fit.rmsea <= 0.08 && fit.srmr <= 0.10) return { level: "Good", color: "bg-yellow-500" };
+    return { level: "Poor", color: "bg-red-500" };
 }
 
 interface SemPageProps {
@@ -39,7 +109,7 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
     ]);
     const [structuralPaths, setStructuralPaths] = useState<StructuralPath[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [analysisResult, setAnalysisResult] = useState<any>(null);
+    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 2, [data, numericHeaders]);
     
@@ -180,6 +250,7 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
 
     const availableIndicators = numericHeaders;
     const latentVariableNames = latentVariables.map(lv => lv.name).filter(Boolean);
+    const results = analysisResult?.results;
 
     return (
         <div className="space-y-4">
@@ -259,18 +330,90 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
 
             {isLoading && <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto"/> <p>Running SEM...</p></CardContent></Card>}
             
-            {analysisResult && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Analysis Results</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p>Analysis complete. Displaying detailed results is under development.</p>
-                        <pre className="mt-4 p-4 bg-muted rounded-md text-xs overflow-auto h-96">
-                            {JSON.stringify(analysisResult, null, 2)}
-                        </pre>
-                    </CardContent>
-                </Card>
+             {results && (
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Model Fit Summary</CardTitle>
+                            <CardDescription>
+                                Overall assessment of how well the specified model fits the data. <Badge className={`${getFitInterpretation(results.fit_indices).color} text-white`}>{getFitInterpretation(results.fit_indices).level}</Badge>
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">CFI</p><p className="text-2xl font-bold">{results.fit_indices.cfi.toFixed(3)}</p></div>
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">TLI</p><p className="text-2xl font-bold">{results.fit_indices.tli?.toFixed(3) ?? 'N/A'}</p></div>
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSEA</p><p className="text-2xl font-bold">{results.fit_indices.rmsea.toFixed(3)}</p></div>
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">SRMR</p><p className="text-2xl font-bold">{results.fit_indices.srmr.toFixed(3)}</p></div>
+                            </div>
+                             <p className="text-xs text-muted-foreground mt-4 text-center">
+                                χ²({results.fit_indices.df}) = {results.fit_indices.chi_square.toFixed(2)}, p = {(results.fit_indices.p_value ?? results.fit_indices.chi_square_p ?? 0).toFixed(3)}
+                             </p>
+                        </CardContent>
+                    </Card>
+
+                    <div className="grid lg:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader><CardTitle className="font-headline">Measurement Model (Loadings)</CardTitle></CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Latent</TableHead><TableHead>Indicator</TableHead><TableHead className="text-right">Loading</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {Object.entries(results.model_spec.measurement_model).map(([latent, indicators]) =>
+                                            indicators.map((indicator, index) => (
+                                                <TableRow key={`${latent}-${indicator}`}>
+                                                    {index === 0 && <TableCell rowSpan={indicators.length} className="font-semibold align-top">{latent}</TableCell>}
+                                                    <TableCell>{indicator}</TableCell>
+                                                    <TableCell className="font-mono text-right">
+                                                        {index === 0 ? '1.000 (Fixed)' : results.parameter_estimates.loadings[`${latent}_${indicator}`]?.toFixed(3) ?? 'N/A'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                        <div className="space-y-4">
+                            {Object.keys(results.parameter_estimates.structural_paths).length > 0 && (
+                                <Card>
+                                    <CardHeader><CardTitle className="font-headline">Structural Model (Paths)</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>Path</TableHead><TableHead className="text-right">Coefficient</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {Object.entries(results.parameter_estimates.structural_paths).map(([path, coeff]) => (
+                                                    <TableRow key={path}>
+                                                        <TableCell>{path.replace(/_/g, ' → ')}</TableCell>
+                                                        <TableCell className="font-mono text-right">{coeff.toFixed(3)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            )}
+                             {Object.keys(results.effects.r_squared).length > 0 && (
+                                <Card>
+                                    <CardHeader><CardTitle className="font-headline">Explained Variance (R²)</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>Endogenous Variable</TableHead><TableHead className="text-right">R²</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {Object.entries(results.effects.r_squared).map(([variable, r2]) => (
+                                                    <TableRow key={variable}>
+                                                        <TableCell>{variable}</TableCell>
+                                                        <TableCell className="font-mono text-right">{r2.toFixed(3)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     )
