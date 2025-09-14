@@ -53,7 +53,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Psychological Constructs',
         description: 'Cognitive, Emotional, and Social items. Ideal for CFA.',
         icon: BrainCircuit,
-        analysisTypes: ['stats', 'cfa', 'reliability'],
+        analysisTypes: ['stats', 'cfa', 'reliability', 'efa'],
         recommendedAnalysis: 'cfa',
         data: cfaData,
     },
@@ -78,10 +78,10 @@ export const exampleDatasets: ExampleDataSet[] = [
     {
         id: 'well-being-survey',
         name: 'Well-being Survey',
-        description: 'Survey data for Anxiety, Depression, and Stress. Ideal for EFA.',
-        icon: BrainCircuit,
+        description: 'Survey data for Anxiety, Depression, and Stress. Ideal for Reliability & EFA.',
+        icon: ShieldCheck,
         analysisTypes: ['stats', 'reliability', 'efa'],
-        recommendedAnalysis: 'efa',
+        recommendedAnalysis: 'reliability',
         data: likertScaleData,
     },
     {
@@ -111,5 +111,3 @@ export const exampleDatasets: ExampleDataSet[] = [
         data: studentPerformanceData
     }
 ]
-
-    
