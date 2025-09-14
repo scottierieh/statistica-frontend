@@ -131,10 +131,9 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         setReliabilityResult(null);
         setAiPromise(null);
 
-        const backendUrl = 'https://api-w3e6d6caka-uc.a.run.app/reliability';
+        const backendUrl = '/api/analysis/reliability';
         
         try {
-            console.log('Sending request to:', backendUrl);
             const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -161,7 +160,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
             setAiPromise(promise);
 
         } catch(e: any) {
-            console.error('Fetch error:', e);
+            console.error('Analysis error:', e);
             toast({variant: 'destructive', title: 'Reliability Analysis Error', description: e.message || 'An unexpected error occurred. Please check the console for details.'})
             setReliabilityResult(null);
         } finally {

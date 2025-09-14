@@ -149,11 +149,9 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         setAnovaResult(null);
         setAiPromise(null);
         
-        // This URL is specific to the Firebase project and function name.
-        const backendUrl = 'https://api-w3e6d6caka-uc.a.run.app/anova';
+        const backendUrl = '/api/analysis/anova';
 
         try {
-            console.log('Sending request to:', backendUrl);
             const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -184,7 +182,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
 
 
         } catch(e: any) {
-            console.error('Fetch error:', e);
+            console.error('Analysis error:', e);
             toast({variant: 'destructive', title: 'ANOVA Analysis Error', description: e.message || 'An unexpected error occurred. Please check the console for details.'})
             setAnovaResult(null);
         } finally {
