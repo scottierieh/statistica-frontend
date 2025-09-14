@@ -35,6 +35,7 @@ import {
   ShieldCheck,
   Users,
   TrendingUp,
+  Binary,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -55,13 +56,14 @@ import CfaPage from './pages/cfa-page';
 import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
 import NonParametricPage from './pages/nonparametric-page';
+import HcaPage from './pages/hca-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -74,6 +76,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     mediation: MediationPage,
     moderation: ModerationPage,
     nonparametric: NonParametricPage,
+    hca: HcaPage,
 };
 
 const analysisMenu = [
@@ -105,6 +108,7 @@ const analysisMenu = [
     field: 'Clustering / Classification',
     icon: Users,
     methods: [
+      { id: 'hca', label: 'Hierarchical Clustering', implemented: true, icon: Binary },
       { id: 'discriminant', label: 'Discriminant Analysis', implemented: true, icon: Users },
       { id: 'efa', label: 'EFA', implemented: true, icon: BrainCircuit },
       { id: 'cfa', label: 'CFA', implemented: true, icon: BrainCircuit },
