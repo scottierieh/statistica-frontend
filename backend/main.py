@@ -1,12 +1,10 @@
 from firebase_functions import https_fn
 import json
-
-# Import heavy libraries inside the function to reduce cold start time
-from firebase_admin import initialize_app
+import numpy as np
 import pandas as pd
+from firebase_admin import initialize_app
 from onewayanova import OneWayANOVA
 from reliability import ReliabilityAnalysis
-
 
 # Initialize Firebase Admin SDK (only if not already initialized)
 try:
@@ -15,19 +13,10 @@ except ValueError:
     # App already initialized
     pass
 
-def handle_cors(req: https_fn.Request) -> https_fn.Response | None:
-    if req.method == 'OPTIONS':
-        headers = {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
-            'Access-Control-Max-Age': '3600'
-        }
-        return https_fn.Response('', status=204, headers=headers)
-    return None
-
 def convert_numpy(obj):
     """Recursively convert numpy and pandas types for JSON serialization."""
+    if isinstance(obj, (np.generic, pd.NA)):
+        return None if pd.isna(obj) else obj.item()
     if isinstance(obj, pd.DataFrame):
         return obj.to_dict(orient='records')
     if isinstance(obj, pd.Series):
@@ -40,10 +29,7 @@ def convert_numpy(obj):
         return [convert_numpy(i) for i in obj]
     if pd.isna(obj):
         return None
-    if isinstance(obj, (np.generic, pd.NA)):
-        return None if pd.isna(obj) else obj.item()
     return obj
-
 
 @https_fn.on_request(cors=True)
 def anova(req: https_fn.Request) -> https_fn.Response:
