@@ -7,3 +7,4 @@ seaborn
 scipy
 firebase-functions
 firebase-admin
+scikit-learn

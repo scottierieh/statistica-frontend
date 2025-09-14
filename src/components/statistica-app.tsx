@@ -30,6 +30,7 @@ import {
   Presentation,
   Network,
   FlaskConical,
+  ShieldCheck,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -43,19 +44,20 @@ import DescriptiveStatsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
 import AnovaPage from './pages/anova-page';
 import VisualizationPage from './pages/visualization-page';
+import ReliabilityPage from './pages/reliability-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'visuals';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
     correlation: CorrelationPage,
     anova: AnovaPage,
-    visuals: VisualizationPage,
+    reliability: ReliabilityPage,
 };
 
 const analysisMenu = [
@@ -64,17 +66,11 @@ const analysisMenu = [
     icon: Sigma,
     methods: [
       { id: 'stats', label: 'Descriptive Statistics', implemented: true },
+      { id: 'reliability', label: 'Reliability Analysis', implemented: true, icon: ShieldCheck },
       { id: 'frequency', label: 'Frequency Analysis', implemented: false },
       { id: 'crosstab', label: 'Crosstab Analysis', implemented: false },
       { id: 'ttest', label: 't-test', implemented: false },
       { id: 'anova', label: 'ANOVA', implemented: true },
-    ]
-  },
-   {
-    field: 'Data Visualization',
-    icon: BarChart2,
-    methods: [
-      { id: 'visuals', label: 'Charts & Graphs', implemented: true },
     ]
   },
   {
@@ -146,7 +142,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Data Visualization', 'Correlation / Regression']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
@@ -165,6 +161,7 @@ export default function StatisticaApp() {
         setCategoricalHeaders(newCategoricalHeaders);
         setFileName(name);
         toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
+        setActiveAnalysis('stats');
 
       } catch (error: any) {
         toast({
@@ -231,6 +228,9 @@ export default function StatisticaApp() {
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
     processData(example.data, example.name);
+    if(example.recommendedAnalysis) {
+      setActiveAnalysis(example.recommendedAnalysis as AnalysisType);
+    }
   };
   
   const handleClearData = () => {
@@ -390,6 +390,7 @@ export default function StatisticaApp() {
                            if (searchQuery && !method.label.toLowerCase().includes(searchQuery.toLowerCase())) {
                             return null;
                           }
+                          const MethodIcon = method.icon;
                           return (
                           <SidebarMenuItem key={method.id}>
                               <SidebarMenuButton
@@ -398,6 +399,7 @@ export default function StatisticaApp() {
                                   disabled={!method.implemented}
                                   className="justify-start w-full h-8 text-xs"
                               >
+                                  {MethodIcon && <MethodIcon className="h-4 w-4" />}
                                   <span>{method.label}</span>
                               </SidebarMenuButton>
                           </SidebarMenuItem>
