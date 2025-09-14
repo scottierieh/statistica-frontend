@@ -7,9 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BrainCircuit, AlertCircle } from 'lucide-react';
+import { Sigma, Loader2, BrainCircuit, AlertCircle, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -66,6 +65,98 @@ interface EfaPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
+const DualListBox = ({ allItems, selectedItems, setSelectedItems }: { allItems: string[], selectedItems: string[], setSelectedItems: (items: string[]) => void }) => {
+    const [highlightedAvailable, setHighlightedAvailable] = useState<string[]>([]);
+    const [highlightedSelected, setHighlightedSelected] = useState<string[]>([]);
+
+    const availableItems = useMemo(() => allItems.filter(item => !selectedItems.includes(item)), [allItems, selectedItems]);
+    
+    const handleSelection = (item: string, list: 'available' | 'selected', e: React.MouseEvent) => {
+        const currentHighlighted = list === 'available' ? highlightedAvailable : highlightedSelected;
+        const setHighlighted = list === 'available' ? setHighlightedAvailable : setHighlightedSelected;
+        const allListItems = list === 'available' ? availableItems : selectedItems;
+
+        if (e.ctrlKey || e.metaKey) {
+            if (currentHighlighted.includes(item)) {
+                setHighlighted(currentHighlighted.filter(i => i !== item));
+            } else {
+                setHighlighted([...currentHighlighted, item]);
+            }
+        } else if (e.shiftKey && currentHighlighted.length > 0) {
+            const lastSelectedItem = currentHighlighted[currentHighlighted.length - 1];
+            const lastIndex = allListItems.indexOf(lastSelectedItem);
+            const currentIndex = allListItems.indexOf(item);
+            const start = Math.min(lastIndex, currentIndex);
+            const end = Math.max(lastIndex, currentIndex);
+            const newSelection = allListItems.slice(start, end + 1);
+            setHighlighted([...new Set([...currentHighlighted, ...newSelection])]);
+        } else {
+            setHighlighted([item]);
+        }
+    };
+
+    const moveSelected = () => {
+        setSelectedItems([...new Set([...selectedItems, ...highlightedAvailable])]);
+        setHighlightedAvailable([]);
+    };
+
+    const moveAll = () => {
+        setSelectedItems([...allItems]);
+        setHighlightedAvailable([]);
+    };
+
+    const removeSelected = () => {
+        setSelectedItems(selectedItems.filter(item => !highlightedSelected.includes(item)));
+        setHighlightedSelected([]);
+    };
+
+    const removeAll = () => {
+        setSelectedItems([]);
+        setHighlightedSelected([]);
+    };
+
+    const ListItem = ({ item, highlighted, onSelect }: { item: string, highlighted: boolean, onSelect: (e: React.MouseEvent) => void }) => (
+        <div 
+            onClick={onSelect}
+            className={`px-2 py-1 cursor-pointer rounded ${highlighted ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`}
+        >
+            {item}
+        </div>
+    );
+
+    return (
+        <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+            {/* Available Items */}
+            <div className="flex flex-col gap-2">
+                <Label>Available Items ({availableItems.length})</Label>
+                <ScrollArea className="h-40 border rounded-md p-1">
+                    {availableItems.map(item => (
+                        <ListItem key={item} item={item} highlighted={highlightedAvailable.includes(item)} onSelect={(e) => handleSelection(item, 'available', e)} />
+                    ))}
+                </ScrollArea>
+            </div>
+            
+            {/* Controls */}
+            <div className="flex flex-col gap-2">
+                <Button variant="outline" size="icon" onClick={moveAll} aria-label="Move all to selected"><ChevronsRight /></Button>
+                <Button variant="outline" size="icon" onClick={moveSelected} disabled={highlightedAvailable.length === 0} aria-label="Move selected to right"><ChevronRight /></Button>
+                <Button variant="outline" size="icon" onClick={removeSelected} disabled={highlightedSelected.length === 0} aria-label="Move selected to left"><ChevronLeft /></Button>
+                <Button variant="outline" size="icon" onClick={removeAll} aria-label="Move all to available"><ChevronsLeft /></Button>
+            </div>
+
+            {/* Selected Items */}
+            <div className="flex flex-col gap-2">
+                <Label>Selected for Analysis ({selectedItems.length})</Label>
+                <ScrollArea className="h-40 border rounded-md p-1">
+                     {selectedItems.map(item => (
+                        <ListItem key={item} item={item} highlighted={highlightedSelected.includes(item)} onSelect={(e) => handleSelection(item, 'selected', e)} />
+                    ))}
+                </ScrollArea>
+            </div>
+        </div>
+    );
+};
+
 export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPageProps) {
     const { toast } = useToast();
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
@@ -81,12 +172,6 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
     const canRun = useMemo(() => {
         return data.length > 0 && numericHeaders.length >= 3;
     }, [data, numericHeaders]);
-
-    const handleItemSelectionChange = (header: string, checked: boolean) => {
-        setSelectedItems(prev => 
-            checked ? [...prev, header] : prev.filter(h => h !== header)
-        );
-    };
 
     const handleAnalysis = useCallback(async () => {
         if (selectedItems.length < 3) {
@@ -184,26 +269,9 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                     <CardDescription>Select numeric variables for analysis and specify the number of factors to extract.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                         <div>
-                            <Label className="mb-2 block">Variables for Analysis</Label>
-                            <ScrollArea className="h-32 border rounded-md p-4">
-                                <div className="space-y-2">
-                                    {numericHeaders.map(header => (
-                                    <div key={header} className="flex items-center space-x-2">
-                                        <Checkbox
-                                        id={`efa-${header}`}
-                                        checked={selectedItems.includes(header)}
-                                        onCheckedChange={(checked) => handleItemSelectionChange(header, checked as boolean)}
-                                        />
-                                        <label htmlFor={`efa-${header}`} className="text-sm font-medium leading-none">
-                                        {header}
-                                        </label>
-                                    </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
-                        </div>
+                    <DualListBox allItems={numericHeaders} selectedItems={selectedItems} setSelectedItems={setSelectedItems} />
+                    
+                    <div className="grid md:grid-cols-2 gap-4 items-end">
                         <div>
                             <Label htmlFor="nFactors" className="mb-2 block">Number of Factors to Extract</Label>
                             <Input 
@@ -212,14 +280,14 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                                 value={nFactors}
                                 onChange={e => setNFactors(parseInt(e.target.value, 10))}
                                 min="1"
-                                max={selectedItems.length - 1}
+                                max={selectedItems.length > 1 ? selectedItems.length - 1 : 1}
                                 className="w-full"
                             />
                         </div>
+                        <Button onClick={handleAnalysis} className="w-full md:w-auto" disabled={selectedItems.length < 3 || isLoading}>
+                            {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
+                        </Button>
                     </div>
-                    <Button onClick={handleAnalysis} className="w-full md:w-auto self-end" disabled={selectedItems.length < 3 || isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
-                    </Button>
                 </CardContent>
             </Card>
 
@@ -356,4 +424,3 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
         </div>
     );
 }
-
