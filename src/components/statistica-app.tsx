@@ -216,6 +216,40 @@ export default function StatisticaApp() {
       }
   }, [toast]);
 
+  const handleFileSelected = (file: File) => {
+    setIsUploading(true);
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+        const content = e.target?.result as string;
+        if (!content) {
+            toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not read file content.' });
+            setIsUploading(false);
+            return;
+        }
+        processData(content, file.name);
+    };
+
+    reader.onerror = (e) => {
+        toast({ variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.' });
+        setIsUploading(false);
+    }
+    
+    if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+        reader.readAsArrayBuffer(file);
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const csv = XLSX.utils.sheet_to_csv(worksheet);
+            processData(csv, file.name);
+        }
+    } else {
+        reader.readAsText(file);
+    }
+  };
+
   const handleLoadExampleData = (example: ExampleDataSet) => {
     processData(example.data, example.name);
     if(example.recommendedAnalysis) {
@@ -320,7 +354,7 @@ export default function StatisticaApp() {
   }, [searchQuery]);
 
  useEffect(() => {
-    if (searchQuery && filteredMenu.length > 0) {
+    if (searchQuery) {
       const categoriesToOpen = filteredMenu.map(c => c.field);
       setOpenCategories(categoriesToOpen);
     }
@@ -489,3 +523,4 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
