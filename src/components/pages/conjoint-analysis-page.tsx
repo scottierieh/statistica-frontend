@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -184,6 +183,23 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
     
     const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"];
 
+    const importanceChartConfig = useMemo(() => {
+      if (!analysisResult) return {};
+      return analysisResult.importance.reduce((acc, item, index) => {
+        acc[item.attribute] = {
+          label: item.attribute,
+          color: COLORS[index % COLORS.length],
+        };
+        return acc;
+      }, {} as any);
+    }, [analysisResult]);
+
+    const partWorthChartConfig = {
+      value: {
+        label: "Part-Worth",
+      },
+    };
+
     return (
         <div className="space-y-4">
             <StepIndicator currentStep={currentStep} />
@@ -264,33 +280,37 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                     <Card>
                         <CardHeader><CardTitle className='flex items-center gap-2'><PieIcon/>Relative Importance of Attributes</CardTitle></CardHeader>
                         <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie data={analysisResult.importance} dataKey="importance" nameKey="attribute" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label={p => `${p.attribute} (${p.importance.toFixed(1)}%)`}>
-                                        {analysisResult.importance.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                    </Pie>
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                </PieChart>
-                            </ResponsiveContainer>
+                            <ChartContainer config={importanceChartConfig} className="w-full h-[300px]">
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <PieChart>
+                                        <Pie data={analysisResult.importance} dataKey="importance" nameKey="attribute" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label={p => `${p.attribute} (${p.importance.toFixed(1)}%)`}>
+                                            {analysisResult.importance.map((entry, index) => <Cell key={`cell-${index}`} fill={`var(--color-${entry.attribute})`} />)}
+                                        </Pie>
+                                        <Tooltip content={<ChartTooltipContent />} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
                         </CardContent>
                     </Card>
 
                      <Card>
                         <CardHeader><CardTitle className='flex items-center gap-2'><BarIcon/>Part-Worth Utilities</CardTitle></CardHeader>
                         <CardContent>
-                            <ResponsiveContainer width="100%" height={400}>
-                                <BarChart data={analysisResult.partWorths.filter(p => p.level !== 'coefficient')} layout="vertical" margin={{ left: 100 }}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" />
-                                    <YAxis dataKey="level" type="category" width={100} />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="value" name="Part-Worth">
-                                        {analysisResult.partWorths.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.value > 0 ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-5))'} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <ChartContainer config={partWorthChartConfig} className="w-full h-[400px]">
+                                <ResponsiveContainer width="100%" height={400}>
+                                    <BarChart data={analysisResult.partWorths.filter(p => p.level !== 'coefficient')} layout="vertical" margin={{ left: 100 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis type="number" />
+                                        <YAxis dataKey="level" type="category" width={100} />
+                                        <Tooltip content={<ChartTooltipContent />} />
+                                        <Bar dataKey="value" name="Part-Worth">
+                                            {analysisResult.partWorths.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.value > 0 ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-5))'} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
                         </CardContent>
                     </Card>
 
