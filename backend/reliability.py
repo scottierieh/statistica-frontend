@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy.stats import pearsonr
-from sklearn.preprocessing import StandardScaler
 from itertools import combinations
 import warnings
 warnings.filterwarnings('ignore')
@@ -38,8 +37,7 @@ class ReliabilityAnalysis:
             item_data = item_data.dropna()
         
         if self.standardize:
-            scaler = StandardScaler()
-            item_data = pd.DataFrame(scaler.fit_transform(item_data), columns=item_data.columns, index=item_data.index)
+            item_data = (item_data - item_data.mean()) / item_data.std(ddof=1)
         
         return item_data
     
