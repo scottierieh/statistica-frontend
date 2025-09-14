@@ -114,7 +114,8 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         setAnovaResult(null);
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/anova`, {
+            const backendUrl = new URL('anova', process.env.NEXT_PUBLIC_BACKEND_URL).toString();
+            const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
