@@ -6,11 +6,12 @@ import { stressSupportData } from "./example-datasets/stress-support-data";
 import { cfaData } from "./example-datasets/cfa-data";
 import { nonparametricData } from "./example-datasets/nonparametric-data";
 import { customerSegmentsData } from "./example-datasets/customer-segments";
+import { manovaData } from "./example-datasets/manova-data";
 
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 'manova';
 
 
 export interface ExampleDataSet {
@@ -50,6 +51,15 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 
 export const exampleDatasets: ExampleDataSet[] = [
+    {
+        id: 'manova-groups',
+        name: 'Treatment Groups',
+        description: 'Comparing multiple measures across three experimental groups.',
+        icon: Users,
+        analysisTypes: ['stats', 'manova'],
+        recommendedAnalysis: 'manova',
+        data: manovaData,
+    },
     {
         id: 'customer-segments',
         name: 'Customer Segments',
