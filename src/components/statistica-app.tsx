@@ -161,7 +161,7 @@ export default function StatisticaApp() {
         setCategoricalHeaders(newCategoricalHeaders);
         setFileName(name);
         toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
-        setActiveAnalysis('stats');
+        // setActiveAnalysis('stats'); // Bug: This was resetting the view. Removed.
 
       } catch (error: any) {
         toast({
