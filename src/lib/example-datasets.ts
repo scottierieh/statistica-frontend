@@ -1,9 +1,10 @@
-import { Car, Coffee, Database, ShieldCheck, LucideIcon } from "lucide-react";
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
+import { studentPerformanceData } from "./example-datasets/student-performance";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals';
 
 
 export interface ExampleDataSet {
@@ -41,22 +42,6 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 14.78,3.22,Male,No,Sun,Dinner,2
 `;
 
-const carsData = `mpg,cylinders,displacement,horsepower,weight,acceleration,model_year,origin,car_name
-18,8,307,130,3504,12,70,USA,"chevrolet chevelle malibu"
-15,8,350,165,3693,11.5,70,USA,"buick skylark 320"
-18,8,318,150,3436,11,70,USA,"plymouth satellite"
-16,8,304,150,3433,12,70,USA,"amc rebel sst"
-17,8,302,140,3449,10.5,70,USA,"ford torino"
-27,4,97,88,2130,14.5,70,Japan,"datsun pl510"
-26,4,108,93,2391,15.5,70,Europe,"bmw 2002"
-25,4,104,95,2375,17.5,70,Europe,"saab 99e"
-24,4,121,113,2234,12.5,70,Europe,"volkswagen 1131 deluxe sedan"
-22,6,198,95,2833,15.5,70,USA,"plymouth duster"
-18,6,199,97,2774,15.5,70,USA,"amc hornet"
-21,6,200,85,2587,16,70,USA,"ford maverick"
-`;
-
-
 export const exampleDatasets: ExampleDataSet[] = [
     {
         id: 'reliability',
@@ -72,7 +57,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Database,
-        analysisTypes: ['stats', 'correlation', 'anova'],
+        analysisTypes: ['stats', 'correlation', 'anova', 'visuals'],
         recommendedAnalysis: 'anova',
         data: irisData
     },
@@ -81,15 +66,16 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Restaurant Tips',
         description: 'Tips received by a server, along with customer and bill info.',
         icon: Coffee,
-        analysisTypes: ['stats', 'anova'],
+        analysisTypes: ['stats', 'anova', 'visuals'],
         data: tipsData
     },
     {
-        id: 'cars',
-        name: 'Classic Cars',
-        description: 'MPG and other specs for various car models from the 70s.',
-        icon: Car,
-        analysisTypes: ['stats', 'correlation'],
-        data: carsData
+        id: 'student-performance',
+        name: 'Student Performance',
+        description: 'Study hours, attendance, and previous scores vs. final exam scores.',
+        icon: BookOpen,
+        analysisTypes: ['stats', 'correlation', 'visuals'],
+        recommendedAnalysis: 'correlation',
+        data: studentPerformanceData
     }
 ]
