@@ -51,21 +51,18 @@ interface CorrelationResults {
   }[];
 }
 
-const CorrelationHeatmap = ({ matrix, title, colorScheme, isPValue }: { matrix: { [key: string]: { [key: string]: number } }, title: string, colorScheme: 'blue-red' | 'green-yellow-red', isPValue?: boolean }) => {
+const CorrelationHeatmap = ({ matrix, pValues, title }: { matrix: { [key: string]: { [key: string]: number } }, pValues: { [key: string]: { [key: string]: number } }, title: string }) => {
     const headers = Object.keys(matrix);
 
     const getColor = (value: number) => {
-        if (isNaN(value)) return '#f0f0f0'; // Gray for NaN
-        if (colorScheme === 'blue-red') {
-            const intensity = Math.min(Math.abs(value) * 2, 1);
-            const r = value > 0 ? 200 - intensity * 150 : 255;
-            const g = value > 0 ? 200 - intensity * 150 : 255 - intensity * 100;
-            const b = value < 0 ? 255 : 200 - intensity * 150;
-            return `rgb(${r}, ${g}, ${b})`;
-        } else { // green-yellow-red for p-values
-            if (value < 0.05) return '#d4edda'; // green
-            if (value < 0.1) return '#fff3cd'; // yellow
-            return '#f8d7da'; // red
+        if (isNaN(value)) return 'hsl(var(--muted))';
+        const intensity = Math.min(Math.abs(value), 1);
+        
+        // Blue for positive, Red for negative
+        if (value > 0) {
+            return `hsla(220, 80%, 60%, ${intensity * 0.8})`;
+        } else {
+            return `hsla(0, 80%, 60%, ${intensity * 0.8})`;
         }
     };
 
@@ -77,29 +74,32 @@ const CorrelationHeatmap = ({ matrix, title, colorScheme, isPValue }: { matrix: 
             <CardContent>
                 <ScrollArea className="w-full">
                     <div style={{ minWidth: `${headers.length * 6}rem` }}>
-                        <Table>
+                        <Table className="table-fixed">
                              <TableHeader>
                                 <TableRow>
                                     <TableHead className="sticky left-0 bg-card z-10 w-24 min-w-24"></TableHead>
-                                    {headers.map(h => <TableHead key={h} className="text-center">{h}</TableHead>)}
+                                    {headers.map(h => <TableHead key={h} className="text-center text-xs px-1">{h}</TableHead>)}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {headers.map((rowHeader) => (
                                     <TableRow key={rowHeader}>
-                                        <TableHead className="sticky left-0 bg-card z-10 w-24 min-w-24">{rowHeader}</TableHead>
+                                        <TableHead className="sticky left-0 bg-card z-10 w-24 min-w-24 text-xs px-1">{rowHeader}</TableHead>
                                         {headers.map((colHeader) => {
                                             const value = matrix[rowHeader]?.[colHeader];
-                                            const displayValue = value !== undefined && !isNaN(value) ? value.toFixed(3) : '-';
+                                            const pValue = pValues[rowHeader]?.[colHeader];
+                                            const isSignificant = pValue !== undefined && pValue < 0.05;
                                             const isDiagonal = rowHeader === colHeader;
                                             
                                             return (
                                                 <TableCell 
                                                     key={`${rowHeader}-${colHeader}`} 
-                                                    className="text-center font-mono p-0"
-                                                    style={{ backgroundColor: isDiagonal ? '#f8f9fa' : getColor(value) }}
+                                                    className={cn("text-center font-mono p-0 text-xs border", isDiagonal && "bg-muted/50")}
+                                                    style={{ backgroundColor: isDiagonal ? undefined : getColor(value) }}
                                                 >
-                                                   <div className="p-2">{displayValue}</div>
+                                                   <div className={cn("p-1 h-full w-full flex items-center justify-center", isSignificant && !isDiagonal && "ring-2 ring-green-400 ring-inset")}>
+                                                       {isDiagonal ? "1" : value !== undefined && !isNaN(value) ? value.toFixed(2) : '-'}
+                                                    </div>
                                                 </TableCell>
                                             );
                                         })}
@@ -123,6 +123,7 @@ const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strong
     const chartConfig = {
       correlation: {
         label: "Correlation",
+        color: "hsl(var(--chart-1))"
       },
     };
 
@@ -133,7 +134,7 @@ const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strong
                  <CardDescription>Top 10 strongest relationships found in the data.</CardDescription>
             </CardHeader>
             <CardContent>
-                <ChartContainer config={chartConfig} className="w-full h-[300px]">
+                 <ChartContainer config={chartConfig} className="w-full h-[300px]">
                     <RechartsBarChart layout="vertical" data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
                         <XAxis type="number" dataKey="correlation" domain={[-1, 1]}/>
@@ -160,13 +161,13 @@ interface CorrelationPageProps {
 
 export default function CorrelationPage({ data, numericHeaders, onLoadExample }: CorrelationPageProps) {
   const { toast } = useToast();
-  const [selectedHeaders, setSelectedHeaders] = useState<string[]>(numericHeaders.slice(0, 5));
+  const [selectedHeaders, setSelectedHeaders] = useState<string[]>(numericHeaders.slice(0, 8));
   const [results, setResults] = useState<CorrelationResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [correlationMethod, setCorrelationMethod] = useState<'pearson' | 'spearman' | 'kendall'>('pearson');
 
   useEffect(() => {
-    setSelectedHeaders(numericHeaders.slice(0, 5));
+    setSelectedHeaders(numericHeaders.slice(0, 8));
     setResults(null);
   }, [numericHeaders, data]);
 
@@ -347,9 +348,8 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                 </Card>
             </div>
             
-            <div className="grid gap-4 lg:grid-cols-2">
-                <CorrelationHeatmap matrix={results.correlation_matrix} title={`${correlationMethod.charAt(0).toUpperCase() + correlationMethod.slice(1)} Correlation Matrix`} colorScheme="blue-red" />
-                <CorrelationHeatmap matrix={results.p_value_matrix} title="P-Value Matrix" colorScheme="green-yellow-red" isPValue />
+            <div className="grid gap-4 lg:grid-cols-1">
+                <CorrelationHeatmap matrix={results.correlation_matrix} pValues={results.p_value_matrix} title={`${correlationMethod.charAt(0).toUpperCase() + correlationMethod.slice(1)} Correlation Matrix`} />
             </div>
 
             <div className="grid gap-4 md:grid-cols-1">
@@ -362,32 +362,34 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     <CardDescription>Top 10 strongest relationships found in the data, sorted by absolute correlation value.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Rank</TableHead>
-                                <TableHead>Variable 1</TableHead>
-                                <TableHead>Variable 2</TableHead>
-                                <TableHead className="text-right">Correlation (r)</TableHead>
-                                <TableHead className="text-right">P-value</TableHead>
-                                <TableHead className="text-center">Significant</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {results.strongest_correlations.map((corr, index) => (
-                                <TableRow key={index}>
-                                    <TableCell>{index + 1}</TableCell>
-                                    <TableCell>{corr.variable_1}</TableCell>
-                                    <TableCell>{corr.variable_2}</TableCell>
-                                    <TableCell className="text-right font-mono">{corr.correlation.toFixed(3)}</TableCell>
-                                    <TableCell className="text-right font-mono">{corr.p_value < 0.001 ? "<.001" : corr.p_value.toFixed(3)}</TableCell>
-                                    <TableCell className="text-center">
-                                        {corr.significant ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}
-                                    </TableCell>
+                    <ScrollArea className="h-72">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Rank</TableHead>
+                                    <TableHead>Variable 1</TableHead>
+                                    <TableHead>Variable 2</TableHead>
+                                    <TableHead className="text-right">Correlation (r)</TableHead>
+                                    <TableHead className="text-right">P-value</TableHead>
+                                    <TableHead className="text-center">Significant</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {results.strongest_correlations.map((corr, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell>{index + 1}</TableCell>
+                                        <TableCell>{corr.variable_1}</TableCell>
+                                        <TableCell>{corr.variable_2}</TableCell>
+                                        <TableCell className="text-right font-mono">{corr.correlation.toFixed(3)}</TableCell>
+                                        <TableCell className="text-right font-mono">{corr.p_value < 0.001 ? "<.001" : corr.p_value.toFixed(3)}</TableCell>
+                                        <TableCell className="text-center">
+                                            {corr.significant ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
                 </CardContent>
             </Card>
         </>
