@@ -65,13 +65,14 @@ import TTestPage from './pages/t-test-page';
 import HcaPage from './pages/hca-page';
 import ManovaPage from './pages/manova-page';
 import RegressionPage from './pages/regression-page';
+import KMeansPage from './pages/kmeans-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -89,6 +90,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     hca: HcaPage,
     manova: ManovaPage,
     regression: RegressionPage,
+    kmeans: KMeansPage,
 };
 
 const analysisMenu = [
@@ -130,12 +132,12 @@ const analysisMenu = [
     field: 'Clustering / Classification',
     icon: Users,
     methods: [
+      { id: 'kmeans', label: 'K-Means Clustering', implemented: true, icon: Binary },
       { id: 'hca', label: 'Hierarchical Clustering', implemented: true, icon: Binary },
       { id: 'discriminant', label: 'Discriminant Analysis', implemented: true, icon: Users },
       { id: 'efa', label: 'EFA', implemented: true, icon: BrainCircuit },
       { id: 'cfa', label: 'CFA', implemented: true, icon: BrainCircuit },
       { id: 'pca', label: 'PCA', implemented: false },
-      { id: 'kmeans', label: 'K-means Clustering', implemented: false },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
   },
@@ -523,4 +525,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-

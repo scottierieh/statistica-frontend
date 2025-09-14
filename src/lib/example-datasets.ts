@@ -14,7 +14,7 @@ import { regressionData } from "./example-datasets/regression-data";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans';
 
 
 export interface ExampleDataSet {
@@ -95,8 +95,8 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Customer Segments',
         description: 'Age, income, and spending data for customer segmentation.',
         icon: Binary,
-        analysisTypes: ['stats', 'hca', 'correlation'],
-        recommendedAnalysis: 'hca',
+        analysisTypes: ['stats', 'hca', 'kmeans', 'correlation'],
+        recommendedAnalysis: 'kmeans',
         data: customerSegmentsData,
     },
     {
@@ -149,7 +149,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Users,
-        analysisTypes: ['stats', 'correlation', 'one-way-anova', 'visuals', 'discriminant'],
+        analysisTypes: ['stats', 'correlation', 'one-way-anova', 'visuals', 'discriminant', 'kmeans'],
         recommendedAnalysis: 'discriminant',
         data: irisData
     },
