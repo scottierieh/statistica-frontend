@@ -38,7 +38,7 @@ class MediationAnalysis:
             scaler = StandardScaler()
             self.X = scaler.fit_transform(self.X.reshape(-1, 1)).flatten()
             self.M = scaler.fit_transform(self.M.reshape(-1, 1)).flatten()
-            self.Y = scaler.fit_transform(self.Y.reshape(-self.Y_name, 1)).flatten()
+            self.Y = scaler.fit_transform(self.Y.reshape(-1, 1)).flatten()
             
         self.n = len(self.X)
         
@@ -54,13 +54,13 @@ class MediationAnalysis:
         ss_tot = np.sum((Y - np.mean(Y)) ** 2)
         r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
         
-        mse = ss_res / (len(Y) - 2)
+        mse = ss_res / (len(Y) - 2) if (len(Y) - 2) > 0 else 0
         x_mean = np.mean(X)
         ss_x = np.sum((X - x_mean) ** 2)
         se_coef = np.sqrt(mse / ss_x) if ss_x > 0 else np.nan
         
-        t_stat = model.coef_[0] / se_coef if se_coef != 0 else np.inf
-        p_value = 2 * (1 - stats.t.cdf(np.abs(t_stat), len(Y) - 2))
+        t_stat = model.coef_[0] / se_coef if se_coef != 0 and not np.isnan(se_coef) else np.inf
+        p_value = 2 * (1 - stats.t.cdf(np.abs(t_stat), len(Y) - 2)) if (len(Y) - 2) > 0 else np.nan
         
         return {
             'coef': model.coef_[0], 'intercept': model.intercept_, 'se': se_coef,
@@ -79,7 +79,7 @@ class MediationAnalysis:
         ss_tot = np.sum((Y - np.mean(Y)) ** 2)
         r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
         
-        mse = ss_res / (len(Y) - 3)
+        mse = ss_res / (len(Y) - 3) if (len(Y) - 3) > 0 else 0
         X_design = np.column_stack([np.ones(len(X1)), X1, X2])
         try:
             cov_matrix = mse * np.linalg.inv(X_design.T @ X_design)
@@ -87,8 +87,8 @@ class MediationAnalysis:
         except np.linalg.LinAlgError:
             se_coefs = [np.nan, np.nan]
 
-        t_stats = model.coef_ / se_coefs
-        p_values = 2 * (1 - stats.t.cdf(np.abs(t_stats), len(Y) - 3))
+        t_stats = model.coef_ / se_coefs if not np.any(np.isnan(se_coefs)) and np.all(se_coefs != 0) else np.array([np.inf, np.inf])
+        p_values = 2 * (1 - stats.t.cdf(np.abs(t_stats), len(Y) - 3)) if (len(Y) - 3) > 0 else np.array([np.nan, np.nan])
         
         return {
             'coef1': model.coef_[0], 'coef2': model.coef_[1], 'intercept': model.intercept_,
@@ -106,7 +106,7 @@ class MediationAnalysis:
         sobel_se = np.sqrt(
             path_bc['coef2']**2 * path_a['se']**2 + 
             path_a['coef']**2 * path_bc['se2']**2
-        ) if path_a['se'] > 0 and path_bc['se2'] > 0 else 0
+        ) if path_a['se'] > 0 and path_bc['se2'] > 0 and not np.isnan(path_a['se']) and not np.isnan(path_bc['se2']) else 0
         
         sobel_z = indirect_effect / sobel_se if sobel_se > 0 else np.inf
         sobel_p = 2 * (1 - stats.norm.cdf(np.abs(sobel_z)))
@@ -164,9 +164,11 @@ class MediationAnalysis:
         
         indirect_sig = self.results.get('bootstrap', {}).get('significant')
         if indirect_sig is None:
-            indirect_sig = bk['sobel_test']['p_value'] < 0.05
+            sobel_p = bk['sobel_test'].get('p_value')
+            indirect_sig = sobel_p < 0.05 if sobel_p is not None else False
 
-        path_c_prime_sig = bk['path_c_prime']['p_value'] < 0.05
+        c_prime_p = bk['path_c_prime'].get('p_value')
+        path_c_prime_sig = c_prime_p < 0.05 if c_prime_p is not None else False
         
         if indirect_sig and not path_c_prime_sig: mediation_type = "Full Mediation"
         elif indirect_sig and path_c_prime_sig: mediation_type = "Partial Mediation"
