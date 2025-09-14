@@ -198,7 +198,7 @@ export default function StatisticaApp() {
     setCategoricalHeaders([]);
     setFileName('');
   };
-
+  
   const processData = useCallback((content: string, name: string) => {
     setIsUploading(true);
     try {
@@ -226,7 +226,7 @@ export default function StatisticaApp() {
         setIsUploading(false);
       }
   }, [toast]);
-  
+
   const handleFileSelected = useCallback((file: File) => {
     setIsUploading(true);
     const reader = new FileReader();
@@ -541,3 +541,5 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
+    

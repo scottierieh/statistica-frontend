@@ -1,22 +1,24 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import dynamic from 'next/dynamic';
-import Papa from 'papaparse';
+import React, { useState, useMemo, useCallback } from 'react';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, RefreshCw, UploadCloud, BarChart, BrainCircuit, Zap, Lightbulb, Brain, AlertTriangle } from 'lucide-react';
+import { Loader2, Zap, Brain, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '../ui/scroll-area';
+import { type DataSet } from '@/lib/stats';
 import { type ExampleDataSet } from '@/lib/example-datasets';
+import { ChartContainer, ChartTooltipContent } from '../ui/chart';
 
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div> });
 
 // --- Statistical Helper Functions ---
 const getQuantile = (arr: number[], q: number) => {
+    if (arr.length === 0) return NaN;
     const sorted = [...arr].sort((a, b) => a - b);
     const pos = (sorted.length - 1) * q;
     const base = Math.floor(pos);
@@ -70,11 +72,13 @@ const generateNumericInsights = (stats: ReturnType<typeof getNumericStats>) => {
         insights.push(`The data appears to be roughly <strong>symmetrical</strong>, as the mean and median are very close.`);
     }
 
-    const cv = (stats.stdDev / Math.abs(stats.mean)) * 100;
-    if (cv > 30) {
-        insights.push(`The standard deviation (<strong>${stats.stdDev.toFixed(2)}</strong>) is relatively high compared to the mean, indicating <strong>high variability</strong> in the data.`);
-    } else {
-         insights.push(`The data shows <strong>low to moderate variability</strong> with a standard deviation of <strong>${stats.stdDev.toFixed(2)}</strong>.`);
+    if (stats.stdDev > 0) {
+      const cv = (stats.stdDev / Math.abs(stats.mean)) * 100;
+      if (cv > 30) {
+          insights.push(`The standard deviation (<strong>${stats.stdDev.toFixed(2)}</strong>) is relatively high compared to the mean, indicating <strong>high variability</strong> in the data.`);
+      } else {
+          insights.push(`The data shows <strong>low to moderate variability</strong> with a standard deviation of <strong>${stats.stdDev.toFixed(2)}</strong>.`);
+      }
     }
     
     return insights;
@@ -93,7 +97,7 @@ const AnalysisDisplayShell = ({ chart, table, insights, variableName }: { chart:
                 <CardTitle>{variableName}</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center min-h-[300px]">
                     {chart}
                 </div>
                 <div className="space-y-4">
@@ -112,14 +116,19 @@ const AnalysisDisplayShell = ({ chart, table, insights, variableName }: { chart:
 };
   
 const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
+    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
     return (
       <AnalysisDisplayShell
         variableName={varName}
         chart={
-          <Plot data={[{ ...chartData, type: 'pie', hole: 0.4, textinfo: 'label+percent', textposition: 'outside' }]}
-            layout={{ showlegend: false, autosize: true, margin: { t: 20, b: 20, l: 20, r: 20 }, }}
-            style={{ width: '100%', height: '300px' }} config={{ displayModeBar: false }}
-          />
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} outerRadius={80} fill="#8884d8" dataKey="count">
+                {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+              </Pie>
+              <Tooltip content={<ChartTooltipContent />} />
+            </PieChart>
+          </ResponsiveContainer>
         }
         table={
           <Table><TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
@@ -132,17 +141,26 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
 };
   
 const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
+    
     return (
         <AnalysisDisplayShell
             variableName={varName}
             chart={
-                 <Plot data={[{ x: chartData.values, type: 'histogram' }]} layout={{ title: 'Response Distribution', autosize: true, margin: { t: 40, b: 40, l: 40, r: 20 }, bargap: 0.1, }} style={{ width: '100%', height: '300px' }} config={{ displayModeBar: false }} />
+                <ResponsiveContainer width="100%" height={300}>
+                    <RechartsBarChart data={chartData.bins}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="range" />
+                        <YAxis />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="count" fill="hsl(var(--primary))" />
+                    </RechartsBarChart>
+                </ResponsiveContainer>
             }
             table={
                 <Table><TableHeader><TableRow><TableHead>Metric</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
                     <TableBody>
                         <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{tableData.mean.toFixed(3)}</TableCell></TableRow>
-                        <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{tableData.median}</TableCell></TableRow>
+                        <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{tableData.median.toFixed(3)}</TableCell></TableRow>
                         <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell></TableRow>
                         <TableRow><TableCell>Minimum</TableCell><TableCell className="text-right">{tableData.min}</TableCell></TableRow>
                         <TableRow><TableCell>Maximum</TableCell><TableCell className="text-right">{tableData.max}</TableCell></TableRow>
@@ -156,44 +174,34 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
 };
 
 interface DescriptiveStatsPageProps {
+    data: DataSet;
+    allHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function DescriptiveStatisticsPage({ onLoadExample }: DescriptiveStatsPageProps) {
-    const [data, setData] = useState<any[]>([]);
-    const [headers, setHeaders] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExample }: DescriptiveStatsPageProps) {
     const { toast } = useToast();
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-    const [selectedVars, setSelectedVars] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [selectedVars, setSelectedVars] = useState<string[]>(allHeaders);
     const [analysisData, setAnalysisData] = useState<any | null>(null);
-
-    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        Papa.parse(file, { header: true, skipEmptyLines: true, dynamicTyping: true, complete: (res: any) => handleDataLoad(res, res.meta.fields || []) });
-    };
-
-    const handleDataLoad = (results: any, fileHeaders: string[]) => {
-        setData(results.data);
-        setHeaders(fileHeaders);
-        setSelectedVars(fileHeaders);
+    
+    useEffect(() => {
+        setSelectedVars(allHeaders);
         setAnalysisData(null);
-        toast({ title: "Success", description: `${results.data.length} rows loaded.` });
-    };
+    }, [allHeaders, data]);
     
     const handleVarSelectionChange = (varName: string, isChecked: boolean) => {
         setSelectedVars(prev => isChecked ? [...prev, varName] : prev.filter(v => v !== varName));
     };
 
-    const runAnalysis = () => {
+    const runAnalysis = useCallback(() => {
         if (selectedVars.length === 0) {
             toast({ title: "No Variables Selected", description: "Please select at least one variable to analyze.", variant: "destructive" });
             return;
         }
         setIsLoading(true);
         
+        // Use a timeout to simulate async work and prevent blocking the UI thread
         setTimeout(() => {
             const results: { [key: string]: any } = {};
 
@@ -214,16 +222,33 @@ export default function DescriptiveStatisticsPage({ onLoadExample }: Descriptive
                 
                 if (isNumeric) {
                     const stats = getNumericStats(columnData as number[]);
+                    const binCount = 10;
+                    const {min, max} = stats;
+                    const binWidth = (max - min) / binCount;
+                    const bins = Array.from({length: binCount}, (_, i) => {
+                        const rangeStart = min + i * binWidth;
+                        const rangeEnd = rangeStart + binWidth;
+                        return {
+                            range: `${rangeStart.toFixed(1)}-${rangeEnd.toFixed(1)}`,
+                            count: 0
+                        };
+                    });
+                     columnData.forEach(val => {
+                        let binIndex = Math.floor((val - min) / binWidth);
+                        if (val === max) binIndex = binCount - 1; // Put max in last bin
+                        if (bins[binIndex]) bins[binIndex].count++;
+                    });
+
                     results[varName] = {
                         type: 'numeric', stats: stats,
-                        plotData: { values: columnData, type: 'histogram' },
+                        plotData: { bins },
                         insights: generateNumericInsights(stats),
                     };
                 } else {
                     const stats = getCategoricalStats(columnData);
                     results[varName] = {
                         type: 'categorical', stats: stats,
-                        plotData: { labels: stats.map(s => s.name), values: stats.map(s => s.count), },
+                        plotData: stats.map(s => ({ name: s.name, count: s.count })),
                         insights: generateCategoricalInsights(stats),
                     };
                 }
@@ -232,7 +257,7 @@ export default function DescriptiveStatisticsPage({ onLoadExample }: Descriptive
             setIsLoading(false);
             toast({title: "Analysis Complete", description: `Descriptive statistics generated for ${selectedVars.length} variable(s).`});
         }, 500);
-    };
+    }, [data, selectedVars, toast]);
 
     const renderResults = () => {
         if (isLoading) {
@@ -285,65 +310,49 @@ export default function DescriptiveStatisticsPage({ onLoadExample }: Descriptive
 
     return (
         <div className="space-y-6">
-             <header className="flex items-center gap-4">
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Descriptive Statistics</h1>
-            </header>
-
             <Card>
-              <CardHeader><CardTitle>1. Data Input</CardTitle><CardDescription>Upload a CSV file to begin.</CardDescription></CardHeader>
+              <CardHeader>
+                <CardTitle>Descriptive Statistics Analysis</CardTitle>
+                <CardDescription>Select the variables you want to analyze from your dataset.</CardDescription>
+              </CardHeader>
               <CardContent>
-                    <div 
-                        className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 hover:border-primary transition-colors"
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        <UploadCloud className="w-12 h-12 text-muted-foreground" />
-                        <p className="mt-4 text-lg font-semibold">Click to upload a CSV file</p>
-                        <p className="text-sm text-muted-foreground">or drag and drop</p>
+                  {data.length > 0 ? (
+                    <>
+                        <Label>Variables</Label>
+                        <ScrollArea className="h-40 border rounded-lg p-4 mt-2">
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {allHeaders.map(h => (
+                                    <div key={h} className="flex items-center space-x-2">
+                                        <Checkbox 
+                                            id={`var-${h}`} 
+                                            onCheckedChange={(checked) => handleVarSelectionChange(h, !!checked)} 
+                                            checked={selectedVars.includes(h)} 
+                                        />
+                                        <Label htmlFor={`var-${h}`} className="font-medium">{h}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </>
+                  ) : (
+                    <div className="text-center text-muted-foreground py-10">
+                        <p>Upload a file from the sidebar to get started.</p>
                     </div>
-                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" className="hidden" />
+                  )}
               </CardContent>
-              {data.length > 0 && headers && headers.length > 0 && (
-                  <CardContent>
-                    <h3 className="font-semibold mb-2">Data Preview ({data.length} rows)</h3>
-                    <div className="overflow-auto max-h-60 border rounded-lg">
-                        <Table><TableHeader><TableRow>{headers.map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader><TableBody>{data.slice(0, 5).map((row, i) => (<TableRow key={i}>{headers.map(h => <TableCell key={h}>{String(row[h])}</TableCell>)}</TableRow>))}</TableBody></Table>
-                    </div>
-                  </CardContent>
+              {data.length > 0 && (
+                <CardContent>
+                   <Button onClick={runAnalysis} disabled={isLoading || selectedVars.length === 0}>
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4"/>}
+                        Run Analysis
+                    </Button>
+                </CardContent>
               )}
             </Card>
 
-            {data.length > 0 && (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>2. Configure Analysis</CardTitle>
-                        <CardDescription>Select the variables you want to analyze.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border rounded-lg">
-                            {headers.map(h => (
-                                <div key={h} className="flex items-center space-x-2">
-                                    <Checkbox 
-                                        id={`var-${h}`} 
-                                        onCheckedChange={(checked) => handleVarSelectionChange(h, !!checked)} 
-                                        checked={selectedVars.includes(h)} 
-                                    />
-                                    <Label htmlFor={`var-${h}`} className="font-medium">{h}</Label>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                    <CardContent>
-                       <Button onClick={runAnalysis} disabled={isLoading}>
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4"/>}
-                            Run Analysis
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
-
              <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><BrainCircuit /> Analysis Results</CardTitle>
+                    <CardTitle className="flex items-center gap-2">Analysis Results</CardTitle>
                     <CardDescription>A summary of each selected variable in your dataset.</CardDescription>
                 </CardHeader>
                 <CardContent>{renderResults()}</CardContent>
@@ -351,3 +360,5 @@ export default function DescriptiveStatisticsPage({ onLoadExample }: Descriptive
         </div>
     );
 }
+
+    
