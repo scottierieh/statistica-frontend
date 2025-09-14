@@ -1,16 +1,21 @@
 'use client';
 import { useState, useMemo, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
-import { calculateCorrelationMatrix } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Sigma } from 'lucide-react';
+import { Sigma, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { useToast } from '@/hooks/use-toast';
+
+interface CorrelationResult {
+    correlation: number;
+    p_value: number;
+}
 
 interface CorrelationPageProps {
     data: DataSet;
@@ -19,8 +24,9 @@ interface CorrelationPageProps {
 }
 
 export default function CorrelationPage({ data, numericHeaders, onLoadExample }: CorrelationPageProps) {
+  const { toast } = useToast();
   const [selectedHeaders, setSelectedHeaders] = useState<string[]>(numericHeaders.slice(0, 5));
-  const [results, setResults] = useState<{ headers: string[], matrix: (number | null)[][] } | null>(null);
+  const [results, setResults] = useState<{ headers: string[], matrix: (CorrelationResult | null)[][] } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSelectionChange = (header: string, checked: boolean) => {
@@ -29,17 +35,58 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
     );
   };
   
-  const handleAnalysis = useCallback(() => {
+  const handleAnalysis = useCallback(async () => {
     if (selectedHeaders.length < 2) {
-      alert("Please select at least two numeric variables for correlation analysis.");
+      toast({variant: 'destructive', title: 'Selection Error', description: "Please select at least two numeric variables for correlation analysis."});
       return;
     }
     setIsLoading(true);
-    // Simulate async operation if needed, or just calculate
-    const matrix = calculateCorrelationMatrix(data, selectedHeaders);
-    setResults({ headers: selectedHeaders, matrix });
-    setIsLoading(false);
-  }, [data, selectedHeaders]);
+    setResults(null);
+    
+    try {
+        const response = await fetch('/api/analysis/correlation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                data: data,
+                variables: selectedHeaders,
+                method: 'pearson' 
+            })
+        });
+
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+
+        // Reconstruct the matrix for the UI
+        const matrix: (CorrelationResult | null)[][] = Array(selectedHeaders.length).fill(null).map(() => Array(selectedHeaders.length).fill(null));
+        result.forEach((item: any) => {
+            const i = selectedHeaders.indexOf(item.variable_1);
+            const j = selectedHeaders.indexOf(item.variable_2);
+            if (i > -1 && j > -1) {
+                const corrData = { correlation: item.correlation, p_value: item.p_value };
+                matrix[i][j] = corrData;
+                matrix[j][i] = corrData;
+            }
+        });
+        // Fill diagonal
+        for (let i=0; i < selectedHeaders.length; i++) {
+            matrix[i][i] = { correlation: 1, p_value: 0 };
+        }
+
+        setResults({ headers: selectedHeaders, matrix });
+
+    } catch (e: any) {
+        console.error('Analysis error:', e);
+        toast({variant: 'destructive', title: 'Correlation Analysis Error', description: e.message || 'An unexpected error occurred.'})
+        setResults(null);
+    } finally {
+        setIsLoading(false);
+    }
+  }, [data, selectedHeaders, toast]);
   
   const canRun = useMemo(() => {
     return data.length > 0 && numericHeaders.length >= 2;
@@ -110,9 +157,8 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                 ))}
               </div>
             </ScrollArea>
-           <Button onClick={handleAnalysis} className="w-full md:w-auto self-end" disabled={selectedHeaders.length < 2}>
-              <Sigma className="mr-2"/>
-              Run Analysis
+           <Button onClick={handleAnalysis} className="w-full md:w-auto self-end" disabled={selectedHeaders.length < 2 || isLoading}>
+              {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
             </Button>
         </CardContent>
       </Card>
@@ -122,8 +168,11 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
       {results && !isLoading && (
         <Card>
           <CardHeader>
-              <CardTitle className="font-headline">Correlation Matrix</CardTitle>
-              <CardDescription>Pearson correlation coefficient (-1: perfect negative correlation, 1: perfect positive correlation)</CardDescription>
+              <CardTitle className="font-headline">Pearson Correlation Matrix</CardTitle>
+              <CardDescription>
+                Each cell shows: Correlation (r) and p-value.
+                <Badge variant="outline" className="ml-2 border-green-500 text-green-500">p &lt; 0.05</Badge> indicates a statistically significant correlation.
+              </CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-auto max-h-[70vh] w-full">
@@ -140,17 +189,22 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                                 <TableHead>{h1}</TableHead>
                                 {results.headers.map((h2, j) => {
                                     const value = results.matrix[i]?.[j];
-                                    const isSignificant = value !== null && !isNaN(value) && Math.abs(value) > 0.5;
-                                    const colorClass = !isNaN(value as number) && value !== null
-                                        ? value > 0 ? `bg-sky-100/50 dark:bg-sky-900/50` : `bg-red-100/50 dark:bg-red-900/50`
+                                    const corr = value?.correlation;
+                                    const pValue = value?.p_value;
+
+                                    const isSignificant = pValue !== undefined && pValue < 0.05;
+                                    
+                                    const colorClass = corr !== undefined && corr !== null
+                                        ? corr > 0 ? `bg-sky-100/50 dark:bg-sky-900/50` : `bg-red-100/50 dark:bg-red-900/50`
                                         : '';
-                                    const opacity = !isNaN(value as number) && value !== null ? Math.abs(value!) * 0.7 + 0.3 : 1;
+                                    const opacity = corr !== undefined && corr !== null ? Math.abs(corr) * 0.7 + 0.3 : 1;
                                     
                                     return (
                                         <TableCell key={h2} className={`text-center font-mono transition-colors ${colorClass}`} style={{opacity: opacity}}>
-                                          <Badge variant={isSignificant ? 'default' : 'secondary'} className="w-20 justify-center">
-                                            {value !== null && value !== undefined ? isNaN(value) ? 'N/A' : value.toFixed(3) : '-'}
-                                          </Badge>
+                                          <div className={cn("inline-block p-2 rounded-md", isSignificant && "ring-2 ring-green-500")}>
+                                              <div>r = {corr !== undefined ? corr.toFixed(3) : '-'}</div>
+                                              <div className="text-xs text-muted-foreground">p = {pValue !== undefined ? pValue.toFixed(3) : '-'}</div>
+                                          </div>
                                         </TableCell>
                                     )
                                 })}

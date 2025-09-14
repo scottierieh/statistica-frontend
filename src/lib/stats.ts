@@ -215,65 +215,7 @@ export const calculateDescriptiveStats = (data: DataSet, headers: string[]) => {
     return stats;
 };
 
-const pearsonCorrelation = (arr1: number[], arr2: number[]): number => {
-    if (arr1.length !== arr2.length || arr1.length === 0) {
-        return NaN;
-    }
-    const n = arr1.length;
-    const mean1 = mean(arr1);
-    const mean2 = mean(arr2);
-    const stdDev1 = stdDev(arr1);
-    const stdDev2 = stdDev(arr2);
-
-    if (stdDev1 === 0 || stdDev2 === 0 || isNaN(stdDev1) || isNaN(stdDev2)) {
-        return NaN;
-    }
-
-    let covariance = 0;
-    for (let i = 0; i < n; i++) {
-        covariance += (arr1[i] - mean1) * (arr2[i] - mean2);
-    }
-    covariance /= (n-1); 
-
-    return covariance / (stdDev1 * stdDev2);
-};
-
-
+// Deprecated: Correlation calculation is now handled by the Python backend.
 export const calculateCorrelationMatrix = (data: DataSet, headers: string[]) => {
-    const matrix: (number | null)[][] = Array(headers.length).fill(null).map(() => Array(headers.length).fill(null));
-
-    for (let i = 0; i < headers.length; i++) {
-        for (let j = i; j < headers.length; j++) {
-            const col1 = getNumericColumn(data, headers[i]);
-            const col2 = getNumericColumn(data, headers[j]);
-            
-            if (col1.length === 0 || col2.length === 0) {
-                matrix[i][j] = NaN;
-                matrix[j][i] = NaN;
-                continue;
-            }
-
-            if (i === j) {
-                matrix[i][j] = 1;
-            } else {
-                 // For correlation, we need paired data. Let's create pairs.
-                const pairs = data.map(row => ({
-                    x: row[headers[i]],
-                    y: row[headers[j]]
-                })).filter(p => typeof p.x === 'number' && typeof p.y === 'number');
-
-                if (pairs.length > 1) {
-                    const xData = pairs.map(p => p.x as number);
-                    const yData = pairs.map(p => p.y as number);
-                    const correlation = pearsonCorrelation(xData, yData);
-                    matrix[i][j] = correlation;
-                    matrix[j][i] = correlation;
-                } else {
-                  matrix[i][j] = NaN;
-                  matrix[j][i] = NaN;
-                }
-            }
-        }
-    }
-    return matrix;
+    return [];
 };
