@@ -26,35 +26,40 @@ def main():
             raise ValueError("Missing 'data' or 'variables'")
 
         df = pd.DataFrame(data)
-        df_clean = df[variables].copy().dropna()
+        
+        # Ensure only specified variables are used and they are numeric
+        df_clean = df[variables].copy()
+        for col in df_clean.columns:
+            df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
+        
+        df_clean.dropna(inplace=True)
         
         if df_clean.shape[0] < 2:
             raise ValueError("Not enough valid data points for analysis.")
 
-        n_vars = len(variables)
-        corr_matrix = pd.DataFrame(np.eye(n_vars), index=variables, columns=variables)
-        p_value_matrix = pd.DataFrame(np.zeros((n_vars, n_vars)), index=variables, columns=variables)
+        n_vars = len(df_clean.columns)
+        current_vars = df_clean.columns.tolist()
+
+        corr_matrix = pd.DataFrame(np.eye(n_vars), index=current_vars, columns=current_vars)
+        p_value_matrix = pd.DataFrame(np.zeros((n_vars, n_vars)), index=current_vars, columns=current_vars)
         
         all_correlations = []
 
         for i in range(n_vars):
             for j in range(i + 1, n_vars):
-                var1 = variables[i]
-                var2 = variables[j]
+                var1 = current_vars[i]
+                var2 = current_vars[j]
                 
-                col1 = pd.to_numeric(df_clean[var1], errors='coerce')
-                col2 = pd.to_numeric(df_clean[var2], errors='coerce')
-                
-                pair_data = pd.concat([col1, col2], axis=1).dropna()
+                col1 = df_clean[var1]
+                col2 = df_clean[var2]
                 
                 corr, p_value = np.nan, np.nan
-                if pair_data.shape[0] >= 2:
-                    if method == 'pearson':
-                        corr, p_value = pearsonr(pair_data[var1], pair_data[var2])
-                    elif method == 'spearman':
-                        corr, p_value = spearmanr(pair_data[var1], pair_data[var2])
-                    elif method == 'kendall':
-                        corr, p_value = kendalltau(pair_data[var1], pair_data[var2])
+                if method == 'pearson':
+                    corr, p_value = pearsonr(col1, col2)
+                elif method == 'spearman':
+                    corr, p_value = spearmanr(col1, col2)
+                elif method == 'kendall':
+                    corr, p_value = kendalltau(col1, col2)
                 
                 corr_matrix.iloc[i, j] = corr_matrix.iloc[j, i] = corr
                 p_value_matrix.iloc[i, j] = p_value_matrix.iloc[j, i] = p_value
@@ -119,4 +124,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
