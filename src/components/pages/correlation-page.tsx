@@ -13,7 +13,9 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-interface CorrelationResult {
+interface CorrelationResultItem {
+    variable_1: string;
+    variable_2: string;
     correlation: number;
     p_value: number;
 }
@@ -27,7 +29,7 @@ interface CorrelationPageProps {
 export default function CorrelationPage({ data, numericHeaders, onLoadExample }: CorrelationPageProps) {
   const { toast } = useToast();
   const [selectedHeaders, setSelectedHeaders] = useState<string[]>(numericHeaders.slice(0, 5));
-  const [results, setResults] = useState<{ headers: string[], matrix: (CorrelationResult | null)[][] } | null>(null);
+  const [results, setResults] = useState<{ headers: string[], matrix: (CorrelationResultItem | { correlation: number; p_value: number } | null)[][] } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSelectionChange = (header: string, checked: boolean) => {
@@ -60,15 +62,15 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
             throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
         }
         
-        const result = await response.json();
+        const result: CorrelationResultItem[] = await response.json();
 
         // Reconstruct the matrix for the UI
-        const matrix: (CorrelationResult | null)[][] = Array(selectedHeaders.length).fill(null).map(() => Array(selectedHeaders.length).fill(null));
-        result.forEach((item: any) => {
+        const matrix: (CorrelationResultItem | { correlation: number, p_value: number } | null)[][] = Array(selectedHeaders.length).fill(null).map(() => Array(selectedHeaders.length).fill(null));
+        result.forEach((item: CorrelationResultItem) => {
             const i = selectedHeaders.indexOf(item.variable_1);
             const j = selectedHeaders.indexOf(item.variable_2);
             if (i > -1 && j > -1) {
-                const corrData = { correlation: item.correlation, p_value: item.p_value };
+                const corrData = { correlation: item.correlation, p_value: item.p_value, variable_1: item.variable_1, variable_2: item.variable_2 };
                 matrix[i][j] = corrData;
                 matrix[j][i] = corrData;
             }
