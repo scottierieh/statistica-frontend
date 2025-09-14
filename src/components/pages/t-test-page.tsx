@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -16,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 type TestType = 'one_sample' | 'independent_samples' | 'paired_samples';
 
@@ -48,18 +50,19 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
 
     const handleAnalysis = useCallback(async () => {
         let params: any;
+        let testParams: any = {};
         switch(activeTest) {
             case 'one_sample':
                 if (!osVar) { toast({ variant: "destructive", title: "Please select a variable." }); return; }
-                params = { variable: osVar, test_value: osTestValue };
+                testParams = { variable: osVar, test_value: osTestValue };
                 break;
             case 'independent_samples':
                 if (!isDepVar || !isGroupVar) { toast({ variant: "destructive", title: "Please select dependent and group variables." }); return; }
-                params = { variable: isDepVar, group_variable: isGroupVar, equal_var: isEqualVar };
+                testParams = { variable: isDepVar, group_variable: isGroupVar, equal_var: isEqualVar };
                 break;
             case 'paired_samples':
                 if (!psVar1 || !psVar2 || psVar1 === psVar2) { toast({ variant: "destructive", title: "Please select two different variables." }); return; }
-                params = { variable1: psVar1, variable2: psVar2 };
+                testParams = { variable1: psVar1, variable2: psVar2 };
                 break;
         }
 
@@ -70,7 +73,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             const response = await fetch('/api/analysis/t-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, testType: activeTest, params })
+                body: JSON.stringify({ data, testType: activeTest, params: testParams })
             });
 
             if (!response.ok) {
@@ -116,20 +119,50 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                 )}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="font-headline">{results.test_type.replace('_', ' ')} t-Test Results</CardTitle>
+                        <CardTitle className="font-headline">{results.test_type.replace(/_/g, ' ')} t-Test Results</CardTitle>
                         <CardDescription>
                             The result is {results.significant ? <Badge>significant</Badge> : <Badge variant="secondary">not significant</Badge>} at α=0.05.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                            <dl className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 text-sm">
-                            <dt>t-statistic</dt><dd className="font-mono text-right">{results.t_statistic.toFixed(3)}</dd>
-                            <dt>p-value</dt><dd className="font-mono text-right">{results.p_value < 0.001 ? '< 0.001' : results.p_value.toFixed(3)}</dd>
-                            <dt>Degrees of Freedom</dt><dd className="font-mono text-right">{results.degrees_of_freedom.toFixed(2)}</dd>
-                            <dt>Cohen's d</dt><dd className="font-mono text-right">{results.cohens_d.toFixed(3)}</dd>
-                            {results.mean_difference !== undefined && <><dt>Mean Difference</dt><dd className="font-mono text-right">{results.mean_difference.toFixed(3)}</dd></>}
-                            {results.confidence_interval && <><dt>95% CI</dt><dd className="font-mono text-right">[{results.confidence_interval[0].toFixed(2)}, {results.confidence_interval[1].toFixed(2)}]</dd></>}
-                        </dl>
+                         <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Statistic</TableHead>
+                                    <TableHead className="text-right">Value</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell>t-statistic</TableCell>
+                                    <TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>p-value</TableCell>
+                                    <TableCell className="text-right font-mono">{results.p_value < 0.001 ? '< 0.001' : results.p_value.toFixed(3)}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Degrees of Freedom</TableCell>
+                                    <TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Cohen's d</TableCell>
+                                    <TableCell className="text-right font-mono">{results.cohens_d.toFixed(3)}</TableCell>
+                                </TableRow>
+                                {results.mean_difference !== undefined && (
+                                    <TableRow>
+                                        <TableCell>Mean Difference</TableCell>
+                                        <TableCell className="text-right font-mono">{results.mean_difference.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                )}
+                                {results.confidence_interval && (
+                                     <TableRow>
+                                        <TableCell>95% Confidence Interval</TableCell>
+                                        <TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(2)}, {results.confidence_interval[1].toFixed(2)}]</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
             </div>
