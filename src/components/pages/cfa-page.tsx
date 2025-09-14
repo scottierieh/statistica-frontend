@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -45,17 +44,12 @@ interface CfaResults {
     convergence: boolean;
 }
 
-const DraggableItem = ({ id, containerId }: { id: string, containerId: string }) => {
+const DraggableItem = ({ id }: { id: string }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ 
         id,
-        data: {
-            sortable: {
-                containerId
-            }
-        }
      });
     const style = { transform: CSS.Transform.toString(transform), transition };
-    return <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="p-2 rounded cursor-grab hover:bg-muted">{id}</div>;
+    return <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="p-2 rounded cursor-grab hover:bg-muted bg-background border my-1">{id}</div>;
 };
 
 const FactorCard = ({ factor, items, onRemoveItem, onFactorNameChange, onRemoveFactor }: { factor: { id: string, name: string }, items: string[], onRemoveItem: (factorId: string, item: string) => void, onFactorNameChange: (id: string, name: string) => void, onRemoveFactor: (id: string) => void }) => {
@@ -66,18 +60,18 @@ const FactorCard = ({ factor, items, onRemoveItem, onFactorNameChange, onRemoveF
                 <Button variant="ghost" size="icon" onClick={() => onRemoveFactor(factor.id)}><Trash2 className="h-4 w-4" /></Button>
             </CardHeader>
             <CardContent>
-                <ScrollArea className="h-40 border rounded-md p-2">
-                     <SortableContext id={factor.id} items={items} strategy={verticalListSortingStrategy}>
-                        {items.length > 0 ? (
-                            items.map(item => (
-                                <div key={item} className="flex items-center justify-between p-1 rounded hover:bg-muted/50 group">
-                                     <DraggableItem id={item} containerId={factor.id} />
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => onRemoveItem(factor.id, item)}><Trash2 className="h-3 w-3" /></Button>
-                                </div>
-                            ))
-                        ) : <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-4 text-center">Drop items here</div>}
-                    </SortableContext>
-                </ScrollArea>
+                <SortableContext id={factor.id} items={items} strategy={verticalListSortingStrategy}>
+                    <ScrollArea className="h-40 border rounded-md p-2 bg-muted/20 min-h-[10rem]">
+                            {items.length > 0 ? (
+                                items.map(item => (
+                                    <div key={item} className="flex items-center justify-between p-1 rounded group">
+                                         <DraggableItem id={item} />
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => onRemoveItem(factor.id, item)}><Trash2 className="h-3 w-3" /></Button>
+                                    </div>
+                                ))
+                            ) : <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-4 text-center">Drop items here</div>}
+                    </ScrollArea>
+                </SortableContext>
             </CardContent>
         </Card>
     );
@@ -138,14 +132,15 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
+        const activeId = active.id.toString();
 
         if (!over) return;
-
-        const activeId = active.id.toString();
         const overId = over.id.toString();
+        
+        const activeContainer = findContainer(activeId);
+        const overContainer = findContainer(overId);
 
-        const activeContainer = active.data.current?.sortable.containerId;
-        const overContainer = over.data.current?.sortable.containerId || over.id;
+        if (!activeContainer) return;
 
         if (activeContainer === overContainer) {
             // Reordering within the same container
@@ -166,37 +161,48 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                 }));
             }
         } else {
-            // Moving between containers
-            let item = activeId;
+            // Moving between different containers
+            let newAvailableItems = [...availableItems];
+            let newFactors = [...factors];
 
             // Remove from source
             if (activeContainer === 'available') {
-                setAvailableItems(items => items.filter(i => i !== item));
+                newAvailableItems = newAvailableItems.filter(item => item !== activeId);
             } else {
-                setFactors(factors => factors.map(f => {
-                    if (f.id === activeContainer) {
-                        return { ...f, items: f.items.filter(i => i !== item) };
-                    }
-                    return f;
+                newFactors = newFactors.map(f => ({
+                    ...f,
+                    items: f.items.filter(item => item !== activeId)
                 }));
             }
-
+            
             // Add to destination
             if (overContainer === 'available') {
-                setAvailableItems(items => [...items, item].sort());
-            } else {
-                setFactors(factors => factors.map(f => {
+                const overIndex = newAvailableItems.indexOf(overId);
+                newAvailableItems.splice(overIndex, 0, activeId);
+            } else { // Dropped on a factor card
+                newFactors = newFactors.map(f => {
                     if (f.id === overContainer) {
-                        // Check if item is already there to prevent duplicates on rapid moves
-                        if (!f.items.includes(item)) {
-                            return { ...f, items: [...f.items, item] };
-                        }
+                        const overIndex = f.items.indexOf(overId);
+                        return { ...f, items: [...f.items.slice(0, overIndex), activeId, ...f.items.slice(overIndex)] };
                     }
                     return f;
-                }));
+                });
             }
+            setAvailableItems(newAvailableItems.sort());
+            setFactors(newFactors);
         }
     };
+
+    const findContainer = (id: string) => {
+        if (availableItems.includes(id)) return 'available';
+        for (const factor of factors) {
+            if (factor.items.includes(id)) return factor.id;
+        }
+        // If it's a container ID itself
+        if (id === 'available') return 'available';
+        if (factors.some(f => f.id === id)) return id;
+        return null;
+    }
     
     const handleRemoveItem = (factorId: string, item: string) => {
         setFactors(prev => prev.map(f => f.id === factorId ? { ...f, items: f.items.filter(i => i !== item) } : f));
@@ -303,11 +309,11 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                         <Card className="md:col-span-1">
                             <CardHeader><CardTitle className="text-lg">Available Items</CardTitle></CardHeader>
                             <CardContent>
-                                <ScrollArea className="h-80 border rounded-md p-2">
-                                    <SortableContext id="available" items={availableItems} strategy={verticalListSortingStrategy}>
-                                        {availableItems.map(item => <DraggableItem key={item} id={item} containerId='available' />)}
-                                    </SortableContext>
-                                </ScrollArea>
+                                <SortableContext id="available" items={availableItems} strategy={verticalListSortingStrategy}>
+                                    <ScrollArea className="h-80 border rounded-md p-2 bg-muted/20 min-h-[10rem]">
+                                        {availableItems.map(item => <DraggableItem key={item} id={item} />)}
+                                    </ScrollArea>
+                                </SortableContext>
                             </CardContent>
                         </Card>
                         <div className="md:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -448,5 +454,3 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         </DndContext>
     );
 }
-
-    
