@@ -3,11 +3,12 @@ import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
 import { stressSupportData } from "./example-datasets/stress-support-data";
+import { cfaData } from "./example-datasets/cfa-data";
 
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'mediation' | 'moderation';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation';
 
 
 export interface ExampleDataSet {
@@ -47,6 +48,15 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 
 export const exampleDatasets: ExampleDataSet[] = [
+    {
+        id: 'cfa-psych-constructs',
+        name: 'Psychological Constructs',
+        description: 'Cognitive, Emotional, and Social items. Ideal for CFA.',
+        icon: BrainCircuit,
+        analysisTypes: ['stats', 'cfa', 'reliability'],
+        recommendedAnalysis: 'cfa',
+        data: cfaData,
+    },
     {
         id: 'stress-support',
         name: 'Stress & Social Support',

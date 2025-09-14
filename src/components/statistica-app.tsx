@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -52,13 +53,14 @@ import DiscriminantPage from './pages/discriminant-page';
 import EfaPage from './pages/efa-page';
 import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
+import CfaPage from './pages/cfa-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'discriminant' | 'efa' | 'mediation' | 'moderation';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -67,6 +69,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
     efa: EfaPage,
+    cfa: CfaPage,
     mediation: MediationPage,
     moderation: ModerationPage,
 };
@@ -101,6 +104,7 @@ const analysisMenu = [
     methods: [
       { id: 'discriminant', label: 'Discriminant Analysis', implemented: true, icon: Users },
       { id: 'efa', label: 'EFA', implemented: true, icon: BrainCircuit },
+      { id: 'cfa', label: 'CFA', implemented: true, icon: BrainCircuit },
       { id: 'pca', label: 'PCA', implemented: false },
       { id: 'kmeans', label: 'K-means Clustering', implemented: false },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
