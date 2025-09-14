@@ -5,3 +5,5 @@ numpy
 matplotlib
 seaborn
 scipy
+firebase-functions
+firebase-admin
