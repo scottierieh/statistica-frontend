@@ -43,15 +43,6 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 14.78,3.22,Male,No,Sun,Dinner,2
 `;
 
-const big5Data = `E1,E2,E3,E4,E5,N1,N2,N3,N4,N5,A1,A2,A3,A4,A5,C1,C2,C3,C4,C5,O1,O2,O3,O4,O5
-4,2,5,2,5,2,5,5,4,5,1,5,5,5,4,4,1,5,5,5,5,2,5,5,4
-2,3,4,3,4,4,4,3,3,3,3,4,4,3,3,3,3,4,3,4,3,3,4,4,3
-5,2,6,1,6,1,7,6,7,7,1,6,6,1,2,6,2,7,1,7,6,1,7,1,6
-3,4,4,3,4,3,4,4,3,3,4,4,4,4,4,4,3,4,3,4,4,3,4,4,4
-5,1,7,1,7,1,7,7,7,7,1,7,7,1,1,7,1,7,1,7,7,1,7,1,7
-2,5,3,5,4,5,4,3,3,3,3,4,5,4,3,4,4,3,4,3,4,4,4,4,5
-`;
-
 
 export const exampleDatasets: ExampleDataSet[] = [
     {
@@ -61,7 +52,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         icon: BrainCircuit,
         analysisTypes: ['stats', 'reliability', 'efa'],
         recommendedAnalysis: 'efa',
-        data: big5Data,
+        data: likertScaleData,
     },
     {
         id: 'iris',
