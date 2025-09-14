@@ -13,6 +13,7 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { getAnovaInterpretation } from '@/app/actions';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import Image from 'next/image';
 
 // Type definitions for the ANOVA results
 interface AnovaResults {
@@ -21,6 +22,11 @@ interface AnovaResults {
     assumptions: AssumptionChecks;
     post_hoc_tukey?: PostHocResult[];
     effect_size_interpretation: EffectSizeInterpretation;
+}
+
+interface FullAnovaResponse {
+    results: AnovaResults;
+    plot: string;
 }
 
 interface GroupStats {
@@ -127,7 +133,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
     const { toast } = useToast();
     const [groupVar, setGroupVar] = useState(categoricalHeaders[0]);
     const [valueVar, setValueVar] = useState(numericHeaders[0]);
-    const [anovaResult, setAnovaResult] = useState<AnovaResults | null>(null);
+    const [analysisResponse, setAnalysisResponse] = useState<FullAnovaResponse | null>(null);
     const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -138,7 +144,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
     useEffect(() => {
         setGroupVar(categoricalHeaders[0] || '');
         setValueVar(numericHeaders[0] || '');
-        setAnovaResult(null);
+        setAnalysisResponse(null);
         setAiPromise(null);
     }, [categoricalHeaders, numericHeaders, data]);
 
@@ -149,7 +155,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         };
 
         setIsLoading(true);
-        setAnovaResult(null);
+        setAnalysisResponse(null);
         setAiPromise(null);
         
         const backendUrl = '/api/analysis/anova';
@@ -170,16 +176,17 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                 throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
             
-            const result = await response.json();
-             if (result.error) {
-                throw new Error(result.error);
+            const result: FullAnovaResponse = await response.json();
+             if ((result as any).error) {
+                throw new Error((result as any).error);
             }
-            setAnovaResult(result);
+            setAnalysisResponse(result);
+            const anovaResult = result.results;
 
-            if (result.anova) {
+            if (anovaResult.anova) {
                 const promise = getAnovaInterpretation({
-                    fStat: result.anova.f_statistic,
-                    pValue: result.anova.p_value,
+                    fStat: anovaResult.anova.f_statistic,
+                    pValue: anovaResult.anova.p_value,
                     groupVar: groupVar,
                     valueVar: valueVar,
                 }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
@@ -190,11 +197,13 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         } catch(e: any) {
             console.error('Analysis error:', e);
             toast({variant: 'destructive', title: 'ANOVA Analysis Error', description: e.message || 'An unexpected error occurred. Please check the console for details.'})
-            setAnovaResult(null);
+            setAnalysisResponse(null);
         } finally {
             setIsLoading(false);
         }
     }, [data, groupVar, valueVar, toast]);
+
+    const anovaResult = analysisResponse?.results;
 
     if (!canRun) {
         const anovaExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('anova'));
@@ -281,8 +290,18 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                 </Card>
             )}
 
-            {anovaResult ? (
+            {analysisResponse && anovaResult ? (
                 <>
+                {analysisResponse.plot && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Visualizations</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Image src={analysisResponse.plot} alt="ANOVA Plots" width={1200} height={1000} className="w-full rounded-md border"/>
+                        </CardContent>
+                    </Card>
+                )}
                 <div className="grid lg:grid-cols-3 gap-4">
                     <div className="lg:col-span-2 flex flex-col gap-4">
                         <Card>

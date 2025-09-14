@@ -5,6 +5,12 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from itertools import combinations
+import matplotlib.pyplot as plt
+import seaborn as sns
+import io
+import base64
+import warnings
+warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -156,6 +162,61 @@ class OneWayANOVA:
         else: interp = "Negligible effect"
         self.results['effect_size_interpretation'] = {'eta_squared_interpretation': interp}
 
+    def plot_results(self):
+        if not self.results:
+            return None
+
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig.suptitle('One-Way ANOVA Results', fontsize=16, fontweight='bold')
+
+        # 1. Box plot
+        sns.boxplot(x=self.group_col, y=self.value_col, data=self.clean_data, ax=axes[0, 0])
+        axes[0, 0].set_title('Box Plot by Group')
+        axes[0, 0].grid(True, alpha=0.3)
+        
+        # 2. Mean plot with error bars
+        means = [self.results['descriptives'][group]['mean'] for group in self.groups]
+        ses = [self.results['descriptives'][group]['se'] for group in self.groups]
+        x_pos = range(len(self.groups))
+
+        axes[0, 1].bar(x_pos, means, yerr=[1.96 * se for se in ses], capsize=5, alpha=0.7, color='skyblue', edgecolor='black')
+        axes[0, 1].set_title('Group Means with 95% CI')
+        axes[0, 1].set_ylabel('Mean Values')
+        axes[0, 1].set_xticks(x_pos)
+        axes[0, 1].set_xticklabels(self.groups)
+        axes[0, 1].grid(True, alpha=0.3)
+
+        # 3. Residual plot
+        all_residuals = []
+        fitted_values = []
+        for group in self.groups:
+            group_data = self.group_data[group]
+            group_mean = self.results['descriptives'][group]['mean']
+            residuals = group_data - group_mean
+            all_residuals.extend(residuals)
+            fitted_values.extend([group_mean] * len(group_data))
+        
+        axes[1, 0].scatter(fitted_values, all_residuals, alpha=0.6)
+        axes[1, 0].axhline(y=0, color='red', linestyle='--', alpha=0.7)
+        axes[1, 0].set_title('Residuals vs Fitted Values')
+        axes[1, 0].set_xlabel('Fitted Values')
+        axes[1, 0].set_ylabel('Residuals')
+        axes[1, 0].grid(True, alpha=0.3)
+        
+        # 4. Q-Q plot for normality check
+        stats.probplot(np.concatenate(list(self.group_data.values())), dist="norm", plot=axes[1, 1])
+        axes[1, 1].set_title('Q-Q Plot of All Residuals')
+        axes[1, 1].grid(True, alpha=0.3)
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        image_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        return f"data:image/png;base64,{image_base64}"
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -169,18 +230,18 @@ def main():
         anova = OneWayANOVA(data=data, group_col=independent_var, value_col=dependent_var)
         anova.analyze()
         
-        print(json.dumps(anova.results, default=_to_native_type))
+        plot_image = anova.plot_results()
+        
+        response = {
+            'results': anova.results,
+            'plot': plot_image
+        }
+
+        print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == '__main__':
-    # Add statsmodels to requirements
-    try:
-        from statsmodels.stats.multicomp import pairwise_tukeyhsd
-    except ImportError:
-        import subprocess
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "statsmodels"])
-
     main()
