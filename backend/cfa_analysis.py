@@ -209,7 +209,12 @@ class ConfirmatoryFactorAnalysis:
         independence_df = n_vars * (n_vars - 1) // 2
 
         cfi = 1 - max(0, chi_square - df) / max(0, independence_chi - independence_df) if independence_chi > df else 1.0
-        tli = ((independence_chi / independence_df) - (chi_square / df)) / ((independence_chi / independence_df) - 1) if df > 0 and independence_df > 0 else 1.0
+        
+        tli_denominator = (independence_chi / independence_df) - 1
+        if df > 0 and independence_df > 0 and tli_denominator > 1e-9:
+            tli = ((independence_chi / independence_df) - (chi_square / df)) / tli_denominator
+        else:
+            tli = 1.0
         
         rmsea = np.sqrt(max(0, (chi_square - df) / (df * (n_obs - 1)))) if df > 0 else 0.0
         
@@ -270,5 +275,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
