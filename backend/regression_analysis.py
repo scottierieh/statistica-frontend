@@ -63,6 +63,7 @@ class RegressionAnalysis:
         sklearn_model.fit(X_scaled, self.y)
         
         sm_model_summary = None
+        sm_model = None
         if HAS_STATSMODELS:
             X_with_const = sm.add_constant(X_scaled)
             try:
@@ -81,9 +82,10 @@ class RegressionAnalysis:
             'features': list(X_scaled.columns),
             'metrics': metrics,
             'diagnostics': diagnostics,
-            'plot': self.plot_results(model_name, y_pred, X_scaled, diagnostics)
         }
         self.results[model_name] = results
+        self.y_pred = y_pred
+        self.X_scaled = X_scaled
         return results
 
     def _calculate_metrics(self, y_true, y_pred, n_features):
@@ -97,16 +99,16 @@ class RegressionAnalysis:
 
     def _calculate_diagnostics(self, X, y_true, y_pred, sm_model):
         residuals = y_true - y_pred
-        standardized_residuals = residuals / np.std(residuals)
         diagnostics = {}
 
         if HAS_STATSMODELS and sm_model:
             diagnostics['f_statistic'] = sm_model.fvalue
             diagnostics['f_pvalue'] = sm_model.f_pvalue
-            diagnostics['coefficients'] = {
+            diagnostics['coefficient_tests'] = {
                 'params': sm_model.params.to_dict(),
                 'pvalues': sm_model.pvalues.to_dict(),
-                'conf_int': sm_model.conf_int().to_dict('index')
+                'bse': sm_model.bse.to_dict(),
+                'tvalues': sm_model.tvalues.to_dict(),
             }
             try:
                 diagnostics['durbin_watson'] = durbin_watson(residuals)
@@ -118,17 +120,36 @@ class RegressionAnalysis:
                 diagnostics['vif'] = vif
             except Exception:
                 diagnostics['vif'] = {}
+            
+            try:
+                jb_stat, jb_p, _, _ = jarque_bera(residuals)
+                sw_stat, sw_p = stats.shapiro(residuals)
+                diagnostics['normality_tests'] = {
+                    'jarque_bera': {'statistic': jb_stat, 'p_value': jb_p},
+                    'shapiro_wilk': {'statistic': sw_stat, 'p_value': sw_p}
+                }
+            except:
+                 diagnostics['normality_tests'] = {}
+            
+            try:
+                bp_stat, bp_p, _, _ = het_breuschpagan(residuals, sm_model.model.exog)
+                diagnostics['heteroscedasticity_tests'] = {
+                    'breusch_pagan': {'statistic': bp_stat, 'p_value': bp_p}
+                }
+            except:
+                 diagnostics['heteroscedasticity_tests'] = {}
+
 
         return diagnostics
     
-    def plot_results(self, model_name, y_pred, X, diagnostics):
-        residuals = self.y - y_pred
+    def plot_results(self, model_name):
+        residuals = self.y - self.y_pred
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         fig.suptitle(f'Regression Diagnostics - {model_name}', fontsize=16, fontweight='bold')
         
         # Actual vs Predicted
         ax = axes[0, 0]
-        ax.scatter(self.y, y_pred, alpha=0.6)
+        ax.scatter(self.y, self.y_pred, alpha=0.6)
         ax.plot([self.y.min(), self.y.max()], [self.y.min(), self.y.max()], 'r--', lw=2)
         ax.set_xlabel('Actual Values')
         ax.set_ylabel('Predicted Values')
@@ -137,7 +158,7 @@ class RegressionAnalysis:
         
         # Residuals vs Fitted
         ax = axes[0, 1]
-        ax.scatter(y_pred, residuals, alpha=0.6)
+        ax.scatter(self.y_pred, residuals, alpha=0.6)
         ax.axhline(y=0, color='red', linestyle='--')
         ax.set_xlabel('Fitted Values')
         ax.set_ylabel('Residuals')
@@ -153,10 +174,10 @@ class RegressionAnalysis:
         # Scale-Location plot
         ax = axes[1, 1]
         sqrt_abs_residuals = np.sqrt(np.abs(residuals / np.std(residuals)))
-        ax.scatter(y_pred, sqrt_abs_residuals, alpha=0.6)
-        z = np.polyfit(y_pred, sqrt_abs_residuals, 1)
+        ax.scatter(self.y_pred, sqrt_abs_residuals, alpha=0.6)
+        z = np.polyfit(self.y_pred, sqrt_abs_residuals, 1)
         p = np.poly1d(z)
-        ax.plot(sorted(y_pred), p(sorted(y_pred)), "r--", alpha=0.8)
+        ax.plot(sorted(self.y_pred), p(sorted(self.y_pred)), "r--", alpha=0.8)
         ax.set_xlabel('Fitted Values')
         ax.set_ylabel('√|Standardized Residuals|')
         ax.set_title('Scale-Location Plot')
@@ -190,7 +211,14 @@ def main():
             standardize=True
         )
 
-        print(json.dumps(results, default=_to_native_type, indent=2))
+        plot_image = reg_analysis.plot_results(model_type)
+
+        response = {
+            'results': results,
+            'plot': plot_image
+        }
+
+        print(json.dumps(response, default=_to_native_type, indent=2))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
