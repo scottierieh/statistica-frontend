@@ -69,7 +69,8 @@ class NonParametricTests:
             'effect_size': r, 'effect_size_interpretation': effect_size_interp, 'alpha': alpha,
             'is_significant': is_significant, 'alternative': alternative, 'groups': groups,
             'descriptive_stats': desc_stats,
-            'interpretation': self._interpret_mann_whitney(is_significant, groups, effect_size_interp, r, p_value, alpha)
+            'interpretation': self._interpret_mann_whitney(is_significant, groups, effect_size_interp, r, p_value, alpha),
+            'group_col': group_col, 'value_col': value_col
         }
         self.results['mann_whitney'] = result
         return result
@@ -133,7 +134,8 @@ class NonParametricTests:
             'test_type': 'Kruskal-Wallis H Test', 'statistic': statistic, 'p_value': p_value, 'df': df,
             'n_groups': k, 'n_total': n_total, 'effect_size': epsilon_squared,
             'effect_size_interpretation': effect_size_interp, 'alpha': alpha, 'is_significant': is_significant,
-            'interpretation': self._interpret_kruskal_wallis(is_significant, self.data[group_col].unique(), effect_size_interp, epsilon_squared, p_value, alpha)
+            'interpretation': self._interpret_kruskal_wallis(is_significant, self.data[group_col].unique(), effect_size_interp, epsilon_squared, p_value, alpha),
+            'group_col': group_col, 'value_col': value_col
         }
         self.results['kruskal_wallis'] = result
         return result
@@ -157,7 +159,8 @@ class NonParametricTests:
             'test_type': 'Friedman Test', 'statistic': statistic, 'p_value': p_value, 'df': df,
             'n_subjects': n_subjects, 'k_conditions': k_conditions, 'effect_size': W,
             'effect_size_interpretation': effect_size_interp, 'alpha': alpha, 'is_significant': is_significant,
-            'interpretation': self._interpret_friedman(is_significant, variables, effect_size_interp, W, p_value, alpha)
+            'interpretation': self._interpret_friedman(is_significant, variables, effect_size_interp, W, p_value, alpha),
+            'variables': variables
         }
         self.results['friedman'] = result
         return result
@@ -174,13 +177,19 @@ class NonParametricTests:
     def _interpret_friedman(self, is_sig, var, effect, W, p, alpha): return {'decision': f"{'Reject' if is_sig else 'Fail to reject'} H₀", 'conclusion': f"Significant differences {'found' if is_sig else 'not found'} across conditions", 'practical_significance': f"Concordance is {effect['text']} (W={W:.3f})"}
 
     def plot_results(self, test_type):
+        if test_type not in self.results:
+             raise ValueError(f"No results found for test type: {test_type}")
         result = self.results[test_type]
+        
         fig, ax = plt.subplots(1, 2, figsize=(12, 5))
         sns.set_style("whitegrid")
 
         if test_type == 'mann_whitney':
             groups = result['groups']
-            data_to_plot = [self.data[self.data[result['group_col']] == g][result['value_col']] for g in groups]
+            group_col = result['group_col']
+            value_col = result['value_col']
+            data_to_plot = [self.data[self.data[group_col] == g][value_col] for g in groups]
+            
             sns.boxplot(data=data_to_plot, ax=ax[0])
             ax[0].set_xticklabels(groups)
             ax[0].set_title('Group Distributions')
@@ -198,7 +207,8 @@ class NonParametricTests:
             ax[1].set_title('Distribution of Differences')
         
         elif test_type == 'kruskal_wallis':
-            group_col, value_col = result['group_col'], result['value_col']
+            group_col = result['group_col']
+            value_col = result['value_col']
             sns.boxplot(x=group_col, y=value_col, data=self.data, ax=ax[0])
             ax[0].set_title('Group Distributions')
             
@@ -244,14 +254,10 @@ def main():
         
         if test_type == 'mann_whitney':
             result = tester.mann_whitney_u_test(**params)
-            result['group_col'] = params['group_col']
-            result['value_col'] = params['value_col']
         elif test_type == 'wilcoxon':
             result = tester.wilcoxon_signed_rank_test(**params)
         elif test_type == 'kruskal_wallis':
             result = tester.kruskal_wallis_test(**params)
-            result['group_col'] = params['group_col']
-            result['value_col'] = params['value_col']
         elif test_type == 'friedman':
             result = tester.friedman_test(**params)
         else:
@@ -268,3 +274,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
