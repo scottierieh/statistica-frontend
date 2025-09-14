@@ -129,7 +129,7 @@ def main():
             'qda': results.get('qda')
         }
 
-        print(json.dumps(final_result))
+        print(json.dumps(final_result, default=_to_native_type))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)

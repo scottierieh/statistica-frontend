@@ -1,13 +1,13 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Users } from 'lucide-react';
+import { Sigma, Loader2, Users, CheckCircle, XCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -21,10 +21,10 @@ import {
   Tooltip,
   Bar,
   CartesianGrid,
-  Cell,
   Legend,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Badge } from '../ui/badge';
 
 
 // Type definitions for the Discriminant Analysis results
@@ -190,6 +190,41 @@ const ResultDisplay = ({ analysisResults, methodName }: { analysisResults: Analy
                     </CardContent>
                 </Card>
             )}
+            
+            {results.explained_variance_ratio && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Explained Variance Ratio</CardTitle>
+                        <CardDescription>Proportion of variance explained by each discriminant function.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="space-y-2 text-sm">
+                            {results.explained_variance_ratio.map((ratio, i) => (
+                                <li key={i} className="flex justify-between">
+                                    <span>Function {i+1}:</span>
+                                    <span className="font-mono">{(ratio * 100).toFixed(2)}%</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </CardContent>
+                </Card>
+            )}
+
+             <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Prior Probabilities</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ul className="space-y-2 text-sm">
+                        {results.priors.map((prior, i) => (
+                            <li key={analysisResults.groups[i]} className="flex justify-between">
+                                <span>{analysisResults.groups[i]}:</span>
+                                <span className="font-mono">{prior.toFixed(4)}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </CardContent>
+            </Card>
 
         </div>
     )
@@ -217,7 +252,7 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
     }, [categoricalHeaders, numericHeaders, data]);
 
     const canRun = useMemo(() => {
-      return data.length > 0 && numericHeaders.length >= 2 && categoricalHeaders.length >= 1;
+      return data.length > 0 && numericHeaders.length >= 1 && categoricalHeaders.length >= 1;
     }, [data, numericHeaders, categoricalHeaders]);
     
     const handlePredictorSelectionChange = (header: string, checked: boolean) => {
@@ -277,7 +312,7 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
                     <CardHeader>
                         <CardTitle className="font-headline">Discriminant Analysis</CardTitle>
                         <CardDescription>
-                           To perform this analysis, you need data with at least one categorical group variable and two numeric predictor variables. Try an example dataset.
+                           To perform this analysis, you need data with at least one categorical group variable and one numeric predictor variable. Try an example dataset.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -295,11 +330,11 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
                                             <CardDescription className="text-xs">{ex.description}</CardDescription>
                                         </div>
                                     </CardHeader>
-                                    <CardContent>
+                                    <CardFooter>
                                         <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
                                             Load this data
                                         </Button>
-                                    </CardContent>
+                                    </CardFooter>
                                 </Card>
                                 )
                             })}
@@ -323,7 +358,7 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
                     <div className="grid md:grid-cols-2 gap-4">
                         <div>
                              <label className="text-sm font-medium mb-1 block">Group Variable (Categorical)</label>
-                            <Select value={groupVar} onValueChange={setGroupVar}>
+                            <Select value={groupVar} onValueChange={setGroupVar} disabled={categoricalHeaders.length === 0}>
                                 <SelectTrigger><SelectValue placeholder="Select a variable" /></SelectTrigger>
                                 <SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
