@@ -123,7 +123,6 @@ const analysisMenu = [
       { id: 'regression', label: 'Regression Analysis', implemented: true, icon: TrendingUp },
       { id: 'mediation', label: 'Mediation Analysis', implemented: true, icon: Network },
       { id: 'moderation', label: 'Moderation Analysis', implemented: true, icon: TrendingUp },
-      { id: 'linear-regression', label: 'Linear Regression (Old)', implemented: false },
       { id: 'logistic-regression', label: 'Logistic Regression', implemented: false },
     ]
   },

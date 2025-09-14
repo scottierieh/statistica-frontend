@@ -58,8 +58,14 @@ interface RegressionPageProps {
 export default function RegressionPage({ data, numericHeaders, onLoadExample }: RegressionPageProps) {
     const { toast } = useToast();
     const [targetVar, setTargetVar] = useState<string | undefined>(numericHeaders[numericHeaders.length - 1]);
-    const [featureVars, setFeatureVars] = useState<string[]>(numericHeaders.slice(0, numericHeaders.length - 1));
-    const [modelType, setModelType] = useState('linear');
+    
+    // State for simple linear regression
+    const [simpleFeatureVar, setSimpleFeatureVar] = useState<string | undefined>(numericHeaders[0]);
+
+    // State for multiple linear regression
+    const [multipleFeatureVars, setMultipleFeatureVars] = useState<string[]>(numericHeaders.slice(0, numericHeaders.length - 1));
+
+    const [modelType, setModelType] = useState('simple');
     
     const [analysisResult, setAnalysisResult] = useState<RegressionResults | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -69,17 +75,38 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
     useEffect(() => {
         const newTarget = numericHeaders[numericHeaders.length - 1];
         setTargetVar(newTarget);
-        setFeatureVars(numericHeaders.filter(h => h !== newTarget));
+        setSimpleFeatureVar(numericHeaders[0]);
+        setMultipleFeatureVars(numericHeaders.filter(h => h !== newTarget));
         setAnalysisResult(null);
     }, [data, numericHeaders]);
 
-    const handleFeatureSelectionChange = (header: string, checked: boolean) => {
-        setFeatureVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+    const handleMultiFeatureSelectionChange = (header: string, checked: boolean) => {
+        setMultipleFeatureVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     };
 
     const handleAnalysis = useCallback(async () => {
-        if (!targetVar || featureVars.length < 1) {
-            toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a target variable and at least one feature.'});
+        if (!targetVar) {
+            toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a target variable.'});
+            return;
+        }
+
+        let features: string[] = [];
+        let currentModelType = 'linear'; // default model type for the backend
+        if (modelType === 'simple') {
+            if (!simpleFeatureVar) {
+                toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a feature variable for simple regression.'});
+                return;
+            }
+            features = [simpleFeatureVar];
+        } else if (modelType === 'multiple') {
+            if (multipleFeatureVars.length < 2) {
+                toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select at least two features for multiple regression.'});
+                return;
+            }
+            features = multipleFeatureVars;
+        } else {
+             // Placeholder for other model types
+            toast({variant: 'destructive', title: 'Not Implemented', description: `Analysis for ${modelType} regression is not yet implemented.`});
             return;
         }
 
@@ -90,7 +117,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
             const response = await fetch('/api/analysis/regression', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, targetVar, features: featureVars, modelType })
+                body: JSON.stringify({ data, targetVar, features, modelType: currentModelType })
             });
 
             if (!response.ok) {
@@ -110,7 +137,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
         } finally {
             setIsLoading(false);
         }
-    }, [data, targetVar, featureVars, modelType, toast]);
+    }, [data, targetVar, modelType, simpleFeatureVar, multipleFeatureVars, toast]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
     
@@ -153,6 +180,14 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
     const results = analysisResult;
     const coeffs = results?.diagnostics?.coefficients;
 
+    let analysisButtonDisabled = isLoading || !targetVar;
+    if(modelType === 'simple') {
+        analysisButtonDisabled = analysisButtonDisabled || !simpleFeatureVar;
+    } else if (modelType === 'multiple') {
+        analysisButtonDisabled = analysisButtonDisabled || multipleFeatureVars.length < 2;
+    }
+
+
     return (
         <div className="flex flex-col gap-4">
             <Card>
@@ -163,13 +198,34 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                 <CardContent>
                     <Tabs value={modelType} onValueChange={setModelType} className="w-full">
                         <TabsList className='mb-4'>
-                            <TabsTrigger value="linear">Linear</TabsTrigger>
+                            <TabsTrigger value="simple">Simple Linear</TabsTrigger>
+                            <TabsTrigger value="multiple">Multiple Linear</TabsTrigger>
                             <TabsTrigger value="polynomial" disabled>Polynomial</TabsTrigger>
                             <TabsTrigger value="ridge" disabled>Ridge</TabsTrigger>
                             <TabsTrigger value="lasso" disabled>Lasso</TabsTrigger>
                         </TabsList>
-                        <TabsContent value="linear">
-                            <div className="space-y-4">
+                        <TabsContent value="simple">
+                           <div className="space-y-4">
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                        <Label>Target Variable (Y)</Label>
+                                        <Select value={targetVar} onValueChange={setTargetVar}>
+                                            <SelectTrigger><SelectValue/></SelectTrigger>
+                                            <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label>Feature Variable (X)</Label>
+                                        <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}>
+                                            <SelectTrigger><SelectValue/></SelectTrigger>
+                                            <SelectContent>{availableFeatures.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="multiple">
+                             <div className="space-y-4">
                                 <div className="grid md:grid-cols-2 gap-4">
                                     <div>
                                         <Label>Target Variable (Y)</Label>
@@ -184,7 +240,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                                             <div className="space-y-2">
                                                 {availableFeatures.map(h => (
                                                     <div key={h} className="flex items-center space-x-2">
-                                                        <Checkbox id={`feat-${h}`} checked={featureVars.includes(h)} onCheckedChange={(c) => handleFeatureSelectionChange(h, c as boolean)} />
+                                                        <Checkbox id={`feat-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
                                                         <label htmlFor={`feat-${h}`}>{h}</label>
                                                     </div>
                                                 ))}
@@ -200,7 +256,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                         <TabsContent value="lasso">...</TabsContent>
                     </Tabs>
                     <div className="flex justify-end mt-4">
-                        <Button onClick={handleAnalysis} disabled={isLoading || !targetVar || featureVars.length < 1}>
+                        <Button onClick={handleAnalysis} disabled={analysisButtonDisabled}>
                             {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
                         </Button>
                     </div>
@@ -242,7 +298,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                                             <TableRow key={key}>
                                                 <TableCell>{key}</TableCell>
                                                 <TableCell className="font-mono">{coeffs.params[key].toFixed(4)}</TableCell>
-                                                <TableCell className="font-mono">{coeffs.pvalues[key].toFixed(4)} {getSignificanceStars(coeffs.pvalues[key])}</TableCell>
+                                                <TableCell className="font-mono">{coeffs.pvalues[key] < 0.001 ? '<.001' : coeffs.pvalues[key].toFixed(4)} {getSignificanceStars(coeffs.pvalues[key])}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -261,7 +317,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                                 </dl>
                             </CardContent>
                         </Card>
-                         {results.diagnostics.vif && (
+                         {results.diagnostics.vif && Object.keys(results.diagnostics.vif).length > 0 && (
                             <Card>
                                 <CardHeader><CardTitle>Multicollinearity (VIF)</CardTitle></CardHeader>
                                 <CardContent>
