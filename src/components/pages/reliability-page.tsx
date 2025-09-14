@@ -64,7 +64,7 @@ const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null
   return (
     <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-headline"><ShieldCheck /> AI Interpretation</CardTitle>
+            <CardTitle className="font-headline flex items-center gap-2"><ShieldCheck /> AI Interpretation</CardTitle>
         </CardHeader>
         <CardContent>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>
@@ -132,7 +132,11 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         setAiPromise(null);
 
         try {
-            const response = await fetch('/api/analysis/reliability', {
+            // NOTE: The backend URL is hardcoded here as environment variables were not reliable in this context.
+            const backendUrl = 'https://us-central1-studio-7415103661-752d9.cloudfunctions.net/api/reliability';
+            
+            console.log('Sending request to:', backendUrl);
+            const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

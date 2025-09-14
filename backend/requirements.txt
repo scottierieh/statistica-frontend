@@ -1,4 +1,7 @@
+Flask
+flask-cors
 pandas
 pingouin
 numpy
 scipy
+gunicorn
