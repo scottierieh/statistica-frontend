@@ -40,6 +40,7 @@ import {
   Binary,
   Copy,
   BarChart,
+  Columns,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -68,13 +69,14 @@ import ManovaPage from './pages/manova-page';
 import RegressionPage from './pages/regression-page';
 import KMeansPage from './pages/kmeans-page';
 import FrequencyAnalysisPage from './pages/frequency-analysis-page';
+import CrosstabPage from './pages/crosstab-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -95,6 +97,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     regression: RegressionPage,
     kmeans: KMeansPage,
     frequency: FrequencyAnalysisPage,
+    crosstab: CrosstabPage,
 };
 
 const analysisMenu = [
@@ -117,7 +120,7 @@ const analysisMenu = [
         ]
       },
       { id: 'frequency', label: 'Frequency Analysis', implemented: true, icon: BarChart },
-      { id: 'crosstab', label: 'Crosstab Analysis', implemented: false },
+      { id: 'crosstab', label: 'Crosstab Analysis', implemented: true, icon: Columns },
       { id: 't-test', label: 't-Test', implemented: true },
       { id: 'nonparametric', label: 'Non-parametric Tests', implemented: true, icon: FlaskConical },
     ]
@@ -223,14 +226,6 @@ export default function StatisticaApp() {
       }
   }, [toast]);
   
-  const handleClearData = () => {
-    setData([]);
-    setAllHeaders([]);
-    setNumericHeaders([]);
-    setCategoricalHeaders([]);
-    setFileName('');
-  };
-
   const handleFileSelected = useCallback((file: File) => {
     setIsUploading(true);
     const reader = new FileReader();
@@ -264,6 +259,14 @@ export default function StatisticaApp() {
         reader.readAsText(file);
     }
   }, [processData, toast]);
+
+  const handleClearData = () => {
+    setData([]);
+    setAllHeaders([]);
+    setNumericHeaders([]);
+    setCategoricalHeaders([]);
+    setFileName('');
+  };
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
     processData(example.data, example.name);
@@ -545,4 +548,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
