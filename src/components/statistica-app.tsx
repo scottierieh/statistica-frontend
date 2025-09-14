@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -38,6 +39,7 @@ import {
   TrendingUp,
   Binary,
   Copy,
+  BarChart,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -65,13 +67,14 @@ import HcaPage from './pages/hca-page';
 import ManovaPage from './pages/manova-page';
 import RegressionPage from './pages/regression-page';
 import KMeansPage from './pages/kmeans-page';
+import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -91,6 +94,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     manova: ManovaPage,
     regression: RegressionPage,
     kmeans: KMeansPage,
+    frequency: FrequencyAnalysisPage,
 };
 
 const analysisMenu = [
@@ -112,7 +116,7 @@ const analysisMenu = [
           { id: 'manova', label: 'Multivariate Analysis of Variance (MANOVA)', implemented: true, icon: Users },
         ]
       },
-      { id: 'frequency', label: 'Frequency Analysis', implemented: false },
+      { id: 'frequency', label: 'Frequency Analysis', implemented: true, icon: BarChart },
       { id: 'crosstab', label: 'Crosstab Analysis', implemented: false },
       { id: 't-test', label: 't-Test', implemented: true },
       { id: 'nonparametric', label: 'Non-parametric Tests', implemented: true, icon: FlaskConical },
@@ -191,14 +195,6 @@ export default function StatisticaApp() {
 
   const { toast } = useToast();
   
-  const handleClearData = () => {
-    setData([]);
-    setAllHeaders([]);
-    setNumericHeaders([]);
-    setCategoricalHeaders([]);
-    setFileName('');
-  };
-  
   const processData = useCallback((content: string, name: string) => {
     setIsUploading(true);
     try {
@@ -226,6 +222,14 @@ export default function StatisticaApp() {
         setIsUploading(false);
       }
   }, [toast]);
+  
+  const handleClearData = () => {
+    setData([]);
+    setAllHeaders([]);
+    setNumericHeaders([]);
+    setCategoricalHeaders([]);
+    setFileName('');
+  };
 
   const handleFileSelected = useCallback((file: File) => {
     setIsUploading(true);
@@ -542,4 +546,3 @@ export default function StatisticaApp() {
   );
 }
 
-    
