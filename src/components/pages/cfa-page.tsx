@@ -11,7 +11,7 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -44,15 +44,13 @@ interface CfaResults {
     convergence: boolean;
 }
 
-const DraggableItem = ({ id }: { id: string }) => {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ 
-        id,
-     });
-    const style = { transform: CSS.Transform.toString(transform), transition };
+const DraggableItem = ({ id, isDragging }: { id: string, isDragging?: boolean }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+    const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, };
     return <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="p-2 rounded cursor-grab hover:bg-muted bg-background border my-1">{id}</div>;
 };
 
-const FactorCard = ({ factor, items, onRemoveItem, onFactorNameChange, onRemoveFactor }: { factor: { id: string, name: string }, items: string[], onRemoveItem: (factorId: string, item: string) => void, onFactorNameChange: (id: string, name: string) => void, onRemoveFactor: (id: string) => void }) => {
+const FactorCard = ({ factor, items, onFactorNameChange, onRemoveFactor }: { factor: { id: string, name: string }, items: string[], onFactorNameChange: (id: string, name: string) => void, onRemoveFactor: (id: string) => void }) => {
     return (
         <Card className="w-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -60,15 +58,10 @@ const FactorCard = ({ factor, items, onRemoveItem, onFactorNameChange, onRemoveF
                 <Button variant="ghost" size="icon" onClick={() => onRemoveFactor(factor.id)}><Trash2 className="h-4 w-4" /></Button>
             </CardHeader>
             <CardContent>
-                <SortableContext id={factor.id} items={items} strategy={verticalListSortingStrategy}>
+                 <SortableContext id={factor.id} items={items} strategy={verticalListSortingStrategy}>
                     <ScrollArea className="h-40 border rounded-md p-2 bg-muted/20 min-h-[10rem]">
                             {items.length > 0 ? (
-                                items.map(item => (
-                                    <div key={item} className="flex items-center justify-between p-1 rounded group">
-                                         <DraggableItem id={item} />
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => onRemoveItem(factor.id, item)}><Trash2 className="h-3 w-3" /></Button>
-                                    </div>
-                                ))
+                                items.map(item => <DraggableItem key={item} id={item} />)
                             ) : <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-4 text-center">Drop items here</div>}
                     </ScrollArea>
                 </SortableContext>
@@ -88,7 +81,6 @@ const getFitInterpretation = (fit: CfaResults['fit_indices']) => {
     return { level: "Poor", color: "bg-red-500" };
 }
 
-
 interface CfaPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -97,32 +89,40 @@ interface CfaPageProps {
 
 export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPageProps) {
     const { toast } = useToast();
-    const [factors, setFactors] = useState<{ id: string, name: string, items: string[] }[]>([]);
-    const [availableItems, setAvailableItems] = useState<string[]>(numericHeaders);
+    const [factors, setFactors] = useState<{ id: string, name: string }[]>([]);
+    const [items, setItems] = useState<Record<string, string[]>>({ available: numericHeaders });
+    const [activeId, setActiveId] = useState<string | null>(null);
+
     const [analysisResult, setAnalysisResult] = useState<CfaResults | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
     const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
     useEffect(() => {
-        setAvailableItems(numericHeaders);
+        const newItems: Record<string, string[]> = { available: numericHeaders };
+        setItems(newItems);
         setFactors([]);
         setAnalysisResult(null);
     }, [numericHeaders, data]);
     
     const canRunAnalysis = useMemo(() => {
-        return data.length > 0 && factors.length > 0 && factors.every(f => f.items.length > 0 && f.name.trim() !== '');
-    }, [data, factors]);
+        return data.length > 0 && factors.length > 0 && factors.every(f => (items[f.id]?.length || 0) > 0 && f.name.trim() !== '');
+    }, [data, factors, items]);
 
     const handleAddFactor = () => {
-        setFactors(prev => [...prev, { id: `factor-${Date.now()}`, name: `Factor ${prev.length + 1}`, items: [] }]);
+        const newFactorId = `factor-${Date.now()}`;
+        setFactors(prev => [...prev, { id: newFactorId, name: `Factor ${prev.length + 1}` }]);
+        setItems(prev => ({ ...prev, [newFactorId]: [] }));
     };
     
     const handleRemoveFactor = (id: string) => {
-        const factorToRemove = factors.find(f => f.id === id);
-        if (factorToRemove) {
-            setAvailableItems(prev => [...prev, ...factorToRemove.items].sort());
-        }
+        const factorItems = items[id] || [];
+        setItems(prev => {
+            const newItems = { ...prev };
+            delete newItems[id];
+            newItems.available = [...newItems.available, ...factorItems].sort();
+            return newItems;
+        });
         setFactors(prev => prev.filter(f => f.id !== id));
     };
     
@@ -130,83 +130,60 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         setFactors(prev => prev.map(f => f.id === id ? { ...f, name: newName } : f));
     };
 
+    const findContainer = (id: string) => {
+        if (id in items) return id;
+        return Object.keys(items).find(key => items[key].includes(id));
+    };
+
+    const handleDragStart = (event: any) => {
+        setActiveId(event.active.id);
+    };
+
     const handleDragEnd = (event: DragEndEvent) => {
+        setActiveId(null);
         const { active, over } = event;
-        const activeId = active.id.toString();
 
         if (!over) return;
-        const overId = over.id.toString();
-        
-        const activeContainer = findContainer(activeId);
-        const overContainer = findContainer(overId);
 
-        if (!activeContainer) return;
+        const activeContainer = findContainer(active.id as string);
+        const overContainer = findContainer(over.id as string);
+
+        if (!activeContainer || !overContainer || active.id === over.id) {
+            return;
+        }
 
         if (activeContainer === overContainer) {
             // Reordering within the same container
-            if (activeContainer === 'available') {
-                setAvailableItems(items => {
-                    const oldIndex = items.indexOf(activeId);
-                    const newIndex = items.indexOf(overId);
-                    return arrayMove(items, oldIndex, newIndex);
-                });
-            } else {
-                setFactors(prevFactors => prevFactors.map(factor => {
-                    if (factor.id === activeContainer) {
-                        const oldIndex = factor.items.indexOf(activeId);
-                        const newIndex = factor.items.indexOf(overId);
-                        return { ...factor, items: arrayMove(factor.items, oldIndex, newIndex) };
-                    }
-                    return factor;
-                }));
-            }
+            setItems(prev => {
+                const containerItems = prev[activeContainer];
+                const oldIndex = containerItems.indexOf(active.id as string);
+                const newIndex = containerItems.indexOf(over.id as string);
+                return {
+                    ...prev,
+                    [activeContainer]: arrayMove(containerItems, oldIndex, newIndex)
+                };
+            });
         } else {
-            // Moving between different containers
-            let newAvailableItems = [...availableItems];
-            let newFactors = [...factors];
+            // Moving to a different container
+            setItems(prev => {
+                const activeItems = [...prev[activeContainer]];
+                const overItems = [...prev[overContainer]];
 
-            // Remove from source
-            if (activeContainer === 'available') {
-                newAvailableItems = newAvailableItems.filter(item => item !== activeId);
-            } else {
-                newFactors = newFactors.map(f => ({
-                    ...f,
-                    items: f.items.filter(item => item !== activeId)
-                }));
-            }
-            
-            // Add to destination
-            if (overContainer === 'available') {
-                const overIndex = newAvailableItems.indexOf(overId);
-                newAvailableItems.splice(overIndex, 0, activeId);
-            } else { // Dropped on a factor card
-                newFactors = newFactors.map(f => {
-                    if (f.id === overContainer) {
-                        const overIndex = f.items.indexOf(overId);
-                        return { ...f, items: [...f.items.slice(0, overIndex), activeId, ...f.items.slice(overIndex)] };
-                    }
-                    return f;
-                });
-            }
-            setAvailableItems(newAvailableItems.sort());
-            setFactors(newFactors);
-        }
-    };
+                const activeIndex = activeItems.indexOf(active.id as string);
+                const overIndex = overItems.indexOf(over.id as string);
+                
+                const [movedItem] = activeItems.splice(activeIndex, 1);
+                
+                const newIndex = overIndex >= 0 ? overIndex : overItems.length;
+                overItems.splice(newIndex, 0, movedItem);
 
-    const findContainer = (id: string) => {
-        if (availableItems.includes(id)) return 'available';
-        for (const factor of factors) {
-            if (factor.items.includes(id)) return factor.id;
+                return {
+                    ...prev,
+                    [activeContainer]: activeItems,
+                    [overContainer]: overItems,
+                };
+            });
         }
-        // If it's a container ID itself
-        if (id === 'available') return 'available';
-        if (factors.some(f => f.id === id)) return id;
-        return null;
-    }
-    
-    const handleRemoveItem = (factorId: string, item: string) => {
-        setFactors(prev => prev.map(f => f.id === factorId ? { ...f, items: f.items.filter(i => i !== item) } : f));
-        setAvailableItems(prev => [...prev, item].sort());
     };
     
     const handleAutoSpec = () => {
@@ -223,7 +200,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         setAnalysisResult(null);
 
         const modelSpec = factors.reduce((acc, factor) => {
-            acc[factor.name] = factor.items;
+            acc[factor.name] = items[factor.id] || [];
             return acc;
         }, {} as { [key: string]: string[] });
 
@@ -252,7 +229,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         } finally {
             setIsLoading(false);
         }
-    }, [data, factors, canRunAnalysis, toast]);
+    }, [data, factors, items, canRunAnalysis, toast]);
     
     const canRunPage = useMemo(() => data.length > 0 && numericHeaders.length >= 3, [data, numericHeaders]);
 
@@ -267,7 +244,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                            To perform CFA, you need data with at least 3 numeric variables. Try one of our example datasets.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {cfaExamples.map((ex) => {
                                 const Icon = ex.icon;
@@ -298,7 +275,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     }
 
     return (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="flex flex-col gap-4">
                 <Card>
                     <CardHeader>
@@ -309,16 +286,16 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                         <Card className="md:col-span-1">
                             <CardHeader><CardTitle className="text-lg">Available Items</CardTitle></CardHeader>
                             <CardContent>
-                                <SortableContext id="available" items={availableItems} strategy={verticalListSortingStrategy}>
+                                <SortableContext id="available" items={items.available || []} strategy={verticalListSortingStrategy}>
                                     <ScrollArea className="h-80 border rounded-md p-2 bg-muted/20 min-h-[10rem]">
-                                        {availableItems.map(item => <DraggableItem key={item} id={item} />)}
+                                        {(items.available || []).map(item => <DraggableItem key={item} id={item} />)}
                                     </ScrollArea>
                                 </SortableContext>
                             </CardContent>
                         </Card>
                         <div className="md:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {factors.map(factor => (
-                                <FactorCard key={factor.id} factor={factor} items={factor.items} onRemoveItem={handleRemoveItem} onFactorNameChange={handleFactorNameChange} onRemoveFactor={handleRemoveFactor}/>
+                                <FactorCard key={factor.id} factor={factor} items={items[factor.id] || []} onFactorNameChange={handleFactorNameChange} onRemoveFactor={handleRemoveFactor}/>
                             ))}
                             <Button variant="outline" className="h-full w-full border-dashed" onClick={handleAddFactor}><Plus className="mr-2"/> Add Factor</Button>
                         </div>
@@ -375,10 +352,11 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                         <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead>Indicator</TableHead><TableHead className="text-right">Loading</TableHead><TableHead className="text-right">R²</TableHead></TableRow></TableHeader>
                                         <TableBody>
                                             {analysisResult.model_spec.factors.map((factor, fIndex) => {
-                                                const factorItems = factors.find(f=>f.name === factor)?.items || [];
+                                                const factorItems = factors.find(f=>f.name === factor)?.id ? (items[factors.find(f=>f.name === factor)!.id] || []) : [];
                                                 return factorItems.map((item, iIndex) => {
                                                     const itemIndex = analysisResult.model_spec.indicators.indexOf(item);
-                                                    const loading = analysisResult.standardized_solution?.loadings[itemIndex][fIndex] ?? 0;
+                                                    if(itemIndex === -1 || !analysisResult.standardized_solution) return null;
+                                                    const loading = analysisResult.standardized_solution.loadings[itemIndex]?.[fIndex] ?? 0;
                                                     const rSquared = loading * loading;
                                                     return (
                                                         <TableRow key={`${fIndex}-${iIndex}`}>
@@ -451,6 +429,9 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                     </div>
                 )}
             </div>
+            <DragOverlay>
+                {activeId ? <div className="p-2 rounded cursor-grabbing bg-background border shadow-lg">{activeId}</div> : null}
+            </DragOverlay>
         </DndContext>
     );
 }
