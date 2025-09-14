@@ -1,4 +1,4 @@
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary } from "lucide-react";
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
@@ -7,11 +7,12 @@ import { cfaData } from "./example-datasets/cfa-data";
 import { nonparametricData } from "./example-datasets/nonparametric-data";
 import { customerSegmentsData } from "./example-datasets/customer-segments";
 import { manovaData } from "./example-datasets/manova-data";
+import { twoWayAnovaData } from "./example-datasets/two-way-anova-data";
 
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 'manova';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca';
 
 
 export interface ExampleDataSet {
@@ -51,6 +52,15 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 
 export const exampleDatasets: ExampleDataSet[] = [
+    {
+        id: 'two-way-anova-factorial',
+        name: '2x3 Factorial Design',
+        description: 'Performance scores by gender and treatment type. Ideal for Two-Way ANOVA.',
+        icon: Copy,
+        analysisTypes: ['stats', 'two-way-anova'],
+        recommendedAnalysis: 'two-way-anova',
+        data: twoWayAnovaData,
+    },
     {
         id: 'manova-groups',
         name: 'Treatment Groups',
@@ -119,7 +129,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Users,
-        analysisTypes: ['stats', 'correlation', 'anova', 'visuals', 'discriminant'],
+        analysisTypes: ['stats', 'correlation', 'one-way-anova', 'visuals', 'discriminant'],
         recommendedAnalysis: 'discriminant',
         data: irisData
     },
@@ -128,7 +138,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Restaurant Tips',
         description: 'Tips received by a server, along with customer and bill info.',
         icon: Coffee,
-        analysisTypes: ['stats', 'anova', 'visuals'],
+        analysisTypes: ['stats', 'one-way-anova', 'visuals'],
         data: tipsData
     },
     {
@@ -141,5 +151,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         data: studentPerformanceData
     }
 ]
+
+    
 
     

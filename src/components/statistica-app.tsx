@@ -15,6 +15,9 @@ import {
   SidebarMenuButton,
   SidebarMenu,
   SidebarInput,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -36,6 +39,7 @@ import {
   Users,
   TrendingUp,
   Binary,
+  Copy,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -48,6 +52,7 @@ import { getSummaryReport } from '@/app/actions';
 import DescriptiveStatsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
 import AnovaPage from './pages/anova-page';
+import TwoWayAnovaPage from './pages/two-way-anova-page';
 import VisualizationPage from './pages/visualization-page';
 import ReliabilityPage from './pages/reliability-page';
 import DiscriminantPage from './pages/discriminant-page';
@@ -64,12 +69,13 @@ import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 'manova';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' ;
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
     correlation: CorrelationPage,
-    anova: AnovaPage,
+    'one-way-anova': AnovaPage,
+    'two-way-anova': TwoWayAnovaPage,
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
     efa: EfaPage,
@@ -88,11 +94,19 @@ const analysisMenu = [
     methods: [
       { id: 'stats', label: 'Descriptive Statistics', implemented: true },
       { id: 'reliability', label: 'Reliability Analysis', implemented: true, icon: ShieldCheck },
+      { 
+        id: 'anova',
+        label: 'ANOVA / MANOVA',
+        implemented: true,
+        subMethods: [
+          { id: 'one-way-anova', label: 'One-Way ANOVA', implemented: true },
+          { id: 'two-way-anova', label: 'Two-Way ANOVA', implemented: true, icon: Copy },
+          { id: 'manova', label: 'MANOVA', implemented: true },
+        ]
+      },
       { id: 'frequency', label: 'Frequency Analysis', implemented: false },
       { id: 'crosstab', label: 'Crosstab Analysis', implemented: false },
       { id: 'ttest', label: 't-test', implemented: false },
-      { id: 'anova', label: 'ANOVA', implemented: true },
-      { id: 'manova', label: 'MANOVA', implemented: true },
       { id: 'nonparametric', label: 'Non-parametric Tests', implemented: true, icon: FlaskConical },
     ]
   },
@@ -334,7 +348,8 @@ export default function StatisticaApp() {
     
     const filtered = analysisMenu.map(category => {
       const filteredMethods = category.methods.filter(method => 
-        method.label.toLowerCase().includes(lowercasedQuery)
+        method.label.toLowerCase().includes(lowercasedQuery) ||
+        (method.subMethods && method.subMethods.some(sub => sub.label.toLowerCase().includes(lowercasedQuery)))
       );
       if (filteredMethods.length > 0 || category.field.toLowerCase().includes(lowercasedQuery)) {
         return { ...category, methods: filteredMethods.length > 0 ? filteredMethods : category.methods };
@@ -387,15 +402,9 @@ export default function StatisticaApp() {
                 const Icon = category.icon;
                 const isOpen = openCategories.includes(category.field);
                 
-                // If searching, only show categories that match. If method matches, category should also show.
-                if (searchQuery && !category.field.toLowerCase().includes(searchQuery.toLowerCase()) && !category.methods.some(m => m.label.toLowerCase().includes(searchQuery.toLowerCase()))) {
+                if (searchQuery && !category.field.toLowerCase().includes(searchQuery.toLowerCase()) && !category.methods.some(m => m.label.toLowerCase().includes(searchQuery.toLowerCase()) || (m.subMethods && m.subMethods.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase()))))) {
                   return null;
                 }
-
-                const methodsToShow = searchQuery ? category.methods.filter(m => m.label.toLowerCase().includes(searchQuery.toLowerCase())) : category.methods;
-
-                if(searchQuery && methodsToShow.length === 0 && !category.field.toLowerCase().includes(searchQuery.toLowerCase())) return null;
-
 
                 return (
                   <Collapsible key={category.field} open={isOpen} onOpenChange={() => toggleCategory(category.field)}>
@@ -409,10 +418,41 @@ export default function StatisticaApp() {
                     <CollapsibleContent className="pl-6 py-1">
                       <SidebarMenu>
                         {category.methods.map(method => {
-                           if (searchQuery && !method.label.toLowerCase().includes(searchQuery.toLowerCase())) {
+                           if (searchQuery && !method.label.toLowerCase().includes(searchQuery.toLowerCase()) && !(method.subMethods && method.subMethods.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase())))) {
                             return null;
                           }
                           const MethodIcon = method.icon;
+                          if (method.subMethods) {
+                            return (
+                              <SidebarMenuItem key={method.id}>
+                                <Collapsible>
+                                    <CollapsibleTrigger className="w-full">
+                                        <SidebarMenuButton className="justify-start w-full h-8 text-xs font-normal">
+                                            {MethodIcon && <MethodIcon className="h-4 w-4" />}
+                                            <span>{method.label}</span>
+                                             <ChevronDown className={cn("h-4 w-4 ml-auto transition-transform")} />
+                                        </SidebarMenuButton>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="pl-6 py-1">
+                                        <SidebarMenuSub>
+                                            {method.subMethods.map(subMethod => (
+                                                <SidebarMenuSubItem key={subMethod.id}>
+                                                    <SidebarMenuSubButton
+                                                        onClick={() => setActiveAnalysis(subMethod.id as AnalysisType)}
+                                                        isActive={activeAnalysis === subMethod.id}
+                                                        disabled={!subMethod.implemented}
+                                                    >
+                                                        {subMethod.icon && <subMethod.icon />}
+                                                        {subMethod.label}
+                                                    </SidebarMenuSubButton>
+                                                </SidebarMenuSubItem>
+                                            ))}
+                                        </SidebarMenuSub>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                              </SidebarMenuItem>
+                            )
+                          }
                           return (
                           <SidebarMenuItem key={method.id}>
                               <SidebarMenuButton
@@ -459,7 +499,7 @@ export default function StatisticaApp() {
                 onDownload={handleDownloadData}
               />
             )}
-
+            
             <ActivePageComponent 
                 key={activeAnalysis} 
                 data={data}
@@ -468,6 +508,7 @@ export default function StatisticaApp() {
                 categoricalHeaders={categoricalHeaders}
                 onLoadExample={handleLoadExampleData}
                />
+
           </div>
         </SidebarInset>
       </div>
@@ -491,5 +532,7 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
+    
 
     

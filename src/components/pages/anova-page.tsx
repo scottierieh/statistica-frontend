@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -206,7 +207,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
     const anovaResult = analysisResponse?.results;
 
     if (!canRun) {
-        const anovaExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('anova'));
+        const anovaExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('one-way-anova'));
         return (
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
@@ -250,7 +251,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">ANOVA Setup</CardTitle>
+                    <CardTitle className="font-headline">One-Way ANOVA Setup</CardTitle>
                     <CardDescription>
                         Select a group variable (categorical) and a value variable (numeric) to compare means across groups, then click 'Run Analysis'.
                     </CardDescription>
@@ -487,3 +488,5 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
+
+    
