@@ -131,7 +131,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         setReliabilityResult(null);
         setAiPromise(null);
 
-        const backendUrl = 'https://us-central1-studio-7415103661-752d9.cloudfunctions.net/api/reliability';
+        const backendUrl = 'https://api-w3e6d6caka-uc.a.run.app/reliability';
         
         try {
             console.log('Sending request to:', backendUrl);

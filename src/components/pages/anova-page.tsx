@@ -148,8 +148,9 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         setIsLoading(true);
         setAnovaResult(null);
         setAiPromise(null);
-
-        const backendUrl = 'https://us-central1-studio-7415103661-752d9.cloudfunctions.net/api/anova';
+        
+        // This URL is specific to the Firebase project and function name.
+        const backendUrl = 'https://api-w3e6d6caka-uc.a.run.app/anova';
 
         try {
             console.log('Sending request to:', backendUrl);
