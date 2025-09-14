@@ -110,8 +110,8 @@ const analysisMenu = [
         subMethods: [
           { id: 'one-way-anova', label: 'One-Way ANOVA', implemented: true },
           { id: 'two-way-anova', label: 'Two-Way ANOVA', implemented: true },
-          { id: 'ancova', label: 'ANCOVA', implemented: true },
-          { id: 'manova', label: 'MANOVA', implemented: true, icon: Users },
+          { id: 'ancova', label: 'Analysis of Covariance (ANCOVA)', implemented: true },
+          { id: 'manova', label: 'Multivariate Analysis of Variance (MANOVA)', implemented: true, icon: Users },
         ]
       },
       { id: 'frequency', label: 'Frequency Analysis', implemented: false },
@@ -138,9 +138,9 @@ const analysisMenu = [
       { id: 'kmeans', label: 'K-Means Clustering', implemented: true, icon: Binary },
       { id: 'hca', label: 'Hierarchical Clustering', implemented: true, icon: Binary },
       { id: 'discriminant', label: 'Discriminant Analysis', implemented: true, icon: Users },
-      { id: 'efa', label: 'EFA', implemented: true, icon: BrainCircuit },
-      { id: 'cfa', label: 'CFA', implemented: true, icon: BrainCircuit },
-      { id: 'pca', label: 'PCA', implemented: false },
+      { id: 'efa', label: 'Exploratory Factor Analysis (EFA)', implemented: true, icon: BrainCircuit },
+      { id: 'cfa', label: 'Confirmatory Factor Analysis (CFA)', implemented: true, icon: BrainCircuit },
+      { id: 'pca', label: 'Principal Component Analysis (PCA)', implemented: false },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
   },
