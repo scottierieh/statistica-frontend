@@ -12,6 +12,7 @@ import { Sigma, AlertCircle, Loader2 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { getAnovaInterpretation } from '@/app/actions';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // Type definitions for the ANOVA results
 interface AnovaResults {
@@ -315,12 +316,42 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                                     </div>
                                     <div>
                                         <h3 className="font-semibold mb-2 text-lg">Assumption Checks</h3>
-                                        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm border p-4 rounded-md">
-                                            <dt className="text-muted-foreground">Normality (Shapiro-Wilk)</dt>
-                                            <dd className="text-right">{Object.values(anovaResult.assumptions.normality).every(t => t.normal) ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}</dd>
-                                            <dt className="text-muted-foreground">Equal Variances (Levene)</dt>
-                                            <dd className="text-right">{anovaResult.assumptions.homogeneity.equal_variances ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}</dd>
-                                        </dl>
+                                        <div className="border p-4 rounded-md space-y-3 text-sm">
+                                            <div className="flex justify-between items-center">
+                                                <dt className="text-muted-foreground">Normality</dt>
+                                                <dd>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="link" size="sm" className="h-auto p-0">View Details</Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-80">
+                                                            <div className="grid gap-4">
+                                                                <div className="space-y-2">
+                                                                    <h4 className="font-medium leading-none">Normality (Shapiro-Wilk)</h4>
+                                                                    <p className="text-xs text-muted-foreground">Tests if each group's data is normally distributed. p > 0.05 suggests normality.</p>
+                                                                </div>
+                                                                <div className="grid gap-2 text-xs">
+                                                                    {Object.entries(anovaResult.assumptions.normality).map(([group, result]) => (
+                                                                        <div className="grid grid-cols-3 items-center gap-4" key={group}>
+                                                                            <span className="font-semibold">{group}</span>
+                                                                            <span className="font-mono">p = {result.p_value?.toFixed(3) ?? 'N/A'}</span>
+                                                                            {result.normal === null ? <Badge variant="outline">N/A</Badge> : result.normal ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </dd>
+                                            </div>
+                                            <div className="flex justify-between items-start">
+                                                <dt className="text-muted-foreground">Equal Variances</dt>
+                                                <dd className="text-right">
+                                                    {anovaResult.assumptions.homogeneity.equal_variances ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}
+                                                    <p className="font-mono text-xs">(p = {anovaResult.assumptions.homogeneity.levene_p_value.toFixed(3)})</p>
+                                                </dd>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -437,5 +468,3 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
-
-    
