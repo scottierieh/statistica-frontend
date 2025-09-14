@@ -262,7 +262,7 @@ class ConfirmatoryFactorAnalysis:
         factors = spec['factors']
         indicators = spec['indicators']
         
-        fig, ax = plt.subplots(figsize=(8, 6))
+        fig, ax = plt.subplots(figsize=(5, 4))
         ax.set_xlim(0, 10)
         ax.set_ylim(0, 10)
         ax.axis('off')
@@ -352,6 +352,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
