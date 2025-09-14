@@ -1,4 +1,4 @@
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp } from "lucide-react";
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
@@ -8,7 +8,7 @@ import { cfaData } from "./example-datasets/cfa-data";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation';
+type AnalysisType = 'stats' | 'correlation' | 'anova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric';
 
 
 export interface ExampleDataSet {
@@ -89,7 +89,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Users,
-        analysisTypes: ['stats', 'correlation', 'anova', 'visuals', 'discriminant'],
+        analysisTypes: ['stats', 'correlation', 'anova', 'visuals', 'discriminant', 'nonparametric'],
         recommendedAnalysis: 'discriminant',
         data: irisData
     },
@@ -98,7 +98,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Restaurant Tips',
         description: 'Tips received by a server, along with customer and bill info.',
         icon: Coffee,
-        analysisTypes: ['stats', 'anova', 'visuals'],
+        analysisTypes: ['stats', 'anova', 'visuals', 'nonparametric'],
         data: tipsData
     },
     {
@@ -111,3 +111,5 @@ export const exampleDatasets: ExampleDataSet[] = [
         data: studentPerformanceData
     }
 ]
+
+    
