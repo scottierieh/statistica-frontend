@@ -28,7 +28,7 @@ def convert_numpy(obj):
         return None
     return obj
 
-@https_fn.on_request(cors=https_fn.CorsOptions(cors_origins="*", cors_methods=["get", "post"]))
+@https_fn.on_request(cors=True)
 def anova(req: https_fn.Request) -> https_fn.Response:
     try:
         req_data = req.get_json(silent=True)
@@ -50,7 +50,7 @@ def anova(req: https_fn.Request) -> https_fn.Response:
         print(f"Error in ANOVA endpoint: {e}")
         return https_fn.Response(json.dumps({"error": str(e)}), status=500, headers={"Content-Type": "application/json"})
 
-@https_fn.on_request(cors=https_fn.CorsOptions(cors_origins="*", cors_methods=["get", "post"]))
+@https_fn.on_request(cors=True)
 def reliability(req: https_fn.Request) -> https_fn.Response:
     try:
         req_data = req.get_json(silent=True)
