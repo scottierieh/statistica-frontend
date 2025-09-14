@@ -100,7 +100,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
     useEffect(() => {
         const newItems: Record<string, string[]> = { available: numericHeaders };
-        setItems(newItems);
+        setItems({ available: numericHeaders });
         setFactors([]);
         setAnalysisResult(null);
     }, [numericHeaders, data]);
@@ -140,50 +140,45 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
-        setActiveId(null);
         const { active, over } = event;
-
-        if (!over) return;
-
-        const activeContainer = findContainer(active.id as string);
-        const overContainer = findContainer(over.id as string);
-
-        if (!activeContainer || !overContainer || active.id === over.id) {
+        setActiveId(null);
+    
+        if (!over) {
             return;
         }
-
-        if (activeContainer === overContainer) {
-            // Reordering within the same container
-            setItems(prev => {
-                const containerItems = prev[activeContainer];
-                const oldIndex = containerItems.indexOf(active.id as string);
-                const newIndex = containerItems.indexOf(over.id as string);
-                return {
-                    ...prev,
-                    [activeContainer]: arrayMove(containerItems, oldIndex, newIndex)
-                };
-            });
-        } else {
-            // Moving to a different container
-            setItems(prev => {
-                const activeItems = [...prev[activeContainer]];
-                const overItems = [...prev[overContainer]];
-
-                const activeIndex = activeItems.indexOf(active.id as string);
-                const overIndex = overItems.indexOf(over.id as string);
-                
-                const [movedItem] = activeItems.splice(activeIndex, 1);
-                
-                const newIndex = overIndex >= 0 ? overIndex : overItems.length;
-                overItems.splice(newIndex, 0, movedItem);
-
-                return {
-                    ...prev,
-                    [activeContainer]: activeItems,
-                    [overContainer]: overItems,
-                };
-            });
+    
+        const activeContainer = findContainer(active.id as string);
+        const overContainer = findContainer(over.id as string);
+    
+        if (!activeContainer || !overContainer || activeContainer === overContainer) {
+             if(activeContainer) {
+                const activeIndex = items[activeContainer].indexOf(active.id as string);
+                const overIndex = items[overContainer!].indexOf(over.id as string);
+                if (activeIndex !== overIndex) {
+                    setItems(prev => ({
+                        ...prev,
+                        [overContainer!]: arrayMove(prev[overContainer!], activeIndex, overIndex)
+                    }));
+                }
+            }
+            return;
         }
+    
+        setItems(prev => {
+            const activeItems = prev[activeContainer];
+            const overItems = prev[overContainer];
+    
+            const activeIndex = activeItems.indexOf(active.id as string);
+            const overIndex = overItems.indexOf(over.id as string);
+    
+            const newItems = { ...prev };
+            const [movedItem] = newItems[activeContainer].splice(activeIndex, 1);
+            
+            const newOverIndex = overIndex >= 0 ? overIndex : newItems[overContainer].length;
+            newItems[overContainer].splice(newOverIndex, 0, movedItem);
+
+            return newItems;
+        });
     };
     
     const handleAutoSpec = () => {
