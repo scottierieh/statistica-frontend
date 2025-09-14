@@ -5,3 +5,4 @@ pingouin
 numpy
 scipy
 gunicorn
+firebase-functions

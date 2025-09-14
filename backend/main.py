@@ -3,14 +3,19 @@ from flask_cors import CORS
 import pandas as pd
 import pingouin as pg
 import json
+from firebase_functions import https_fn
 
+# Initialize Flask App
 app = Flask(__name__)
-CORS(app)
+CORS(app) # Enable CORS for all routes and origins
 
 @app.route("/reliability", methods=['POST'])
 def reliability():
     try:
         payload = request.get_json()
+        if not payload:
+            return jsonify({"error": "No JSON payload received"}), 400
+            
         data = payload.get('data')
         items = payload.get('items')
         reverse_code_items = payload.get('reverseCodeItems', [])
@@ -39,15 +44,7 @@ def reliability():
 
         alpha_results = pg.cronbach_alpha(data=df_items, nan_policy='listwise')
         
-        item_stats = pg.multivariate_corr(df_items.sum(axis=1), df_items)
-
-        alpha_if_deleted = {}
-        for item in df_items.columns:
-            sub_df = df_items.drop(columns=item)
-            alpha_if_deleted[item] = pg.cronbach_alpha(data=sub_df)[0]
-            
-        inter_item_corrs = df_items.corr()
-        avg_inter_item_corr = inter_item_corrs.values[inter_item_corrs.values != 1].mean()
+        item_total_corr = pg.item_reliability(df_items)
 
         response = {
             'alpha': alpha_results[0],
@@ -58,14 +55,14 @@ def reliability():
             'item_statistics': {
                 'means': df_items.mean().to_dict(),
                 'stds': df_items.std().to_dict(),
-                'corrected_item_total_correlations': item_stats['r'].to_dict(),
-                'alpha_if_deleted': alpha_if_deleted,
+                'corrected_item_total_correlations': item_total_corr['item-total_corr'].to_dict(),
+                'alpha_if_deleted': item_total_corr['alpha_if_deleted'].to_dict(),
             },
             'scale_statistics': {
                 'mean': df_items.sum(axis=1).mean(),
                 'std': df_items.sum(axis=1).std(),
                 'variance': df_items.sum(axis=1).var(),
-                'avg_inter_item_correlation': avg_inter_item_corr
+                'avg_inter_item_correlation': df_items.corr().values[df_items.corr().values != 1].mean()
             }
         }
         
@@ -78,6 +75,9 @@ def reliability():
 def anova():
     try:
         payload = request.get_json()
+        if not payload:
+            return jsonify({"error": "No JSON payload received"}), 400
+
         data = payload.get('data')
         independent_var = payload.get('independentVar')
         dependent_var = payload.get('dependentVar')
@@ -87,20 +87,31 @@ def anova():
 
         df = pd.DataFrame(data)
         
+        # Ensure correct dtypes
+        df[dependent_var] = pd.to_numeric(df[dependent_var], errors='coerce')
+        df[independent_var] = df[independent_var].astype('category')
+        df.dropna(subset=[dependent_var, independent_var], inplace=True)
+
+        if df.shape[0] < 2:
+            return jsonify({"error": "Not enough valid data points for analysis."}), 400
+        
+        if df[independent_var].nunique() < 2:
+            return jsonify({"error": f"The independent variable '{independent_var}' must have at least 2 unique groups."}), 400
+
         anova_res = pg.anova(data=df, dv=dependent_var, between=independent_var, detailed=True)
         normality_res = pg.normality(data=df, dv=dependent_var, group=independent_var)
         homogeneity_res = pg.homoscedasticity(data=df, dv=dependent_var, group=independent_var)
 
         post_hoc = None
         is_significant = anova_res['p-unc'][0] < 0.05
-        if is_significant:
+        if is_significant and df[independent_var].nunique() > 2:
             post_hoc = pg.pairwise_tukey(data=df, dv=dependent_var, between=independent_var)
         
-        descriptives = df.groupby(independent_var)[dependent_var].agg(['count', 'mean', 'std', 'var', 'min', 'max', 'median', lambda x: x.quantile(0.25), lambda x: x.quantile(0.75), lambda x: x.sem()]).reset_index()
+        descriptives = df.groupby(independent_var)[dependent_var].agg(['count', 'mean', 'std', 'var', 'min', 'max', 'median', lambda x: x.quantile(0.25), lambda x: x.quantile(0.75), 'sem']).reset_index()
         descriptives.columns = ['group', 'n', 'mean', 'std', 'var', 'min', 'max', 'median', 'q1', 'q3', 'se']
 
         response = {
-            "descriptives": {row['group']: row.to_dict() for _, row in descriptives.iterrows()},
+            "descriptives": {str(row['group']): row.drop('group').to_dict() for _, row in descriptives.iterrows()},
             "anova": {
                 'f_statistic': anova_res['F'][0],
                 'p_value': anova_res['p-unc'][0],
@@ -117,11 +128,11 @@ def anova():
                 'omega_squared': pg.compute_effsize(df[independent_var], df[dependent_var], eftype='omega')
             },
             "assumptions": {
-                "normality": {group: {'statistic': stat, 'p_value': p, 'normal': normal} for group, stat, p, normal in zip(normality_res['group'], normality_res['W'], normality_res['pval'], normality_res['normal'])},
+                "normality": {str(group): {'statistic': stat, 'p_value': p, 'normal': normal} for group, stat, p, normal in zip(normality_res['group'], normality_res['W'], normality_res['pval'], normality_res['normal'])},
                 "homogeneity": {
                     'levene_statistic': homogeneity_res['W'][0],
                     'levene_p_value': homogeneity_res['pval'][0],
-                    'equal_variances': homogeneity_res['equal_var'][0]
+                    'equal_variances': bool(homogeneity_res['equal_var'][0])
                 }
             },
             "post_hoc_tukey": post_hoc.to_dict('records') if post_hoc is not None else [],
@@ -134,6 +145,10 @@ def anova():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# This part is for local development if needed, but the app is served by the cloud environment.
-if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=8080)
+# This is the entry point for the Google Cloud Function.
+@https_fn.on_request()
+def api(req: https_fn.Request) -> https_fn.Response:
+    # Dispatch the request to the Flask app.
+    # The Flask app will handle the routing based on the request path.
+    with app.request_context(req.environ):
+        return app.full_dispatch_request()

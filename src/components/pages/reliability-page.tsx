@@ -131,10 +131,9 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         setReliabilityResult(null);
         setAiPromise(null);
 
+        const backendUrl = 'https://us-central1-studio-7415103661-752d9.cloudfunctions.net/api/reliability';
+        
         try {
-            // NOTE: The backend URL is hardcoded here as environment variables were not reliable in this context.
-            const backendUrl = 'https://us-central1-studio-7415103661-752d9.cloudfunctions.net/api/reliability';
-            
             console.log('Sending request to:', backendUrl);
             const response = await fetch(backendUrl, {
                 method: 'POST',
