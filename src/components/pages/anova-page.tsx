@@ -115,6 +115,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         setAnovaResult(null);
 
         try {
+            console.log('Sending request to:', backendUrl);
             const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -140,8 +141,8 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
             setAnovaResult(result);
 
         } catch(e: any) {
-            console.error(e);
-            toast({variant: 'destructive', title: 'ANOVA Error', description: e.message || 'Please check the data format and variable selections.'})
+            console.error('Fetch error:', e);
+            toast({variant: 'destructive', title: 'ANOVA Analysis Error', description: e.message || 'An unexpected error occurred. Please check the console for details.'})
             setAnovaResult(null);
         } finally {
             setIsLoading(false);
