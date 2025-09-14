@@ -1,6 +1,6 @@
 {
-  "hosting": {
-    "source": ".",
+  "functions": {
+    "source": "./backend",
     "ignore": [
       "firebase.json",
       "**/.*",
