@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { getReliabilityInterpretation } from '@/app/actions';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
+import { URL } from 'url';
 
 // Type definitions for the rich Reliability results
 interface ReliabilityResults {
@@ -126,13 +127,25 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
             toast({variant: 'destructive', title: 'Selection Error', description: 'Please select at least two items for the analysis.'});
             return;
         };
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+        if (!backendUrl) {
+            toast({
+                variant: 'destructive',
+                title: 'Configuration Error',
+                description: 'The backend URL is not configured. Please check your environment variables.',
+            });
+            return;
+        }
+
         setIsLoading(true);
         setReliabilityResult(null);
         setAiPromise(null);
 
         try {
-            console.log('Sending request to: /api/analysis/reliability');
-            const response = await fetch('/api/analysis/reliability', {
+            const reliabilityUrl = new URL('reliability', backendUrl).href;
+            console.log('Sending request to:', reliabilityUrl);
+
+            const response = await fetch(reliabilityUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

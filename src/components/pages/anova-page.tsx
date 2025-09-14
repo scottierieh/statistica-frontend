@@ -12,6 +12,7 @@ import { Sigma, AlertCircle, Loader2 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { getAnovaInterpretation } from '@/app/actions';
+import { URL } from 'url';
 
 // Type definitions for the ANOVA results
 interface AnovaResults {
@@ -144,13 +145,25 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
             toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select both a group variable and a value variable.'});
             return;
         };
+
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+        if (!backendUrl) {
+            toast({
+                variant: 'destructive',
+                title: 'Configuration Error',
+                description: 'The backend URL is not configured. Please check your environment variables.',
+            });
+            return;
+        }
+
         setIsLoading(true);
         setAnovaResult(null);
         setAiPromise(null);
 
         try {
-            console.log('Sending request to: /api/analysis/anova');
-            const response = await fetch('/api/analysis/anova', {
+            const anovaUrl = new URL('anova', backendUrl).href;
+            console.log('Sending request to:', anovaUrl);
+            const response = await fetch(anovaUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
