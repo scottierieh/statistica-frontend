@@ -173,8 +173,8 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
           <CardHeader>
               <CardTitle className="font-headline">Pearson Correlation Matrix</CardTitle>
               <CardDescription>
-                Each cell shows: Correlation (r) and p-value.
-                <Badge variant="outline" className="ml-2 border-green-500 text-green-500">p &lt; 0.05</Badge> indicates a statistically significant correlation.
+                <span>Each cell shows: Correlation (r) and p-value.
+                <Badge variant="outline" className="ml-2 border-green-500 text-green-500">p &lt; 0.05</Badge> indicates a statistically significant correlation.</span>
               </CardDescription>
           </CardHeader>
           <CardContent>
