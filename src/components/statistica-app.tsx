@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -63,13 +64,14 @@ import NonParametricPage from './pages/nonparametric-page';
 import TTestPage from './pages/t-test-page';
 import HcaPage from './pages/hca-page';
 import ManovaPage from './pages/manova-page';
+import RegressionPage from './pages/regression-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -86,6 +88,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     't-test': TTestPage,
     hca: HcaPage,
     manova: ManovaPage,
+    regression: RegressionPage,
 };
 
 const analysisMenu = [
@@ -117,9 +120,10 @@ const analysisMenu = [
     icon: Link2,
     methods: [
       { id: 'correlation', label: 'Correlation Analysis', implemented: true },
+      { id: 'regression', label: 'Regression Analysis', implemented: true, icon: TrendingUp },
       { id: 'mediation', label: 'Mediation Analysis', implemented: true, icon: Network },
       { id: 'moderation', label: 'Moderation Analysis', implemented: true, icon: TrendingUp },
-      { id: 'linear-regression', label: 'Linear Regression', implemented: false },
+      { id: 'linear-regression', label: 'Linear Regression (Old)', implemented: false },
       { id: 'logistic-regression', label: 'Logistic Regression', implemented: false },
     ]
   },

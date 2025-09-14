@@ -9,11 +9,12 @@ import { customerSegmentsData } from "./example-datasets/customer-segments";
 import { manovaData } from "./example-datasets/manova-data";
 import { twoWayAnovaData } from "./example-datasets/two-way-anova-data";
 import { tTestData } from "./example-datasets/t-test-data";
+import { regressionData } from "./example-datasets/regression-data";
 
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression';
 
 
 export interface ExampleDataSet {
@@ -61,6 +62,15 @@ export const exampleDatasets: ExampleDataSet[] = [
         analysisTypes: ['stats', 't-test'],
         recommendedAnalysis: 't-test',
         data: tTestData,
+    },
+    {
+        id: 'regression-suite',
+        name: 'Linear Regression',
+        description: 'A simple dataset with a clear linear relationship for regression.',
+        icon: TrendingUp,
+        analysisTypes: ['stats', 'regression', 'correlation'],
+        recommendedAnalysis: 'regression',
+        data: regressionData,
     },
     {
         id: 'two-way-anova-factorial',
