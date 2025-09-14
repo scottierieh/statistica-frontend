@@ -16,7 +16,13 @@ import { Badge } from '../ui/badge';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
-import { Input } from '../ui/input';
+
+interface CoeffRow {
+    coefficient: number;
+    std_error: number;
+    t_value: number;
+    p_value: number;
+}
 
 interface RegressionResults {
     model_name: string;
@@ -33,9 +39,18 @@ interface RegressionResults {
         f_pvalue?: number;
         durbin_watson?: number;
         vif?: { [key: string]: number };
-        coefficients?: {
+        coefficient_tests?: {
             params: { [key: string]: number };
             pvalues: { [key: string]: number };
+            bse: { [key: string]: number };
+            tvalues: { [key: string]: number };
+        },
+        normality_tests?: {
+            jarque_bera: { statistic: number; p_value: number; };
+            shapiro_wilk: { statistic: number; p_value: number; };
+        };
+        heteroscedasticity_tests?: {
+            breusch_pagan: { statistic: number; p_value: number; };
         }
     };
     plot: string;
@@ -105,7 +120,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
             }
             features = multipleFeatureVars;
         } else {
-             // Placeholder for other model types
             toast({variant: 'destructive', title: 'Not Implemented', description: `Analysis for ${modelType} regression is not yet implemented.`});
             return;
         }
@@ -178,13 +192,21 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
     }
 
     const results = analysisResult;
-    const coeffs = results?.diagnostics?.coefficients;
+    const coeffs = results?.diagnostics?.coefficient_tests;
+
+    const coefficientTableData = coeffs ? Object.keys(coeffs.params).map(key => ({
+        key: key,
+        coefficient: coeffs.params[key],
+        stdError: coeffs.bse[key],
+        tValue: coeffs.tvalues[key],
+        pValue: coeffs.pvalues[key]
+    })) : [];
 
     let analysisButtonDisabled = isLoading || !targetVar;
     if(modelType === 'simple') {
         analysisButtonDisabled = analysisButtonDisabled || !simpleFeatureVar;
     } else if (modelType === 'multiple') {
-        analysisButtonDisabled = analysisButtonDisabled || multipleFeatureVars.length < 2;
+        analysisButtonDisabled = analysisButtonDisabled || multipleFeatureVars.length < 1; // Allow single feature for multiple tab
     }
 
 
@@ -196,7 +218,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                     <CardDescription>Select a regression model type, then configure its variables and parameters.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Tabs value={modelType} onValueChange={setModelType} className="w-full">
+                    <Tabs value={modelType} onValueChange={(v) => {setModelType(v); setAnalysisResult(null);}} className="w-full">
                         <TabsList className='mb-4'>
                             <TabsTrigger value="simple">Simple Linear</TabsTrigger>
                             <TabsTrigger value="multiple">Multiple Linear</TabsTrigger>
@@ -250,10 +272,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                                 </div>
                             </div>
                         </TabsContent>
-                        {/* Placeholder for other model types */}
-                        <TabsContent value="polynomial">...</TabsContent>
-                        <TabsContent value="ridge">...</TabsContent>
-                        <TabsContent value="lasso">...</TabsContent>
                     </Tabs>
                     <div className="flex justify-end mt-4">
                         <Button onClick={handleAnalysis} disabled={analysisButtonDisabled}>
@@ -292,13 +310,23 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                             <CardHeader><CardTitle>Coefficients</CardTitle></CardHeader>
                             <CardContent>
                                 <Table>
-                                    <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Coefficient</TableHead><TableHead>p-value</TableHead></TableRow></TableHeader>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Variable</TableHead>
+                                            <TableHead className="text-right">Coefficient</TableHead>
+                                            <TableHead className="text-right">Std. Error</TableHead>
+                                            <TableHead className="text-right">t-value</TableHead>
+                                            <TableHead className="text-right">p-value</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
                                     <TableBody>
-                                        {Object.keys(coeffs.params).map(key => (
-                                            <TableRow key={key}>
-                                                <TableCell>{key}</TableCell>
-                                                <TableCell className="font-mono">{coeffs.params[key].toFixed(4)}</TableCell>
-                                                <TableCell className="font-mono">{coeffs.pvalues[key] < 0.001 ? '<.001' : coeffs.pvalues[key].toFixed(4)} {getSignificanceStars(coeffs.pvalues[key])}</TableCell>
+                                        {coefficientTableData.map(row => (
+                                            <TableRow key={row.key}>
+                                                <TableCell>{row.key === 'const' ? 'Intercept' : row.key}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.coefficient.toFixed(4)}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.stdError.toFixed(4)}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.tValue.toFixed(3)}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '<.001' : row.pValue.toFixed(4)} {getSignificanceStars(row.pValue)}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -307,28 +335,59 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample }: 
                         </Card>
                     )}
                     
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                        <Card>
-                            <CardHeader><CardTitle>Model Diagnostics</CardTitle></CardHeader>
+                            <CardHeader><CardTitle className="font-headline">Model Fit</CardTitle></CardHeader>
                             <CardContent>
-                                <dl className="space-y-2 text-sm">
-                                    <div className="flex justify-between"><span>F-statistic:</span><span className="font-mono">{results.diagnostics.f_statistic?.toFixed(3)} (p={results.diagnostics.f_pvalue?.toFixed(4)})</span></div>
+                                <dl className="space-y-3 text-sm">
+                                    <div className="flex justify-between"><span>F-statistic:</span><span className="font-mono">{results.diagnostics.f_statistic?.toFixed(3)}</span></div>
+                                    <div className="flex justify-between"><span>Prob (F-statistic):</span><span className="font-mono">{results.diagnostics.f_pvalue?.toExponential(2)}</span></div>
                                     <div className="flex justify-between"><span>Durbin-Watson:</span><span className="font-mono">{results.diagnostics.durbin_watson?.toFixed(3)}</span></div>
+                                </dl>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader><CardTitle className="font-headline">Residual Diagnostics</CardTitle></CardHeader>
+                            <CardContent>
+                                <dl className="space-y-3 text-sm">
+                                    <div className="flex justify-between items-start">
+                                        <span>Normality (Shapiro-Wilk):</span>
+                                        <div className="text-right">
+                                            {results.diagnostics.normality_tests?.shapiro_wilk?.p_value ? (
+                                                <Badge variant={results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'secondary' : 'destructive'}>p={results.diagnostics.normality_tests.shapiro_wilk.p_value.toFixed(3)}</Badge>
+                                            ) : <Badge variant="outline">N/A</Badge>}
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-start">
+                                        <span>Homoscedasticity (Breusch-Pagan):</span>
+                                        <div className="text-right">
+                                            {results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value ? (
+                                                <Badge variant={results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'secondary' : 'destructive'}>p={results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value.toFixed(3)}</Badge>
+                                            ) : <Badge variant="outline">N/A</Badge>}
+                                        </div>
+                                    </div>
                                 </dl>
                             </CardContent>
                         </Card>
                          {results.diagnostics.vif && Object.keys(results.diagnostics.vif).length > 0 && (
                             <Card>
-                                <CardHeader><CardTitle>Multicollinearity (VIF)</CardTitle></CardHeader>
+                                <CardHeader><CardTitle className="font-headline">Multicollinearity (VIF)</CardTitle></CardHeader>
                                 <CardContent>
-                                     <dl className="space-y-2 text-sm">
-                                        {Object.entries(results.diagnostics.vif).map(([key, value]) => (
-                                            <div className="flex justify-between" key={key}>
-                                                <span>{key}</span>
-                                                <Badge variant={value > 5 ? 'destructive' : 'secondary'}>{value.toFixed(2)}</Badge>
-                                            </div>
-                                        ))}
-                                     </dl>
+                                     <ScrollArea className="h-24">
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>Feature</TableHead><TableHead className="text-right">VIF</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {Object.entries(results.diagnostics.vif).map(([key, value]) => (
+                                                    <TableRow key={key}>
+                                                        <TableCell>{key}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Badge variant={value > 10 ? 'destructive' : value > 5 ? 'secondary' : 'outline'}>{value.toFixed(2)}</Badge>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                     </ScrollArea>
                                 </CardContent>
                             </Card>
                          )}
