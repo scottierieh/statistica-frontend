@@ -64,7 +64,7 @@ const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null
   return (
     <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><ShieldCheck /> AI Interpretation</CardTitle>
+            <CardTitle className="flex items-center gap-2 font-headline"><ShieldCheck /> AI Interpretation</CardTitle>
         </CardHeader>
         <CardContent>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>
@@ -127,15 +127,12 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
             return;
         };
         
-        const backendUrl = 'https://us-central1-studio-7415103661-752d9.cloudfunctions.net/reliability';
-
         setIsLoading(true);
         setReliabilityResult(null);
         setAiPromise(null);
 
         try {
-            console.log('Sending request to:', backendUrl);
-            const response = await fetch(backendUrl, {
+            const response = await fetch('/api/analysis/reliability', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -146,14 +143,8 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                let errorJson;
-                try {
-                    errorJson = JSON.parse(errorText);
-                } catch(e) {
-                    // Not a valid JSON, use the raw text
-                }
-                throw new Error(errorJson?.error || `HTTP error! status: ${response.status} - ${errorText}`);
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
 
             const result = await response.json();
@@ -181,7 +172,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
                     <CardHeader>
-                        <CardTitle>Reliability Analysis</CardTitle>
+                        <CardTitle className="font-headline">Reliability Analysis</CardTitle>
                         <CardDescription>
                            To perform a reliability analysis, you need data with multiple numeric items (e.g., a survey scale). Please upload data or try an example dataset.
                         </CardDescription>
@@ -222,7 +213,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle>Reliability Analysis Setup</CardTitle>
+                    <CardTitle className="font-headline">Reliability Analysis Setup</CardTitle>
                     <CardDescription>
                         Select the numeric items that form a single scale to calculate internal consistency reliability (Cronbach's Alpha).
                     </CardDescription>
@@ -300,7 +291,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                     <div className="lg:col-span-2 flex flex-col gap-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Reliability Summary (Cronbach's Alpha)</CardTitle>
+                                <CardTitle className="font-headline">Reliability Summary (Cronbach's Alpha)</CardTitle>
                                 <CardDescription>
                                     A measure of internal consistency for a set of scale items.
                                 </CardDescription>
@@ -325,7 +316,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                          <AIGeneratedInterpretation promise={aiPromise} />
                     </div>
                     <Card className="lg:col-span-1">
-                        <CardHeader><CardTitle>Item-Total Statistics</CardTitle><CardDescription>How each item relates to the overall scale.</CardDescription></CardHeader>
+                        <CardHeader><CardTitle className="font-headline">Item-Total Statistics</CardTitle><CardDescription>How each item relates to the overall scale.</CardDescription></CardHeader>
                         <CardContent>
                              <ScrollArea className="h-[450px]">
                                 <Table>

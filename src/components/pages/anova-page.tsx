@@ -145,15 +145,12 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
             return;
         };
 
-        const backendUrl = 'https://us-central1-studio-7415103661-752d9.cloudfunctions.net/anova';
-       
         setIsLoading(true);
         setAnovaResult(null);
         setAiPromise(null);
 
         try {
-            console.log('Sending request to:', backendUrl);
-            const response = await fetch(backendUrl, {
+            const response = await fetch('/api/analysis/anova', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -164,14 +161,8 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
             });
 
             if (!response.ok) {
-                 const errorText = await response.text();
-                let errorJson;
-                try {
-                    errorJson = JSON.parse(errorText);
-                } catch(e) {
-                    // Not a valid JSON, use the raw text
-                }
-                throw new Error(errorJson?.error || `HTTP error! status: ${response.status} - ${errorText}`);
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
             
             const result = await response.json();
@@ -203,7 +194,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
                     <CardHeader>
-                        <CardTitle>Analysis of Variance (ANOVA)</CardTitle>
+                        <CardTitle className="font-headline">Analysis of Variance (ANOVA)</CardTitle>
                         <CardDescription>
                            To perform ANOVA, you need to upload data with at least one numeric and one categorical variable. Try one of our example datasets.
                         </CardDescription>
@@ -242,7 +233,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle>ANOVA Setup</CardTitle>
+                    <CardTitle className="font-headline">ANOVA Setup</CardTitle>
                     <CardDescription>
                         Select a group variable (categorical) and a value variable (numeric) to compare means across groups, then click 'Run Analysis'.
                     </CardDescription>
@@ -288,7 +279,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                     <div className="lg:col-span-2 flex flex-col gap-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>ANOVA Summary</CardTitle>
+                                <CardTitle className="font-headline">ANOVA Summary</CardTitle>
                                 <CardDescription>
                                     F({anovaResult.anova.df_between}, {anovaResult.anova.df_within}) = {anovaResult.anova.f_statistic.toFixed(3)}, p = {anovaResult.anova.p_value.toFixed(4)}
                                 </CardDescription>
@@ -330,7 +321,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
 
                     <div className="lg:col-span-1 flex flex-col gap-4">
                          <Card>
-                            <CardHeader><CardTitle>Group Statistics</CardTitle></CardHeader>
+                            <CardHeader><CardTitle className="font-headline">Group Statistics</CardTitle></CardHeader>
                             <CardContent>
                                 <Table>
                                     <TableHeader>
@@ -358,7 +349,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                 </div>
 
                 <Card>
-                    <CardHeader><CardTitle>ANOVA Table</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="font-headline">ANOVA Table</CardTitle></CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader>
@@ -403,7 +394,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                  
                  {anovaResult.post_hoc_tukey && anovaResult.anova.significant && (
                     <Card>
-                        <CardHeader><CardTitle>Post-Hoc Tests (Tukey HSD)</CardTitle><CardDescription>Pairwise comparisons between groups.</CardDescription></CardHeader>
+                        <CardHeader><CardTitle className="font-headline">Post-Hoc Tests (Tukey HSD)</CardTitle><CardDescription>Pairwise comparisons between groups.</CardDescription></CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader><TableRow>
