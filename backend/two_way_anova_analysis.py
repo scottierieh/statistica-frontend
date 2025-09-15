@@ -6,6 +6,7 @@ import pandas as pd
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
+from scipy import stats
 import warnings
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -71,7 +72,7 @@ class TwoWayAnovaAnalysis:
     def _test_assumptions(self, model):
         residuals = model.resid
         # 1. Normality of residuals (Shapiro-Wilk test)
-        shapiro_stat, shapiro_p = sm.stats.shapiro(residuals)
+        shapiro_stat, shapiro_p = stats.shapiro(residuals)
         
         # 2. Homogeneity of variances (Levene's test)
         levene_stat, levene_p = sm.stats.levene(
