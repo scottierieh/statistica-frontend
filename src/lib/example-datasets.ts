@@ -1,6 +1,6 @@
 
 
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile } from "lucide-react";
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
@@ -32,7 +32,7 @@ import { gbmClassificationData, gbmRegressionData } from "./example-datasets/gbm
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment';
 
 
 export interface ExampleDataSet {
@@ -86,7 +86,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'GBM Classification',
         description: 'Loan approval prediction data, ideal for Gradient Boosting Classification.',
         icon: GitBranch,
-        analysisTypes: ['gbm', 'logistic-regression', 'stats'],
+        analysisTypes: ['gbm', 'logistic-regression', 'stats', 'glm'],
         recommendedAnalysis: 'gbm',
         data: gbmClassificationData,
     },
@@ -113,7 +113,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Customer Churn',
         description: 'Customer tenure and churn status. Ideal for Survival Analysis.',
         icon: HeartPulse,
-        analysisTypes: ['survival', 'stats'],
+        analysisTypes: ['survival', 'stats', 'glm'],
         recommendedAnalysis: 'survival',
         data: survivalData,
     },
@@ -122,7 +122,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'University Admissions',
         description: 'GRE scores, GPA, and university rank for student admissions.',
         icon: BookOpen,
-        analysisTypes: ['stats', 'logistic-regression', 'correlation'],
+        analysisTypes: ['stats', 'logistic-regression', 'correlation', 'glm'],
         recommendedAnalysis: 'logistic-regression',
         data: admissionData,
     },
@@ -167,7 +167,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Linear Regression',
         description: 'A simple dataset with a clear linear relationship for regression.',
         icon: TrendingUp,
-        analysisTypes: ['stats', 'regression', 'correlation'],
+        analysisTypes: ['stats', 'regression', 'correlation', 'glm'],
         recommendedAnalysis: 'regression',
         data: regressionData,
     },
