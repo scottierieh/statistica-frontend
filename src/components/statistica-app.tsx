@@ -145,7 +145,10 @@ const analysisMenu = [
         name: 'Categorical & Non-parametric Tests',
         methods: [
           { id: 'crosstab', label: 'Crosstab Analysis' },
-          { id: 'nonparametric', label: 'Non-parametric Tests' },
+          { id: 'nonparametric', label: 'Mann-Whitney U' },
+          { id: 'nonparametric', label: 'Wilcoxon' },
+          { id: 'nonparametric', label: 'Kruskal-Wallis' },
+          { id: 'nonparametric', label: 'Friedman' },
         ]
       }
     ]
