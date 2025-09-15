@@ -15,6 +15,7 @@ import { ResponsiveContainer, BarChart as RechartsBarChart, LineChart as Rechart
 import { exampleDatasets } from '@/lib/example-datasets';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
+import { Skeleton } from '../ui/skeleton';
 
 interface StudyInput {
   id: number;
@@ -126,30 +127,30 @@ const InterpretationSection = ({ results, settings }: { results: AnalysisResults
             <CardContent className="space-y-6">
                 <div className="space-y-1">
                     <h4 className="font-semibold">Overall Effect Size</h4>
-                    <p className="text-sm text-muted-foreground">
-                        The overall pooled effect size under the random-effects model is <strong>{randomEffect.pooledEffect.toFixed(3)}</strong>, which is considered a <strong>{effectSizeInterp}</strong> effect.
-                    </p>
+                    <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{
+                        __html: `The overall pooled effect size under the random-effects model is <strong>${randomEffect.pooledEffect.toFixed(3)}</strong>, which is considered a <strong>${effectSizeInterp}</strong> effect.`
+                    }} />
                 </div>
 
                  <div className="space-y-1">
                     <h4 className="font-semibold">Statistical Significance</h4>
-                    <p className="text-sm text-muted-foreground">
-                        The effect is <strong>{randomEffect.pValue < 0.05 ? 'statistically significant' : 'not statistically significant'}</strong> (p = {randomEffect.pValue.toFixed(4)}), with the 95% confidence interval ranging from {randomEffect.lowerCI.toFixed(3)} to {randomEffect.upperCI.toFixed(3)}.
-                    </p>
+                    <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{
+                        __html: `The effect is <strong>${randomEffect.pValue < 0.05 ? 'statistically significant' : 'not statistically significant'}</strong> (p = ${randomEffect.pValue.toFixed(4)}), with the 95% confidence interval ranging from ${randomEffect.lowerCI.toFixed(3)} to ${randomEffect.upperCI.toFixed(3)}.`
+                    }} />
                 </div>
 
                 <div className="space-y-1">
                     <h4 className="font-semibold">Heterogeneity</h4>
-                    <p className="text-sm text-muted-foreground">
-                        There is <strong>{heterogeneityInterp}</strong> heterogeneity among the studies (I² = {heterogeneity.iSquared.toFixed(1)}%). This suggests that {heterogeneityInterp === 'low' ? 'most of the variability is due to sampling error rather than true differences between studies.' : 'a significant portion of the variability is due to true differences between study outcomes.'}
-                    </p>
+                     <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{
+                        __html: `There is <strong>${heterogeneityInterp}</strong> heterogeneity among the studies (I² = ${heterogeneity.iSquared.toFixed(1)}%). This suggests that ${heterogeneityInterp === 'low' ? 'most of the variability is due to sampling error rather than true differences between studies.' : 'a significant portion of the variability is due to true differences between study outcomes.'}`
+                    }}/>
                 </div>
 
                  <div className="space-y-1">
                     <h4 className="font-semibold">Publication Bias</h4>
-                    <p className="text-sm text-muted-foreground">
-                        Egger's test intercept is {publicationBias.intercept.toFixed(4)}. Based on this, publication bias is <strong>{publicationBias.significant ? 'suspected' : 'not detected'}</strong>.
-                    </p>
+                    <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{
+                        __html: `Egger's test intercept is ${publicationBias.intercept.toFixed(4)}. Based on this, publication bias is <strong>${publicationBias.significant ? 'suspected' : 'not detected'}</strong>.`
+                    }} />
                 </div>
                 
                  <div className="space-y-2">
@@ -261,12 +262,6 @@ export default function MetaAnalysisPage({ onLoadExample }: { onLoadExample: (ex
     };
 
     const nextMetaStep = (step: number) => {
-        if (step === 2) {
-            collectAnalysisSettings();
-        } else if (step === 4) {
-            // generateVisualizationsAndInterpretation();
-        }
-        
         setCurrentStep(step);
     };
 
