@@ -482,9 +482,10 @@ export default function StatisticaApp() {
                             <SidebarMenuSub key={sub.name}>
                                 <SidebarMenuSubButton className="text-xs">{sub.name}</SidebarMenuSubButton>
                                 <SidebarMenuSubItem>
-                                     {sub.methods.map(method => (
-                                      <SidebarMenuItem key={method.id}>
+                                    {sub.methods.map(method => (
+                                      
                                           <SidebarMenuButton
+                                              key={method.id}
                                               onClick={() => setActiveAnalysis(method.id as AnalysisType)}
                                               isActive={activeAnalysis === method.id}
                                               disabled={method.implemented === false}
@@ -492,8 +493,8 @@ export default function StatisticaApp() {
                                           >
                                               <span>{method.label}</span>
                                           </SidebarMenuButton>
-                                      </SidebarMenuItem>
-                                      ))}
+                                        
+                                    ))}
                                 </SidebarMenuSubItem>
                             </SidebarMenuSub>
                         ))}
