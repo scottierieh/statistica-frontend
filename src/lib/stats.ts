@@ -37,12 +37,17 @@ export const parseData = (
   const categoricalHeaders: string[] = [];
 
   rawHeaders.forEach(header => {
-    const isNumeric = data.every(row => {
-        const value = row[header];
-        return typeof value === 'number' || value === '' || value === undefined || !isNaN(Number(value));
+    const values = data.map(row => row[header]).filter(val => val !== null && val !== undefined && val !== '');
+    const uniqueValues = new Set(values);
+    
+    const isNumeric = values.every(val => {
+        return typeof val === 'number' || (typeof val === 'string' && val.trim() !== '' && !isNaN(Number(val)));
     });
 
-    if (isNumeric) {
+    // If it's numeric but has few unique values (like rank or a binary 0/1), treat as categorical.
+    if (isNumeric && uniqueValues.size < 10) {
+        categoricalHeaders.push(header);
+    } else if (isNumeric) {
         numericHeaders.push(header);
     } else {
         categoricalHeaders.push(header);
@@ -52,8 +57,8 @@ export const parseData = (
   const sanitizedData = data.map(row => {
     const newRow: DataPoint = {};
     rawHeaders.forEach(header => {
+      const value = row[header];
       if (numericHeaders.includes(header)) {
-        const value = row[header];
         if (typeof value === 'number') {
             newRow[header] = value;
         } else if (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value))) {
@@ -61,8 +66,8 @@ export const parseData = (
         } else {
             newRow[header] = NaN;
         }
-      } else {
-        newRow[header] = String(row[header]);
+      } else { // Categorical, includes numeric-looking categoricals
+        newRow[header] = String(value);
       }
     });
     return newRow;
