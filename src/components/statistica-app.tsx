@@ -155,7 +155,7 @@ const analysisMenu = [
           { id: 'kruskal-wallis', label: 'Kruskal-Wallis' },
           { id: 'friedman', label: 'Friedman Test' },
         ]
-      }
+      },
     ]
   },
   {
@@ -370,14 +370,14 @@ export default function StatisticaApp() {
         return category; // Include the whole category if the main title matches
       }
 
-      let matchingMethods = [];
+      let matchingMethods: any[] = [];
       if (category.methods) {
         matchingMethods = category.methods.filter(method =>
           method.label.toLowerCase().includes(lowercasedQuery)
         );
       }
 
-      let matchingSubCategories = [];
+      let matchingSubCategories: any[] = [];
       if (category.subCategories) {
         matchingSubCategories = category.subCategories.map(sub => {
           const methods = sub.methods.filter(method =>
@@ -407,7 +407,13 @@ export default function StatisticaApp() {
 
   useEffect(() => {
     if (searchQuery) {
-      const categoriesToOpen = filteredMenu.map(c => c.field);
+      const categoriesToOpen = filteredMenu.flatMap(c => {
+        const result = [c.field];
+        if (c.subCategories) {
+          result.push(...c.subCategories.map(sc => sc.name));
+        }
+        return result;
+      });
       setOpenCategories(categoriesToOpen);
     }
   }, [searchQuery, filteredMenu]);
@@ -485,26 +491,26 @@ export default function StatisticaApp() {
                           )
                         )}
                         {category.subCategories?.map(sub => (
-                           <Collapsible key={sub.name} defaultOpen>
+                           <Collapsible key={sub.name} open={openCategories.includes(sub.name)} onOpenChange={() => toggleCategory(sub.name)}>
                              <CollapsibleTrigger className="w-full">
                                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground py-1">
                                   <span>{sub.name}</span>
-                                  <ChevronDown className="h-3 w-3 ml-auto transition-transform" />
+                                  <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", openCategories.includes(sub.name) ? 'rotate-180' : '')} />
                                </div>
                              </CollapsibleTrigger>
                              <CollapsibleContent className="pl-6 py-1">
                                 <SidebarMenu>
                                   {sub.methods.map(method => (
-                                    <SidebarMenuSubItem key={method.id}>
-                                      <SidebarMenuSubButton
+                                    <SidebarMenuItem key={method.id}>
+                                      <SidebarMenuButton
                                           onClick={() => setActiveAnalysis(method.id as AnalysisType)}
                                           isActive={activeAnalysis === method.id}
                                           disabled={method.implemented === false}
                                           className="justify-start w-full h-8 text-xs"
                                       >
                                           <span>{method.label}</span>
-                                      </SidebarMenuSubButton>
-                                    </SidebarMenuSubItem>
+                                      </SidebarMenuButton>
+                                    </SidebarMenuItem>
                                   ))}
                                 </SidebarMenu>
                              </CollapsibleContent>
@@ -571,6 +577,7 @@ export default function StatisticaApp() {
             <Button onClick={downloadReport}>Download as .txt</Button>
           </DialogFooter>
         </DialogContent>
-      </SidebarProvider>
+      </Dialog>
+    </SidebarProvider>
   );
 }
