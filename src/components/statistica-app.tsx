@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -92,9 +91,8 @@ import MannWhitneyPage from './pages/mann-whitney-page';
 import WilcoxonPage from './pages/wilcoxon-page';
 import KruskalWallisPage from './pages/kruskal-wallis-page';
 import FriedmanPage from './pages/friedman-page';
-import BayesianPage from './pages/bayesian-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'bayesian' | 'gbm';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -127,7 +125,6 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     survival: SurvivalAnalysisPage,
     wordcloud: WordCloudPage,
     visuals: VisualizationPage,
-    bayesian: BayesianPage,
     gbm: GbmPage,
 };
 
@@ -149,7 +146,6 @@ const analysisMenu = [
         name: 'Mean & Variance Tests',
         methods: [
           { id: 't-test', label: 't-Test' },
-          { id: 'bayesian', label: 'Bayesian t-Test'},
           { id: 'one-way-anova', label: 'One-Way ANOVA' },
           { id: 'two-way-anova', label: 'Two-Way ANOVA' },
           { id: 'ancova', label: 'ANCOVA' },

@@ -42,14 +42,24 @@ class WordCloudGenerator:
         stop_words = self.default_stopwords.union(set(custom_stopwords))
         
         words = [word for word in words if len(word) >= min_word_length and word not in stop_words]
-        return ' '.join(words)
+        return ' '.join(words), words
 
-    def calculate_word_frequencies(self, text, top_n=100):
-        words = text.split()
+    def calculate_word_frequencies(self, words, top_n=100):
         word_freq = Counter(words)
         return dict(word_freq.most_common(top_n))
 
-    def generate_wordcloud(self, text, settings):
+    def analyze_text_statistics(self, original_text, processed_words):
+        original_words = original_text.split()
+        stats = {
+            'total_words': len(original_words),
+            'unique_words': len(set(original_words)),
+            'processed_words_count': len(processed_words),
+            'unique_processed_words': len(set(processed_words)),
+            'average_word_length': np.mean([len(word) for word in processed_words]) if processed_words else 0,
+        }
+        return stats
+
+    def generate_wordcloud_image(self, text, settings):
         if not WORDCLOUD_AVAILABLE:
             raise ImportError("WordCloud library not found. Please install with: pip install wordcloud")
         
@@ -71,6 +81,23 @@ class WordCloudGenerator:
         
         return base64.b64encode(buf.read()).decode('utf-8')
 
+    def generate_frequency_plot(self, frequencies, top_n=20):
+        top_freq = dict(list(frequencies.items())[:top_n])
+        plt.figure(figsize=(10, 8))
+        plt.barh(list(top_freq.keys()), list(top_freq.values()), color='skyblue')
+        plt.xlabel('Frequency')
+        plt.title(f'Top {top_n} Most Frequent Words')
+        plt.gca().invert_yaxis()
+        plt.tight_layout()
+        
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close()
+        buf.seek(0)
+        
+        return base64.b64encode(buf.read()).decode('utf-8')
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -86,12 +113,13 @@ def main():
         
         custom_stopwords = [word.strip() for word in custom_stopwords_str.split(',') if word.strip()]
 
-        processed_text = generator.preprocess_text(text_data, custom_stopwords, min_word_length)
+        processed_text, processed_words = generator.preprocess_text(text_data, custom_stopwords, min_word_length)
         
         if not processed_text.strip():
              raise ValueError("No valid words found after preprocessing.")
 
-        frequencies = generator.calculate_word_frequencies(processed_text, top_n=max_words)
+        frequencies = generator.calculate_word_frequencies(processed_words, top_n=max_words)
+        statistics = generator.analyze_text_statistics(text_data, processed_words)
 
         settings = {
             'width': 800,
@@ -101,12 +129,16 @@ def main():
             'max_words': max_words
         }
 
-        # Generate from frequencies for consistency
-        wordcloud_img = generator.generate_wordcloud(' '.join(frequencies.keys()), settings)
+        wordcloud_img = generator.generate_wordcloud_image(processed_text, settings)
+        frequency_plot_img = generator.generate_frequency_plot(frequencies)
 
         response = {
-            "plot": f"data:image/png;base64,{wordcloud_img}",
-            "frequencies": frequencies
+            "plots": {
+                "wordcloud": f"data:image/png;base64,{wordcloud_img}",
+                "frequency_bar": f"data:image/png;base64,{frequency_plot_img}",
+            },
+            "frequencies": frequencies,
+            "statistics": statistics
         }
 
         print(json.dumps(response, default=_to_native_type))

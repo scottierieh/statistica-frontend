@@ -32,7 +32,7 @@ import { gbmClassificationData, gbmRegressionData } from "./example-datasets/gbm
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'bayesian' | 'gbm';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm';
 
 
 export interface ExampleDataSet {
@@ -93,10 +93,10 @@ export const exampleDatasets: ExampleDataSet[] = [
     {
         id: 'ab-test-data',
         name: 'A/B Test Conversion',
-        description: 'Time on site for two different website designs. Ideal for Bayesian A/B testing.',
+        description: 'Time on site for two different website designs. Ideal for A/B testing.',
         icon: FlaskConical,
-        analysisTypes: ['t-test', 'stats', 'bayesian'],
-        recommendedAnalysis: 'bayesian',
+        analysisTypes: ['t-test', 'stats'],
+        recommendedAnalysis: 't-test',
         data: abTestData,
     },
     {

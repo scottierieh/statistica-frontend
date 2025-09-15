@@ -11,10 +11,21 @@ import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface WordCloudResponse {
-    plot: string;
+    plots: {
+        wordcloud: string;
+        frequency_bar: string;
+    };
     frequencies: { [key: string]: number };
+    statistics: {
+        total_words: number;
+        unique_words: number;
+        processed_words_count: number;
+        unique_processed_words: number;
+        average_word_length: number;
+    };
 }
 
 export default function WordCloudPage() {
@@ -63,6 +74,7 @@ export default function WordCloudPage() {
     }, [text, customStopwords, minWordLength, maxWords, toast]);
     
     const frequencyData = analysisResult ? Object.entries(analysisResult.frequencies).map(([word, count]) => ({ word, count })) : [];
+    const stats = analysisResult?.statistics;
 
     return (
         <div className="space-y-4">
@@ -125,41 +137,69 @@ export default function WordCloudPage() {
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full" /></CardContent></Card>}
 
             {analysisResult && (
-                 <div className="grid lg:grid-cols-2 gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Generated Word Cloud</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Image src={analysisResult.plot} alt="Generated Word Cloud" width={800} height={400} className="rounded-md border"/>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Top Word Frequencies</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ScrollArea className="h-96">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Word</TableHead>
-                                            <TableHead className="text-right">Frequency</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {frequencyData.map(({ word, count }) => (
-                                            <TableRow key={word}>
-                                                <TableCell>{word}</TableCell>
-                                                <TableCell className="text-right font-mono">{count}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
-                </div>
+                 <Tabs defaultValue="visuals" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="visuals">Visualizations</TabsTrigger>
+                        <TabsTrigger value="data">Data Summary</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="visuals" className="mt-4">
+                         <div className="grid lg:grid-cols-2 gap-4">
+                             <Card>
+                                <CardHeader><CardTitle>Generated Word Cloud</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Image src={analysisResult.plots.wordcloud} alt="Generated Word Cloud" width={800} height={400} className="rounded-md border"/>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader><CardTitle>Top 20 Word Frequencies</CardTitle></CardHeader>
+                                <CardContent>
+                                     <Image src={analysisResult.plots.frequency_bar} alt="Word Frequency Bar Chart" width={1000} height={800} className="rounded-md border"/>
+                                </CardContent>
+                            </Card>
+                         </div>
+                    </TabsContent>
+                    <TabsContent value="data" className="mt-4">
+                        <div className="grid lg:grid-cols-2 gap-4">
+                             <Card>
+                                <CardHeader><CardTitle>Text Statistics</CardTitle></CardHeader>
+                                <CardContent>
+                                    {stats && (
+                                        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                            <dt>Total Words</dt><dd className="font-mono text-right">{stats.total_words}</dd>
+                                            <dt>Unique Words</dt><dd className="font-mono text-right">{stats.unique_words}</dd>
+                                            <dt>Processed Words</dt><dd className="font-mono text-right">{stats.processed_words_count}</dd>
+                                            <dt>Unique Processed</dt><dd className="font-mono text-right">{stats.unique_processed_words}</dd>
+                                            <dt>Avg. Word Length</dt><dd className="font-mono text-right">{stats.average_word_length.toFixed(2)}</dd>
+                                        </dl>
+                                    )}
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader><CardTitle>Word Frequency Table</CardTitle></CardHeader>
+                                <CardContent>
+                                    <ScrollArea className="h-80">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Word</TableHead>
+                                                    <TableHead className="text-right">Frequency</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {frequencyData.map(({ word, count }) => (
+                                                    <TableRow key={word}>
+                                                        <TableCell>{word}</TableCell>
+                                                        <TableCell className="text-right font-mono">{count}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </ScrollArea>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+                 </Tabs>
             )}
         </div>
     );
