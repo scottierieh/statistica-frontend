@@ -11,6 +11,7 @@ import io
 import base64
 import warnings
 import os
+import platform
 import matplotlib.font_manager as fm
 
 warnings.filterwarnings('ignore')
@@ -40,21 +41,35 @@ def _to_native_type(obj):
 
 def get_font_path():
     """Find a suitable font on the system."""
-    font_paths = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+    system = platform.system()
     
-    # Prioritize known good fonts
-    font_names = ['NanumGothic', 'Malgun Gothic', 'AppleGothic', 'Noto Sans CJK KR']
-    for font_name in font_names:
+    if system == 'Windows':
+        font_paths = ['C:/Windows/Fonts/malgun.ttf']
         for path in font_paths:
-            if font_name.replace(' ', '') in path.replace(' ', ''):
+            if os.path.exists(path):
                 return path
 
+    elif system == 'Darwin': # macOS
+        font_paths = ['/System/Library/Fonts/Apple SD Gothic Neo.ttc']
+        for path in font_paths:
+            if os.path.exists(path):
+                return path
+
+    elif system == 'Linux':
+        # Check matplotlib's font cache first
+        font_list = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+        nanum_fonts = [f for f in font_list if 'NanumGothic' in f]
+        if nanum_fonts:
+            return nanum_fonts[0]
+
     # Fallback to any font that might support CJK characters
-    for path in font_paths:
-        if any(keyword in path.lower() for keyword in ['korean', 'cjk', 'nanum', 'malgun']):
-            return path
+    try:
+        for font in fm.fontManager.ttflist:
+            if 'Gothic' in font.name or 'Malgun' in font.name:
+                return font.fname
+    except:
+        pass
             
-    # Return None if no suitable font is found
     return None
 
 class WordCloudGenerator:
@@ -120,7 +135,7 @@ class WordCloudGenerator:
         if self.font_path:
             wc_params['font_path'] = self.font_path
         else:
-             warnings.warn("Font not found. Text may appear broken.")
+             warnings.warn("A suitable font was not found. Non-English characters may not render correctly.")
 
         wc = WordCloud(**wc_params)
         wordcloud_image = wc.generate(text)
@@ -135,13 +150,15 @@ class WordCloudGenerator:
         top_freq = dict(list(frequencies.items())[:top_n])
         plt.figure(figsize=(10, 8))
 
-        # Use the found font for the plot
         font_properties = fm.FontProperties(fname=self.font_path) if self.font_path else None
             
         plt.barh(list(top_freq.keys()), list(top_freq.values()), color='skyblue')
         plt.xlabel('Frequency', fontproperties=font_properties)
         plt.title(f'Top {top_n} Most Frequent Words', fontproperties=font_properties)
+        
+        # Apply font properties to y-axis ticks
         plt.yticks(fontproperties=font_properties)
+
         plt.gca().invert_yaxis()
         plt.tight_layout()
         
