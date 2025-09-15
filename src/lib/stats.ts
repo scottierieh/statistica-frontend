@@ -40,14 +40,12 @@ export const parseData = (
     const values = data.map(row => row[header]).filter(val => val !== null && val !== undefined && val !== '');
     const uniqueValues = new Set(values);
     
-    const isNumeric = values.every(val => {
+    // Check if every non-empty value is a number
+    const isNumericColumn = values.every(val => {
         return typeof val === 'number' || (typeof val === 'string' && val.trim() !== '' && !isNaN(Number(val)));
     });
 
-    // If it's numeric but has few unique values (like rank or a binary 0/1), treat as categorical.
-    if (isNumeric && uniqueValues.size < 10) {
-        categoricalHeaders.push(header);
-    } else if (isNumeric) {
+    if (isNumericColumn) {
         numericHeaders.push(header);
     } else {
         categoricalHeaders.push(header);
@@ -64,9 +62,9 @@ export const parseData = (
         } else if (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value))) {
             newRow[header] = parseFloat(value);
         } else {
-            newRow[header] = NaN;
+            newRow[header] = NaN; // Use NaN for non-numeric values in numeric columns
         }
-      } else { // Categorical, includes numeric-looking categoricals
+      } else { // Categorical
         newRow[header] = String(value);
       }
     });

@@ -109,36 +109,45 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
     const [isLoading, setIsLoading] = useState(false);
 
     const canRun = useMemo(() => data.length > 0 && allHeaders.length > 1, [data, allHeaders]);
+    
+    const binaryCategoricalHeaders = useMemo(() => {
+        return allHeaders.filter(h => {
+            const uniqueValues = new Set(data.map(row => row[h]).filter(v => v != null && v !== ''));
+            return uniqueValues.size === 2;
+        });
+    }, [data, allHeaders]);
 
     const targetOptions = useMemo(() => {
-        return problemType === 'regression' ? numericHeaders : categoricalHeaders;
-    }, [problemType, numericHeaders, categoricalHeaders]);
+        return problemType === 'regression' ? numericHeaders : binaryCategoricalHeaders;
+    }, [problemType, numericHeaders, binaryCategoricalHeaders]);
 
     useEffect(() => {
         // This effect runs only when data or the headers change (i.e., new file loaded)
         setAnalysisResult(null);
         setIsLoading(false);
-        const newTargetOptions = problemType === 'regression' ? numericHeaders : categoricalHeaders;
-        const defaultTarget = newTargetOptions[newTargetOptions.length - 1] || newTargetOptions[0];
+        
+        const newTargetOptions = problemType === 'regression' ? numericHeaders : binaryCategoricalHeaders;
+        const defaultTarget = newTargetOptions.find(h => h === target) || newTargetOptions[0];
         setTarget(defaultTarget);
-    }, [data, numericHeaders, categoricalHeaders]);
+
+    }, [data]); // Removed headers from deps to avoid re-triggering on type change
 
     useEffect(() => {
         // This effect runs only when problemType changes
         setAnalysisResult(null);
-        const newTargetOptions = problemType === 'regression' ? numericHeaders : categoricalHeaders;
+        const newTargetOptions = problemType === 'regression' ? numericHeaders : binaryCategoricalHeaders;
         // If the current target is not valid for the new problem type, update it.
         if (!target || !newTargetOptions.includes(target)) {
-            setTarget(newTargetOptions[newTargetOptions.length - 1] || newTargetOptions[0]);
+            setTarget(newTargetOptions[0]);
         }
-    }, [problemType]);
+    }, [problemType, target, numericHeaders, binaryCategoricalHeaders]);
     
     useEffect(() => {
         // Update features whenever the target variable changes
         if (target) {
             setFeatures(allHeaders.filter(h => h !== target));
         } else {
-            setFeatures(allHeaders);
+            setFeatures([]);
         }
     }, [target, allHeaders]);
 
