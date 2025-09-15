@@ -110,13 +110,38 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
 
     const canRun = useMemo(() => data.length > 0 && allHeaders.length > 1, [data, allHeaders]);
 
-    useEffect(() => {
-        if (problemType === 'regression') {
-            setTarget(numericHeaders[numericHeaders.length - 1]);
-        } else {
-            setTarget(categoricalHeaders[0]);
-        }
+    const targetOptions = useMemo(() => {
+        return problemType === 'regression' ? numericHeaders : categoricalHeaders;
     }, [problemType, numericHeaders, categoricalHeaders]);
+
+    useEffect(() => {
+        // Reset state when data changes
+        setAnalysisResult(null);
+        setIsLoading(false);
+
+        const newTargetOptions = problemType === 'regression' ? numericHeaders : categoricalHeaders;
+        
+        // If current target is not valid for the new data/problem type, or not set, pick a default
+        if (!target || !newTargetOptions.includes(target)) {
+            const defaultTarget = newTargetOptions[newTargetOptions.length - 1] || newTargetOptions[0];
+            setTarget(defaultTarget);
+            setFeatures(allHeaders.filter(h => h !== defaultTarget));
+        } else {
+             // If target is still valid, just update features
+            setFeatures(allHeaders.filter(h => h !== target));
+        }
+
+    }, [data, allHeaders, numericHeaders, categoricalHeaders]);
+
+     useEffect(() => {
+        // Handle problem type change
+        const newTargetOptions = problemType === 'regression' ? numericHeaders : categoricalHeaders;
+        if (!target || !newTargetOptions.includes(target)) {
+            const defaultTarget = newTargetOptions[newTargetOptions.length - 1] || newTargetOptions[0];
+            setTarget(defaultTarget);
+        }
+    }, [problemType, numericHeaders, categoricalHeaders, target]);
+
     
     useEffect(() => {
         if (target) {
@@ -168,10 +193,6 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
             setIsLoading(false);
         }
     }, [data, target, features, problemType, nEstimators, learningRate, maxDepth, toast]);
-
-    const targetOptions = useMemo(() => {
-        return problemType === 'regression' ? numericHeaders : categoricalHeaders;
-    }, [problemType, numericHeaders, categoricalHeaders]);
     
     const featureOptions = useMemo(() => {
         return allHeaders.filter(h => h !== target);
