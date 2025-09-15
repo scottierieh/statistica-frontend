@@ -14,6 +14,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { ResponsiveContainer, BarChart as RechartsBarChart, LineChart as RechartsLineChart, ScatterChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, Line, Scatter, ReferenceLine, Cell } from 'recharts';
 import { exampleDatasets } from '@/lib/example-datasets';
 import { Badge } from '../ui/badge';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface StudyInput {
   id: number;
@@ -124,7 +125,7 @@ const InterpretationSection = ({ results, settings }: { results: AnalysisResults
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-1">
-                    <h4 className="font-semibold">Pooled Effect Size</h4>
+                    <h4 className="font-semibold">Overall Effect Size</h4>
                     <p className="text-sm text-muted-foreground">
                         The overall pooled effect size under the random-effects model is <strong>{randomEffect.pooledEffect.toFixed(3)}</strong>, which is considered a <strong>{effectSizeInterp}</strong> effect.
                     </p>
@@ -260,6 +261,12 @@ export default function MetaAnalysisPage({ onLoadExample }: { onLoadExample: (ex
     };
 
     const nextMetaStep = (step: number) => {
+        if (step === 2) {
+            collectAnalysisSettings();
+        } else if (step === 4) {
+            // generateVisualizationsAndInterpretation();
+        }
+        
         setCurrentStep(step);
     };
 
