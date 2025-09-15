@@ -436,13 +436,6 @@ export default function StatisticaApp() {
                 onFileSelected={handleFileSelected}
                 loading={isUploading}
               />
-              {fileName && (
-                <div className="mt-2 text-center">
-                   <Button variant="link" size="sm" className="text-xs h-auto p-0 text-muted-foreground hover:text-primary" onClick={handleClearData}>
-                    Clear data
-                  </Button>
-                </div>
-              )}
             </div>
             <SidebarMenu>
                 <SidebarMenuItem>
@@ -541,6 +534,7 @@ export default function StatisticaApp() {
                 data={data}
                 headers={allHeaders}
                 onDownload={handleDownloadData}
+                onClearData={handleClearData}
               />
             )}
             

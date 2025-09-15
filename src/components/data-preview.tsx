@@ -5,18 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, Trash2 } from 'lucide-react';
 
 interface DataPreviewProps {
     fileName: string;
     data: DataSet;
     headers: string[];
     onDownload: () => void;
+    onClearData: () => void;
 }
 
 const PREVIEW_ROW_COUNT = 10;
 
-export default function DataPreview({ fileName, data, headers, onDownload }: DataPreviewProps) {
+export default function DataPreview({ fileName, data, headers, onDownload, onClearData }: DataPreviewProps) {
     
     const previewData = data.slice(0, PREVIEW_ROW_COUNT);
 
@@ -27,10 +28,16 @@ export default function DataPreview({ fileName, data, headers, onDownload }: Dat
                     <CardTitle className="font-headline text-xl">Active Dataset: {fileName}</CardTitle>
                     <CardDescription>Showing first {Math.min(PREVIEW_ROW_COUNT, data.length)} of {data.length} rows.</CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={onDownload}>
-                    <Download className="mr-2"/>
-                    Download Data
-                </Button>
+                <div className='flex items-center gap-2'>
+                    <Button variant="outline" size="sm" onClick={onDownload}>
+                        <Download className="mr-2"/>
+                        Download Data
+                    </Button>
+                     <Button variant="destructive" size="sm" onClick={onClearData}>
+                        <Trash2 className="mr-2"/>
+                        Clear Data
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <ScrollArea className="h-64 w-full border rounded-md">
