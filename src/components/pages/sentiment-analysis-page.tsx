@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -100,7 +101,7 @@ export default function SentimentAnalysisPage() {
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full" /></CardContent></Card>}
 
             {analysisResult && (
-                 <div className="grid lg:grid-cols-2 gap-4">
+                 <div className="space-y-4">
                      <Card>
                         <CardHeader><CardTitle>Sentiment Distribution</CardTitle></CardHeader>
                         <CardContent>
