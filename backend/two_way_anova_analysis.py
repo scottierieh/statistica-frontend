@@ -75,7 +75,7 @@ class TwoWayAnovaAnalysis:
         shapiro_stat, shapiro_p = stats.shapiro(residuals)
         
         # 2. Homogeneity of variances (Levene's test)
-        levene_stat, levene_p = sm.stats.levene(
+        levene_stat, levene_p = stats.levene(
             self.clean_data[self.dv_clean], 
             self.clean_data.groupby([self.fa_clean, self.fb_clean]).grouper.group_info[0]
         )
