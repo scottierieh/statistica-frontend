@@ -18,6 +18,8 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
+        if np.isnan(obj):
+            return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
@@ -75,16 +77,16 @@ class TwoWayANOVA:
 
         self.ss_error = self.ss_total - ss_model
 
-        model = f'{self.dependent_var} ~ C({self.factor_a}) * C({self.factor_b})'
+        model = f'`{self.dependent_var}` ~ C(`{self.factor_a}`) * C(`{self.factor_b}`)'
         from statsmodels.formula.api import ols
         from statsmodels.stats.anova import anova_lm
         
         lm = ols(model, data=self.clean_data).fit()
         anova_results = anova_lm(lm, typ=2)
         
-        self.ss_a = anova_results.loc[f"C({self.factor_a})", 'sum_sq']
-        self.ss_b = anova_results.loc[f"C({self.factor_b})", 'sum_sq']
-        self.ss_ab = anova_results.loc[f"C({self.factor_a}):C({self.factor_b})", 'sum_sq']
+        self.ss_a = anova_results.loc[f"C(`{self.factor_a}`)", 'sum_sq']
+        self.ss_b = anova_results.loc[f"C(`{self.factor_b}`)", 'sum_sq']
+        self.ss_ab = anova_results.loc[f"C(`{self.factor_a}`):C(`{self.factor_b}`)", 'sum_sq']
         self.ss_error = anova_results.loc['Residual', 'sum_sq']
     
     def _calculate_degrees_of_freedom(self):
@@ -117,7 +119,7 @@ class TwoWayANOVA:
         self.partial_eta_sq_ab = self.ss_ab / (self.ss_ab + self.ss_error)
     
     def _create_anova_table(self):
-        self.results['anova_table'] = pd.DataFrame({
+        table_data = pd.DataFrame({
             'Source': [self.factor_a, self.factor_b, f'{self.factor_a} × {self.factor_b}', 'Error', 'Total'],
             'SS': [self.ss_a, self.ss_b, self.ss_ab, self.ss_error, self.ss_total],
             'df': [self.df_a, self.df_b, self.df_ab, self.df_error, self.df_total],
@@ -126,6 +128,8 @@ class TwoWayANOVA:
             'p-value': [self.p_a, self.p_b, self.p_ab, np.nan, np.nan],
             'η²p': [self.partial_eta_sq_a, self.partial_eta_sq_b, self.partial_eta_sq_ab, np.nan, np.nan]
         })
+        self.results['anova_table'] = table_data.replace({np.nan: None}).to_dict('records')
+
     
     def _calculate_marginal_means(self):
         factor_a_stats = self.clean_data.groupby(self.factor_a)[self.dependent_var].agg(['mean', 'count', 'std']).reset_index()
@@ -135,21 +139,23 @@ class TwoWayANOVA:
         cell_means = self.clean_data.groupby([self.factor_a, self.factor_b])[self.dependent_var].agg(['mean', 'count', 'std']).reset_index()
         cell_means['se'] = cell_means['std'] / np.sqrt(cell_means['count'])
         self.results['marginal_means'] = {
-            'factor_a': factor_a_stats,
-            'factor_b': factor_b_stats,
-            'cells': cell_means
+            'factor_a': factor_a_stats.replace({np.nan: None}).to_dict('records'),
+            'factor_b': factor_b_stats.replace({np.nan: None}).to_dict('records'),
+            'cells': cell_means.replace({np.nan: None}).to_dict('records')
         }
         
     def test_assumptions(self):
         assumptions = {}
         residuals = self._calculate_residuals()
         
-        if len(residuals) <= 5000:
+        if len(residuals) <= 5000 and len(residuals) >=3:
             shapiro_stat, shapiro_p = shapiro(residuals)
             assumptions['normality'] = {'test': 'Shapiro-Wilk', 'statistic': shapiro_stat, 'p_value': shapiro_p, 'assumption_met': shapiro_p > self.alpha}
-        else:
+        elif len(residuals) > 3:
             dagostino_stat, dagostino_p = normaltest(residuals)
             assumptions['normality'] = {'test': "D'Agostino-Pearson", 'statistic': dagostino_stat, 'p_value': dagostino_p, 'assumption_met': dagostino_p > self.alpha}
+        else:
+            assumptions['normality'] = {'test': 'Normality Test', 'statistic': np.nan, 'p_value': np.nan, 'assumption_met': False, 'note': 'Not enough data'}
 
         groups = [group[self.dependent_var].values for name, group in self.clean_data.groupby([self.factor_a, self.factor_b])]
         
@@ -165,8 +171,10 @@ class TwoWayANOVA:
     def _calculate_residuals(self):
         residuals = []
         for _, row in self.clean_data.iterrows():
-            cell_mean = self.cell_stats[(self.cell_stats[self.factor_a] == row[self.factor_a]) & (self.cell_stats[self.factor_b] == row[self.factor_b])]['mean'].iloc[0]
-            residuals.append(row[self.dependent_var] - cell_mean)
+            cell_mean_series = self.cell_stats[(self.cell_stats[self.factor_a] == row[self.factor_a]) & (self.cell_stats[self.factor_b] == row[self.factor_b])]['mean']
+            if not cell_mean_series.empty:
+                cell_mean = cell_mean_series.iloc[0]
+                residuals.append(row[self.dependent_var] - cell_mean)
         return np.array(residuals)
 
     def plot_results(self, figsize=(15, 10)):
@@ -186,7 +194,7 @@ class TwoWayANOVA:
         return f"data:image/png;base64,{image_base64}"
 
     def _plot_interaction(self, ax):
-        cell_means = self.results['marginal_means']['cells']
+        cell_means = pd.DataFrame(self.results['marginal_means']['cells'])
         pivot_data = cell_means.pivot(index=self.factor_a, columns=self.factor_b, values='mean')
         for b_level in self.factor_b_levels:
             if b_level in pivot_data.columns:
@@ -200,7 +208,7 @@ class TwoWayANOVA:
             ax.text(0.05, 0.95, f'Interaction: p = {self.p_ab:.4f}*', transform=ax.transAxes, va='top', bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7))
 
     def _plot_marginal_means(self, ax1, ax2):
-        factor_a_means = self.results['marginal_means']['factor_a']
+        factor_a_means = pd.DataFrame(self.results['marginal_means']['factor_a'])
         ax1.bar(range(len(factor_a_means)), factor_a_means['mean'], yerr=factor_a_means['se'], capsize=5, color='skyblue', alpha=0.7, edgecolor='black')
         ax1.set_xlabel(self.factor_a)
         ax1.set_ylabel(f'Mean {self.dependent_var}')
@@ -211,7 +219,7 @@ class TwoWayANOVA:
         if self.p_a < self.alpha:
             ax1.text(0.05, 0.95, f'p = {self.p_a:.4f}*', transform=ax1.transAxes, va='top', bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgreen", alpha=0.7))
         
-        factor_b_means = self.results['marginal_means']['factor_b']
+        factor_b_means = pd.DataFrame(self.results['marginal_means']['factor_b'])
         ax2.bar(range(len(factor_b_means)), factor_b_means['mean'], yerr=factor_b_means['se'], capsize=5, color='lightcoral', alpha=0.7, edgecolor='black')
         ax2.set_xlabel(self.factor_b)
         ax2.set_ylabel(f'Mean {self.dependent_var}')
@@ -224,7 +232,8 @@ class TwoWayANOVA:
 
     def _plot_residual_qq(self, ax):
         residuals = self._calculate_residuals()
-        stats.probplot(residuals, dist="norm", plot=ax)
+        if len(residuals) > 0:
+            stats.probplot(residuals, dist="norm", plot=ax)
         ax.set_title('Q-Q Plot of Residuals')
         ax.grid(True, alpha=0.3)
 
@@ -247,10 +256,10 @@ def main():
 
         response = {
             'results': {
-                'anova_table': anova.results['anova_table'].to_dict('records'),
+                'anova_table': anova.results['anova_table'],
                 'marginal_means': {
-                    'factor_a': anova.results['marginal_means']['factor_a'].to_dict('records'),
-                    'factor_b': anova.results['marginal_means']['factor_b'].to_dict('records'),
+                    'factor_a': anova.results['marginal_means']['factor_a'],
+                    'factor_b': anova.results['marginal_means']['factor_b'],
                 },
                 'assumptions': assumptions
             },
