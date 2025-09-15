@@ -261,7 +261,7 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
                                 <TableBody>
                                     {analysisResult.coefficients.map(c => (
                                         <TableRow key={c.variable}>
-                                            <TableCell>{c.variable === 'Intercept' ? 'Intercept' : c.variable.replace(/Q\("([^"]+)"\)/g, '$1')}</TableCell>
+                                            <TableCell>{c.variable.replace(/Q\("([^"]+)"\)/g, '$1')}</TableCell>
                                             <TableCell className="font-mono text-right">{c.coefficient.toFixed(4)}</TableCell>
                                             {analysisResult.family !== 'gaussian' && <TableCell className="font-mono text-right">{c.exp_coefficient?.toFixed(4)}</TableCell>}
                                             <TableCell className="font-mono text-right">{c.p_value < 0.001 ? '<.001' : c.p_value.toFixed(4)} {getSignificanceStars(c.p_value)}</TableCell>
@@ -304,7 +304,9 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
                                                 {analysisResult.model_summary_data[1].data.slice(1).map((row, i) => (
                                                     <TableRow key={i}>
                                                         {row.map((cell, j) => (
-                                                            <TableCell key={j} className={`font-mono ${j > 0 ? "text-right" : ""}`}>{cell}</TableCell>
+                                                            <TableCell key={j} className={`font-mono ${j > 0 ? "text-right" : ""}`}>
+                                                                {cell.replace(/Q\("([^"]+)"\)/g, '$1')}
+                                                            </TableCell>
                                                         ))}
                                                     </TableRow>
                                                 ))}
