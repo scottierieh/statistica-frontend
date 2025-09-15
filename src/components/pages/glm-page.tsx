@@ -74,7 +74,7 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
         setTargetVar(newTarget);
         setFeatures(allHeaders.filter(h => h !== newTarget));
         setAnalysisResult(null);
-    }, [family, data]);
+    }, [family, data, allHeaders, targetOptions]);
 
     const handleFeatureChange = (header: string, checked: boolean) => {
         setFeatures(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
