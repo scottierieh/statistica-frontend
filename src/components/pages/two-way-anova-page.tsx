@@ -311,4 +311,3 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
         </div>
     );
 }
-
