@@ -148,9 +148,8 @@ const analysisMenu = [
         ]
       },
       {
-        name: 'Categorical & Non-parametric',
+        name: 'Non-Parametric Tests',
         methods: [
-          { id: 'crosstab', label: 'Crosstab Analysis' },
           { id: 'mann-whitney', label: 'Mann-Whitney U' },
           { id: 'wilcoxon', label: 'Wilcoxon Signed-Rank' },
           { id: 'kruskal-wallis', label: 'Kruskal-Wallis' },
@@ -406,14 +405,12 @@ export default function StatisticaApp() {
     }).filter(Boolean) as typeof analysisMenu;
   }, [searchQuery]);
 
-
   useEffect(() => {
     if (searchQuery) {
       const categoriesToOpen = filteredMenu.map(c => c.field);
       setOpenCategories(categoriesToOpen);
     }
   }, [searchQuery, filteredMenu]);
-
 
   return (
     <SidebarProvider>
@@ -498,16 +495,16 @@ export default function StatisticaApp() {
                              <CollapsibleContent className="pl-6 py-1">
                                 <SidebarMenu>
                                   {sub.methods.map(method => (
-                                      <SidebarMenuItem key={method.id}>
-                                          <SidebarMenuButton
-                                              onClick={() => setActiveAnalysis(method.id as AnalysisType)}
-                                              isActive={activeAnalysis === method.id}
-                                              disabled={method.implemented === false}
-                                              className="justify-start w-full h-8 text-xs"
-                                          >
-                                              <span>{method.label}</span>
-                                          </SidebarMenuButton>
-                                      </SidebarMenuItem>
+                                    <SidebarMenuSubItem key={method.id}>
+                                      <SidebarMenuSubButton
+                                          onClick={() => setActiveAnalysis(method.id as AnalysisType)}
+                                          isActive={activeAnalysis === method.id}
+                                          disabled={method.implemented === false}
+                                          className="justify-start w-full h-8 text-xs"
+                                      >
+                                          <span>{method.label}</span>
+                                      </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
                                   ))}
                                 </SidebarMenu>
                              </CollapsibleContent>
