@@ -177,7 +177,7 @@ const analysisMenu = [
       { id: 'correlation', label: 'Correlation Analysis' },
       { id: 'regression', label: 'Regression Analysis' },
       { id: 'logistic-regression', label: 'Logistic Regression' },
-      { id: 'glm', label: 'GLM (General Linear Models)' },
+      { id: 'glm', label: 'General Linear Models (GLM)' },
     ]
   },
    {
@@ -244,7 +244,6 @@ export default function StatisticaApp() {
         setCategoricalHeaders(newCategoricalHeaders);
         setFileName(name);
         toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
-        // setActiveAnalysis('stats'); // Bug: This was resetting the view. Removed.
 
       } catch (error: any) {
         toast({
