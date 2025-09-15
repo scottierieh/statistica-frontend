@@ -58,8 +58,8 @@ export default function BayesianPage({ data, numericHeaders, categoricalHeaders,
         return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
     }, [data, categoricalHeaders]);
 
-    const [groupCol, setGroupCol] = useState<string | undefined>();
-    const [valueCol, setValueCol] = useState<string | undefined>();
+    const [groupCol, setGroupCol] = useState<string | undefined>(binaryCategoricalHeaders[0]);
+    const [valueCol, setValueCol] = useState<string | undefined>(numericHeaders[0]);
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -67,7 +67,7 @@ export default function BayesianPage({ data, numericHeaders, categoricalHeaders,
         setGroupCol(binaryCategoricalHeaders[0]);
         setValueCol(numericHeaders[0]);
         setAnalysisResult(null);
-    }, [data, numericHeaders, categoricalHeaders, binaryCategoricalHeaders]);
+    }, [data, numericHeaders, binaryCategoricalHeaders]);
     
     const canRun = useMemo(() => data.length > 0 && (numericHeaders.length > 0 || categoricalHeaders.length > 0), [data, numericHeaders, categoricalHeaders]);
 
