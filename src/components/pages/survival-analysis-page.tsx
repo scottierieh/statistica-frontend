@@ -14,6 +14,8 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
+import { Checkbox } from '../ui/checkbox';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface SurvivalTableItem {
     Time: number;
@@ -44,6 +46,7 @@ interface SurvivalResults {
     };
     log_rank_test?: LogRankResult;
     cox_ph?: CoxSummaryRow[];
+    cox_concordance?: number;
 }
 
 interface FullAnalysisResponse {
@@ -80,13 +83,21 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
         setEventCol(eventCols[0]);
         
         setGroupCol(undefined);
-        setCovariates(numericHeaders.filter(h => h !== durationCol && h !== eventCol));
+        setCovariates([]);
         setAnalysisResult(null);
     }, [data, numericHeaders, binaryCategoricalHeaders]);
     
     const availableGroupCols = useMemo(() => {
         return categoricalHeaders.filter(h => h !== eventCol);
     }, [categoricalHeaders, eventCol]);
+
+    const availableCovariates = useMemo(() => {
+        return [...numericHeaders, ...categoricalHeaders].filter(h => h !== durationCol && h !== eventCol && h !== groupCol);
+    }, [numericHeaders, categoricalHeaders, durationCol, eventCol, groupCol])
+
+    const handleCovariateChange = (header: string, checked: boolean) => {
+        setCovariates(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+    }
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 1 && binaryCategoricalHeaders.length >=1, [data, numericHeaders, binaryCategoricalHeaders]);
 
@@ -99,11 +110,14 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
         setIsLoading(true);
         setAnalysisResult(null);
 
+        // Ensure covariates don't include duration or event columns
+        const filteredCovariates = covariates.filter(c => c !== durationCol && c !== eventCol);
+
         try {
             const response = await fetch('/api/analysis/survival', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, durationCol, eventCol, groupCol, covariates })
+                body: JSON.stringify({ data, durationCol, eventCol, groupCol, covariates: filteredCovariates })
             });
 
             if (!response.ok) {
@@ -171,10 +185,10 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Survival Analysis Setup</CardTitle>
-                    <CardDescription>Select variables for Kaplan-Meier analysis. The event column should have 1 for event observed, 0 for censored.</CardDescription>
+                    <CardDescription>Select variables for Kaplan-Meier and optional Cox regression analysis. The event column should have 1 for event observed, 0 for censored.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-3 gap-4">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <Label>Duration (Time) Column</Label>
                             <Select value={durationCol} onValueChange={setDurationCol}>
@@ -198,6 +212,19 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                                     {availableGroupCols.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                                 </SelectContent>
                             </Select>
+                        </div>
+                         <div>
+                            <Label>Covariates (for Cox PH)</Label>
+                            <ScrollArea className="h-24 border rounded-md p-2">
+                                <div className="space-y-1">
+                                    {availableCovariates.map(h => (
+                                        <div key={h} className="flex items-center space-x-2">
+                                            <Checkbox id={`cov-${h}`} checked={covariates.includes(h)} onCheckedChange={(c) => handleCovariateChange(h, c as boolean)} />
+                                            <Label htmlFor={`cov-${h}`} className="text-sm font-normal">{h}</Label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
                         </div>
                     </div>
                 </CardContent>
@@ -267,6 +294,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                         <Card>
                              <CardHeader><CardTitle>Survival Function Table</CardTitle></CardHeader>
                              <CardContent>
+                                <ScrollArea className="h-80">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -278,7 +306,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                                     </TableHeader>
                                     <TableBody>
                                         {results.kaplan_meier.survival_table.map((row, i) => {
-                                            const ciRow = results.kaplan_meier.confidence_interval.find(ci => ci.timeline === row.Time);
+                                            const ciRow = (results.kaplan_meier as any).confidence_interval.find((ci: any) => ci.timeline === row.Time);
                                             return (
                                                 <TableRow key={i}>
                                                     <TableCell>{row.Time}</TableCell>
@@ -290,20 +318,24 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                                         })}
                                     </TableBody>
                                 </Table>
+                                </ScrollArea>
                              </CardContent>
                         </Card>
                         {results.cox_ph && (
                              <Card>
-                                <CardHeader><CardTitle>Cox Proportional Hazards Model</CardTitle></CardHeader>
+                                <CardHeader>
+                                    <CardTitle>Cox Proportional Hazards Model</CardTitle>
+                                    <CardDescription>Concordance: {results.cox_concordance?.toFixed(3)}</CardDescription>
+                                </CardHeader>
                                 <CardContent>
                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Covariate</TableHead><TableHead>Hazard Ratio</TableHead><TableHead>p-value</TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead>Covariate</TableHead><TableHead className="text-right">Hazard Ratio</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
                                         <TableBody>
                                             {results.cox_ph.map(row => (
                                                 <TableRow key={row.covariate}>
                                                     <TableCell>{row.covariate}</TableCell>
-                                                    <TableCell className="font-mono">{row.exp_coef.toFixed(3)}</TableCell>
-                                                    <TableCell className="font-mono">{row.p < 0.001 ? '<.001' : row.p.toFixed(3)}</TableCell>
+                                                    <TableCell className="font-mono text-right">{row.exp_coef.toFixed(3)}</TableCell>
+                                                    <TableCell className="font-mono text-right">{row.p < 0.001 ? '<.001' : row.p.toFixed(3)}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
