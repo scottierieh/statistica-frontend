@@ -407,7 +407,7 @@ export default function StatisticaApp() {
   }, [searchQuery]);
 
 
- useEffect(() => {
+  useEffect(() => {
     if (searchQuery) {
       const categoriesToOpen = filteredMenu.map(c => c.field);
       setOpenCategories(categoriesToOpen);
@@ -495,7 +495,7 @@ export default function StatisticaApp() {
                                   <ChevronDown className="h-3 w-3 ml-auto transition-transform" />
                                </div>
                              </CollapsibleTrigger>
-                             <CollapsibleContent className="pl-4 border-l">
+                             <CollapsibleContent className="pl-6 py-1">
                                 <SidebarMenu>
                                   {sub.methods.map(method => (
                                       <SidebarMenuItem key={method.id}>
