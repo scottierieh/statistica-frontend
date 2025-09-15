@@ -19,16 +19,27 @@ def _to_native_type(obj):
     if isinstance(obj, (int, np.integer)):
         return int(obj)
     if isinstance(obj, (float, np.floating)):
-        if math.isnan(obj) or math.isinf(obj):
+        if math.isinf(obj) or math.isnan(obj):
             return None
         return float(obj)
     if isinstance(obj, np.ndarray):
-        return [_to_native_type(item) for item in obj.tolist()]
+        return [_to_native_type(item) for item in obj]
     if isinstance(obj, np.bool_):
         return bool(obj)
-    if isinstance(obj, (list, tuple)):
-        return [_to_native_type(item) for item in obj]
     return obj
+
+def clean_json_inf(o):
+    """
+    Recursively cleans a data structure to make it JSON compliant,
+    converting inf and nan to None.
+    """
+    if isinstance(o, list):
+        return [clean_json_inf(v) for v in o]
+    if isinstance(o, tuple):
+        return tuple(clean_json_inf(v) for v in o)
+    if isinstance(o, dict):
+        return {k: clean_json_inf(v) for k, v in o.items()}
+    return _to_native_type(o)
 
 
 def main():
@@ -71,16 +82,13 @@ def main():
         model = smf.glm(formula, data=df, family=family)
         result = model.fit()
         
-        # Extract structured data instead of HTML
         summary_obj = result.summary()
         summary_data = []
         for table in summary_obj.tables:
-            # Extract caption if it exists
             caption = None
             if hasattr(table, 'title') and table.title:
                 caption = table.title
             
-            # Extract data as a list of lists
             table_data = [list(row) for row in table.data]
             
             summary_data.append({
@@ -88,10 +96,8 @@ def main():
                 'data': table_data
             })
         
-        # Calculate pseudo R-squared
         pseudo_r2 = 1 - (result.deviance / result.null_deviance) if result.null_deviance > 0 else 0
 
-        # Coefficients and interpretation
         params = result.params
         conf_int = result.conf_int()
         pvalues = result.pvalues
@@ -99,7 +105,6 @@ def main():
         coefficients_data = []
         
         if family_name in ['binomial', 'poisson', 'gamma']:
-             # For models with log or logit links, calculate exponentiated coefficients
             exp_params = np.exp(params)
             exp_conf_int = np.exp(conf_int)
             
@@ -135,7 +140,10 @@ def main():
             'family': family_name,
         }
 
-        print(json.dumps(final_result, default=_to_native_type, allow_nan=False))
+        # Clean the final result of any non-compliant JSON values before dumping
+        cleaned_result = clean_json_inf(final_result)
+        
+        print(json.dumps(cleaned_result))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
@@ -143,4 +151,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
