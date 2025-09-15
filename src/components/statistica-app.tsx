@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -119,7 +120,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
 
 const analysisMenu = [
   {
-    field: 'Basic Statistics / Tests',
+    field: 'Basic Statistics / Hypothesis Testing',
     icon: Sigma,
     methods: [
       { id: 'stats', label: 'Descriptive Statistics' },
@@ -193,7 +194,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | 'visuals'>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Clustering / Dimension Reduction', 'Factor / Structural Modeling', 'Specialized Models', 'ANOVA / MANOVA']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Hypothesis Testing', 'Correlation / Regression', 'Clustering / Dimension Reduction', 'Factor / Structural Modeling', 'Specialized Models', 'ANOVA / MANOVA']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
