@@ -314,7 +314,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
     };
 
     if (data.length === 0) {
-        const statsExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('stats')).slice(0, 2);
+        const statsExamples = exampleDatasets.filter(ex => ['iris', 'tips'].includes(ex.id));
        return (
             <div className="flex flex-1 items-center justify-center">
                <Card className="w-full max-w-2xl text-center">
