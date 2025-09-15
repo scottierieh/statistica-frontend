@@ -72,6 +72,15 @@ if (venvNeedsSetup) {
     }
 }
 
+// --- Force install lifelines to fix ModuleNotFoundError ---
+try {
+    console.log('Force installing lifelines package...');
+    execSync(`${pipCmd} install lifelines`, { cwd: backendDir, stdio: 'pipe' });
+} catch (error) {
+    console.error('Could not force install lifelines:', error.message);
+}
+
+
 // --- Generate Example Datasets ---
 console.log('--- Generating example datasets. ---');
 runPythonScript('ab_test_data.py');
