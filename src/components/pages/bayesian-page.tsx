@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -67,7 +66,7 @@ export default function BayesianPage({ data, numericHeaders, categoricalHeaders,
         setAnalysisResult(null);
     }, [data, numericHeaders, binaryCategoricalHeaders]);
     
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0 && binaryCategoricalHeaders.length > 0, [data, numericHeaders, binaryCategoricalHeaders]);
+    const canRun = useMemo(() => data.length > 0 && (numericHeaders.length > 0 || categoricalHeaders.length > 0), [data, numericHeaders, categoricalHeaders]);
 
     const handleAnalysis = useCallback(async () => {
         if (!groupCol || !valueCol) {
@@ -100,6 +99,7 @@ export default function BayesianPage({ data, numericHeaders, categoricalHeaders,
     }, [data, groupCol, valueCol, toast]);
 
     if (!canRun) {
+        const bayesianExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('bayesian'));
         return (
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
@@ -107,6 +107,33 @@ export default function BayesianPage({ data, numericHeaders, categoricalHeaders,
                         <CardTitle className="font-headline">Bayesian A/B Test</CardTitle>
                         <CardDescription>To perform this analysis, you need data with a numeric variable and a categorical variable with exactly two groups.</CardDescription>
                     </CardHeader>
+                    {bayesianExamples.length > 0 && (
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {bayesianExamples.map((ex) => {
+                                    const Icon = ex.icon;
+                                    return (
+                                        <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
+                                            <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                                                    <Icon className="h-6 w-6 text-secondary-foreground" />
+                                                </div>
+                                                <div>
+                                                    <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                                    <CardDescription className="text-xs">{ex.description}</CardDescription>
+                                                </div>
+                                            </CardHeader>
+                                            <CardFooter>
+                                                <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                                    Load this data
+                                                </Button>
+                                            </CardFooter>
+                                        </Card>
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    )}
                 </Card>
             </div>
         );
@@ -137,7 +164,7 @@ export default function BayesianPage({ data, numericHeaders, categoricalHeaders,
 
             {isLoading && <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto"/><p className="mt-2 text-muted-foreground">Running Bayesian analysis...</p></CardContent></Card>}
             
-            {results && analysisResult?.plot && (
+            {results && analysisResult?.plot ? (
                 <div className="space-y-4">
                      <Card>
                         <CardHeader>
@@ -188,6 +215,13 @@ export default function BayesianPage({ data, numericHeaders, categoricalHeaders,
                         </div>
                     </div>
                 </div>
+            ) : (
+                !isLoading && (
+                    <div className="text-center text-muted-foreground py-10">
+                        <FlaskConical className="mx-auto h-12 w-12 text-gray-400" />
+                        <p className="mt-2">Select variables and click 'Run Analysis' to see the results.</p>
+                    </div>
+                )
             )}
         </div>
     );
