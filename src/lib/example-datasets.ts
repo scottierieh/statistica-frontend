@@ -1,6 +1,6 @@
 
 
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns } from "lucide-react";
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
@@ -14,11 +14,12 @@ import { tTestData } from "./example-datasets/t-test-data";
 import { regressionData } from "./example-datasets/regression-data";
 import { semData } from "./example-datasets/sem-data";
 import { conjointSmartphoneData } from "./example-datasets/conjoint-smartphone-data";
+import { ipaRestaurantData } from "./example-datasets/ipa-restaurant-data";
 
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa';
 
 
 export interface ExampleDataSet {
@@ -59,6 +60,15 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 export const exampleDatasets: ExampleDataSet[] = [
      {
+        id: 'ipa-restaurant',
+        name: 'Restaurant Satisfaction',
+        description: 'Customer satisfaction ratings for various aspects of a restaurant experience.',
+        icon: Target,
+        analysisTypes: ['stats', 'ipa', 'regression'],
+        recommendedAnalysis: 'ipa',
+        data: ipaRestaurantData
+    },
+    {
         id: 'conjoint-smartphone',
         name: 'Smartphone Preferences',
         description: 'Simulated user ratings for smartphones with different attributes.',

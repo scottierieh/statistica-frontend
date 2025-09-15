@@ -42,6 +42,7 @@ import {
   Copy,
   BarChart,
   Columns,
+  Target,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -73,13 +74,14 @@ import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import CrosstabPage from './pages/crosstab-page';
 import SemPage from './pages/sem-page';
 import ConjointAnalysisPage from './pages/conjoint-analysis-page';
+import IpaPage from './pages/ipa-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -103,6 +105,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     crosstab: CrosstabPage,
     sem: SemPage,
     conjoint: ConjointAnalysisPage,
+    ipa: IpaPage,
 };
 
 const analysisMenu = [
@@ -156,10 +159,11 @@ const analysisMenu = [
     methods: [
       { id: 'efa', label: 'Exploratory Factor Analysis (EFA)', implemented: true, icon: BrainCircuit },
       { id: 'cfa', label: 'Confirmatory Factor Analysis (CFA)', implemented: true, icon: BrainCircuit },
+      { id: 'sem', label: 'Structural Equation Modeling (SEM)', implemented: true, icon: Network },
       { id: 'mediation', label: 'Mediation Analysis', implemented: true, icon: Network },
       { id: 'moderation', label: 'Moderation Analysis', implemented: true, icon: TrendingUp },
-      { id: 'sem', label: 'Structural Equation Modeling (SEM)', implemented: true, icon: Network },
       { id: 'conjoint', label: 'Conjoint Analysis', implemented: true, icon: Network },
+      { id: 'ipa', label: 'Importance-Performance Analysis (IPA)', implemented: true, icon: Target },
       { id: 'bayesian', label: 'Bayesian Inference', implemented: false },
       { id: 'survival', label: 'Survival Analysis', implemented: false },
     ]
