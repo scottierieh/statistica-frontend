@@ -17,6 +17,8 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
+        if np.isnan(obj):
+            return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
@@ -102,8 +104,8 @@ class ModerationAnalysis:
         f_p_value = 1 - stats.f.cdf(f_stat, k, df) if k > 0 and df > 0 else np.nan
 
         return {
-            'coefficients': coefficients, 'std_errors': std_errors,
-            't_stats': t_stats, 'p_values': p_values, 'r_squared': r_squared,
+            'coefficients': coefficients.tolist(), 'std_errors': std_errors.tolist(),
+            't_stats': t_stats.tolist(), 'p_values': p_values.tolist(), 'r_squared': r_squared,
             'adj_r_squared': adj_r_squared, 'f_stat': f_stat, 'f_p_value': f_p_value,
             'df': df, 'k': k, 'n': n
         }
@@ -277,7 +279,7 @@ def main():
         plot_image = ma.plot_results()
 
         response = {
-            'results': json.loads(json.dumps(results, default=_to_native_type)),
+            'results': results,
             'plot': plot_image
         }
 
