@@ -4,6 +4,7 @@ import json
 import numpy as np
 import pandas as pd
 import warnings
+import math
 
 try:
     import statsmodels.api as sm
@@ -15,21 +16,20 @@ except ImportError:
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
-    if isinstance(obj, (np.integer, int)):
+    if isinstance(obj, (int, np.integer)):
         return int(obj)
-    if isinstance(obj, (np.floating, float)):
-        if np.isnan(obj) or np.isinf(obj):
+    if isinstance(obj, (float, np.floating)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     if isinstance(obj, np.ndarray):
-        # Recursively apply the converter to each element in the array
-        return [_to_native_type(item) for item in obj]
+        return [_to_native_type(item) for item in obj.tolist()]
     if isinstance(obj, np.bool_):
         return bool(obj)
     if isinstance(obj, (list, tuple)):
-        # Handle regular python lists/tuples as well
         return [_to_native_type(item) for item in obj]
     return obj
+
 
 def main():
     if not STATSMODELS_AVAILABLE:
@@ -135,7 +135,7 @@ def main():
             'family': family_name,
         }
 
-        print(json.dumps(final_result, default=_to_native_type))
+        print(json.dumps(final_result, default=_to_native_type, allow_nan=False))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
@@ -143,3 +143,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
