@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -96,9 +97,9 @@ import WilcoxonPage from './pages/wilcoxon-page';
 import KruskalWallisPage from './pages/kruskal-wallis-page';
 import FriedmanPage from './pages/friedman-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | string;
 
-const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
+const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
     correlation: CorrelationPage,
     'one-way-anova': AnovaPage,
@@ -175,7 +176,11 @@ const analysisMenu = [
     icon: Link2,
     methods: [
       { id: 'correlation', label: 'Correlation Analysis' },
-      { id: 'regression', label: 'Regression Analysis' },
+      { id: 'regression-simple', label: 'Simple Linear Regression' },
+      { id: 'regression-multiple', label: 'Multiple Linear Regression' },
+      { id: 'regression-polynomial', label: 'Polynomial Regression' },
+      { id: 'regression-ridge', label: 'Ridge Regression' },
+      { id: 'regression-lasso', label: 'Lasso Regression' },
       { id: 'logistic-regression', label: 'Logistic Regression' },
       { id: 'glm', label: 'General Linear Models (GLM)' },
     ]
@@ -224,7 +229,7 @@ export default function StatisticaApp() {
   const [report, setReport] = useState<{ title: string, content: string } | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | 'visuals'>('stats');
+  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
   const [openCategories, setOpenCategories] = useState<string[]>(analysisMenu.map(c => c.field).concat(analysisMenu.flatMap(c => c.subCategories?.map(sc => sc.name) ?? [])));
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -356,9 +361,11 @@ export default function StatisticaApp() {
     URL.revokeObjectURL(url);
   };
   
-  const ActivePageComponent = activeAnalysis && analysisPages[activeAnalysis as AnalysisType] 
-    ? analysisPages[activeAnalysis as AnalysisType]
+  const pageKey = activeAnalysis.startsWith('regression-') ? 'regression' : activeAnalysis;
+  const ActivePageComponent = pageKey && analysisPages[pageKey] 
+    ? analysisPages[pageKey]
     : DescriptiveStatsPage;
+
 
   const hasData = data.length > 0;
   
@@ -540,7 +547,8 @@ export default function StatisticaApp() {
             )}
             
             <ActivePageComponent 
-                key={activeAnalysis} 
+                key={activeAnalysis}
+                activeAnalysis={activeAnalysis} 
                 data={data}
                 allHeaders={allHeaders}
                 numericHeaders={numericHeaders}

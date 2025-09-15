@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -68,18 +69,20 @@ interface RegressionPageProps {
     data: DataSet;
     numericHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
+    activeAnalysis: string; // e.g., 'regression-simple'
 }
 
-export default function RegressionPage({ data, numericHeaders, onLoadExample }: RegressionPageProps) {
+export default function RegressionPage({ data, numericHeaders, onLoadExample, activeAnalysis }: RegressionPageProps) {
     const { toast } = useToast();
     const [targetVar, setTargetVar] = useState<string | undefined>(numericHeaders[numericHeaders.length - 1]);
     
+    const initialModelType = activeAnalysis.split('-')[1] || 'simple';
+    const [modelType, setModelType] = useState(initialModelType);
+
     // State for different models
     const [simpleFeatureVar, setSimpleFeatureVar] = useState<string | undefined>(numericHeaders[0]);
     const [multipleFeatureVars, setMultipleFeatureVars] = useState<string[]>(numericHeaders.slice(0, numericHeaders.length - 1));
     
-    const [modelType, setModelType] = useState('simple');
-
     // Model specific params
     const [polyDegree, setPolyDegree] = useState(2);
     const [ridgeAlpha, setRidgeAlpha] = useState(1.0);
