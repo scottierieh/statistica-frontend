@@ -9,7 +9,7 @@ export const parseData = (
       throw new Error("The file must contain a header and at least one row of data.");
   }
   
-  const rawHeaders = lines[0].split(/[\t,]/).map(h => h.trim().replace(/"/g, ''));
+  const rawHeaders = lines[0].split(/[\t,]/).map(h => h.trim().replace(/"/g, '')).filter(Boolean);
 
   const data: DataSet = [];
 
@@ -18,7 +18,7 @@ export const parseData = (
     // This is a basic parser; for very complex CSVs, a more robust library would be better.
     const values = lines[i].match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g)?.map(v => v.trim().replace(/"/g, '')) || lines[i].split(/[\t,]/);
 
-    if (values.length !== rawHeaders.length) continue;
+    if (values.length < rawHeaders.length) continue;
 
     const dataPoint: DataPoint = {};
     rawHeaders.forEach((header, index) => {
