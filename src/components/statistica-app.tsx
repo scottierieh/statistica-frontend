@@ -120,24 +120,34 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
 
 const analysisMenu = [
   {
-    field: 'Descriptive / Hypothesis Testing',
-    icon: Sigma,
+    field: 'Descriptive',
+    icon: BarChart,
     methods: [
       { id: 'stats', label: 'Descriptive Statistics' },
       { id: 'frequency', label: 'Frequency Analysis' },
-      { id: 'crosstab', label: 'Crosstab Analysis' },
-      { id: 't-test', label: 't-Test' },
-      { id: 'nonparametric', label: 'Non-parametric Tests' },
     ]
   },
   {
-    field: 'ANOVA / MANOVA',
-    icon: Copy,
-    methods: [
-      { id: 'one-way-anova', label: 'One-Way ANOVA' },
-      { id: 'two-way-anova', label: 'Two-Way ANOVA' },
-      { id: 'ancova', label: 'ANCOVA' },
-      { id: 'manova', label: 'MANOVA' },
+    field: 'Hypothesis Testing',
+    icon: Sigma,
+    subCategories: [
+      {
+        name: 'Mean & Variance Tests',
+        methods: [
+          { id: 't-test', label: 't-Test' },
+          { id: 'one-way-anova', label: 'One-Way ANOVA' },
+          { id: 'two-way-anova', label: 'Two-Way ANOVA' },
+          { id: 'ancova', label: 'ANCOVA' },
+          { id: 'manova', label: 'MANOVA' },
+        ]
+      },
+      {
+        name: 'Categorical & Non-parametric',
+        methods: [
+          { id: 'crosstab', label: 'Crosstab Analysis' },
+          { id: 'nonparametric', label: 'Non-parametric Tests' },
+        ]
+      }
     ]
   },
   {
@@ -194,7 +204,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | 'visuals'>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Descriptive / Hypothesis Testing', 'Correlation / Regression', 'Clustering / Dimension Reduction', 'Factor / Structural Modeling', 'Specialized Models', 'ANOVA / MANOVA']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Descriptive', 'Hypothesis Testing', 'Correlation / Regression', 'Clustering / Dimension Reduction', 'Factor / Structural Modeling', 'Specialized Models']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
@@ -347,23 +357,46 @@ export default function StatisticaApp() {
     if (!searchQuery) return analysisMenu;
     const lowercasedQuery = searchQuery.toLowerCase();
     
-    const filtered = analysisMenu.map(category => {
-        const methods = category.methods.filter(method => 
-            method.label.toLowerCase().includes(lowercasedQuery)
+    return analysisMenu.map(category => {
+      if (category.field.toLowerCase().includes(lowercasedQuery)) {
+        return category; // Include the whole category if the main title matches
+      }
+
+      let matchingMethods = [];
+      if (category.methods) {
+        matchingMethods = category.methods.filter(method =>
+          method.label.toLowerCase().includes(lowercasedQuery)
         );
+      }
 
-        if (methods.length > 0) {
-            return { ...category, methods };
-        }
-        
-        if (category.field.toLowerCase().includes(lowercasedQuery)) {
-            return category;
-        }
+      let matchingSubCategories = [];
+      if (category.subCategories) {
+        matchingSubCategories = category.subCategories.map(sub => {
+          const methods = sub.methods.filter(method =>
+            method.label.toLowerCase().includes(lowercasedQuery)
+          );
+          if (methods.length > 0) {
+            return { ...sub, methods };
+          }
+          if (sub.name.toLowerCase().includes(lowercasedQuery)) {
+            return sub;
+          }
+          return null;
+        }).filter(Boolean) as (typeof category.subCategories);
+      }
 
-        return null;
-    }).filter((c): c is NonNullable<typeof c> => c !== null);
-    return filtered;
+      if (matchingMethods.length > 0 || matchingSubCategories.length > 0) {
+        return {
+          ...category,
+          methods: matchingMethods,
+          subCategories: matchingSubCategories
+        };
+      }
+
+      return null;
+    }).filter(Boolean) as typeof analysisMenu;
   }, [searchQuery]);
+
 
  useEffect(() => {
     if (searchQuery) {
@@ -432,7 +465,7 @@ export default function StatisticaApp() {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pl-6 py-1">
                       <SidebarMenu>
-                        {category.methods.map(method => (
+                        {category.methods?.map(method => (
                           <SidebarMenuItem key={method.id}>
                               <SidebarMenuButton
                                   onClick={() => setActiveAnalysis(method.id as AnalysisType)}
@@ -445,6 +478,25 @@ export default function StatisticaApp() {
                           </SidebarMenuItem>
                           )
                         )}
+                        {category.subCategories?.map(sub => (
+                            <SidebarMenuSub key={sub.name}>
+                                <SidebarMenuSubButton className="text-xs">{sub.name}</SidebarMenuSubButton>
+                                <SidebarMenuSubItem>
+                                     {sub.methods.map(method => (
+                                      <SidebarMenuItem key={method.id}>
+                                          <SidebarMenuButton
+                                              onClick={() => setActiveAnalysis(method.id as AnalysisType)}
+                                              isActive={activeAnalysis === method.id}
+                                              disabled={method.implemented === false}
+                                              className="justify-start w-full h-8 text-xs"
+                                          >
+                                              <span>{method.label}</span>
+                                          </SidebarMenuButton>
+                                      </SidebarMenuItem>
+                                      ))}
+                                </SidebarMenuSubItem>
+                            </SidebarMenuSub>
+                        ))}
                       </SidebarMenu>
                     </CollapsibleContent>
                   </Collapsible>
