@@ -57,49 +57,52 @@ interface FullAnalysisResponse {
 interface SurvivalAnalysisPageProps {
     data: DataSet;
     numericHeaders: string[];
+    allHeaders: string[];
     categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function SurvivalAnalysisPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: SurvivalAnalysisPageProps) {
+export default function SurvivalAnalysisPage({ data, numericHeaders, allHeaders, categoricalHeaders, onLoadExample }: SurvivalAnalysisPageProps) {
     const { toast } = useToast();
-    const [durationCol, setDurationCol] = useState<string | undefined>(numericHeaders[0]);
+    const [durationCol, setDurationCol] = useState<string | undefined>();
     const [eventCol, setEventCol] = useState<string | undefined>();
     const [groupCol, setGroupCol] = useState<string | undefined>();
     const [covariates, setCovariates] = useState<string[]>([]);
 
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
-    const binaryCategoricalHeaders = useMemo(() => {
-        return [...categoricalHeaders, ...numericHeaders.filter(h => new Set(data.map(row => row[h])).size === 2)];
-    }, [data, numericHeaders, categoricalHeaders]);
     
-    useEffect(() => {
-        const timeCols = numericHeaders.filter(h => h.toLowerCase().includes('time') || h.toLowerCase().includes('tenure') || h.toLowerCase().includes('duration'));
-        setDurationCol(timeCols[0] || numericHeaders[0]);
+    const binaryCategoricalHeaders = useMemo(() => {
+        return allHeaders.filter(h => {
+            const uniqueValues = new Set(data.map(row => row[h]).filter(v => v != null && v !== ''));
+            return uniqueValues.size === 2;
+        });
+    }, [data, allHeaders]);
+    
+    const canRun = useMemo(() => {
+        return data.length > 0 && numericHeaders.length >= 1 && binaryCategoricalHeaders.length >=1
+    }, [data, numericHeaders, binaryCategoricalHeaders]);
 
-        const eventCols = binaryCategoricalHeaders.filter(h => h.toLowerCase().includes('event') || h.toLowerCase().includes('churn') || h.toLowerCase().includes('status'));
-        setEventCol(eventCols[0]);
-        
+    useEffect(() => {
+        setDurationCol(undefined);
+        setEventCol(undefined);
         setGroupCol(undefined);
         setCovariates([]);
         setAnalysisResult(null);
-    }, [data, numericHeaders, binaryCategoricalHeaders]);
-    
+    }, [data]);
+
     const availableGroupCols = useMemo(() => {
         return categoricalHeaders.filter(h => h !== eventCol);
     }, [categoricalHeaders, eventCol]);
 
     const availableCovariates = useMemo(() => {
-        return [...numericHeaders, ...categoricalHeaders].filter(h => h !== durationCol && h !== eventCol && h !== groupCol);
-    }, [numericHeaders, categoricalHeaders, durationCol, eventCol, groupCol])
+        const excluded = new Set([durationCol, eventCol, groupCol]);
+        return allHeaders.filter(h => !excluded.has(h));
+    }, [allHeaders, durationCol, eventCol, groupCol])
 
     const handleCovariateChange = (header: string, checked: boolean) => {
         setCovariates(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     }
-
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 1 && binaryCategoricalHeaders.length >=1, [data, numericHeaders, binaryCategoricalHeaders]);
 
     const handleAnalysis = useCallback(async () => {
         if (!durationCol || !eventCol) {
@@ -110,7 +113,6 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
         setIsLoading(true);
         setAnalysisResult(null);
 
-        // Ensure covariates don't include duration or event columns
         const filteredCovariates = covariates.filter(c => c !== durationCol && c !== eventCol);
 
         try {
@@ -192,14 +194,14 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                         <div>
                             <Label>Duration (Time) Column</Label>
                             <Select value={durationCol} onValueChange={setDurationCol}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectTrigger><SelectValue placeholder="Select duration" /></SelectTrigger>
                                 <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div>
                             <Label>Event Column (0 or 1)</Label>
                             <Select value={eventCol} onValueChange={setEventCol}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectTrigger><SelectValue placeholder="Select event" /></SelectTrigger>
                                 <SelectContent>{binaryCategoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
@@ -334,8 +336,8 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                                             {results.cox_ph.map(row => (
                                                 <TableRow key={row.covariate}>
                                                     <TableCell>{row.covariate}</TableCell>
-                                                    <TableCell className="font-mono text-right">{row.exp_coef.toFixed(3)}</TableCell>
-                                                    <TableCell className="font-mono text-right">{row.p < 0.001 ? '<.001' : row.p.toFixed(3)}</TableCell>
+                                                    <TableCell className="font-mono text-right">{row.exp_coef !== undefined ? row.exp_coef.toFixed(3) : 'N/A'}</TableCell>
+                                                    <TableCell className="font-mono text-right">{row.p !== undefined ? (row.p < 0.001 ? '<.001' : row.p.toFixed(3)) : 'N/A'}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
