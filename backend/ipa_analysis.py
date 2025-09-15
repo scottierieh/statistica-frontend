@@ -43,6 +43,9 @@ def main():
 
         # --- Regression Analysis ---
         analysis_data = df[[dependent_var] + independent_vars].dropna()
+        if len(analysis_data) < len(independent_vars) + 2:
+            raise ValueError("Not enough valid data points for regression analysis.")
+            
         X = analysis_data[independent_vars]
         y = analysis_data[dependent_var]
         
@@ -53,7 +56,7 @@ def main():
         n = len(y)
         k = len(independent_vars)
         r2 = r2_score(y, y_pred)
-        adj_r2 = 1 - (1 - r2) * (n - 1) / (n - k - 1) if (n - k - 1) > 0 else r2
+        adj_r2 = 1 - (1 - r2) * (n - 1) / (n - k - 1) if (n - k - 1) > 0 else 0
         
         mse_model = np.sum((y_pred - y.mean()) ** 2) / k if k > 0 else 0
         mse_residual = np.sum((y - y_pred) ** 2) / (n - k - 1) if (n - k - 1) > 0 else 0
