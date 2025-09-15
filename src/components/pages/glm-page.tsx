@@ -125,6 +125,25 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
         }
     }, [data, targetVar, features, family, toast]);
     
+    const mainSummaryData = useMemo(() => {
+        if (!analysisResult?.model_summary_data?.[0]?.data) return [];
+
+        const summaryTable = analysisResult.model_summary_data[0].data;
+        const items = [];
+        const cleanValue = (val: string) => val.replace(/Q\("([^"]+)"\)/g, '$1');
+        
+        for (let i = 0; i < summaryTable.length; i++) {
+            for (let j = 0; j < summaryTable[i].length; j += 2) {
+                const key = summaryTable[i][j].replace(':', '');
+                const value = summaryTable[i][j+1];
+                if (key && value && key.trim() !== '') {
+                    items.push({ key: key.trim(), value: cleanValue(value.trim()) });
+                }
+            }
+        }
+        return items;
+    }, [analysisResult]);
+
     if (!canRun) {
         const glmExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('glm'));
         return (
@@ -164,26 +183,6 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
             </div>
         )
     }
-
-    const mainSummaryData = useMemo(() => {
-        if (!analysisResult?.model_summary_data?.[0]?.data) return [];
-
-        const summaryTable = analysisResult.model_summary_data[0].data;
-        const items = [];
-        const cleanValue = (val: string) => val.replace(/Q\("([^"]+)"\)/g, '$1');
-        
-        for (let i = 0; i < summaryTable.length; i++) {
-            for (let j = 0; j < summaryTable[i].length; j += 2) {
-                const key = summaryTable[i][j].replace(':', '');
-                const value = summaryTable[i][j+1];
-                if (key && value && key.trim() !== '') {
-                    items.push({ key: key.trim(), value: cleanValue(value.trim()) });
-                }
-            }
-        }
-        return items;
-    }, [analysisResult]);
-
 
     return (
         <div className="flex flex-col gap-4">
@@ -285,7 +284,7 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
                                         {mainSummaryData.map(item => (
                                             <div key={item.key} className="flex justify-between border-b py-1">
                                                 <dt className="text-muted-foreground">{item.key}</dt>
-                                                <dd className="font-mono">{item.value}</dd>
+                                                <dd className="font-mono">{item.value.replace(/Q\("([^"]+)"\)/g, '$1')}</dd>
                                             </div>
                                         ))}
                                     </dl>
