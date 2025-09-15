@@ -8,3 +8,7 @@ seaborn
 statsmodels
 plotly
 lifelines
+wordcloud
+requests
+Pillow
+nltk

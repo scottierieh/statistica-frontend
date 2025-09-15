@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -44,6 +45,7 @@ import {
   Target,
   Component,
   HeartPulse,
+  Feather,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -76,8 +78,8 @@ import SemPage from './pages/sem-page';
 import ConjointAnalysisPage from './pages/conjoint-analysis-page';
 import IpaPage from './pages/ipa-page';
 import PcaPage from './pages/pca-page';
-import BayesianPage from './pages/bayesian-page';
 import SurvivalAnalysisPage from './pages/survival-analysis-page';
+import WordCloudPage from './pages/wordcloud-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
@@ -89,7 +91,7 @@ import WilcoxonPage from './pages/wilcoxon-page';
 import KruskalWallisPage from './pages/kruskal-wallis-page';
 import FriedmanPage from './pages/friedman-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian' | 'survival';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -119,8 +121,8 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     conjoint: ConjointAnalysisPage,
     ipa: IpaPage,
     pca: PcaPage,
-    bayesian: BayesianPage,
     survival: SurvivalAnalysisPage,
+    wordcloud: WordCloudPage,
     visuals: VisualizationPage,
 };
 
@@ -131,6 +133,7 @@ const analysisMenu = [
     methods: [
       { id: 'stats', label: 'Descriptive Statistics' },
       { id: 'frequency', label: 'Frequency Analysis' },
+      { id: 'wordcloud', label: 'Word Cloud' },
     ]
   },
   {
@@ -195,7 +198,6 @@ const analysisMenu = [
     methods: [
       { id: 'conjoint', label: 'Conjoint Analysis' },
       { id: 'ipa', label: 'Importance-Performance Analysis (IPA)' },
-      { id: 'bayesian', label: 'Bayesian Inference' },
       { id: 'survival', label: 'Survival Analysis' },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
@@ -405,19 +407,6 @@ export default function StatisticaApp() {
     }).filter(Boolean) as typeof analysisMenu;
   }, [searchQuery]);
 
-  useEffect(() => {
-    if (searchQuery) {
-      const categoriesToOpen = filteredMenu.flatMap(c => {
-        const result = [c.field];
-        if (c.subCategories) {
-          result.push(...c.subCategories.map(sc => sc.name));
-        }
-        return result;
-      });
-      setOpenCategories(categoriesToOpen);
-    }
-  }, [searchQuery, filteredMenu]);
-
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -540,7 +529,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && activeAnalysis !== 'stats' && (
+            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}

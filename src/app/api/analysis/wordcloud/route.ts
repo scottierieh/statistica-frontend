@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn, spawnSync } from 'child_process';
 import path from 'path';
@@ -9,7 +8,7 @@ export async function POST(req: NextRequest) {
     const pythonExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python');
     const pipExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'pip');
     const requirementsPath = path.resolve(process.cwd(), 'backend', 'requirements.txt');
-    const scriptPath = path.resolve(process.cwd(), 'backend', 'bayesian_analysis.py');
+    const scriptPath = path.resolve(process.cwd(), 'backend', 'wordcloud_analysis.py');
 
     // Ensure dependencies are installed
     spawnSync(pipExecutable, ['install', '-r', requirementsPath], { stdio: 'pipe' });
