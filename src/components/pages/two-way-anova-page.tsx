@@ -15,7 +15,7 @@ import Image from 'next/image';
 
 interface AnovaRow {
     Source: string;
-    SS: number;
+    sum_sq: number;
     df: number;
     MS: number;
     F: number;
@@ -26,8 +26,9 @@ interface AnovaRow {
 interface MarginalMeansRow {
     [key: string]: string | number;
     mean: number;
-    se: number;
-    n: number;
+    std: number;
+    sem: number;
+    count: number;
 }
 
 interface AssumptionResult {
@@ -235,7 +236,7 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
                                 <CardTitle className="font-headline">Visualizations</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <Image src={analysisResponse.plot} alt="Two-Way ANOVA Plots" width={1500} height={1000} className="w-full rounded-md border"/>
+                                <Image src={analysisResponse.plot} alt="Two-Way ANOVA Plots" width={1400} height={1200} className="w-full rounded-md border"/>
                             </CardContent>
                         </Card>
                     )}
@@ -260,7 +261,7 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
                                     {results.anova_table.map((row, index) => (
                                         <TableRow key={index}>
                                             <TableCell className="font-medium">{row.Source}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.SS?.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.sum_sq?.toFixed(3)}</TableCell>
                                             <TableCell className="text-right font-mono">{row.df}</TableCell>
                                             <TableCell className="text-right font-mono">{row.MS?.toFixed(3) ?? ''}</TableCell>
                                             <TableCell className="text-right font-mono">{row.F?.toFixed(3) ?? ''}</TableCell>

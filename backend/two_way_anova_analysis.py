@@ -48,11 +48,12 @@ class TwoWayAnovaAnalysis:
         self.fb_clean = self.factor_b.replace(' ', '_').replace('.', '_')
         
         self.clean_data.columns = [self.dv_clean, self.fa_clean, self.fb_clean]
+        
+        self.model = ols(f'Q("{self.dv_clean}") ~ C(Q("{self.fa_clean}")) * C(Q("{self.fb_clean}"))', data=self.clean_data).fit()
+
 
     def run_analysis(self):
-        formula = f'Q("{self.dv_clean}") ~ C(Q("{self.fa_clean}")) * C(Q("{self.fb_clean}"))'
-        model = ols(formula, data=self.clean_data).fit()
-        anova_table = anova_lm(model, typ=2)
+        anova_table = anova_lm(self.model, typ=2)
         
         # Add partial eta-squared (η²p)
         anova_table['η²p'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
@@ -66,11 +67,11 @@ class TwoWayAnovaAnalysis:
 
         self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).replace({np.nan: None}).to_dict('records')
         
-        self._test_assumptions(model)
+        self._test_assumptions()
         self._calculate_marginal_means()
     
-    def _test_assumptions(self, model):
-        residuals = model.resid
+    def _test_assumptions(self):
+        residuals = self.model.resid
         # 1. Normality of residuals (Shapiro-Wilk test)
         shapiro_stat, shapiro_p = stats.shapiro(residuals)
         
@@ -95,24 +96,34 @@ class TwoWayAnovaAnalysis:
         }
 
     def plot_results(self):
-        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+        fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+        fig.suptitle('Two-Way ANOVA Results', fontsize=16, fontweight='bold')
         
-        # Interaction plot
-        sns.pointplot(data=self.clean_data, x=self.fa_clean, y=self.dv_clean, hue=self.fb_clean, ax=axes[0], dodge=True)
-        axes[0].set_title('Interaction Plot')
-        axes[0].set_xlabel(self.factor_a)
-        axes[0].set_ylabel(f'Mean of {self.dependent_var}')
-        axes[0].legend(title=self.factor_b)
-        axes[0].grid(True, linestyle='--', alpha=0.6)
+        # 1. Interaction plot
+        sns.pointplot(data=self.clean_data, x=self.fa_clean, y=self.dv_clean, hue=self.fb_clean, ax=axes[0, 0], dodge=True, errorbar='ci')
+        axes[0, 0].set_title('Interaction Plot')
+        axes[0, 0].set_xlabel(self.factor_a)
+        axes[0, 0].set_ylabel(f'Mean of {self.dependent_var}')
+        axes[0, 0].legend(title=self.factor_b)
+        axes[0, 0].grid(True, linestyle='--', alpha=0.6)
 
-        # Residuals vs Fitted
-        model = ols(f'Q("{self.dv_clean}") ~ C(Q("{self.fa_clean}")) * C(Q("{self.fb_clean}"))', data=self.clean_data).fit()
-        sns.residplot(x=model.fittedvalues, y=model.resid, lowess=True, ax=axes[1], line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
-        axes[1].set_title('Residuals vs. Fitted')
-        axes[1].set_xlabel('Fitted values')
-        axes[1].set_ylabel('Residuals')
+        # 2. Box plot for Factor A
+        sns.boxplot(x=self.fa_clean, y=self.dv_clean, data=self.clean_data, ax=axes[0, 1])
+        axes[0, 1].set_title(f'Distribution by {self.factor_a}')
+        axes[0, 1].set_xlabel(self.factor_a)
+        axes[0, 1].set_ylabel(self.dependent_var)
 
-        plt.tight_layout()
+        # 3. Box plot for Factor B
+        sns.boxplot(x=self.fb_clean, y=self.dv_clean, data=self.clean_data, ax=axes[1, 0])
+        axes[1, 0].set_title(f'Distribution by {self.factor_b}')
+        axes[1, 0].set_xlabel(self.factor_b)
+        axes[1, 0].set_ylabel(self.dependent_var)
+
+        # 4. Q-Q plot for normality of residuals
+        sm.qqplot(self.model.resid, line='s', ax=axes[1, 1])
+        axes[1, 1].set_title('Q-Q Plot of Residuals')
+        
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         buf = io.BytesIO()
         plt.savefig(buf, format='png')
         plt.close(fig)
