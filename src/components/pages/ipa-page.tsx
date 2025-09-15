@@ -56,7 +56,7 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== dependentVar), [numericHeaders, dependentVar]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
 
     useEffect(() => {
         const satisfactionCols = numericHeaders.filter(h => h.toLowerCase().includes('satisfaction') || h.toLowerCase().includes('rating'));
@@ -69,7 +69,16 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
 
     }, [data, numericHeaders]);
 
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
+    const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== dependentVar), [numericHeaders, dependentVar]);
+    
+    const results = analysisResult?.results;
+    const diagnosticsData = useMemo(() => {
+        if (!results?.regression_summary?.predictions || !results?.regression_summary?.residuals) return [];
+        return results.regression_summary.predictions.map((p, i) => ({
+            prediction: p,
+            residual: results.regression_summary.residuals[i]
+        }));
+    }, [results]);
 
     const handleIndepVarChange = (header: string, checked: boolean) => {
         setIndependentVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
@@ -149,16 +158,6 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
         );
     }
     
-    const results = analysisResult?.results;
-    const diagnosticsData = useMemo(() => {
-        if (!results?.regression_summary?.predictions || !results?.regression_summary?.residuals) return [];
-        return results.regression_summary.predictions.map((p, i) => ({
-            prediction: p,
-            residual: results.regression_summary.residuals[i]
-        }));
-    }, [results]);
-
-
     return (
         <div className="space-y-4">
             <Card>
