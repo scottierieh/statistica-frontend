@@ -37,20 +37,20 @@ def _to_native_type(obj):
     return obj
 
 def get_korean_font_path():
-    """시스템에서 사용 가능한 한글 폰트 경로를 찾습니다."""
+    """Finds a Korean font path available on the system."""
     font_paths = fm.findSystemFonts(fontpaths=None, fontext='ttf')
     
     nanum_fonts = [path for path in font_paths if 'NanumGothic' in path]
     if nanum_fonts:
         return nanum_fonts[0]
 
-    for font_name in ['Malgun Gothic', 'AppleGothic', 'Noto Sans CJK KR']:
+    for font_name in ['Malgun Gothic', 'AppleGothic', 'Noto Sans CJK KR', 'NanumGothic']:
         try:
             return fm.findfont(fm.FontProperties(family=font_name))
         except:
             continue
     
-    # Check for any CJK font
+    # Check for any CJK font as a fallback
     for path in font_paths:
         try:
             font = fm.FontProperties(fname=path)
@@ -67,6 +67,9 @@ class WordCloudGenerator:
         self.font_path = get_korean_font_path()
         if self.font_path:
             plt.rcParams['font.family'] = fm.FontProperties(fname=self.font_path).get_name()
+        else:
+            # Fallback font for systems without Korean fonts, might not render correctly.
+            plt.rcParams['font.family'] = 'DejaVu Sans'
         plt.rcParams['axes.unicode_minus'] = False
 
 
