@@ -30,7 +30,7 @@ def _to_native_type(obj):
 class TwoWayANOVA:
     def __init__(self, data, dependent_var, factor_a, factor_b, 
                  alpha=0.05, effect_size='partial_eta_squared'):
-        self.data = data.copy()
+        self.data = pd.DataFrame(data).copy()
         self.dependent_var = dependent_var
         self.factor_a = factor_a
         self.factor_b = factor_b
