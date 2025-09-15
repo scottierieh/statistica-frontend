@@ -64,12 +64,13 @@ export default function BayesianPage({ data, numericHeaders, categoricalHeaders,
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        setGroupCol(binaryCategoricalHeaders[0]);
+        const newBinaryHeaders = categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
+        setGroupCol(newBinaryHeaders[0]);
         setValueCol(numericHeaders[0]);
         setAnalysisResult(null);
-    }, [data, numericHeaders, binaryCategoricalHeaders]);
+    }, [data, numericHeaders, categoricalHeaders]);
     
-    const canRun = useMemo(() => data.length > 0 && (numericHeaders.length > 0 && categoricalHeaders.length > 0), [data, numericHeaders, categoricalHeaders]);
+    const canRun = useMemo(() => data.length > 0 && (numericHeaders.length > 0 || categoricalHeaders.length > 0), [data, numericHeaders, categoricalHeaders]);
 
     const handleAnalysis = useCallback(async () => {
         if (!groupCol || !valueCol) {
