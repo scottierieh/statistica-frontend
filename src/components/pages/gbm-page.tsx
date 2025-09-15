@@ -115,24 +115,26 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
     }, [problemType, numericHeaders, categoricalHeaders]);
 
     useEffect(() => {
-        // Reset state when data changes, setting a sensible default target.
+        // This effect runs only when data or the headers change (i.e., new file loaded)
         setAnalysisResult(null);
         setIsLoading(false);
         const newTargetOptions = problemType === 'regression' ? numericHeaders : categoricalHeaders;
         const defaultTarget = newTargetOptions[newTargetOptions.length - 1] || newTargetOptions[0];
         setTarget(defaultTarget);
-    }, [data, numericHeaders, categoricalHeaders]); // Removed problemType from deps
+    }, [data, numericHeaders, categoricalHeaders]);
 
     useEffect(() => {
-        // Handle problem type change specifically
+        // This effect runs only when problemType changes
         setAnalysisResult(null);
         const newTargetOptions = problemType === 'regression' ? numericHeaders : categoricalHeaders;
+        // If the current target is not valid for the new problem type, update it.
         if (!target || !newTargetOptions.includes(target)) {
             setTarget(newTargetOptions[newTargetOptions.length - 1] || newTargetOptions[0]);
         }
     }, [problemType]);
     
     useEffect(() => {
+        // Update features whenever the target variable changes
         if (target) {
             setFeatures(allHeaders.filter(h => h !== target));
         } else {
