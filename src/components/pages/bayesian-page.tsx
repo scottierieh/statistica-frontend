@@ -12,6 +12,7 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Label } from '../ui/label';
 
 interface BayesianResults {
     bf10: number;
@@ -63,10 +64,11 @@ export default function BayesianPage({ data, numericHeaders, categoricalHeaders,
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        setGroupCol(binaryCategoricalHeaders[0]);
+        const newBinaryHeaders = categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
+        setGroupCol(newBinaryHeaders[0]);
         setValueCol(numericHeaders[0]);
         setAnalysisResult(null);
-    }, [data, numericHeaders, binaryCategoricalHeaders]);
+    }, [data, numericHeaders, categoricalHeaders]);
     
     const canRun = useMemo(() => data.length > 0 && (numericHeaders.length > 0 || categoricalHeaders.length > 0), [data, numericHeaders, categoricalHeaders]);
 
@@ -153,8 +155,20 @@ export default function BayesianPage({ data, numericHeaders, categoricalHeaders,
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
-                        <div><label>Group Variable (2 Groups)</label><Select value={groupCol} onValueChange={setGroupCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{binaryCategoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><label>Value Variable (Numeric)</label><Select value={valueCol} onValueChange={setValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div>
+                            <Label htmlFor="group-var">Group Variable (2 Groups)</Label>
+                            <Select value={groupCol} onValueChange={setGroupCol}>
+                                <SelectTrigger id="group-var"><SelectValue placeholder="Select a group"/></SelectTrigger>
+                                <SelectContent>{binaryCategoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="value-var">Value Variable (Numeric)</Label>
+                            <Select value={valueCol} onValueChange={setValueCol}>
+                                <SelectTrigger id="value-var"><SelectValue placeholder="Select a value"/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
