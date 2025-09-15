@@ -63,9 +63,15 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
     const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2, [data, allHeaders]);
 
     const targetOptions = useMemo(() => {
-        if (family === 'binomial') return categoricalHeaders;
+        if (family === 'binomial') {
+            const binaryNumericHeaders = numericHeaders.filter(h => {
+                const uniqueValues = new Set(data.map(row => row[h]));
+                return uniqueValues.size === 2 && uniqueValues.has(0) && uniqueValues.has(1);
+            });
+            return [...categoricalHeaders, ...binaryNumericHeaders];
+        }
         return numericHeaders;
-    }, [family, numericHeaders, categoricalHeaders]);
+    }, [family, numericHeaders, categoricalHeaders, data]);
     
     const featureOptions = useMemo(() => allHeaders.filter(h => h !== targetVar), [allHeaders, targetVar]);
     
