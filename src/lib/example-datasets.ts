@@ -20,7 +20,7 @@ import { admissionData } from "./example-datasets/admission-data";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'logistic-regression' | 'pca';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'logistic-regression' | 'pca' | 'bayesian';
 
 
 export interface ExampleDataSet {
@@ -101,7 +101,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'T-Test Suite',
         description: 'Data for one-sample, independent, and paired t-tests.',
         icon: Sigma,
-        analysisTypes: ['stats', 't-test'],
+        analysisTypes: ['stats', 't-test', 'bayesian'],
         recommendedAnalysis: 't-test',
         data: tTestData,
     },

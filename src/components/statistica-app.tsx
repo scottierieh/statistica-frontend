@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -76,13 +77,14 @@ import SemPage from './pages/sem-page';
 import ConjointAnalysisPage from './pages/conjoint-analysis-page';
 import IpaPage from './pages/ipa-page';
 import PcaPage from './pages/pca-page';
+import BayesianPage from './pages/bayesian-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -109,6 +111,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     conjoint: ConjointAnalysisPage,
     ipa: IpaPage,
     pca: PcaPage,
+    bayesian: BayesianPage,
 };
 
 const analysisMenu = [
@@ -167,7 +170,7 @@ const analysisMenu = [
       { id: 'moderation', label: 'Moderation Analysis', implemented: true, icon: TrendingUp },
       { id: 'conjoint', label: 'Conjoint Analysis', implemented: true, icon: Network },
       { id: 'ipa', label: 'Importance-Performance Analysis (IPA)', implemented: true, icon: Target },
-      { id: 'bayesian', label: 'Bayesian Inference', implemented: false },
+      { id: 'bayesian', label: 'Bayesian Inference', implemented: true, icon: FlaskConical },
       { id: 'survival', label: 'Survival Analysis', implemented: false },
     ]
   }
