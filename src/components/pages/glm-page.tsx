@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -15,8 +15,12 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
+interface SummaryTableData {
+    caption: string | null;
+    data: string[][];
+}
 interface GlmResults {
-    model_summary_html: string[];
+    model_summary_data: SummaryTableData[];
     aic: number;
     bic: number;
     log_likelihood: number;
@@ -64,9 +68,9 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
 
     const targetOptions = useMemo(() => {
         if (family === 'binomial') {
-            const binaryNumericHeaders = numericHeaders.filter(h => {
+             const binaryNumericHeaders = numericHeaders.filter(h => {
                 const uniqueValues = new Set(data.map(row => row[h]));
-                return uniqueValues.size === 2 && uniqueValues.has(0) && uniqueValues.has(1);
+                return uniqueValues.size === 2 && (uniqueValues.has(0) || uniqueValues.has(1));
             });
             return [...categoricalHeaders, ...binaryNumericHeaders];
         }
@@ -240,7 +244,7 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
                                 <TableBody>
                                     {analysisResult.coefficients.map(c => (
                                         <TableRow key={c.variable}>
-                                            <TableCell>{c.variable === 'Intercept' ? 'Intercept' : c.variable.replace('Q("', '').replace('")', '')}</TableCell>
+                                            <TableCell>{c.variable === 'Intercept' ? 'Intercept' : c.variable.replace(/Q\("([^"]+)"\)/g, '$1')}</TableCell>
                                             <TableCell className="font-mono text-right">{c.coefficient.toFixed(4)}</TableCell>
                                             {analysisResult.family !== 'gaussian' && <TableCell className="font-mono text-right">{c.exp_coefficient?.toFixed(4)}</TableCell>}
                                             <TableCell className="font-mono text-right">{c.p_value < 0.001 ? '<.001' : c.p_value.toFixed(4)} {getSignificanceStars(c.p_value)}</TableCell>
@@ -253,9 +257,29 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
                     </Card>
                     <Card>
                         <CardHeader><CardTitle>Full Model Details</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            {analysisResult.model_summary_html.map((html, index) => (
-                                <div key={index} className="overflow-x-auto" dangerouslySetInnerHTML={{ __html: html.replace(/<table/g, '<table class="w-full text-sm"') }} />
+                        <CardContent className="space-y-6">
+                            {analysisResult.model_summary_data.map((tableData, tableIndex) => (
+                                <Table key={tableIndex} className="w-full text-sm">
+                                    {tableData.caption && <TableCaption className="text-lg font-bold mb-2">{tableData.caption}</TableCaption>}
+                                    <TableBody>
+                                        {tableData.data.map((row, rowIndex) => (
+                                            <TableRow key={rowIndex} className="[&>td]:p-2">
+                                                {row.map((cell, cellIndex) => {
+                                                    // In statsmodels summary, headers are often on alternating rows
+                                                    const isHeader = (rowIndex === 0 && tableIndex > 0) || (tableIndex === 0 && (rowIndex === 0 || rowIndex === 2 || rowIndex === 4 || rowIndex === 6 || rowIndex === 8));
+                                                    const Component = isHeader ? TableHead : TableCell;
+                                                    const isFirstCol = cellIndex === 0 || cellIndex === 2 || cellIndex === 4 || cellIndex === 6;
+                                                    
+                                                    return (
+                                                        <Component key={cellIndex} className={!isFirstCol ? "text-right" : ""}>
+                                                            {cell}
+                                                        </Component>
+                                                    );
+                                                })}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             ))}
                         </CardContent>
                     </Card>
