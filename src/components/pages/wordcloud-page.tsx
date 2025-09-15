@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface WordCloudResponse {
     plots: {
@@ -28,12 +29,17 @@ interface WordCloudResponse {
     };
 }
 
+const colorSchemes = [
+    'viridis', 'plasma', 'inferno', 'magma', 'cividis', 'spring', 'summer', 'autumn', 'winter', 'cool', 'hot', 'gist_heat', 'copper'
+];
+
 export default function WordCloudPage() {
     const { toast } = useToast();
     const [text, setText] = useState('');
     const [customStopwords, setCustomStopwords] = useState('');
-    const [minWordLength, setMinWordLength] = useState(3);
+    const [minWordLength, setMinWordLength] = useState(2);
     const [maxWords, setMaxWords] = useState(100);
+    const [colormap, setColormap] = useState('viridis');
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<WordCloudResponse | null>(null);
 
@@ -50,7 +56,7 @@ export default function WordCloudPage() {
             const response = await fetch('/api/analysis/wordcloud', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, customStopwords, minWordLength, maxWords })
+                body: JSON.stringify({ text, customStopwords, minWordLength, maxWords, colormap })
             });
 
             if (!response.ok) {
@@ -71,7 +77,7 @@ export default function WordCloudPage() {
             setIsLoading(false);
         }
 
-    }, [text, customStopwords, minWordLength, maxWords, toast]);
+    }, [text, customStopwords, minWordLength, maxWords, colormap, toast]);
     
     const frequencyData = analysisResult ? Object.entries(analysisResult.frequencies).map(([word, count]) => ({ word, count })) : [];
     const stats = analysisResult?.statistics;
@@ -94,7 +100,7 @@ export default function WordCloudPage() {
                             rows={10}
                         />
                     </div>
-                    <div className="grid md:grid-cols-3 gap-4">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                          <div>
                             <Label htmlFor="stopwords-input">Custom Stopwords</Label>
                             <Input
@@ -124,6 +130,21 @@ export default function WordCloudPage() {
                                 onChange={(e) => setMaxWords(Number(e.target.value))}
                                 min="10"
                             />
+                        </div>
+                        <div>
+                            <Label htmlFor="colormap-select">Color Scheme</Label>
+                             <Select value={colormap} onValueChange={setColormap}>
+                                <SelectTrigger id="colormap-select">
+                                    <SelectValue placeholder="Select color scheme" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {colorSchemes.map(scheme => (
+                                        <SelectItem key={scheme} value={scheme}>
+                                            {scheme.charAt(0).toUpperCase() + scheme.slice(1)}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 </CardContent>

@@ -9,6 +9,8 @@ import string
 import io
 import base64
 import warnings
+import matplotlib.font_manager as fm
+
 warnings.filterwarnings('ignore')
 
 try:
@@ -28,9 +30,24 @@ def _to_native_type(obj):
         return bool(obj)
     return obj
 
+def get_korean_font_path():
+    """시스템에서 사용 가능한 한글 폰트 경로를 찾습니다."""
+    # NanumGothic을 우선적으로 찾습니다.
+    for font in fm.findSystemFonts(fontpaths=None, fontext='ttf'):
+        if 'NanumGothic' in font:
+            return font
+    # 다른 일반적인 한글 폰트 이름으로도 찾아봅니다.
+    for font_name in ['Malgun Gothic', 'AppleGothic', 'Noto Sans CJK KR']:
+        try:
+            return fm.findfont(fm.FontProperties(family=font_name))
+        except:
+            continue
+    return None # 한글 폰트를 찾지 못한 경우
+
 class WordCloudGenerator:
     def __init__(self):
         self.default_stopwords = set(STOPWORDS) if WORDCLOUD_AVAILABLE else set()
+        self.font_path = get_korean_font_path()
 
     def preprocess_text(self, text, custom_stopwords, min_word_length):
         text = text.lower()
@@ -41,8 +58,26 @@ class WordCloudGenerator:
         
         stop_words = self.default_stopwords.union(set(custom_stopwords))
         
-        words = [word for word in words if len(word) >= min_word_length and word not in stop_words]
-        return ' '.join(words), words
+        # 한국어 조사를 간단히 제거 (더 정교한 형태소 분석기 사용이 이상적)
+        korean_particles = "은|는|이|가|을|를|의|에|와|과|도|로|으로|께|서"
+        processed_words = []
+        for word in words:
+            # 영어 단어 처리
+            if re.match(r'^[a-zA-Z]+$', word):
+                 if len(word) >= min_word_length and word not in stop_words:
+                    processed_words.append(word)
+            # 한글 단어 처리
+            elif re.match(r'^[가-힣]+$', word):
+                 # 조사 제거
+                 word = re.sub(f"({korean_particles})$", "", word)
+                 if len(word) >= min_word_length and word not in stop_words:
+                    processed_words.append(word)
+            # 기타 (혼합 등)
+            else:
+                 if len(word) >= min_word_length and word not in stop_words:
+                    processed_words.append(word)
+
+        return ' '.join(processed_words), processed_words
 
     def calculate_word_frequencies(self, words, top_n=100):
         word_freq = Counter(words)
@@ -63,15 +98,20 @@ class WordCloudGenerator:
         if not WORDCLOUD_AVAILABLE:
             raise ImportError("WordCloud library not found. Please install with: pip install wordcloud")
         
-        wc = WordCloud(
-            width=settings.get('width', 800),
-            height=settings.get('height', 400),
-            background_color=settings.get('background_color', 'white'),
-            max_words=settings.get('max_words', 100),
-            colormap=settings.get('colormap', 'viridis'),
-            stopwords=self.default_stopwords,
-            collocations=False
-        )
+        wc_params = {
+            'width': settings.get('width', 800),
+            'height': settings.get('height', 400),
+            'background_color': settings.get('background_color', 'white'),
+            'max_words': settings.get('max_words', 100),
+            'colormap': settings.get('colormap', 'viridis'),
+            'stopwords': self.default_stopwords,
+            'collocations': False
+        }
+        
+        if self.font_path:
+            wc_params['font_path'] = self.font_path
+
+        wc = WordCloud(**wc_params)
         
         wordcloud_image = wc.generate(text)
         
@@ -84,6 +124,10 @@ class WordCloudGenerator:
     def generate_frequency_plot(self, frequencies, top_n=20):
         top_freq = dict(list(frequencies.items())[:top_n])
         plt.figure(figsize=(10, 8))
+
+        if self.font_path:
+            plt.rcParams['font.family'] = fm.FontProperties(fname=self.font_path).get_name()
+            
         plt.barh(list(top_freq.keys()), list(top_freq.values()), color='skyblue')
         plt.xlabel('Frequency')
         plt.title(f'Top {top_n} Most Frequent Words')
@@ -105,6 +149,7 @@ def main():
         custom_stopwords_str = payload.get('customStopwords', '')
         min_word_length = payload.get('minWordLength', 3)
         max_words = payload.get('maxWords', 100)
+        colormap = payload.get('colormap', 'viridis')
         
         if not text_data:
             raise ValueError("Text data is required.")
@@ -125,7 +170,7 @@ def main():
             'width': 800,
             'height': 400,
             'background_color': 'white',
-            'colormap': 'viridis',
+            'colormap': colormap,
             'max_words': max_words
         }
 
