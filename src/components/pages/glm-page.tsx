@@ -13,7 +13,6 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface SummaryTableData {
     caption: string | null;
@@ -165,6 +164,24 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
         )
     }
 
+    const mainSummaryData = useMemo(() => {
+        if (!analysisResult?.model_summary_data?.[0]?.data) return [];
+
+        const summaryTable = analysisResult.model_summary_data[0].data;
+        const items = [];
+        for (let i = 0; i < summaryTable.length; i++) {
+            for (let j = 0; j < summaryTable[i].length; j += 2) {
+                const key = summaryTable[i][j].replace(':', '');
+                const value = summaryTable[i][j+1];
+                if (key && value && key.trim() !== '') {
+                    items.push({ key: key.trim(), value: value.trim() });
+                }
+            }
+        }
+        return items;
+    }, [analysisResult]);
+
+
     return (
         <div className="flex flex-col gap-4">
             <Card>
@@ -258,28 +275,44 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
                     <Card>
                         <CardHeader><CardTitle>Full Model Details</CardTitle></CardHeader>
                         <CardContent className="space-y-6">
-                            {analysisResult.model_summary_data?.map((tableData, tableIndex) => (
-                                <Table key={tableIndex} className="w-full text-sm">
-                                    {tableData.caption && <TableCaption className="text-lg font-bold mb-2">{tableData.caption}</TableCaption>}
-                                    <TableBody>
-                                        {tableData.data.map((row, rowIndex) => (
-                                            <TableRow key={rowIndex} className="[&>td]:p-2">
-                                                {row.map((cell, cellIndex) => {
-                                                    const isHeader = (rowIndex === 0 && tableIndex > 0) || (tableIndex === 0 && (rowIndex === 0 || rowIndex === 2 || rowIndex === 4 || rowIndex === 6 || rowIndex === 8));
-                                                    const Component = isHeader ? TableHead : TableCell;
-                                                    const isFirstCol = cellIndex === 0 || cellIndex === 2 || cellIndex === 4 || cellIndex === 6;
-                                                    
-                                                    return (
-                                                        <Component key={cellIndex} className={!isFirstCol ? "text-right" : ""}>
-                                                            {cell}
-                                                        </Component>
-                                                    );
-                                                })}
-                                            </TableRow>
+                            <Card>
+                                <CardHeader><CardTitle className="text-base">Model Information</CardTitle></CardHeader>
+                                <CardContent>
+                                    <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-2 text-sm">
+                                        {mainSummaryData.map(item => (
+                                            <div key={item.key} className="flex justify-between border-b py-1">
+                                                <dt className="text-muted-foreground">{item.key}</dt>
+                                                <dd className="font-mono">{item.value}</dd>
+                                            </div>
                                         ))}
-                                    </TableBody>
-                                </Table>
-                            ))}
+                                    </dl>
+                                </CardContent>
+                            </Card>
+                            {analysisResult.model_summary_data?.[1] && (
+                                <Card>
+                                     <CardHeader><CardTitle className="text-base">Coefficients (Detailed)</CardTitle></CardHeader>
+                                     <CardContent>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    {analysisResult.model_summary_data[1].data[0].map((header, i) => (
+                                                        <TableHead key={i} className={i > 0 ? "text-right" : ""}>{header}</TableHead>
+                                                    ))}
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {analysisResult.model_summary_data[1].data.slice(1).map((row, i) => (
+                                                    <TableRow key={i}>
+                                                        {row.map((cell, j) => (
+                                                            <TableCell key={j} className={`font-mono ${j > 0 ? "text-right" : ""}`}>{cell}</TableCell>
+                                                        ))}
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
