@@ -142,6 +142,7 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
     }, [allHeaders, target]);
 
     if (!canRun) {
+        const gbmExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('gbm'));
         return (
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
@@ -149,6 +150,33 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
                         <CardTitle className="font-headline">GBM Analysis</CardTitle>
                         <CardDescription>Upload data with features and a target variable to get started.</CardDescription>
                     </CardHeader>
+                     {gbmExamples.length > 0 && (
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {gbmExamples.map((ex) => {
+                                    const Icon = ex.icon;
+                                    return (
+                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
+                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                                                <Icon className="h-6 w-6 text-secondary-foreground" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
+                                            </div>
+                                        </CardHeader>
+                                        <CardFooter>
+                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                                Load this data
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                    )
+                                })}
+                            </div>
+                        </CardContent>
+                    )}
                 </Card>
             </div>
         );
@@ -289,7 +317,7 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
                             <CardTitle>Plots</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <Image src={analysisResult.plot} alt="GBM Analysis Plots" width={1400} height={600} className="w-full rounded-md border"/>
+                             <Image src={analysisResult.plot} alt="GBM Analysis Plots" width={1800} height={1500} className="w-full rounded-md border"/>
                         </CardContent>
                     </Card>
                 </div>
