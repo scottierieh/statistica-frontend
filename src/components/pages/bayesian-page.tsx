@@ -52,15 +52,16 @@ interface BayesianPageProps {
 
 export default function BayesianPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: BayesianPageProps) {
     const { toast } = useToast();
-    const [groupCol, setGroupCol] = useState<string | undefined>();
-    const [valueCol, setValueCol] = useState<string | undefined>();
-    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-
+    
     const binaryCategoricalHeaders = useMemo(() => {
         return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
     }, [data, categoricalHeaders]);
-    
+
+    const [groupCol, setGroupCol] = useState<string | undefined>(binaryCategoricalHeaders[0]);
+    const [valueCol, setValueCol] = useState<string | undefined>(numericHeaders[0]);
+    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
     useEffect(() => {
         setGroupCol(binaryCategoricalHeaders[0]);
         setValueCol(numericHeaders[0]);
