@@ -115,37 +115,28 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
     }, [problemType, numericHeaders, categoricalHeaders]);
 
     useEffect(() => {
-        // Reset state when data changes
+        // Reset state when data changes, setting a sensible default target.
         setAnalysisResult(null);
         setIsLoading(false);
-
         const newTargetOptions = problemType === 'regression' ? numericHeaders : categoricalHeaders;
-        
-        // If current target is not valid for the new data/problem type, or not set, pick a default
-        if (!target || !newTargetOptions.includes(target)) {
-            const defaultTarget = newTargetOptions[newTargetOptions.length - 1] || newTargetOptions[0];
-            setTarget(defaultTarget);
-            setFeatures(allHeaders.filter(h => h !== defaultTarget));
-        } else {
-             // If target is still valid, just update features
-            setFeatures(allHeaders.filter(h => h !== target));
-        }
+        const defaultTarget = newTargetOptions[newTargetOptions.length - 1] || newTargetOptions[0];
+        setTarget(defaultTarget);
+    }, [data, numericHeaders, categoricalHeaders]); // Removed problemType from deps
 
-    }, [data, allHeaders, numericHeaders, categoricalHeaders]);
-
-     useEffect(() => {
-        // Handle problem type change
+    useEffect(() => {
+        // Handle problem type change specifically
+        setAnalysisResult(null);
         const newTargetOptions = problemType === 'regression' ? numericHeaders : categoricalHeaders;
         if (!target || !newTargetOptions.includes(target)) {
-            const defaultTarget = newTargetOptions[newTargetOptions.length - 1] || newTargetOptions[0];
-            setTarget(defaultTarget);
+            setTarget(newTargetOptions[newTargetOptions.length - 1] || newTargetOptions[0]);
         }
-    }, [problemType, numericHeaders, categoricalHeaders, target]);
-
+    }, [problemType]);
     
     useEffect(() => {
         if (target) {
             setFeatures(allHeaders.filter(h => h !== target));
+        } else {
+            setFeatures(allHeaders);
         }
     }, [target, allHeaders]);
 
@@ -240,7 +231,6 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
     }
 
     const results = analysisResult?.results;
-    const sortedFeatures = results ? Object.entries(results.feature_importance).sort(([, a], [, b]) => b - a) : [];
     
     const renderClassificationMetrics = () => {
         if (!results || problemType !== 'classification') return null;
