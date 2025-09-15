@@ -14,7 +14,6 @@ function runPythonScript(scriptPath) {
         const fullScriptPath = path.join(backendDir, scriptPath);
         if (fs.existsSync(fullScriptPath)) {
             console.log(`Executing ${scriptPath}...`);
-            execSync(`${pipCmd} install -r ${reqFile}`, { cwd: backendDir, stdio: 'pipe' }); // Ensure dependencies for script
             execSync(`${path.join(venvDir, 'bin', 'python')} ${fullScriptPath}`, { cwd: backendDir, stdio: 'inherit' });
         } else {
             console.warn(`Warning: Script not found at ${fullScriptPath}, skipping execution.`);
@@ -36,14 +35,20 @@ if (!fs.existsSync(reqFile)) {
 
 // Check if venv is already set up and up-to-date
 const venvMarker = path.join(venvDir, '.setup_complete');
-const reqMtime = fs.statSync(reqFile).mtime;
-
 let venvNeedsSetup = true;
+
 if (fs.existsSync(venvMarker)) {
-    const markerMtime = fs.statSync(venvMarker).mtime;
-    if (markerMtime > reqMtime) {
-        console.log('Python virtual environment is up-to-date.');
-        venvNeedsSetup = false;
+    try {
+        const reqMtime = fs.statSync(reqFile).mtime;
+        const markerMtime = fs.statSync(venvMarker).mtime;
+        if (markerMtime > reqMtime) {
+            console.log('Python virtual environment is up-to-date.');
+            venvNeedsSetup = false;
+        } else {
+            console.log('requirements.txt has been updated. Re-installing dependencies...');
+        }
+    } catch (e) {
+        console.log('Could not check venv status, proceeding with setup.');
     }
 }
 
@@ -70,14 +75,6 @@ if (venvNeedsSetup) {
         console.error('Error setting up Python backend:', error);
         process.exit(1);
     }
-}
-
-// --- Force install lifelines to fix ModuleNotFoundError ---
-try {
-    console.log('Force installing lifelines package...');
-    execSync(`${pipCmd} install lifelines`, { cwd: backendDir, stdio: 'pipe' });
-} catch (error) {
-    console.error('Could not force install lifelines:', error.message);
 }
 
 

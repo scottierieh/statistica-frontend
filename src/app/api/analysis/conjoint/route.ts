@@ -7,12 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const pythonExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python');
-    const pipExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'pip');
-    const requirementsPath = path.resolve(process.cwd(), 'backend', 'requirements.txt');
     const scriptPath = path.resolve(process.cwd(), 'backend', 'conjoint_analysis.py');
-
-    // Ensure dependencies are installed
-    spawnSync(pipExecutable, ['install', '-r', requirementsPath], { stdio: 'pipe' });
 
     const pythonProcess = spawn(pythonExecutable, [scriptPath]);
     
