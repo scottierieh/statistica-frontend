@@ -73,8 +73,8 @@ if (venvNeedsSetup) {
 }
 
 // --- Generate Example Datasets ---
-console.log('--- Generating example datasets ---');
-runPythonScript('example-datasets/ab-test-data.py');
+console.log('--- Generating example datasets. ---');
+runPythonScript('ab_test_data.py');
 
 
 console.log('--- Backend setup and data generation finished ---');
