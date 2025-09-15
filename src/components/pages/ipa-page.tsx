@@ -17,23 +17,36 @@ import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Bar, BarChart, Cell } from 'recharts';
+
+interface IpaMatrixItem {
+    attribute: string;
+    importance: number;
+    performance: number;
+    quadrant: string;
+    importance_performance_gap: number;
+    priority_score: number;
+    effectiveness_index: number;
+    improvement_potential: number;
+}
+interface RegressionSummary {
+    r2: number;
+    adj_r2: number;
+    f_stat: number;
+    f_pvalue: number;
+    predictions: number[];
+    residuals: number[];
+}
+
+interface AdvancedMetrics {
+    sensitivity: { [key: string]: { r2_change: number; relative_importance: number; } };
+    outliers: { standardized_residuals: number[]; cooks_distance: number[] };
+}
 
 interface IpaResults {
-    ipa_matrix: {
-        attribute: string;
-        importance: number;
-        performance: number;
-        quadrant: string;
-    }[];
-    regression_summary: {
-        r2: number;
-        adj_r2: number;
-        f_stat: number;
-        f_pvalue: number;
-        predictions: number[];
-        residuals: number[];
-    };
+    ipa_matrix: IpaMatrixItem[];
+    regression_summary: RegressionSummary;
+    advanced_metrics: AdvancedMetrics;
 }
 
 interface FullAnalysisResponse {
@@ -57,7 +70,7 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
     const [isLoading, setIsLoading] = useState(false);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
-
+    
     const results = analysisResult?.results;
     
     const diagnosticsData = useMemo(() => {
@@ -199,9 +212,10 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
 
             {results && analysisResult?.plot && (
                 <Tabs defaultValue="matrix" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="matrix">IPA Matrix</TabsTrigger>
                         <TabsTrigger value="summary">Results Table</TabsTrigger>
+                        <TabsTrigger value="advanced">Advanced Dashboard</TabsTrigger>
                         <TabsTrigger value="diagnostics">Model Diagnostics</TabsTrigger>
                     </TabsList>
                     <TabsContent value="matrix" className="mt-4">
@@ -236,6 +250,78 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
                                 </Table>
                             </CardContent>
                         </Card>
+                    </TabsContent>
+                     <TabsContent value="advanced" className="mt-4">
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <Card>
+                                <CardHeader><CardTitle>Improvement Priority Ranking</CardTitle></CardHeader>
+                                <CardContent>
+                                    <ChartContainer config={{}} className="w-full h-[300px]">
+                                        <ResponsiveContainer width="100%" height={300}>
+                                            <BarChart data={[...results.ipa_matrix].sort((a, b) => a.priority_score - b.priority_score)} layout="vertical" margin={{ left: 100 }}>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis type="number" />
+                                                <YAxis dataKey="attribute" type="category" />
+                                                <Tooltip content={<ChartTooltipContent />} />
+                                                <Bar dataKey="priority_score" name="Priority Score" fill="hsl(var(--primary))" />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </ChartContainer>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader><CardTitle>Importance-Performance Gap</CardTitle></CardHeader>
+                                <CardContent>
+                                    <ChartContainer config={{}} className="w-full h-[300px]">
+                                        <ResponsiveContainer width="100%" height={300}>
+                                            <BarChart data={results.ipa_matrix}>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis dataKey="attribute" tick={{fontSize: 10}}/>
+                                                <YAxis />
+                                                <Tooltip content={<ChartTooltipContent />} />
+                                                <Bar dataKey="importance_performance_gap" name="Importance - Performance">
+                                                    {results.ipa_matrix.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.importance_performance_gap > 0 ? 'hsl(var(--destructive))' : 'hsl(var(--chart-2))'} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </ChartContainer>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader><CardTitle>R² Contribution by Variable</CardTitle></CardHeader>
+                                <CardContent>
+                                     <ChartContainer config={{}} className="w-full h-[300px]">
+                                        <ResponsiveContainer width="100%" height={300}>
+                                            <BarChart data={Object.entries(results.advanced_metrics.sensitivity).map(([key, value]) => ({ name: key, ...value }))}>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis dataKey="name" tick={{fontSize: 10}} />
+                                                <YAxis unit="%"/>
+                                                <Tooltip content={<ChartTooltipContent />} />
+                                                <Bar dataKey="relative_importance" name="Relative Importance (%)" fill="hsl(var(--primary))" />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </ChartContainer>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader><CardTitle>Outlier Detection (Standardized Residuals)</CardTitle></CardHeader>
+                                <CardContent>
+                                    <ChartContainer config={{}} className="w-full h-[300px]">
+                                        <ResponsiveContainer width="100%" height={300}>
+                                            <ScatterChart>
+                                                <CartesianGrid />
+                                                <XAxis type="number" dataKey="index" name="Index" />
+                                                <YAxis type="number" dataKey="value" name="Std. Residual" />
+                                                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
+                                                <Scatter data={results.advanced_metrics.outliers.standardized_residuals.map((val, i) => ({index: i, value: val}))} fill="hsl(var(--primary))" />
+                                            </ScatterChart>
+                                        </ResponsiveContainer>
+                                    </ChartContainer>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </TabsContent>
                     <TabsContent value="diagnostics" className="mt-4">
                         <Card>

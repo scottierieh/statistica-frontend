@@ -52,8 +52,8 @@ def main():
         model = LinearRegression()
         model.fit(X, y)
         y_pred = model.predict(X)
-        residuals = (y - y_pred).tolist()
-
+        
+        # --- Advanced Metrics Calculation ---
         n = len(y)
         k = len(independent_vars)
         r2 = r2_score(y, y_pred)
@@ -66,7 +66,7 @@ def main():
 
         regression_summary = {
             'r2': r2, 'adj_r2': adj_r2, 'f_stat': f_stat, 'f_pvalue': f_pvalue,
-            'predictions': y_pred.tolist(), 'residuals': residuals,
+            'predictions': y_pred.tolist(), 'residuals': (y - y_pred).tolist(),
         }
 
         # --- IPA Matrix Calculation ---
@@ -97,7 +97,62 @@ def main():
                 return 'Low Priority'
         
         ipa_df['quadrant'] = ipa_df.apply(classify_quadrant, axis=1)
+        
+        # --- Advanced IPA Metrics ---
+        ipa_df['importance_performance_gap'] = ipa_df['importance'] - ipa_df['performance']
+        max_importance = ipa_df['importance'].max()
+        min_performance = ipa_df['performance'].min()
+        max_performance = ipa_df['performance'].max()
+        
+        if max_importance != 0 and (max_performance - min_performance) != 0:
+            normalized_importance = (ipa_df['importance'] / max_importance) * 100
+            normalized_performance_inv = (1 - (ipa_df['performance'] - min_performance) / (max_performance - min_performance)) * 100
+            ipa_df['priority_score'] = (normalized_importance + normalized_performance_inv) / 2
+        else:
+            ipa_df['priority_score'] = 0
 
+        ipa_df['effectiveness_index'] = (ipa_df['performance'] / ipa_df['importance'].abs()) * 100
+        
+        max_scale = df[independent_vars].max().max()
+        ipa_df['improvement_potential'] = (max_scale - ipa_df['performance']) * ipa_df['importance']
+        
+        # --- Sensitivity Analysis ---
+        sensitivity_results = {}
+        for var in independent_vars:
+            remaining_vars = [v for v in independent_vars if v != var]
+            if not remaining_vars: continue
+            
+            X_temp = analysis_data[remaining_vars]
+            y_temp = analysis_data[dependent_var]
+            
+            temp_model = LinearRegression().fit(X_temp, y_temp)
+            temp_r2 = r2_score(y_temp, temp_model.predict(X_temp))
+            r2_change = r2 - temp_r2
+            
+            sensitivity_results[var] = {
+                'r2_change': r2_change,
+                'relative_importance': (r2_change / r2) * 100 if r2 != 0 else 0
+            }
+            
+        # --- Outlier Detection ---
+        residuals = y - y_pred
+        standardized_residuals = (residuals / residuals.std()).tolist()
+        
+        X_array = X.values
+        try:
+            hat_matrix = X_array @ np.linalg.inv(X_array.T @ X_array) @ X_array.T
+            leverage = np.diag(hat_matrix)
+        except np.linalg.LinAlgError:
+            hat_matrix = X_array @ np.linalg.pinv(X_array.T @ X_array) @ X_array.T
+            leverage = np.diag(hat_matrix)
+        
+        cooks_d = ((residuals**2 / (k * mse_residual)) * (leverage / (1 - leverage)**2)).tolist() if k > 0 and mse_residual > 0 else [0]*n
+
+        outliers = {
+            'standardized_residuals': standardized_residuals,
+            'cooks_distance': cooks_d
+        }
+        
         # --- Plotting ---
         fig, ax = plt.subplots(figsize=(10, 8))
         colors = {
@@ -134,7 +189,11 @@ def main():
         response = {
             'results': {
                 'ipa_matrix': ipa_df.to_dict('records'),
-                'regression_summary': regression_summary
+                'regression_summary': regression_summary,
+                'advanced_metrics': {
+                    'sensitivity': sensitivity_results,
+                    'outliers': outliers
+                }
             },
             'plot': f"data:image/png;base64,{plot_image}"
         }
