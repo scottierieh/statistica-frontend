@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Zap, Brain, AlertTriangle } from 'lucide-react';
+import { Loader2, Zap, Brain, AlertTriangle, BarChart as BarChartIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -278,59 +278,6 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
     }, [data, selectedVars, toast]);
 
     const renderResults = () => {
-        if (isLoading) {
-            return (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <p className="ml-4">Running analysis...</p>
-                </div>
-            )
-        }
-
-        if (!analysisData) {
-            if (data.length === 0) {
-                 const statsExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('stats'));
-                return (
-                     <div className="flex flex-1 items-center justify-center">
-                        <Card className="w-full max-w-2xl text-center">
-                            <CardHeader>
-                                <CardTitle className="font-headline">Descriptive Statistics</CardTitle>
-                                <CardDescription>
-                                   To get started, upload a data file or try one of our example datasets.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {statsExamples.map((ex) => {
-                                        const Icon = ex.icon;
-                                        return (
-                                        <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                            <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                    <Icon className="h-6 w-6 text-secondary-foreground" />
-                                                </div>
-                                                <div>
-                                                    <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                    <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                                </div>
-                                            </CardHeader>
-                                            <CardFooter>
-                                                <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                    Load this data
-                                                </Button>
-                                            </CardFooter>
-                                        </Card>
-                                        )
-                                    })}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                )
-            }
-            return <div className="text-muted-foreground text-center py-12">Select variables and run the analysis to see results.</div>;
-        }
-
         return (
             <div className="space-y-8">
                 {selectedVars.map(header => {
@@ -365,6 +312,46 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
         );
     };
 
+    if (data.length === 0) {
+        const statsExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('stats'));
+       return (
+            <div className="flex flex-1 items-center justify-center">
+               <Card className="w-full max-w-2xl text-center">
+                   <CardHeader>
+                       <CardTitle className="font-headline">Descriptive Statistics</CardTitle>
+                       <CardDescription>
+                          To get started, upload a data file or try one of our example datasets.
+                       </CardDescription>
+                   </CardHeader>
+                   <CardContent>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           {statsExamples.map((ex) => {
+                               const Icon = ex.icon;
+                               return (
+                               <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
+                                   <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
+                                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                                           <Icon className="h-6 w-6 text-secondary-foreground" />
+                                       </div>
+                                       <div>
+                                           <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                           <CardDescription className="text-xs">{ex.description}</CardDescription>
+                                       </div>
+                                   </CardHeader>
+                                   <CardFooter>
+                                       <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                           Load this data
+                                       </Button>
+                                   </CardFooter>
+                               </Card>
+                               )
+                           })}
+                       </div>
+                   </CardContent>
+               </Card>
+           </div>
+       )
+    }
 
     return (
         <div className="space-y-6">
@@ -374,7 +361,6 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
                 <CardDescription>Select the variables you want to analyze from your dataset.</CardDescription>
               </CardHeader>
               <CardContent>
-                  {data.length > 0 ? (
                     <>
                         <Label>Variables</Label>
                         <ScrollArea className="h-40 border rounded-lg p-4 mt-2">
@@ -392,27 +378,34 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
                             </div>
                         </ScrollArea>
                     </>
-                  ) : (
-                    null
-                  )}
               </CardContent>
-              {data.length > 0 && (
-                <CardFooter>
+              <CardFooter>
                    <Button onClick={runAnalysis} disabled={isLoading || selectedVars.length === 0}>
                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4"/>}
                         Run Analysis
                     </Button>
-                </CardFooter>
-              )}
+              </CardFooter>
             </Card>
 
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">Analysis Results</CardTitle>
-                    <CardDescription>A summary of each selected variable in your dataset.</CardDescription>
-                </CardHeader>
-                <CardContent>{renderResults()}</CardContent>
-            </Card>
+            {isLoading && (
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex flex-col items-center gap-4">
+                            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                            <p className="text-muted-foreground">Running analysis...</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {analysisData && renderResults()}
+
+            {!analysisData && !isLoading && (
+                 <div className="text-center text-muted-foreground py-10">
+                    <BarChartIcon className="mx-auto h-12 w-12 text-gray-400"/>
+                    <p className="mt-2">Select variables and click 'Run Analysis' to see the results.</p>
+                </div>
+            )}
         </div>
     );
 }
