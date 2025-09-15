@@ -55,6 +55,7 @@ import { getSummaryReport } from '@/app/actions';
 import DescriptiveStatsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
 import AnovaPage from './pages/anova-page';
+import TwoWayAnovaPage from './pages/two-way-anova-page';
 import AncovaPage from './pages/ancova-page';
 import VisualizationPage from './pages/visualization-page';
 import ReliabilityPage from './pages/reliability-page';
@@ -84,12 +85,13 @@ import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian' | 'survival';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian' | 'survival';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
     correlation: CorrelationPage,
     'one-way-anova': AnovaPage,
+    'two-way-anova': TwoWayAnovaPage,
     ancova: AncovaPage,
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
@@ -132,6 +134,7 @@ const analysisMenu = [
     icon: Copy,
     methods: [
       { id: 'one-way-anova', label: 'One-Way ANOVA' },
+      { id: 'two-way-anova', label: 'Two-Way ANOVA' },
       { id: 'ancova', label: 'ANCOVA' },
       { id: 'manova', label: 'MANOVA' },
     ]
@@ -190,7 +193,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | 'visuals'>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Clustering / Dimension Reduction', 'Factor / Structural Modeling', 'Specialized Models']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Clustering / Dimension Reduction', 'Factor / Structural Modeling', 'Specialized Models', 'ANOVA / MANOVA']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
@@ -345,8 +348,7 @@ export default function StatisticaApp() {
     
     const filtered = analysisMenu.map(category => {
         const methods = category.methods.filter(method => 
-            method.label.toLowerCase().includes(lowercasedQuery) ||
-            (method.subMethods && method.subMethods.some(sub => sub.label.toLowerCase().includes(lowercasedQuery)))
+            method.label.toLowerCase().includes(lowercasedQuery)
         );
 
         if (methods.length > 0) {
@@ -429,40 +431,7 @@ export default function StatisticaApp() {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pl-6 py-1">
                       <SidebarMenu>
-                        {category.methods.map(method => {
-                          if (method.subMethods) {
-                            return (
-                              <SidebarMenuItem key={method.id}>
-                                <Collapsible>
-                                   <CollapsibleTrigger asChild>
-                                    <div className={cn('flex items-center justify-between w-full text-xs font-normal peer/menu-button rounded-md p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground')}>
-                                      <div className="flex items-center gap-2">
-                                          
-                                          <span>{method.label}</span>
-                                      </div>
-                                      <ChevronDown className="h-4 w-4 ml-auto transition-transform" />
-                                    </div>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent className="pl-6 py-1">
-                                    <SidebarMenuSub>
-                                      {method.subMethods.map(subMethod => (
-                                        <SidebarMenuSubItem key={subMethod.id}>
-                                          <SidebarMenuSubButton
-                                            onClick={() => setActiveAnalysis(subMethod.id as AnalysisType)}
-                                            isActive={activeAnalysis === subMethod.id}
-                                            disabled={!subMethod.implemented}
-                                          >
-                                            {subMethod.label}
-                                          </SidebarMenuSubButton>
-                                        </SidebarMenuSubItem>
-                                      ))}
-                                    </SidebarMenuSub>
-                                  </CollapsibleContent>
-                                </Collapsible>
-                              </SidebarMenuItem>
-                            );
-                          }
-                          return (
+                        {category.methods.map(method => (
                           <SidebarMenuItem key={method.id}>
                               <SidebarMenuButton
                                   onClick={() => setActiveAnalysis(method.id as AnalysisType)}
@@ -474,7 +443,7 @@ export default function StatisticaApp() {
                               </SidebarMenuButton>
                           </SidebarMenuItem>
                           )
-                        })}
+                        )}
                       </SidebarMenu>
                     </CollapsibleContent>
                   </Collapsible>
