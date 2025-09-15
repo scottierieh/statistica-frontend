@@ -115,6 +115,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     pca: PcaPage,
     bayesian: BayesianPage,
     survival: SurvivalAnalysisPage,
+    visuals: VisualizationPage,
 };
 
 const analysisMenu = [
@@ -144,7 +145,7 @@ const analysisMenu = [
     icon: Link2,
     methods: [
       { id: 'correlation', label: 'Correlation Analysis' },
-      { id 'regression', label: 'Regression Analysis' },
+      { id: 'regression', label: 'Regression Analysis' },
       { id: 'logistic-regression', label: 'Logistic Regression' },
     ]
   },
@@ -330,9 +331,7 @@ export default function StatisticaApp() {
   
   const ActivePageComponent = activeAnalysis && analysisPages[activeAnalysis as AnalysisType] 
     ? analysisPages[activeAnalysis as AnalysisType]
-    : activeAnalysis === 'visuals'
-      ? VisualizationPage
-      : DescriptiveStatsPage;
+    : DescriptiveStatsPage;
 
   const hasData = data.length > 0;
   
@@ -475,7 +474,6 @@ export default function StatisticaApp() {
                                   disabled={method.implemented === false}
                                   className="justify-start w-full h-8 text-xs"
                               >
-                                  
                                   <span>{method.label}</span>
                               </SidebarMenuButton>
                           </SidebarMenuItem>
