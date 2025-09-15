@@ -1,6 +1,6 @@
 
 
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target } from "lucide-react";
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
@@ -20,7 +20,7 @@ import { admissionData } from "./example-datasets/admission-data";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'logistic-regression';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'logistic-regression' | 'pca';
 
 
 export interface ExampleDataSet {
@@ -137,7 +137,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Customer Segments',
         description: 'Age, income, and spending data for customer segmentation.',
         icon: Binary,
-        analysisTypes: ['stats', 'hca', 'kmeans', 'correlation'],
+        analysisTypes: ['stats', 'hca', 'kmeans', 'correlation', 'pca'],
         recommendedAnalysis: 'kmeans',
         data: customerSegmentsData,
     },
@@ -171,9 +171,9 @@ export const exampleDatasets: ExampleDataSet[] = [
     {
         id: 'well-being-survey',
         name: 'Well-being Survey',
-        description: 'Survey data for Anxiety, Depression, and Stress. Ideal for Reliability & EFA.',
+        description: 'Survey data for Anxiety, Depression, and Stress. Ideal for Reliability, EFA, and PCA.',
         icon: ShieldCheck,
-        analysisTypes: ['stats', 'reliability', 'efa'],
+        analysisTypes: ['stats', 'reliability', 'efa', 'pca'],
         recommendedAnalysis: 'reliability',
         data: likertScaleData,
     },
@@ -191,7 +191,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Users,
-        analysisTypes: ['stats', 'correlation', 'one-way-anova', 'visuals', 'discriminant', 'kmeans', 'frequency', 'crosstab'],
+        analysisTypes: ['stats', 'correlation', 'one-way-anova', 'visuals', 'discriminant', 'kmeans', 'frequency', 'crosstab', 'pca'],
         recommendedAnalysis: 'discriminant',
         data: irisData
     },

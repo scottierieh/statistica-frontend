@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -43,6 +41,7 @@ import {
   BarChart,
   Columns,
   Target,
+  Component,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -76,13 +75,14 @@ import CrosstabPage from './pages/crosstab-page';
 import SemPage from './pages/sem-page';
 import ConjointAnalysisPage from './pages/conjoint-analysis-page';
 import IpaPage from './pages/ipa-page';
+import PcaPage from './pages/pca-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -108,6 +108,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     sem: SemPage,
     conjoint: ConjointAnalysisPage,
     ipa: IpaPage,
+    pca: PcaPage,
 };
 
 const analysisMenu = [
@@ -151,7 +152,7 @@ const analysisMenu = [
       { id: 'kmeans', label: 'K-Means Clustering', implemented: true, icon: Binary },
       { id: 'hca', label: 'Hierarchical Clustering', implemented: true, icon: Binary },
       { id: 'discriminant', label: 'Discriminant Analysis', implemented: true, icon: Users },
-      { id: 'pca', label: 'Principal Component Analysis (PCA)', implemented: false },
+      { id: 'pca', label: 'Principal Component Analysis (PCA)', implemented: true, icon: Component },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
   },
