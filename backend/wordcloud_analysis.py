@@ -9,6 +9,7 @@ import string
 import io
 import base64
 import warnings
+import os
 import matplotlib.font_manager as fm
 
 warnings.filterwarnings('ignore')
@@ -36,38 +37,34 @@ def _to_native_type(obj):
         return bool(obj)
     return obj
 
-def get_korean_font_path():
-    """Finds a Korean font path available on the system."""
-    font_paths = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+def get_font_path():
+    """Gets the absolute path to the bundled font file."""
+    # The script is in backend/, so we go up one level and then to backend/fonts
+    font_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'fonts', 'NanumGothic.ttf'))
+    if os.path.exists(font_path):
+        return font_path
     
-    nanum_fonts = [path for path in font_paths if 'NanumGothic' in path]
+    # Fallback for different execution environments
+    alt_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend', 'fonts', 'NanumGothic.ttf'))
+    if os.path.exists(alt_path):
+        return alt_path
+
+    # Last resort: try to find a system font
+    font_paths = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+    nanum_fonts = [path for path in font_paths if 'NanumGothic' in path or 'Malgun' in path]
     if nanum_fonts:
         return nanum_fonts[0]
-
-    for font_name in ['Malgun Gothic', 'AppleGothic', 'Noto Sans CJK KR', 'NanumGothic']:
-        try:
-            return fm.findfont(fm.FontProperties(family=font_name))
-        except:
-            continue
-    
-    for path in font_paths:
-        try:
-            font = fm.FontProperties(fname=path)
-            if any(lang in font.get_name().lower() for lang in ['korean', 'cjk', 'nanum', 'malgun', 'gothic']):
-                return path
-        except:
-            continue
-            
+        
     return None
 
 class WordCloudGenerator:
     def __init__(self):
         self.default_stopwords = set(STOPWORDS) if WORDCLOUD_AVAILABLE else set()
-        self.font_path = get_korean_font_path()
+        self.font_path = get_font_path()
         if self.font_path:
             plt.rcParams['font.family'] = fm.FontProperties(fname=self.font_path).get_name()
         else:
-            plt.rcParams['font.family'] = 'DejaVu Sans'
+            plt.rcParams['font.family'] = 'DejaVu Sans' # Fallback
         plt.rcParams['axes.unicode_minus'] = False
 
 
@@ -122,8 +119,8 @@ class WordCloudGenerator:
         
         if self.font_path:
             wc_params['font_path'] = self.font_path
-        elif any('\uac00' <= char <= '\ud7a3' for char in text):
-             warnings.warn("Korean font not found. Hangul may appear broken.")
+        else:
+             warnings.warn("Font not found. Text may appear broken.")
 
         wc = WordCloud(**wc_params)
         wordcloud_image = wc.generate(text)
@@ -137,10 +134,14 @@ class WordCloudGenerator:
     def generate_frequency_plot(self, frequencies, top_n=20):
         top_freq = dict(list(frequencies.items())[:top_n])
         plt.figure(figsize=(10, 8))
+
+        # Use the found font for the plot
+        font_properties = fm.FontProperties(fname=self.font_path) if self.font_path else None
             
         plt.barh(list(top_freq.keys()), list(top_freq.values()), color='skyblue')
-        plt.xlabel('Frequency')
-        plt.title(f'Top {top_n} Most Frequent Words')
+        plt.xlabel('Frequency', fontproperties=font_properties)
+        plt.title(f'Top {top_n} Most Frequent Words', fontproperties=font_properties)
+        plt.yticks(fontproperties=font_properties)
         plt.gca().invert_yaxis()
         plt.tight_layout()
         
@@ -196,7 +197,9 @@ def main():
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        # Send error as JSON to stderr
+        error_response = {"error": str(e)}
+        sys.stderr.write(json.dumps(error_response))
         sys.exit(1)
 
 if __name__ == '__main__':
