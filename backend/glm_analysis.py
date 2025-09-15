@@ -21,6 +21,10 @@ def _to_native_type(obj):
         if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
+    elif isinstance(obj, float):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
+        return obj
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     elif isinstance(obj, np.bool_):
@@ -131,7 +135,7 @@ def main():
             'family': family_name,
         }
 
-        print(json.dumps(final_result, default=_to_native_type))
+        print(json.dumps(final_result, default=_to_native_type, allow_nan=False))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
