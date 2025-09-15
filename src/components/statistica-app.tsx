@@ -142,7 +142,7 @@ const analysisMenu = [
         ]
       },
       {
-        name: 'Categorical & Non-parametric',
+        name: 'Categorical & Non-parametric Tests',
         methods: [
           { id: 'crosstab', label: 'Crosstab Analysis' },
           { id: 'nonparametric', label: 'Non-parametric Tests' },
@@ -204,7 +204,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | 'visuals'>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Descriptive', 'Hypothesis Testing', 'Correlation / Regression', 'Clustering / Dimension Reduction', 'Factor / Structural Modeling', 'Specialized Models']);
+  const [openCategories, setOpenCategories] = useState<string[]>(analysisMenu.map(c => c.field));
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
@@ -463,7 +463,7 @@ export default function StatisticaApp() {
                         <ChevronDown className={cn("h-4 w-4 ml-auto transition-transform", isOpen ? "rotate-180" : "")} />
                       </div>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-6 py-1">
+                    <CollapsibleContent className="pl-4 py-1">
                       <SidebarMenu>
                         {category.methods?.map(method => (
                           <SidebarMenuItem key={method.id}>
@@ -479,22 +479,30 @@ export default function StatisticaApp() {
                           )
                         )}
                         {category.subCategories?.map(sub => (
-                           <SidebarMenuSub key={sub.name}>
-                                <SidebarMenuSubButton className="text-xs">{sub.name}</SidebarMenuSubButton>
-                                <SidebarMenuSubItem>
-                                    {sub.methods.map(method => (
-                                        <SidebarMenuButton
-                                            key={method.id}
-                                            onClick={() => setActiveAnalysis(method.id as AnalysisType)}
-                                            isActive={activeAnalysis === method.id}
-                                            disabled={method.implemented === false}
-                                            className="justify-start w-full h-8 text-xs"
-                                        >
-                                            <span>{method.label}</span>
-                                        </SidebarMenuButton>
-                                    ))}
-                                </SidebarMenuSubItem>
-                            </SidebarMenuSub>
+                           <Collapsible key={sub.name} className="ml-2">
+                             <CollapsibleTrigger className="w-full">
+                               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground py-1">
+                                  <span>{sub.name}</span>
+                                  <ChevronDown className="h-3 w-3 ml-auto transition-transform" />
+                               </div>
+                             </CollapsibleTrigger>
+                             <CollapsibleContent className="pl-4 border-l">
+                                <SidebarMenu>
+                                  {sub.methods.map(method => (
+                                      <SidebarMenuItem key={method.id}>
+                                          <SidebarMenuButton
+                                              onClick={() => setActiveAnalysis(method.id as AnalysisType)}
+                                              isActive={activeAnalysis === method.id}
+                                              disabled={method.implemented === false}
+                                              className="justify-start w-full h-8 text-xs"
+                                          >
+                                              <span>{method.label}</span>
+                                          </SidebarMenuButton>
+                                      </SidebarMenuItem>
+                                  ))}
+                                </SidebarMenu>
+                             </CollapsibleContent>
+                           </Collapsible>
                         ))}
                       </SidebarMenu>
                     </CollapsibleContent>
