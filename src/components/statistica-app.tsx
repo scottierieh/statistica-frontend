@@ -64,7 +64,6 @@ import EfaPage from './pages/efa-page';
 import CfaPage from './pages/cfa-page';
 import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
-import NonParametricPage from './pages/nonparametric-page';
 import TTestPage from './pages/t-test-page';
 import HcaPage from './pages/hca-page';
 import ManovaPage from './pages/manova-page';
@@ -85,8 +84,12 @@ import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import TwoWayAnovaPage from './pages/two-way-anova-page';
+import MannWhitneyPage from './pages/mann-whitney-page';
+import WilcoxonPage from './pages/wilcoxon-page';
+import KruskalWallisPage from './pages/kruskal-wallis-page';
+import FriedmanPage from './pages/friedman-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian' | 'survival';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian' | 'survival';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -100,7 +103,10 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     cfa: CfaPage,
     mediation: MediationPage,
     moderation: ModerationPage,
-    nonparametric: NonParametricPage,
+    'mann-whitney': MannWhitneyPage,
+    'wilcoxon': WilcoxonPage,
+    'kruskal-wallis': KruskalWallisPage,
+    'friedman': FriedmanPage,
     't-test': TTestPage,
     hca: HcaPage,
     manova: ManovaPage,
@@ -142,13 +148,13 @@ const analysisMenu = [
         ]
       },
       {
-        name: 'Categorical & Non-parametric Tests',
+        name: 'Categorical & Non-parametric',
         methods: [
           { id: 'crosstab', label: 'Crosstab Analysis' },
-          { id: 'nonparametric', label: 'Mann-Whitney U' },
-          { id: 'nonparametric', label: 'Wilcoxon' },
-          { id: 'nonparametric', label: 'Kruskal-Wallis' },
-          { id: 'nonparametric', label: 'Friedman' },
+          { id: 'mann-whitney', label: 'Mann-Whitney U' },
+          { id: 'wilcoxon', label: 'Wilcoxon Signed-Rank' },
+          { id: 'kruskal-wallis', label: 'Kruskal-Wallis' },
+          { id: 'friedman', label: 'Friedman Test' },
         ]
       }
     ]
@@ -207,7 +213,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | 'visuals'>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(analysisMenu.map(c => c.field));
+  const [openCategories, setOpenCategories] = useState<string[]>(analysisMenu.map(c => c.field).concat(analysisMenu.flatMap(c => c.subCategories?.map(sc => sc.name) ?? [])));
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
@@ -482,7 +488,7 @@ export default function StatisticaApp() {
                           )
                         )}
                         {category.subCategories?.map(sub => (
-                           <Collapsible key={sub.name} className="ml-2">
+                           <Collapsible key={sub.name} defaultOpen>
                              <CollapsibleTrigger className="w-full">
                                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground py-1">
                                   <span>{sub.name}</span>
@@ -568,7 +574,6 @@ export default function StatisticaApp() {
             <Button onClick={downloadReport}>Download as .txt</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-    </SidebarProvider>
+      </SidebarProvider>
   );
 }

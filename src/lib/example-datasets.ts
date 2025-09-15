@@ -30,7 +30,7 @@ A,128.59
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian' | 'survival';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian' | 'survival';
 
 
 export interface ExampleDataSet {
@@ -210,8 +210,8 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Non-Parametric Suite',
         description: 'A unified dataset for Mann-Whitney, Wilcoxon, Kruskal-Wallis, and Friedman tests.',
         icon: FlaskConical,
-        analysisTypes: ['stats', 'nonparametric'],
-        recommendedAnalysis: 'nonparametric',
+        analysisTypes: ['stats', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman'],
+        recommendedAnalysis: 'mann-whitney',
         data: nonparametricData,
     },
     {
