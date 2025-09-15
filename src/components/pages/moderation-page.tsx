@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -150,26 +151,30 @@ export default function ModerationPage({ data, numericHeaders, onLoadExample }: 
                            To perform moderation analysis, you need data with at least 3 numeric variables. Try an example dataset.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        {moderationExamples.map((ex) => (
-                             <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                        <TrendingUp className="h-6 w-6 text-secondary-foreground" />
-                                    </div>
-                                    <div>
-                                        <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                        <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                        Load this data
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </CardContent>
+                    {moderationExamples.length > 0 && (
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {moderationExamples.map((ex) => (
+                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
+                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                                                <TrendingUp className="h-6 w-6 text-secondary-foreground" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
+                                            </div>
+                                        </CardHeader>
+                                        <CardFooter>
+                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                                Load this data
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                ))}
+                            </div>
+                        </CardContent>
+                    )}
                 </Card>
             </div>
         )
