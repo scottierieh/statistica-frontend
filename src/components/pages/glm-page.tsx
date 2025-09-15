@@ -66,11 +66,12 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
     const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2, [data, allHeaders]);
 
     const targetOptions = useMemo(() => {
+        const binaryNumericHeaders = numericHeaders.filter(h => {
+            const uniqueValues = new Set(data.map(row => row[h]));
+            return uniqueValues.size === 2 && (uniqueValues.has(0) && uniqueValues.has(1));
+        });
+
         if (family === 'binomial') {
-             const binaryNumericHeaders = numericHeaders.filter(h => {
-                const uniqueValues = new Set(data.map(row => row[h]));
-                return uniqueValues.size === 2 && (uniqueValues.has(0) && uniqueValues.has(1));
-            });
             return [...categoricalHeaders, ...binaryNumericHeaders];
         }
         return numericHeaders;
@@ -169,12 +170,14 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
 
         const summaryTable = analysisResult.model_summary_data[0].data;
         const items = [];
+        const cleanValue = (val: string) => val.replace(/Q\("([^"]+)"\)/g, '$1');
+        
         for (let i = 0; i < summaryTable.length; i++) {
             for (let j = 0; j < summaryTable[i].length; j += 2) {
                 const key = summaryTable[i][j].replace(':', '');
                 const value = summaryTable[i][j+1];
                 if (key && value && key.trim() !== '') {
-                    items.push({ key: key.trim(), value: value.trim() });
+                    items.push({ key: key.trim(), value: cleanValue(value.trim()) });
                 }
             }
         }
