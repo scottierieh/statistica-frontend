@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -301,9 +302,6 @@ export default function StatisticaApp() {
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
     processData(example.data, example.name);
-    if(example.recommendedAnalysis) {
-      setActiveAnalysis(example.recommendedAnalysis as AnalysisType);
-    }
   };
 
   const handleDownloadData = () => {
