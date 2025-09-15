@@ -70,7 +70,7 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
         if (family === 'binomial') {
              const binaryNumericHeaders = numericHeaders.filter(h => {
                 const uniqueValues = new Set(data.map(row => row[h]));
-                return uniqueValues.size === 2 && (uniqueValues.has(0) || uniqueValues.has(1));
+                return uniqueValues.size === 2 && (uniqueValues.has(0) && uniqueValues.has(1));
             });
             return [...categoricalHeaders, ...binaryNumericHeaders];
         }
@@ -258,14 +258,13 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
                     <Card>
                         <CardHeader><CardTitle>Full Model Details</CardTitle></CardHeader>
                         <CardContent className="space-y-6">
-                            {analysisResult.model_summary_data.map((tableData, tableIndex) => (
+                            {analysisResult.model_summary_data?.map((tableData, tableIndex) => (
                                 <Table key={tableIndex} className="w-full text-sm">
                                     {tableData.caption && <TableCaption className="text-lg font-bold mb-2">{tableData.caption}</TableCaption>}
                                     <TableBody>
                                         {tableData.data.map((row, rowIndex) => (
                                             <TableRow key={rowIndex} className="[&>td]:p-2">
                                                 {row.map((cell, cellIndex) => {
-                                                    // In statsmodels summary, headers are often on alternating rows
                                                     const isHeader = (rowIndex === 0 && tableIndex > 0) || (tableIndex === 0 && (rowIndex === 0 || rowIndex === 2 || rowIndex === 4 || rowIndex === 6 || rowIndex === 8));
                                                     const Component = isHeader ? TableHead : TableCell;
                                                     const isFirstCol = cellIndex === 0 || cellIndex === 2 || cellIndex === 4 || cellIndex === 6;
