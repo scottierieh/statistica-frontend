@@ -15,20 +15,20 @@ except ImportError:
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
-    if isinstance(obj, np.integer):
+    if isinstance(obj, (np.integer, int)):
         return int(obj)
-    elif isinstance(obj, np.floating):
+    if isinstance(obj, (np.floating, float)):
         if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
-    elif isinstance(obj, float):
-        if np.isnan(obj) or np.isinf(obj):
-            return None
-        return obj
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, np.bool_):
+    if isinstance(obj, np.ndarray):
+        # Recursively apply the converter to each element in the array
+        return [_to_native_type(item) for item in obj]
+    if isinstance(obj, np.bool_):
         return bool(obj)
+    if isinstance(obj, (list, tuple)):
+        # Handle regular python lists/tuples as well
+        return [_to_native_type(item) for item in obj]
     return obj
 
 def main():
@@ -51,8 +51,8 @@ def main():
         # Sanitize column names for the formula
         sanitized_cols = {col: col.replace(' ', '_').replace('.', '_').replace('[', '_').replace(']', '_') for col in df.columns}
         df.rename(columns=sanitized_cols, inplace=True)
-        target_var_clean = sanitized_cols[target_var]
-        features_clean = [sanitized_cols[f] for f in features]
+        target_var_clean = sanitized_cols.get(target_var, target_var)
+        features_clean = [sanitized_cols.get(f, f) for f in features]
         
         formula = f'Q("{target_var_clean}") ~ ' + ' + '.join([f'Q("{f}")' for f in features_clean])
 
@@ -135,7 +135,7 @@ def main():
             'family': family_name,
         }
 
-        print(json.dumps(final_result, default=_to_native_type, allow_nan=False))
+        print(json.dumps(final_result, default=_to_native_type))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
