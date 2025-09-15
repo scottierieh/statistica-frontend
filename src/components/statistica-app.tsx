@@ -43,6 +43,7 @@ import {
   Columns,
   Target,
   Component,
+  HeartPulse,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -78,13 +79,14 @@ import ConjointAnalysisPage from './pages/conjoint-analysis-page';
 import IpaPage from './pages/ipa-page';
 import PcaPage from './pages/pca-page';
 import BayesianPage from './pages/bayesian-page';
+import SurvivalAnalysisPage from './pages/survival-analysis-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian' | 'survival';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -112,6 +114,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     ipa: IpaPage,
     pca: PcaPage,
     bayesian: BayesianPage,
+    survival: SurvivalAnalysisPage,
 };
 
 const analysisMenu = [
@@ -119,58 +122,63 @@ const analysisMenu = [
     field: 'Basic Statistics / Tests',
     icon: Sigma,
     methods: [
-      { id: 'stats', label: 'Descriptive Statistics', implemented: true },
-      { id: 'reliability', label: 'Reliability Analysis', implemented: true },
-      { 
-        id: 'anova',
-        label: 'ANOVA / MANOVA',
-        implemented: true,
-        subMethods: [
-          { id: 'one-way-anova', label: 'One-Way ANOVA', implemented: true },
-          { id: 'two-way-anova', label: 'Two-Way ANOVA', implemented: true },
-          { id: 'ancova', label: 'Analysis of Covariance (ANCOVA)', implemented: true },
-          { id: 'manova', label: 'Multivariate Analysis of Variance (MANOVA)', implemented: true },
-        ]
-      },
-      { id: 'frequency', label: 'Frequency Analysis', implemented: true },
-      { id: 'crosstab', label: 'Crosstab Analysis', implemented: true },
-      { id: 't-test', label: 't-Test', implemented: true },
-      { id: 'nonparametric', label: 'Non-parametric Tests', implemented: true },
+      { id: 'stats', label: 'Descriptive Statistics' },
+      { id: 'frequency', label: 'Frequency Analysis' },
+      { id: 'crosstab', label: 'Crosstab Analysis' },
+      { id: 't-test', label: 't-Test' },
+      { id: 'nonparametric', label: 'Non-parametric Tests' },
+    ]
+  },
+  {
+    field: 'ANOVA / MANOVA',
+    icon: Copy,
+    methods: [
+      { id: 'one-way-anova', label: 'One-Way ANOVA' },
+      { id: 'two-way-anova', label: 'Two-Way ANOVA' },
+      { id: 'ancova', label: 'ANCOVA' },
+      { id: 'manova', label: 'MANOVA' },
     ]
   },
   {
     field: 'Correlation / Regression',
     icon: Link2,
     methods: [
-      { id: 'correlation', label: 'Correlation Analysis', implemented: true },
-      { id: 'regression', label: 'Regression Analysis', implemented: true },
-      { id: 'logistic-regression', label: 'Logistic Regression', implemented: true },
+      { id: 'correlation', label: 'Correlation Analysis' },
+      { id 'regression', label: 'Regression Analysis' },
+      { id: 'logistic-regression', label: 'Logistic Regression' },
     ]
   },
    {
-    field: 'Clustering / Classification',
+    field: 'Clustering / Dimension Reduction',
     icon: Users,
     methods: [
-      { id: 'kmeans', label: 'K-Means Clustering', implemented: true },
-      { id: 'hca', label: 'Hierarchical Clustering', implemented: true },
-      { id: 'discriminant', label: 'Discriminant Analysis', implemented: true },
-      { id: 'pca', label: 'Principal Component Analysis (PCA)', implemented: true },
-      { id: 'decision-tree', label: 'Decision Tree', implemented: false },
+      { id: 'kmeans', label: 'K-Means Clustering' },
+      { id: 'hca', label: 'Hierarchical Clustering' },
+      { id: 'discriminant', label: 'Discriminant Analysis' },
+      { id: 'pca', label: 'Principal Component Analysis (PCA)' },
     ]
   },
   {
-    field: 'Advanced / Specialized',
+    field: 'Factor / Structural Modeling',
+    icon: BrainCircuit,
+    methods: [
+       { id: 'reliability', label: 'Reliability Analysis' },
+       { id: 'efa', label: 'Exploratory Factor Analysis (EFA)' },
+       { id: 'cfa', label: 'Confirmatory Factor Analysis (CFA)' },
+       { id: 'sem', label: 'Structural Equation Modeling (SEM)' },
+       { id: 'mediation', label: 'Mediation Analysis' },
+       { id: 'moderation', label: 'Moderation Analysis' },
+    ]
+  },
+  {
+    field: 'Specialized Models',
     icon: FlaskConical,
     methods: [
-      { id: 'efa', label: 'Exploratory Factor Analysis (EFA)', implemented: true },
-      { id: 'cfa', label: 'Confirmatory Factor Analysis (CFA)', implemented: true },
-      { id: 'sem', label: 'Structural Equation Modeling (SEM)', implemented: true },
-      { id: 'mediation', label: 'Mediation Analysis', implemented: true },
-      { id: 'moderation', label: 'Moderation Analysis', implemented: true },
-      { id: 'conjoint', label: 'Conjoint Analysis', implemented: true },
-      { id: 'ipa', label: 'Importance-Performance Analysis (IPA)', implemented: true },
-      { id: 'bayesian', label: 'Bayesian Inference', implemented: true },
-      { id: 'survival', label: 'Survival Analysis', implemented: false },
+      { id: 'conjoint', label: 'Conjoint Analysis' },
+      { id: 'ipa', label: 'Importance-Performance Analysis (IPA)' },
+      { id: 'bayesian', label: 'Bayesian Inference' },
+      { id: 'survival', label: 'Survival Analysis' },
+      { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
   }
 ];
@@ -185,7 +193,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | 'visuals'>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Clustering / Classification', 'Advanced / Specialized']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Tests', 'Correlation / Regression', 'Clustering / Dimension Reduction', 'Factor / Structural Modeling', 'Specialized Models']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
@@ -427,7 +435,6 @@ export default function StatisticaApp() {
                     <CollapsibleContent className="pl-6 py-1">
                       <SidebarMenu>
                         {category.methods.map(method => {
-                          const MethodIcon = method.icon;
                           if (method.subMethods) {
                             return (
                               <SidebarMenuItem key={method.id}>
@@ -435,7 +442,7 @@ export default function StatisticaApp() {
                                    <CollapsibleTrigger asChild>
                                     <div className={cn('flex items-center justify-between w-full text-xs font-normal peer/menu-button rounded-md p-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground')}>
                                       <div className="flex items-center gap-2">
-                                          {MethodIcon && <MethodIcon className="h-4 w-4" />}
+                                          
                                           <span>{method.label}</span>
                                       </div>
                                       <ChevronDown className="h-4 w-4 ml-auto transition-transform" />
@@ -465,10 +472,10 @@ export default function StatisticaApp() {
                               <SidebarMenuButton
                                   onClick={() => setActiveAnalysis(method.id as AnalysisType)}
                                   isActive={activeAnalysis === method.id}
-                                  disabled={!method.implemented}
+                                  disabled={method.implemented === false}
                                   className="justify-start w-full h-8 text-xs"
                               >
-                                  {MethodIcon && <MethodIcon className="h-4 w-4" />}
+                                  
                                   <span>{method.label}</span>
                               </SidebarMenuButton>
                           </SidebarMenuItem>
