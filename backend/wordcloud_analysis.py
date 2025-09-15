@@ -1,3 +1,4 @@
+
 import sys
 import json
 import numpy as np
@@ -38,23 +39,22 @@ def _to_native_type(obj):
     return obj
 
 def get_font_path():
-    """Gets the absolute path to the bundled font file."""
-    # The script is in backend/, so we go up one level and then to backend/fonts
-    font_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'fonts', 'NanumGothic.ttf'))
-    if os.path.exists(font_path):
-        return font_path
-    
-    # Fallback for different execution environments
-    alt_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend', 'fonts', 'NanumGothic.ttf'))
-    if os.path.exists(alt_path):
-        return alt_path
-
-    # Last resort: try to find a system font
+    """Find a suitable font on the system."""
     font_paths = fm.findSystemFonts(fontpaths=None, fontext='ttf')
-    nanum_fonts = [path for path in font_paths if 'NanumGothic' in path or 'Malgun' in path]
-    if nanum_fonts:
-        return nanum_fonts[0]
-        
+    
+    # Prioritize known good fonts
+    font_names = ['NanumGothic', 'Malgun Gothic', 'AppleGothic', 'Noto Sans CJK KR']
+    for font_name in font_names:
+        for path in font_paths:
+            if font_name.replace(' ', '') in path.replace(' ', ''):
+                return path
+
+    # Fallback to any font that might support CJK characters
+    for path in font_paths:
+        if any(keyword in path.lower() for keyword in ['korean', 'cjk', 'nanum', 'malgun']):
+            return path
+            
+    # Return None if no suitable font is found
     return None
 
 class WordCloudGenerator:
