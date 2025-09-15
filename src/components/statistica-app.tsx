@@ -56,7 +56,6 @@ import { getSummaryReport } from '@/app/actions';
 import DescriptiveStatsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
 import AnovaPage from './pages/anova-page';
-import TwoWayAnovaPage from './pages/two-way-anova-page';
 import AncovaPage from './pages/ancova-page';
 import VisualizationPage from './pages/visualization-page';
 import ReliabilityPage from './pages/reliability-page';
@@ -85,6 +84,7 @@ import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+import TwoWayAnovaPage from './pages/two-way-anova-page';
 
 type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian' | 'survival';
 
@@ -120,7 +120,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
 
 const analysisMenu = [
   {
-    field: 'Basic Statistics / Hypothesis Testing',
+    field: 'Descriptive / Hypothesis Testing',
     icon: Sigma,
     methods: [
       { id: 'stats', label: 'Descriptive Statistics' },
@@ -194,7 +194,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType | 'visuals'>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(['Basic Statistics / Hypothesis Testing', 'Correlation / Regression', 'Clustering / Dimension Reduction', 'Factor / Structural Modeling', 'Specialized Models', 'ANOVA / MANOVA']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Descriptive / Hypothesis Testing', 'Correlation / Regression', 'Clustering / Dimension Reduction', 'Factor / Structural Modeling', 'Specialized Models', 'ANOVA / MANOVA']);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { toast } = useToast();
