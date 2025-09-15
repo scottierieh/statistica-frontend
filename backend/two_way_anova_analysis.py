@@ -64,7 +64,7 @@ class TwoWayAnovaAnalysis:
         cleaned_index[f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'] = f'{self.factor_a} * {self.factor_b}'
         anova_table = anova_table.rename(index=cleaned_index)
 
-        self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).to_dict('records')
+        self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).replace({np.nan: None}).to_dict('records')
         
         self._test_assumptions(model)
         self._calculate_marginal_means()
