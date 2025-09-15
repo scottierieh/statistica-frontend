@@ -67,7 +67,22 @@ def main():
         model = smf.glm(formula, data=df, family=family)
         result = model.fit()
         
-        summary_tables = [table.as_html() for table in result.summary().tables]
+        # Extract structured data instead of HTML
+        summary_obj = result.summary()
+        summary_data = []
+        for table in summary_obj.tables:
+            # Extract caption if it exists
+            caption = None
+            if hasattr(table, 'title') and table.title:
+                caption = table.title
+            
+            # Extract data as a list of lists
+            table_data = [list(row) for row in table.data]
+            
+            summary_data.append({
+                'caption': caption,
+                'data': table_data
+            })
         
         # Calculate pseudo R-squared
         pseudo_r2 = 1 - (result.deviance / result.null_deviance) if result.null_deviance > 0 else 0
@@ -106,7 +121,7 @@ def main():
                 })
 
         final_result = {
-            'model_summary_html': summary_tables,
+            'model_summary_data': summary_data,
             'aic': result.aic,
             'bic': result.bic,
             'log_likelihood': result.llf,
