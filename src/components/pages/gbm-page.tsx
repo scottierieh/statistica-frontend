@@ -130,7 +130,7 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
         const defaultTarget = newTargetOptions.find(h => h === target) || newTargetOptions[0];
         setTarget(defaultTarget);
 
-    }, [data]); // Removed headers from deps to avoid re-triggering on type change
+    }, [data, allHeaders]); // Removed headers from deps to avoid re-triggering on type change
 
     useEffect(() => {
         // This effect runs only when problemType changes
@@ -206,7 +206,7 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
                     <CardHeader>
-                        <CardTitle className="font-headline">GBM Analysis</CardTitle>
+                        <CardTitle className="font-headline">Gradient Boosting Machine (GBM)</CardTitle>
                         <CardDescription>Upload data with features and a target variable to get started.</CardDescription>
                     </CardHeader>
                      {gbmExamples.length > 0 && (
@@ -310,7 +310,7 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Gradient Boosting Machine (GBM) Setup</CardTitle>
+                    <CardTitle className="font-headline">Gradient Boosting Machine (GBM)</CardTitle>
                     <CardDescription>Configure and run a GBM model for regression or classification.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

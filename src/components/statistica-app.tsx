@@ -201,7 +201,7 @@ const analysisMenu = [
       { id: 'conjoint', label: 'Conjoint Analysis' },
       { id: 'ipa', label: 'Importance-Performance Analysis (IPA)' },
       { id: 'survival', label: 'Survival Analysis' },
-      { id: 'gbm', label: 'GBM Analysis'},
+      { id: 'gbm', label: 'Gradient Boosting Machine (GBM)'},
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
   }
