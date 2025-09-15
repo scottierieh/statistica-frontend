@@ -9,7 +9,6 @@ import { cfaData } from "./example-datasets/cfa-data";
 import { nonparametricData } from "./example-datasets/nonparametric-data";
 import { customerSegmentsData } from "./example-datasets/customer-segments";
 import { manovaData } from "./example-datasets/manova-data";
-import { twoWayAnovaData } from "./example-datasets/two-way-anova-data";
 import { tTestData } from "./example-datasets/t-test-data";
 import { regressionData } from "./example-datasets/regression-data";
 import { semData } from "./example-datasets/sem-data";
@@ -29,7 +28,7 @@ A,128.59
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian' | 'survival';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'bayesian' | 'survival';
 
 
 export interface ExampleDataSet {
@@ -140,15 +139,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         analysisTypes: ['stats', 'regression', 'correlation'],
         recommendedAnalysis: 'regression',
         data: regressionData,
-    },
-    {
-        id: 'two-way-anova-factorial',
-        name: '2x3 Factorial Design',
-        description: 'Performance scores by gender and treatment type. Ideal for Two-Way ANOVA.',
-        icon: Copy,
-        analysisTypes: ['stats', 'two-way-anova', 'ancova'],
-        recommendedAnalysis: 'two-way-anova',
-        data: twoWayAnovaData,
     },
     {
         id: 'manova-groups',
