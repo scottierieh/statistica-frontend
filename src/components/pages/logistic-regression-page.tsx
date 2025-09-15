@@ -63,7 +63,7 @@ export default function LogisticRegressionPage({ data, numericHeaders, categoric
         return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
     }, [data, categoricalHeaders]);
 
-    const canRun = useMemo(() => data.length > 0 && (numericHeaders.length + categoricalHeaders.length) >= 2 && binaryCategoricalHeaders.length > 0, [data, numericHeaders, categoricalHeaders, binaryCategoricalHeaders]);
+    const canRun = useMemo(() => data.length > 0 && (numericHeaders.length + categoricalHeaders.length) >= 2, [data, numericHeaders, categoricalHeaders]);
 
     useEffect(() => {
         setDependentVar(binaryCategoricalHeaders[0]);
@@ -79,10 +79,21 @@ export default function LogisticRegressionPage({ data, numericHeaders, categoric
     };
 
     const handleAnalysis = useCallback(async () => {
-        if (!dependentVar || independentVars.length === 0) {
-            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select a dependent variable and at least one independent variable.' });
+        if (!dependentVar) {
+            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select a binary dependent variable.' });
             return;
         }
+        if (independentVars.length === 0) {
+            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select at least one independent variable.' });
+            return;
+        }
+        
+        const dependentVarValues = new Set(data.map(row => row[dependentVar]).filter(v => v != null && v !== ''));
+        if (dependentVarValues.size !== 2) {
+            toast({ variant: 'destructive', title: 'Invalid Dependent Variable', description: `The selected dependent variable '${dependentVar}' must have exactly two unique categories. Found ${dependentVarValues.size}.`});
+            return;
+        }
+
 
         setIsLoading(true);
         setAnalysisResult(null);
@@ -166,8 +177,8 @@ export default function LogisticRegressionPage({ data, numericHeaders, categoric
                         <div>
                             <Label>Dependent Variable (Binary Outcome)</Label>
                             <Select value={dependentVar} onValueChange={setDependentVar}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>{binaryCategoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                <SelectTrigger><SelectValue placeholder="Select an outcome variable" /></SelectTrigger>
+                                <SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div>
