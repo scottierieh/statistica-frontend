@@ -58,6 +58,16 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
 
+    const results = analysisResult?.results;
+    
+    const diagnosticsData = useMemo(() => {
+        if (!results?.regression_summary?.predictions || !results?.regression_summary?.residuals) return [];
+        return results.regression_summary.predictions.map((p, i) => ({
+            prediction: p,
+            residual: results.regression_summary.residuals[i]
+        }));
+    }, [results]);
+
     useEffect(() => {
         const satisfactionCols = numericHeaders.filter(h => h.toLowerCase().includes('satisfaction') || h.toLowerCase().includes('rating'));
         const defaultDepVar = satisfactionCols.find(h => h.toLowerCase().includes('overall')) || satisfactionCols[0] || numericHeaders[numericHeaders.length - 1];
@@ -71,16 +81,6 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
 
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== dependentVar), [numericHeaders, dependentVar]);
     
-    const results = analysisResult?.results;
-    
-    const diagnosticsData = useMemo(() => {
-        if (!results?.regression_summary?.predictions || !results?.regression_summary?.residuals) return [];
-        return results.regression_summary.predictions.map((p, i) => ({
-            prediction: p,
-            residual: results.regression_summary.residuals[i]
-        }));
-    }, [results]);
-
     const handleIndepVarChange = (header: string, checked: boolean) => {
         setIndependentVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     };
@@ -245,7 +245,7 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
                                     <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">R²</p><p className="text-2xl font-bold">{results.regression_summary.r2.toFixed(3)}</p></div>
                                     <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Adjusted R²</p><p className="text-2xl font-bold">{results.regression_summary.adj_r2.toFixed(3)}</p></div>
                                     <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">F-statistic</p><p className="text-2xl font-bold">{results.regression_summary.f_stat.toFixed(2)}</p></div>
-                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">p-value</p><p className="text-2xl font-bold">{results.regression_summary.f_pvalue.toExponential(2)}</p></div>
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">p-value</p><p className="text-2xl font-bold">{results.regression_summary.f_pvalue < 0.001 ? '<.001' : results.regression_summary.f_pvalue.toExponential(2)}</p></div>
                                 </div>
                                 <Card>
                                     <CardHeader><CardTitle className="text-lg">Residuals vs. Fitted Plot</CardTitle></CardHeader>
