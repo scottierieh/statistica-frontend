@@ -15,11 +15,12 @@ import { regressionData } from "./example-datasets/regression-data";
 import { semData } from "./example-datasets/sem-data";
 import { conjointSmartphoneData } from "./example-datasets/conjoint-smartphone-data";
 import { ipaRestaurantData } from "./example-datasets/ipa-restaurant-data";
+import { admissionData } from "./example-datasets/admission-data";
 
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'logistic-regression';
 
 
 export interface ExampleDataSet {
@@ -59,6 +60,15 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 
 export const exampleDatasets: ExampleDataSet[] = [
+    {
+        id: 'admission-data',
+        name: 'University Admissions',
+        description: 'GRE scores, GPA, and university rank for student admissions.',
+        icon: BookOpen,
+        analysisTypes: ['stats', 'logistic-regression', 'correlation'],
+        recommendedAnalysis: 'logistic-regression',
+        data: admissionData,
+    },
      {
         id: 'ipa-restaurant',
         name: 'Restaurant Satisfaction',

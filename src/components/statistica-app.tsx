@@ -69,6 +69,7 @@ import TTestPage from './pages/t-test-page';
 import HcaPage from './pages/hca-page';
 import ManovaPage from './pages/manova-page';
 import RegressionPage from './pages/regression-page';
+import LogisticRegressionPage from './pages/logistic-regression-page';
 import KMeansPage from './pages/kmeans-page';
 import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import CrosstabPage from './pages/crosstab-page';
@@ -81,7 +82,7 @@ import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -100,6 +101,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     hca: HcaPage,
     manova: ManovaPage,
     regression: RegressionPage,
+    'logistic-regression': LogisticRegressionPage,
     kmeans: KMeansPage,
     frequency: FrequencyAnalysisPage,
     crosstab: CrosstabPage,
@@ -139,7 +141,7 @@ const analysisMenu = [
     methods: [
       { id: 'correlation', label: 'Correlation Analysis', implemented: true },
       { id: 'regression', label: 'Regression Analysis', implemented: true, icon: TrendingUp },
-      { id: 'logistic-regression', label: 'Logistic Regression', implemented: false },
+      { id: 'logistic-regression', label: 'Logistic Regression', implemented: true, icon: TrendingUp },
     ]
   },
    {
