@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -96,8 +97,9 @@ import MannWhitneyPage from './pages/mann-whitney-page';
 import WilcoxonPage from './pages/wilcoxon-page';
 import KruskalWallisPage from './pages/kruskal-wallis-page';
 import FriedmanPage from './pages/friedman-page';
+import MetaAnalysisPage from './pages/meta-analysis-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -133,6 +135,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     visuals: VisualizationPage,
     gbm: GbmPage,
     sentiment: SentimentAnalysisPage,
+    'meta-analysis': MetaAnalysisPage,
 };
 
 const analysisMenu = [
@@ -214,6 +217,7 @@ const analysisMenu = [
       { id: 'conjoint', label: 'Conjoint Analysis' },
       { id: 'ipa', label: 'Importance-Performance Analysis (IPA)' },
       { id: 'survival', label: 'Survival Analysis' },
+      { id: 'meta-analysis', label: 'Meta-Analysis' },
       { id: 'gbm', label: 'Gradient Boosting Machine (GBM)'},
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
@@ -305,6 +309,11 @@ export default function StatisticaApp() {
   };
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
+    if (example.id === 'meta-analysis') {
+        setActiveAnalysis('meta-analysis');
+        toast({title: 'Meta-Analysis', description: 'This analysis requires manual data entry. An example has been pre-filled for you.'});
+        return;
+    }
     processData(example.data, example.name);
   };
 
@@ -536,7 +545,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && (
+            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
