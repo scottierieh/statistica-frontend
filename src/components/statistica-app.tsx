@@ -479,21 +479,19 @@ export default function StatisticaApp() {
                           )
                         )}
                         {category.subCategories?.map(sub => (
-                            <SidebarMenuSub key={sub.name}>
+                           <SidebarMenuSub key={sub.name}>
                                 <SidebarMenuSubButton className="text-xs">{sub.name}</SidebarMenuSubButton>
                                 <SidebarMenuSubItem>
                                     {sub.methods.map(method => (
-                                      
-                                          <SidebarMenuButton
-                                              key={method.id}
-                                              onClick={() => setActiveAnalysis(method.id as AnalysisType)}
-                                              isActive={activeAnalysis === method.id}
-                                              disabled={method.implemented === false}
-                                              className="justify-start w-full h-8 text-xs"
-                                          >
-                                              <span>{method.label}</span>
-                                          </SidebarMenuButton>
-                                        
+                                        <SidebarMenuButton
+                                            key={method.id}
+                                            onClick={() => setActiveAnalysis(method.id as AnalysisType)}
+                                            isActive={activeAnalysis === method.id}
+                                            disabled={method.implemented === false}
+                                            className="justify-start w-full h-8 text-xs"
+                                        >
+                                            <span>{method.label}</span>
+                                        </SidebarMenuButton>
                                     ))}
                                 </SidebarMenuSubItem>
                             </SidebarMenuSub>
