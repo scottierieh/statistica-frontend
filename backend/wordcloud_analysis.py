@@ -19,6 +19,12 @@ try:
 except ImportError:
     WORDCLOUD_AVAILABLE = False
 
+try:
+    from konlpy.tag import Okt
+    KONLPY_AVAILABLE = True
+except ImportError:
+    KONLPY_AVAILABLE = False
+
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
@@ -32,52 +38,62 @@ def _to_native_type(obj):
 
 def get_korean_font_path():
     """시스템에서 사용 가능한 한글 폰트 경로를 찾습니다."""
-    # NanumGothic을 우선적으로 찾습니다.
-    for font in fm.findSystemFonts(fontpaths=None, fontext='ttf'):
-        if 'NanumGothic' in font:
-            return font
-    # 다른 일반적인 한글 폰트 이름으로도 찾아봅니다.
+    font_paths = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+    
+    nanum_fonts = [path for path in font_paths if 'NanumGothic' in path]
+    if nanum_fonts:
+        return nanum_fonts[0]
+
     for font_name in ['Malgun Gothic', 'AppleGothic', 'Noto Sans CJK KR']:
         try:
             return fm.findfont(fm.FontProperties(family=font_name))
         except:
             continue
-    return None # 한글 폰트를 찾지 못한 경우
+    
+    # Check for any CJK font
+    for path in font_paths:
+        try:
+            font = fm.FontProperties(fname=path)
+            if any(lang in font.get_name().lower() for lang in ['korean', 'cjk', 'nanum', 'malgun']):
+                return path
+        except:
+            continue
+            
+    return None
 
 class WordCloudGenerator:
     def __init__(self):
         self.default_stopwords = set(STOPWORDS) if WORDCLOUD_AVAILABLE else set()
         self.font_path = get_korean_font_path()
+        if self.font_path:
+            plt.rcParams['font.family'] = fm.FontProperties(fname=self.font_path).get_name()
+        plt.rcParams['axes.unicode_minus'] = False
+
 
     def preprocess_text(self, text, custom_stopwords, min_word_length):
-        text = text.lower()
+        is_korean = any('\uac00' <= char <= '\ud7a3' for char in text)
+
+        # Common preprocessing
         text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
         text = text.translate(str.maketrans('', '', string.punctuation))
         text = re.sub(r'\d+', '', text)
-        words = text.split()
         
-        stop_words = self.default_stopwords.union(set(custom_stopwords))
-        
-        # 한국어 조사를 간단히 제거 (더 정교한 형태소 분석기 사용이 이상적)
-        korean_particles = "은|는|이|가|을|를|의|에|와|과|도|로|으로|께|서"
-        processed_words = []
-        for word in words:
-            # 영어 단어 처리
-            if re.match(r'^[a-zA-Z]+$', word):
-                 if len(word) >= min_word_length and word not in stop_words:
-                    processed_words.append(word)
-            # 한글 단어 처리
-            elif re.match(r'^[가-힣]+$', word):
-                 # 조사 제거
-                 word = re.sub(f"({korean_particles})$", "", word)
-                 if len(word) >= min_word_length and word not in stop_words:
-                    processed_words.append(word)
-            # 기타 (혼합 등)
-            else:
-                 if len(word) >= min_word_length and word not in stop_words:
-                    processed_words.append(word)
+        all_stopwords = self.default_stopwords.union(set(custom_stopwords))
 
-        return ' '.join(processed_words), processed_words
+        if is_korean and KONLPY_AVAILABLE:
+            okt = Okt()
+            # Extract nouns
+            nouns = okt.nouns(text)
+            processed_words = [word for word in nouns if len(word) >= min_word_length and word not in all_stopwords]
+            processed_text = ' '.join(processed_words)
+        else:
+            # Fallback for non-Korean text or if konlpy is not available
+            text = text.lower()
+            words = text.split()
+            processed_words = [word for word in words if len(word) >= min_word_length and word not in all_stopwords]
+            processed_text = ' '.join(processed_words)
+
+        return processed_text, processed_words
 
     def calculate_word_frequencies(self, words, top_n=100):
         word_freq = Counter(words)
@@ -110,6 +126,8 @@ class WordCloudGenerator:
         
         if self.font_path:
             wc_params['font_path'] = self.font_path
+        else:
+             warnings.warn("Korean font not found. Hangul may appear broken.")
 
         wc = WordCloud(**wc_params)
         
@@ -124,9 +142,6 @@ class WordCloudGenerator:
     def generate_frequency_plot(self, frequencies, top_n=20):
         top_freq = dict(list(frequencies.items())[:top_n])
         plt.figure(figsize=(10, 8))
-
-        if self.font_path:
-            plt.rcParams['font.family'] = fm.FontProperties(fname=self.font_path).get_name()
             
         plt.barh(list(top_freq.keys()), list(top_freq.values()), color='skyblue')
         plt.xlabel('Frequency')
@@ -147,7 +162,7 @@ def main():
         payload = json.load(sys.stdin)
         text_data = payload.get('text', '')
         custom_stopwords_str = payload.get('customStopwords', '')
-        min_word_length = payload.get('minWordLength', 3)
+        min_word_length = payload.get('minWordLength', 2) # Changed default to 2 for Korean
         max_words = payload.get('maxWords', 100)
         colormap = payload.get('colormap', 'viridis')
         

@@ -12,3 +12,4 @@ wordcloud
 requests
 Pillow
 nltk
+konlpy
