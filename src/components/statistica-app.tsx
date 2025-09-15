@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -46,6 +45,7 @@ import {
   HeartPulse,
   Feather,
   GitBranch,
+  Smile,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -81,6 +81,7 @@ import PcaPage from './pages/pca-page';
 import SurvivalAnalysisPage from './pages/survival-analysis-page';
 import WordCloudPage from './pages/wordcloud-page';
 import GbmPage from './pages/gbm-page';
+import SentimentAnalysisPage from './pages/sentiment-analysis-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
@@ -92,7 +93,7 @@ import WilcoxonPage from './pages/wilcoxon-page';
 import KruskalWallisPage from './pages/kruskal-wallis-page';
 import FriedmanPage from './pages/friedman-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm';
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment';
 
 const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -126,6 +127,7 @@ const analysisPages: Record<AnalysisType, React.ComponentType<any>> = {
     wordcloud: WordCloudPage,
     visuals: VisualizationPage,
     gbm: GbmPage,
+    sentiment: SentimentAnalysisPage,
 };
 
 const analysisMenu = [
@@ -136,6 +138,7 @@ const analysisMenu = [
       { id: 'stats', label: 'Descriptive Statistics' },
       { id: 'frequency', label: 'Frequency Analysis' },
       { id: 'wordcloud', label: 'Word Cloud' },
+      { id: 'sentiment', label: 'Sentiment Analysis' },
     ]
   },
   {
@@ -532,7 +535,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && (
+            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
