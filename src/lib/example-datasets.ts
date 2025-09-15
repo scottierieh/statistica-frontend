@@ -236,7 +236,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Student Performance',
         description: 'Study hours, attendance, and previous scores vs. final exam scores.',
         icon: BookOpen,
-        analysisTypes: ['stats', 'correlation', 'visuals'],
+        analysisTypes: ['stats', 'correlation', 'visuals', 'ancova'],
         recommendedAnalysis: 'correlation',
         data: studentPerformanceData
     }
