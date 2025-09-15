@@ -9,15 +9,41 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, HeartPulse } from 'lucide-react';
+import { Sigma, Loader2, HeartPulse, CheckCircle, XCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
+import { Badge } from '../ui/badge';
+
+interface SurvivalTableItem {
+    Time: number;
+    [key: string]: number;
+}
+
+interface LogRankResult {
+    test_statistic: number;
+    p_value: number;
+    is_significant: boolean;
+}
+
+interface CoxSummaryRow {
+    covariate: string;
+    exp_coef: number; // Hazard Ratio
+    'exp(coef) lower 95%': number;
+    'exp(coef) upper 95%': number;
+    p: number;
+}
 
 interface SurvivalResults {
-    survival_table: { Time: number, [key: string]: number }[];
-    median_survival_time: number;
-    confidence_interval: { [key: string]: number }[];
+    kaplan_meier: {
+        survival_table: SurvivalTableItem[];
+        median_survival_time: number;
+    };
+    kaplan_meier_grouped?: {
+        [group: string]: { median_survival: number };
+    };
+    log_rank_test?: LogRankResult;
+    cox_ph?: CoxSummaryRow[];
 }
 
 interface FullAnalysisResponse {
@@ -37,6 +63,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
     const [durationCol, setDurationCol] = useState<string | undefined>(numericHeaders[0]);
     const [eventCol, setEventCol] = useState<string | undefined>();
     const [groupCol, setGroupCol] = useState<string | undefined>();
+    const [covariates, setCovariates] = useState<string[]>([]);
 
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +80,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
         setEventCol(eventCols[0]);
         
         setGroupCol(undefined);
+        setCovariates(numericHeaders.filter(h => h !== durationCol && h !== eventCol));
         setAnalysisResult(null);
     }, [data, numericHeaders, binaryCategoricalHeaders]);
     
@@ -75,7 +103,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
             const response = await fetch('/api/analysis/survival', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, durationCol, eventCol, groupCol })
+                body: JSON.stringify({ data, durationCol, eventCol, groupCol, covariates })
             });
 
             if (!response.ok) {
@@ -94,7 +122,7 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
         } finally {
             setIsLoading(false);
         }
-    }, [data, durationCol, eventCol, groupCol, toast]);
+    }, [data, durationCol, eventCol, groupCol, covariates, toast]);
 
     if (!canRun) {
         const survivalExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('survival'));
@@ -186,45 +214,103 @@ export default function SurvivalAnalysisPage({ data, numericHeaders, categorical
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Kaplan-Meier Survival Curve</CardTitle>
+                            <CardTitle className="font-headline">Analysis Overview</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <Image src={analysisResult.plot} alt="Kaplan-Meier Plot" width={1000} height={600} className="w-full rounded-md border" />
+                             <Image src={analysisResult.plot} alt="Survival Analysis Plots" width={1400} height={1000} className="w-full rounded-md border" />
                         </CardContent>
                     </Card>
+
                     <div className="grid md:grid-cols-3 gap-4">
-                        <Card className="col-span-2">
-                             <CardHeader><CardTitle>Survival Function</CardTitle></CardHeader>
-                             <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Time</TableHead>
-                                            <TableHead className="text-right">Survival Probability</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {results.survival_table.map((row, i) => (
-                                            <TableRow key={i}>
-                                                <TableCell>{row.Time}</TableCell>
-                                                <TableCell className="text-right font-mono">{Object.values(row)[1].toFixed(3)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                             </CardContent>
-                        </Card>
                          <Card>
-                            <CardHeader><CardTitle>Median Survival Time</CardTitle></CardHeader>
+                            <CardHeader><CardTitle>Overall Median Survival</CardTitle></CardHeader>
                             <CardContent>
                                 <p className="text-4xl font-bold font-mono">
-                                    {isFinite(results.median_survival_time) ? results.median_survival_time.toFixed(1) : 'Infinity'}
+                                    {isFinite(results.kaplan_meier.median_survival_time) ? results.kaplan_meier.median_survival_time.toFixed(1) : 'Not Reached'}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
                                     The time at which 50% of subjects are expected to have survived.
                                 </p>
                             </CardContent>
                         </Card>
+                        {results.log_rank_test && (
+                             <Card>
+                                <CardHeader><CardTitle>Log-Rank Test</CardTitle><CardDescription>Compares group survival curves</CardDescription></CardHeader>
+                                <CardContent>
+                                    {results.log_rank_test.is_significant ? (
+                                        <div className="flex items-center text-green-600"><CheckCircle className="mr-2"/> Significant difference found.</div>
+                                    ) : (
+                                         <div className="flex items-center text-orange-600"><XCircle className="mr-2"/> No significant difference.</div>
+                                    )}
+                                     <p className="font-mono text-sm mt-2">p = {results.log_rank_test.p_value.toFixed(4)}</p>
+                                </CardContent>
+                            </Card>
+                        )}
+                        {results.kaplan_meier_grouped && (
+                            <Card>
+                                <CardHeader><CardTitle>Median Survival by Group</CardTitle></CardHeader>
+                                <CardContent>
+                                    <dl className="space-y-2">
+                                        {Object.entries(results.kaplan_meier_grouped).map(([group, res]) => (
+                                            <div key={group} className="flex justify-between text-sm">
+                                                <dt>{group}</dt>
+                                                <dd className="font-mono">{isFinite(res.median_survival) ? res.median_survival.toFixed(1) : 'Not Reached'}</dd>
+                                            </div>
+                                        ))}
+                                    </dl>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                    
+                    <div className="grid lg:grid-cols-2 gap-4">
+                        <Card>
+                             <CardHeader><CardTitle>Survival Function Table</CardTitle></CardHeader>
+                             <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Time</TableHead>
+                                            <TableHead className="text-right">Survival Probability</TableHead>
+                                            <TableHead className="text-right">95% CI Lower</TableHead>
+                                            <TableHead className="text-right">95% CI Upper</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {results.kaplan_meier.survival_table.map((row, i) => {
+                                            const ciRow = results.kaplan_meier.confidence_interval.find(ci => ci.timeline === row.Time);
+                                            return (
+                                                <TableRow key={i}>
+                                                    <TableCell>{row.Time}</TableCell>
+                                                    <TableCell className="text-right font-mono">{Object.values(row)[1].toFixed(3)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{ciRow ? Object.values(ciRow)[1].toFixed(3) : 'N/A'}</TableCell>
+                                                    <TableCell className="text-right font-mono">{ciRow ? Object.values(ciRow)[2].toFixed(3) : 'N/A'}</TableCell>
+                                                </TableRow>
+                                            )
+                                        })}
+                                    </TableBody>
+                                </Table>
+                             </CardContent>
+                        </Card>
+                        {results.cox_ph && (
+                             <Card>
+                                <CardHeader><CardTitle>Cox Proportional Hazards Model</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Covariate</TableHead><TableHead>Hazard Ratio</TableHead><TableHead>p-value</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {results.cox_ph.map(row => (
+                                                <TableRow key={row.covariate}>
+                                                    <TableCell>{row.covariate}</TableCell>
+                                                    <TableCell className="font-mono">{row.exp_coef.toFixed(3)}</TableCell>
+                                                    <TableCell className="font-mono">{row.p < 0.001 ? '<.001' : row.p.toFixed(3)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
             )}
