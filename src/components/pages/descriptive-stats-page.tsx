@@ -278,6 +278,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
     }, [data, selectedVars, toast]);
 
     const renderResults = () => {
+        if (!analysisData) return null;
         return (
             <div className="space-y-8">
                 {selectedVars.map(header => {
@@ -313,7 +314,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
     };
 
     if (data.length === 0) {
-        const statsExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('stats'));
+        const statsExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('stats')).slice(0, 2);
        return (
             <div className="flex flex-1 items-center justify-center">
                <Card className="w-full max-w-2xl text-center">
@@ -398,13 +399,13 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
                 </Card>
             )}
 
-            {analysisData && renderResults()}
-
-            {!analysisData && !isLoading && (
-                 <div className="text-center text-muted-foreground py-10">
-                    <BarChartIcon className="mx-auto h-12 w-12 text-gray-400"/>
-                    <p className="mt-2">Select variables and click 'Run Analysis' to see the results.</p>
-                </div>
+            {analysisData ? renderResults() : (
+                 !isLoading && (
+                    <div className="text-center text-muted-foreground py-10">
+                        <BarChartIcon className="mx-auto h-12 w-12 text-gray-400"/>
+                        <p className="mt-2">Select variables and click 'Run Analysis' to see the results.</p>
+                    </div>
+                )
             )}
         </div>
     );
