@@ -50,11 +50,10 @@ def get_korean_font_path():
         except:
             continue
     
-    # Check for any CJK font as a fallback
     for path in font_paths:
         try:
             font = fm.FontProperties(fname=path)
-            if any(lang in font.get_name().lower() for lang in ['korean', 'cjk', 'nanum', 'malgun']):
+            if any(lang in font.get_name().lower() for lang in ['korean', 'cjk', 'nanum', 'malgun', 'gothic']):
                 return path
         except:
             continue
@@ -68,7 +67,6 @@ class WordCloudGenerator:
         if self.font_path:
             plt.rcParams['font.family'] = fm.FontProperties(fname=self.font_path).get_name()
         else:
-            # Fallback font for systems without Korean fonts, might not render correctly.
             plt.rcParams['font.family'] = 'DejaVu Sans'
         plt.rcParams['axes.unicode_minus'] = False
 
@@ -76,7 +74,6 @@ class WordCloudGenerator:
     def preprocess_text(self, text, custom_stopwords, min_word_length):
         is_korean = any('\uac00' <= char <= '\ud7a3' for char in text)
 
-        # Common preprocessing
         text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
         text = text.translate(str.maketrans('', '', string.punctuation))
         text = re.sub(r'\d+', '', text)
@@ -85,17 +82,14 @@ class WordCloudGenerator:
 
         if is_korean and KONLPY_AVAILABLE:
             okt = Okt()
-            # Extract nouns
             nouns = okt.nouns(text)
             processed_words = [word for word in nouns if len(word) >= min_word_length and word not in all_stopwords]
-            processed_text = ' '.join(processed_words)
         else:
-            # Fallback for non-Korean text or if konlpy is not available
             text = text.lower()
             words = text.split()
             processed_words = [word for word in words if len(word) >= min_word_length and word not in all_stopwords]
-            processed_text = ' '.join(processed_words)
 
+        processed_text = ' '.join(processed_words)
         return processed_text, processed_words
 
     def calculate_word_frequencies(self, words, top_n=100):
@@ -104,18 +98,17 @@ class WordCloudGenerator:
 
     def analyze_text_statistics(self, original_text, processed_words):
         original_words = original_text.split()
-        stats = {
+        return {
             'total_words': len(original_words),
             'unique_words': len(set(original_words)),
             'processed_words_count': len(processed_words),
             'unique_processed_words': len(set(processed_words)),
             'average_word_length': np.mean([len(word) for word in processed_words]) if processed_words else 0,
         }
-        return stats
 
     def generate_wordcloud_image(self, text, settings):
         if not WORDCLOUD_AVAILABLE:
-            raise ImportError("WordCloud library not found. Please install with: pip install wordcloud")
+            raise ImportError("WordCloud library not found.")
         
         wc_params = {
             'width': settings.get('width', 800),
@@ -129,11 +122,10 @@ class WordCloudGenerator:
         
         if self.font_path:
             wc_params['font_path'] = self.font_path
-        else:
+        elif any('\uac00' <= char <= '\ud7a3' for char in text):
              warnings.warn("Korean font not found. Hangul may appear broken.")
 
         wc = WordCloud(**wc_params)
-        
         wordcloud_image = wc.generate(text)
         
         buf = io.BytesIO()
@@ -165,7 +157,7 @@ def main():
         payload = json.load(sys.stdin)
         text_data = payload.get('text', '')
         custom_stopwords_str = payload.get('customStopwords', '')
-        min_word_length = payload.get('minWordLength', 2) # Changed default to 2 for Korean
+        min_word_length = payload.get('minWordLength', 2)
         max_words = payload.get('maxWords', 100)
         colormap = payload.get('colormap', 'viridis')
         
@@ -185,11 +177,8 @@ def main():
         statistics = generator.analyze_text_statistics(text_data, processed_words)
 
         settings = {
-            'width': 800,
-            'height': 400,
-            'background_color': 'white',
-            'colormap': colormap,
-            'max_words': max_words
+            'width': 800, 'height': 400, 'background_color': 'white',
+            'colormap': colormap, 'max_words': max_words
         }
 
         wordcloud_img = generator.generate_wordcloud_image(processed_text, settings)
