@@ -1,3 +1,4 @@
+
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -5,8 +6,27 @@ const path = require('path');
 const backendDir = path.resolve(__dirname, '..', 'backend');
 const venvDir = path.join(backendDir, 'venv');
 const reqFile = path.join(backendDir, 'requirements.txt');
+const pythonCmd = 'python3'; // Use python3 to be more generic
+const pipCmd = path.join(venvDir, 'bin', 'pip');
 
-console.log('--- Setting up Python backend ---');
+function runPythonScript(scriptPath) {
+    try {
+        const fullScriptPath = path.join(backendDir, scriptPath);
+        if (fs.existsSync(fullScriptPath)) {
+            console.log(`Executing ${scriptPath}...`);
+            execSync(`${pipCmd} install -r ${reqFile}`, { cwd: backendDir, stdio: 'pipe' }); // Ensure dependencies for script
+            execSync(`${path.join(venvDir, 'bin', 'python')} ${fullScriptPath}`, { cwd: backendDir, stdio: 'inherit' });
+        } else {
+            console.warn(`Warning: Script not found at ${fullScriptPath}, skipping execution.`);
+        }
+    } catch (error) {
+        console.error(`Error executing ${scriptPath}:`, error.message);
+        // Do not exit process, just log the error
+    }
+}
+
+
+console.log('--- Setting up Python backend and generating data ---');
 
 // Check if requirements.txt exists
 if (!fs.existsSync(reqFile)) {
@@ -22,7 +42,7 @@ let venvNeedsSetup = true;
 if (fs.existsSync(venvMarker)) {
     const markerMtime = fs.statSync(venvMarker).mtime;
     if (markerMtime > reqMtime) {
-        console.log('Python backend is already up-to-date.');
+        console.log('Python virtual environment is up-to-date.');
         venvNeedsSetup = false;
     }
 }
@@ -31,9 +51,6 @@ if (venvNeedsSetup) {
     try {
         console.log('Virtual environment needs setup/update. Installing dependencies...');
         
-        // Use python3 to be more generic
-        const pythonCmd = 'python3';
-        
         // 1. Create venv if it doesn't exist
         if (!fs.existsSync(venvDir)) {
             console.log('Creating virtual environment...');
@@ -41,7 +58,6 @@ if (venvNeedsSetup) {
         }
         
         // 2. Install requirements
-        const pipCmd = path.join(venvDir, 'bin', 'pip');
         console.log('Installing dependencies from requirements.txt...');
         execSync(`${pipCmd} install -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
@@ -56,4 +72,9 @@ if (venvNeedsSetup) {
     }
 }
 
-console.log('--- Python backend setup finished ---');
+// --- Generate Example Datasets ---
+console.log('--- Generating example datasets ---');
+runPythonScript('example-datasets/ab-test-data.py');
+
+
+console.log('--- Backend setup and data generation finished ---');
