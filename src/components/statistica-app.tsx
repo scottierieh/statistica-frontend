@@ -120,23 +120,22 @@ const analysisMenu = [
     icon: Sigma,
     methods: [
       { id: 'stats', label: 'Descriptive Statistics', implemented: true },
-      { id: 'reliability', label: 'Reliability Analysis', implemented: true, icon: ShieldCheck },
+      { id: 'reliability', label: 'Reliability Analysis', implemented: true },
       { 
         id: 'anova',
         label: 'ANOVA / MANOVA',
         implemented: true,
-        icon: Copy,
         subMethods: [
           { id: 'one-way-anova', label: 'One-Way ANOVA', implemented: true },
           { id: 'two-way-anova', label: 'Two-Way ANOVA', implemented: true },
           { id: 'ancova', label: 'Analysis of Covariance (ANCOVA)', implemented: true },
-          { id: 'manova', label: 'Multivariate Analysis of Variance (MANOVA)', implemented: true, icon: Users },
+          { id: 'manova', label: 'Multivariate Analysis of Variance (MANOVA)', implemented: true },
         ]
       },
-      { id: 'frequency', label: 'Frequency Analysis', implemented: true, icon: BarChart },
-      { id: 'crosstab', label: 'Crosstab Analysis', implemented: true, icon: Columns },
+      { id: 'frequency', label: 'Frequency Analysis', implemented: true },
+      { id: 'crosstab', label: 'Crosstab Analysis', implemented: true },
       { id: 't-test', label: 't-Test', implemented: true },
-      { id: 'nonparametric', label: 'Non-parametric Tests', implemented: true, icon: FlaskConical },
+      { id: 'nonparametric', label: 'Non-parametric Tests', implemented: true },
     ]
   },
   {
@@ -144,18 +143,18 @@ const analysisMenu = [
     icon: Link2,
     methods: [
       { id: 'correlation', label: 'Correlation Analysis', implemented: true },
-      { id: 'regression', label: 'Regression Analysis', implemented: true, icon: TrendingUp },
-      { id: 'logistic-regression', label: 'Logistic Regression', implemented: true, icon: TrendingUp },
+      { id: 'regression', label: 'Regression Analysis', implemented: true },
+      { id: 'logistic-regression', label: 'Logistic Regression', implemented: true },
     ]
   },
    {
     field: 'Clustering / Classification',
     icon: Users,
     methods: [
-      { id: 'kmeans', label: 'K-Means Clustering', implemented: true, icon: Binary },
-      { id: 'hca', label: 'Hierarchical Clustering', implemented: true, icon: Binary },
-      { id: 'discriminant', label: 'Discriminant Analysis', implemented: true, icon: Users },
-      { id: 'pca', label: 'Principal Component Analysis (PCA)', implemented: true, icon: Component },
+      { id: 'kmeans', label: 'K-Means Clustering', implemented: true },
+      { id: 'hca', label: 'Hierarchical Clustering', implemented: true },
+      { id: 'discriminant', label: 'Discriminant Analysis', implemented: true },
+      { id: 'pca', label: 'Principal Component Analysis (PCA)', implemented: true },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
   },
@@ -163,14 +162,14 @@ const analysisMenu = [
     field: 'Advanced / Specialized',
     icon: FlaskConical,
     methods: [
-      { id: 'efa', label: 'Exploratory Factor Analysis (EFA)', implemented: true, icon: BrainCircuit },
-      { id: 'cfa', label: 'Confirmatory Factor Analysis (CFA)', implemented: true, icon: BrainCircuit },
-      { id: 'sem', label: 'Structural Equation Modeling (SEM)', implemented: true, icon: Network },
-      { id: 'mediation', label: 'Mediation Analysis', implemented: true, icon: Network },
-      { id: 'moderation', label: 'Moderation Analysis', implemented: true, icon: TrendingUp },
-      { id: 'conjoint', label: 'Conjoint Analysis', implemented: true, icon: Network },
-      { id: 'ipa', label: 'Importance-Performance Analysis (IPA)', implemented: true, icon: Target },
-      { id: 'bayesian', label: 'Bayesian Inference', implemented: true, icon: FlaskConical },
+      { id: 'efa', label: 'Exploratory Factor Analysis (EFA)', implemented: true },
+      { id: 'cfa', label: 'Confirmatory Factor Analysis (CFA)', implemented: true },
+      { id: 'sem', label: 'Structural Equation Modeling (SEM)', implemented: true },
+      { id: 'mediation', label: 'Mediation Analysis', implemented: true },
+      { id: 'moderation', label: 'Moderation Analysis', implemented: true },
+      { id: 'conjoint', label: 'Conjoint Analysis', implemented: true },
+      { id: 'ipa', label: 'Importance-Performance Analysis (IPA)', implemented: true },
+      { id: 'bayesian', label: 'Bayesian Inference', implemented: true },
       { id: 'survival', label: 'Survival Analysis', implemented: false },
     ]
   }
@@ -451,7 +450,6 @@ export default function StatisticaApp() {
                                             isActive={activeAnalysis === subMethod.id}
                                             disabled={!subMethod.implemented}
                                           >
-                                            {subMethod.icon && <subMethod.icon />}
                                             {subMethod.label}
                                           </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
