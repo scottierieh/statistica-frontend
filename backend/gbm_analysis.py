@@ -81,20 +81,53 @@ def main():
 
         # --- Evaluation ---
         results = {}
+        prediction_examples = []
         if problem_type == 'regression':
             results['metrics'] = {
                 'r2_score': r2_score(y_test, y_pred),
                 'mse': mean_squared_error(y_test, y_pred),
                 'rmse': np.sqrt(mean_squared_error(y_test, y_pred))
             }
+            residuals = y_test - y_pred
+            errors = np.abs(residuals)
+            
+            n_examples = min(10, len(y_test))
+            example_indices = np.random.choice(y_test.index, n_examples, replace=False)
+            
+            for idx in example_indices:
+                actual = y_test.loc[idx]
+                predicted = model.predict(X_test.loc[[idx]])[0]
+                error = abs(actual - predicted)
+                error_pct = (error / actual) * 100 if actual != 0 else 0
+                prediction_examples.append({
+                    "actual": actual,
+                    "predicted": predicted,
+                    "error": error,
+                    "error_percent": error_pct
+                })
+
         else:
             results['metrics'] = {
                 'accuracy': accuracy_score(y_test, y_pred),
                 'classification_report': classification_report(y_test, y_pred, output_dict=True, zero_division=0),
                 'confusion_matrix': confusion_matrix(y_test, y_pred).tolist()
             }
-        
+            n_examples = min(10, len(y_test))
+            example_indices = np.random.choice(y_test.index, n_examples, replace=False)
+
+            for idx in example_indices:
+                actual = y_test.loc[idx]
+                predicted = model.predict(X_test.loc[[idx]])[0]
+                proba = model.predict_proba(X_test.loc[[idx]])[0]
+                prediction_examples.append({
+                    "actual": actual,
+                    "predicted": predicted,
+                    "status": "✅" if actual == predicted else "❌",
+                    "confidence": max(proba)
+                })
+
         results['feature_importance'] = dict(zip(feature_names, model.feature_importances_))
+        results['prediction_examples'] = prediction_examples
 
         # --- Plotting ---
         plot_image = None

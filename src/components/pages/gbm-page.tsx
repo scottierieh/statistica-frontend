@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitBranch } from 'lucide-react';
+import { Sigma, Loader2, GitBranch, Terminal } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -21,6 +21,7 @@ import { Input } from '../ui/input';
 interface GbmResults {
     metrics: any;
     feature_importance: { [key: string]: number };
+    prediction_examples: any[];
 }
 
 interface FullAnalysisResponse {
@@ -28,27 +29,62 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
-const ConfusionMatrix = ({ matrix, labels }: { matrix: number[][], labels: string[] }) => (
-    <Table>
-        <TableHeader>
-            <TableRow>
-                <TableHead>Actual \ Predicted</TableHead>
-                {labels.map(l => <TableHead key={l} className="text-center">{l}</TableHead>)}
-            </TableRow>
-        </TableHeader>
-        <TableBody>
-            {labels.map((label, rowIndex) => (
-                <TableRow key={label}>
-                    <TableHead>{label}</TableHead>
-                    {labels.map((_, colIndex) => (
-                        <TableCell key={`${label}-${colIndex}`} className="text-center font-mono">{matrix[rowIndex][colIndex]}</TableCell>
-                    ))}
-                </TableRow>
-            ))}
-        </TableBody>
-    </Table>
-);
-
+const PredictionExamplesTable = ({ examples, problemType }: { examples: any[], problemType: 'regression' | 'classification' }) => {
+    if (!examples || examples.length === 0) return null;
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Terminal/> Prediction Examples</CardTitle>
+                <CardDescription>A random sample of 10 predictions from the test set.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            {problemType === 'regression' ? (
+                                <>
+                                    <TableHead>Actual</TableHead>
+                                    <TableHead>Predicted</TableHead>
+                                    <TableHead>Error</TableHead>
+                                    <TableHead>Error %</TableHead>
+                                </>
+                            ) : (
+                                <>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Actual</TableHead>
+                                    <TableHead>Predicted</TableHead>
+                                    <TableHead>Confidence</TableHead>
+                                </>
+                            )}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {examples.map((ex, i) => (
+                            <TableRow key={i}>
+                                {problemType === 'regression' ? (
+                                    <>
+                                        <TableCell>{ex.actual.toFixed(2)}</TableCell>
+                                        <TableCell>{ex.predicted.toFixed(2)}</TableCell>
+                                        <TableCell>{ex.error.toFixed(2)}</TableCell>
+                                        <TableCell>{ex.error_percent.toFixed(2)}%</TableCell>
+                                    </>
+                                ) : (
+                                    <>
+                                        <TableCell>{ex.status}</TableCell>
+                                        <TableCell>{ex.actual}</TableCell>
+                                        <TableCell>{ex.predicted}</TableCell>
+                                        <TableCell>{(ex.confidence * 100).toFixed(1)}%</TableCell>
+                                    </>
+                                )}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
+}
 
 interface GbmPageProps {
     data: DataSet;
@@ -320,6 +356,7 @@ export default function GbmPage({ data, allHeaders, numericHeaders, categoricalH
                              <Image src={analysisResult.plot} alt="GBM Analysis Plots" width={1800} height={1500} className="w-full rounded-md border"/>
                         </CardContent>
                     </Card>
+                    <PredictionExamplesTable examples={results.prediction_examples} problemType={problemType} />
                 </div>
             )}
         </div>
