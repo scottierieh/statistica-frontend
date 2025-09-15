@@ -72,6 +72,7 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== dependentVar), [numericHeaders, dependentVar]);
     
     const results = analysisResult?.results;
+    
     const diagnosticsData = useMemo(() => {
         if (!results?.regression_summary?.predictions || !results?.regression_summary?.residuals) return [];
         return results.regression_summary.predictions.map((p, i) => ({
@@ -256,12 +257,14 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
                                                     <XAxis type="number" dataKey="prediction" name="Fitted Value" />
                                                     <YAxis type="number" dataKey="residual" name="Residual" />
                                                     <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
-                                                    <Scatter data={diagnosticsData} fill="hsl(var(--primary))" />
+                                                    {diagnosticsData.length > 0 &&
+                                                        <Scatter data={diagnosticsData} fill="hsl(var(--primary))" />
+                                                    }
                                                 </ScatterChart>
                                             </ResponsiveContainer>
                                         </ChartContainer>
                                     </CardContent>
-                                </Card>
+                                 </Card>
                             </CardContent>
                         </Card>
                     </TabsContent>
