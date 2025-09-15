@@ -69,7 +69,7 @@ export default function BayesianPage({ data, numericHeaders, categoricalHeaders,
         setAnalysisResult(null);
     }, [data, numericHeaders, binaryCategoricalHeaders]);
     
-    const canRun = useMemo(() => data.length > 0 && (numericHeaders.length > 0 || categoricalHeaders.length > 0), [data, numericHeaders, categoricalHeaders]);
+    const canRun = useMemo(() => data.length > 0 && (numericHeaders.length > 0 && categoricalHeaders.length > 0), [data, numericHeaders, categoricalHeaders]);
 
     const handleAnalysis = useCallback(async () => {
         if (!groupCol || !valueCol) {
