@@ -99,7 +99,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: '2x3 Factorial Design',
         description: 'Performance scores by gender and treatment type. Ideal for Two-Way ANOVA.',
         icon: Copy,
-        analysisTypes: ['stats', 'two-way-anova'],
+        analysisTypes: ['stats', 'two-way-anova', 'ancova'],
         recommendedAnalysis: 'two-way-anova',
         data: twoWayAnovaData,
     },
