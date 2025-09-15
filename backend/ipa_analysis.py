@@ -52,6 +52,7 @@ def main():
         model = LinearRegression()
         model.fit(X, y)
         y_pred = model.predict(X)
+        residuals = (y - y_pred).tolist()
 
         n = len(y)
         k = len(independent_vars)
@@ -64,7 +65,8 @@ def main():
         f_pvalue = 1 - stats.f.cdf(f_stat, k, n - k - 1) if k > 0 and (n - k - 1) > 0 else np.nan
 
         regression_summary = {
-            'r2': r2, 'adj_r2': adj_r2, 'f_stat': f_stat, 'f_pvalue': f_pvalue
+            'r2': r2, 'adj_r2': adj_r2, 'f_stat': f_stat, 'f_pvalue': f_pvalue,
+            'predictions': y_pred.tolist(), 'residuals': residuals,
         }
 
         # --- IPA Matrix Calculation ---

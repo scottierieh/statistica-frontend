@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -14,6 +15,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface IpaResults {
     ipa_matrix: {
@@ -27,6 +31,8 @@ interface IpaResults {
         adj_r2: number;
         f_stat: number;
         f_pvalue: number;
+        predictions: number[];
+        residuals: number[];
     };
 }
 
@@ -144,6 +150,14 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
     }
     
     const results = analysisResult?.results;
+    const diagnosticsData = useMemo(() => {
+        if (!results?.regression_summary?.predictions || !results?.regression_summary?.residuals) return [];
+        return results.regression_summary.predictions.map((p, i) => ({
+            prediction: p,
+            residual: results.regression_summary.residuals[i]
+        }));
+    }, [results]);
+
 
     return (
         <div className="space-y-4">
@@ -184,56 +198,75 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[500px] w-full" /></CardContent></Card>}
 
             {results && analysisResult?.plot && (
-                <div className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">IPA Matrix</CardTitle>
-                            <CardDescription>Visualizing attribute performance vs. derived importance to identify strategic priorities.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <Image src={analysisResult.plot} alt="IPA Matrix" width={1400} height={1000} className="w-full rounded-md border" />
-                        </CardContent>
-                    </Card>
-                    <div className="grid md:grid-cols-2 gap-4">
-                         <Card>
-                            <CardHeader><CardTitle>Quadrant Summary</CardTitle></CardHeader>
+                <Tabs defaultValue="matrix" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="matrix">IPA Matrix</TabsTrigger>
+                        <TabsTrigger value="summary">Results Table</TabsTrigger>
+                        <TabsTrigger value="diagnostics">Model Diagnostics</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="matrix" className="mt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Importance-Performance Matrix</CardTitle>
+                                <CardDescription>Visualizing attribute performance vs. derived importance to identify strategic priorities.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                 <Image src={analysisResult.plot} alt="IPA Matrix" width={1400} height={1000} className="w-full rounded-md border" />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="summary" className="mt-4">
+                        <Card>
+                            <CardHeader><CardTitle>Quadrant Summary & Results</CardTitle></CardHeader>
                             <CardContent>
                                 <Table>
                                     <TableHeader>
-                                        <TableRow><TableHead>Quadrant</TableHead><TableHead>Attributes</TableHead></TableRow>
+                                        <TableRow><TableHead>Attribute</TableHead><TableHead>Quadrant</TableHead><TableHead className="text-right">Importance</TableHead><TableHead className="text-right">Performance</TableHead></TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {['Concentrate Here', 'Keep Up Good Work', 'Low Priority', 'Possible Overkill'].map(q => (
-                                            <TableRow key={q}>
-                                                <TableCell className="font-semibold">{q}</TableCell>
-                                                <TableCell>{results.ipa_matrix.filter(item => item.quadrant === q).map(item => item.attribute).join(', ') || 'None'}</TableCell>
+                                        {results.ipa_matrix.map(item => (
+                                            <TableRow key={item.attribute}>
+                                                <TableCell className="font-semibold">{item.attribute}</TableCell>
+                                                <TableCell>{item.quadrant}</TableCell>
+                                                <TableCell className="text-right font-mono">{item.importance.toFixed(3)}</TableCell>
+                                                <TableCell className="text-right font-mono">{item.performance.toFixed(3)}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
                             </CardContent>
                         </Card>
+                    </TabsContent>
+                    <TabsContent value="diagnostics" className="mt-4">
                         <Card>
-                            <CardHeader><CardTitle>Model Fit</CardTitle></CardHeader>
-                            <CardContent>
-                                 <dl className="space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <dt className="text-muted-foreground">R²</dt>
-                                        <dd className="font-mono text-lg">{results.regression_summary.r2.toFixed(3)}</dd>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <dt className="text-muted-foreground">Adj. R²</dt>
-                                        <dd className="font-mono text-lg">{results.regression_summary.adj_r2.toFixed(3)}</dd>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <dt className="text-muted-foreground">F-statistic p-value</dt>
-                                        <dd className="font-mono text-lg">{results.regression_summary.f_pvalue.toFixed(4)}</dd>
-                                    </div>
-                                </dl>
+                            <CardHeader><CardTitle>Model Diagnostics</CardTitle><CardDescription>Assessing the quality of the underlying regression model.</CardDescription></CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">R²</p><p className="text-2xl font-bold">{results.regression_summary.r2.toFixed(3)}</p></div>
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Adjusted R²</p><p className="text-2xl font-bold">{results.regression_summary.adj_r2.toFixed(3)}</p></div>
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">F-statistic</p><p className="text-2xl font-bold">{results.regression_summary.f_stat.toFixed(2)}</p></div>
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">p-value</p><p className="text-2xl font-bold">{results.regression_summary.f_pvalue.toExponential(2)}</p></div>
+                                </div>
+                                <Card>
+                                    <CardHeader><CardTitle className="text-lg">Residuals vs. Fitted Plot</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <ChartContainer config={{}} className="w-full h-[300px]">
+                                            <ResponsiveContainer width="100%" height={300}>
+                                                <ScatterChart>
+                                                    <CartesianGrid />
+                                                    <XAxis type="number" dataKey="prediction" name="Fitted Value" />
+                                                    <YAxis type="number" dataKey="residual" name="Residual" />
+                                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
+                                                    <Scatter data={diagnosticsData} fill="hsl(var(--primary))" />
+                                                </ScatterChart>
+                                            </ResponsiveContainer>
+                                        </ChartContainer>
+                                    </CardContent>
+                                </Card>
                             </CardContent>
                         </Card>
-                    </div>
-                </div>
+                    </TabsContent>
+                </Tabs>
             )}
         </div>
     );
