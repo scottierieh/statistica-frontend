@@ -83,9 +83,9 @@ class SentimentAnalyzer:
         
         # Simple Korean sentiment dictionary
         self.korean_sentiment_dict = {
-            '좋아': 1, '최고': 2, '만족': 1.5, '추천': 1.5, '훌륭': 2, '친절': 1,
-            '나쁘지 않': 0.5, '괜찮': 0.5,
-            '별로': -1, '실망': -1.5, '최악': -2, '불편': -1, '아쉽': -0.5, '늦': -1,
+            '좋다': 1, '최고': 2, '만족': 1.5, '추천': 1.5, '훌륭하다': 2, '친절하다': 1,
+            '나쁘지 않다': 0.5, '괜찮다': 0.5,
+            '별로': -1, '실망': -1.5, '최악': -2, '불편하다': -1, '아쉽다': -0.5, '늦다': -1,
         }
 
     def analyze_english(self, text):
@@ -134,19 +134,52 @@ class SentimentAnalyzer:
         if not results:
             return None
 
-        sentiments = [r['consensus']['sentiment'] for r in results if 'consensus' in r]
-        counts = Counter(sentiments)
+        df = pd.DataFrame([r['consensus'] for r in results if 'consensus' in r])
         
-        labels = list(counts.keys())
-        sizes = [counts[l] for l in labels]
-        colors = ['#4caf50', '#f44336', '#9e9e9e']
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        fig.suptitle('Sentiment Analysis Dashboard', fontsize=16, fontweight='bold')
+
+        # 1. Overall Sentiment Distribution
+        sentiment_counts = df['sentiment'].value_counts()
+        colors = {'positive': '#2ecc71', 'negative': '#e74c3c', 'neutral': '#95a5a6'}
+        ax1 = axes[0, 0]
+        bars = ax1.bar(sentiment_counts.index, sentiment_counts.values, color=[colors[s] for s in sentiment_counts.index])
+        ax1.set_title('Overall Sentiment Distribution')
+        ax1.set_ylabel('Count')
+        for bar in bars:
+            height = bar.get_height()
+            ax1.text(bar.get_x() + bar.get_width()/2., height,
+                    f'{int(height)}\n({height/len(df)*100:.1f}%)',
+                    ha='center', va='bottom')
+
+        # 2. Confidence Score Distribution
+        ax2 = axes[0, 1]
+        ax2.hist(df['confidence'], bins=10, color='skyblue', edgecolor='black')
+        ax2.axvline(df['confidence'].mean(), color='red', linestyle='dashed', linewidth=1, label=f"Mean: {df['confidence'].mean():.3f}")
+        ax2.set_title('Confidence Score Distribution')
+        ax2.set_xlabel('Confidence Score')
+        ax2.set_ylabel('Frequency')
+        ax2.legend()
         
-        fig, ax = plt.subplots(1, 1, figsize=(8, 5))
-        ax.bar(labels, sizes, color=colors[:len(labels)])
-        ax.set_title('Sentiment Distribution')
-        ax.set_ylabel('Number of Texts')
-        
-        plt.tight_layout()
+        # 3. Sentiment Strength Distribution
+        ax3 = axes[1, 0]
+        ax3.hist(df['score'], bins=15, color='purple', alpha=0.7)
+        ax3.set_title('Sentiment Strength Distribution')
+        ax3.set_xlabel('Sentiment Score (-1 to 1)')
+        ax3.set_ylabel('Frequency')
+
+        # 4. Sentiment vs Confidence
+        ax4 = axes[1, 1]
+        for sentiment_type, color in colors.items():
+            subset = df[df['sentiment'] == sentiment_type]
+            ax4.scatter(subset['sentiment'], subset['confidence'], alpha=0.6, label=sentiment_type, color=color)
+        ax4.set_title('Sentiment vs Confidence')
+        ax4.set_xlabel('Sentiment')
+        ax4.set_ylabel('Confidence Score')
+        ax4.legend()
+
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         buf = io.BytesIO()
         plt.savefig(buf, format='png')
         buf.seek(0)
