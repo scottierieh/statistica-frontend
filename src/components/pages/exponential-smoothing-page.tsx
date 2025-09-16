@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -38,6 +37,11 @@ export default function ExponentialSmoothingPage({ data, allHeaders, onLoadExamp
     const [valueCol, setValueCol] = useState<string | undefined>();
     const [smoothingType, setSmoothingType] = useState('simple');
     
+    // Model params
+    const [alpha, setAlpha] = useState<number | null>(null);
+    const [beta, setBeta] = useState<number | null>(null);
+    const [gamma, setGamma] = useState<number | null>(null);
+
     // Holt-Winters params
     const [trendType, setTrendType] = useState('add');
     const [seasonalType, setSeasonalType] = useState('add');
@@ -80,6 +84,9 @@ export default function ExponentialSmoothingPage({ data, allHeaders, onLoadExamp
                     timeCol, 
                     valueCol, 
                     smoothingType,
+                    alpha: alpha,
+                    beta: beta,
+                    gamma: gamma,
                     trendType: smoothingType !== 'simple' ? trendType : undefined,
                     seasonalType: smoothingType === 'holt-winters' ? seasonalType : undefined,
                     seasonalPeriods: smoothingType === 'holt-winters' ? seasonalPeriods : undefined,
@@ -102,7 +109,7 @@ export default function ExponentialSmoothingPage({ data, allHeaders, onLoadExamp
         } finally {
             setIsLoading(false);
         }
-    }, [data, timeCol, valueCol, smoothingType, trendType, seasonalType, seasonalPeriods, toast]);
+    }, [data, timeCol, valueCol, smoothingType, trendType, seasonalType, seasonalPeriods, toast, alpha, beta, gamma]);
 
     if (!canRun) {
         const trendExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('trend-analysis'));
@@ -174,7 +181,7 @@ export default function ExponentialSmoothingPage({ data, allHeaders, onLoadExamp
                     </div>
                     {smoothingType !== 'simple' && (
                         <div className="grid md:grid-cols-3 gap-4 p-4 border rounded-lg">
-                           <h3 className="md:col-span-3 font-semibold text-sm">Model Parameters</h3>
+                           <h3 className="md:col-span-3 font-semibold text-sm">Model Type Parameters</h3>
                             <div>
                                 <Label>Trend</Label>
                                 <Select value={trendType} onValueChange={setTrendType}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>
@@ -199,6 +206,27 @@ export default function ExponentialSmoothingPage({ data, allHeaders, onLoadExamp
                             )}
                         </div>
                     )}
+                    <div className="grid md:grid-cols-3 gap-4 p-4 border rounded-lg bg-muted/50">
+                        <h3 className="md:col-span-3 font-semibold text-sm">Smoothing Parameters (Optional)</h3>
+                        <p className="md:col-span-3 text-xs text-muted-foreground -mt-2">Leave blank to let the model find the optimal values.</p>
+                         <div>
+                            <Label>Alpha (Level)</Label>
+                            <Input type="number" value={alpha ?? ''} onChange={e => setAlpha(e.target.value ? parseFloat(e.target.value) : null)} min="0" max="1" step="0.01" />
+                        </div>
+                        {smoothingType !== 'simple' && (
+                            <div>
+                                <Label>Beta (Trend)</Label>
+                                <Input type="number" value={beta ?? ''} onChange={e => setBeta(e.target.value ? parseFloat(e.target.value) : null)} min="0" max="1" step="0.01" />
+                            </div>
+                        )}
+                         {smoothingType === 'holt-winters' && (
+                            <div>
+                                <Label>Gamma (Seasonal)</Label>
+                                <Input type="number" value={gamma ?? ''} onChange={e => setGamma(e.target.value ? parseFloat(e.target.value) : null)} min="0" max="1" step="0.01" />
+                            </div>
+                        )}
+
+                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading || !timeCol || !valueCol}>

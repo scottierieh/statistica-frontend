@@ -61,11 +61,11 @@ def main():
         
         if smoothing_type == 'simple':
             model = SimpleExpSmoothing(series, initialization_method="estimated").fit(
-                smoothing_level=alpha, optimized=True if alpha is None else False
+                smoothing_level=alpha, optimized=alpha is None
             )
         elif smoothing_type == 'holt':
             model = Holt(series, initialization_method="estimated", trend=trend_type).fit(
-                smoothing_level=alpha, smoothing_trend=beta, optimized=True if alpha is None and beta is None else False
+                smoothing_level=alpha, smoothing_trend=beta, optimized=alpha is None and beta is None
             )
         elif smoothing_type == 'holt-winters':
             if not seasonal_periods or int(seasonal_periods) < 2:
@@ -78,7 +78,7 @@ def main():
                 initialization_method="estimated"
             ).fit(
                 smoothing_level=alpha, smoothing_trend=beta, smoothing_seasonal=gamma, 
-                optimized=True if alpha is None and beta is None and gamma is None else False
+                optimized=alpha is None and beta is None and gamma is None
             )
         else:
             raise ValueError(f"Unknown smoothing type: {smoothing_type}")
