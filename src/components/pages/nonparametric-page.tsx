@@ -15,7 +15,7 @@ import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-type TestType = 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar';
+type TestType = 'mann_whitney' | 'wilcoxon' | 'kruskal_wallis' | 'friedman' | 'mcnemar';
 
 interface NonParametricPageProps {
     data: DataSet;
@@ -27,7 +27,7 @@ interface NonParametricPageProps {
 
 export default function NonParametricPage({ data, numericHeaders, categoricalHeaders, onLoadExample, activeAnalysis }: NonParametricPageProps) {
     const { toast } = useToast();
-    const [activeTest, setActiveTest] = useState<TestType>(activeAnalysis as TestType || 'mann_whitney');
+    const [activeTest, setActiveTest] = useState<TestType>('mann_whitney');
     
     // State for each test
     const [mwGroupCol, setMwGroupCol] = useState(categoricalHeaders.find(h => new Set(data.map(d => d[h]).filter(g => g != null)).size === 2) || categoricalHeaders[0]);
@@ -66,7 +66,9 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
 
          const testIdMap: {[key: string]: TestType} = {
             'mann-whitney': 'mann_whitney',
+            'wilcoxon': 'wilcoxon',
             'kruskal-wallis': 'kruskal_wallis',
+            'friedman': 'friedman',
             'mcnemar': 'mcnemar'
         };
         const initialTest = testIdMap[activeAnalysis] || 'mann_whitney';
@@ -78,7 +80,7 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
 
     const handleAnalysis = useCallback(async () => {
         let params: any = {};
-        let testType = activeTest;
+        let testType: TestType = activeTest;
 
         switch(activeTest) {
             case 'mann_whitney':
@@ -86,24 +88,29 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
                 const groups = Array.from(new Set(data.map(d => d[mwGroupCol]))).filter(g => g != null);
                 if (groups.length !== 2) { toast({ variant: "destructive", title: `Mann-Whitney U test requires exactly 2 groups, but found ${groups.length} in '${mwGroupCol}'.` }); return; }
                 params = { group_col: mwGroupCol, value_col: mwValueCol, groups };
+                testType = 'mann_whitney';
                 break;
             case 'wilcoxon':
                 if (!wxVar1 || !wxVar2 || wxVar1 === wxVar2) { toast({ variant: "destructive", title: "Please select two different variables for Wilcoxon test." }); return; }
                 params = { var1: wxVar1, var2: wxVar2 };
+                testType = 'wilcoxon';
                 break;
             case 'kruskal_wallis':
                  if (!kwGroupCol || !kwValueCol) { toast({ variant: "destructive", title: "Please select group and value columns." }); return; }
                 const kwGroups = Array.from(new Set(data.map(d => d[kwGroupCol]))).filter(g => g != null);
                 if (kwGroups.length < 3) { toast({ variant: "destructive", title: `Kruskal-Wallis requires at least 3 groups, but found ${kwGroups.length} in '${kwGroupCol}'.` }); return; }
                 params = { group_col: kwGroupCol, value_col: kwValueCol };
+                testType = 'kruskal_wallis';
                 break;
             case 'friedman':
                 if (friedmanVars.length < 3) { toast({ variant: "destructive", title: "Please select at least 3 variables for Friedman test." }); return; }
                 params = { variables: friedmanVars };
+                testType = 'friedman';
                 break;
             case 'mcnemar':
                 if (!mcNemarVar1 || !mcNemarVar2 || mcNemarVar1 === mcNemarVar2) { toast({ variant: "destructive", title: "Please select two different binary categorical variables for McNemar's test." }); return; }
                 params = { var1: mcNemarVar1, var2: mcNemarVar2 };
+                testType = 'mcnemar';
                 break;
         }
 
@@ -206,7 +213,7 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
     };
     
     if (!canRun) {
-        const nonParametricExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('nonparametric'));
+        const testExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('nonparametric'));
         return (
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
@@ -216,10 +223,10 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
                            To perform non-parametric tests, please upload data or try one of our example datasets.
                         </CardDescription>
                     </CardHeader>
-                    {nonParametricExamples.length > 0 && (
+                    {testExamples.length > 0 && (
                         <CardContent>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {nonParametricExamples.map((ex) => {
+                                {testExamples.map((ex) => {
                                     const Icon = ex.icon;
                                     return (
                                         <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">

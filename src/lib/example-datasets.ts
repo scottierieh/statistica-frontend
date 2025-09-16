@@ -33,7 +33,7 @@ import { timeSeriesData } from "./example-datasets/time-series-data";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | string;
 
 
 export interface ExampleDataSet {
@@ -248,8 +248,8 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Non-Parametric Suite',
         description: 'A unified dataset for Mann-Whitney, Wilcoxon, Kruskal-Wallis, and Friedman tests.',
         icon: FlaskConical,
-        analysisTypes: ['stats', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman'],
-        recommendedAnalysis: 'mann-whitney',
+        analysisTypes: ['stats', 'nonparametric', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman', 'mcnemar'],
+        recommendedAnalysis: 'nonparametric',
         data: nonparametricData,
     },
     {
