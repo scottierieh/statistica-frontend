@@ -1,3 +1,4 @@
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calculator, BrainCircuit, ClipboardList, FastForward } from "lucide-react";
@@ -28,7 +29,7 @@ export default function DashboardHubPage() {
                     </CardHeader>
                     <CardContent>
                         <Button asChild className="w-full">
-                            <Link href="/dashboard/statistica">Launch Statistica</Link>
+                            <Link href="/dashboard/statistica" target="_blank" rel="noopener noreferrer">Launch Statistica</Link>
                         </Button>
                     </CardContent>
                 </Card>
@@ -44,7 +45,7 @@ export default function DashboardHubPage() {
                     </CardHeader>
                     <CardContent>
                         <Button asChild className="w-full">
-                            <Link href="/dashboard/data-mining">Launch Data Mining</Link>
+                            <Link href="/dashboard/data-mining" target="_blank" rel="noopener noreferrer">Launch Data Mining</Link>
                         </Button>
                     </CardContent>
                 </Card>
@@ -60,7 +61,7 @@ export default function DashboardHubPage() {
                     </CardHeader>
                     <CardContent>
                         <Button asChild className="w-full">
-                            <Link href="/dashboard/survey">Launch Survey</Link>
+                            <Link href="/dashboard/survey" target="_blank" rel="noopener noreferrer">Launch Survey</Link>
                         </Button>
                     </CardContent>
                 </Card>
@@ -76,7 +77,7 @@ export default function DashboardHubPage() {
                     </CardHeader>
                     <CardContent>
                         <Button asChild className="w-full">
-                            <Link href="/dashboard/simulation">Launch Simulation</Link>
+                            <Link href="/dashboard/simulation" target="_blank" rel="noopener noreferrer">Launch Simulation</Link>
                         </Button>
                     </CardContent>
                 </Card>
