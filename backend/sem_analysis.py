@@ -11,12 +11,15 @@ from scipy.stats import chi2, multivariate_normal, norm
 from sklearn.preprocessing import StandardScaler
 from sklearn.covariance import EmpiricalCovariance
 import warnings
+import io
+import base64
+
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
+    elif isinstance(obj, (float, np.floating)):
         if np.isnan(obj):
             return None
         return float(obj)
@@ -428,6 +431,55 @@ class SEMAnalysis:
             'fornell_larcker_criterion': fornell_larcker_matrix.to_dict('index')
         }
 
+    def plot_sem_results(self, sem_results):
+        fig, axes = plt.subplots(1, 2, figsize=(15, 7))
+        fig.suptitle(f'SEM Results: {sem_results["model_name"]}', fontsize=16, fontweight='bold')
+
+        # Fit Indices
+        fit = sem_results['fit_indices']
+        axes[0].axis('off')
+        fit_text = (
+            f"Model Fit Indices:\n\n"
+            f"χ²({fit['df']}) = {fit['chi_square']:.2f}, p = {fit['chi_square_p']:.3f}\n"
+            f"CFI = {fit['cfi']:.3f}\n"
+            f"TLI = {fit['tli']:.3f}\n"
+            f"RMSEA = {fit['rmsea']:.3f}\n"
+            f"SRMR = {fit['srmr']:.3f}"
+        )
+        axes[0].text(0.1, 0.5, fit_text, va='center', fontsize=12)
+
+        # Path Coefficients
+        ax = axes[1]
+        effects = sem_results['effects']['direct_effects']
+        if effects:
+            paths = list(effects.keys())
+            estimates = [e['estimate'] for e in effects.values()]
+            p_values = [e['p_value'] for e in effects.values()]
+
+            y_pos = np.arange(len(paths))
+            bars = ax.barh(y_pos, estimates, align='center')
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(paths)
+            ax.invert_yaxis()
+            ax.set_xlabel('Standardized Path Coefficient')
+            ax.set_title('Direct Effects (Path Coefficients)')
+            ax.axvline(0, color='grey', lw=1)
+            ax.grid(True, axis='x', linestyle='--', alpha=0.6)
+
+            for i, bar in enumerate(bars):
+                p_val = p_values[i]
+                if p_val < 0.05:
+                    bar.set_color('mediumseagreen' if estimates[i] > 0 else 'lightcoral')
+                    ax.text(0, bar.get_y() + bar.get_height()/2, ' *', va='center', color='red', fontsize=16)
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        
+        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -446,10 +498,11 @@ def main():
         
         sem.specify_model('user_model', measurement_model, structural_model)
         results = sem.run_sem('user_model')
+        plot_image = sem.plot_sem_results(results)
 
         response = {
             'results': results,
-            'plot': None 
+            'plot': plot_image
         }
         
         print(json.dumps(response, default=_to_native_type))
@@ -460,3 +513,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

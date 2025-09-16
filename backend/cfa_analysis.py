@@ -18,7 +18,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, (float, np.floating)):
-        if math.isnan(obj) or math.isinf(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -292,6 +292,86 @@ class ConfirmatoryFactorAnalysis:
             'fornell_larcker_criterion': fornell_larcker_matrix.to_dict('index')
         }
 
+    def plot_cfa_results(self, cfa_results):
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        fig.suptitle(f'CFA Results: {cfa_results["model_name"]}', fontsize=16, fontweight='bold')
+
+        # Fit Indices
+        fit = cfa_results['fit_indices']
+        axes[0,0].axis('off')
+        fit_text = (
+            f"Model Fit Indices:\n\n"
+            f"χ²({fit['df']}) = {fit['chi_square']:.2f}, p = {fit['p_value']:.3f}\n"
+            f"CFI = {fit['cfi']:.3f}\n"
+            f"TLI = {fit['tli']:.3f}\n"
+            f"RMSEA = {fit['rmsea']:.3f}\n"
+            f"SRMR = {fit['srmr']:.3f}"
+        )
+        axes[0,0].text(0.1, 0.5, fit_text, va='center', fontsize=12)
+
+        # Reliability
+        reliability = cfa_results['reliability']
+        ax = axes[0,1]
+        factors = list(reliability.keys())
+        cr_values = [r['composite_reliability'] for r in reliability.values()]
+        ave_values = [r['average_variance_extracted'] for r in reliability.values()]
+        
+        x = np.arange(len(factors))
+        width = 0.35
+        ax.bar(x - width/2, cr_values, width, label='Composite Reliability (CR)', color='skyblue')
+        ax.bar(x + width/2, ave_values, width, label='Avg. Variance Extracted (AVE)', color='salmon')
+        ax.axhline(0.7, color='grey', linestyle='--', label='CR Threshold (0.7)')
+        ax.axhline(0.5, color='black', linestyle=':', label='AVE Threshold (0.5)')
+        ax.set_ylabel('Value')
+        ax.set_title('Reliability & Convergent Validity')
+        ax.set_xticks(x)
+        ax.set_xticklabels(factors, rotation=45, ha="right")
+        ax.legend()
+        ax.grid(True, axis='y', linestyle='--', alpha=0.6)
+
+        # Factor Loadings
+        ax = axes[1,0]
+        std_sol = cfa_results.get('standardized_solution')
+        if std_sol:
+            loadings_df = pd.DataFrame(std_sol['loadings'], 
+                                       index=cfa_results['model_spec']['indicators'],
+                                       columns=cfa_results['model_spec']['factors'])
+            
+            # Mask zero values
+            loadings_to_plot = loadings_df.where(loadings_df.abs() > 1e-6)
+            
+            plt.sca(ax)
+            plt.imshow(loadings_to_plot, cmap='viridis', aspect='auto')
+            plt.colorbar(label='Standardized Loading')
+            plt.yticks(ticks=np.arange(len(loadings_to_plot.index)), labels=loadings_to_plot.index)
+            plt.xticks(ticks=np.arange(len(loadings_to_plot.columns)), labels=loadings_to_plot.columns, rotation=45, ha="right")
+            ax.set_title('Factor Loadings')
+            
+            for (j, i), label in np.ndenumerate(loadings_to_plot):
+                if not pd.isna(label):
+                    ax.text(i, j, f'{label:.2f}', ha='center', va='center', color='white' if abs(label) > 0.5 else 'black')
+
+        # Factor Correlations
+        ax = axes[1,1]
+        if std_sol:
+            corr_df = pd.DataFrame(std_sol['factor_correlations'],
+                                   index=cfa_results['model_spec']['factors'],
+                                   columns=cfa_results['model_spec']['factors'])
+            
+            mask = np.triu(np.ones_like(corr_df, dtype=bool))
+            
+            import seaborn as sns
+            sns.heatmap(corr_df, annot=True, fmt=".2f", cmap='coolwarm', ax=ax, mask=mask, vmin=-1, vmax=1)
+            ax.set_title('Factor Correlation Matrix')
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        
+        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+
 
 def main():
     try:
@@ -308,10 +388,11 @@ def main():
         
         cfa.specify_model(model_name, model_spec)
         results = cfa.run_cfa(model_name)
+        plot_image = cfa.plot_cfa_results(results)
 
         response = {
             'results': results,
-            'plot': None
+            'plot': plot_image
         }
         
         print(json.dumps(response, default=_to_native_type))
