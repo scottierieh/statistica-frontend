@@ -27,7 +27,7 @@ except ImportError:
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer): return int(obj)
-    if isinstance(obj, (float, np.floating)):
+    elif isinstance(obj, (float, np.floating)):
         if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
