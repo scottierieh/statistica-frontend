@@ -75,8 +75,8 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 export const exampleDatasets: ExampleDataSet[] = [
     {
         id: 'time-series',
-        name: 'Monthly Sales Data',
-        description: 'Sample sales data over time, perfect for trend and seasonal analysis.',
+        name: 'Yearly Sales Data',
+        description: 'Yearly sales data, suitable for long-term trend analysis.',
         icon: AreaChart,
         analysisTypes: ['stats', 'trend-analysis', 'seasonal-decomposition', 'moving-average', 'exponential-smoothing', 'arima', 'acf-pacf'],
         recommendedAnalysis: 'seasonal-decomposition',
