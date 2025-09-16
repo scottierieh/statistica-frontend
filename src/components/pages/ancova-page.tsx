@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -103,8 +101,13 @@ export default function AncovaPage({ data, numericHeaders, categoricalHeaders, o
             });
 
             if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    throw new Error(errorJson.error || `HTTP error! status: ${response.status}`);
+                } catch (e) {
+                    throw new Error(`Server returned non-JSON error: ${errorText}`);
+                }
             }
 
             const result: FullAnalysisResponse = await response.json();
