@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 from scipy.stats import rankdata
+from statsmodels.stats.contingency_tables import mcnemar
 import warnings
 from typing import Dict, List, Tuple, Optional, Union
 import io
@@ -110,7 +111,7 @@ class NonParametricTests:
             'W_plus': W_plus, 'W_minus': W_minus, 'n_pairs': len(data1), 'effect_size': r,
             'effect_size_interpretation': effect_size_interp, 'alpha': alpha, 'is_significant': is_significant,
             'alternative': alternative, 'variables': [var1, var2], 'descriptive_stats': desc_stats,
-            'interpretation': self._interpret_wilcoxon(is_significant, var1, var2, effect_size_interp, r, p_value, alpha, W_plus, W_minus)
+            'interpretation': self._interpret_wilcoxon(is_significant, var1, var2, effect_size_interp, r, p_value, alpha, Wp, Wm)
         }
         self.results['wilcoxon'] = result
         return result
@@ -164,6 +165,44 @@ class NonParametricTests:
         }
         self.results['friedman'] = result
         return result
+        
+    def mcnemar_test(self, var1: str, var2: str, alpha: float = 0.05) -> Dict:
+        clean_data = self.data[[var1, var2]].dropna()
+        if len(clean_data) < 10:
+            raise ValueError("Not enough paired data for McNemar's test (minimum 10 pairs required).")
+            
+        contingency_table = pd.crosstab(clean_data[var1], clean_data[var2])
+        
+        # Ensure it's a 2x2 table
+        if contingency_table.shape != (2, 2):
+            raise ValueError("McNemar's test requires a 2x2 contingency table. Ensure both variables are binary.")
+            
+        result = mcnemar(contingency_table, exact=True) # Use exact test for small samples
+        
+        statistic = result.statistic
+        p_value = result.pvalue
+        
+        is_significant = p_value < alpha
+        
+        interpretation = (
+            f"The result is {'statistically significant' if is_significant else 'not statistically significant'} (p={p_value:.4f}). "
+            f"This suggests that there is a {'significant change' if is_significant else 'no significant change'} in the proportion of outcomes between '{var1}' and '{var2}'."
+        )
+
+        result_dict = {
+            'test_type': "McNemar's Test",
+            'statistic': statistic,
+            'p_value': p_value,
+            'contingency_table': contingency_table.to_dict(),
+            'is_significant': is_significant,
+            'interpretation': {
+                'decision': f"{'Reject' if is_significant else 'Fail to reject'} H₀",
+                'conclusion': interpretation
+            }
+        }
+        self.results['mcnemar'] = result_dict
+        return result_dict
+
     
     def _interpret_effect_size(self, r, type): return {'level': 'large', 'text': 'Large'} if abs(r) >= 0.5 else {'level': 'medium', 'text': 'Medium'} if abs(r) >= 0.3 else {'level': 'small', 'text': 'Small'} if abs(r) >= 0.1 else {'level': 'negligible', 'text': 'Negligible'}
     def _interpret_epsilon_squared(self, es): return {'level': 'large', 'text': 'Large'} if es >= 0.14 else {'level': 'medium', 'text': 'Medium'} if es >= 0.06 else {'level': 'small', 'text': 'Small'} if es >= 0.01 else {'level': 'negligible', 'text': 'Negligible'}
@@ -181,54 +220,64 @@ class NonParametricTests:
              raise ValueError(f"No results found for test type: {test_type}")
         result = self.results[test_type]
         
-        fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-        sns.set_style("whitegrid")
+        if test_type == 'mcnemar':
+            # McNemar doesn't have a standard plot like the others, so we create a heatmap for the contingency table
+            table = pd.DataFrame(result['contingency_table'])
+            fig, ax = plt.subplots(1, 1, figsize=(6, 5))
+            sns.heatmap(table, annot=True, fmt='d', cmap='Blues', ax=ax)
+            ax.set_title(f"Contingency Table for {result['test_type']}")
+            ax.set_xlabel(table.columns.name)
+            ax.set_ylabel(table.index.name)
+        else:
+            fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+            sns.set_style("whitegrid")
+            
+            if test_type == 'mann_whitney':
+                groups = result['groups']
+                group_col = result['group_col']
+                value_col = result['value_col']
+                data_to_plot = [self.data[self.data[group_col] == g][value_col] for g in groups]
+                
+                sns.boxplot(data=data_to_plot, ax=ax[0])
+                ax[0].set_xticklabels(groups)
+                ax[0].set_title('Group Distributions')
+                
+                mean_ranks = [result['R1']/result['n1'], result['R2']/result['n2']]
+                sns.barplot(x=groups, y=mean_ranks, ax=ax[1])
+                ax[1].set_title('Mean Ranks')
 
-        if test_type == 'mann_whitney':
-            groups = result['groups']
-            group_col = result['group_col']
-            value_col = result['value_col']
-            data_to_plot = [self.data[self.data[group_col] == g][value_col] for g in groups]
+            elif test_type == 'wilcoxon':
+                vars = result['variables']
+                sns.boxplot(data=self.data[vars], ax=ax[0])
+                ax[0].set_title('Paired Variables Distribution')
+                
+                sns.histplot(self.data[vars[0]] - self.data[vars[1]], ax=ax[1], kde=True)
+                ax[1].set_title('Distribution of Differences')
             
-            sns.boxplot(data=data_to_plot, ax=ax[0])
-            ax[0].set_xticklabels(groups)
-            ax[0].set_title('Group Distributions')
-            
-            mean_ranks = [result['R1']/result['n1'], result['R2']/result['n2']]
-            sns.barplot(x=groups, y=mean_ranks, ax=ax[1])
-            ax[1].set_title('Mean Ranks')
+            elif test_type == 'kruskal_wallis':
+                group_col = result['group_col']
+                value_col = result['value_col']
+                sns.boxplot(x=group_col, y=value_col, data=self.data, ax=ax[0])
+                ax[0].set_title('Group Distributions')
+                
+                # This is a simplification; need to compute mean ranks properly
+                mean_ranks_df = self.data.groupby(group_col)[value_col].apply(lambda x: x.rank().mean()).reset_index()
+                sns.barplot(x=group_col, y=value_col, data=mean_ranks_df, ax=ax[1])
+                ax[1].set_title('Mean Ranks')
+                
+            elif test_type == 'friedman':
+                vars = result['variables']
+                melted_data = self.data[vars].melt(var_name='Condition', value_name='Score')
+                sns.boxplot(x='Condition', y='Score', data=melted_data, ax=ax[0])
+                ax[0].set_title('Condition Distributions')
+                
+                # This is a simplification
+                mean_ranks = [self.data[v].rank().mean() for v in vars]
+                sns.barplot(x=vars, y=mean_ranks, ax=ax[1])
+                ax[1].set_title('Mean Ranks')
 
-        elif test_type == 'wilcoxon':
-            vars = result['variables']
-            sns.boxplot(data=self.data[vars], ax=ax[0])
-            ax[0].set_title('Paired Variables Distribution')
-            
-            sns.histplot(self.data[vars[0]] - self.data[vars[1]], ax=ax[1], kde=True)
-            ax[1].set_title('Distribution of Differences')
-        
-        elif test_type == 'kruskal_wallis':
-            group_col = result['group_col']
-            value_col = result['value_col']
-            sns.boxplot(x=group_col, y=value_col, data=self.data, ax=ax[0])
-            ax[0].set_title('Group Distributions')
-            
-            # This is a simplification; need to compute mean ranks properly
-            mean_ranks_df = self.data.groupby(group_col)[value_col].apply(lambda x: x.rank().mean()).reset_index()
-            sns.barplot(x=group_col, y=value_col, data=mean_ranks_df, ax=ax[1])
-            ax[1].set_title('Mean Ranks')
-            
-        elif test_type == 'friedman':
-            vars = result['variables']
-            melted_data = self.data[vars].melt(var_name='Condition', value_name='Score')
-            sns.boxplot(x='Condition', y='Score', data=melted_data, ax=ax[0])
-            ax[0].set_title('Condition Distributions')
-            
-            # This is a simplification
-            mean_ranks = [self.data[v].rank().mean() for v in vars]
-            sns.barplot(x=vars, y=mean_ranks, ax=ax[1])
-            ax[1].set_title('Mean Ranks')
+            fig.suptitle(f"{result['test_type']} (p={self._format_p_value(result['p_value'])})")
 
-        fig.suptitle(f"{result['test_type']} (p={self._format_p_value(result['p_value'])})")
         plt.tight_layout(rect=[0, 0, 1, 0.96])
         
         buf = io.BytesIO()
@@ -260,6 +309,8 @@ def main():
             result = tester.kruskal_wallis_test(**params)
         elif test_type == 'friedman':
             result = tester.friedman_test(**params)
+        elif test_type == 'mcnemar':
+            result = tester.mcnemar_test(**params)
         else:
             raise ValueError(f"Unknown test type: {test_type}")
 

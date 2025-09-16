@@ -93,10 +93,7 @@ import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import TwoWayAnovaPage from './pages/two-way-anova-page';
-import MannWhitneyPage from './pages/mann-whitney-page';
-import WilcoxonPage from './pages/wilcoxon-page';
-import KruskalWallisPage from './pages/kruskal-wallis-page';
-import FriedmanPage from './pages/friedman-page';
+import NonParametricPage from './pages/nonparametric-page';
 import MetaAnalysisPage from './pages/meta-analysis-page';
 import SeasonalDecompositionPage from './pages/seasonal-decomposition-page';
 import NormalityTestPage from './pages/normality-test-page';
@@ -106,7 +103,7 @@ import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
 import ArimaPage from './pages/arima-page';
 import AcfPacfPage from './pages/acf-pacf-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'arima' | 'acf-pacf' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'arima' | 'acf-pacf' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -120,10 +117,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     cfa: CfaPage,
     mediation: MediationPage,
     moderation: ModerationPage,
-    'mann-whitney': MannWhitneyPage,
-    'wilcoxon': WilcoxonPage,
-    'kruskal-wallis': KruskalWallisPage,
-    'friedman': FriedmanPage,
+    nonparametric: NonParametricPage,
     't-test': TTestPage,
     hca: HcaPage,
     manova: ManovaPage,
@@ -181,10 +175,9 @@ const analysisMenu = [
       {
         name: 'Non-Parametric Tests',
         methods: [
-          { id: 'mann-whitney', label: 'Mann-Whitney U' },
-          { id: 'wilcoxon', label: 'Wilcoxon Signed-Rank' },
-          { id: 'kruskal-wallis', label: 'Kruskal-Wallis' },
-          { id: 'friedman', label: 'Friedman Test' },
+          { id: 'nonparametric', label: 'Mann-Whitney / Wilcoxon' },
+          { id: 'nonparametric', label: 'Kruskal-Wallis / Friedman' },
+          { id: 'nonparametric', label: "McNemar's Test" },
         ]
       },
     ]
