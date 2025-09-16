@@ -97,6 +97,25 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
             setIsLoading(false);
         }
     }, [data, timeCol, valueCol, p, d, q, forecastPeriods, toast]);
+    
+    const results = analysisResult?.results;
+    
+    const forecastChartData = useMemo(() => {
+        if (!results) return [];
+        const originalData = data.map(d => ({
+            date: new Date(d[timeCol!] as string).getTime(),
+            [valueCol!]: d[valueCol!]
+        }));
+        
+        const forecastData = results.forecast.map(f => ({
+            date: new Date(f.forecast_date).getTime(),
+            'Forecast': f.mean,
+            'CI Lower': f['mean_ci_lower'],
+            'CI Upper': f['mean_ci_upper'],
+        }));
+        
+        return [...originalData, ...forecastData].sort((a,b) => a.date - b.date);
+    }, [results, data, timeCol, valueCol]);
 
     if (!canRun) {
         const trendExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('trend-analysis'));
@@ -137,25 +156,6 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
             </div>
         );
     }
-    
-    const results = analysisResult?.results;
-    
-    const forecastChartData = useMemo(() => {
-        if (!results) return [];
-        const originalData = data.map(d => ({
-            date: new Date(d[timeCol!] as string).getTime(),
-            [valueCol!]: d[valueCol!]
-        }));
-        
-        const forecastData = results.forecast.map(f => ({
-            date: new Date(f.forecast_date).getTime(),
-            'Forecast': f.mean,
-            'CI Lower': f['mean_ci_lower'],
-            'CI Upper': f['mean_ci_upper'],
-        }));
-        
-        return [...originalData, ...forecastData].sort((a,b) => a.date - b.date);
-    }, [results, data, timeCol, valueCol]);
 
     return (
         <div className="space-y-4">
