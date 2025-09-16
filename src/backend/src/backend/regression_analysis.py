@@ -27,7 +27,7 @@ except ImportError:
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer): return int(obj)
-    elif isinstance(obj, (float, np.floating)):
+    if isinstance(obj, (float, np.floating)):
         if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
@@ -177,6 +177,14 @@ class RegressionAnalysis:
         diagnostics = {}
 
         if HAS_STATSMODELS and sm_model:
+            # Add summary data instead of HTML
+            summary_obj = sm_model.summary()
+            summary_data = []
+            for table in summary_obj.tables:
+                table_data = [list(row) for row in table.data]
+                summary_data.append({'caption': getattr(table, 'title', None), 'data': table_data})
+            diagnostics['model_summary_data'] = summary_data
+
             diagnostics['f_statistic'] = sm_model.fvalue
             diagnostics['f_pvalue'] = sm_model.f_pvalue
             diagnostics['coefficient_tests'] = {
