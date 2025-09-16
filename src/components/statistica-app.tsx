@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -175,9 +176,9 @@ const analysisMenu = [
       {
         name: 'Non-Parametric Tests',
         methods: [
-          { id: 'nonparametric', label: 'Mann-Whitney / Wilcoxon' },
-          { id: 'nonparametric', label: 'Kruskal-Wallis / Friedman' },
-          { id: 'nonparametric', label: "McNemar's Test" },
+          { id: 'mann-whitney', label: 'Mann-Whitney / Wilcoxon' },
+          { id: 'kruskal-wallis', label: 'Kruskal-Wallis / Friedman' },
+          { id: 'mcnemar', label: "McNemar's Test" },
         ]
       },
     ]
@@ -532,8 +533,8 @@ export default function StatisticaApp() {
                              </CollapsibleTrigger>
                              <CollapsibleContent className="pl-6 py-1">
                                 <SidebarMenu>
-                                  {sub.methods.map(method => (
-                                    <SidebarMenuItem key={method.id}>
+                                  {sub.methods.map((method, index) => (
+                                    <SidebarMenuItem key={`${method.id}-${index}`}>
                                       <SidebarMenuButton
                                           onClick={() => setActiveAnalysis(method.id as AnalysisType)}
                                           isActive={activeAnalysis === method.id}

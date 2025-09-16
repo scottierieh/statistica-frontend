@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -14,18 +15,19 @@ import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-type TestType = 'mann_whitney' | 'wilcoxon' | 'kruskal_wallis' | 'friedman' | 'mcnemar';
+type TestType = 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar';
 
 interface NonParametricPageProps {
     data: DataSet;
     numericHeaders: string[];
     categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
+    activeAnalysis: string;
 }
 
-export default function NonParametricPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: NonParametricPageProps) {
+export default function NonParametricPage({ data, numericHeaders, categoricalHeaders, onLoadExample, activeAnalysis }: NonParametricPageProps) {
     const { toast } = useToast();
-    const [activeTest, setActiveTest] = useState<TestType>('mann_whitney');
+    const [activeTest, setActiveTest] = useState<TestType>(activeAnalysis as TestType || 'mann_whitney');
     
     // State for each test
     const [mwGroupCol, setMwGroupCol] = useState(categoricalHeaders.find(h => new Set(data.map(d => d[h]).filter(g => g != null)).size === 2) || categoricalHeaders[0]);
@@ -61,7 +63,16 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
         setMcNemarVar1(binaryCategoricalHeaders[0]);
         setMcNemarVar2(binaryCategoricalHeaders[1]);
         setAnalysisResult(null);
-    }, [numericHeaders, categoricalHeaders, data, binaryCategoricalHeaders]);
+
+         const testIdMap: {[key: string]: TestType} = {
+            'mann-whitney': 'mann_whitney',
+            'kruskal-wallis': 'kruskal_wallis',
+            'mcnemar': 'mcnemar'
+        };
+        const initialTest = testIdMap[activeAnalysis] || 'mann_whitney';
+        setActiveTest(initialTest);
+
+    }, [numericHeaders, categoricalHeaders, data, binaryCategoricalHeaders, activeAnalysis]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
