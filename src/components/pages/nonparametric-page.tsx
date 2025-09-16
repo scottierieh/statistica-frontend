@@ -60,8 +60,8 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
         setKwGroupCol(categoricalHeaders.find(h => new Set(data.map(d => d[h]).filter(g => g != null)).size >= 3) || categoricalHeaders[0]);
         setKwValueCol(numericHeaders[0]);
         setFriedmanVars(numericHeaders.slice(0,3));
-        setMcNemarVar1(binaryCategoricalHeaders[0]);
-        setMcNemarVar2(binaryCategoricalHeaders[1]);
+        setMcNemarVar1(binaryCategoricalHeaders.find(h => h.includes('pre')) || binaryCategoricalHeaders[0]);
+        setMcNemarVar2(binaryCategoricalHeaders.find(h => h.includes('post')) || binaryCategoricalHeaders[1]);
         setAnalysisResult(null);
 
          const testIdMap: {[key: string]: TestType} = {
