@@ -226,7 +226,7 @@ class ConfirmatoryFactorAnalysis:
 
         cfi = 1.0
         if baseline_df > df and baseline_chi_square > chi_square:
-            cfi = 1 - max(0, chi_square - df) / max(0, baseline_chi_square - baseline_df)
+            cfi = 1 - max(0, chi_square - df) / (baseline_chi_square - baseline_df) if (baseline_chi_square - baseline_df) > 0 else 1.0
 
         tli = 1.0
         if baseline_df > 0 and df > 0:
@@ -234,6 +234,10 @@ class ConfirmatoryFactorAnalysis:
             tli_den = (baseline_chi_square / baseline_df) - 1
             if tli_den > 0:
                 tli = tli_num / tli_den
+            # Fix for NaN when tli_den is zero or negative
+            elif df >= baseline_df and chi_square <= baseline_chi_square:
+                tli = 1.0
+
         
         rmsea = np.sqrt(max(0, (chi_square - df) / (df * (n_obs - 1)))) if df > 0 else 0.0
         
