@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -77,7 +76,7 @@ import ManovaPage from './pages/manova-page';
 import RegressionPage from './pages/regression-page';
 import LogisticRegressionPage from './pages/logistic-regression-page';
 import KMeansPage from './pages/kmeans-page';
-import FrequencyAnalysisPage from './pages/frequency-page';
+import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import CrosstabPage from './pages/crosstab-page';
 import SemPage from './pages/sem-page';
 import ConjointAnalysisPage from './pages/conjoint-analysis-page';
@@ -124,7 +123,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'wilcoxon': NonParametricPage,
     'kruskal-wallis': NonParametricPage,
     'friedman': NonParametricPage,
-    'mcnemar': NonParametricPage,
+    mcnemar: NonParametricPage,
     't-test': TTestPage,
     hca: HcaPage,
     manova: ManovaPage,
@@ -544,8 +543,8 @@ export default function StatisticaApp() {
                              </CollapsibleTrigger>
                              <CollapsibleContent className="pl-6 py-1">
                                 <SidebarMenu>
-                                  {sub.methods.map((method, index) => (
-                                    <SidebarMenuItem key={`${method.id}-${index}`}>
+                                  {sub.methods.map((method) => (
+                                    <SidebarMenuItem key={`${sub.name}-${method.id}`}>
                                       <SidebarMenuButton
                                           onClick={() => setActiveAnalysis(method.id as AnalysisType)}
                                           isActive={activeAnalysis === method.id}
