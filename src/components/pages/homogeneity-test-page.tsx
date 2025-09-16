@@ -183,10 +183,24 @@ export default function HomogeneityTestPage({ data, numericHeaders, categoricalH
                                   <AlertTitle>Assumption of Homogeneity {results.assumption_met ? "Met" : "Violated"}</AlertTitle>
                                   <AlertDescription>{results.interpretation}</AlertDescription>
                                 </Alert>
-                                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                                    <dt>Levene Statistic</dt><dd className="font-mono text-right">{results.levene_test.statistic.toFixed(4)}</dd>
-                                    <dt>p-value</dt><dd className="font-mono text-right">{results.levene_test.p_value < 0.001 ? '<.001' : results.levene_test.p_value.toFixed(4)}</dd>
-                                </dl>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Statistic</TableHead>
+                                            <TableHead className="text-right">Value</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow>
+                                            <TableCell>Levene Statistic</TableCell>
+                                            <TableCell className="font-mono text-right">{results.levene_test.statistic.toFixed(4)}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>p-value</TableCell>
+                                            <TableCell className="font-mono text-right">{results.levene_test.p_value < 0.001 ? '<.001' : results.levene_test.p_value.toFixed(4)}</TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
                             </div>
                             <Image src={results.plot} alt={`Box plot of ${valueVar} by ${groupVar}`} width={800} height={600} className="w-full rounded-md border" />
                         </CardContent>
