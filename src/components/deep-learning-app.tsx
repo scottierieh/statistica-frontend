@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -17,6 +17,12 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
 import DnnClassificationPage from './pages/dnn-classification-page';
+import DataUploader from './data-uploader';
+import { useToast } from '@/hooks/use-toast';
+import { type DataSet, parseData } from '@/lib/stats';
+import type { ExampleDataSet } from '@/lib/example-datasets';
+import * as XLSX from 'xlsx';
+
 
 const deepLearningMenu = [
   {
@@ -101,6 +107,80 @@ const pageComponents: { [key: string]: React.FC<any> } = {
 export default function DeepLearningApp() {
     const [activeMethod, setActiveMethod] = useState<string | null>('dnn');
     const [openCategories, setOpenCategories] = useState<string[]>(deepLearningMenu.map(c => c.category));
+    
+    // Data state management
+    const [data, setData] = useState<DataSet>([]);
+    const [allHeaders, setAllHeaders] = useState<string[]>([]);
+    const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
+    const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
+    const [fileName, setFileName] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
+    const { toast } = useToast();
+
+    const processData = useCallback((content: string, name: string) => {
+        setIsUploading(true);
+        try {
+            const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
+            
+            if (newData.length === 0 || newHeaders.length === 0) {
+              throw new Error("No valid data found in the file.");
+            }
+            setData(newData);
+            setAllHeaders(newHeaders);
+            setNumericHeaders(newNumericHeaders);
+            setCategoricalHeaders(newCategoricalHeaders);
+            setFileName(name);
+            toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
+
+          } catch (error: any) {
+            toast({
+              variant: 'destructive',
+              title: 'File Processing Error',
+              description: error.message || 'Could not parse file. Please check the format.',
+            });
+            setData([]);
+          } finally {
+            setIsUploading(false);
+          }
+    }, [toast]);
+      
+    const handleFileSelected = useCallback((file: File) => {
+        setIsUploading(true);
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            const content = e.target?.result as string;
+            if (!content) {
+                toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not read file content.' });
+                setIsUploading(false);
+                return;
+            }
+            processData(content, file.name);
+        };
+
+        reader.onerror = (e) => {
+            toast({ variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.' });
+            setIsUploading(false);
+        }
+        
+        if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+            reader.readAsArrayBuffer(file);
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const csv = XLSX.utils.sheet_to_csv(worksheet);
+                processData(csv, file.name);
+            }
+        } else {
+            reader.readAsText(file);
+        }
+    }, [processData, toast]);
+
+    const handleLoadExampleData = (example: ExampleDataSet) => {
+      processData(example.data, example.name);
+    };
 
     const toggleCategory = (category: string) => {
         setOpenCategories(prev => 
@@ -161,7 +241,15 @@ export default function DeepLearningApp() {
                 </Sidebar>
                 <main className="flex-1 p-4 md:p-6 lg:p-8">
                      {ActivePageComponent ? (
-                        <ActivePageComponent />
+                        <ActivePageComponent 
+                            data={data}
+                            allHeaders={allHeaders}
+                            numericHeaders={numericHeaders}
+                            categoricalHeaders={categoricalHeaders}
+                            onLoadExample={handleLoadExampleData}
+                            onFileSelected={handleFileSelected}
+                            isUploading={isUploading}
+                        />
                     ) : (
                         <div className="flex flex-1 items-center justify-center h-full">
                             <Card className="w-full max-w-3xl text-center">
