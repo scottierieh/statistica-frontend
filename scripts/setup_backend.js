@@ -1,4 +1,3 @@
-
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -50,15 +49,16 @@ if (fs.existsSync(venvMarker)) {
     } catch (e) {
         console.log('Could not check venv status, proceeding with setup.');
     }
+} else {
+    console.log('Virtual environment marker not found. Setup is needed.');
 }
 
 if (venvNeedsSetup) {
     try {
-        console.log('Virtual environment needs setup/update. Installing dependencies...');
-        
+        console.log('Setting up Python virtual environment...');
+
         // 1. Create venv if it doesn't exist
         if (!fs.existsSync(venvDir)) {
-            console.log('Creating virtual environment...');
             execSync(`${pythonCmd} -m venv ${venvDir}`, { cwd: backendDir, stdio: 'inherit' });
         }
         
