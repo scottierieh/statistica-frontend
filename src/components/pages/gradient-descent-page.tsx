@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
 import { Sigma, Loader2, Play } from 'lucide-react';
-import { ResponsiveContainer, ScatterChart, XAxis, YAxis, ZAxis, Tooltip, Scatter, Legend } from 'recharts';
+import { ResponsiveContainer, ScatterChart, XAxis, YAxis, ZAxis, Tooltip, Scatter, Legend, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 interface SimulationResult {
@@ -81,7 +81,7 @@ export default function GradientDescentPage() {
                 value={[learningRate]}
                 onValueChange={(v) => setLearningRate(v[0])}
                 min={0.01}
-                max={0.99}
+                max={0.5}
                 step={0.01}
               />
             </div>
@@ -114,10 +114,9 @@ export default function GradientDescentPage() {
 
       <Card>
         <CardHeader>
-            <CardTitle>3D Visualization Path</CardTitle>
+            <CardTitle>Descent Path Visualization</CardTitle>
             <CardDescription>
-                This plot shows the path of gradient descent in 3D space, moving towards the minimum of the function.
-                Note: This is a 2D projection of the 3D path.
+                This plot shows the path of gradient descent in 2D space. The size of the points represents the function value (z-axis).
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -127,9 +126,9 @@ export default function GradientDescentPage() {
                     <ResponsiveContainer>
                     <ScatterChart>
                         <CartesianGrid />
-                        <XAxis type="number" dataKey="x" name="x" />
-                        <YAxis type="number" dataKey="y" name="y" />
-                        <ZAxis type="number" dataKey="z" name="z" range={[5, 300]}/>
+                        <XAxis type="number" dataKey="x" name="x" domain={['dataMin - 1', 'dataMax + 1']} />
+                        <YAxis type="number" dataKey="y" name="y" domain={['dataMin - 1', 'dataMax + 1']} />
+                        <ZAxis type="number" dataKey="z" name="z" range={[20, 400]}/>
                         <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
                         <Legend />
                         <Scatter name="Path" data={chartData} fill="hsl(var(--primary))" line shape="circle" />

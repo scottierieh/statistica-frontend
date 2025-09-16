@@ -2,17 +2,8 @@
 import sys
 import json
 import numpy as np
-from vpython import canvas, box, arrow, rate, vector, color
-import time
-import io
-import base64
 
 def run_gradient_descent_simulation(learning_rate=0.01, start_x=4.0, start_y=4.0, num_steps=50):
-    # --- Setup the VPython Canvas ---
-    # Since we can't directly render, we'll capture the essence.
-    # The actual vpython library tries to open a browser window, which won't work here.
-    # We will simulate the steps and generate a path data instead of a live visualization.
-    
     # 1. Define the function and its gradient
     def f(x, y):
         return x**2 + y**2
@@ -56,9 +47,6 @@ def main():
         
         simulation_data = run_gradient_descent_simulation(learning_rate, start_x, start_y, num_steps)
         
-        # NOTE: VPython cannot generate a shareable image/video in this server environment.
-        # We are returning the path data for the frontend to visualize.
-        # A true VPython implementation would require a different setup (e.g., Jupyter, GlowScript server).
         simulation_data['plot'] = None # No plot generated from backend
         
         print(json.dumps(simulation_data))
