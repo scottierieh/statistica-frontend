@@ -103,8 +103,9 @@ import TrendAnalysisPage from './pages/trend-analysis-page';
 import NormalityTestPage from './pages/normality-test-page';
 import HomogeneityTestPage from './pages/homogeneity-test-page';
 import MovingAveragePage from './pages/moving-average-page';
+import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'normality' | 'homogeneity' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -145,6 +146,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     normality: NormalityTestPage,
     homogeneity: HomogeneityTestPage,
     'moving-average': MovingAveragePage,
+    'exponential-smoothing': ExponentialSmoothingPage,
 };
 
 const analysisMenu = [
@@ -226,7 +228,7 @@ const analysisMenu = [
     methods: [
       { id: 'trend-analysis', label: 'Trend Analysis' },
       { id: 'moving-average', label: 'Moving Average' },
-      { id: 'exponential-smoothing', label: 'Exponential Smoothing', implemented: false },
+      { id: 'exponential-smoothing', label: 'Exponential Smoothing' },
       { id: 'arima', label: 'ARIMA', implemented: false },
       { id: 'acf-pacf', label: 'ACF/PACF Plots', implemented: false },
     ]
