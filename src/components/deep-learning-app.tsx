@@ -10,94 +10,96 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenu,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { BrainCircuit, Cpu, Binary, Search, Share2, Layers, Bot, Image as ImageIcon } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
+import DnnClassificationPage from './pages/dnn-classification-page';
 
 const deepLearningMenu = [
   {
     category: 'Classification',
     icon: Cpu,
     methods: [
-      'Deep Neural Network (DNN)',
-      'Convolutional Neural Network (CNN)',
-      'Recurrent Neural Network (RNN)',
-      'Transformer-based Classification'
+      { id: 'dnn', label: 'Deep Neural Network (DNN)' },
+      { id: 'cnn', label: 'Convolutional Neural Network (CNN)' },
+      { id: 'rnn', label: 'Recurrent Neural Network (RNN)' },
+      { id: 'transformer-class', label: 'Transformer-based Classification' }
     ]
   },
   {
     category: 'Prediction',
     icon: Share2,
     methods: [
-      'Time Series Forecasting (LSTM, GRU)',
-      'Sequence-to-Sequence (Seq2Seq)',
-      'Deep Regression Networks'
+      { id: 'lstm-gru', label: 'Time Series Forecasting (LSTM, GRU)' },
+      { id: 'seq2seq', label: 'Sequence-to-Sequence (Seq2Seq)' },
+      { id: 'deep-regression', label: 'Deep Regression Networks' }
     ]
   },
   {
     category: 'Clustering',
     icon: Binary,
     methods: [
-      'Deep Autoencoder Clustering',
-      'Deep Embedded Clustering (DEC)',
-      'Variational Autoencoder (VAE) Clustering'
+      { id: 'autoencoder-cluster', label: 'Deep Autoencoder Clustering' },
+      { id: 'dec', label: 'Deep Embedded Clustering (DEC)' },
+      { id: 'vae-cluster', label: 'VAE Clustering' }
     ]
   },
   {
     category: 'Pattern Learning',
     icon: Share2,
     methods: [
-      'Sequence Pattern Modeling (RNN, Transformer)',
-      'Reinforcement Learning for Behavior Prediction'
+      { id: 'rnn-transformer-pattern', label: 'Sequence Pattern Modeling' },
+      { id: 'rl-behavior', label: 'Reinforcement Learning' }
     ]
   },
   {
     category: 'Outlier Detection',
     icon: Search,
     methods: [
-      'Autoencoder-based Anomaly Detection',
-      'GAN-based Anomaly Detection (AnoGAN)',
-      'Deep Ensemble Anomaly Detection'
+      { id: 'autoencoder-anomaly', label: 'Autoencoder Anomaly Detection' },
+      { id: 'gan-anomaly', label: 'GAN-based Anomaly Detection' },
+      { id: 'deep-ensemble-anomaly', label: 'Deep Ensemble Anomaly Detection' }
     ]
   },
   {
     category: 'Dimensionality Reduction',
     icon: Layers,
     methods: [
-      'Autoencoder',
-      'Variational Autoencoder (VAE)',
-      'Deep Embedding Learning'
+      { id: 'autoencoder', label: 'Autoencoder' },
+      { id: 'vae', label: 'Variational Autoencoder (VAE)' },
+      { id: 'deep-embedding', label: 'Deep Embedding Learning' }
     ]
   },
   {
     category: 'Text Mining',
     icon: Bot,
     methods: [
-      'Word Embeddings (Word2Vec, GloVe)',
-      'Transformer Models (BERT, GPT)',
-      'Deep Learning-based Sentiment/Topic Analysis'
+      { id: 'word-embeddings', label: 'Word Embeddings (Word2Vec, GloVe)' },
+      { id: 'transformer-text', label: 'Transformer Models (BERT, GPT)' },
+      { id: 'deep-sentiment', label: 'Deep Learning-based Sentiment/Topic Analysis' }
     ]
   },
   {
     category: 'Image & Speech Mining',
     icon: ImageIcon,
     methods: [
-      'CNN for Feature Extraction',
-      'Generative Adversarial Networks (GAN)',
-      'RNN/Transformer for Speech Recognition'
+      { id: 'cnn-feature', label: 'CNN for Feature Extraction' },
+      { id: 'gan', label: 'Generative Adversarial Networks (GAN)' },
+      { id: 'rnn-transformer-speech', label: 'RNN/Transformer for Speech Recognition' }
     ]
   }
 ];
 
+const pageComponents: { [key: string]: React.FC<any> } = {
+  'dnn': DnnClassificationPage,
+};
+
 
 export default function DeepLearningApp() {
-    const [activeMethod, setActiveMethod] = useState<string | null>(null);
+    const [activeMethod, setActiveMethod] = useState<string | null>('dnn');
     const [openCategories, setOpenCategories] = useState<string[]>(deepLearningMenu.map(c => c.category));
 
     const toggleCategory = (category: string) => {
@@ -107,6 +109,8 @@ export default function DeepLearningApp() {
             : [...prev, category]
         )
     };
+    
+    const ActivePageComponent = activeMethod ? pageComponents[activeMethod] : null;
 
     return (
         <SidebarProvider>
@@ -137,13 +141,13 @@ export default function DeepLearningApp() {
                                         <CollapsibleContent className="pl-6 py-1">
                                             <SidebarMenu>
                                                 {category.methods.map(method => (
-                                                <SidebarMenuItem key={method}>
+                                                <SidebarMenuItem key={method.id}>
                                                     <SidebarMenuButton
-                                                        onClick={() => setActiveMethod(method)}
-                                                        isActive={activeMethod === method}
+                                                        onClick={() => setActiveMethod(method.id)}
+                                                        isActive={activeMethod === method.id}
                                                         className="justify-start w-full h-8 text-xs"
                                                     >
-                                                        <span>{method}</span>
+                                                        <span>{method.label}</span>
                                                     </SidebarMenuButton>
                                                 </SidebarMenuItem>
                                                 ))}
@@ -156,27 +160,28 @@ export default function DeepLearningApp() {
                     </SidebarContent>
                 </Sidebar>
                 <main className="flex-1 p-4 md:p-6 lg:p-8">
-                    <div className="flex flex-1 items-center justify-center h-full">
-                        <Card className="w-full max-w-3xl text-center">
-                            <CardHeader>
-                                <div className="mx-auto bg-secondary p-4 rounded-full mb-4">
-                                    <BrainCircuit className="h-12 w-12 text-secondary-foreground" />
-                                </div>
-                                <CardTitle className="font-headline text-3xl">
-                                    {activeMethod ? activeMethod : "Deep Learning Workbench"}
-                                </CardTitle>
-                                <CardDescription>
-                                    {activeMethod 
-                                        ? `This tool for ${activeMethod} is currently under construction.`
-                                        : "Select a technique from the sidebar to begin building, training, and deploying your deep learning models."
-                                    }
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground">Advanced features for model building, data preprocessing, training, and deployment will be available here soon.</p>
-                            </CardContent>
-                        </Card>
-                    </div>
+                     {ActivePageComponent ? (
+                        <ActivePageComponent />
+                    ) : (
+                        <div className="flex flex-1 items-center justify-center h-full">
+                            <Card className="w-full max-w-3xl text-center">
+                                <CardHeader>
+                                    <div className="mx-auto bg-secondary p-4 rounded-full mb-4">
+                                        <BrainCircuit className="h-12 w-12 text-secondary-foreground" />
+                                    </div>
+                                    <CardTitle className="font-headline text-3xl">
+                                        Deep Learning Workbench
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Select a technique from the sidebar to begin building, training, and deploying your deep learning models.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">Advanced features for model building, data preprocessing, training, and deployment will be available here soon.</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
                 </main>
             </div>
         </SidebarProvider>
