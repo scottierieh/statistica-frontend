@@ -10,14 +10,15 @@ import warnings
 import matplotlib.pyplot as plt
 import io
 import base64
+import math
 
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+    elif isinstance(obj, (float, np.floating)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -32,10 +33,10 @@ class ConfirmatoryFactorAnalysis:
         self.alpha = alpha
         self.models = {}
         self.results = {}
-        self.n_obs = len(data)
         
         numeric_cols = data.select_dtypes(include=[np.number]).columns
-        self.data = data[numeric_cols]
+        self.data = data[numeric_cols].dropna()
+        self.n_obs = len(self.data)
         
         self.corr_matrix = self.data.corr()
         self.cov_matrix = self.data.cov()
@@ -81,28 +82,31 @@ class ConfirmatoryFactorAnalysis:
         
         param_setup = self._setup_parameters(model_spec, indicators)
         
-        results = self._estimate_ml(sample_cov, param_setup, model_spec)
+        estimation_results = self._estimate_ml(sample_cov, param_setup, model_spec, n_obs_used)
         
-        implied_cov = self._calculate_implied_covariance(results['parameters'])
+        implied_cov = self._calculate_implied_covariance(estimation_results['parameters'])
         
         fit_indices = self._calculate_fit_indices(
-            sample_cov, implied_cov, results.get('chi_square', 0), 
-            results.get('df', 1), n_obs_used, len(indicators)
+            sample_cov, implied_cov, estimation_results.get('chi_square', 0), 
+            estimation_results.get('df', 1), n_obs_used, len(indicators)
         )
         
-        std_solution = self._calculate_standardized_solution(results['parameters'], implied_cov) if standardized else None
+        std_solution = self._calculate_standardized_solution(estimation_results['parameters'], implied_cov) if standardized else None
         
         reliability = self._calculate_reliability(std_solution, param_setup, model_spec) if std_solution else {}
         
+        discriminant_validity = self._calculate_discriminant_validity(reliability, std_solution) if reliability and std_solution else {}
+
         cfa_results = {
             'model_name': model_name,
             'model_spec': model_spec,
             'n_observations': n_obs_used,
-            'parameters': results['parameters'],
+            'parameters': estimation_results['parameters'],
             'standardized_solution': std_solution,
             'fit_indices': fit_indices,
             'reliability': reliability,
-            'convergence': results.get('convergence', False),
+            'discriminant_validity': discriminant_validity,
+            'convergence': estimation_results.get('convergence', False),
         }
         
         self.results[model_name] = cfa_results
@@ -152,7 +156,7 @@ class ConfirmatoryFactorAnalysis:
             'n_vars': n_vars, 'n_factors': n_factors
         }
 
-    def _estimate_ml(self, sample_cov, param_setup, model_spec):
+    def _estimate_ml(self, sample_cov, param_setup, model_spec, n_obs):
         def ml_objective(params):
             param_matrices = self._unpack_parameters(params, param_setup)
             implied_cov = self._calculate_implied_covariance(param_matrices)
@@ -172,7 +176,7 @@ class ConfirmatoryFactorAnalysis:
         
         return {
             'parameters': final_params,
-            'chi_square': (self.n_obs - 1) * result.fun,
+            'chi_square': (n_obs - 1) * result.fun,
             'df': df, 'convergence': result.success,
         }
 
@@ -210,7 +214,7 @@ class ConfirmatoryFactorAnalysis:
         independence_chi = (n_obs - 1) * (np.sum(np.log(np.diag(S))) - np.log(linalg.det(S))) if linalg.det(S) > 0 else 0
         independence_df = n_vars * (n_vars - 1) // 2
 
-        cfi = 1 - max(0, chi_square - df) / max(0, independence_chi - independence_df) if independence_chi > df else 1.0
+        cfi = 1 - max(0, chi_square - df) / max(0, independence_chi - independence_df) if (independence_chi - df) > 0 and (baseline_chi_square - baseline_df) > 0 else 1.0
         
         tli_denominator = (independence_chi / independence_df) - 1 if independence_df > 0 else 0
         if df > 0 and independence_df > 0 and tli_denominator > 1e-9:
@@ -252,6 +256,29 @@ class ConfirmatoryFactorAnalysis:
             
             reliability[factor_name] = {'composite_reliability': cr, 'average_variance_extracted': ave}
         return reliability
+    
+    def _calculate_discriminant_validity(self, reliability, std_solution):
+        factors = list(reliability.keys())
+        n_factors = len(factors)
+        if n_factors < 2:
+            return {'message': 'Discriminant validity requires at least two factors.'}
+
+        # Fornell-Larcker criterion
+        sqrt_aves = {factor: np.sqrt(rel['average_variance_extracted']) for factor, rel in reliability.items()}
+        correlations = std_solution['factor_correlations']
+        
+        fornell_larcker_matrix = pd.DataFrame(index=factors, columns=factors, dtype=float)
+        for i, f1 in enumerate(factors):
+            for j, f2 in enumerate(factors):
+                if i == j:
+                    fornell_larcker_matrix.loc[f1, f2] = sqrt_aves[f1]
+                else:
+                    fornell_larcker_matrix.loc[f1, f2] = correlations[i, j]
+
+        return {
+            'fornell_larcker_criterion': fornell_larcker_matrix.to_dict('index')
+        }
+
 
 def main():
     try:
@@ -282,8 +309,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
 

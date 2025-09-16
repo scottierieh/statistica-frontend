@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BrainCircuit, Plus, Trash2, Wand2 } from 'lucide-react';
+import { Sigma, Loader2, BrainCircuit, Plus, Trash2, Wand2, Check, X } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
@@ -18,16 +18,17 @@ import Image from 'next/image';
 
 
 // CFA Results Types
+interface FitIndices {
+    chi_square: number;
+    df: number;
+    p_value: number;
+    cfi: number;
+    tli: number;
+    rmsea: number;
+    srmr: number;
+}
 interface CfaResults {
-    fit_indices: {
-        chi_square: number;
-        df: number;
-        p_value: number;
-        cfi: number;
-        tli: number;
-        rmsea: number;
-        srmr: number;
-    };
+    fit_indices: FitIndices;
     standardized_solution?: {
         loadings: number[][];
         factor_correlations: number[][];
@@ -38,6 +39,10 @@ interface CfaResults {
             composite_reliability: number;
             average_variance_extracted: number;
         }
+    };
+    discriminant_validity: {
+        fornell_larcker_criterion?: { [key: string]: { [key: string]: number } };
+        message?: string;
     };
     model_spec: {
         factors: string[];
@@ -52,6 +57,7 @@ interface FullCfaResponse {
 }
 
 const getFitInterpretation = (fit: CfaResults['fit_indices']) => {
+    if (!fit) return { level: "Unknown", color: "bg-gray-400" };
     const cfiOk = fit.cfi >= 0.95;
     const tliOk = fit.tli >= 0.95;
     const rmseaOk = fit.rmsea <= 0.06;
@@ -87,7 +93,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     }, [numericHeaders, data]);
     
     const canRunAnalysis = useMemo(() => {
-        return data.length > 0 && factors.length > 0 && factors.every(f => f.items.length > 0 && f.name.trim() !== '');
+        return data.length > 0 && factors.length > 0 && factors.every(f => f.items.length > 1 && f.name.trim() !== '');
     }, [data, factors]);
 
     const handleAddFactor = () => {
@@ -118,7 +124,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
     const handleAnalysis = useCallback(async () => {
         if (!canRunAnalysis) {
-            toast({ variant: 'destructive', title: 'Model Specification Error', description: 'Please ensure every factor has a name and at least one item.' });
+            toast({ variant: 'destructive', title: 'Model Specification Error', description: 'Please ensure every factor has a name and at least two items.' });
             return;
         }
 
@@ -202,6 +208,42 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     
     const results = analysisResult?.results;
 
+    const renderDiscriminantValidityTable = () => {
+        if (!results?.discriminant_validity?.fornell_larcker_criterion) return null;
+        const matrix = results.discriminant_validity.fornell_larcker_criterion;
+        const factors = Object.keys(matrix);
+        
+        return (
+            <Table>
+                <TableHeader><TableRow><TableHead></TableHead>{factors.map(f=><TableHead key={f} className="text-center">{f}</TableHead>)}</TableRow></TableHeader>
+                <TableBody>
+                    {factors.map((f1, i) => (
+                        <TableRow key={f1}>
+                            <TableHead>{f1}</TableHead>
+                            {factors.map((f2, j) => {
+                                const val = matrix[f1]?.[f2];
+                                const isDiagonal = i === j;
+                                const isBelowDiagonal = j < i;
+                                const isDiscriminantValid = isBelowDiagonal && matrix[f1][f1] > val;
+                                
+                                return (
+                                <TableCell key={f2} className="text-center font-mono">
+                                    {isDiagonal ? (
+                                        <span className="font-bold">({val?.toFixed(3)})</span>
+                                    ) : isBelowDiagonal ? (
+                                        <span className={isDiscriminantValid ? 'text-green-600' : 'text-destructive'}>{val?.toFixed(3)}</span>
+                                    ) : (
+                                        <span className="text-muted-foreground">{val?.toFixed(3)}</span>
+                                    )}
+                                </TableCell>
+                            )})}
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        )
+    }
+
     return (
         <div className="flex flex-col gap-4">
             <Card>
@@ -281,38 +323,24 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
             {analysisResult && results && (
                 <>
-                    <div className="grid lg:grid-cols-3 gap-4">
-                        <Card className="lg:col-span-3">
-                            <CardHeader>
-                                <CardTitle className="font-headline">Model Fit Summary</CardTitle>
-                                <CardDescription>Overall assessment of how well the specified model fits the data. <Badge className={`${getFitInterpretation(results.fit_indices).color} text-white`}>{getFitInterpretation(results.fit_indices).level}</Badge></CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                    <div className="p-4 bg-muted rounded-lg">
-                                        <p className="text-sm text-muted-foreground">CFI</p>
-                                        <p className="text-2xl font-bold">{results.fit_indices.cfi.toFixed(3)}</p>
-                                    </div>
-                                     <div className="p-4 bg-muted rounded-lg">
-                                        <p className="text-sm text-muted-foreground">TLI</p>
-                                        <p className="text-2xl font-bold">{results.fit_indices.tli?.toFixed(3) ?? 'N/A'}</p>
-                                    </div>
-                                     <div className="p-4 bg-muted rounded-lg">
-                                        <p className="text-sm text-muted-foreground">RMSEA</p>
-                                        <p className="text-2xl font-bold">{results.fit_indices.rmsea.toFixed(3)}</p>
-                                    </div>
-                                     <div className="p-4 bg-muted rounded-lg">
-                                        <p className="text-sm text-muted-foreground">SRMR</p>
-                                        <p className="text-2xl font-bold">{results.fit_indices.srmr.toFixed(3)}</p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Model Fit Summary</CardTitle>
+                            <CardDescription>Overall assessment of how well the specified model fits the data. <Badge className={`${getFitInterpretation(results.fit_indices).color} text-white`}>{getFitInterpretation(results.fit_indices).level}</Badge></CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">CFI</p><p className="text-2xl font-bold">{results.fit_indices.cfi.toFixed(3)}</p></div>
+                                 <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">TLI</p><p className="text-2xl font-bold">{results.fit_indices.tli?.toFixed(3) ?? 'N/A'}</p></div>
+                                 <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSEA</p><p className="text-2xl font-bold">{results.fit_indices.rmsea.toFixed(3)}</p></div>
+                                 <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">SRMR</p><p className="text-2xl font-bold">{results.fit_indices.srmr.toFixed(3)}</p></div>
+                            </div>
+                        </CardContent>
+                    </Card>
                     <div className="grid lg:grid-cols-2 gap-4">
                          <Card>
                             <CardHeader>
-                                <CardTitle className="font-headline">Standardized Factor Loadings</CardTitle>
+                                <CardTitle className="font-headline">Indicator Validity (Factor Loadings)</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <Table>
@@ -340,35 +368,8 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                             </CardContent>
                         </Card>
                         <div className="space-y-4">
-                            {results.model_spec.factors.length > 1 && (
-                                 <Card>
-                                    <CardHeader><CardTitle className="font-headline">Factor Correlations</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead></TableHead>
-                                                    {results.model_spec.factors.map(f => <TableHead key={f} className="text-center">{f}</TableHead>)}
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {results.model_spec.factors.map((f1, i) => (
-                                                    <TableRow key={f1}>
-                                                        <TableHead>{f1}</TableHead>
-                                                        {results.model_spec.factors.map((f2, j) => (
-                                                            <TableCell key={f2} className="text-center font-mono">
-                                                                {i === j ? '1.00' : results.standardized_solution?.factor_correlations[i][j]?.toFixed(3) ?? '-'}
-                                                            </TableCell>
-                                                        ))}
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
-                            )}
                             <Card>
-                                <CardHeader><CardTitle className="font-headline">Factor Reliability</CardTitle></CardHeader>
+                                <CardHeader><CardTitle className="font-headline">Reliability & Convergent Validity</CardTitle></CardHeader>
                                 <CardContent>
                                     <Table>
                                         <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Composite Reliability (CR)</TableHead><TableHead className="text-right">Avg. Variance Extracted (AVE)</TableHead></TableRow></TableHeader>
@@ -376,14 +377,30 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                             {Object.entries(results.reliability).map(([factor, rel]) => (
                                                 <TableRow key={factor}>
                                                     <TableCell className="font-semibold">{factor}</TableCell>
-                                                    <TableCell className="text-right font-mono">{rel.composite_reliability.toFixed(3)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{rel.average_variance_extracted.toFixed(3)}</TableCell>
+                                                    <TableCell className="text-right font-mono flex justify-end items-center gap-2">
+                                                        {rel.composite_reliability.toFixed(3)} {rel.composite_reliability >= 0.7 ? <Check className="w-4 h-4 text-green-600"/> : <X className="w-4 h-4 text-destructive"/>}
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-mono flex justify-end items-center gap-2">
+                                                        {rel.average_variance_extracted.toFixed(3)} {rel.average_variance_extracted >= 0.5 ? <Check className="w-4 h-4 text-green-600"/> : <X className="w-4 h-4 text-destructive"/>}
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
+                                    <CardDescription className="text-xs mt-2">CR &gt; 0.7 and AVE &gt; 0.5 are generally considered acceptable.</CardDescription>
                                 </CardContent>
                             </Card>
+                             {results.discriminant_validity.fornell_larcker_criterion && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="font-headline">Discriminant Validity</CardTitle>
+                                        <CardDescription>Fornell-Larcker criterion: The diagonal (√AVE) should be greater than the off-diagonal correlations.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {renderDiscriminantValidityTable()}
+                                    </CardContent>
+                                </Card>
+                             )}
                         </div>
                     </div>
                 </>
@@ -398,3 +415,4 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         </div>
     );
 }
+
