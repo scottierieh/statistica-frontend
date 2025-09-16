@@ -223,6 +223,10 @@ const analysisMenu = [
     icon: AreaChart,
     methods: [
       { id: 'trend-analysis', label: 'Trend Analysis' },
+      { id: 'moving-average', label: 'Moving Average', implemented: false },
+      { id: 'exponential-smoothing', label: 'Exponential Smoothing', implemented: false },
+      { id: 'arima', label: 'ARIMA', implemented: false },
+      { id: 'acf-pacf', label: 'ACF/PACF Plots', implemented: false },
     ]
   },
   {
