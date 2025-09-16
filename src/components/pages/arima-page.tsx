@@ -12,12 +12,15 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '../ui/table';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line, CartesianGrid } from 'recharts';
 
 interface ArimaResults {
-    summary_html: string[];
+    summary_data: {
+        caption: string | null;
+        data: string[][];
+    }[];
     aic: number;
     bic: number;
     hqic: number;
@@ -80,9 +83,14 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
                 })
             });
 
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+             if (!response.ok) {
+                const errorText = await response.text();
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    throw new Error(errorJson.error || `HTTP error! status: ${response.status}`);
+                } catch (e) {
+                    throw new Error(`Server returned non-JSON error: ${errorText}`);
+                }
             }
 
             const result: FullAnalysisResponse = await response.json();
@@ -101,10 +109,10 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
     const results = analysisResult?.results;
     
     const forecastChartData = useMemo(() => {
-        if (!results) return [];
+        if (!results || !timeCol || !valueCol) return [];
         const originalData = data.map(d => ({
-            date: new Date(d[timeCol!] as string).getTime(),
-            [valueCol!]: d[valueCol!]
+            date: new Date(d[timeCol] as string).getTime(),
+            [valueCol]: d[valueCol!]
         }));
         
         const forecastData = results.forecast.map(f => ({
@@ -236,7 +244,7 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
                         <CardHeader>
                             <CardTitle className="font-headline">Model Summary</CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-6">
                             <div className="grid md:grid-cols-3 gap-4 mb-4">
                                 <div className="p-4 bg-muted rounded-lg text-center">
                                     <p className="text-sm text-muted-foreground">AIC</p>
@@ -251,7 +259,19 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
                                     <p className="text-2xl font-bold">{results.hqic.toFixed(2)}</p>
                                 </div>
                             </div>
-                             <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: results.summary_html.join('<br/>') }} />
+                            
+                            {results.summary_data?.map((table, tableIndex) => (
+                                <Table key={tableIndex}>
+                                    {table.caption && <TableCaption>{table.caption}</TableCaption>}
+                                    {table.data.map((row, rowIndex) => (
+                                        rowIndex === 0 ? (
+                                            <TableHeader key={rowIndex}><TableRow>{row.map((cell, cellIndex) => <TableHead key={cellIndex}>{cell}</TableHead>)}</TableRow></TableHeader>
+                                        ) : (
+                                             <TableBody key={rowIndex}><TableRow>{row.map((cell, cellIndex) => <TableCell key={cellIndex} className="font-mono">{cell}</TableCell>)}</TableRow></TableBody>
+                                        )
+                                    ))}
+                                </Table>
+                            ))}
                         </CardContent>
                     </Card>
                     <Card>
@@ -268,3 +288,6 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
         </div>
     );
 }
+
+
+    
