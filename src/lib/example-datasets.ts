@@ -2,7 +2,8 @@
 
 
 
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart } from "lucide-react";
+
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
@@ -260,7 +261,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Users,
-        analysisTypes: ['stats', 'correlation', 'one-way-anova', 'visuals', 'discriminant', 'kmeans', 'frequency', 'crosstab', 'pca'],
+        analysisTypes: ['stats', 'correlation', 'one-way-anova', 'visuals', 'discriminant', 'kmeans', 'frequency', 'crosstab', 'pca', 'normality'],
         recommendedAnalysis: 'discriminant',
         data: irisData
     },
@@ -269,7 +270,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Restaurant Tips',
         description: 'Tips received by a server, along with customer and bill info.',
         icon: Coffee,
-        analysisTypes: ['stats', 'one-way-anova', 'visuals', 'frequency', 'crosstab'],
+        analysisTypes: ['stats', 'one-way-anova', 'visuals', 'frequency', 'crosstab', 'normality'],
         data: tipsData
     },
     {
@@ -277,7 +278,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Student Performance',
         description: 'Study hours, attendance, and previous scores vs. final exam scores.',
         icon: BookOpen,
-        analysisTypes: ['stats', 'correlation', 'visuals', 'ancova'],
+        analysisTypes: ['stats', 'correlation', 'visuals', 'ancova', 'normality'],
         recommendedAnalysis: 'correlation',
         data: studentPerformanceData
     }

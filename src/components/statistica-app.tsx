@@ -2,6 +2,7 @@
 
 
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -52,6 +53,7 @@ import {
   Smile,
   Scaling,
   AreaChart,
+  LineChart
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -101,8 +103,9 @@ import KruskalWallisPage from './pages/kruskal-wallis-page';
 import FriedmanPage from './pages/friedman-page';
 import MetaAnalysisPage from './pages/meta-analysis-page';
 import TrendAnalysisPage from './pages/trend-analysis-page';
+import NormalityTestPage from './pages/normality-test-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'normality' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -140,6 +143,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     sentiment: SentimentAnalysisPage,
     'meta-analysis': MetaAnalysisPage,
     'trend-analysis': TrendAnalysisPage,
+    'normality': NormalityTestPage,
 };
 
 const analysisMenu = [
@@ -149,8 +153,8 @@ const analysisMenu = [
     methods: [
       { id: 'stats', label: 'Descriptive Statistics' },
       { id: 'frequency', label: 'Frequency Analysis' },
-      { id: 'wordcloud', label: 'Word Cloud' },
-      { id: 'sentiment', label: 'Sentiment Analysis' },
+      { id: 'crosstab', label: 'Crosstabulation' },
+      { id: 'normality', label: 'Normality Test' },
     ]
   },
   {
@@ -231,6 +235,14 @@ const analysisMenu = [
       { id: 'meta-analysis', label: 'Meta-Analysis' },
       { id: 'gbm', label: 'Gradient Boosting Machine (GBM)'},
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
+    ]
+  },
+   {
+    field: 'Text Analysis',
+    icon: Feather,
+    methods: [
+       { id: 'wordcloud', label: 'Word Cloud' },
+       { id: 'sentiment', label: 'Sentiment Analysis' },
     ]
   }
 ];
