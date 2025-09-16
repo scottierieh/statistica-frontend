@@ -32,42 +32,19 @@ if (!fs.existsSync(reqFile)) {
     process.exit(0);
 }
 
-// Check if venv is already set up and up-to-date
-const venvMarker = path.join(venvDir, '.setup_complete');
-let venvNeedsSetup = true;
-
-if (fs.existsSync(venvMarker)) {
+// Simplified check: If venv doesn't exist, set it up.
+// A more robust check could compare file mtimes, but this is safer for now.
+if (!fs.existsSync(venvDir)) {
     try {
-        const reqMtime = fs.statSync(reqFile).mtime;
-        const markerMtime = fs.statSync(venvMarker).mtime;
-        if (markerMtime > reqMtime) {
-            console.log('Python virtual environment is up-to-date.');
-            venvNeedsSetup = false;
-        } else {
-            console.log('requirements.txt has been updated. Re-installing dependencies...');
-        }
-    } catch (e) {
-        console.log('Could not check venv status, proceeding with setup.');
-    }
-} else {
-    console.log('Virtual environment marker not found. Setup is needed.');
-}
+        console.log('Virtual environment not found. Setting up...');
 
-if (venvNeedsSetup) {
-    try {
-        console.log('Setting up Python virtual environment...');
-
-        // 1. Create venv if it doesn't exist
-        if (!fs.existsSync(venvDir)) {
-            execSync(`${pythonCmd} -m venv ${venvDir}`, { cwd: backendDir, stdio: 'inherit' });
-        }
+        // 1. Create venv
+        console.log(`Creating virtual environment at ${venvDir}...`);
+        execSync(`${pythonCmd} -m venv ${venvDir}`, { cwd: backendDir, stdio: 'inherit' });
         
         // 2. Install requirements
-        console.log('Installing dependencies from requirements.txt...');
+        console.log(`Installing dependencies from ${reqFile}...`);
         execSync(`${pipCmd} install -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
-
-        // 3. Create a marker file to indicate setup is complete
-        fs.writeFileSync(venvMarker, new Date().toISOString());
 
         console.log('Python backend setup complete.');
 
@@ -75,6 +52,8 @@ if (venvNeedsSetup) {
         console.error('Error setting up Python backend:', error);
         process.exit(1);
     }
+} else {
+    console.log('Virtual environment already exists. Skipping setup.');
 }
 
 
