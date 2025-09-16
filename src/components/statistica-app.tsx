@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -123,7 +124,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'wilcoxon': NonParametricPage,
     'kruskal-wallis': NonParametricPage,
     'friedman': NonParametricPage,
-    mcnemar: NonParametricPage,
+    'mcnemar': NonParametricPage,
     't-test': TTestPage,
     hca: HcaPage,
     manova: ManovaPage,
@@ -233,7 +234,7 @@ const analysisMenu = [
       { id: 'seasonal-decomposition', label: 'Seasonal Decomposition' },
       { id: 'moving-average', label: 'Moving Average' },
       { id: 'exponential-smoothing', label: 'Exponential Smoothing' },
-      { id: 'arima', label: 'ARIMA' },
+      { id: 'arima', label: 'Autoregressive Models' },
       { id: 'acf-pacf', label: 'ACF/PACF Plots' },
     ]
   },

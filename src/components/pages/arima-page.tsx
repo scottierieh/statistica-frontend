@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, AreaChart, LineChart } from 'lucide-react';
+import { Sigma, Loader2, AreaChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
@@ -15,6 +15,9 @@ import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '../ui/table';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line, CartesianGrid } from 'recharts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { ScrollArea } from '../ui/scroll-area';
+import { Checkbox } from '../ui/checkbox';
 
 interface ArimaResults {
     summary_data: {
@@ -42,9 +45,22 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
     const { toast } = useToast();
     const [timeCol, setTimeCol] = useState<string | undefined>();
     const [valueCol, setValueCol] = useState<string | undefined>();
-    const [p, setP] = useState(5);
+    const [modelType, setModelType] = useState('arima');
+    
+    // ARIMA Order
+    const [p, setP] = useState(1);
     const [d, setD] = useState(1);
-    const [q, setQ] = useState(0);
+    const [q, setQ] = useState(1);
+    
+    // Seasonal Order
+    const [P, setP_seasonal] = useState(1);
+    const [D, setD_seasonal] = useState(1);
+    const [Q, setQ_seasonal] = useState(1);
+    const [s, setS_seasonal] = useState(12);
+
+    // Exogenous variables
+    const [exogCols, setExogCols] = useState<string[]>([]);
+
     const [forecastPeriods, setForecastPeriods] = useState(12);
 
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
@@ -52,6 +68,8 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
     
     const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2, [data, allHeaders]);
     
+    const availableExogCols = useMemo(() => allHeaders.filter(h => h !== timeCol && h !== valueCol), [allHeaders, timeCol, valueCol]);
+
     useEffect(() => {
         const dateCol = allHeaders.find(h => h.toLowerCase().includes('date'));
         const numericCols = allHeaders.filter(h => data.every(row => typeof row[h] === 'number' || !isNaN(Number(row[h]))));
@@ -60,6 +78,10 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
         setValueCol(numericCols.find(h => h !== dateCol) || numericCols[0]);
         setAnalysisResult(null);
     }, [data, allHeaders]);
+
+    const handleExogChange = (header: string, checked: boolean) => {
+        setExogCols(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+    };
 
     const handleAnalysis = useCallback(async () => {
         if (!timeCol || !valueCol) {
@@ -70,6 +92,19 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
         setIsLoading(true);
         setAnalysisResult(null);
 
+        let order = [p,d,q];
+        let seasonalOrder: number[] | null = null;
+        let finalExogCols: string[] | null = null;
+
+        switch (modelType) {
+            case 'ar': order = [p,0,0]; break;
+            case 'ma': order = [0,0,q]; break;
+            case 'arma': order = [p,0,q]; break;
+            case 'arima': order = [p,d,q]; break;
+            case 'sarima': order = [p,d,q]; seasonalOrder = [P,D,Q,s]; break;
+            case 'arimax': order = [p,d,q]; finalExogCols = exogCols; break;
+        }
+
         try {
             const response = await fetch('/api/analysis/arima', {
                 method: 'POST',
@@ -78,7 +113,9 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
                     data, 
                     timeCol, 
                     valueCol, 
-                    order: [p, d, q],
+                    order,
+                    seasonalOrder,
+                    exogCols: finalExogCols,
                     forecastPeriods,
                 })
             });
@@ -104,7 +141,7 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
         } finally {
             setIsLoading(false);
         }
-    }, [data, timeCol, valueCol, p, d, q, forecastPeriods, toast]);
+    }, [data, timeCol, valueCol, p, d, q, modelType, P, D, Q, s, exogCols, forecastPeriods, toast]);
     
     const results = analysisResult?.results;
     
@@ -131,9 +168,9 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
                     <CardHeader>
-                        <CardTitle className="font-headline">ARIMA Forecasting</CardTitle>
+                        <CardTitle className="font-headline">Autoregressive Models</CardTitle>
                         <CardDescription>
-                           To use ARIMA, you need time-series data with at least one date/time column and one numeric column.
+                           To use these models, you need time-series data with at least one date/time column and one numeric column.
                         </CardDescription>
                     </CardHeader>
                      {trendExamples.length > 0 && (
@@ -169,33 +206,61 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">ARIMA Model Setup</CardTitle>
-                    <CardDescription>Configure the parameters for the ARIMA model.</CardDescription>
+                    <CardTitle className="font-headline">Autoregressive Model Setup</CardTitle>
+                    <CardDescription>Configure the parameters for the selected time series model.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <Label>Time Column</Label>
-                            <Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                        <div>
-                            <Label>Value Column</Label>
-                            <Select value={valueCol} onValueChange={setValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.filter(h=>h !== timeCol).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
+                        <div><Label>Time Column</Label><Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Value Column</Label><Select value={valueCol} onValueChange={setValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.filter(h=>h !== timeCol).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     </div>
-                    <div className="grid md:grid-cols-4 gap-4 items-end">
-                        <div>
-                            <Label>Order (p) - AR</Label>
-                            <Input type="number" value={p} onChange={e => setP(Number(e.target.value))} min="0" />
-                        </div>
-                        <div>
-                            <Label>Order (d) - I</Label>
-                            <Input type="number" value={d} onChange={e => setD(Number(e.target.value))} min="0" />
-                        </div>
-                        <div>
-                            <Label>Order (q) - MA</Label>
-                            <Input type="number" value={q} onChange={e => setQ(Number(e.target.value))} min="0" />
-                        </div>
+
+                    <Tabs value={modelType} onValueChange={setModelType} className="w-full">
+                        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+                            <TabsTrigger value="ar">AR</TabsTrigger>
+                            <TabsTrigger value="ma">MA</TabsTrigger>
+                            <TabsTrigger value="arma">ARMA</TabsTrigger>
+                            <TabsTrigger value="arima">ARIMA</TabsTrigger>
+                            <TabsTrigger value="sarima">SARIMA</TabsTrigger>
+                            <TabsTrigger value="arimax">ARIMAX</TabsTrigger>
+                        </TabsList>
+                        
+                        <Card className="mt-4 p-4">
+                            <div className="grid md:grid-cols-4 gap-4 items-end">
+                                {/* Common ARIMA Order */}
+                                {(modelType.includes('ar') || modelType.includes('arma')) && <div><Label>p (AR)</Label><Input type="number" value={p} onChange={e => setP(Number(e.target.value))} min="0" /></div>}
+                                {(modelType.includes('arima')) && <div><Label>d (I)</Label><Input type="number" value={d} onChange={e => setD(Number(e.target.value))} min="0" /></div>}
+                                {(modelType.includes('ma') || modelType.includes('arma')) && <div><Label>q (MA)</Label><Input type="number" value={q} onChange={e => setQ(Number(e.target.value))} min="0" /></div>}
+                                
+                                {/* Seasonal Order */}
+                                {modelType === 'sarima' && (
+                                <>
+                                    <div className="md:col-span-4 font-semibold text-sm pt-4">Seasonal Order</div>
+                                    <div><Label>P (Seasonal AR)</Label><Input type="number" value={P} onChange={e => setP_seasonal(Number(e.target.value))} min="0" /></div>
+                                    <div><Label>D (Seasonal I)</Label><Input type="number" value={D} onChange={e => setD_seasonal(Number(e.target.value))} min="0" /></div>
+                                    <div><Label>Q (Seasonal MA)</Label><Input type="number" value={Q} onChange={e => setQ_seasonal(Number(e.target.value))} min="0" /></div>
+                                    <div><Label>s (Seasonal Period)</Label><Input type="number" value={s} onChange={e => setS_seasonal(Number(e.target.value))} min="1" /></div>
+                                </>
+                                )}
+
+                                {/* Exogenous Variables */}
+                                {modelType === 'arimax' && (
+                                    <div className="md:col-span-4">
+                                        <Label>Exogenous Variables</Label>
+                                        <ScrollArea className="h-24 border rounded-md p-2">
+                                            {availableExogCols.map(h => (
+                                                <div key={h} className="flex items-center space-x-2">
+                                                    <Checkbox id={`exog-${h}`} checked={exogCols.includes(h)} onCheckedChange={(c) => handleExogChange(h, c as boolean)} />
+                                                    <label htmlFor={`exog-${h}`}>{h}</label>
+                                                </div>
+                                            ))}
+                                        </ScrollArea>
+                                    </div>
+                                )}
+                            </div>
+                        </Card>
+                    </Tabs>
+                    <div className="grid md:grid-cols-4 gap-4 items-end pt-4">
                         <div>
                             <Label>Forecast Periods</Label>
                             <Input type="number" value={forecastPeriods} onChange={e => setForecastPeriods(Number(e.target.value))} min="1" />
@@ -263,13 +328,12 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
                             {results.summary_data?.map((table, tableIndex) => (
                                 <Table key={tableIndex}>
                                     {table.caption && <TableCaption>{table.caption}</TableCaption>}
-                                    {table.data.map((row, rowIndex) => (
-                                        rowIndex === 0 ? (
-                                            <TableHeader key={rowIndex}><TableRow>{row.map((cell, cellIndex) => <TableHead key={cellIndex}>{cell}</TableHead>)}</TableRow></TableHeader>
-                                        ) : (
-                                             <TableBody key={rowIndex}><TableRow>{row.map((cell, cellIndex) => <TableCell key={cellIndex} className="font-mono">{cell}</TableCell>)}</TableRow></TableBody>
-                                        )
+                                    <TableHeader><TableRow>{table.data[0].map((cell, cellIndex) => <TableHead key={cellIndex}>{cell}</TableHead>)}</TableRow></TableHeader>
+                                    <TableBody>
+                                    {table.data.slice(1).map((row, rowIndex) => (
+                                        <TableRow key={rowIndex}>{row.map((cell, cellIndex) => <TableCell key={cellIndex} className="font-mono">{cell}</TableCell>)}</TableRow>
                                     ))}
+                                    </TableBody>
                                 </Table>
                             ))}
                         </CardContent>
@@ -288,6 +352,3 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
         </div>
     );
 }
-
-
-    
