@@ -209,18 +209,31 @@ class ConfirmatoryFactorAnalysis:
         n_free_params = sum(np.sum(param_setup[f'{k}_free']) for k in ['lambda', 'phi', 'theta'])
         return n_sample_stats - n_free_params
     
+    def _calculate_baseline_chi_square(self, sample_cov, n_obs):
+        try:
+            n_vars = sample_cov.shape[0]
+            log_det_sample = np.linalg.slogdet(sample_cov)[1]
+            log_det_diag = np.sum(np.log(np.diag(sample_cov)))
+            return (n_obs - 1) * (log_det_diag - log_det_sample)
+        except:
+            return np.inf
+
     def _calculate_fit_indices(self, sample_cov, implied_cov, chi_square, df, n_obs, n_vars):
         S = sample_cov.values
-        independence_chi = (n_obs - 1) * (np.sum(np.log(np.diag(S))) - np.log(linalg.det(S))) if linalg.det(S) > 0 else 0
-        independence_df = n_vars * (n_vars - 1) // 2
-
-        cfi = 1 - max(0, chi_square - df) / max(0, independence_chi - independence_df) if (independence_chi - df) > 0 and (baseline_chi_square - baseline_df) > 0 else 1.0
         
-        tli_denominator = (independence_chi / independence_df) - 1 if independence_df > 0 else 0
-        if df > 0 and independence_df > 0 and tli_denominator > 1e-9:
-            tli = ((independence_chi / independence_df) - (chi_square / df)) / tli_denominator
-        else:
-            tli = 1.0
+        baseline_chi_square = self._calculate_baseline_chi_square(S, n_obs)
+        baseline_df = n_vars * (n_vars - 1) // 2
+
+        cfi = 1.0
+        if baseline_df > df and baseline_chi_square > chi_square:
+            cfi = 1 - max(0, chi_square - df) / max(0, baseline_chi_square - baseline_df)
+
+        tli = 1.0
+        if baseline_df > 0 and df > 0:
+            tli_num = (baseline_chi_square / baseline_df) - (chi_square / df)
+            tli_den = (baseline_chi_square / baseline_df) - 1
+            if tli_den > 0:
+                tli = tli_num / tli_den
         
         rmsea = np.sqrt(max(0, (chi_square - df) / (df * (n_obs - 1)))) if df > 0 else 0.0
         
