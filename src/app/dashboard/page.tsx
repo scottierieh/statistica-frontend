@@ -1,6 +1,7 @@
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calculator } from "lucide-react";
+import { Calculator, BrainCircuit } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardHubPage() {
@@ -29,6 +30,22 @@ export default function DashboardHubPage() {
                     <CardContent>
                         <Button asChild className="w-full">
                             <Link href="/dashboard/statistica">Launch Statistica</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2">
+                            <BrainCircuit className="h-5 w-5"/>
+                            Data Mining
+                        </CardTitle>
+                        <CardDescription>
+                            Discover patterns and insights from your data using advanced machine learning models.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild className="w-full">
+                            <Link href="/dashboard/data-mining">Launch Data Mining</Link>
                         </Button>
                     </CardContent>
                 </Card>
