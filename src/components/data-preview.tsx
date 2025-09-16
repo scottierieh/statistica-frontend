@@ -1,11 +1,14 @@
+
 'use client';
 
-import type { DataSet } from '@/lib/stats';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Download, Trash2 } from 'lucide-react';
+import { Download, Trash2, ChevronsUpDown, ChevronDown } from 'lucide-react';
+import { DataSet } from '@/lib/stats';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 interface DataPreviewProps {
     fileName: string;
@@ -15,52 +18,52 @@ interface DataPreviewProps {
     onClearData: () => void;
 }
 
-const PREVIEW_ROW_COUNT = 10;
-
 export default function DataPreview({ fileName, data, headers, onDownload, onClearData }: DataPreviewProps) {
-    
-    const previewData = data.slice(0, PREVIEW_ROW_COUNT);
+    const [isOpen, setIsOpen] = useState(false);
+    const previewData = data.slice(0, 100);
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                    <CardTitle className="font-headline text-xl">Active Dataset: {fileName}</CardTitle>
-                    <CardDescription>Showing first {Math.min(PREVIEW_ROW_COUNT, data.length)} of {data.length} rows.</CardDescription>
-                </div>
-                <div className='flex items-center gap-2'>
-                    <Button variant="outline" size="sm" onClick={onDownload}>
-                        <Download className="mr-2"/>
-                        Download Data
-                    </Button>
-                     <Button variant="destructive" size="sm" onClick={onClearData}>
-                        <Trash2 className="mr-2"/>
-                        Clear Data
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <ScrollArea className="h-64 w-full border rounded-md">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                {headers.map(header => <TableHead key={header}>{header}</TableHead>)}
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {previewData.map((row, rowIndex) => (
-                                <TableRow key={rowIndex}>
-                                    {headers.map(header => (
-                                        <TableCell key={`${rowIndex}-${header}`} className="font-mono text-xs">
-                                            {String(row[header])}
-                                        </TableCell>
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between p-4">
+                    <div className="space-y-1">
+                        <CardTitle className="text-lg font-headline">Loaded Data: {fileName}</CardTitle>
+                        <CardDescription>{data.length} rows, {headers.length} columns</CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={onDownload}><Download className="h-4 w-4"/></Button>
+                        <Button variant="ghost" size="icon" onClick={onClearData}><Trash2 className="h-4 w-4"/></Button>
+                         <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <ChevronsUpDown className="h-4 w-4" />
+                                <span className="sr-only">Toggle</span>
+                            </Button>
+                        </CollapsibleTrigger>
+                    </div>
+                </CardHeader>
+                <CollapsibleContent>
+                    <CardContent className="p-0">
+                        <ScrollArea className="h-64">
+                            <Table>
+                                <TableHeader className="sticky top-0 bg-card">
+                                    <TableRow>
+                                        {headers.map(header => <TableHead key={header}>{header}</TableHead>)}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {previewData.map((row, rowIndex) => (
+                                        <TableRow key={rowIndex}>
+                                            {headers.map(header => (
+                                                <TableCell key={`${rowIndex}-${header}`}>{String(row[header])}</TableCell>
+                                            ))}
+                                        </TableRow>
                                     ))}
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </ScrollArea>
-            </CardContent>
-        </Card>
-    );
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
+                </CollapsibleContent>
+            </Card>
+        </Collapsible>
+    )
 }
