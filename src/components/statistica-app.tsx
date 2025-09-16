@@ -102,6 +102,7 @@ import MetaAnalysisPage from './pages/meta-analysis-page';
 import TrendAnalysisPage from './pages/trend-analysis-page';
 import NormalityTestPage from './pages/normality-test-page';
 import HomogeneityTestPage from './pages/homogeneity-test-page';
+import MovingAveragePage from './pages/moving-average-page';
 
 type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'normality' | 'homogeneity' | string;
 
@@ -141,8 +142,9 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     sentiment: SentimentAnalysisPage,
     'meta-analysis': MetaAnalysisPage,
     'trend-analysis': TrendAnalysisPage,
-    'normality': NormalityTestPage,
-    'homogeneity': HomogeneityTestPage,
+    normality: NormalityTestPage,
+    homogeneity: HomogeneityTestPage,
+    'moving-average': MovingAveragePage,
 };
 
 const analysisMenu = [
@@ -223,7 +225,7 @@ const analysisMenu = [
     icon: AreaChart,
     methods: [
       { id: 'trend-analysis', label: 'Trend Analysis' },
-      { id: 'moving-average', label: 'Moving Average', implemented: false },
+      { id: 'moving-average', label: 'Moving Average' },
       { id: 'exponential-smoothing', label: 'Exponential Smoothing', implemented: false },
       { id: 'arima', label: 'ARIMA', implemented: false },
       { id: 'acf-pacf', label: 'ACF/PACF Plots', implemented: false },
