@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -636,5 +637,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
-    

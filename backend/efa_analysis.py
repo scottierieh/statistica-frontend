@@ -9,12 +9,10 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import io
 import base64
+import pingouin as pg
+import warnings
 
-try:
-    from factor_analyzer import FactorAnalyzer
-    FA_AVAILABLE = True
-except ImportError:
-    FA_AVAILABLE = False
+warnings.filterwarnings('ignore')
 
 
 def _to_native_type(obj):
@@ -80,7 +78,7 @@ def main():
         items = payload.get('items')
         n_factors = payload.get('nFactors')
         rotation = payload.get('rotation', 'varimax')
-        method = payload.get('method', 'principal') # 'principal' or 'pca'
+        method = payload.get('method', 'principal')
 
         if not all([data, items, n_factors]):
             raise ValueError("Missing 'data', 'items', or 'nFactors'")
@@ -96,33 +94,40 @@ def main():
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(df_items)
 
+        # --- Adequacy Tests ---
+        try:
+            kmo_result = pg.kmo(df_items)
+            kmo_overall = kmo_result.iloc[0,0] if not np.isnan(kmo_result.iloc[0,0]) else 0.0
+            kmo_interpretation = kmo_result.iloc[0,1]
+        except Exception:
+            kmo_overall = 0.0
+            kmo_interpretation = "Unavailable"
+        
+        try:
+             bartlett_stat, bartlett_p = pg.sphericity(df_items, method='bartlett')
+             bartlett_significant = bool(bartlett_p < 0.05) if not np.isnan(bartlett_p) else False
+        except Exception:
+             bartlett_stat, bartlett_p, bartlett_significant = np.nan, np.nan, False
+
+
         # --- Factor Analysis ---
         if method == 'pca':
             # Using PCA for factor extraction
-            pca = PCA(n_components=n_factors)
-            pca.fit(X_scaled)
-            loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
-            eigenvalues_full = pca.explained_variance_
-            variance_explained = pca.explained_variance_ratio_ * 100
-        else:
-            # Using FactorAnalyzer or fallback to sklearn
-            if FA_AVAILABLE:
-                fa = FactorAnalyzer(n_factors=n_factors, rotation=rotation, method=method)
-                fa.fit(X_scaled)
-                loadings = fa.loadings_
-                eigenvalues_full, _ = fa.get_eigenvalues()
-                variance_info = fa.get_factor_variance()
-                variance_explained = variance_info[1] * 100
-            else: # Fallback sklearn
-                fa = FactorAnalysis(n_components=n_factors, rotation=rotation if rotation in ['varimax', 'quartimax'] else 'varimax', random_state=42)
-                fa.fit(X_scaled)
-                loadings = fa.components_.T
-                 # Get eigenvalues from the correlation matrix for sklearn
-                corr_matrix = np.corrcoef(X_scaled, rowvar=False)
-                eigenvalues_full, _ = np.linalg.eigh(corr_matrix)
-                eigenvalues_full = sorted(eigenvalues_full, reverse=True)
-                ss_loadings_sklearn = np.sum(loadings**2, axis=0)
-                variance_explained = (ss_loadings_sklearn / len(items)) * 100
+            model = PCA(n_components=n_factors, random_state=42) if n_factors else PCA(random_state=42)
+            model.fit(X_scaled)
+            loadings = model.components_.T * np.sqrt(model.explained_variance_)
+            eigenvalues_full = model.explained_variance_
+            variance_explained = model.explained_variance_ratio_ * 100
+        else: # Principal Axis Factoring
+            model = FactorAnalysis(n_components=n_factors, rotation=rotation if rotation in ['varimax', 'quartimax'] else 'varimax', random_state=42)
+            model.fit(X_scaled)
+            loadings = model.components_.T
+            # Eigenvalues from correlation matrix for non-PCA methods
+            corr_matrix = np.corrcoef(X_scaled, rowvar=False)
+            eigenvalues_full, _ = np.linalg.eigh(corr_matrix)
+            eigenvalues_full = sorted(eigenvalues_full, reverse=True)
+            ss_loadings_sklearn = np.sum(loadings**2, axis=0)
+            variance_explained = (ss_loadings_sklearn / len(items)) * 100
 
         
         # Communalities
@@ -144,6 +149,13 @@ def main():
         plot_image = plot_efa_results(eigenvalues_full[:len(items)], loadings, items)
 
         response = {
+            "adequacy": {
+                "kmo": kmo_overall,
+                "kmo_interpretation": kmo_interpretation,
+                "bartlett_statistic": bartlett_stat,
+                "bartlett_p_value": bartlett_p,
+                "bartlett_significant": bartlett_significant
+            },
             "eigenvalues": eigenvalues_full,
             "factor_loadings": loadings,
             "variance_explained": {
@@ -156,8 +168,10 @@ def main():
             "n_factors": n_factors,
             "plot": plot_image
         }
-
-        print(json.dumps(response, default=_to_native_type))
+        
+        # Final safety check for NaN before dumping
+        cleaned_response = json.loads(json.dumps(response, default=_to_native_type))
+        print(json.dumps(cleaned_response))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
