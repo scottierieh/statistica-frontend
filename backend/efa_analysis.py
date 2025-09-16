@@ -14,7 +14,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, (float, np.floating)):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -24,6 +24,8 @@ def _to_native_type(obj):
     return obj
 
 def _interpret_kmo(kmo):
+    if kmo is None or np.isnan(kmo):
+        return 'Unacceptable'
     if kmo >= 0.9: return 'Excellent'
     if kmo >= 0.8: return 'Good'
     if kmo >= 0.7: return 'Acceptable'
@@ -34,9 +36,10 @@ def _interpret_kmo(kmo):
 def _bartlett_sphericity(X):
     from scipy.stats import chi2
     n, p = X.shape
+    if p < 2: return np.nan, np.nan
     corr_matrix = np.corrcoef(X, rowvar=False)
     det_corr = np.linalg.det(corr_matrix)
-    if det_corr <= 0: return np.nan, np.nan
+    if det_corr <= 1e-10: return np.nan, np.nan
     statistic = - (n - 1 - (2 * p + 5) / 6) * np.log(det_corr)
     dof = p * (p - 1) / 2
     p_value = chi2.sf(statistic, dof)
@@ -45,11 +48,19 @@ def _bartlett_sphericity(X):
 def _calculate_kmo(X):
     try:
         corr_matrix = np.corrcoef(X, rowvar=False)
+        # Check for singularity before inverting
+        if np.linalg.cond(corr_matrix) > 1/sys.float_info.epsilon:
+            return 0.0
+            
         inv_corr = np.linalg.inv(corr_matrix)
         A = np.ones_like(inv_corr)
         for i in range(X.shape[1]):
             for j in range(i, X.shape[1]):
-                A[i, j] = A[j, i] = - (inv_corr[i, j]) / np.sqrt(inv_corr[i, i] * inv_corr[j, j])
+                denominator = np.sqrt(inv_corr[i, i] * inv_corr[j, j])
+                if denominator < 1e-10: # Avoid division by zero
+                    A[i, j] = A[j, i] = 0
+                else:
+                    A[i, j] = A[j, i] = - (inv_corr[i, j]) / denominator
         
         np.fill_diagonal(A, 0)
         np.fill_diagonal(corr_matrix, 0)
@@ -57,7 +68,9 @@ def _calculate_kmo(X):
         kmo_num = np.sum(np.square(corr_matrix))
         kmo_den = kmo_num + np.sum(np.square(A))
         
-        return kmo_num / kmo_den if kmo_den else 0
+        kmo_val = kmo_num / kmo_den if kmo_den else 0.0
+        return 0.0 if np.isnan(kmo_val) else kmo_val
+
     except np.linalg.LinAlgError:
         # Handle singular matrix case
         return 0.0
@@ -165,20 +178,20 @@ def main():
 
         response = {
             "adequacy": {
-                "kmo": kmo_overall,
+                "kmo": _to_native_type(kmo_overall),
                 "kmo_interpretation": _interpret_kmo(kmo_overall),
-                "bartlett_statistic": bartlett_stat,
-                "bartlett_p_value": bartlett_p,
+                "bartlett_statistic": _to_native_type(bartlett_stat),
+                "bartlett_p_value": _to_native_type(bartlett_p),
                 "bartlett_significant": bool(bartlett_p < 0.05) if not np.isnan(bartlett_p) else False
             },
-            "eigenvalues": eigenvalues_full,
-            "factor_loadings": loadings.tolist(),
+            "eigenvalues": _to_native_type(eigenvalues_full),
+            "factor_loadings": _to_native_type(loadings),
             "variance_explained": {
-                "per_factor": variance_explained.tolist(),
-                "cumulative": cumulative_variance.tolist()
+                "per_factor": _to_native_type(variance_explained),
+                "cumulative": _to_native_type(cumulative_variance)
             },
-            "communalities": communalities.tolist(),
-            "interpretation": interpretation,
+            "communalities": _to_native_type(communalities),
+            "interpretation": _to_native_type(interpretation),
             "variables": items,
             "n_factors": n_factors,
             "plot": plot_image
