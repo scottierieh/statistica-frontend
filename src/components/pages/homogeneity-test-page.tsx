@@ -95,7 +95,7 @@ export default function HomogeneityTestPage({ data, numericHeaders, categoricalH
     }, [data, valueVar, groupVar, toast]);
 
     if (!canRun) {
-        // This view will show if there's not enough data or variables.
+        const homogeneityExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('homogeneity'));
         return (
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
@@ -105,6 +105,30 @@ export default function HomogeneityTestPage({ data, numericHeaders, categoricalH
                            To perform this test, you need data with at least one numeric variable and one categorical variable with two or more groups.
                         </CardDescription>
                     </CardHeader>
+                    {homogeneityExamples.length > 0 && (
+                         <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {homogeneityExamples.map((ex) => (
+                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
+                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                                                <ex.icon className="h-6 w-6 text-secondary-foreground" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
+                                            </div>
+                                        </CardHeader>
+                                        <CardFooter>
+                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                                Load this data
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                ))}
+                            </div>
+                        </CardContent>
+                    )}
                 </Card>
             </div>
         );
