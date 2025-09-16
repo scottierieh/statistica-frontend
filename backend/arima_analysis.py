@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import statsmodels.api as sm
+from statsmodels.tsa.arima.model import ARIMA
 import io
 import base64
 import warnings
@@ -46,7 +46,7 @@ def main():
         series = df[value_col]
 
         # Fit ARIMA model
-        model = sm.tsa.arima.model.ARIMA(series, order=order)
+        model = ARIMA(series, order=order)
         model_fit = model.fit()
 
         # Generate forecast
