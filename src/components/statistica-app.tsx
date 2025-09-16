@@ -81,7 +81,7 @@ import ManovaPage from './pages/manova-page';
 import RegressionPage from './pages/regression-page';
 import LogisticRegressionPage from './pages/logistic-regression-page';
 import KMeansPage from './pages/kmeans-page';
-import FrequencyAnalysisPage from './pages/frequency-page';
+import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import CrosstabPage from './pages/crosstab-page';
 import SemPage from './pages/sem-page';
 import ConjointAnalysisPage from './pages/conjoint-analysis-page';
@@ -636,3 +636,5 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
+    
