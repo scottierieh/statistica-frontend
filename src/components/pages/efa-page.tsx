@@ -8,13 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BrainCircuit, AlertCircle, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft } from 'lucide-react';
+import { Sigma, Loader2, BrainCircuit, AlertCircle, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Settings, RotateCw, Replace } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import Image from 'next/image';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 // Type definitions for the EFA results
 interface EfaResults {
@@ -152,6 +153,9 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
     const { toast } = useToast();
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
     const [nFactors, setNFactors] = useState<number>(3);
+    const [rotationMethod, setRotationMethod] = useState('varimax');
+    const [extractionMethod, setExtractionMethod] = useState('principal');
+    
     const [analysisResult, setAnalysisResult] = useState<EfaResults | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -182,9 +186,11 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    data: data,
+                    data,
                     items: selectedItems,
-                    nFactors: nFactors,
+                    nFactors,
+                    rotation: rotationMethod,
+                    method: extractionMethod,
                 })
             });
 
@@ -207,7 +213,7 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
         } finally {
             setIsLoading(false);
         }
-    }, [data, selectedItems, nFactors, toast]);
+    }, [data, selectedItems, nFactors, rotationMethod, extractionMethod, toast]);
 
     if (!canRun) {
         const efaExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('efa'));
@@ -255,29 +261,58 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">EFA Setup</CardTitle>
-                    <CardDescription>Select numeric variables for analysis and specify the number of factors to extract.</CardDescription>
+                    <CardDescription>Select variables and specify analysis parameters.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                     <DualListBox allItems={numericHeaders} selectedItems={selectedItems} setSelectedItems={setSelectedItems} />
                     
-                    <div className="grid md:grid-cols-2 gap-4 items-end">
-                        <div>
-                            <Label htmlFor="nFactors" className="mb-2 block">Number of Factors to Extract</Label>
-                            <Input 
-                                id="nFactors"
-                                type="number"
-                                value={nFactors}
-                                onChange={e => setNFactors(parseInt(e.target.value, 10))}
-                                min="1"
-                                max={selectedItems.length > 1 ? selectedItems.length - 1 : 1}
-                                className="w-full"
-                            />
-                        </div>
-                        <Button onClick={handleAnalysis} className="w-full md:w-auto" disabled={selectedItems.length < 3 || isLoading}>
-                            {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
-                        </Button>
-                    </div>
+                    <Card>
+                        <CardHeader className="pb-2">
+                             <CardTitle className="text-base flex items-center gap-2"><Settings/> Analysis Settings</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                            <div>
+                                <Label htmlFor="nFactors" className="mb-2 block">Number of Factors</Label>
+                                <Input 
+                                    id="nFactors"
+                                    type="number"
+                                    value={nFactors}
+                                    onChange={e => setNFactors(parseInt(e.target.value, 10))}
+                                    min="1"
+                                    max={selectedItems.length > 1 ? selectedItems.length - 1 : 1}
+                                />
+                            </div>
+                             <div>
+                                <Label htmlFor="rotationMethod" className="mb-2 block flex items-center gap-1"><RotateCw className="w-4 h-4"/> Rotation Method</Label>
+                                <Select value={rotationMethod} onValueChange={setRotationMethod}>
+                                    <SelectTrigger id="rotationMethod"><SelectValue/></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="varimax">Varimax (Orthogonal)</SelectItem>
+                                        <SelectItem value="promax">Promax (Oblique)</SelectItem>
+                                        <SelectItem value="quartimax">Quartimax (Orthogonal)</SelectItem>
+                                        <SelectItem value="oblimin">Oblimin (Oblique)</SelectItem>
+                                        <SelectItem value="none">None</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="extractionMethod" className="mb-2 block flex items-center gap-1"><Replace className="w-4 h-4"/> Extraction Method</Label>
+                                <Select value={extractionMethod} onValueChange={setExtractionMethod}>
+                                    <SelectTrigger id="extractionMethod"><SelectValue/></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="principal">Principal Axis Factoring</SelectItem>
+                                        <SelectItem value="pca">Principal Component Analysis</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </CardContent>
+                 <CardFooter className="flex justify-end">
+                     <Button onClick={handleAnalysis} className="w-full md:w-auto" disabled={selectedItems.length < 3 || isLoading}>
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
+                    </Button>
+                </CardFooter>
             </Card>
 
             {isLoading && (

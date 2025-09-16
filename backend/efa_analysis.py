@@ -4,11 +4,19 @@ import sys
 import json
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import FactorAnalysis
+from sklearn.decomposition import FactorAnalysis, PCA
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import io
 import base64
+
+try:
+    from factor_analyzer import FactorAnalyzer
+    from factor_analyzer.factor_analyzer import calculate_kmo, calculate_bartlett_sphericity
+    FA_AVAILABLE = True
+except ImportError:
+    FA_AVAILABLE = False
+
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -22,58 +30,6 @@ def _to_native_type(obj):
     elif isinstance(obj, np.bool_):
         return bool(obj)
     return obj
-
-def _interpret_kmo(kmo):
-    if kmo is None or np.isnan(kmo):
-        return 'Unacceptable'
-    if kmo >= 0.9: return 'Excellent'
-    if kmo >= 0.8: return 'Good'
-    if kmo >= 0.7: return 'Acceptable'
-    if kmo >= 0.6: return 'Questionable'
-    if kmo >= 0.5: return 'Poor'
-    return 'Unacceptable'
-
-def _bartlett_sphericity(X):
-    from scipy.stats import chi2
-    n, p = X.shape
-    if p < 2: return np.nan, np.nan
-    corr_matrix = np.corrcoef(X, rowvar=False)
-    det_corr = np.linalg.det(corr_matrix)
-    if det_corr <= 1e-10: return np.nan, np.nan
-    statistic = - (n - 1 - (2 * p + 5) / 6) * np.log(det_corr)
-    dof = p * (p - 1) / 2
-    p_value = chi2.sf(statistic, dof)
-    return statistic, p_value
-
-def _calculate_kmo(X):
-    try:
-        corr_matrix = np.corrcoef(X, rowvar=False)
-        # Check for singularity before inverting
-        if np.linalg.cond(corr_matrix) > 1/sys.float_info.epsilon:
-            return 0.0
-            
-        inv_corr = np.linalg.inv(corr_matrix)
-        A = np.ones_like(inv_corr)
-        for i in range(X.shape[1]):
-            for j in range(i, X.shape[1]):
-                denominator = np.sqrt(inv_corr[i, i] * inv_corr[j, j])
-                if denominator < 1e-10: # Avoid division by zero
-                    A[i, j] = A[j, i] = 0
-                else:
-                    A[i, j] = A[j, i] = - (inv_corr[i, j]) / denominator
-        
-        np.fill_diagonal(A, 0)
-        np.fill_diagonal(corr_matrix, 0)
-        
-        kmo_num = np.sum(np.square(corr_matrix))
-        kmo_den = kmo_num + np.sum(np.square(A))
-        
-        kmo_val = kmo_num / kmo_den if kmo_den else 0.0
-        return 0.0 if np.isnan(kmo_val) else kmo_val
-
-    except np.linalg.LinAlgError:
-        # Handle singular matrix case
-        return 0.0
 
 
 def plot_efa_results(eigenvalues, loadings, variables):
@@ -124,6 +80,8 @@ def main():
         data = payload.get('data')
         items = payload.get('items')
         n_factors = payload.get('nFactors')
+        rotation = payload.get('rotation', 'varimax')
+        method = payload.get('method', 'principal') # 'principal' or 'pca'
 
         if not all([data, items, n_factors]):
             raise ValueError("Missing 'data', 'items', or 'nFactors'")
@@ -140,27 +98,47 @@ def main():
         X_scaled = scaler.fit_transform(df_items)
 
         # --- Adequacy Tests ---
-        kmo_overall = _calculate_kmo(X_scaled)
-        bartlett_stat, bartlett_p = _bartlett_sphericity(X_scaled)
+        if FA_AVAILABLE:
+            bartlett_stat, bartlett_p = calculate_bartlett_sphericity(df_items)
+            kmo_per_variable, kmo_overall = calculate_kmo(df_items)
+            kmo_overall = _to_native_type(kmo_overall)
+        else: # Fallback if factor_analyzer is not available
+             bartlett_stat, bartlett_p = np.nan, np.nan
+             kmo_overall = np.nan
+
 
         # --- Factor Analysis ---
-        fa = FactorAnalysis(n_components=n_factors, rotation='varimax', random_state=42)
-        fa.fit(X_scaled)
-        
-        loadings = fa.components_.T
-        
-        # --- Eigenvalues and Variance Explained ---
-        # Get eigenvalues from the correlation matrix
-        corr_matrix = np.corrcoef(X_scaled, rowvar=False)
-        eigenvalues_full, _ = np.linalg.eigh(corr_matrix)
-        eigenvalues_full = sorted(eigenvalues_full, reverse=True)
+        if method == 'pca':
+            # Using PCA for factor extraction
+            pca = PCA(n_components=n_factors)
+            pca.fit(X_scaled)
+            loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
+            eigenvalues_full = pca.explained_variance_
+            variance_explained = pca.explained_variance_ratio_ * 100
+        else:
+            # Using FactorAnalyzer or fallback to sklearn
+            if FA_AVAILABLE:
+                fa = FactorAnalyzer(n_factors=n_factors, rotation=rotation, method=method)
+                fa.fit(X_scaled)
+                loadings = fa.loadings_
+                eigenvalues_full, _ = fa.get_eigenvalues()
+                variance_info = fa.get_factor_variance()
+                variance_explained = variance_info[1] * 100
+            else: # Fallback sklearn
+                fa = FactorAnalysis(n_components=n_factors, rotation=rotation if rotation in ['varimax', 'quartimax'] else 'varimax', random_state=42)
+                fa.fit(X_scaled)
+                loadings = fa.components_.T
+                 # Get eigenvalues from the correlation matrix for sklearn
+                corr_matrix = np.corrcoef(X_scaled, rowvar=False)
+                eigenvalues_full, _ = np.linalg.eigh(corr_matrix)
+                eigenvalues_full = sorted(eigenvalues_full, reverse=True)
+                ss_loadings_sklearn = np.sum(loadings**2, axis=0)
+                variance_explained = (ss_loadings_sklearn / len(items)) * 100
 
+        
         # Communalities
         communalities = np.sum(loadings**2, axis=1)
         
-        # Explained variance by factors (Sum of Squared Loadings)
-        ss_loadings = np.sum(loadings**2, axis=0)
-        variance_explained = (ss_loadings / len(items)) * 100
         cumulative_variance = np.cumsum(variance_explained)
 
         # --- Factor Interpretation ---
@@ -176,22 +154,32 @@ def main():
         
         plot_image = plot_efa_results(eigenvalues_full[:len(items)], loadings, items)
 
+        def _interpret_kmo(kmo):
+            if kmo is None or np.isnan(kmo): return 'Unavailable'
+            if kmo >= 0.9: return 'Excellent'
+            if kmo >= 0.8: return 'Good'
+            if kmo >= 0.7: return 'Acceptable'
+            if kmo >= 0.6: return 'Questionable'
+            if kmo >= 0.5: return 'Poor'
+            return 'Unacceptable'
+
+
         response = {
             "adequacy": {
-                "kmo": _to_native_type(kmo_overall),
+                "kmo": kmo_overall,
                 "kmo_interpretation": _interpret_kmo(kmo_overall),
-                "bartlett_statistic": _to_native_type(bartlett_stat),
-                "bartlett_p_value": _to_native_type(bartlett_p),
+                "bartlett_statistic": bartlett_stat,
+                "bartlett_p_value": bartlett_p,
                 "bartlett_significant": bool(bartlett_p < 0.05) if not np.isnan(bartlett_p) else False
             },
-            "eigenvalues": _to_native_type(eigenvalues_full),
-            "factor_loadings": _to_native_type(loadings),
+            "eigenvalues": eigenvalues_full,
+            "factor_loadings": loadings,
             "variance_explained": {
-                "per_factor": _to_native_type(variance_explained),
-                "cumulative": _to_native_type(cumulative_variance)
+                "per_factor": variance_explained,
+                "cumulative": cumulative_variance
             },
-            "communalities": _to_native_type(communalities),
-            "interpretation": _to_native_type(interpretation),
+            "communalities": communalities,
+            "interpretation": interpretation,
             "variables": items,
             "n_factors": n_factors,
             "plot": plot_image
