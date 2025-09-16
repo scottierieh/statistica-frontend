@@ -104,7 +104,8 @@ import NormalityTestPage from './pages/normality-test-page';
 import HomogeneityTestPage from './pages/homogeneity-test-page';
 import MovingAveragePage from './pages/moving-average-page';
 import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
-import AutoregressivePage from './pages/autoregressive-page';
+import ArimaPage from './pages/arima-page';
+import AcfPacfPage from './pages/acf-pacf-page';
 import MdsPage from './pages/mds-page';
 
 type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'autoregressive' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | 'mds' | string;
@@ -152,7 +153,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     homogeneity: HomogeneityTestPage,
     'moving-average': MovingAveragePage,
     'exponential-smoothing': ExponentialSmoothingPage,
-    autoregressive: AutoregressivePage,
+    autoregressive: ArimaPage,
     'acf-pacf': AcfPacfPage,
     mds: MdsPage,
 };
