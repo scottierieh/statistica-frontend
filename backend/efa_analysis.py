@@ -12,7 +12,6 @@ import base64
 
 try:
     from factor_analyzer import FactorAnalyzer
-    from factor_analyzer.factor_analyzer import calculate_kmo, calculate_bartlett_sphericity
     FA_AVAILABLE = True
 except ImportError:
     FA_AVAILABLE = False
@@ -97,16 +96,6 @@ def main():
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(df_items)
 
-        # --- Adequacy Tests ---
-        if FA_AVAILABLE:
-            bartlett_stat, bartlett_p = calculate_bartlett_sphericity(df_items)
-            kmo_per_variable, kmo_overall = calculate_kmo(df_items)
-            kmo_overall = _to_native_type(kmo_overall)
-        else: # Fallback if factor_analyzer is not available
-             bartlett_stat, bartlett_p = np.nan, np.nan
-             kmo_overall = np.nan
-
-
         # --- Factor Analysis ---
         if method == 'pca':
             # Using PCA for factor extraction
@@ -154,24 +143,7 @@ def main():
         
         plot_image = plot_efa_results(eigenvalues_full[:len(items)], loadings, items)
 
-        def _interpret_kmo(kmo):
-            if kmo is None or np.isnan(kmo): return 'Unavailable'
-            if kmo >= 0.9: return 'Excellent'
-            if kmo >= 0.8: return 'Good'
-            if kmo >= 0.7: return 'Acceptable'
-            if kmo >= 0.6: return 'Questionable'
-            if kmo >= 0.5: return 'Poor'
-            return 'Unacceptable'
-
-
         response = {
-            "adequacy": {
-                "kmo": kmo_overall,
-                "kmo_interpretation": _interpret_kmo(kmo_overall),
-                "bartlett_statistic": bartlett_stat,
-                "bartlett_p_value": bartlett_p,
-                "bartlett_significant": bool(bartlett_p < 0.05) if not np.isnan(bartlett_p) else False
-            },
             "eigenvalues": eigenvalues_full,
             "factor_loadings": loadings,
             "variance_explained": {

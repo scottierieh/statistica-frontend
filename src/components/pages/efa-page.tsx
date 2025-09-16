@@ -19,13 +19,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 // Type definitions for the EFA results
 interface EfaResults {
-    adequacy: {
-        kmo: number;
-        kmo_interpretation: string;
-        bartlett_statistic: number;
-        bartlett_p_value: number;
-        bartlett_significant: boolean;
-    };
     eigenvalues: number[];
     factor_loadings: number[][];
     variance_explained: {
@@ -35,20 +28,6 @@ interface EfaResults {
     variables: string[];
     n_factors: number;
     plot?: string;
-}
-
-
-const AdequacyBadge = ({ level }: { level: string }) => {
-    const variant = {
-        'Excellent': 'default',
-        'Good': 'default',
-        'Acceptable': 'secondary',
-        'Questionable': 'destructive',
-        'Poor': 'destructive',
-        'Unacceptable': 'destructive'
-    }[level] || 'outline';
-
-    return <Badge variant={variant as any}>{level}</Badge>
 }
 
 interface EfaPageProps {
@@ -340,33 +319,6 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                 <div className="grid lg:grid-cols-3 gap-4">
                     <Card className="lg:col-span-1">
                         <CardHeader>
-                            <CardTitle className="font-headline">Data Adequacy</CardTitle>
-                            <CardDescription>Tests to check if your data is suitable for factor analysis.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <dl className="space-y-4 text-sm">
-                                <div className="flex justify-between items-start">
-                                    <dt className="font-medium text-muted-foreground">KMO Measure</dt>
-                                    <dd className="text-right">
-                                        <div className="font-bold text-lg">{analysisResult.adequacy.kmo.toFixed(3)}</div>
-                                        <AdequacyBadge level={analysisResult.adequacy.kmo_interpretation} />
-                                    </dd>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <dt className="font-medium text-muted-foreground">Bartlett's Test of Sphericity</dt>
-                                    <dd>
-                                        {analysisResult.adequacy.bartlett_significant ? (
-                                            <Badge variant="default">Significant (p &lt; .05)</Badge>
-                                        ) : (
-                                            <Badge variant="destructive">Not Significant</Badge>
-                                        )}
-                                    </dd>
-                                </div>
-                            </dl>
-                        </CardContent>
-                    </Card>
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
                             <CardTitle className="font-headline">Variance Explained by Factors</CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -390,43 +342,42 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                             </Table>
                         </CardContent>
                     </Card>
-                </div>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Factor Loadings (Rotated)</CardTitle>
-                        <CardDescription>Indicates how much each variable is associated with each factor. Loadings &gt; 0.4 are highlighted.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ScrollArea className="w-full h-96">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Variable</TableHead>
-                                        {Array.from({length: analysisResult.n_factors}, (_, i) => (
-                                            <TableHead key={i} className="text-right">Factor {i+1}</TableHead>
-                                        ))}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {analysisResult.variables.map((variable, varIndex) => (
-                                        <TableRow key={variable}>
-                                            <TableCell className="font-medium">{variable}</TableCell>
-                                            {analysisResult.factor_loadings[varIndex].map((loading, factorIndex) => (
-                                                <TableCell 
-                                                    key={factorIndex} 
-                                                    className={`text-right font-mono ${Math.abs(loading) >= 0.4 ? 'font-bold text-primary' : ''}`}
-                                                >
-                                                    {loading.toFixed(3)}
-                                                </TableCell>
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="font-headline">Factor Loadings (Rotated)</CardTitle>
+                            <CardDescription>Indicates how much each variable is associated with each factor. Loadings &gt; 0.4 are highlighted.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ScrollArea className="w-full h-96">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Variable</TableHead>
+                                            {Array.from({length: analysisResult.n_factors}, (_, i) => (
+                                                <TableHead key={i} className="text-right">Factor {i+1}</TableHead>
                                             ))}
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {analysisResult.variables.map((variable, varIndex) => (
+                                            <TableRow key={variable}>
+                                                <TableCell className="font-medium">{variable}</TableCell>
+                                                {analysisResult.factor_loadings[varIndex].map((loading, factorIndex) => (
+                                                    <TableCell 
+                                                        key={factorIndex} 
+                                                        className={`text-right font-mono ${Math.abs(loading) >= 0.4 ? 'font-bold text-primary' : ''}`}
+                                                    >
+                                                        {loading.toFixed(3)}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                </div>
                 </>
             )}
 
