@@ -14,7 +14,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '../ui/table';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line, CartesianGrid } from 'recharts';
+import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line, CartesianGrid, Area } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -148,7 +148,7 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
     const forecastChartData = useMemo(() => {
         if (!results || !timeCol || !valueCol) return [];
         const originalData = data.map(d => ({
-            date: new Date(d[timeCol] as string).getTime(),
+            date: new Date(d[timeCol] as any).getTime(),
             [valueCol]: d[valueCol!]
         }));
         
@@ -163,7 +163,7 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
     }, [results, data, timeCol, valueCol]);
 
     if (!canRun) {
-        const trendExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('trend-analysis'));
+        const trendExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('arima'));
         return (
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
@@ -293,13 +293,23 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
                                             domain={['dataMin', 'dataMax']}
                                             tickFormatter={(unixTime) => new Date(unixTime).toLocaleDateString()}
                                         />
-                                        <YAxis />
+                                        <YAxis domain={['auto', 'auto']} />
                                         <Tooltip content={<ChartTooltipContent />} labelFormatter={(unixTime) => new Date(unixTime).toLocaleDateString()} />
                                         <Legend />
+                                        <defs>
+                                            <linearGradient id="splitColor" x1="0" y1="0" x2="1" y2="0">
+                                                <stop offset="50%" stopColor="hsl(var(--chart-1))" stopOpacity={1} />
+                                                <stop offset="50%" stopColor="hsl(var(--chart-2))" stopOpacity={1} />
+                                            </linearGradient>
+                                            <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.1}/>
+                                            </linearGradient>
+                                        </defs>
                                         <Line type="monotone" dataKey={valueCol} stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} name="Original Data" />
-                                        <Line type="monotone" dataKey="Forecast" stroke="hsl(var(--chart-2))" strokeWidth={2} name="Forecast"/>
-                                        <Line type="monotone" dataKey="CI Lower" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" name="95% CI Lower"/>
-                                        <Line type="monotone" dataKey="CI Upper" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" name="95% CI Upper"/>
+                                        <Line type="monotone" dataKey="Forecast" stroke="hsl(var(--chart-2))" strokeWidth={2} name="Forecast" dot={false}/>
+                                        <Area type="monotone" dataKey="CI Upper" stackId="1" strokeWidth={0} fill="url(#fill)" />
+                                        <Area type="monotone" dataKey="CI Lower" stackId="1" strokeWidth={0} fill="url(#fill)" />
                                     </RechartsLineChart>
                                 </ResponsiveContainer>
                              </ChartContainer>

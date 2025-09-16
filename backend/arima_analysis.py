@@ -75,8 +75,17 @@ def main():
         if exog_data is not None:
              # Simple forecasting for exog: assume last value persists
              last_exog_values = exog_data.iloc[-1]
-             exog_forecast_index = pd.date_range(start=series.index[-1] + series.index.freq, periods=forecast_periods, freq=series.index.freq)
-             exog_forecast = pd.DataFrame([last_exog_values.values] * forecast_periods, index=exog_forecast_index, columns=exog_cols)
+             
+             # Attempt to infer frequency for forecasting index
+             inferred_freq = pd.infer_freq(series.index)
+             if not inferred_freq:
+                 # If frequency cannot be inferred (e.g., irregular time series), calculate the average difference
+                 avg_diff = np.mean(np.diff(series.index.values))
+                 forecast_index = [series.index[-1] + (i+1)*avg_diff for i in range(forecast_periods)]
+             else:
+                 forecast_index = pd.date_range(start=series.index[-1], periods=forecast_periods + 1, freq=inferred_freq)[1:]
+
+             exog_forecast = pd.DataFrame([last_exog_values.values] * forecast_periods, index=forecast_index, columns=exog_cols)
 
 
         forecast = model_fit.get_forecast(steps=forecast_periods, exog=exog_forecast)
