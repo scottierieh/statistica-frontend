@@ -53,6 +53,7 @@ import {
   LineChart,
   Layers,
   Map,
+  Repeat,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -80,7 +81,7 @@ import ManovaPage from './pages/manova-page';
 import RegressionPage from './pages/regression-page';
 import LogisticRegressionPage from './pages/logistic-regression-page';
 import KMeansPage from './pages/kmeans-page';
-import FrequencyAnalysisPage from './pages/frequency-analysis-page';
+import FrequencyAnalysisPage from './pages/frequency-page';
 import CrosstabPage from './pages/crosstab-page';
 import SemPage from './pages/sem-page';
 import ConjointAnalysisPage from './pages/conjoint-analysis-page';
@@ -107,8 +108,9 @@ import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
 import ArimaPage from './pages/arima-page';
 import AcfPacfPage from './pages/acf-pacf-page';
 import MdsPage from './pages/mds-page';
+import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'autoregressive' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | 'mds' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'autoregressive' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | 'mds' | 'rm-anova' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -131,6 +133,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     't-test': TTestPage,
     hca: HcaPage,
     manova: ManovaPage,
+    'rm-anova': RepeatedMeasuresAnovaPage,
     regression: RegressionPage,
     'logistic-regression': LogisticRegressionPage,
     glm: GlmPage,
@@ -180,6 +183,7 @@ const analysisMenu = [
           { id: 't-test', label: 't-Test' },
           { id: 'one-way-anova', label: 'One-Way ANOVA' },
           { id: 'two-way-anova', label: 'Two-Way ANOVA' },
+          { id: 'rm-anova', label: 'Repeated Measures ANOVA' },
           { id: 'ancova', label: 'ANCOVA' },
           { id: 'manova', label: 'MANOVA' },
         ]
