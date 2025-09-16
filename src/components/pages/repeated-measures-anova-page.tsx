@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -98,7 +97,7 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
             const response = await fetch('/api/analysis/repeated-measures-anova', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, subjectCol, withinCols, betweenCol })
+                body: JSON.stringify({ data, subjectCol, withinCols, betweenCol, dependentVar: 'measurement' })
             });
 
             if (!response.ok) {
@@ -207,7 +206,7 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                 </CardFooter>
             </Card>
 
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full" /></CardContent></Card>}
+            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
             {results && analysisResult && (
                 <div className="space-y-4">

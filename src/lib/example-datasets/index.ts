@@ -1,27 +1,26 @@
-
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map } from "lucide-react";
-import { likertScaleData } from "./example-datasets/likert-scale-data";
-import { studentPerformanceData } from "./example-datasets/student-performance";
-import { workStressData } from "./example-datasets/work-stress-data";
-import { stressSupportData } from "./example-datasets/stress-support-data";
-import { cfaData } from "./example-datasets/cfa-data";
-import { nonparametricData } from "./example-datasets/nonparametric-data";
-import { customerSegmentsData } from "./example-datasets/customer-segments";
-import { manovaData } from "./example-datasets/manova-data";
-import { tTestData } from "./example-datasets/t-test-data";
-import { regressionData } from "./example-datasets/regression-data";
-import { semData } from "./example-datasets/sem-data";
-import { conjointSmartphoneData } from "./example-datasets/conjoint-smartphone-data";
-import { ipaRestaurantData } from "./example-datasets/ipa-restaurant-data";
-import { admissionData } from "./example-datasets/admission-data";
-import { survivalData } from "./example-datasets/survival-data";
-import { twoWayAnovaData } from "./example-datasets/two-way-anova-data";
-import { abTestData } from "./example-datasets/ab-test-data";
-import { gbmClassificationData, gbmRegressionData } from "./example-datasets/gbm-data";
-import { metaAnalysisData } from "./example-datasets/meta-analysis-data";
-import { timeSeriesData } from "./example-datasets/time-series-data";
-import { irisData } from "./example-datasets/iris-data";
-import { tipsData } from "./example-datasets/tips-data";
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat } from "lucide-react";
+import { likertScaleData } from "./likert-scale-data";
+import { studentPerformanceData } from "./student-performance";
+import { workStressData } from "./work-stress-data";
+import { stressSupportData } from "./stress-support-data";
+import { cfaData } from "./cfa-data";
+import { nonparametricData } from "./nonparametric-data";
+import { customerSegmentsData } from "./customer-segments";
+import { manovaData } from "./manova-data";
+import { tTestData } from "./t-test-data";
+import { regressionData } from "./regression-data";
+import { semData } from "./sem-data";
+import { conjointSmartphoneData } from "./conjoint-smartphone-data";
+import { ipaRestaurantData } from "./ipa-restaurant-data";
+import { admissionData } from "./admission-data";
+import { survivalData } from "./survival-data";
+import { twoWayAnovaData } from "./two-way-anova-data";
+import { abTestData } from "./ab-test-data";
+import { gbmClassificationData, gbmRegressionData } from "./gbm-data";
+import { metaAnalysisData } from "./meta-analysis-data";
+import { timeSeriesData } from "./time-series-data";
+import { irisData } from "./iris-data";
+import { tipsData } from "./tips-data";
 
 
 
@@ -36,7 +35,7 @@ import { tipsData } from "./example-datasets/tips-data";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | string;
 
 
 export interface ExampleDataSet {
@@ -225,7 +224,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Non-Parametric Suite',
         description: 'A unified dataset for Mann-Whitney, Wilcoxon, Kruskal-Wallis, and Friedman tests.',
         icon: FlaskConical,
-        analysisTypes: ['stats', 'nonparametric', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman', 'mcnemar'],
+        analysisTypes: ['stats', 'nonparametric', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman', 'mcnemar', 'rm-anova'],
         recommendedAnalysis: 'nonparametric',
         data: nonparametricData,
     },
