@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -323,6 +324,16 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
             {analysisResult && results && (
                 <>
+                    {analysisResult.plot && (
+                         <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Analysis Summary</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Image src={analysisResult.plot} alt="CFA Results Plot" width={1400} height={1000} className="w-full rounded-md border"/>
+                            </CardContent>
+                        </Card>
+                    )}
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">Model Fit Summary</CardTitle>

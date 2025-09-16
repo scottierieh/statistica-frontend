@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -16,6 +17,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
 import { Skeleton } from '../ui/skeleton';
+import Image from 'next/image';
 
 interface LatentVariable {
     id: string;
@@ -371,6 +373,16 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
             
              {results ? (
                 <div className="space-y-4">
+                    {analysisResult?.plot && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Analysis Summary Plot</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Image src={analysisResult.plot} alt="SEM Results Plot" width={1500} height={700} className="w-full rounded-md border" />
+                            </CardContent>
+                        </Card>
+                    )}
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">Model Fit Summary</CardTitle>

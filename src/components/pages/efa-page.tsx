@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -13,18 +14,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import {
-  ResponsiveContainer,
-  BarChart,
-  XAxis,
-  YAxis,
-  Bar,
-  LineChart,
-  Line,
-  CartesianGrid,
-  Tooltip,
-} from 'recharts';
+import Image from 'next/image';
 
 // Type definitions for the EFA results
 interface EfaResults {
@@ -43,6 +33,7 @@ interface EfaResults {
     };
     variables: string[];
     n_factors: number;
+    plot?: string;
 }
 
 
@@ -259,8 +250,6 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
         )
     }
     
-    const screeData = analysisResult?.eigenvalues.map((ev, i) => ({ name: `Factor ${i + 1}`, Eigenvalue: ev }));
-
     return (
         <div className="flex flex-col gap-4">
             <Card>
@@ -303,6 +292,16 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
 
             {analysisResult && (
                 <>
+                {analysisResult.plot && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Visual Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Image src={analysisResult.plot} alt="EFA Visual Summary" width={1400} height={600} className="w-full rounded-md border" />
+                        </CardContent>
+                    </Card>
+                )}
                 <div className="grid lg:grid-cols-3 gap-4">
                     <Card className="lg:col-span-1">
                         <CardHeader>
@@ -333,19 +332,27 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                     </Card>
                     <Card className="lg:col-span-2">
                         <CardHeader>
-                            <CardTitle className="font-headline">Scree Plot</CardTitle>
-                            <CardDescription>Helps determine the number of factors by finding the "elbow" point.</CardDescription>
+                            <CardTitle className="font-headline">Variance Explained by Factors</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <ChartContainer config={{}} className="w-full h-48">
-                                <LineChart data={screeData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                                    <CartesianGrid vertical={false} />
-                                    <XAxis dataKey="name" tick={{fontSize: 10}}/>
-                                    <YAxis dataKey="Eigenvalue" domain={['auto', 'auto']} tick={{fontSize: 10}} />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Line type="monotone" dataKey="Eigenvalue" stroke="hsl(var(--primary))" strokeWidth={2} />
-                                </LineChart>
-                            </ChartContainer>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Factor</TableHead>
+                                        <TableHead className="text-right">% of Variance</TableHead>
+                                        <TableHead className="text-right">Cumulative %</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {analysisResult.variance_explained.per_factor.map((variance, i) => (
+                                         <TableRow key={i}>
+                                            <TableCell>Factor {i+1}</TableCell>
+                                            <TableCell className="text-right font-mono">{variance.toFixed(2)}%</TableCell>
+                                            <TableCell className="text-right font-mono">{analysisResult.variance_explained.cumulative[i].toFixed(2)}%</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         </CardContent>
                     </Card>
                 </div>
@@ -385,33 +392,6 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                         </ScrollArea>
                     </CardContent>
                 </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Variance Explained</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Factor</TableHead>
-                                    <TableHead className="text-right">% of Variance</TableHead>
-                                    <TableHead className="text-right">Cumulative %</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {analysisResult.variance_explained.per_factor.map((variance, i) => (
-                                     <TableRow key={i}>
-                                        <TableCell>Factor {i+1}</TableCell>
-                                        <TableCell className="text-right font-mono">{variance.toFixed(2)}%</TableCell>
-                                        <TableCell className="text-right font-mono">{analysisResult.variance_explained.cumulative[i].toFixed(2)}%</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-
                 </>
             )}
 

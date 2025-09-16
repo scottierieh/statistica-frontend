@@ -17,7 +17,7 @@ warnings.filterwarnings('ignore')
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
+    elif isinstance(obj, (float, np.floating)):
         if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
@@ -33,10 +33,10 @@ class ConfirmatoryFactorAnalysis:
         self.alpha = alpha
         self.models = {}
         self.results = {}
-        self.n_obs = len(data)
         
         numeric_cols = data.select_dtypes(include=[np.number]).columns
-        self.data = data[numeric_cols]
+        self.data = data[numeric_cols].dropna()
+        self.n_obs = len(self.data)
         
         self.corr_matrix = self.data.corr()
         self.cov_matrix = self.data.cov()
@@ -82,28 +82,31 @@ class ConfirmatoryFactorAnalysis:
         
         param_setup = self._setup_parameters(model_spec, indicators)
         
-        results = self._estimate_ml(sample_cov, param_setup, model_spec)
+        estimation_results = self._estimate_ml(sample_cov, param_setup, model_spec, n_obs_used)
         
-        implied_cov = self._calculate_implied_covariance(results['parameters'])
+        implied_cov = self._calculate_implied_covariance(estimation_results['parameters'])
         
         fit_indices = self._calculate_fit_indices(
-            sample_cov, implied_cov, results.get('chi_square', 0), 
-            results.get('df', 1), n_obs_used, len(indicators)
+            sample_cov, implied_cov, estimation_results.get('chi_square', 0), 
+            estimation_results.get('df', 1), n_obs_used, len(indicators)
         )
         
-        std_solution = self._calculate_standardized_solution(results['parameters'], implied_cov) if standardized else None
+        std_solution = self._calculate_standardized_solution(estimation_results['parameters'], implied_cov) if standardized else None
         
         reliability = self._calculate_reliability(std_solution, param_setup, model_spec) if std_solution else {}
         
+        discriminant_validity = self._calculate_discriminant_validity(reliability, std_solution) if reliability and std_solution else {}
+
         cfa_results = {
             'model_name': model_name,
             'model_spec': model_spec,
             'n_observations': n_obs_used,
-            'parameters': results['parameters'],
+            'parameters': estimation_results['parameters'],
             'standardized_solution': std_solution,
             'fit_indices': fit_indices,
             'reliability': reliability,
-            'convergence': results.get('convergence', False),
+            'discriminant_validity': discriminant_validity,
+            'convergence': estimation_results.get('convergence', False),
         }
         
         self.results[model_name] = cfa_results
@@ -153,7 +156,7 @@ class ConfirmatoryFactorAnalysis:
             'n_vars': n_vars, 'n_factors': n_factors
         }
 
-    def _estimate_ml(self, sample_cov, param_setup, model_spec):
+    def _estimate_ml(self, sample_cov, param_setup, model_spec, n_obs):
         def ml_objective(params):
             param_matrices = self._unpack_parameters(params, param_setup)
             implied_cov = self._calculate_implied_covariance(param_matrices)
@@ -173,7 +176,7 @@ class ConfirmatoryFactorAnalysis:
         
         return {
             'parameters': final_params,
-            'chi_square': (self.n_obs - 1) * result.fun,
+            'chi_square': (n_obs - 1) * result.fun,
             'df': df, 'convergence': result.success,
         }
 
@@ -206,18 +209,31 @@ class ConfirmatoryFactorAnalysis:
         n_free_params = sum(np.sum(param_setup[f'{k}_free']) for k in ['lambda', 'phi', 'theta'])
         return n_sample_stats - n_free_params
     
+    def _calculate_baseline_chi_square(self, sample_cov, n_obs):
+        try:
+            n_vars = sample_cov.shape[0]
+            log_det_sample = np.linalg.slogdet(sample_cov)[1]
+            log_det_diag = np.sum(np.log(np.diag(sample_cov)))
+            return (n_obs - 1) * (log_det_diag - log_det_sample)
+        except:
+            return np.inf
+
     def _calculate_fit_indices(self, sample_cov, implied_cov, chi_square, df, n_obs, n_vars):
         S = sample_cov.values
-        independence_chi = (n_obs - 1) * (np.sum(np.log(np.diag(S))) - np.log(linalg.det(S))) if linalg.det(S) > 0 else 0
-        independence_df = n_vars * (n_vars - 1) // 2
-
-        cfi = 1 - max(0, chi_square - df) / max(0, independence_chi - independence_df) if independence_chi > df else 1.0
         
-        tli_denominator = (independence_chi / independence_df) - 1 if independence_df > 0 else 0
-        if df > 0 and independence_df > 0 and tli_denominator > 1e-9:
-            tli = ((independence_chi / independence_df) - (chi_square / df)) / tli_denominator
-        else:
-            tli = 1.0
+        baseline_chi_square = self._calculate_baseline_chi_square(S, n_obs)
+        baseline_df = n_vars * (n_vars - 1) // 2
+
+        cfi = 1.0
+        if baseline_df > df and baseline_chi_square > chi_square:
+            cfi = 1 - max(0, chi_square - df) / max(0, baseline_chi_square - baseline_df)
+
+        tli = 1.0
+        if baseline_df > 0 and df > 0:
+            tli_num = (baseline_chi_square / baseline_df) - (chi_square / df)
+            tli_den = (baseline_chi_square / baseline_df) - 1
+            if tli_den > 0:
+                tli = tli_num / tli_den
         
         rmsea = np.sqrt(max(0, (chi_square - df) / (df * (n_obs - 1)))) if df > 0 else 0.0
         
@@ -253,6 +269,109 @@ class ConfirmatoryFactorAnalysis:
             
             reliability[factor_name] = {'composite_reliability': cr, 'average_variance_extracted': ave}
         return reliability
+    
+    def _calculate_discriminant_validity(self, reliability, std_solution):
+        factors = list(reliability.keys())
+        n_factors = len(factors)
+        if n_factors < 2:
+            return {'message': 'Discriminant validity requires at least two factors.'}
+
+        # Fornell-Larcker criterion
+        sqrt_aves = {factor: np.sqrt(rel['average_variance_extracted']) for factor, rel in reliability.items()}
+        correlations = std_solution['factor_correlations']
+        
+        fornell_larcker_matrix = pd.DataFrame(index=factors, columns=factors, dtype=float)
+        for i, f1 in enumerate(factors):
+            for j, f2 in enumerate(factors):
+                if i == j:
+                    fornell_larcker_matrix.loc[f1, f2] = sqrt_aves[f1]
+                else:
+                    fornell_larcker_matrix.loc[f1, f2] = correlations[i, j]
+
+        return {
+            'fornell_larcker_criterion': fornell_larcker_matrix.to_dict('index')
+        }
+
+    def plot_cfa_results(self, cfa_results):
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        fig.suptitle(f'CFA Results: {cfa_results["model_name"]}', fontsize=16, fontweight='bold')
+
+        # Fit Indices
+        fit = cfa_results['fit_indices']
+        axes[0,0].axis('off')
+        fit_text = (
+            f"Model Fit Indices:\n\n"
+            f"χ²({fit['df']}) = {fit['chi_square']:.2f}, p = {fit['p_value']:.3f}\n"
+            f"CFI = {fit['cfi']:.3f}\n"
+            f"TLI = {fit['tli']:.3f}\n"
+            f"RMSEA = {fit['rmsea']:.3f}\n"
+            f"SRMR = {fit['srmr']:.3f}"
+        )
+        axes[0,0].text(0.1, 0.5, fit_text, va='center', fontsize=12)
+
+        # Reliability
+        reliability = cfa_results['reliability']
+        ax = axes[0,1]
+        factors = list(reliability.keys())
+        cr_values = [r['composite_reliability'] for r in reliability.values()]
+        ave_values = [r['average_variance_extracted'] for r in reliability.values()]
+        
+        x = np.arange(len(factors))
+        width = 0.35
+        ax.bar(x - width/2, cr_values, width, label='Composite Reliability (CR)', color='skyblue')
+        ax.bar(x + width/2, ave_values, width, label='Avg. Variance Extracted (AVE)', color='salmon')
+        ax.axhline(0.7, color='grey', linestyle='--', label='CR Threshold (0.7)')
+        ax.axhline(0.5, color='black', linestyle=':', label='AVE Threshold (0.5)')
+        ax.set_ylabel('Value')
+        ax.set_title('Reliability & Convergent Validity')
+        ax.set_xticks(x)
+        ax.set_xticklabels(factors, rotation=45, ha="right")
+        ax.legend()
+        ax.grid(True, axis='y', linestyle='--', alpha=0.6)
+
+        # Factor Loadings
+        ax = axes[1,0]
+        std_sol = cfa_results.get('standardized_solution')
+        if std_sol:
+            loadings_df = pd.DataFrame(std_sol['loadings'], 
+                                       index=cfa_results['model_spec']['indicators'],
+                                       columns=cfa_results['model_spec']['factors'])
+            
+            # Mask zero values
+            loadings_to_plot = loadings_df.where(loadings_df.abs() > 1e-6)
+            
+            plt.sca(ax)
+            plt.imshow(loadings_to_plot, cmap='viridis', aspect='auto')
+            plt.colorbar(label='Standardized Loading')
+            plt.yticks(ticks=np.arange(len(loadings_to_plot.index)), labels=loadings_to_plot.index)
+            plt.xticks(ticks=np.arange(len(loadings_to_plot.columns)), labels=loadings_to_plot.columns, rotation=45, ha="right")
+            ax.set_title('Factor Loadings')
+            
+            for (j, i), label in np.ndenumerate(loadings_to_plot):
+                if not pd.isna(label):
+                    ax.text(i, j, f'{label:.2f}', ha='center', va='center', color='white' if abs(label) > 0.5 else 'black')
+
+        # Factor Correlations
+        ax = axes[1,1]
+        if std_sol:
+            corr_df = pd.DataFrame(std_sol['factor_correlations'],
+                                   index=cfa_results['model_spec']['factors'],
+                                   columns=cfa_results['model_spec']['factors'])
+            
+            mask = np.triu(np.ones_like(corr_df, dtype=bool))
+            
+            import seaborn as sns
+            sns.heatmap(corr_df, annot=True, fmt=".2f", cmap='coolwarm', ax=ax, mask=mask, vmin=-1, vmax=1)
+            ax.set_title('Factor Correlation Matrix')
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        
+        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+
 
 def main():
     try:
@@ -269,10 +388,11 @@ def main():
         
         cfa.specify_model(model_name, model_spec)
         results = cfa.run_cfa(model_name)
+        plot_image = cfa.plot_cfa_results(results)
 
         response = {
             'results': results,
-            'plot': None
+            'plot': plot_image
         }
         
         print(json.dumps(response, default=_to_native_type))
@@ -283,3 +403,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

@@ -1,15 +1,17 @@
 
+
 import sys
 import json
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import FactorAnalysis
 from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
+    elif isinstance(obj, (float, np.floating)):
         if np.isnan(obj):
             return None
         return float(obj)
@@ -53,6 +55,50 @@ def _calculate_kmo(X):
     kmo_den = kmo_num + np.sum(np.square(A))
     
     return kmo_num / kmo_den if kmo_den else 0
+
+def plot_efa_results(eigenvalues, loadings, variables):
+    import io
+    import base64
+    
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    fig.suptitle('Exploratory Factor Analysis Results', fontsize=16)
+
+    # Scree Plot
+    n_comps = len(eigenvalues)
+    ax = axes[0]
+    ax.bar(range(1, n_comps + 1), eigenvalues, alpha=0.7, align='center', label='Eigenvalues')
+    ax.axhline(y=1, color='gray', linestyle='--', label='Eigenvalue = 1 (Kaiser rule)')
+    ax.set_xlabel('Factors')
+    ax.set_ylabel('Eigenvalues')
+    ax.set_title('Scree Plot')
+    ax.set_xticks(range(1, n_comps + 1))
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    # Loadings Plot for first 2 factors
+    ax = axes[1]
+    if loadings.shape[1] >= 2:
+        ax.scatter(loadings[:, 0], loadings[:, 1], alpha=0.8)
+        ax.axhline(0, color='grey', lw=1)
+        ax.axvline(0, color='grey', lw=1)
+        ax.set_xlabel('Factor 1 Loadings')
+        ax.set_ylabel('Factor 2 Loadings')
+        ax.set_title('Factor Loadings (F1 vs F2)')
+        ax.grid(True, alpha=0.3)
+        for i, var in enumerate(variables):
+            ax.annotate(var, (loadings[i, 0], loadings[i, 1]), textcoords="offset points", xytext=(0,5), ha='center', fontsize=9)
+    else:
+        ax.text(0.5, 0.5, 'Not enough factors to plot.', ha='center', va='center')
+        ax.set_axis_off()
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+
 
 def main():
     try:
@@ -110,6 +156,8 @@ def main():
                 'variables': [items[j] for j in high_loadings_indices],
                 'loadings': [factor_loadings[j] for j in high_loadings_indices]
             }
+        
+        plot_image = plot_efa_results(eigenvalues_full[:len(items)], loadings, items)
 
         response = {
             "adequacy": {
@@ -128,7 +176,8 @@ def main():
             "communalities": communalities.tolist(),
             "interpretation": interpretation,
             "variables": items,
-            "n_factors": n_factors
+            "n_factors": n_factors,
+            "plot": plot_image
         }
 
         print(json.dumps(response, default=_to_native_type))
