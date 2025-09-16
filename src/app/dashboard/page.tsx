@@ -37,15 +37,15 @@ export default function DashboardHubPage() {
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2">
                             <BrainCircuit className="h-5 w-5"/>
-                            Data Mining
+                            Deep Learning
                         </CardTitle>
                         <CardDescription>
-                            Discover patterns and insights from your data using advanced machine learning models.
+                            Build, train, and deploy deep learning models with a powerful, intuitive interface.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Button asChild className="w-full">
-                            <Link href="/dashboard/data-mining" target="_blank" rel="noopener noreferrer">Launch Data Mining</Link>
+                            <Link href="/dashboard/deep-learning" target="_blank" rel="noopener noreferrer">Launch Deep Learning</Link>
                         </Button>
                     </CardContent>
                 </Card>
