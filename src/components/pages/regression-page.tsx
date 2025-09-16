@@ -317,7 +317,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                     </Select>
                                     <div className='mt-4'>
                                         <Label htmlFor="ridge-alpha">Alpha (Regularization Strength)</Label>
-                                        <Input id="ridge-alpha" type="number" value={ridgeAlpha} onChange={(e) => setRidgeAlpha(Number(e.target.value))} min="0" step="0.1" className="w-32" />
+                                        <Input id="ridge-alpha" type="number" value={ridgeAlpha ?? ''} onChange={(e) => setRidgeAlpha(Number(e.target.value))} min="0" step="0.1" className="w-32" />
                                    </div>
                                 </div>
                                 {renderMultiFeatureSelector()}
@@ -333,7 +333,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                     </Select>
                                     <div className='mt-4'>
                                         <Label htmlFor="lasso-alpha">Alpha (Regularization Strength)</Label>
-                                        <Input id="lasso-alpha" type="number" value={lassoAlpha} onChange={(e) => setLassoAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
+                                        <Input id="lasso-alpha" type="number" value={lassoAlpha ?? ''} onChange={(e) => setLassoAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
                                    </div>
                                 </div>
                                {renderMultiFeatureSelector()}
