@@ -1,6 +1,7 @@
 
 
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -50,6 +51,7 @@ import {
   GitBranch,
   Smile,
   Scaling,
+  AreaChart,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -98,8 +100,9 @@ import WilcoxonPage from './pages/wilcoxon-page';
 import KruskalWallisPage from './pages/kruskal-wallis-page';
 import FriedmanPage from './pages/friedman-page';
 import MetaAnalysisPage from './pages/meta-analysis-page';
+import TrendAnalysisPage from './pages/trend-analysis-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -136,6 +139,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     gbm: GbmPage,
     sentiment: SentimentAnalysisPage,
     'meta-analysis': MetaAnalysisPage,
+    'trend-analysis': TrendAnalysisPage,
 };
 
 const analysisMenu = [
@@ -208,6 +212,13 @@ const analysisMenu = [
        { id: 'sem', label: 'Structural Equation Modeling (SEM)' },
        { id: 'mediation', label: 'Mediation Analysis' },
        { id: 'moderation', label: 'Moderation Analysis' },
+    ]
+  },
+  {
+    field: 'Time Series',
+    icon: AreaChart,
+    methods: [
+      { id: 'trend-analysis', label: 'Trend Analysis' },
     ]
   },
   {
