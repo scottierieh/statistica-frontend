@@ -19,17 +19,7 @@ import Image from 'next/image';
 
 
 // CFA Results Types
-interface FitIndices {
-    chi_square: number;
-    df: number;
-    p_value: number;
-    cfi: number;
-    tli: number;
-    rmsea: number;
-    srmr: number;
-}
 interface CfaResults {
-    fit_indices: FitIndices;
     standardized_solution?: {
         loadings: number[][];
         factor_correlations: number[][];
@@ -55,18 +45,6 @@ interface CfaResults {
 interface FullCfaResponse {
     results: CfaResults;
     plot: string | null;
-}
-
-const getFitInterpretation = (fit: CfaResults['fit_indices']) => {
-    if (!fit) return { level: "Unknown", color: "bg-gray-400" };
-    const cfiOk = fit.cfi >= 0.95;
-    const tliOk = fit.tli >= 0.95;
-    const rmseaOk = fit.rmsea <= 0.06;
-    const srmrOk = fit.srmr <= 0.08;
-    const count = [cfiOk, tliOk, rmseaOk, srmrOk].filter(Boolean).length;
-    if (count >= 3) return { level: "Excellent", color: "bg-green-600" };
-    if (fit.cfi >= 0.90 && fit.tli >= 0.90 && fit.rmsea <= 0.08 && fit.srmr <= 0.10) return { level: "Good", color: "bg-yellow-500" };
-    return { level: "Poor", color: "bg-red-500" };
 }
 
 interface Factor {
@@ -330,24 +308,10 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                 <CardTitle className="font-headline">Analysis Summary</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <Image src={analysisResult.plot} alt="CFA Results Plot" width={1400} height={1000} className="w-full rounded-md border"/>
+                                <Image src={analysisResult.plot} alt="CFA Results Plot" width={1400} height={600} className="w-full rounded-md border"/>
                             </CardContent>
                         </Card>
                     )}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Model Fit Summary</CardTitle>
-                            <CardDescription>Overall assessment of how well the specified model fits the data. <Badge className={`${getFitInterpretation(results.fit_indices).color} text-white`}>{getFitInterpretation(results.fit_indices).level}</Badge></CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">CFI</p><p className="text-2xl font-bold">{results.fit_indices.cfi.toFixed(3)}</p></div>
-                                 <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">TLI</p><p className="text-2xl font-bold">{results.fit_indices.tli?.toFixed(3) ?? 'N/A'}</p></div>
-                                 <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSEA</p><p className="text-2xl font-bold">{results.fit_indices.rmsea.toFixed(3)}</p></div>
-                                 <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">SRMR</p><p className="text-2xl font-bold">{results.fit_indices.srmr.toFixed(3)}</p></div>
-                            </div>
-                        </CardContent>
-                    </Card>
                     <div className="grid lg:grid-cols-2 gap-4">
                          <Card>
                             <CardHeader>
@@ -427,3 +391,6 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     );
 }
 
+
+
+    
