@@ -33,7 +33,7 @@ import { timeSeriesData } from "./example-datasets/time-series-data";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | string;
 
 
 export interface ExampleDataSet {
@@ -78,8 +78,8 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Monthly Sales Data',
         description: 'Sample sales data over time, perfect for trend and seasonal analysis.',
         icon: AreaChart,
-        analysisTypes: ['stats', 'trend-analysis'],
-        recommendedAnalysis: 'trend-analysis',
+        analysisTypes: ['stats', 'seasonal-decomposition', 'moving-average', 'exponential-smoothing', 'arima', 'acf-pacf'],
+        recommendedAnalysis: 'seasonal-decomposition',
         data: timeSeriesData,
     },
     {
@@ -113,7 +113,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'A/B Test Conversion',
         description: 'Time on site for two different website designs. Ideal for A/B testing.',
         icon: FlaskConical,
-        analysisTypes: ['t-test', 'stats'],
+        analysisTypes: ['t-test', 'stats', 'mann-whitney', 'homogeneity'],
         recommendedAnalysis: 't-test',
         data: abTestData,
     },
@@ -140,7 +140,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'University Admissions',
         description: 'GRE scores, GPA, and university rank for student admissions.',
         icon: BookOpen,
-        analysisTypes: ['stats', 'logistic-regression', 'correlation', 'glm'],
+        analysisTypes: ['stats', 'logistic-regression', 'correlation', 'glm', 'discriminant'],
         recommendedAnalysis: 'logistic-regression',
         data: admissionData,
     },
@@ -167,7 +167,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Customer Satisfaction Model',
         description: 'Quality, satisfaction, trust, and loyalty data for SEM.',
         icon: Network,
-        analysisTypes: ['stats', 'sem', 'correlation', 'reliability'],
+        analysisTypes: ['stats', 'sem', 'correlation', 'reliability', 'cfa'],
         recommendedAnalysis: 'sem',
         data: semData,
     },
@@ -257,7 +257,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Users,
-        analysisTypes: ['stats', 'correlation', 'one-way-anova', 'visuals', 'discriminant', 'kmeans', 'frequency', 'crosstab', 'pca', 'normality', 'homogeneity'],
+        analysisTypes: ['stats', 'correlation', 'one-way-anova', 'visuals', 'discriminant', 'kmeans', 'frequency', 'crosstab', 'pca', 'normality', 'homogeneity', 'manova'],
         recommendedAnalysis: 'discriminant',
         data: irisData
     },
@@ -266,7 +266,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Restaurant Tips',
         description: 'Tips received by a server, along with customer and bill info.',
         icon: Coffee,
-        analysisTypes: ['stats', 'one-way-anova', 'visuals', 'frequency', 'crosstab', 'normality', 'homogeneity'],
+        analysisTypes: ['stats', 'one-way-anova', 'visuals', 'frequency', 'crosstab', 'normality', 'homogeneity', 't-test'],
         data: tipsData
     },
     {
@@ -274,7 +274,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Student Performance',
         description: 'Study hours, attendance, and previous scores vs. final exam scores.',
         icon: BookOpen,
-        analysisTypes: ['stats', 'correlation', 'visuals', 'ancova', 'normality', 'homogeneity'],
+        analysisTypes: ['stats', 'correlation', 'visuals', 'ancova', 'normality', 'homogeneity', 'regression'],
         recommendedAnalysis: 'correlation',
         data: studentPerformanceData
     }
