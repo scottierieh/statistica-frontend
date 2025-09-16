@@ -77,7 +77,7 @@ import ManovaPage from './pages/manova-page';
 import RegressionPage from './pages/regression-page';
 import LogisticRegressionPage from './pages/logistic-regression-page';
 import KMeansPage from './pages/kmeans-page';
-import FrequencyAnalysisPage from './pages/frequency-analysis-page';
+import FrequencyAnalysisPage from './pages/frequency-page';
 import CrosstabPage from './pages/crosstab-page';
 import SemPage from './pages/sem-page';
 import ConjointAnalysisPage from './pages/conjoint-analysis-page';
@@ -96,6 +96,7 @@ import { cn } from '@/lib/utils';
 import TwoWayAnovaPage from './pages/two-way-anova-page';
 import NonParametricPage from './pages/nonparametric-page';
 import MetaAnalysisPage from './pages/meta-analysis-page';
+import TrendAnalysisPage from './pages/trend-analysis-page';
 import SeasonalDecompositionPage from './pages/seasonal-decomposition-page';
 import NormalityTestPage from './pages/normality-test-page';
 import HomogeneityTestPage from './pages/homogeneity-test-page';
@@ -104,7 +105,7 @@ import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
 import ArimaPage from './pages/arima-page';
 import AcfPacfPage from './pages/acf-pacf-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'arima' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'arima' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -143,6 +144,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     gbm: GbmPage,
     sentiment: SentimentAnalysisPage,
     'meta-analysis': MetaAnalysisPage,
+    'trend-analysis': TrendAnalysisPage,
     'seasonal-decomposition': SeasonalDecompositionPage,
     normality: NormalityTestPage,
     homogeneity: HomogeneityTestPage,
@@ -228,6 +230,7 @@ const analysisMenu = [
     field: 'Time Series',
     icon: AreaChart,
     methods: [
+      { id: 'trend-analysis', label: 'Trend Analysis' },
       { id: 'seasonal-decomposition', label: 'Seasonal Decomposition' },
       { id: 'moving-average', label: 'Moving Average' },
       { id: 'exponential-smoothing', label: 'Exponential Smoothing' },

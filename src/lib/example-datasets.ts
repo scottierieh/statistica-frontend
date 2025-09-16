@@ -78,7 +78,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Monthly Sales Data',
         description: 'Sample sales data over time, perfect for trend and seasonal analysis.',
         icon: AreaChart,
-        analysisTypes: ['stats', 'seasonal-decomposition', 'moving-average', 'exponential-smoothing', 'arima', 'acf-pacf'],
+        analysisTypes: ['stats', 'trend-analysis', 'seasonal-decomposition', 'moving-average', 'exponential-smoothing', 'arima', 'acf-pacf'],
         recommendedAnalysis: 'seasonal-decomposition',
         data: timeSeriesData,
     },
