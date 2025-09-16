@@ -51,6 +51,7 @@ import {
   AreaChart,
   LineChart,
   Layers,
+  Map,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -71,6 +72,7 @@ import EfaPage from './pages/efa-page';
 import CfaPage from './pages/cfa-page';
 import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
+import NonParametricPage from './pages/nonparametric-page';
 import TTestPage from './pages/t-test-page';
 import HcaPage from './pages/hca-page';
 import ManovaPage from './pages/manova-page';
@@ -94,7 +96,6 @@ import DataPreview from './data-preview';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import TwoWayAnovaPage from './pages/two-way-anova-page';
-import NonParametricPage from './pages/nonparametric-page';
 import MetaAnalysisPage from './pages/meta-analysis-page';
 import TrendAnalysisPage from './pages/trend-analysis-page';
 import SeasonalDecompositionPage from './pages/seasonal-decomposition-page';
@@ -104,8 +105,9 @@ import MovingAveragePage from './pages/moving-average-page';
 import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
 import ArimaPage from './pages/arima-page';
 import AcfPacfPage from './pages/acf-pacf-page';
+import MdsPage from './pages/mds-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'arima' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'arima' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | 'mds' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -152,6 +154,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'exponential-smoothing': ExponentialSmoothingPage,
     arima: ArimaPage,
     'acf-pacf': AcfPacfPage,
+    mds: MdsPage,
 };
 
 const analysisMenu = [
@@ -212,6 +215,7 @@ const analysisMenu = [
       { id: 'hca', label: 'Hierarchical Clustering' },
       { id: 'discriminant', label: 'Discriminant Analysis' },
       { id: 'pca', label: 'Principal Component Analysis (PCA)' },
+      { id: 'mds', label: 'Multidimensional Scaling (MDS)' },
     ]
   },
   {
