@@ -33,12 +33,14 @@ interface FullAnalysisResponse {
 interface MdsPageProps {
     data: DataSet;
     numericHeaders: string[];
+    categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function MdsPage({ data, numericHeaders, onLoadExample }: MdsPageProps) {
+export default function MdsPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: MdsPageProps) {
     const { toast } = useToast();
     const [selectedVars, setSelectedVars] = useState<string[]>(numericHeaders);
+    const [groupVar, setGroupVar] = useState<string | undefined>();
     const [isMetric, setIsMetric] = useState(true);
     const [distanceMetric, setDistanceMetric] = useState('euclidean');
     
@@ -49,6 +51,7 @@ export default function MdsPage({ data, numericHeaders, onLoadExample }: MdsPage
 
     useEffect(() => {
         setSelectedVars(numericHeaders);
+        setGroupVar(undefined);
         setAnalysisResult(null);
     }, [data, numericHeaders]);
 
@@ -73,7 +76,8 @@ export default function MdsPage({ data, numericHeaders, onLoadExample }: MdsPage
                     data,
                     variables: selectedVars,
                     metric: isMetric,
-                    distanceMetric
+                    distanceMetric,
+                    groupVar: groupVar,
                 })
             });
 
@@ -94,7 +98,7 @@ export default function MdsPage({ data, numericHeaders, onLoadExample }: MdsPage
         } finally {
             setIsLoading(false);
         }
-    }, [data, selectedVars, isMetric, distanceMetric, toast]);
+    }, [data, selectedVars, isMetric, distanceMetric, groupVar, toast]);
 
     if (!canRun) {
         const mdsExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('mds'));
@@ -146,7 +150,7 @@ export default function MdsPage({ data, numericHeaders, onLoadExample }: MdsPage
                           </div>
                         </ScrollArea>
                     </div>
-                     <div className="grid md:grid-cols-2 gap-4">
+                     <div className="grid md:grid-cols-3 gap-4 items-center">
                         <div>
                             <Label>Distance Metric</Label>
                             <Select value={distanceMetric} onValueChange={setDistanceMetric}>
@@ -158,9 +162,19 @@ export default function MdsPage({ data, numericHeaders, onLoadExample }: MdsPage
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div>
+                           <Label>Group by (Color)</Label>
+                           <Select value={groupVar} onValueChange={(v) => setGroupVar(v === 'none' ? undefined : v)}>
+                             <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="none">None</SelectItem>
+                               {categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                             </SelectContent>
+                           </Select>
+                        </div>
+                        <div className="flex items-center space-x-2 pt-6">
                            <Switch id="metric-switch" checked={isMetric} onCheckedChange={setIsMetric}/>
-                           <Label htmlFor="metric-switch">Use Metric MDS (vs. Non-metric)</Label>
+                           <Label htmlFor="metric-switch">Use Metric MDS</Label>
                         </div>
                     </div>
                 </CardContent>
@@ -181,8 +195,9 @@ export default function MdsPage({ data, numericHeaders, onLoadExample }: MdsPage
                             A 2D spatial map of your data. Stress: <span className="font-bold font-mono">{results.stress.toFixed(4)}</span> (lower is better).
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <Image src={analysisResult.plot} alt="MDS Plot" width={800} height={800} className="w-full max-w-2xl mx-auto rounded-md border"/>
+                    <CardContent className="grid md:grid-cols-2 gap-4">
+                        <Image src={analysisResult.plot} alt="MDS Plot" width={800} height={800} className="w-full mx-auto rounded-md border"/>
+                        <Image src={(analysisResult as any).shepard_plot} alt="Shepard Diagram" width={800} height={800} className="w-full mx-auto rounded-md border"/>
                     </CardContent>
                 </Card>
             )}

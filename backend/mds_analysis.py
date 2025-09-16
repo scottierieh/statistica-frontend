@@ -35,19 +35,24 @@ def main():
         n_components = int(payload.get('nComponents', 2))
         metric = payload.get('metric', True)
         distance_metric = payload.get('distanceMetric', 'euclidean')
+        group_var = payload.get('groupVar')
 
         if not data or not variables:
             raise ValueError("Missing 'data' or 'variables'")
 
         df = pd.DataFrame(data)
-        df_selected = df[variables].dropna()
+
+        # Select only relevant columns for analysis and drop rows with missing values
+        analysis_cols = variables + ([group_var] if group_var else [])
+        df_selected = df[analysis_cols].dropna()
 
         if df_selected.shape[0] < 2:
             raise ValueError("Not enough valid data points for analysis.")
 
-        # Standardize the data
+        # Standardize the numeric data
+        X = df_selected[variables]
         scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(df_selected)
+        X_scaled = scaler.fit_transform(X)
 
         # Calculate dissimilarity matrix
         dissimilarity_matrix = pairwise_distances(X_scaled, metric=distance_metric)
@@ -55,18 +60,13 @@ def main():
         # Perform MDS
         mds = MDS(n_components=n_components, metric=metric, dissimilarity='precomputed', random_state=42, normalized_stress='auto')
         coordinates = mds.fit_transform(dissimilarity_matrix)
-
         stress = mds.stress_
-        
-        # --- Plotting ---
+
+        # --- MDS Plot ---
         plt.figure(figsize=(8, 8))
-        sns.scatterplot(x=coordinates[:, 0], y=coordinates[:, 1], s=80, alpha=0.7)
+        plot_hue = df_selected[group_var] if group_var else None
         
-        # Optionally add labels if an ID column is provided
-        if 'id_col' in payload and payload['id_col'] in df.columns:
-            labels = df.loc[df_selected.index][payload['id_col']]
-            for i, label in enumerate(labels):
-                plt.text(coordinates[i, 0] + 0.01, coordinates[i, 1] + 0.01, label, fontsize=9)
+        sns.scatterplot(x=coordinates[:, 0], y=coordinates[:, 1], hue=plot_hue, s=80, alpha=0.7, palette='viridis' if group_var else None)
         
         plt.title(f'MDS Plot ({distance_metric.capitalize()} Distance)')
         plt.xlabel('Dimension 1')
@@ -76,11 +76,38 @@ def main():
         plt.axvline(0, color='grey', lw=1)
         plt.tight_layout()
         
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        buf_mds = io.BytesIO()
+        plt.savefig(buf_mds, format='png')
         plt.close()
-        buf.seek(0)
-        plot_image = base64.b64encode(buf.read()).decode('utf-8')
+        buf_mds.seek(0)
+        plot_image_mds = base64.b64encode(buf_mds.read()).decode('utf-8')
+
+        # --- Shepard Diagram (Stress Plot) ---
+        disparities = mds.dissimilarity_matrix_.flatten()
+        original_dissimilarities = dissimilarity_matrix.flatten()
+        
+        # Keep only the upper triangle to avoid duplicates
+        indices = np.triu_indices(n=len(X), k=1)
+        disparities_upper = dissimilarity_matrix[indices]
+        coordinates_dist_upper = pairwise_distances(coordinates)[indices]
+        
+        plt.figure(figsize=(8, 8))
+        sns.scatterplot(x=disparities_upper, y=coordinates_dist_upper, alpha=0.5)
+        # Add a y=x line
+        min_val = min(np.min(disparities_upper), np.min(coordinates_dist_upper))
+        max_val = max(np.max(disparities_upper), np.max(coordinates_dist_upper))
+        plt.plot([min_val, max_val], [min_val, max_val], 'r--')
+        plt.title('Shepard Diagram (Stress Plot)')
+        plt.xlabel('Original Dissimilarities')
+        plt.ylabel('Distances in MDS Configuration')
+        plt.grid(True, linestyle='--', alpha=0.6)
+        plt.tight_layout()
+
+        buf_shepard = io.BytesIO()
+        plt.savefig(buf_shepard, format='png')
+        plt.close()
+        buf_shepard.seek(0)
+        plot_image_shepard = base64.b64encode(buf_shepard.read()).decode('utf-8')
 
         response = {
             'results': {
@@ -91,7 +118,8 @@ def main():
                 'distance_metric': distance_metric,
                 'n_observations': X_scaled.shape[0]
             },
-            'plot': f"data:image/png;base64,{plot_image}"
+            'plot': f"data:image/png;base64,{plot_image_mds}",
+            'shepard_plot': f"data:image/png;base64,{plot_image_shepard}"
         }
         
         print(json.dumps(response, default=_to_native_type))

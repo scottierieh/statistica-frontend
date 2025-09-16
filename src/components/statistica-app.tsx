@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -103,11 +104,10 @@ import NormalityTestPage from './pages/normality-test-page';
 import HomogeneityTestPage from './pages/homogeneity-test-page';
 import MovingAveragePage from './pages/moving-average-page';
 import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
-import ArimaPage from './pages/arima-page';
-import AcfPacfPage from './pages/acf-pacf-page';
+import AutoregressivePage from './pages/autoregressive-page';
 import MdsPage from './pages/mds-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'arima' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | 'mds' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'autoregressive' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | 'mds' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -152,7 +152,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     homogeneity: HomogeneityTestPage,
     'moving-average': MovingAveragePage,
     'exponential-smoothing': ExponentialSmoothingPage,
-    arima: ArimaPage,
+    autoregressive: AutoregressivePage,
     'acf-pacf': AcfPacfPage,
     mds: MdsPage,
 };
@@ -238,7 +238,7 @@ const analysisMenu = [
       { id: 'seasonal-decomposition', label: 'Seasonal Decomposition' },
       { id: 'moving-average', label: 'Moving Average' },
       { id: 'exponential-smoothing', label: 'Exponential Smoothing' },
-      { id: 'arima', label: 'Autoregressive Models' },
+      { id: 'autoregressive', label: 'Autoregressive Models' },
       { id: 'acf-pacf', label: 'ACF/PACF Plots' },
     ]
   },
