@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn, spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 
 export async function POST(req: NextRequest) {
@@ -29,7 +29,14 @@ export async function POST(req: NextRequest) {
         if (code !== 0) {
           console.error(`Script exited with code ${code}`);
           console.error(error);
-          resolve(NextResponse.json({ error: `Script failed: ${error}` }, { status: 500 }));
+          try {
+            // Try to parse error from stderr first, as it might be a JSON error response
+            const errorJson = JSON.parse(error);
+            resolve(NextResponse.json({ error: errorJson.error || 'Unknown error in Python script.' }, { status: 500 }));
+          } catch {
+             // If stderr is not JSON, return it as a raw string
+            resolve(NextResponse.json({ error: `Script failed with non-JSON error: ${error}` }, { status: 500 }));
+          }
         } else {
           try {
             const jsonResult = JSON.parse(result);
