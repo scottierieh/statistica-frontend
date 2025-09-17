@@ -248,13 +248,32 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
                                 <CardContent className="space-y-6">
                                     <AIGeneratedInterpretation promise={result.aiPromise} />
                                      <div className="space-y-3">
-                                        {result.insights?.map((insight, i) => (
-                                            <Alert key={i} variant={insight.type === 'warning' ? 'destructive' : 'default'} className={insight.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800 [&>svg]:text-yellow-500' : 'bg-blue-50 border-blue-200'}>
-                                                <AlertTriangle className="h-4 w-4" />
-                                                <AlertTitle className="font-bold">{insight.title}</AlertTitle>
-                                                <AlertDescription dangerouslySetInnerHTML={{ __html: insight.description }} />
-                                            </Alert>
-                                        ))}
+                                        {result.insights && result.insights.length > 0 && (
+                                            <div>
+                                                <h4 className="font-semibold text-sm mb-2">Key Insights</h4>
+                                                {result.insights.map((insight, i) => (
+                                                    <Alert key={i} variant={insight.type === 'warning' ? 'destructive' : 'default'} className={insight.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800 [&>svg]:text-yellow-500' : 'bg-blue-50 border-blue-200'}>
+                                                        <AlertTriangle className="h-4 w-4" />
+                                                        <AlertTitle className="font-bold">{insight.title}</AlertTitle>
+                                                        <AlertDescription dangerouslySetInnerHTML={{ __html: insight.description }} />
+                                                    </Alert>
+                                                ))}
+                                            </div>
+                                        )}
+                                         {result.recommendations && result.recommendations.length > 0 && (
+                                            <div>
+                                                 <h4 className="font-semibold text-sm mb-2">Recommendations</h4>
+                                                <Alert>
+                                                    <Lightbulb className="h-4 w-4" />
+                                                    <AlertTitle>Suggestions</AlertTitle>
+                                                    <AlertDescription>
+                                                        <ul className="list-disc pl-4 mt-2">
+                                                            {result.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                                                        </ul>
+                                                    </AlertDescription>
+                                                </Alert>
+                                            </div>
+                                         )}
                                     </div>
                                     <div className="grid lg:grid-cols-2 gap-6">
                                         <div className="space-y-4">
@@ -273,52 +292,38 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
                                                     </dl>
                                                 </CardContent>
                                             </Card>
-                                             {result.recommendations && result.recommendations.length > 0 && (
-                                                <Card>
-                                                    <CardHeader className="pb-2">
-                                                        <CardTitle className="text-lg flex items-center gap-2"><Lightbulb />Recommendations</CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                        <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
-                                                            {result.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
-                                                        </ul>
-                                                    </CardContent>
-                                                </Card>
-                                             )}
+                                             <Card>
+                                                <CardHeader className="pb-2">
+                                                    <CardTitle className="text-lg">Frequency Table</CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <ScrollArea className="h-64">
+                                                        <Table>
+                                                            <TableHeader>
+                                                                <TableRow>
+                                                                    <TableHead>Value</TableHead>
+                                                                    <TableHead className="text-right">Frequency</TableHead>
+                                                                    <TableHead className="text-right">%</TableHead>
+                                                                </TableRow>
+                                                            </TableHeader>
+                                                            <TableBody>
+                                                                {result.table.map((row, i) => (
+                                                                    <TableRow key={i}>
+                                                                        <TableCell>{String(row.Value)}</TableCell>
+                                                                        <TableCell className="text-right font-mono">{row.Frequency}</TableCell>
+                                                                        <TableCell className="text-right font-mono">{row.Percentage.toFixed(1)}%</TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </ScrollArea>
+                                                </CardContent>
+                                            </Card>
                                         </div>
                                         <div>
                                             <Image src={result.plot} alt={`Bar chart for ${variable}`} width={800} height={500} className="w-full rounded-md border" />
                                         </div>
                                     </div>
-                                    <Card>
-                                        <CardHeader className="pb-2">
-                                            <CardTitle className="text-lg">Frequency Table</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <ScrollArea className="h-64">
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>Value</TableHead>
-                                                            <TableHead className="text-right">Frequency</TableHead>
-                                                            <TableHead className="text-right">%</TableHead>
-                                                            <TableHead className="text-right">Cumulative %</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {result.table.map((row, i) => (
-                                                            <TableRow key={i}>
-                                                                <TableCell>{String(row.Value)}</TableCell>
-                                                                <TableCell className="text-right font-mono">{row.Frequency}</TableCell>
-                                                                <TableCell className="text-right font-mono">{row.Percentage.toFixed(1)}%</TableCell>
-                                                                <TableCell className="text-right font-mono">{row['Cumulative Percentage'].toFixed(1)}%</TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            </ScrollArea>
-                                        </CardContent>
-                                    </Card>
                                 </CardContent>
                             )}
                         </Card>
