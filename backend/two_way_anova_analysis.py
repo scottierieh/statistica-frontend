@@ -6,6 +6,7 @@ import pandas as pd
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
 from scipy import stats
 import warnings
 import matplotlib.pyplot as plt
@@ -55,20 +56,32 @@ class TwoWayAnovaAnalysis:
     def run_analysis(self):
         anova_table = anova_lm(self.model, typ=2)
         
-        # Add partial eta-squared (η²p)
-        anova_table['η²p'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
-        
-        # Clean up source names
-        cleaned_index = {}
-        cleaned_index[f'C(Q("{self.fa_clean}"))'] = self.factor_a
-        cleaned_index[f'C(Q("{self.fb_clean}"))'] = self.factor_b
-        cleaned_index[f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'] = f'{self.factor_a} * {self.factor_b}'
-        anova_table = anova_table.rename(index=cleaned_index)
+        # ** CRITICAL FIX: Get the p-value for interaction BEFORE manipulating the table **
+        interaction_source_key = f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'
+        interaction_p_value = anova_table.loc[interaction_source_key, 'PR(>F)'] if interaction_source_key in anova_table.index else 1.0
 
-        self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).replace({np.nan: None}).to_dict('records')
+        # Add partial eta-squared (η²p)
+        if 'Residual' in anova_table.index:
+            anova_table['η²p'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
+        else:
+            anova_table['η²p'] = np.nan
+        
+        # Clean up source names for the final output
+        cleaned_index = {
+            f'C(Q("{self.fa_clean}"))': self.factor_a,
+            f'C(Q("{self.fb_clean}"))': self.factor_b,
+            interaction_source_key: f'{self.factor_a} * {self.factor_b}'
+        }
+        anova_table_renamed = anova_table.rename(index=cleaned_index)
+        
+        self.results['anova_table'] = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).to_dict('records')
         
         self._test_assumptions()
         self._calculate_marginal_means()
+        
+        # ** CRITICAL FIX: Use the correctly fetched p-value to decide on post-hoc tests **
+        if interaction_p_value < self.alpha:
+            self._perform_posthoc_tests()
     
     def _test_assumptions(self):
         residuals = self.model.resid
@@ -94,6 +107,20 @@ class TwoWayAnovaAnalysis:
             'factor_a': means_a.to_dict('records'),
             'factor_b': means_b.to_dict('records')
         }
+
+    def _perform_posthoc_tests(self):
+        # Combine the factors into a single group for Tukey's HSD
+        self.clean_data['combined_group'] = self.clean_data[self.fa_clean].astype(str) + " * " + self.clean_data[self.fb_clean].astype(str)
+        
+        tukey_result = pairwise_tukeyhsd(
+            endog=self.clean_data[self.dv_clean],
+            groups=self.clean_data['combined_group'],
+            alpha=self.alpha
+        )
+        
+        results_df = pd.DataFrame(data=tukey_result._results_table.data[1:], columns=tukey_result._results_table.data[0])
+        results_df.rename(columns={'p-adj': 'p_adj'}, inplace=True)
+        self.results['posthoc_results'] = results_df.to_dict('records')
 
     def plot_results(self):
         fig, axes = plt.subplots(2, 2, figsize=(14, 12))
