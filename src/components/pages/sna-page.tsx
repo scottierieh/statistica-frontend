@@ -14,8 +14,12 @@ import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Plot from 'react-plotly.js';
+import dynamic from 'next/dynamic';
 
+const Plot = dynamic(() => import('react-plotly.js'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-[600px]" />,
+});
 
 interface SnaResults {
     metrics: {
