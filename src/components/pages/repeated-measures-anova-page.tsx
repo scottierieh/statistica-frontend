@@ -21,22 +21,35 @@ interface AnovaRow {
     Source: string;
     F: number;
     'p-unc': number;
-    'p-GG-corr': number;
-    'p-HF-corr': number;
-    'np2': number;
-    'ddof1': number;
-    'ddof2': number;
+    'p-GG-corr'?: number;
+    'p-HF-corr'?: number;
+    np2: number;
+    ddof1: number;
+    ddof2: number;
 }
 
 interface MauchlyResult {
-    statistic: number;
-    p_value: number;
-    sphericity_assumed: boolean;
+    W?: number; // from old sphericity
+    spher?: number; // from new sphericity
+    'p-value'?: number;
+    sphericity?: boolean;
 }
+
+interface PostHocResult {
+    Contrast: string;
+    A?: string;
+    B?: string;
+    'p-unc': number;
+    'p-corr'?: number;
+    'p-adjust'?: string;
+    hedges?: number;
+}
+
 
 interface RmAnovaResults {
     anova_table: AnovaRow[];
     mauchly_test: MauchlyResult;
+    posthoc_results?: PostHocResult[];
     error?: string;
 }
 
@@ -161,6 +174,7 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
     }
     
     const results = analysisResult?.results;
+    const isSphericityAssumed = results?.mauchly_test?.sphericity ?? true;
 
     return (
         <div className="space-y-4">
@@ -234,11 +248,11 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                                 </TableHeader>
                                 <TableBody>
                                     {results.anova_table.map((row, index) => (
-                                        <TableRow key={index}>
+                                        <TableRow key={index} className={row.Source.includes('Error') ? 'bg-muted/50' : ''}>
                                             <TableCell className="font-medium">{row.Source}</TableCell>
                                             <TableCell className="text-right font-mono">{row.F?.toFixed(3)}</TableCell>
                                             <TableCell className="text-right font-mono">{row['p-unc']?.toFixed(4)} {getSignificanceStars(row['p-unc'])}</TableCell>
-                                            <TableCell className="text-right font-mono">{row['p-GG-corr']?.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right font-mono">{row['p-GG-corr']?.toFixed(4) || 'N/A'}</TableCell>
                                             <TableCell className="text-right font-mono">{row.np2?.toFixed(3)}</TableCell>
                                         </TableRow>
                                     ))}
@@ -252,15 +266,44 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                         </CardHeader>
                         <CardContent>
                             <dl className="grid grid-cols-2 gap-4">
-                                <div><dt className="text-sm font-medium text-muted-foreground">Statistic</dt><dd className="text-lg font-bold font-mono">{results.mauchly_test.statistic?.toFixed(4)}</dd></div>
-                                <div><dt className="text-sm font-medium text-muted-foreground">p-value</dt><dd className="text-lg font-bold font-mono">{results.mauchly_test.p_value?.toFixed(4)}</dd></div>
+                                <div><dt className="text-sm font-medium text-muted-foreground">Statistic</dt><dd className="text-lg font-bold font-mono">{results.mauchly_test?.spher?.toFixed(4) ?? results.mauchly_test?.W?.toFixed(4) ?? 'N/A'}</dd></div>
+                                <div><dt className="text-sm font-medium text-muted-foreground">p-value</dt><dd className="text-lg font-bold font-mono">{results.mauchly_test?.['p-value']?.toFixed(4)}</dd></div>
                             </dl>
                             <p className="text-sm text-muted-foreground mt-4">
-                                Sphericity assumption is {results.mauchly_test.sphericity_assumed ? <Badge>Met</Badge> : <Badge variant="destructive">Violated</Badge>}.
-                                {results.mauchly_test.sphericity_assumed ? ' Standard p-value can be used.' : ' Use the Greenhouse-Geisser (p-GG-corr) corrected p-value.'}
+                                Sphericity assumption is {isSphericityAssumed ? <Badge>Met</Badge> : <Badge variant="destructive">Violated</Badge>}.
+                                {isSphericityAssumed ? ' Standard p-value (p-unc) can be used.' : ' Use the Greenhouse-Geisser (p-GG-corr) corrected p-value.'}
                             </p>
                         </CardContent>
                     </Card>
+                    {results.posthoc_results && (
+                        <Card>
+                             <CardHeader><CardTitle>Post-Hoc Pairwise Comparisons</CardTitle></CardHeader>
+                             <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Contrast</TableHead>
+                                            {betweenCol && <TableHead>{betweenCol}</TableHead>}
+                                            <TableHead>A</TableHead>
+                                            <TableHead>B</TableHead>
+                                            <TableHead className="text-right">p-value</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {results.posthoc_results.map((row, i) => (
+                                            <TableRow key={i}>
+                                                <TableCell>{row.Contrast}</TableCell>
+                                                {betweenCol && <TableCell>{row.A === -1 ? '' : row.A}</TableCell>}
+                                                <TableCell>{row.A !== -1 && row.B === -1 ? row.A : row.B}</TableCell>
+                                                <TableCell>{row.A !== -1 && row.B !== -1 ? row.B : ''}</TableCell>
+                                                <TableCell className="text-right font-mono">{row['p-unc'].toFixed(4)} {getSignificanceStars(row['p-unc'])}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                             </CardContent>
+                        </Card>
+                    )}
                 </div>
             )}
         </div>
