@@ -5,16 +5,17 @@ const path = require('path');
 const backendDir = path.resolve(__dirname, '..', 'backend');
 const venvDir = path.join(backendDir, 'venv');
 const reqFile = path.join(backendDir, 'requirements.txt');
-const venvMarker = path.join(venvDir, '.setup_complete'); // Marker file
-const pythonCmd = 'python3'; // Use python3 to be more generic
-const pipCmd = path.join(venvDir, 'bin', 'pip');
+const venvMarker = path.join(venvDir, '.setup_complete'); // Marker file to store last successful setup time
+const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+const pipCmd = process.platform === 'win32' ? path.join(venvDir, 'Scripts', 'pip.exe') : path.join(venvDir, 'bin', 'pip');
 
 function runPythonScript(scriptPath) {
     try {
         const fullScriptPath = path.join(backendDir, scriptPath);
         if (fs.existsSync(fullScriptPath)) {
+            const pythonExecutable = process.platform === 'win32' ? path.join(venvDir, 'Scripts', 'python.exe') : path.join(venvDir, 'bin', 'python');
             console.log(`Executing ${scriptPath}...`);
-            execSync(`${path.join(venvDir, 'bin', 'python')} ${fullScriptPath}`, { cwd: backendDir, stdio: 'inherit' });
+            execSync(`${pythonExecutable} ${fullScriptPath}`, { cwd: backendDir, stdio: 'inherit' });
         } else {
             console.warn(`Warning: Script not found at ${fullScriptPath}, skipping execution.`);
         }
@@ -24,37 +25,39 @@ function runPythonScript(scriptPath) {
     }
 }
 
-function getFileHash(filePath) {
-    if (!fs.existsSync(filePath)) {
-        return null;
+function shouldReinstall() {
+    if (!fs.existsSync(reqFile)) {
+        console.log('requirements.txt not found. Skipping backend setup.');
+        return false;
     }
-    const fileBuffer = fs.readFileSync(filePath);
-    const hash = require('crypto').createHash('sha256');
-    hash.update(fileBuffer);
-    return hash.digest('hex');
+    if (!fs.existsSync(venvMarker)) {
+        console.log("Virtual environment marker not found. A new setup is required.");
+        return true;
+    }
+
+    try {
+        const markerStat = fs.statSync(venvMarker);
+        const reqStat = fs.statSync(reqFile);
+        
+        if (reqStat.mtime > markerStat.mtime) {
+            console.log("requirements.txt has been modified since the last setup. Re-installing dependencies.");
+            return true;
+        }
+    } catch (e) {
+        console.error("Could not check file stats. Forcing reinstall.", e);
+        return true;
+    }
+
+    return false;
 }
 
 console.log('--- Setting up Python backend and generating data ---');
 
-// Check if requirements.txt exists
-if (!fs.existsSync(reqFile)) {
-    console.log('requirements.txt not found. Skipping backend setup.');
-    process.exit(0);
-}
-
-const reqHash = getFileHash(reqFile);
-const oldReqHash = fs.existsSync(venvMarker) ? fs.readFileSync(venvMarker, 'utf-8') : null;
-
-// Re-install if venv doesn't exist OR if requirements.txt has changed.
-if (!fs.existsSync(venvDir) || reqHash !== oldReqHash) {
+if (shouldReinstall()) {
     try {
-        if(fs.existsSync(venvDir)) {
-            console.log('requirements.txt has changed. Re-installing dependencies...');
-            // A more robust solution might be to upgrade pip packages, 
-            // but removing and recreating is simpler and more reliable in this context.
+        if (fs.existsSync(venvDir)) {
+            console.log(`Removing existing virtual environment at ${venvDir}...`);
             fs.rmSync(venvDir, { recursive: true, force: true });
-        } else {
-            console.log('Virtual environment not found. Setting up...');
         }
 
         // 1. Create venv
@@ -65,17 +68,19 @@ if (!fs.existsSync(venvDir) || reqHash !== oldReqHash) {
         console.log(`Installing dependencies from ${reqFile}...`);
         execSync(`${pipCmd} install -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
-        // 3. Write new hash to marker file
-        fs.writeFileSync(venvMarker, reqHash);
+        // 3. Touch the marker file to update its timestamp
+        const now = new Date();
+        fs.writeFileSync(venvMarker, `Setup completed on: ${now.toISOString()}`);
 
         console.log('Python backend setup complete.');
 
     } catch (error) {
         console.error('Error setting up Python backend:', error);
+        // Exit if setup fails, as subsequent scripts will likely fail too.
         process.exit(1);
     }
 } else {
-    console.log('Virtual environment is up-to-date. Skipping setup.');
+    console.log('Virtual environment is up-to-date. Skipping dependency installation.');
 }
 
 
