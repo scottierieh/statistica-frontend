@@ -201,141 +201,170 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
         );
     }
     
+    const renderResults = () => {
+        if (!analysisResult) return null;
+        return (
+            <div className="space-y-4">
+                {selectedVars.map(header => {
+                    if(!analysisResult.results[header] || analysisResult.results[header].error) {
+                        return (
+                             <Card key={header}>
+                                <CardHeader><CardTitle>{header}</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>Analysis Error</AlertTitle>
+                                        <AlertDescription>{analysisResult.results[header]?.error || "An unknown error occurred."}</AlertDescription>
+                                    </Alert>
+                                </CardContent>
+                            </Card>
+                        )
+                    }
+                    const result = analysisResult.results[header];
+                    return (
+                        <Card key={header}>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Results for: {header}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <AIGeneratedInterpretation promise={result.aiPromise} />
+                                 <div className="space-y-3">
+                                    {result.insights && result.insights.length > 0 && (
+                                        <div>
+                                            <h4 className="font-semibold text-sm mb-2">Key Insights</h4>
+                                            {result.insights.map((insight, i) => (
+                                                <Alert key={i} variant={insight.type === 'warning' ? 'destructive' : 'default'} className={insight.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800 [&>svg]:text-yellow-500' : 'bg-blue-50 border-blue-200'}>
+                                                    <AlertTriangle className="h-4 w-4" />
+                                                    <AlertTitle className="font-bold">{insight.title}</AlertTitle>
+                                                    <AlertDescription dangerouslySetInnerHTML={{ __html: insight.description }} />
+                                                </Alert>
+                                            ))}
+                                        </div>
+                                    )}
+                                     {result.recommendations && result.recommendations.length > 0 && (
+                                        <div className="mt-4">
+                                             <h4 className="font-semibold text-sm mb-2">Recommendations</h4>
+                                            <Alert>
+                                                <Lightbulb className="h-4 w-4" />
+                                                <AlertTitle>Suggestions</AlertTitle>
+                                                <AlertDescription>
+                                                    <ul className="list-disc pl-4 mt-2">
+                                                        {result.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                                                    </ul>
+                                                </AlertDescription>
+                                            </Alert>
+                                        </div>
+                                     )}
+                                </div>
+                                <div className="grid lg:grid-cols-2 gap-6">
+                                    <div className="space-y-4">
+                                         <Card>
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-lg">Summary</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                                    <dt className="text-muted-foreground">Total Count</dt>
+                                                    <dd className="font-mono">{result.summary.total_count}</dd>
+                                                    <dt className="text-muted-foreground">Unique Categories</dt>
+                                                    <dd className="font-mono">{result.summary.unique_categories}</dd>
+                                                    <dt className="text-muted-foreground">Mode</dt>
+                                                    <dd className="font-mono">{String(result.summary.mode)}</dd>
+                                                </dl>
+                                            </CardContent>
+                                        </Card>
+                                         <Card>
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-lg">Frequency Table</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <ScrollArea className="h-64">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>Value</TableHead>
+                                                                <TableHead className="text-right">Frequency</TableHead>
+                                                                <TableHead className="text-right">%</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {result.table.map((row, i) => (
+                                                                <TableRow key={i}>
+                                                                    <TableCell>{String(row.Value)}</TableCell>
+                                                                    <TableCell className="text-right font-mono">{row.Frequency}</TableCell>
+                                                                    <TableCell className="text-right font-mono">{row.Percentage.toFixed(1)}%</TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </ScrollArea>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                    <div>
+                                        <Image src={result.plot} alt={`Bar chart for ${header}`} width={800} height={500} className="w-full rounded-md border" />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col gap-4">
             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Frequency Analysis Setup</CardTitle>
-                    <CardDescription>Select one or more categorical variables to analyze.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div>
+              <CardHeader>
+                <CardTitle className="font-headline">Frequency Analysis Setup</CardTitle>
+                <CardDescription>Select one or more categorical variables to analyze.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                    <>
                         <Label>Categorical Variables</Label>
-                        <ScrollArea className="h-40 border rounded-md p-4">
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {categoricalHeaders.map(header => (
-                              <div key={header} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`freq-${header}`}
-                                  checked={selectedVars.includes(header)}
-                                  onCheckedChange={(checked) => handleVarSelectionChange(header, checked as boolean)}
-                                />
-                                <label htmlFor={`freq-${header}`} className="text-sm font-medium leading-none">{header}</label>
-                              </div>
-                            ))}
-                          </div>
+                        <ScrollArea className="h-40 border rounded-lg p-4 mt-2">
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {categoricalHeaders.map(h => (
+                                    <div key={h} className="flex items-center space-x-2">
+                                        <Checkbox 
+                                            id={`var-${h}`} 
+                                            onCheckedChange={(checked) => handleVarSelectionChange(h, !!checked)} 
+                                            checked={selectedVars.includes(h)} 
+                                        />
+                                        <Label htmlFor={`var-${h}`} className="font-medium">{h}</Label>
+                                    </div>
+                                ))}
+                            </div>
                         </ScrollArea>
-                    </div>
-                </CardContent>
-                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={isLoading || selectedVars.length === 0}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
+                    </>
+              </CardContent>
+              <CardFooter>
+                   <Button onClick={handleAnalysis} disabled={isLoading || selectedVars.length === 0}>
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4"/>}
+                        Run Analysis
                     </Button>
-                </CardFooter>
+              </CardFooter>
             </Card>
 
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
-
-            {analysisResult && (
-                <div className="space-y-4">
-                    {Object.entries(analysisResult.results).map(([variable, result]) => (
-                        <Card key={variable}>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Results for: {variable}</CardTitle>
-                                {result.error && <CardDescription className="text-destructive">{result.error}</CardDescription>}
-                            </CardHeader>
-                            {!result.error && (
-                                <CardContent className="space-y-6">
-                                    <AIGeneratedInterpretation promise={result.aiPromise} />
-                                     <div className="space-y-3">
-                                        {result.insights && result.insights.length > 0 && (
-                                            <div>
-                                                <h4 className="font-semibold text-sm mb-2">Key Insights</h4>
-                                                {result.insights.map((insight, i) => (
-                                                    <Alert key={i} variant={insight.type === 'warning' ? 'destructive' : 'default'} className={insight.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800 [&>svg]:text-yellow-500' : 'bg-blue-50 border-blue-200'}>
-                                                        <AlertTriangle className="h-4 w-4" />
-                                                        <AlertTitle className="font-bold">{insight.title}</AlertTitle>
-                                                        <AlertDescription dangerouslySetInnerHTML={{ __html: insight.description }} />
-                                                    </Alert>
-                                                ))}
-                                            </div>
-                                        )}
-                                         {result.recommendations && result.recommendations.length > 0 && (
-                                            <div className="mt-4">
-                                                 <h4 className="font-semibold text-sm mb-2">Recommendations</h4>
-                                                <Alert>
-                                                    <Lightbulb className="h-4 w-4" />
-                                                    <AlertTitle>Suggestions</AlertTitle>
-                                                    <AlertDescription>
-                                                        <ul className="list-disc pl-4 mt-2">
-                                                            {result.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
-                                                        </ul>
-                                                    </AlertDescription>
-                                                </Alert>
-                                            </div>
-                                         )}
-                                    </div>
-                                    <div className="grid lg:grid-cols-2 gap-6">
-                                        <div className="space-y-4">
-                                             <Card>
-                                                <CardHeader className="pb-2">
-                                                    <CardTitle className="text-lg">Summary</CardTitle>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                                                        <dt className="text-muted-foreground">Total Count</dt>
-                                                        <dd className="font-mono">{result.summary.total_count}</dd>
-                                                        <dt className="text-muted-foreground">Unique Categories</dt>
-                                                        <dd className="font-mono">{result.summary.unique_categories}</dd>
-                                                        <dt className="text-muted-foreground">Mode</dt>
-                                                        <dd className="font-mono">{String(result.summary.mode)}</dd>
-                                                    </dl>
-                                                </CardContent>
-                                            </Card>
-                                             <Card>
-                                                <CardHeader className="pb-2">
-                                                    <CardTitle className="text-lg">Frequency Table</CardTitle>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <ScrollArea className="h-64">
-                                                        <Table>
-                                                            <TableHeader>
-                                                                <TableRow>
-                                                                    <TableHead>Value</TableHead>
-                                                                    <TableHead className="text-right">Frequency</TableHead>
-                                                                    <TableHead className="text-right">%</TableHead>
-                                                                </TableRow>
-                                                            </TableHeader>
-                                                            <TableBody>
-                                                                {result.table.map((row, i) => (
-                                                                    <TableRow key={i}>
-                                                                        <TableCell>{String(row.Value)}</TableCell>
-                                                                        <TableCell className="text-right font-mono">{row.Frequency}</TableCell>
-                                                                        <TableCell className="text-right font-mono">{row.Percentage.toFixed(1)}%</TableCell>
-                                                                    </TableRow>
-                                                                ))}
-                                                            </TableBody>
-                                                        </Table>
-                                                    </ScrollArea>
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                        <div>
-                                            <Image src={result.plot} alt={`Bar chart for ${variable}`} width={800} height={500} className="w-full rounded-md border" />
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            )}
-                        </Card>
-                    ))}
-                </div>
+            {isLoading && (
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex flex-col items-center gap-4">
+                            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                            <p className="text-muted-foreground">Running analysis...</p>
+                        </div>
+                    </CardContent>
+                </Card>
             )}
 
-             {!analysisResult && !isLoading && (
-                <div className="text-center text-muted-foreground py-10">
-                    <BarChart className="mx-auto h-12 w-12 text-gray-400"/>
-                    <p className="mt-2">Select variables and click 'Run Analysis' to see the frequency distribution.</p>
-                </div>
+            {analysisResult ? renderResults() : (
+                 !isLoading && (
+                    <div className="text-center text-muted-foreground py-10">
+                        <BarChart className="mx-auto h-12 w-12 text-gray-400"/>
+                        <p className="mt-2">Select variables and click 'Run Analysis' to see the frequency distribution.</p>
+                    </div>
+                )
             )}
         </div>
     );
