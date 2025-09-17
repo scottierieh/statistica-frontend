@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -147,17 +148,13 @@ export default function AncovaPage({ data, numericHeaders, categoricalHeaders, o
                                     const Icon = ex.icon;
                                     return (
                                     <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <Icon className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
+                                        <CardHeader>
+                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
                                         </CardHeader>
                                         <CardFooter>
                                             <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                                <Icon className="mr-2 h-4 w-4" />
                                                 Load this data
                                             </Button>
                                         </CardFooter>

@@ -16,3 +16,5 @@ pulp
 scikit-learn-extra
 hdbscan
 yfinance
+pyfolio
+quantlib
