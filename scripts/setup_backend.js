@@ -32,13 +32,16 @@ function shouldReinstall() {
         console.log('requirements.txt not found. Skipping backend setup.');
         return false;
     }
+    
     // If the success marker doesn't exist, we must reinstall.
     if (!fs.existsSync(venvMarker)) {
         console.log("Virtual environment setup marker not found. A new setup is required.");
         return true;
     }
+
+    // If marker exists, check if requirements have changed.
     if (!fs.existsSync(reqCopyFile)) {
-        console.log("Requirements backup not found. A new setup is required.");
+        console.log("Requirements backup not found. Re-installing to be safe.");
         return true;
     }
 
@@ -58,6 +61,7 @@ function shouldReinstall() {
     return false;
 }
 
+
 console.log('--- Setting up Python backend and generating data ---');
 
 if (shouldReinstall()) {
@@ -71,9 +75,9 @@ if (shouldReinstall()) {
         console.log(`Creating virtual environment at ${venvDir}...`);
         execSync(`${pythonCmd} -m venv ${venvDir}`, { cwd: backendDir, stdio: 'inherit' });
         
-        // 2. Install requirements with --no-cache-dir
+        // 2. Install requirements with --no-cache-dir and --prefer-binary
         console.log(`Installing dependencies from ${reqFile}...`);
-        execSync(`${pipCmd} install --no-cache-dir -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
+        execSync(`${pipCmd} install --no-cache-dir --prefer-binary -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
         // 3. Create a copy of requirements.txt for future comparison
         fs.copyFileSync(reqFile, reqCopyFile);
