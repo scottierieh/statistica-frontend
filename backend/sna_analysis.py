@@ -5,9 +5,8 @@ import pandas as pd
 import numpy as np
 import networkx as nx
 from networkx.algorithms import community
-import matplotlib.pyplot as plt
-import io
-import base64
+import plotly.graph_objects as go
+import plotly.io as pio
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -48,67 +47,77 @@ def main():
         n_edges = G.number_of_edges()
         density = nx.density(G)
         
+        is_connected = nx.is_connected(G) if not is_directed else nx.is_strongly_connected(G)
+        num_components = nx.number_connected_components(G) if not is_directed else nx.number_strongly_connected_components(G)
+
         # --- Centrality Measures ---
         degree_centrality = nx.degree_centrality(G)
         betweenness_centrality = nx.betweenness_centrality(G, weight=weight_col)
         closeness_centrality = nx.closeness_centrality(G, distance=weight_col)
+        eigenvector_centrality = nx.eigenvector_centrality(G, weight=weight_col, max_iter=500) if n_nodes > 0 else {}
+        pagerank = nx.pagerank(G, weight=weight_col)
 
         # --- Top Nodes ---
         top_degree = sorted(degree_centrality.items(), key=lambda x: x[1], reverse=True)[:5]
         top_betweenness = sorted(betweenness_centrality.items(), key=lambda x: x[1], reverse=True)[:5]
         top_closeness = sorted(closeness_centrality.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_eigenvector = sorted(eigenvector_centrality.items(), key=lambda x: x[1], reverse=True)[:5]
 
         # --- Community Detection (Louvain) ---
         communities = []
-        if not is_directed:
-             # Louvain community detection works best on undirected graphs
+        if not is_directed and n_nodes > 0:
             try:
-                detected_communities = community.greedy_modularity_communities(G, weight=weight_col)
+                detected_communities = nx.community.louvain_communities(G, weight=weight_col, seed=42)
                 communities = [list(c) for c in detected_communities]
-            except Exception as e:
-                # Fallback or log error
+            except Exception:
                 communities = []
                 
-        # --- Plotting ---
-        plt.figure(figsize=(12, 12))
-        pos = nx.spring_layout(G, k=0.5, iterations=50)
-
-        node_sizes = [v * 5000 + 100 for v in degree_centrality.values()]
-
-        nx.draw_networkx_nodes(G, pos, node_size=node_sizes, node_color=list(degree_centrality.values()), cmap=plt.cm.viridis, alpha=0.8)
-        nx.draw_networkx_edges(G, pos, alpha=0.5, edge_color='gray')
-        nx.draw_networkx_labels(G, pos, font_size=8)
+        # --- Interactive Plotly Visualization ---
+        pos = nx.spring_layout(G, k=0.8, iterations=50, seed=42)
         
-        plt.title('Social Network Graph', size=15)
-        plt.axis('off')
-        
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        plt.close()
-        buf.seek(0)
-        plot_image = base64.b64encode(buf.read()).decode('utf-8')
+        edge_x, edge_y = [], []
+        for edge in G.edges():
+            x0, y0 = pos[edge[0]]
+            x1, y1 = pos[edge[1]]
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
+
+        edge_trace = go.Scatter(x=edge_x, y=edge_y, line=dict(width=0.5, color='#888'), hoverinfo='none', mode='lines')
+
+        node_x, node_y, node_text, node_info, node_size, node_color = [], [], [], [], [], []
+        for node in G.nodes():
+            x, y = pos[node]
+            node_x.append(x)
+            node_y.append(y)
+            node_text.append(node)
+            node_info.append(f'Node: {node}<br>Degree: {G.degree(node)}')
+            node_size.append(degree_centrality[node] * 50 + 10)
+            node_color.append(degree_centrality[node])
+
+        node_trace = go.Scatter(x=node_x, y=node_y, mode='markers+text', text=node_text, textposition='top center',
+                                hoverinfo='text', hovertext=node_info,
+                                marker=dict(showscale=True, colorscale='YlGnBu', reversescale=True,
+                                            color=node_color, size=node_size,
+                                            colorbar=dict(thickness=15, title='Node Connections', xanchor='left', titleside='right'),
+                                            line_width=2))
+
+        fig = go.Figure(data=[edge_trace, node_trace],
+                        layout=go.Layout(title='Interactive Social Network', showlegend=False, hovermode='closest',
+                                         margin=dict(b=20, l=5, r=5, t=40),
+                                         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                                         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)))
+
+        plot_json = pio.to_json(fig)
 
         # --- Response ---
         response = {
             'results': {
-                'metrics': {
-                    'nodes': n_nodes,
-                    'edges': n_edges,
-                    'density': density
-                },
-                'centrality': {
-                    'degree': degree_centrality,
-                    'betweenness': betweenness_centrality,
-                    'closeness': closeness_centrality,
-                },
-                'top_nodes': {
-                    'degree': top_degree,
-                    'betweenness': top_betweenness,
-                    'closeness': top_closeness
-                },
+                'metrics': { 'nodes': n_nodes, 'edges': n_edges, 'density': density, 'is_connected': is_connected, 'components': num_components },
+                'centrality': { 'degree': degree_centrality, 'betweenness': betweenness_centrality, 'closeness': closeness_centrality, 'eigenvector': eigenvector_centrality },
+                'top_nodes': { 'degree': top_degree, 'betweenness': top_betweenness, 'closeness': top_closeness, 'eigenvector': top_eigenvector },
                 'communities': communities
             },
-            'plot': f"data:image/png;base64,{plot_image}"
+            'plot': plot_json
         }
 
         print(json.dumps(response, default=_to_native_type))

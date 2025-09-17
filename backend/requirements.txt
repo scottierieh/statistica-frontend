@@ -11,3 +11,4 @@ wordcloud
 nltk
 konlpy
 networkx
+plotly

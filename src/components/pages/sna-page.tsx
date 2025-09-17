@@ -11,28 +11,38 @@ import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Network } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
-import Image from 'next/image';
 import { Switch } from '../ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Plot from 'react-plotly.js';
+
 
 interface SnaResults {
     metrics: {
         nodes: number;
         edges: number;
         density: number;
+        is_connected: boolean;
+        components: number;
+    };
+    centrality: {
+        degree: { [key: string]: number };
+        betweenness: { [key: string]: number };
+        closeness: { [key: string]: number };
+        eigenvector: { [key: string]: number };
     };
     top_nodes: {
         degree: [string, number][];
         betweenness: [string, number][];
         closeness: [string, number][];
+        eigenvector: [string, number][];
     };
     communities: string[][];
 }
 
 interface FullAnalysisResponse {
     results: SnaResults;
-    plot: string;
+    plot: string; // This will be a JSON string from plotly
 }
 
 interface SnaPageProps {
@@ -123,10 +133,12 @@ export default function SnaPage({ data, allHeaders, onLoadExample }: SnaPageProp
     }
     
     const results = analysisResult?.results;
+    const plotData = analysisResult ? JSON.parse(analysisResult.plot) : null;
+
 
     const renderTopNodesTable = (nodes: [string, number][], title: string) => (
         <Card>
-            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+            <CardHeader><CardTitle className='text-base'>{title}</CardTitle></CardHeader>
             <CardContent>
                 <Table>
                     <TableHeader><TableRow><TableHead>Node</TableHead><TableHead className="text-right">Score</TableHead></TableRow></TableHeader>
@@ -165,28 +177,33 @@ export default function SnaPage({ data, allHeaders, onLoadExample }: SnaPageProp
                 </CardFooter>
             </Card>
 
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[600px] w-full"/></CardContent></Card>}
+            {isLoading && <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto"/> <p>Analyzing network structure...</p></CardContent></Card>}
 
-            {results && analysisResult?.plot && (
+            {results && plotData && (
                 <div className="space-y-4">
                      <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">Network Overview</CardTitle>
                         </CardHeader>
-                        <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
+                        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Nodes</p><p className="text-2xl font-bold">{results.metrics.nodes}</p></div>
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Edges</p><p className="text-2xl font-bold">{results.metrics.edges}</p></div>
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Density</p><p className="text-2xl font-bold">{results.metrics.density.toFixed(4)}</p></div>
+                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Components</p><p className="text-2xl font-bold">{results.metrics.components}</p></div>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Network Graph</CardTitle>
-                            <CardDescription>Node size and color correspond to degree centrality (number of connections).</CardDescription>
+                            <CardTitle className="font-headline">Interactive Network Graph</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Image src={analysisResult.plot} alt="Social Network Graph" width={1200} height={1200} className="w-full rounded-md border"/>
+                            <Plot
+                                data={plotData.data}
+                                layout={plotData.layout}
+                                useResizeHandler={true}
+                                className="w-full h-[600px]"
+                            />
                         </CardContent>
                     </Card>
                    
@@ -196,10 +213,11 @@ export default function SnaPage({ data, allHeaders, onLoadExample }: SnaPageProp
                             <TabsTrigger value="communities">Community Detection</TabsTrigger>
                         </TabsList>
                         <TabsContent value="centrality" className="mt-4">
-                             <div className="grid md:grid-cols-3 gap-4">
+                             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 {renderTopNodesTable(results.top_nodes.degree, 'Top Nodes by Degree')}
                                 {renderTopNodesTable(results.top_nodes.betweenness, 'Top Nodes by Betweenness')}
                                 {renderTopNodesTable(results.top_nodes.closeness, 'Top Nodes by Closeness')}
+                                {renderTopNodesTable(results.top_nodes.eigenvector, 'Top Nodes by Eigenvector')}
                             </div>
                         </TabsContent>
                          <TabsContent value="communities" className="mt-4">
@@ -211,7 +229,7 @@ export default function SnaPage({ data, allHeaders, onLoadExample }: SnaPageProp
                                             {results.communities.map((community, i) => (
                                                 <Card key={i}>
                                                     <CardHeader><CardTitle>Community {i + 1}</CardTitle><CardDescription>{community.length} members</CardDescription></CardHeader>
-                                                    <CardContent className="text-sm">
+                                                    <CardContent className="text-sm h-32 overflow-y-auto">
                                                         <p>{community.join(', ')}</p>
                                                     </CardContent>
                                                 </Card>
