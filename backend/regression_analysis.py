@@ -1,3 +1,4 @@
+
 import sys
 import json
 import numpy as np
@@ -26,10 +27,98 @@ except ImportError:
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer): return int(obj)
-    elif isinstance(obj, np.floating): return float(obj)
+    elif isinstance(obj, (float, np.floating)):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
+        return float(obj)
     elif isinstance(obj, np.ndarray): return obj.tolist()
     elif isinstance(obj, np.bool_): return bool(obj)
     return obj
+    
+def perform_stepwise_selection(X, y, method='stepwise', p_enter=0.05, p_remove=0.1):
+    """
+    Performs forward, backward, or stepwise feature selection.
+    """
+    initial_cols = X.columns.tolist()
+    included = []
+    log = []
+
+    if method == 'forward':
+        while True:
+            changed = False
+            excluded = list(set(initial_cols) - set(included))
+            best_pvalue = p_enter
+            best_feature = None
+            for new_column in excluded:
+                model = sm.OLS(y, sm.add_constant(X[included + [new_column]])).fit()
+                pvalues = model.pvalues.drop('const')
+                new_pvalue = pvalues.get(new_column, 1.0)
+                if new_pvalue < best_pvalue:
+                    best_pvalue = new_pvalue
+                    best_feature = new_column
+            if best_feature:
+                included.append(best_feature)
+                changed = True
+                log.append(f"Add '{best_feature}' (p={best_pvalue:.4f})")
+            if not changed:
+                break
+    elif method == 'backward':
+        included = initial_cols.copy()
+        while True:
+            changed = False
+            model = sm.OLS(y, sm.add_constant(X[included])).fit()
+            pvalues = model.pvalues.drop('const')
+            worst_pvalue = p_remove
+            worst_feature = None
+            for feature, pvalue in pvalues.items():
+                if pvalue > worst_pvalue:
+                    worst_pvalue = pvalue
+                    worst_feature = feature
+            if worst_feature:
+                included.remove(worst_feature)
+                changed = True
+                log.append(f"Remove '{worst_feature}' (p={worst_pvalue:.4f})")
+            if not changed:
+                break
+    elif method == 'stepwise':
+        included = []
+        while True:
+            changed = False
+            # Forward step
+            excluded = list(set(initial_cols) - set(included))
+            best_pvalue = p_enter
+            best_feature = None
+            for new_column in excluded:
+                model = sm.OLS(y, sm.add_constant(X[included + [new_column]])).fit()
+                pvalues = model.pvalues.drop('const')
+                new_pvalue = pvalues.get(new_column, 1.0)
+                if new_pvalue < best_pvalue:
+                    best_pvalue = new_pvalue
+                    best_feature = new_column
+            if best_feature:
+                included.append(best_feature)
+                changed = True
+                log.append(f"Add '{best_feature}' (p={best_pvalue:.4f})")
+            
+            # Backward step
+            model = sm.OLS(y, sm.add_constant(X[included])).fit()
+            pvalues = model.pvalues.drop('const')
+            worst_pvalue = p_remove
+            worst_feature = None
+            for feature, pvalue in pvalues.items():
+                 if pvalue > worst_pvalue:
+                    worst_pvalue = pvalue
+                    worst_feature = feature
+            if worst_feature:
+                included.remove(worst_feature)
+                changed = True
+                log.append(f"Remove '{worst_feature}' (p={worst_pvalue:.4f})")
+
+            if not changed:
+                break
+    
+    return included, log
+
 
 class RegressionAnalysis:
     def __init__(self, data, target_variable, alpha=0.05):
@@ -44,15 +133,30 @@ class RegressionAnalysis:
             raise ValueError(f"Target variable '{target_variable}' not found in data")
         
         self.y = self.data[target_variable]
-        self.X = self.data.drop(columns=[target_variable])
-        numeric_cols = self.X.select_dtypes(include=[np.number]).columns
-        self.X = self.X[numeric_cols]
+        # One-hot encode categorical features and combine with numeric
+        numeric_features = self.data.select_dtypes(include=np.number).drop(columns=[target_variable], errors='ignore')
+        categorical_features = self.data.select_dtypes(include=['object', 'category'])
+        
+        if not categorical_features.empty:
+            X_encoded = pd.get_dummies(self.data.drop(columns=[target_variable]), drop_first=True)
+            self.X = X_encoded
+        else:
+            self.X = numeric_features
 
-    def linear_regression(self, model_name="linear", features=None, standardize=False):
+
+    def linear_regression(self, model_name="linear", features=None, standardize=False, selection_method='none'):
+        stepwise_log = []
         if features is None:
             X_selected = self.X
         else:
-            X_selected = self.X[features]
+            X_selected = self.X[[col for col in features if col in self.X.columns]]
+        
+        final_features = features
+
+        if selection_method != 'none':
+            final_features, stepwise_log = perform_stepwise_selection(X_selected, self.y, method=selection_method)
+            X_selected = X_selected[final_features]
+
 
         if standardize:
             X_scaled = pd.DataFrame(self.scaler.fit_transform(X_selected), columns=X_selected.columns, index=X_selected.index)
@@ -80,6 +184,7 @@ class RegressionAnalysis:
             'features': list(X_scaled.columns),
             'metrics': metrics,
             'diagnostics': diagnostics,
+            'stepwise_log': stepwise_log
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -113,13 +218,13 @@ class RegressionAnalysis:
         
         self.results[model_name] = {
             'model_name': model_name, 'model_type': 'polynomial_regression', 'features': list(poly_feature_names),
-            'metrics': metrics, 'diagnostics': diagnostics,
+            'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': []
         }
         self.y_pred = y_pred
         self.X_scaled = X_poly_df
         return self.results[model_name]
 
-    def regularized_regression(self, model_name, reg_type, alpha_reg, features=None, standardize=True):
+    def regularized_regression(self, model_name, reg_type, alpha_reg, l1_ratio=None, features=None, standardize=True):
         if features is None:
             X_selected = self.X
         else:
@@ -134,18 +239,18 @@ class RegressionAnalysis:
             model = Ridge(alpha=alpha_reg)
         elif reg_type == "lasso":
             model = Lasso(alpha=alpha_reg)
+        elif reg_type == "elasticnet":
+            model = ElasticNet(alpha=alpha_reg, l1_ratio=l1_ratio)
         else:
-            raise ValueError("reg_type must be 'ridge' or 'lasso'")
+            raise ValueError("reg_type must be 'ridge', 'lasso', or 'elasticnet'")
 
         model.fit(X_scaled, self.y)
 
         y_pred = model.predict(X_scaled)
         metrics = self._calculate_metrics(self.y, y_pred, len(X_scaled.columns))
         
-        # Can't use statsmodels directly for coefficients of regularized models in this simple setup
         diagnostics = self._basic_diagnostics(X_scaled, self.y, y_pred)
         
-        # Manually create coefficient table
         diagnostics['coefficient_tests'] = {
             'params': {'const': model.intercept_, **dict(zip(X_scaled.columns, model.coef_))},
             'pvalues': {}, 'bse': {}, 'tvalues': {}
@@ -153,7 +258,7 @@ class RegressionAnalysis:
 
         self.results[model_name] = {
             'model_name': model_name, 'model_type': f'{reg_type}_regression', 'features': list(X_scaled.columns),
-            'metrics': metrics, 'diagnostics': diagnostics,
+            'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': []
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -173,6 +278,13 @@ class RegressionAnalysis:
         diagnostics = {}
 
         if HAS_STATSMODELS and sm_model:
+            summary_obj = sm_model.summary()
+            summary_data = []
+            for table in summary_obj.tables:
+                table_data = [list(row) for row in table.data]
+                summary_data.append({'caption': getattr(table, 'title', None), 'data': table_data})
+            diagnostics['model_summary_data'] = summary_data
+
             diagnostics['f_statistic'] = sm_model.fvalue
             diagnostics['f_pvalue'] = sm_model.f_pvalue
             diagnostics['coefficient_tests'] = {
@@ -187,8 +299,12 @@ class RegressionAnalysis:
                 diagnostics['durbin_watson'] = None
 
             try:
-                vif = {X.columns[i]: variance_inflation_factor(X.values, i) for i in range(X.shape[1])} if X.shape[1] > 1 else {}
-                diagnostics['vif'] = vif
+                 if X.shape[1] > 1:
+                    vif_data = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+                    vif = {X.columns[i]: vif_data[i] for i in range(X.shape[1])}
+                    diagnostics['vif'] = vif
+                 else:
+                     diagnostics['vif'] = {}
             except Exception:
                 diagnostics['vif'] = {}
             
@@ -282,6 +398,7 @@ def main():
         target_variable = payload.get('targetVar')
         features = payload.get('features')
         model_type = payload.get('modelType', 'multiple')
+        selection_method = payload.get('selectionMethod', 'none')
 
         if not all([data, target_variable, features]):
             raise ValueError("Missing 'data', 'targetVar', or 'features'")
@@ -292,13 +409,14 @@ def main():
         
         results = None
         if model_type == 'simple' or model_type == 'multiple':
-            results = reg_analysis.linear_regression(model_name=model_type, features=features, standardize=True)
+            results = reg_analysis.linear_regression(model_name=model_type, features=features, standardize=True, selection_method=selection_method)
         elif model_type == 'polynomial':
             degree = payload.get('degree', 2)
             results = reg_analysis.polynomial_regression(model_name=model_type, features=features, degree=degree)
-        elif model_type in ['ridge', 'lasso']:
+        elif model_type in ['ridge', 'lasso', 'elasticnet']:
             alpha = payload.get('alpha', 1.0)
-            results = reg_analysis.regularized_regression(model_name=model_type, reg_type=model_type, alpha_reg=alpha, features=features)
+            l1_ratio = payload.get('l1_ratio', 0.5) if model_type == 'elasticnet' else None
+            results = reg_analysis.regularized_regression(model_name=model_type, reg_type=model_type, alpha_reg=alpha, l1_ratio=l1_ratio, features=features)
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 

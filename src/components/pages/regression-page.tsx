@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -88,6 +87,8 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     const [polyDegree, setPolyDegree] = useState(2);
     const [ridgeAlpha, setRidgeAlpha] = useState(1.0);
     const [lassoAlpha, setLassoAlpha] = useState(0.1);
+    const [elasticNetAlpha, setElasticNetAlpha] = useState(1.0);
+    const [elasticNetL1Ratio, setElasticNetL1Ratio] = useState(0.5);
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -130,6 +131,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
             case 'polynomial':
             case 'ridge':
             case 'lasso':
+            case 'elasticnet':
                 if (multipleFeatureVars.length < 1) {
                     toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select at least one feature.'});
                     return;
@@ -138,6 +140,10 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                 if (modelType === 'polynomial') params.degree = polyDegree;
                 if (modelType === 'ridge') params.alpha = ridgeAlpha;
                 if (modelType === 'lasso') params.alpha = lassoAlpha;
+                if (modelType === 'elasticnet') {
+                    params.alpha = elasticNetAlpha;
+                    params.l1_ratio = elasticNetL1Ratio;
+                }
                 break;
         }
 
@@ -170,7 +176,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         } finally {
             setIsLoading(false);
         }
-    }, [data, targetVar, modelType, simpleFeatureVar, multipleFeatureVars, polyDegree, ridgeAlpha, lassoAlpha, selectionMethod, toast]);
+    }, [data, targetVar, modelType, simpleFeatureVar, multipleFeatureVars, polyDegree, ridgeAlpha, lassoAlpha, elasticNetAlpha, elasticNetL1Ratio, selectionMethod, toast]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
     
@@ -274,12 +280,13 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                 </CardHeader>
                 <CardContent>
                     <Tabs value={modelType} onValueChange={(v) => {setModelType(v); setAnalysisResult(null);}} className="w-full">
-                        <TabsList className='mb-4'>
+                        <TabsList className='mb-4 flex-wrap h-auto justify-start'>
                             <TabsTrigger value="simple">Simple Linear</TabsTrigger>
                             <TabsTrigger value="multiple">Multiple Linear</TabsTrigger>
                             <TabsTrigger value="polynomial">Polynomial</TabsTrigger>
                             <TabsTrigger value="ridge">Ridge</TabsTrigger>
                             <TabsTrigger value="lasso">Lasso</TabsTrigger>
+                            <TabsTrigger value="elasticnet">Elastic Net</TabsTrigger>
                         </TabsList>
                         <TabsContent value="simple">
                            <div className="grid md:grid-cols-2 gap-4">
@@ -354,6 +361,28 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                     <div className='mt-4'>
                                         <Label htmlFor="lasso-alpha">Alpha (Regularization Strength)</Label>
                                         <Input id="lasso-alpha" type="number" value={lassoAlpha ?? ''} onChange={(e) => setLassoAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
+                                   </div>
+                                </div>
+                               {renderMultiFeatureSelector()}
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="elasticnet">
+                           <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Target Variable (Y)</Label>
+                                    <Select value={targetVar} onValueChange={setTargetVar}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <div className='mt-4 space-y-2'>
+                                        <div>
+                                            <Label htmlFor="elastic-alpha">Alpha (Regularization Strength)</Label>
+                                            <Input id="elastic-alpha" type="number" value={elasticNetAlpha} onChange={(e) => setElasticNetAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
+                                        </div>
+                                         <div>
+                                            <Label htmlFor="l1-ratio">L1 Ratio (0=Ridge, 1=Lasso)</Label>
+                                            <Input id="l1-ratio" type="number" value={elasticNetL1Ratio} onChange={(e) => setElasticNetL1Ratio(Number(e.target.value))} min="0" max="1" step="0.01" className="w-32" />
+                                        </div>
                                    </div>
                                 </div>
                                {renderMultiFeatureSelector()}
