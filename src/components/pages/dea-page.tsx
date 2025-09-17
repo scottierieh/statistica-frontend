@@ -16,7 +16,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import { Input } from '../ui/input';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
-import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter } from 'recharts';
+import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell } from 'recharts';
 import { Badge } from '../ui/badge';
 
 
@@ -55,9 +55,38 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
     const [analysisResult, setAnalysisResult] = useState<FullDeaResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
-    const [nDmUs, setNDmUs] = useState<number | null>(null);
-
+    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 3, [data, allHeaders]);
+    
     const availableCols = useMemo(() => numericHeaders.filter(h => h !== dmuCol), [numericHeaders, dmuCol]);
+    
+    const results = analysisResult?.results;
+
+    const efficiencyTiers = useMemo(() => {
+        if (!results) return { efficient: 0, mostly: 0, needs: 0, inefficient: 0 };
+        const scores = Object.values(results.efficiency_scores);
+        return {
+            efficient: scores.filter(s => s >= 1).length,
+            mostly: scores.filter(s => s >= 0.9 && s < 1).length,
+            needs: scores.filter(s => s >= 0.8 && s < 0.9).length,
+            inefficient: scores.filter(s => s < 0.8).length,
+        };
+    }, [results]);
+
+    const tierData = useMemo(() => [
+        { name: 'Efficient (1)', count: efficiencyTiers.efficient, fill: 'var(--color-efficient)' },
+        { name: 'Mostly (0.9-1)', count: efficiencyTiers.mostly, fill: 'var(--color-mostly)' },
+        { name: 'Needs Imp. (0.8-0.9)', count: efficiencyTiers.needs, fill: 'var(--color-needs)' },
+        { name: 'Inefficient (<0.8)', count: efficiencyTiers.inefficient, fill: 'var(--color-inefficient)' },
+    ], [efficiencyTiers]);
+
+    const tierChartConfig = useMemo(() => ({ 
+        count: { label: 'DMUs' }, 
+        efficient: { color: 'hsl(var(--chart-2))' }, 
+        mostly: { color: 'hsl(var(--chart-3))' }, 
+        needs: { color: 'hsl(var(--chart-4))' }, 
+        inefficient: { color: 'hsl(var(--chart-5))' }
+    }), []);
+
 
     useEffect(() => {
         const potentialDmu = allHeaders.find(h => !numericHeaders.includes(h) && new Set(data.map(row => row[h])).size === data.length);
@@ -78,8 +107,6 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
         }
     }, [dmuCol, numericHeaders]);
     
-    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 3, [data, allHeaders]);
-
     const handleVarChange = (header: string, checked: boolean, type: 'input' | 'output') => {
         const setCols = type === 'input' ? setInputCols : setOutputCols;
         setCols(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
@@ -153,27 +180,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
             </div>
         )
     }
-
-    const results = analysisResult?.results;
-    const efficiencyTiers = useMemo(() => {
-        if (!results) return { efficient: 0, mostly: 0, needs: 0, inefficient: 0 };
-        const scores = Object.values(results.efficiency_scores);
-        return {
-            efficient: scores.filter(s => s >= 1).length,
-            mostly: scores.filter(s => s >= 0.9 && s < 1).length,
-            needs: scores.filter(s => s >= 0.8 && s < 0.9).length,
-            inefficient: scores.filter(s => s < 0.8).length,
-        };
-    }, [results]);
-    const tierData = [
-        { name: 'Efficient (1)', count: efficiencyTiers.efficient, fill: 'var(--color-efficient)' },
-        { name: 'Mostly (0.9-1)', count: efficiencyTiers.mostly, fill: 'var(--color-mostly)' },
-        { name: 'Needs Imp. (0.8-0.9)', count: efficiencyTiers.needs, fill: 'var(--color-needs)' },
-        { name: 'Inefficient (<0.8)', count: efficiencyTiers.inefficient, fill: 'var(--color-inefficient)' },
-    ];
-    const tierChartConfig = { count: { label: 'DMUs' }, efficient: { color: 'hsl(var(--chart-2))' }, mostly: { color: 'hsl(var(--chart-3))' }, needs: { color: 'hsl(var(--chart-4))' }, inefficient: { color: 'hsl(var(--chart-5))' }};
-
-
+    
     return (
         <div className="space-y-4">
             <Card>
@@ -313,13 +320,13 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {Object.entries(results.efficiency_scores).map(([dmu, score]) => (
+                                        {Object.entries(results.efficiency_scores).sort(([, a], [, b]) => b - a).map(([dmu, score]) => (
                                             <TableRow key={dmu}>
                                                 <TableCell>{dmu}</TableCell>
                                                 <TableCell className="font-mono text-right">{score.toFixed(4)}</TableCell>
                                                 <TableCell>
                                                     {score < 1 && results.reference_sets[dmu] && results.reference_sets[dmu].map((ref, i) => (
-                                                        <Badge key={i} variant="secondary" className="mr-1">{ref} ({(results.lambdas[dmu][i] * 100).toFixed(1)}%)</Badge>
+                                                        <Badge key={i} variant="secondary" className="mr-1">{ref} ({(results.lambdas[dmu].find((l, li) => results.dmu_names[li] === ref) * 100 || 0).toFixed(1)}%)</Badge>
                                                     ))}
                                                 </TableCell>
                                             </TableRow>
