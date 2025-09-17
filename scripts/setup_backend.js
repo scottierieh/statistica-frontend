@@ -32,8 +32,13 @@ function shouldReinstall() {
         console.log('requirements.txt not found. Skipping backend setup.');
         return false;
     }
-    if (!fs.existsSync(venvDir) || !fs.existsSync(reqCopyFile)) {
-        console.log("Virtual environment or requirements backup not found. A new setup is required.");
+    // If the success marker doesn't exist, we must reinstall.
+    if (!fs.existsSync(venvMarker)) {
+        console.log("Virtual environment setup marker not found. A new setup is required.");
+        return true;
+    }
+    if (!fs.existsSync(reqCopyFile)) {
+        console.log("Requirements backup not found. A new setup is required.");
         return true;
     }
 
