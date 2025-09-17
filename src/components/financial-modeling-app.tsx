@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -11,6 +10,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenu,
+  SidebarInset,
 } from '@/components/ui/sidebar';
 import {
   DollarSign,
