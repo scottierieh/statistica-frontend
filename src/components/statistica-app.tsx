@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -116,8 +115,9 @@ import DbscanPage from './pages/dbscan-page';
 import NonlinearRegressionPage from './pages/nonlinear-regression-page';
 import SnaPage from './pages/sna-page';
 import TopicModelingPage from './pages/topic-modeling-page';
+import DeaPage from './pages/dea-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -170,6 +170,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'nonlinear-regression': NonlinearRegressionPage,
     sna: SnaPage,
     'topic-modeling': TopicModelingPage,
+    dea: DeaPage,
 };
 
 const analysisMenu = [
@@ -271,6 +272,7 @@ const analysisMenu = [
       { id: 'meta-analysis', label: 'Meta-Analysis' },
       { id: 'gbm', label: 'Gradient Boosting Machine (GBM)'},
       { id: 'sna', label: 'Social Network Analysis' },
+      { id: 'dea', label: 'Data Envelopment Analysis (DEA)' },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
   },
