@@ -3,6 +3,9 @@ import { generateDataVisualization, GenerateDataVisualizationInput } from "@/ai/
 import { generateSummaryReport, GenerateSummaryReportInput } from "@/ai/flows/generate-summary-report";
 import { interpretAnova, InterpretAnovaInput } from "@/ai/flows/interpret-anova";
 import { interpretReliability, InterpretReliabilityInput } from "@/ai/flows/interpret-reliability";
+import { interpretCorrelation, InterpretCorrelationInput } from "@/ai/flows/interpret-correlation";
+import { interpretCrosstab, InterpretCrosstabInput } from "@/ai/flows/interpret-crosstab";
+import { interpretCfa, InterpretCfaInput } from "@/ai/flows/interpret-cfa";
 
 export async function getVisualizationDescription(input: GenerateDataVisualizationInput) {
     try {
@@ -41,5 +44,36 @@ export async function getReliabilityInterpretation(input: InterpretReliabilityIn
     } catch (error) {
         console.error(error);
         return { success: false, error: "Failed to generate reliability interpretation." };
+    }
+}
+
+
+export async function getCorrelationInterpretation(input: InterpretCorrelationInput) {
+    try {
+        const result = await interpretCorrelation(input);
+        return { success: true, interpretation: result.interpretation };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: "Failed to generate correlation interpretation." };
+    }
+}
+
+export async function getCrosstabInterpretation(input: InterpretCrosstabInput) {
+    try {
+        const result = await interpretCrosstab(input);
+        return { success: true, interpretation: result.interpretation };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: "Failed to generate crosstab interpretation." };
+    }
+}
+
+export async function getCfaInterpretation(input: InterpretCfaInput) {
+    try {
+        const result = await interpretCfa(input);
+        return { success: true, interpretation: result.interpretation };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: "Failed to generate CFA interpretation." };
     }
 }
