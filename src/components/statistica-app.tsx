@@ -84,6 +84,7 @@ import RegressionPage from './pages/regression-page';
 import LogisticRegressionPage from './pages/logistic-regression-page';
 import GlmPage from './pages/glm-page';
 import KMeansPage from './pages/kmeans-page';
+import KMedoidsPage from './pages/kmedoids-page';
 import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import CrosstabPage from './pages/crosstab-page';
 import SemPage from './pages/sem-page';
@@ -117,7 +118,7 @@ import SnaPage from './pages/sna-page';
 import TopicModelingPage from './pages/topic-modeling-page';
 import DeaPage from './pages/dea-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -145,6 +146,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'logistic-regression': LogisticRegressionPage,
     glm: GlmPage,
     kmeans: KMeansPage,
+    kmedoids: KMedoidsPage,
     dbscan: DbscanPage,
     frequency: FrequencyAnalysisPage,
     crosstab: CrosstabPage,
@@ -231,6 +233,7 @@ const analysisMenu = [
     icon: Users,
     methods: [
       { id: 'kmeans', label: 'K-Means Clustering' },
+      { id: 'kmedoids', label: 'K-Medoids Clustering' },
       { id: 'hca', label: 'Hierarchical Clustering' },
       { id: 'dbscan', label: 'DBSCAN Clustering' },
       { id: 'discriminant', label: 'Discriminant Analysis' },
