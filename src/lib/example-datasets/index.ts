@@ -1,5 +1,5 @@
 
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
