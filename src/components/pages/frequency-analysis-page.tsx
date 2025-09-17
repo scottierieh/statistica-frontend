@@ -192,7 +192,7 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
                             {!result.error && (
                                 <CardContent className="space-y-6">
                                      <div className="space-y-3">
-                                        {result.insights.map((insight, i) => (
+                                        {result.insights?.map((insight, i) => (
                                             <Alert key={i} variant={insight.type === 'warning' ? 'destructive' : 'default'} className={insight.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800 [&>svg]:text-yellow-500' : 'bg-blue-50 border-blue-200'}>
                                                 <AlertTriangle className="h-4 w-4" />
                                                 <AlertTitle className="font-bold">{insight.title}</AlertTitle>
@@ -223,7 +223,7 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
                                                 </CardHeader>
                                                 <CardContent>
                                                     <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
-                                                        {result.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                                                        {result.recommendations?.map((rec, i) => <li key={i}>{rec}</li>)}
                                                         <li>Always consider the context and purpose of your analysis when interpreting results.</li>
                                                         <li>Visual inspection often provides better insight than statistics alone.</li>
                                                     </ul>
