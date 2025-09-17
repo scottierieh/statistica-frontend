@@ -1,6 +1,4 @@
-
-
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch } from "lucide-react";
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom } from "lucide-react";
 import { likertScaleData } from "./likert-scale-data";
 import { studentPerformanceData } from "./student-performance";
 import { workStressData } from "./work-stress-data";
@@ -56,7 +54,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Monthly Sales Data',
         description: 'Monthly sales data, suitable for seasonal and trend analysis.',
         icon: AreaChart,
-        analysisTypes: ['stats', 'trend-analysis', 'seasonal-decomposition', 'moving-average', 'exponential-smoothing', 'autoregressive', 'acf-pacf'],
+        analysisTypes: ['stats', 'trend-analysis', 'seasonal-decomposition', 'moving-average', 'exponential-smoothing', 'autoregressive', 'acf-pacf', 'nonlinear-regression'],
         recommendedAnalysis: 'seasonal-decomposition',
         data: timeSeriesData,
     },
@@ -163,7 +161,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Linear Regression',
         description: 'A simple dataset with a clear linear relationship for regression.',
         icon: TrendingUp,
-        analysisTypes: ['stats', 'regression', 'correlation', 'glm'],
+        analysisTypes: ['stats', 'regression', 'correlation', 'glm', 'nonlinear-regression'],
         recommendedAnalysis: 'regression',
         data: regressionData,
     },
@@ -226,7 +224,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Non-Parametric Suite',
         description: 'A unified dataset for Mann-Whitney, Wilcoxon, Kruskal-Wallis, and Friedman tests.',
         icon: FlaskConical,
-        analysisTypes: ['stats', 'nonparametric', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman', 'mcnemar'],
+        analysisTypes: ['stats', 'nonparametric', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman', 'mcnemar', 'rm-anova'],
         recommendedAnalysis: 'nonparametric',
         data: nonparametricData,
     },
@@ -244,7 +242,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Restaurant Tips',
         description: 'Tips received by a server, along with customer and bill info.',
         icon: Coffee,
-        analysisTypes: ['stats', 'one-way-anova', 'visuals', 'frequency', 'crosstab', 'normality', 'homogeneity', 't-test'],
+        analysisTypes: ['stats', 'one-way-anova', 'visuals', 'frequency', 'crosstab', 'normality', 'homogeneity', 't-test', 'regression'],
         data: tipsData
     },
     {

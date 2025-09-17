@@ -53,6 +53,7 @@ import {
   Map,
   Repeat,
   ScanSearch,
+  Atom,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -79,6 +80,7 @@ import HcaPage from './pages/hca-page';
 import ManovaPage from './pages/manova-page';
 import RegressionPage from './pages/regression-page';
 import LogisticRegressionPage from './pages/logistic-regression-page';
+import GlmPage from './pages/glm-page';
 import KMeansPage from './pages/kmeans-page';
 import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import CrosstabPage from './pages/crosstab-page';
@@ -89,7 +91,6 @@ import PcaPage from './pages/pca-page';
 import SurvivalAnalysisPage from './pages/survival-analysis-page';
 import WordCloudPage from './pages/wordcloud-page';
 import GbmPage from './pages/gbm-page';
-import GlmPage from './pages/glm-page';
 import SentimentAnalysisPage from './pages/sentiment-analysis-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
@@ -109,8 +110,9 @@ import AcfPacfPage from './pages/acf-pacf-page';
 import MdsPage from './pages/mds-page';
 import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
 import DbscanPage from './pages/dbscan-page';
+import NonlinearRegressionPage from './pages/nonlinear-regression-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -160,6 +162,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     autoregressive: ArimaPage,
     'acf-pacf': AcfPacfPage,
     mds: MdsPage,
+    'nonlinear-regression': NonlinearRegressionPage,
 };
 
 const analysisMenu = [
@@ -209,8 +212,10 @@ const analysisMenu = [
       { id: 'regression-polynomial', label: 'Polynomial Regression' },
       { id: 'regression-ridge', label: 'Ridge Regression' },
       { id: 'regression-lasso', label: 'Lasso Regression' },
+      { id: 'regression-elasticnet', label: 'Elastic Net Regression' },
       { id: 'logistic-regression', label: 'Logistic Regression' },
       { id: 'glm', label: 'Probit / Logit Regression (GLM)' },
+      { id: 'nonlinear-regression', label: 'Nonlinear Regression' },
     ]
   },
    {
@@ -613,6 +618,8 @@ export default function StatisticaApp() {
                 numericHeaders={numericHeaders}
                 categoricalHeaders={categoricalHeaders}
                 onLoadExample={handleLoadExampleData}
+                onFileSelected={handleFileSelected}
+                isUploading={isUploading}
                />
 
           </div>
