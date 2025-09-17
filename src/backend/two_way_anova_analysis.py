@@ -20,7 +20,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -57,7 +57,10 @@ class TwoWayAnovaAnalysis:
         anova_table = anova_lm(self.model, typ=2)
         
         # Add partial eta-squared (η²p)
-        anova_table['η²p'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
+        if 'Residual' in anova_table.index:
+            anova_table['η²p'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
+        else:
+            anova_table['η²p'] = np.nan
         
         # Clean up source names
         interaction_source_key = f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'
@@ -68,14 +71,16 @@ class TwoWayAnovaAnalysis:
         }
         anova_table = anova_table.rename(index=cleaned_index)
 
+        # Get interaction p-value *before* resetting the index
+        interaction_p_value = anova_table.loc[f'{self.factor_a} * {self.factor_b}', 'PR(>F)']
+        
+        # Now prepare the table for JSON response
         self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).to_dict('records')
         
         self._test_assumptions()
         self._calculate_marginal_means()
         
         # Perform post-hoc test if interaction is significant
-        # This check must happen *after* renaming the index
-        interaction_p_value = anova_table.loc[f'{self.factor_a} * {self.factor_b}', 'p-value']
         if interaction_p_value < self.alpha:
             self._perform_posthoc_tests()
     
