@@ -6,7 +6,8 @@ const path = require('path');
 const backendDir = path.resolve(__dirname, '..', 'backend');
 const venvDir = path.join(backendDir, 'venv');
 const reqFile = path.join(backendDir, 'requirements.txt');
-const venvMarker = path.join(venvDir, '.setup_complete'); // Marker file to store last successful setup time
+const venvMarker = path.join(venvDir, '.setup_complete'); // Marker file for successful setup
+const reqCopyFile = path.join(venvDir, 'requirements.txt.bak'); // Copy of last installed requirements
 const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 const pipCmd = process.platform === 'win32' ? path.join(venvDir, 'Scripts', 'pip.exe') : path.join(venvDir, 'bin', 'pip');
 
@@ -31,26 +32,21 @@ function shouldReinstall() {
         console.log('requirements.txt not found. Skipping backend setup.');
         return false;
     }
-    if (!fs.existsSync(venvMarker)) {
-        console.log("Virtual environment marker not found. A new setup is required.");
+    if (!fs.existsSync(venvDir) || !fs.existsSync(reqCopyFile)) {
+        console.log("Virtual environment or requirements backup not found. A new setup is required.");
         return true;
     }
 
     try {
-        const markerStat = fs.statSync(venvMarker);
-        const reqStat = fs.statSync(reqFile);
+        const currentReqs = fs.readFileSync(reqFile, 'utf-8');
+        const lastInstalledReqs = fs.readFileSync(reqCopyFile, 'utf-8');
         
-        if (reqStat.mtime > markerStat.mtime) {
+        if (currentReqs.trim() !== lastInstalledReqs.trim()) {
             console.log("requirements.txt has been modified since the last setup. Re-installing dependencies.");
-            // Force removal of the venv directory to ensure a clean install
-            if (fs.existsSync(venvDir)) {
-                console.log(`Removing existing virtual environment at ${venvDir}...`);
-                fs.rmSync(venvDir, { recursive: true, force: true });
-            }
             return true;
         }
     } catch (e) {
-        console.error("Could not check file stats. Forcing reinstall.", e);
+        console.error("Could not read requirements files. Forcing reinstall.", e);
         return true;
     }
 
@@ -59,10 +55,10 @@ function shouldReinstall() {
 
 console.log('--- Setting up Python backend and generating data ---');
 
-if (shouldReinstall() || !fs.existsSync(venvDir)) {
+if (shouldReinstall()) {
     try {
         if (fs.existsSync(venvDir)) {
-             console.log(`Removing existing virtual environment at ${venvDir}...`);
+             console.log(`Removing existing virtual environment at ${venvDir} due to changed requirements...`);
              fs.rmSync(venvDir, { recursive: true, force: true });
         }
 
@@ -74,18 +70,16 @@ if (shouldReinstall() || !fs.existsSync(venvDir)) {
         console.log(`Installing dependencies from ${reqFile}...`);
         execSync(`${pipCmd} install -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
-        // 3. Touch the marker file to update its timestamp
-        if (!fs.existsSync(venvDir)) {
-            fs.mkdirSync(venvDir, { recursive: true });
-        }
-        const now = new Date();
-        fs.writeFileSync(venvMarker, `Setup completed on: ${now.toISOString()}`);
+        // 3. Create a copy of requirements.txt for future comparison
+        fs.copyFileSync(reqFile, reqCopyFile);
+        
+        // 4. Touch the marker file to indicate a successful setup
+        fs.writeFileSync(venvMarker, `Setup completed on: ${new Date().toISOString()}`);
 
         console.log('Python backend setup complete.');
 
     } catch (error) {
         console.error('Error setting up Python backend:', error);
-        // Exit if setup fails, as subsequent scripts will likely fail too.
         process.exit(1);
     }
 } else {
