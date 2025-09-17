@@ -1,6 +1,7 @@
 
 'use client';
 import { useState, useCallback, useMemo } from 'react';
+import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { DateRange } from 'react-day-picker';
 import { subYears, format } from 'date-fns';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, CartesianGrid, XAxis, Tooltip, Line, ResponsiveContainer, YAxis, Legend } from 'recharts';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 
 interface SummaryStats {
     annual_return: number;
@@ -51,7 +53,14 @@ const StatCard = ({ title, value, unit, icon: Icon }: { title: string, value: nu
     </Card>
 );
 
-export default function PortfolioAnalysisPage() {
+
+interface PortfolioAnalysisPageProps {
+  data: DataSet;
+  onLoadExample: (example: ExampleDataSet) => void;
+}
+
+
+export default function PortfolioAnalysisPage({ data, onLoadExample }: PortfolioAnalysisPageProps) {
     const { toast } = useToast();
     const [tickers, setTickers] = useState('AAPL, MSFT, GOOGL, AMZN');
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -124,6 +133,21 @@ export default function PortfolioAnalysisPage() {
       },
     };
     
+    if (data.length > 0) {
+        return (
+            <div className="flex flex-1 items-center justify-center h-full">
+                <Card className="w-full max-w-2xl text-center">
+                    <CardHeader>
+                        <CardTitle className="font-headline">Portfolio Analysis</CardTitle>
+                        <CardDescription>
+                            This tool uses live market data via the yfinance API and does not require a data upload. Please clear any loaded data to use this feature.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-4">
             <Card>

@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -11,12 +12,25 @@ import {
   SidebarMenuButton,
   SidebarMenu,
   SidebarInset,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
 import {
   DollarSign,
   Activity,
+  FileText,
+  Loader2,
 } from 'lucide-react';
 import PortfolioAnalysisPage from './pages/portfolio-analysis-page';
+import { type DataSet, parseData, unparseData } from '@/lib/stats';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { useToast } from '@/hooks/use-toast';
+import DataUploader from './data-uploader';
+import DataPreview from './data-preview';
+import { Button } from './ui/button';
+import * as XLSX from 'xlsx';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
+import { getSummaryReport } from '@/app/actions';
+
 
 type AnalysisType = 'portfolio' | string;
 
@@ -36,8 +50,135 @@ const analysisMenu = [
 
 export default function FinancialModelingApp() {
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('portfolio');
+  const [data, setData] = useState<DataSet>([]);
+  const [allHeaders, setAllHeaders] = useState<string[]>([]);
+  const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
+  const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
+  const [fileName, setFileName] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [report, setReport] = useState<{ title: string, content: string } | null>(null);
+
+  const { toast } = useToast();
+  
+  const processData = useCallback((content: string, name: string) => {
+    setIsUploading(true);
+    try {
+        const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
+        
+        if (newData.length === 0 || newHeaders.length === 0) {
+          throw new Error("No valid data found in the file.");
+        }
+        setData(newData);
+        setAllHeaders(newHeaders);
+        setNumericHeaders(newNumericHeaders);
+        setCategoricalHeaders(newCategoricalHeaders);
+        setFileName(name);
+        toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
+
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'File Processing Error',
+          description: error.message || 'Could not parse file. Please check the format.',
+        });
+        handleClearData();
+      } finally {
+        setIsUploading(false);
+      }
+  }, [toast]);
+  
+  const handleFileSelected = useCallback((file: File) => {
+    setIsUploading(true);
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+        const content = e.target?.result as string;
+        if (!content) {
+            toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not read file content.' });
+            setIsUploading(false);
+            return;
+        }
+        processData(content, file.name);
+    };
+
+    reader.onerror = (e) => {
+        toast({ variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.' });
+        setIsUploading(false);
+    }
+    
+    if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+        reader.readAsArrayBuffer(file);
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const csv = XLSX.utils.sheet_to_csv(worksheet);
+            processData(csv, file.name);
+        }
+    } else {
+        reader.readAsText(file);
+    }
+  }, [processData, toast]);
+
+  const handleClearData = () => {
+    setData([]);
+    setAllHeaders([]);
+    setNumericHeaders([]);
+    setCategoricalHeaders([]);
+    setFileName('');
+  };
+
+  const handleLoadExampleData = (example: ExampleDataSet) => {
+    processData(example.data, example.name);
+    if(example.recommendedAnalysis) {
+      setActiveAnalysis(example.recommendedAnalysis);
+    }
+  };
+
+  const handleDownloadData = () => {
+    if (data.length === 0) {
+      toast({ title: 'No Data to Download', description: 'There is no data currently loaded.' });
+      return;
+    }
+    try {
+      const csvContent = unparseData({ headers: allHeaders, data });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName.replace(/\.[^/.]+$/, "") + ".csv" || 'data.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download data:', error);
+      toast({ variant: 'destructive', title: 'Download Error', description: 'Could not prepare data for download.' });
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    if (data.length === 0) {
+      toast({ title: 'No Data to Report', description: 'Please upload a file first.' });
+      return;
+    }
+    setIsGeneratingReport(true);
+    const statsString = `Columns in the loaded data: ${allHeaders.join(', ')}`;
+    const vizString = "Visualizations for the loaded data.";
+
+    const result = await getSummaryReport({ statistics: statsString, visualizations: vizString });
+    if (result.success && result.report) {
+      setReport({ title: 'Summary Report', content: result.report });
+    } else {
+      toast({ variant: 'destructive', title: 'Failed to generate report', description: result.error });
+    }
+    setIsGeneratingReport(false);
+  };
   
   const ActivePageComponent = analysisPages[activeAnalysis] || PortfolioAnalysisPage;
+  const hasData = data.length > 0;
 
   return (
     <SidebarProvider>
@@ -52,6 +193,12 @@ export default function FinancialModelingApp() {
             </div>
           </SidebarHeader>
           <SidebarContent className="flex flex-col gap-2 p-2">
+             <div className='p-2'>
+              <DataUploader 
+                onFileSelected={handleFileSelected}
+                loading={isUploading}
+              />
+            </div>
             <SidebarMenu>
               {analysisMenu.map((category) => (
                 <SidebarMenuItem key={category.field}>
@@ -69,6 +216,12 @@ export default function FinancialModelingApp() {
               ))}
             </SidebarMenu>
           </SidebarContent>
+           <SidebarFooter>
+            <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="w-full">
+              {isGeneratingReport ? <Loader2 className="animate-spin" /> : <FileText />}
+              {isGeneratingReport ? 'Generating...' : 'Generate Report'}
+            </Button>
+          </SidebarFooter>
         </Sidebar>
 
         <SidebarInset>
@@ -79,10 +232,42 @@ export default function FinancialModelingApp() {
                 <div />
             </header>
             
-            <ActivePageComponent />
+            {hasData && (
+              <DataPreview 
+                fileName={fileName}
+                data={data}
+                headers={allHeaders}
+                onDownload={handleDownloadData}
+                onClearData={handleClearData}
+              />
+            )}
+            
+            <ActivePageComponent 
+              data={data}
+              allHeaders={allHeaders}
+              numericHeaders={numericHeaders}
+              categoricalHeaders={categoricalHeaders}
+              onLoadExample={handleLoadExampleData}
+            />
           </div>
         </SidebarInset>
       </div>
+      <Dialog open={!!report} onOpenChange={(open) => !open && setReport(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-headline">{report?.title}</DialogTitle>
+            <DialogDescription>
+              An AI-generated summary of your data analysis.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="prose prose-sm dark:prose-invert max-h-[60vh] overflow-y-auto rounded-md border p-4 whitespace-pre-wrap">
+            {report?.content}
+          </div>
+          <DialogFooter>
+            <Button onClick={handleGenerateReport} disabled={isGeneratingReport}>Download as .txt</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }
