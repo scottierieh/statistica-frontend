@@ -68,12 +68,13 @@ class TwoWayAnovaAnalysis:
         }
         anova_table = anova_table.rename(index=cleaned_index)
 
-        self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).replace({np.nan: None}).to_dict('records')
+        self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).to_dict('records')
         
         self._test_assumptions()
         self._calculate_marginal_means()
         
         # Perform post-hoc test if interaction is significant
+        # This check must happen *after* renaming the index
         interaction_p_value = anova_table.loc[f'{self.factor_a} * {self.factor_b}', 'p-value']
         if interaction_p_value < self.alpha:
             self._perform_posthoc_tests()
