@@ -48,6 +48,7 @@ interface RegressionResultsData {
             breusch_pagan: { statistic: number; p_value: number; };
         }
     };
+    stepwise_log?: string[];
 }
 
 interface FullAnalysisResponse {
@@ -78,6 +79,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     
     const initialModelType = activeAnalysis.split('-')[1] || 'simple';
     const [modelType, setModelType] = useState(initialModelType);
+    const [selectionMethod, setSelectionMethod] = useState('none');
 
     // State for different models
     const [simpleFeatureVar, setSimpleFeatureVar] = useState<string | undefined>(numericHeaders[0]);
@@ -115,7 +117,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         }
 
         let features: string[] = [];
-        let params: any = { data, targetVar, modelType };
+        let params: any = { data, targetVar, modelType, selectionMethod };
 
         switch (modelType) {
             case 'simple':
@@ -169,7 +171,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         } finally {
             setIsLoading(false);
         }
-    }, [data, targetVar, modelType, simpleFeatureVar, multipleFeatureVars, polyDegree, ridgeAlpha, lassoAlpha, toast]);
+    }, [data, targetVar, modelType, simpleFeatureVar, multipleFeatureVars, polyDegree, ridgeAlpha, lassoAlpha, selectionMethod, toast]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
     
@@ -230,18 +232,34 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     }
 
     const renderMultiFeatureSelector = () => (
-        <div>
-            <Label>Feature Variables (X)</Label>
-                <ScrollArea className="h-32 border rounded-md p-4">
-                <div className="space-y-2">
-                    {availableFeatures.map(h => (
-                        <div key={h} className="flex items-center space-x-2">
-                            <Checkbox id={`feat-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
-                            <label htmlFor={`feat-${h}`}>{h}</label>
-                        </div>
-                    ))}
+        <div className="flex flex-col gap-4">
+            <div>
+                <Label>Feature Variables (X)</Label>
+                    <ScrollArea className="h-32 border rounded-md p-4">
+                    <div className="space-y-2">
+                        {availableFeatures.map(h => (
+                            <div key={h} className="flex items-center space-x-2">
+                                <Checkbox id={`feat-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
+                                <label htmlFor={`feat-${h}`}>{h}</label>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+            </div>
+             {modelType === 'multiple' && (
+                <div>
+                    <Label>Variable Selection Method</Label>
+                    <Select value={selectionMethod} onValueChange={setSelectionMethod}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">Enter (None)</SelectItem>
+                            <SelectItem value="forward">Forward Selection</SelectItem>
+                            <SelectItem value="backward">Backward Elimination</SelectItem>
+                            <SelectItem value="stepwise">Stepwise Regression</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
-            </ScrollArea>
+             )}
         </div>
     )
 
@@ -369,6 +387,17 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                         <Card>
                             <CardHeader><CardTitle>Diagnostic Plots</CardTitle></CardHeader>
                             <CardContent><Image src={analysisResult.plot} alt="Regression Diagnostics" width={1500} height={1200} className="w-full rounded-md border"/></CardContent>
+                        </Card>
+                    )}
+
+                    {results.stepwise_log && results.stepwise_log.length > 0 && (
+                        <Card>
+                            <CardHeader><CardTitle>Stepwise Selection Log</CardTitle></CardHeader>
+                            <CardContent>
+                                <pre className="p-4 bg-muted rounded-md text-sm overflow-x-auto">
+                                    {results.stepwise_log.join('\n')}
+                                </pre>
+                            </CardContent>
                         </Card>
                     )}
 
