@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -7,9 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sigma, AlertCircle, Loader2, ShieldCheck, Settings2 } from 'lucide-react';
+import { Sigma, AlertCircle, Loader2, ShieldCheck, Settings2, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getReliabilityInterpretation } from '@/app/actions';
@@ -64,7 +64,7 @@ const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null
   return (
     <Card>
         <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2"><ShieldCheck /> AI Interpretation</CardTitle>
+            <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
         </CardHeader>
         <CardContent>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>

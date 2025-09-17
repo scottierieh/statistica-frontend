@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BrainCircuit, Plus, Trash2, Wand2, Check, X } from 'lucide-react';
+import { Sigma, Loader2, BrainCircuit, Plus, Trash2, Wand2, Check, X, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
@@ -16,10 +16,21 @@ import { Badge } from '../ui/badge';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
+import { getCfaInterpretation } from '@/app/actions';
 
 
 // CFA Results Types
+interface FitIndices {
+    chi_square: number;
+    df: number;
+    p_value: number;
+    cfi: number;
+    tli: number;
+    rmsea: number;
+    srmr: number;
+}
 interface CfaResults {
+    fit_indices: FitIndices;
     standardized_solution?: {
         loadings: number[][];
         factor_correlations: number[][];
@@ -53,6 +64,42 @@ interface Factor {
     items: string[];
 }
 
+const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
+  const [interpretation, setInterpretation] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!promise) {
+        setInterpretation(null);
+        setLoading(false);
+        return;
+    };
+    let isMounted = true;
+    setLoading(true);
+    promise.then((desc) => {
+        if (isMounted) {
+            setInterpretation(desc);
+            setLoading(false);
+        }
+    });
+    return () => { isMounted = false; };
+  }, [promise]);
+  
+  if (loading) return <Skeleton className="h-24 w-full" />;
+  if (!interpretation) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>
+      </CardContent>
+    </Card>
+  );
+};
+
 interface CfaPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -65,10 +112,13 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     
     const [analysisResult, setAnalysisResult] = useState<FullCfaResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
+
     
     useEffect(() => {
         setFactors([{id: `factor-0`, name: 'Factor 1', items: []}]);
         setAnalysisResult(null);
+        setAiPromise(null);
     }, [numericHeaders, data]);
     
     const canRunAnalysis = useMemo(() => {
@@ -109,6 +159,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
         setIsLoading(true);
         setAnalysisResult(null);
+        setAiPromise(null);
 
         const modelSpec = factors.reduce((acc, factor) => {
             acc[factor.name] = factor.items;
@@ -132,6 +183,14 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
             setAnalysisResult(result);
             toast({ title: 'CFA Complete', description: result.results.convergence ? 'Model converged successfully.' : 'Model did not converge.' });
+
+            const promise = getCfaInterpretation({
+                fitIndices: JSON.stringify(result.results.fit_indices),
+                factorLoadings: JSON.stringify(result.results.standardized_solution?.loadings),
+                convergentValidity: JSON.stringify(result.results.reliability),
+                discriminantValidity: JSON.stringify(result.results.discriminant_validity)
+            }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
+            setAiPromise(promise);
 
         } catch (e: any) {
             console.error('CFA Analysis error:', e);
@@ -161,17 +220,13 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                 const Icon = ex.icon;
                                 return (
                                 <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                            <Icon className="h-6 w-6 text-secondary-foreground" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </div>
+                                    <CardHeader>
+                                        <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                        <CardDescription className="text-xs">{ex.description}</CardDescription>
                                     </CardHeader>
                                     <CardFooter>
                                         <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                            <Icon className="mr-2 h-4 w-4" />
                                             Load this data
                                         </Button>
                                     </CardFooter>
@@ -302,13 +357,14 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
             {analysisResult && results && (
                 <>
+                    <AIGeneratedInterpretation promise={aiPromise} />
                     {analysisResult.plot && (
                          <Card>
                             <CardHeader>
                                 <CardTitle className="font-headline">Analysis Summary</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <Image src={analysisResult.plot} alt="CFA Results Plot" width={1400} height={600} className="w-full rounded-md border"/>
+                                <Image src={analysisResult.plot} alt="CFA Results Plot" width={1400} height={1000} className="w-full rounded-md border"/>
                             </CardContent>
                         </Card>
                     )}

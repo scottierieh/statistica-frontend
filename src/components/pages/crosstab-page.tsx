@@ -9,11 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Columns } from 'lucide-react';
+import { Sigma, Loader2, Columns, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getCrosstabInterpretation } from '@/app/actions';
 
 interface CrosstabResults {
     contingency_table: { [key: string]: { [key: string]: number } };
@@ -41,6 +42,42 @@ const getSignificanceStars = (p: number) => {
     return '';
 };
 
+const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
+  const [interpretation, setInterpretation] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!promise) {
+        setInterpretation(null);
+        setLoading(false);
+        return;
+    };
+    let isMounted = true;
+    setLoading(true);
+    promise.then((desc) => {
+        if (isMounted) {
+            setInterpretation(desc);
+            setLoading(false);
+        }
+    });
+    return () => { isMounted = false; };
+  }, [promise]);
+  
+  if (loading) return <Skeleton className="h-24 w-full" />;
+  if (!interpretation) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>
+      </CardContent>
+    </Card>
+  );
+};
+
 
 interface CrosstabPageProps {
     data: DataSet;
@@ -55,11 +92,13 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [tableFormat, setTableFormat] = useState('counts');
+    const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
 
     useEffect(() => {
         setRowVar(categoricalHeaders[0] || '');
         setColVar(categoricalHeaders[1] || '');
         setAnalysisResult(null);
+        setAiPromise(null);
     }, [data, categoricalHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && categoricalHeaders.length >= 2, [data, categoricalHeaders]);
@@ -72,6 +111,7 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
         setIsLoading(true);
         setAnalysisResult(null);
+        setAiPromise(null);
 
         try {
             const response = await fetch('/api/analysis/crosstab', {
@@ -89,6 +129,17 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
             if ((result as any).error) throw new Error((result as any).error);
 
             setAnalysisResult(result);
+            
+            const promise = getCrosstabInterpretation({
+                rowVar: result.results.row_var,
+                colVar: result.results.col_var,
+                chi2: result.results.chi_squared.statistic,
+                pValue: result.results.chi_squared.p_value,
+                cramersV: result.results.cramers_v,
+                contingencyTable: JSON.stringify(result.results.contingency_table),
+            }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
+            setAiPromise(promise);
+
 
         } catch (e: any) {
             console.error('Crosstab Analysis error:', e);
@@ -222,12 +273,13 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
             {analysisResult && (
                 <div className="space-y-4">
+                    <AIGeneratedInterpretation promise={aiPromise} />
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">Chi-Squared Test of Independence</CardTitle>
                             <CardDescription>Tests whether there is a significant association between {rowVar} and {colVar}.</CardDescription>
                         </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-4">
+                        <CardContent className="grid md:grid-cols-2 gap-6">
                             <dl className="space-y-3">
                                 <div className="flex justify-between items-center">
                                     <dt className="text-muted-foreground">Chi-Squared (χ²)</dt>
