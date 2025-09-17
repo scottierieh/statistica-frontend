@@ -1,6 +1,5 @@
 
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -55,6 +54,7 @@ import {
   Layers,
   Map,
   Repeat,
+  ScanSearch,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -110,8 +110,9 @@ import ArimaPage from './pages/arima-page';
 import AcfPacfPage from './pages/acf-pacf-page';
 import MdsPage from './pages/mds-page';
 import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
+import DbscanPage from './pages/dbscan-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'autoregressive' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | 'mds' | 'rm-anova' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'autoregressive' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | 'mds' | 'rm-anova' | 'dbscan' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -139,6 +140,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'logistic-regression': LogisticRegressionPage,
     glm: GlmPage,
     kmeans: KMeansPage,
+    dbscan: DbscanPage,
     frequency: FrequencyAnalysisPage,
     crosstab: CrosstabPage,
     sem: SemPage,
@@ -219,6 +221,7 @@ const analysisMenu = [
     methods: [
       { id: 'kmeans', label: 'K-Means Clustering' },
       { id: 'hca', label: 'Hierarchical Clustering' },
+      { id: 'dbscan', label: 'DBSCAN Clustering' },
       { id: 'discriminant', label: 'Discriminant Analysis' },
       { id: 'pca', label: 'Principal Component Analysis (PCA)' },
       { id: 'mds', label: 'Multidimensional Scaling (MDS)' },
