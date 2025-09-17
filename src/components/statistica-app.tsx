@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -112,7 +110,7 @@ import MdsPage from './pages/mds-page';
 import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
 import DbscanPage from './pages/dbscan-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'trend-analysis' | 'seasonal-decomposition' | 'normality' | 'homogeneity' | 'moving-average' | 'exponential-smoothing' | 'autoregressive' | 'acf-pacf' | 'mann-whitney' | 'wilcoxon' | 'kruskal-wallis' | 'friedman' | 'mcnemar' | 'mds' | 'rm-anova' | 'dbscan' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -212,7 +210,7 @@ const analysisMenu = [
       { id: 'regression-ridge', label: 'Ridge Regression' },
       { id: 'regression-lasso', label: 'Lasso Regression' },
       { id: 'logistic-regression', label: 'Logistic Regression' },
-      { id: 'glm', label: 'General Linear Models (GLM)' },
+      { id: 'glm', label: 'Probit / Logit Regression (GLM)' },
     ]
   },
    {

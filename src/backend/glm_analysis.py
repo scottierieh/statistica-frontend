@@ -53,6 +53,7 @@ def main():
         target_var = payload.get('target_var')
         features = payload.get('features')
         family_name = payload.get('family', 'gaussian').lower()
+        link_function_name = payload.get('link_function')
 
         if not all([data, target_var, features]):
             raise ValueError("Missing 'data', 'target_var', or 'features'")
@@ -67,11 +68,19 @@ def main():
         
         formula = f'Q("{target_var_clean}") ~ ' + ' + '.join([f'Q("{f}")' for f in features_clean])
 
+        link_map = {
+            'logit': sm.families.links.logit(),
+            'probit': sm.families.links.probit(),
+            'log': sm.families.links.log(),
+            'inverse_power': sm.families.links.inverse_power(),
+        }
+        link = link_map.get(link_function_name) if link_function_name else None
+
         family_map = {
-            'gaussian': sm.families.Gaussian(),
-            'binomial': sm.families.Binomial(),
-            'poisson': sm.families.Poisson(),
-            'gamma': sm.families.Gamma(link=sm.families.links.log()),
+            'gaussian': sm.families.Gaussian(link=link),
+            'binomial': sm.families.Binomial(link=link),
+            'poisson': sm.families.Poisson(link=link),
+            'gamma': sm.families.Gamma(link=link if link else sm.families.links.log()),
         }
 
         if family_name not in family_map:
@@ -105,19 +114,23 @@ def main():
         coefficients_data = []
         
         if family_name in ['binomial', 'poisson', 'gamma']:
-            exp_params = np.exp(params)
-            exp_conf_int = np.exp(conf_int)
+            try:
+                exp_params = np.exp(params)
+                exp_conf_int = np.exp(conf_int)
+            except Exception: # Handle potential overflow
+                exp_params = pd.Series([np.nan] * len(params), index=params.index)
+                exp_conf_int = pd.DataFrame([[np.nan, np.nan]] * len(params), index=conf_int.index)
             
             for param in params.index:
                 coefficients_data.append({
                     'variable': param,
                     'coefficient': params[param],
-                    'exp_coefficient': exp_params[param],
+                    'exp_coefficient': exp_params.get(param),
                     'p_value': pvalues[param],
                     'conf_int_lower': conf_int.loc[param, 0],
                     'conf_int_upper': conf_int.loc[param, 1],
-                    'exp_conf_int_lower': exp_conf_int.loc[param, 0],
-                    'exp_conf_int_upper': exp_conf_int.loc[param, 1],
+                    'exp_conf_int_lower': exp_conf_int.loc[param, 0] if param in exp_conf_int.index else None,
+                    'exp_conf_int_upper': exp_conf_int.loc[param, 1] if param in exp_conf_int.index else None,
                 })
         else: # Gaussian
             for param in params.index:

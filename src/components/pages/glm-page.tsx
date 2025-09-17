@@ -57,6 +57,7 @@ interface GlmPageProps {
 export default function GlmPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: GlmPageProps) {
     const { toast } = useToast();
     const [family, setFamily] = useState('gaussian');
+    const [linkFunction, setLinkFunction] = useState<string | undefined>();
     const [targetVar, setTargetVar] = useState<string | undefined>();
     const [features, setFeatures] = useState<string[]>([]);
     
@@ -66,13 +67,13 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
     const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2, [data, allHeaders]);
 
     const targetOptions = useMemo(() => {
-        const binaryNumericHeaders = numericHeaders.filter(h => {
+        const binaryCategoricalHeaders = categoricalHeaders.filter(h => {
             const uniqueValues = new Set(data.map(row => row[h]));
-            return uniqueValues.size === 2 && (uniqueValues.has(0) && uniqueValues.has(1));
+            return uniqueValues.size === 2;
         });
 
         if (family === 'binomial') {
-            return [...categoricalHeaders, ...binaryNumericHeaders];
+            return [...binaryCategoricalHeaders];
         }
         return numericHeaders;
     }, [family, numericHeaders, categoricalHeaders, data]);
@@ -85,6 +86,29 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
         setFeatures(allHeaders.filter(h => h !== newTarget));
         setAnalysisResult(null);
     }, [family, data, allHeaders, targetOptions]);
+
+    const linkFunctionOptions = useMemo(() => {
+        switch (family) {
+            case 'binomial':
+                return ['logit', 'probit', 'cloglog', 'log'];
+            case 'gamma':
+                return ['log', 'inverse_power'];
+            case 'gaussian':
+                return ['identity', 'log'];
+            default:
+                return [];
+        }
+    }, [family]);
+    
+     useEffect(() => {
+        // Reset link function when family changes if it's not compatible
+        if (linkFunctionOptions.length > 0 && !linkFunctionOptions.includes(linkFunction || '')) {
+            setLinkFunction(linkFunctionOptions[0]);
+        } else if (linkFunctionOptions.length === 0) {
+            setLinkFunction(undefined);
+        }
+    }, [linkFunctionOptions, linkFunction]);
+
 
     const handleFeatureChange = (header: string, checked: boolean) => {
         setFeatures(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
@@ -103,7 +127,7 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
             const response = await fetch('/api/analysis/glm', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, target_var: targetVar, features, family })
+                body: JSON.stringify({ data, target_var: targetVar, features, family, link_function: linkFunction })
             });
 
             if (!response.ok) {
@@ -123,7 +147,7 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
         } finally {
             setIsLoading(false);
         }
-    }, [data, targetVar, features, family, toast]);
+    }, [data, targetVar, features, family, linkFunction, toast]);
     
     const mainSummaryData = useMemo(() => {
         if (!analysisResult?.model_summary_data?.[0]?.data) return [];
@@ -192,19 +216,30 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
                     <CardDescription>Select the model family, target variable, and features.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-3 gap-4">
+                    <div className="grid md:grid-cols-4 gap-4">
                         <div>
                             <Label>Model Family</Label>
                             <Select value={family} onValueChange={setFamily}>
                                 <SelectTrigger><SelectValue/></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="gaussian">Gaussian (Linear Regression)</SelectItem>
-                                    <SelectItem value="binomial">Binomial (Logistic Regression)</SelectItem>
-                                    <SelectItem value="poisson">Poisson (Count Data)</SelectItem>
-                                    <SelectItem value="gamma">Gamma (Skewed Continuous Data)</SelectItem>
+                                    <SelectItem value="gaussian">Gaussian (Linear)</SelectItem>
+                                    <SelectItem value="binomial">Binomial (Logit/Probit)</SelectItem>
+                                    <SelectItem value="poisson">Poisson (Count)</SelectItem>
+                                    <SelectItem value="gamma">Gamma (Skewed)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
+                         {linkFunctionOptions.length > 0 && (
+                            <div>
+                                <Label>Link Function</Label>
+                                <Select value={linkFunction} onValueChange={setLinkFunction}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {linkFunctionOptions.map(link => <SelectItem key={link} value={link}>{link}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                         <div>
                             <Label>Target Variable</Label>
                             <Select value={targetVar} onValueChange={setTargetVar}>
@@ -212,7 +247,7 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
                                 <SelectContent>{targetOptions.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
-                        <div>
+                        <div className={linkFunctionOptions.length > 0 ? "" : "md:col-span-2"}>
                              <Label>Features</Label>
                             <ScrollArea className="h-32 border rounded-md p-4">
                                 {featureOptions.map(h => (
