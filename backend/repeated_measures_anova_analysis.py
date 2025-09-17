@@ -62,15 +62,22 @@ class RepeatedMeasuresAnova:
             
             anova_table = res.anova_table
             
-            # Mauchly's test for sphericity
-            mauchly_result = res.sphericity
+            # Mauchly's test for sphericity. This attribute was renamed in statsmodels > 0.9.0
+            mauchly_result = getattr(res, 'mauchly', None) or getattr(res, 'sphericity', None)
             
             self.results['anova_table'] = anova_table.reset_index().to_dict('records')
-            self.results['mauchly_test'] = {
-                'statistic': mauchly_result[0],
-                'p_value': mauchly_result[1],
-                'sphericity_assumed': mauchly_result[1] > self.alpha if mauchly_result[1] is not None else True
-            }
+            
+            if mauchly_result and len(mauchly_result) > 1:
+                self.results['mauchly_test'] = {
+                    'statistic': mauchly_result[0],
+                    'p_value': mauchly_result[1],
+                    'sphericity_assumed': mauchly_result[1] > self.alpha if mauchly_result[1] is not None else True
+                }
+            else:
+                 self.results['mauchly_test'] = {
+                    'statistic': None, 'p_value': None, 'sphericity_assumed': True
+                 }
+
             
         except Exception as e:
             # Fallback for when AnovaRM fails (e.g., singular matrix)
