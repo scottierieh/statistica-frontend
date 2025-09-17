@@ -38,6 +38,17 @@ interface AssumptionResult {
     assumption_met: boolean;
 }
 
+interface PostHocResult {
+    group1: string;
+    group2: string;
+    meandiff: number;
+    p_adj: number;
+    lower: number;
+    upper: number;
+    reject: boolean;
+}
+
+
 interface TwoWayAnovaResults {
     anova_table: AnovaRow[];
     marginal_means: {
@@ -48,6 +59,7 @@ interface TwoWayAnovaResults {
         normality: AssumptionResult;
         homogeneity: AssumptionResult;
     };
+    posthoc_results?: PostHocResult[];
 }
 
 interface FullAnalysisResponse {
@@ -303,6 +315,30 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
                             </CardContent>
                         </Card>
                     </div>
+
+                     {results.posthoc_results && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Post-Hoc Tests (Tukey's HSD)</CardTitle>
+                                <CardDescription>Pairwise comparisons performed because the interaction effect was significant.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Group 1</TableHead><TableHead>Group 2</TableHead><TableHead className="text-right">Mean Difference</TableHead><TableHead className="text-right">p-adj</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {results.posthoc_results.map((res, i) => (
+                                            <TableRow key={i}>
+                                                <TableCell>{res.group1}</TableCell>
+                                                <TableCell>{res.group2}</TableCell>
+                                                <TableCell className="text-right font-mono">{res.meandiff.toFixed(3)}</TableCell>
+                                                <TableCell className="text-right font-mono">{res.p_adj < 0.001 ? "<.001" : res.p_adj.toFixed(4)} {getSignificanceStars(res.p_adj)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    )}
                 </>
             ) : (
                  !isLoading && <div className="text-center text-muted-foreground py-10">
