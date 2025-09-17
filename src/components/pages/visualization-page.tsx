@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -137,7 +138,7 @@ const LinePlot = ({ data, xCol, yCol, onAnalyze }: { data: DataSet; xCol: string
                 <ResponsiveContainer width="100%" height={320}>
                     <LineChart data={chartData}>
                         <CartesianGrid vertical={false} />
-                        <XAxis dataKey={xCol} name={xCol} type="number" domain={['dataMin', 'dataMax']} allowDuplicatedCategory={false} />
+                        <XAxis dataKey={xCol} name={xCol} type="number" domain={['dataMin', 'dataMax']} />
                         <YAxis dataKey={yCol} name={yCol} />
                         <Tooltip content={<ChartTooltipContent />} />
                         <Line type="monotone" dataKey={yCol} stroke="var(--color-primary)" strokeWidth={2} dot={false} />
