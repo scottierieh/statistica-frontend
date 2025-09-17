@@ -54,7 +54,7 @@ def main():
         degree_centrality = nx.degree_centrality(G)
         betweenness_centrality = nx.betweenness_centrality(G, weight=weight_col)
         closeness_centrality = nx.closeness_centrality(G, distance=weight_col)
-        eigenvector_centrality = nx.eigenvector_centrality(G, weight=weight_col, max_iter=500) if n_nodes > 0 else {}
+        eigenvector_centrality = nx.eigenvector_centrality(G, weight=weight_col, max_iter=500, tol=1e-06) if n_nodes > 0 else {}
         pagerank = nx.pagerank(G, weight=weight_col)
 
         # --- Top Nodes ---
@@ -91,14 +91,14 @@ def main():
             node_y.append(y)
             node_text.append(node)
             node_info.append(f'Node: {node}<br>Degree: {G.degree(node)}')
-            node_size.append(degree_centrality[node] * 50 + 10)
-            node_color.append(degree_centrality[node])
+            node_size.append(degree_centrality.get(node, 0) * 50 + 10)
+            node_color.append(degree_centrality.get(node, 0))
 
         node_trace = go.Scatter(x=node_x, y=node_y, mode='markers+text', text=node_text, textposition='top center',
                                 hoverinfo='text', hovertext=node_info,
                                 marker=dict(showscale=True, colorscale='YlGnBu', reversescale=True,
                                             color=node_color, size=node_size,
-                                            colorbar=dict(thickness=15, title='Node Connections', xanchor='left', titleside='right'),
+                                            colorbar=dict(thickness=15, title=dict(text='Node Connections', side='right'), xanchor='left'),
                                             line_width=2))
 
         fig = go.Figure(data=[edge_trace, node_trace],
