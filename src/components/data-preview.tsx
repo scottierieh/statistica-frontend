@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Download, Trash2, ChevronsUpDown, ChevronDown } from 'lucide-react';
+import { Download, Trash2, ChevronsUpDown } from 'lucide-react';
 import { DataSet } from '@/lib/stats';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
@@ -31,10 +31,14 @@ export default function DataPreview({ fileName, data, headers, onDownload, onCle
                         <CardDescription>{data.length} rows, {headers.length} columns</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="default" size="icon" onClick={onDownload}><Download className="h-4 w-4"/></Button>
-                        <Button variant="destructive" size="icon" onClick={onClearData}><Trash2 className="h-4 w-4"/></Button>
+                        <Button variant="default" size="icon" onClick={onDownload} className="transition-transform hover:scale-110">
+                            <Download className="h-4 w-4 text-primary-foreground"/>
+                        </Button>
+                        <Button variant="destructive" size="icon" onClick={onClearData} className="transition-transform hover:scale-110">
+                            <Trash2 className="h-4 w-4 text-destructive-foreground"/>
+                        </Button>
                          <CollapsibleTrigger asChild>
-                            <Button variant="secondary" size="icon">
+                            <Button variant="default" size="icon" className="transition-transform hover:scale-110">
                                 <ChevronsUpDown className="h-4 w-4" />
                                 <span className="sr-only">Toggle</span>
                             </Button>

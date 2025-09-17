@@ -74,11 +74,11 @@ export default function DataUploader({ onFileSelected, loading }: DataUploaderPr
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       className={cn(
-        "relative flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 text-center transition-colors",
-        isDragging ? "border-primary bg-accent" : "border-border"
+        "relative group flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 text-center transition-colors",
+        isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/50 hover:bg-accent"
       )}
     >
-      <UploadCloud className="mb-4 h-12 w-12 text-muted-foreground" />
+      <UploadCloud className={cn("mb-4 h-12 w-12 text-muted-foreground transition-transform group-hover:scale-110", isDragging && "text-primary scale-110")} />
       <h3 className="mb-2 text-lg font-semibold">Drag & Drop or Click to Upload</h3>
       <p className="mb-4 text-sm text-muted-foreground">
         CSV, TSV, JSON, or Excel files
@@ -90,7 +90,7 @@ export default function DataUploader({ onFileSelected, loading }: DataUploaderPr
         onChange={handleFileChange}
         accept=".csv,.tsv,.txt,.json,.xls,.xlsx"
       />
-      <Button onClick={handleButtonClick} disabled={loading}>
+      <Button onClick={handleButtonClick} disabled={loading} className="group-hover:bg-primary/90 transition-colors">
         {loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
