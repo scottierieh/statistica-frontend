@@ -20,7 +20,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj) or np.isinf(obj):
+        if np.isnan(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -62,10 +62,9 @@ class TwoWayAnovaAnalysis:
         else:
             anova_table['η²p'] = np.nan
         
-        # --- CRUCIAL FIX: Correctly get the interaction p-value BEFORE any modifications ---
         interaction_source_key = f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'
         interaction_p_value = anova_table.loc[interaction_source_key, 'PR(>F)'] if interaction_source_key in anova_table.index else 1.0
-        
+
         # Clean up source names for the final output
         cleaned_index = {
             f'C(Q("{self.fa_clean}"))': self.factor_a,
@@ -79,7 +78,6 @@ class TwoWayAnovaAnalysis:
         self._test_assumptions()
         self._calculate_marginal_means()
         
-        # --- CRUCIAL FIX: Use the correct variable to check for significance ---
         if interaction_p_value < self.alpha:
             self._perform_posthoc_tests()
     
