@@ -61,7 +61,7 @@ function shouldReinstall() {
 }
 
 
-console.log('--- Setting up Python backend and generating data ---');
+console.log('--- Setting up Python backend ---');
 
 if (shouldReinstall()) {
     try {
@@ -76,7 +76,7 @@ if (shouldReinstall()) {
         
         // 2. Install requirements with --prefer-binary to speed up installation
         console.log(`Installing dependencies from ${reqFile}...`);
-        execSync(`${pipCmd} install --prefer-binary -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
+        execSync(`${pipCmd} install --prefer-binary --no-cache-dir -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
         // 3. Create a copy of requirements.txt for future comparison
         fs.copyFileSync(reqFile, reqCopyFile);
@@ -95,4 +95,4 @@ if (shouldReinstall()) {
 }
 
 
-console.log('--- Backend setup and data generation finished ---');
+console.log('--- Backend setup finished ---');
