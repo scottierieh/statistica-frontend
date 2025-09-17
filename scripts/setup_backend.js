@@ -74,9 +74,9 @@ if (shouldReinstall()) {
         console.log(`Creating virtual environment at ${venvDir}...`);
         execSync(`${pythonCmd} -m venv ${venvDir}`, { cwd: backendDir, stdio: 'inherit' });
         
-        // 2. Install requirements with --no-cache-dir
+        // 2. Install requirements with --prefer-binary to speed up installation
         console.log(`Installing dependencies from ${reqFile}...`);
-        execSync(`${pipCmd} install --no-cache-dir -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
+        execSync(`${pipCmd} install --prefer-binary -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
         // 3. Create a copy of requirements.txt for future comparison
         fs.copyFileSync(reqFile, reqCopyFile);
@@ -93,11 +93,6 @@ if (shouldReinstall()) {
 } else {
     console.log('Virtual environment is up-to-date. Skipping dependency installation.');
 }
-
-
-// --- Generate Example Datasets ---
-console.log('--- Generating example datasets. ---');
-runPythonScript('ab_test_data.py');
 
 
 console.log('--- Backend setup and data generation finished ---');
