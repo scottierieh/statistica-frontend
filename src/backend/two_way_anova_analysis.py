@@ -62,10 +62,10 @@ class TwoWayAnovaAnalysis:
         else:
             anova_table['η²p'] = np.nan
         
-        # --- Crucial Fix: Get interaction p-value BEFORE renaming ---
+        # --- CRUCIAL FIX: Correctly get the interaction p-value BEFORE any modifications ---
         interaction_source_key = f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'
         interaction_p_value = anova_table.loc[interaction_source_key, 'PR(>F)'] if interaction_source_key in anova_table.index else 1.0
-
+        
         # Clean up source names for the final output
         cleaned_index = {
             f'C(Q("{self.fa_clean}"))': self.factor_a,
@@ -79,7 +79,7 @@ class TwoWayAnovaAnalysis:
         self._test_assumptions()
         self._calculate_marginal_means()
         
-        # Perform post-hoc test if interaction is significant
+        # --- CRUCIAL FIX: Use the correct variable to check for significance ---
         if interaction_p_value < self.alpha:
             self._perform_posthoc_tests()
     
