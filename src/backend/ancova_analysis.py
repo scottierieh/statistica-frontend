@@ -19,18 +19,14 @@ warnings.filterwarnings('ignore')
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj) or np.isinf(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     elif isinstance(obj, np.bool_):
         return bool(obj)
-    elif isinstance(obj, (float, int)):
-        if np.isnan(obj) or np.isinf(obj):
-            return None
-        return obj
     return obj
 
 class AncovaAnalysis:

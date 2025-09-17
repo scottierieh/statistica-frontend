@@ -5,12 +5,13 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy.stats import pearsonr, spearmanr, kendalltau
+import math
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):

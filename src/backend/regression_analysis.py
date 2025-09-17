@@ -14,6 +14,7 @@ from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import io
 import base64
 import warnings
+import math
 warnings.filterwarnings('ignore')
 
 try:
@@ -27,8 +28,8 @@ except ImportError:
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer): return int(obj)
-    elif isinstance(obj, (float, np.floating)):
-        if np.isnan(obj) or np.isinf(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray): return obj.tolist()
@@ -224,7 +225,7 @@ class RegressionAnalysis:
         self.X_scaled = X_poly_df
         return self.results[model_name]
 
-    def regularized_regression(self, model_name, reg_type, alpha_reg, features=None, standardize=True):
+    def regularized_regression(self, model_name, reg_type, alpha_reg, l1_ratio=None, features=None, standardize=True):
         if features is None:
             X_selected = self.X
         else:
@@ -239,8 +240,10 @@ class RegressionAnalysis:
             model = Ridge(alpha=alpha_reg)
         elif reg_type == "lasso":
             model = Lasso(alpha=alpha_reg)
+        elif reg_type == "elasticnet":
+            model = ElasticNet(alpha=alpha_reg, l1_ratio=l1_ratio)
         else:
-            raise ValueError("reg_type must be 'ridge' or 'lasso'")
+            raise ValueError("reg_type must be 'ridge', 'lasso', or 'elasticnet'")
 
         model.fit(X_scaled, self.y)
 
@@ -411,9 +414,10 @@ def main():
         elif model_type == 'polynomial':
             degree = payload.get('degree', 2)
             results = reg_analysis.polynomial_regression(model_name=model_type, features=features, degree=degree)
-        elif model_type in ['ridge', 'lasso']:
+        elif model_type in ['ridge', 'lasso', 'elasticnet']:
             alpha = payload.get('alpha', 1.0)
-            results = reg_analysis.regularized_regression(model_name=model_type, reg_type=model_type, alpha_reg=alpha, features=features)
+            l1_ratio = payload.get('l1_ratio', 0.5) if model_type == 'elasticnet' else None
+            results = reg_analysis.regularized_regression(model_name=model_type, reg_type=model_type, alpha_reg=alpha, l1_ratio=l1_ratio, features=features)
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 

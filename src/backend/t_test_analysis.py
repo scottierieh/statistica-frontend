@@ -10,14 +10,15 @@ from scipy.stats import t, levene, shapiro
 import warnings
 import io
 import base64
+import math
 
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -216,3 +217,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    

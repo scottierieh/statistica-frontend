@@ -13,14 +13,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import io
 import base64
+import math
 
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -56,24 +57,25 @@ class TwoWayAnovaAnalysis:
     def run_analysis(self):
         anova_table = anova_lm(self.model, typ=2)
         
+        # Get interaction p-value BEFORE renaming columns
+        interaction_source_key = f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'
+        interaction_p_value = anova_table.loc[interaction_source_key, 'PR(>F)'] if interaction_source_key in anova_table.index else 1.0
+
         # Add partial eta-squared (η²p)
         if 'Residual' in anova_table.index:
             anova_table['η²p'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
         else:
             anova_table['η²p'] = np.nan
         
-        interaction_source_key = f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'
-        interaction_p_value = anova_table.loc[interaction_source_key, 'PR(>F)'] if interaction_source_key in anova_table.index else 1.0
-
         # Clean up source names for the final output
         cleaned_index = {
             f'C(Q("{self.fa_clean}"))': self.factor_a,
             f'C(Q("{self.fb_clean}"))': self.factor_b,
             interaction_source_key: f'{self.factor_a} * {self.factor_b}'
         }
-        anova_table = anova_table.rename(index=cleaned_index)
+        anova_table_renamed = anova_table.rename(index=cleaned_index)
         
-        self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).to_dict('records')
+        self.results['anova_table'] = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).to_dict('records')
         
         self._test_assumptions()
         self._calculate_marginal_means()
