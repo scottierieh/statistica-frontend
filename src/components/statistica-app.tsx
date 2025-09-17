@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -55,6 +56,7 @@ import {
   Repeat,
   ScanSearch,
   Atom,
+  MessagesSquare,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -113,8 +115,9 @@ import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
 import DbscanPage from './pages/dbscan-page';
 import NonlinearRegressionPage from './pages/nonlinear-regression-page';
 import SnaPage from './pages/sna-page';
+import TopicModelingPage from './pages/topic-modeling-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -166,6 +169,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     mds: MdsPage,
     'nonlinear-regression': NonlinearRegressionPage,
     sna: SnaPage,
+    'topic-modeling': TopicModelingPage,
 };
 
 const analysisMenu = [
@@ -276,6 +280,7 @@ const analysisMenu = [
     methods: [
        { id: 'wordcloud', label: 'Word Cloud' },
        { id: 'sentiment', label: 'Sentiment Analysis' },
+       { id: 'topic-modeling', label: 'Topic Modeling' },
     ]
   }
 ];

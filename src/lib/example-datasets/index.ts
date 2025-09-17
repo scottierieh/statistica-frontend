@@ -1,5 +1,6 @@
 
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom } from "lucide-react";
+
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, BookText } from "lucide-react";
 import { likertScaleData } from "./likert-scale-data";
 import { studentPerformanceData } from "./student-performance";
 import { workStressData } from "./work-stress-data";
@@ -23,11 +24,12 @@ import { timeSeriesData } from "./time-series-data";
 import { irisData } from "./iris-data";
 import { tipsData } from "./tips-data";
 import { rmAnovaData } from "./rm-anova-data";
+import { restaurantReviewsData } from "./restaurant-reviews-data";
 
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | string;
 
 
 export interface ExampleDataSet {
@@ -254,5 +256,14 @@ export const exampleDatasets: ExampleDataSet[] = [
         analysisTypes: ['stats', 'correlation', 'visuals', 'ancova', 'normality', 'homogeneity', 'regression', 'sna'],
         recommendedAnalysis: 'correlation',
         data: studentPerformanceData
+    },
+    {
+        id: 'restaurant-reviews',
+        name: 'Restaurant Reviews',
+        description: 'A collection of customer reviews for topic modeling and sentiment analysis.',
+        icon: MessagesSquare,
+        analysisTypes: ['topic-modeling', 'sentiment', 'wordcloud'],
+        recommendedAnalysis: 'topic-modeling',
+        data: restaurantReviewsData,
     }
 ]
