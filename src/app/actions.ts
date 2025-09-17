@@ -6,6 +6,7 @@ import { interpretReliability, InterpretReliabilityInput } from "@/ai/flows/inte
 import { interpretCorrelation, InterpretCorrelationInput } from "@/ai/flows/interpret-correlation";
 import { interpretCrosstab, InterpretCrosstabInput } from "@/ai/flows/interpret-crosstab";
 import { interpretCfa, InterpretCfaInput } from "@/ai/flows/interpret-cfa";
+import { interpretFrequency, InterpretFrequencyInput } from "@/ai/flows/interpret-frequency";
 
 export async function getVisualizationDescription(input: GenerateDataVisualizationInput) {
     try {
@@ -75,5 +76,15 @@ export async function getCfaInterpretation(input: InterpretCfaInput) {
     } catch (error) {
         console.error(error);
         return { success: false, error: "Failed to generate CFA interpretation." };
+    }
+}
+
+export async function getFrequencyInterpretation(input: InterpretFrequencyInput) {
+    try {
+        const result = await interpretFrequency(input);
+        return { success: true, interpretation: result.interpretation };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: "Failed to generate frequency interpretation." };
     }
 }

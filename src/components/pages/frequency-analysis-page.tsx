@@ -8,13 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BarChart, AlertTriangle, Lightbulb, CheckCircle } from 'lucide-react';
+import { Sigma, Loader2, BarChart, AlertTriangle, Lightbulb, CheckCircle, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import Image from 'next/image';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getFrequencyInterpretation } from '@/app/actions';
 
 interface FrequencyTableItem {
     Value: string | number;
@@ -35,16 +36,52 @@ interface VariableResult {
         total_count: number;
         unique_categories: number;
         mode: string | number;
+        entropy: number;
+        max_entropy: number;
     };
-    insights: Insight[];
-    recommendations: string[];
+    insights?: Insight[];
+    recommendations?: string[];
     plot: string;
     error?: string;
+    aiPromise: Promise<string | null> | null;
 }
 
 interface FullAnalysisResponse {
     results: { [key: string]: VariableResult };
 }
+
+const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
+  const [interpretation, setInterpretation] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!promise) {
+        setInterpretation(null);
+        setLoading(false);
+        return;
+    };
+    let isMounted = true;
+    setLoading(true);
+    promise.then((desc) => {
+        if (isMounted) {
+            setInterpretation(desc);
+            setLoading(false);
+        }
+    });
+    return () => { isMounted = false; };
+  }, [promise]);
+  
+  if (loading) return <Skeleton className="h-16 w-full" />;
+  if (!interpretation) return null;
+
+  return (
+     <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2"><Bot /> AI Interpretation</h4>
+        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>
+    </div>
+  );
+};
+
 
 interface FrequencyAnalysisPageProps {
     data: DataSet;
@@ -93,7 +130,25 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
             const result: FullAnalysisResponse = await response.json();
             if ((result as any).error) throw new Error((result as any).error);
 
-            setAnalysisResult(result);
+            // Fire off AI interpretation requests for each variable
+            const resultsWithAIPromises = { ...result.results };
+            for (const variable of Object.keys(resultsWithAIPromises)) {
+                const varResult = resultsWithAIPromises[variable];
+                if (varResult && !varResult.error) {
+                    const topCat = varResult.table[0];
+                    const promise = getFrequencyInterpretation({
+                        variableName: variable,
+                        totalCount: varResult.summary.total_count,
+                        uniqueCategories: varResult.summary.unique_categories,
+                        topCategory: String(topCat.Value),
+                        topCategoryFrequency: topCat.Frequency,
+                        topCategoryPercentage: topCat.Percentage,
+                    }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
+                    resultsWithAIPromises[variable].aiPromise = promise;
+                }
+            }
+            
+            setAnalysisResult({ results: resultsWithAIPromises });
 
         } catch (e: any) {
             console.error('Frequency Analysis error:', e);
@@ -191,6 +246,7 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
                             </CardHeader>
                             {!result.error && (
                                 <CardContent className="space-y-6">
+                                    <AIGeneratedInterpretation promise={result.aiPromise} />
                                      <div className="space-y-3">
                                         {result.insights?.map((insight, i) => (
                                             <Alert key={i} variant={insight.type === 'warning' ? 'destructive' : 'default'} className={insight.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800 [&>svg]:text-yellow-500' : 'bg-blue-50 border-blue-200'}>
@@ -217,18 +273,18 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
                                                     </dl>
                                                 </CardContent>
                                             </Card>
-                                            <Card>
-                                                <CardHeader className="pb-2">
-                                                    <CardTitle className="text-lg flex items-center gap-2"><Lightbulb />Recommendations</CardTitle>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
-                                                        {result.recommendations?.map((rec, i) => <li key={i}>{rec}</li>)}
-                                                        <li>Always consider the context and purpose of your analysis when interpreting results.</li>
-                                                        <li>Visual inspection often provides better insight than statistics alone.</li>
-                                                    </ul>
-                                                </CardContent>
-                                            </Card>
+                                             {result.recommendations && result.recommendations.length > 0 && (
+                                                <Card>
+                                                    <CardHeader className="pb-2">
+                                                        <CardTitle className="text-lg flex items-center gap-2"><Lightbulb />Recommendations</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
+                                                            {result.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                                                        </ul>
+                                                    </CardContent>
+                                                </Card>
+                                             )}
                                         </div>
                                         <div>
                                             <Image src={result.plot} alt={`Bar chart for ${variable}`} width={800} height={500} className="w-full rounded-md border" />
@@ -272,7 +328,8 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
 
              {!analysisResult && !isLoading && (
                 <div className="text-center text-muted-foreground py-10">
-                    <p>Select variables and click 'Run Analysis' to see the frequency distribution.</p>
+                    <BarChart className="mx-auto h-12 w-12 text-gray-400"/>
+                    <p className="mt-2">Select variables and click 'Run Analysis' to see the frequency distribution.</p>
                 </div>
             )}
         </div>
