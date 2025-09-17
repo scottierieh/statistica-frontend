@@ -32,7 +32,7 @@ const prompt = ai.definePrompt({
   name: 'interpretCorrelationPrompt',
   input: {schema: InterpretCorrelationInputSchema},
   output: {schema: InterpretCorrelationOutputSchema},
-  prompt: `You are an expert statistician. You are to interpret the results of a correlation analysis.
+  prompt: `You are an expert statistician. You are to interpret the results of a correlation analysis in APA style.
 
 The user performed a correlation analysis using the {{{method}}} method.
 
@@ -41,12 +41,11 @@ Here are the results:
 - Full Correlation Matrix: {{{correlationMatrix}}}
 - P-Value Matrix: {{{pValueMatrix}}}
 
-Based on these results, provide a concise, easy-to-understand interpretation.
-- Start by summarizing the overall pattern of correlations. Are there many strong relationships, or are they generally weak?
-- Highlight the most significant positive and negative correlations, explaining what they mean in simple terms.
-- Mention the general strength of the relationships (e.g., small, medium, large based on the absolute r value: >0.1 small, >0.3 medium, >0.5 large).
-- Briefly explain the difference between statistical significance (p-value) and the strength of the correlation (r-value).
-- Keep the entire interpretation to 2-3 short paragraphs.
+Based on these results, provide a concise, easy-to-understand interpretation broken into clear paragraphs.
+- **Paragraph 1: Overall Pattern.** Start by summarizing the overall pattern of correlations. Are there many strong relationships, or are they generally weak?
+- **Paragraph 2: Key Findings.** Highlight the most significant positive and negative correlations, explaining what they mean in simple terms. Report the statistics in APA style (e.g., *r* = .55, *p* < .001). Mention the general strength of the relationships (e.g., small, medium, large based on the absolute r value: >0.1 small, >0.3 medium, >0.5 large).
+- **Paragraph 3: Implications.** Briefly explain the difference between statistical significance (p-value) and the practical strength of the correlation (r-value), and provide a concluding thought.
+- Ensure each section is a distinct paragraph separated by a line break.
 - Do not use markdown, just plain text.
 `, 
 });

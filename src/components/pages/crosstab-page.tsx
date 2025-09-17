@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -134,6 +133,7 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                 rowVar: result.results.row_var,
                 colVar: result.results.col_var,
                 chi2: result.results.chi_squared.statistic,
+                df: result.results.chi_squared.degrees_of_freedom,
                 pValue: result.results.chi_squared.p_value,
                 cramersV: result.results.cramers_v,
                 contingencyTable: JSON.stringify(result.results.contingency_table),

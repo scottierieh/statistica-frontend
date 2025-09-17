@@ -13,6 +13,8 @@ import {z} from 'genkit';
 
 const InterpretAnovaInputSchema = z.object({
   fStat: z.number().describe('The F-statistic from the ANOVA test.'),
+  dfBetween: z.number().describe('The degrees of freedom between groups.'),
+  dfWithin: z.number().describe('The degrees of freedom within groups.'),
   pValue: z.number().describe('The p-value from the ANOVA test.'),
   groupVar: z.string().describe('The name of the categorical grouping variable.'),
   valueVar: z.string().describe('The name of the numeric value variable.'),
@@ -32,19 +34,20 @@ const prompt = ai.definePrompt({
   name: 'interpretAnovaPrompt',
   input: {schema: InterpretAnovaInputSchema},
   output: {schema: InterpretAnovaOutputSchema},
-  prompt: `You are an expert statistician. You are to interpret the results of a one-way ANOVA test.
+  prompt: `You are an expert statistician. You are to interpret the results of a one-way ANOVA test in APA style.
 
 The user is comparing the means of the numeric variable '{{{valueVar}}}' across different groups defined by the categorical variable '{{{groupVar}}}'.
 
 Here are the results:
 - F-statistic: {{{fStat}}}
+- Degrees of Freedom: ({{{dfBetween}}}, {{{dfWithin}}})
 - p-value: {{{pValue}}}
 
 Based on these results, provide a concise, easy-to-understand interpretation.
-- Start by stating the conclusion: is there a statistically significant difference in the means of '{{{valueVar}}}' across the groups of '{{{groupVar}}}'? (Use a significance level of alpha = 0.05).
-- Explain what the p-value means in this context.
-- Explain what the F-statistic represents in simple terms.
-- Keep the entire interpretation to 2-3 short paragraphs.
+- Start with a clear topic sentence summarizing the main finding.
+- In the first paragraph, state the conclusion in APA style, including the F-statistic, degrees of freedom, and p-value. For example: A one-way ANOVA revealed a statistically significant difference in the means of '{{{valueVar}}}' across the groups of '{{{groupVar}}}', *F*({{{dfBetween}}}, {{{dfWithin}}}) = {{{fStat}}}, *p* = {{{pValue}}}.
+- In a new paragraph, explain what the p-value and F-statistic represent in this context in simple terms.
+- Keep the entire interpretation to 2-3 short paragraphs, each separated by a line break.
 - Do not use markdown, just plain text.
 `, 
 });

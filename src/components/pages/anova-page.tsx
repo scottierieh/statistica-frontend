@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -9,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sigma, AlertCircle, Loader2 } from 'lucide-react';
+import { Sigma, AlertCircle, Loader2, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { getAnovaInterpretation } from '@/app/actions';
@@ -105,7 +104,7 @@ const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2"><AlertCircle /> AI Interpretation</CardTitle>
+        <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>
@@ -192,6 +191,8 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
             if (anovaResult.anova) {
                 const promise = getAnovaInterpretation({
                     fStat: anovaResult.anova.f_statistic,
+                    dfBetween: anovaResult.anova.df_between,
+                    dfWithin: anovaResult.anova.df_within,
                     pValue: anovaResult.anova.p_value,
                     groupVar: groupVar,
                     valueVar: valueVar,

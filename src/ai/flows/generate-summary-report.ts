@@ -34,6 +34,8 @@ const prompt = ai.definePrompt({
 
 Generate a report that not only summarizes the data but also provides actionable insights and recommendations for decision-making. 
 
+When reporting statistical values, use APA style (e.g., *F*(1, 28) = 4.58, *p* = .042; *r* = .33, *p* < .001).
+
 Structure your report clearly with a summary, key insights, and concrete recommendations. Ensure the entire report is written in well-structured paragraphs, with line breaks separating each paragraph for readability.
 
 Data Summary:

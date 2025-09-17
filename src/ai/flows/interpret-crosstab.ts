@@ -15,6 +15,7 @@ const InterpretCrosstabInputSchema = z.object({
   rowVar: z.string().describe("The name of the row variable."),
   colVar: z.string().describe('The name of the column variable.'),
   chi2: z.number().describe("The calculated Chi-squared statistic."),
+  df: z.number().describe("The degrees of freedom for the test."),
   pValue: z.number().describe("The calculated p-value."),
   cramersV: z.number().describe("Cramer's V for effect size."),
   contingencyTable: z.string().describe("The contingency table as a JSON string."),
@@ -34,22 +35,22 @@ const prompt = ai.definePrompt({
   name: 'interpretCrosstabPrompt',
   input: {schema: InterpretCrosstabInputSchema},
   output: {schema: InterpretCrosstabOutputSchema},
-  prompt: `You are an expert statistician. You are to interpret the results of a Chi-squared test for independence based on a crosstabulation.
+  prompt: `You are an expert statistician. You are to interpret the results of a Chi-squared test for independence based on a crosstabulation in APA style.
 
 The user analyzed the relationship between two categorical variables: '{{{rowVar}}}' and '{{{colVar}}}'.
 
 Here are the key results:
 - Chi-squared (χ²) statistic: {{{chi2}}}
+- Degrees of Freedom: {{{df}}}
 - p-value: {{{pValue}}}
 - Cramer's V (effect size): {{{cramersV}}}
 - Contingency Table: {{{contingencyTable}}}
 
-Based on these results, provide a concise, easy-to-understand interpretation.
-- Start by stating the conclusion: is there a statistically significant association between '{{{rowVar}}}' and '{{{colVar}}}'? (Use a significance level of alpha = 0.05).
-- Explain what this association (or lack thereof) means in the context of the variables.
-- Explain the strength of the association using Cramer's V (e.g., weak, moderate, strong). General guidelines: <0.1 is negligible, 0.1-0.2 is weak, 0.2-0.4 is moderate, 0.4-0.6 is relatively strong, >0.6 is strong.
-- If the association is significant, briefly point out which cells in the contingency table seem to contribute most to this relationship (where observed counts differ most from what would be expected by chance).
-- Keep the entire interpretation to 2-3 short paragraphs.
+Based on these results, provide a concise, easy-to-understand interpretation broken into clear paragraphs.
+- **Paragraph 1: Main Finding.** Start by stating the conclusion in APA style: is there a statistically significant association between '{{{rowVar}}}' and '{{{colVar}}}'? (e.g., A Chi-squared test of independence was performed to examine the relation between '{{{rowVar}}}' and '{{{colVar}}}'. The relation between these variables was significant, χ²({{{df}}}) = {{{chi2}}}, *p* = {{{pValue}}}.). Use a significance level of alpha = 0.05.
+- **Paragraph 2: Effect Size.** Explain the strength of the association using Cramer's V. General guidelines: <0.1 is negligible, 0.1-0.2 is weak, 0.2-0.4 is moderate, 0.4-0.6 is relatively strong, >0.6 is strong.
+- **Paragraph 3: Table Insights.** If the association is significant, briefly point out which cells in the contingency table seem to contribute most to this relationship (where observed counts differ most from what would be expected by chance).
+- Ensure each section is a distinct paragraph separated by a line break.
 - Do not use markdown, just plain text.
 `, 
 });
