@@ -1,7 +1,7 @@
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calculator, BrainCircuit, ClipboardList, FastForward } from "lucide-react";
+import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardHubPage() {
@@ -78,6 +78,22 @@ export default function DashboardHubPage() {
                     <CardContent>
                         <Button asChild className="w-full">
                             <Link href="/dashboard/simulation" target="_blank" rel="noopener noreferrer">Launch Simulation</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2">
+                            <DollarSign className="h-5 w-5"/>
+                            Financial Modeling
+                        </CardTitle>
+                        <CardDescription>
+                            Create financial models, projections, and valuation analyses.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild className="w-full">
+                            <Link href="/dashboard/financial-modeling" target="_blank" rel="noopener noreferrer">Launch Financial Modeling</Link>
                         </Button>
                     </CardContent>
                 </Card>
