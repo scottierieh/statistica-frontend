@@ -62,19 +62,18 @@ class TwoWayAnovaAnalysis:
         else:
             anova_table['η²p'] = np.nan
         
-        # Clean up source names
+        # --- Crucial Fix: Get interaction p-value BEFORE renaming ---
         interaction_source_key = f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'
+        interaction_p_value = anova_table.loc[interaction_source_key, 'PR(>F)'] if interaction_source_key in anova_table.index else 1.0
+
+        # Clean up source names for the final output
         cleaned_index = {
             f'C(Q("{self.fa_clean}"))': self.factor_a,
             f'C(Q("{self.fb_clean}"))': self.factor_b,
             interaction_source_key: f'{self.factor_a} * {self.factor_b}'
         }
         anova_table = anova_table.rename(index=cleaned_index)
-
-        # Get interaction p-value *before* resetting the index
-        interaction_p_value = anova_table.loc[f'{self.factor_a} * {self.factor_b}', 'PR(>F)']
         
-        # Now prepare the table for JSON response
         self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).to_dict('records')
         
         self._test_assumptions()
