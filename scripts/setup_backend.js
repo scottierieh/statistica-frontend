@@ -1,3 +1,4 @@
+
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -41,6 +42,11 @@ function shouldReinstall() {
         
         if (reqStat.mtime > markerStat.mtime) {
             console.log("requirements.txt has been modified since the last setup. Re-installing dependencies.");
+            // Force removal of the venv directory to ensure a clean install
+            if (fs.existsSync(venvDir)) {
+                console.log(`Removing existing virtual environment at ${venvDir}...`);
+                fs.rmSync(venvDir, { recursive: true, force: true });
+            }
             return true;
         }
     } catch (e) {
@@ -53,11 +59,11 @@ function shouldReinstall() {
 
 console.log('--- Setting up Python backend and generating data ---');
 
-if (shouldReinstall()) {
+if (shouldReinstall() || !fs.existsSync(venvDir)) {
     try {
         if (fs.existsSync(venvDir)) {
-            console.log(`Removing existing virtual environment at ${venvDir}...`);
-            fs.rmSync(venvDir, { recursive: true, force: true });
+             console.log(`Removing existing virtual environment at ${venvDir}...`);
+             fs.rmSync(venvDir, { recursive: true, force: true });
         }
 
         // 1. Create venv
@@ -69,6 +75,9 @@ if (shouldReinstall()) {
         execSync(`${pipCmd} install -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
         // 3. Touch the marker file to update its timestamp
+        if (!fs.existsSync(venvDir)) {
+            fs.mkdirSync(venvDir, { recursive: true });
+        }
         const now = new Date();
         fs.writeFileSync(venvMarker, `Setup completed on: ${now.toISOString()}`);
 
