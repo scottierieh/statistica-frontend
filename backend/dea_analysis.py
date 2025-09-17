@@ -6,10 +6,10 @@ import pandas as pd
 import warnings
 
 try:
-    import pulp
-    USE_PULP = True
+    from scipy.optimize import linprog
+    SCIPY_AVAILABLE = True
 except ImportError:
-    USE_PULP = False
+    SCIPY_AVAILABLE = False
 
 warnings.filterwarnings('ignore')
 
@@ -17,7 +17,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -31,51 +31,106 @@ class DEAAnalyzer:
         self.outputs = data[output_cols].values
         
     def analyze(self, orientation='input', rts='crs'):
-        if not USE_PULP:
-            raise ImportError("PuLP library is not installed. Please install it via 'pip install pulp'.")
+        if not SCIPY_AVAILABLE:
+            raise ImportError("SciPy library is not installed. Please install it via 'pip install scipy'.")
         
         n_dmus, n_inputs = self.inputs.shape
         n_outputs = self.outputs.shape[1]
         
-        efficiencies = {}
-        lambdas = {}
-        reference_sets = {}
+        efficiencies = np.zeros(n_dmus)
+        lambdas_list = []
 
         for k in range(n_dmus):
-            dmu_name = self.dmu_names[k]
-            
             if orientation == 'input':
-                prob = pulp.LpProblem(f"DEA_Input_{k}", pulp.LpMinimize)
-                theta = pulp.LpVariable("theta", lowBound=0)
-                lambda_vars = [pulp.LpVariable(f"lambda_{j}", lowBound=0) for j in range(n_dmus)]
-                
-                prob += theta
-                
-                for i in range(n_inputs):
-                    prob += pulp.lpSum([lambda_vars[j] * self.inputs[j, i] for j in range(n_dmus)]) <= theta * self.inputs[k, i]
-                
-                for r in range(n_outputs):
-                    prob += pulp.lpSum([lambda_vars[j] * self.outputs[j, r] for j in range(n_dmus)]) >= self.outputs[k, r]
+                # Objective function: minimize theta
+                c = np.zeros(n_dmus + 1)
+                c[0] = 1
 
+                # Constraints
+                # Input constraints: sum(lambda_j * input_ij) <= theta * input_ik
+                # -> sum(lambda_j * input_ij) - theta * input_ik <= 0
+                A_ub = np.zeros((n_inputs, n_dmus + 1))
+                A_ub[:, 1:] = self.inputs.T
+                A_ub[:, 0] = -self.inputs[k, :]
+                b_ub = np.zeros(n_inputs)
+
+                # Output constraints: sum(lambda_j * output_rj) >= output_rk
+                # -> -sum(lambda_j * output_rj) <= -output_rk
+                A_ub_output = np.zeros((n_outputs, n_dmus + 1))
+                A_ub_output[:, 1:] = -self.outputs.T
+                b_ub_output = -self.outputs[k, :]
+
+                A_ub = np.vstack([A_ub, A_ub_output])
+                b_ub = np.concatenate([b_ub, b_ub_output])
+
+                # VRS constraint: sum(lambda_j) = 1
                 if rts == 'vrs':
-                    prob += pulp.lpSum(lambda_vars) == 1
+                    A_eq = np.ones((1, n_dmus + 1))
+                    A_eq[0, 0] = 0
+                    b_eq = np.array([1])
+                else: # CRS
+                    A_eq = None
+                    b_eq = None
 
-                prob.solve(pulp.PULP_CBC_CMD(msg=0))
-                
-                if prob.status == pulp.LpStatusOptimal:
-                    efficiencies[dmu_name] = theta.varValue
-                    current_lambdas = [var.varValue for var in lambda_vars]
-                    lambdas[dmu_name] = current_lambdas
-                    reference_sets[dmu_name] = [self.dmu_names[j] for j, l_val in enumerate(current_lambdas) if l_val > 1e-6]
+                # Bounds for variables (theta >= 0, lambda >= 0)
+                bounds = [(0, None)] + [(0, None) for _ in range(n_dmus)]
 
+                res = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')
+
+                if res.success:
+                    efficiencies[k] = res.fun
+                    lambdas_list.append(res.x[1:].tolist())
                 else:
-                    efficiencies[dmu_name] = 0.0
-                    lambdas[dmu_name] = [0.0] * n_dmus
-                    reference_sets[dmu_name] = []
+                    efficiencies[k] = np.nan
+                    lambdas_list.append([np.nan] * n_dmus)
             
-            # Note: Output-oriented model would be similar but is omitted for brevity as input-oriented is more common.
+            else: # Output-oriented
+                # Objective function: maximize phi -> minimize -phi
+                c = np.zeros(n_dmus + 1)
+                c[0] = -1
+
+                # Input constraints: sum(lambda_j * input_ij) <= input_ik
+                A_ub = np.zeros((n_inputs, n_dmus + 1))
+                A_ub[:, 1:] = self.inputs.T
+                b_ub = self.inputs[k, :]
+
+                # Output constraints: sum(lambda_j * output_rj) >= phi * output_rk
+                # -> -sum(lambda_j * output_rj) + phi * output_rk <= 0
+                A_ub_output = np.zeros((n_outputs, n_dmus + 1))
+                A_ub_output[:, 1:] = -self.outputs.T
+                A_ub_output[:, 0] = self.outputs[k, :]
+                b_ub_output = np.zeros(n_outputs)
+                
+                A_ub = np.vstack([A_ub, A_ub_output])
+                b_ub = np.concatenate([b_ub, b_ub_output])
+                
+                if rts == 'vrs':
+                    A_eq = np.ones((1, n_dmus + 1))
+                    A_eq[0, 0] = 0
+                    b_eq = np.array([1])
+                else: # CRS
+                    A_eq = None
+                    b_eq = None
+
+                bounds = [(1, None)] + [(0, None) for _ in range(n_dmus)] # phi >= 1
+
+                res = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')
+
+                if res.success:
+                    phi = -res.fun
+                    efficiencies[k] = 1/phi if phi != 0 else np.inf
+                    lambdas_list.append(res.x[1:].tolist())
+                else:
+                    efficiencies[k] = np.nan
+                    lambdas_list.append([np.nan] * n_dmus)
         
-        return efficiencies, lambdas, reference_sets
+        # Prepare results
+        efficiency_scores = {self.dmu_names[i]: eff for i, eff in enumerate(efficiencies)}
+        lambdas = {self.dmu_names[i]: l for i, l in enumerate(lambdas_list)}
+        reference_sets = {dmu: [self.dmu_names[j] for j, l_val in enumerate(lambdas_list[i]) if l_val > 1e-6]
+                          for i, dmu in enumerate(self.dmu_names)}
+
+        return efficiency_scores, lambdas, reference_sets
 
 
 def main():
@@ -93,11 +148,13 @@ def main():
             
         df = pd.DataFrame(data_json)
         
-        # Ensure numeric types
+        # Ensure numeric types and positive values
         for col in input_cols + output_cols:
             df[col] = pd.to_numeric(df[col], errors='coerce')
-        df.dropna(subset=input_cols + output_cols, inplace=True)
-        
+            df.dropna(subset=[col], inplace=True)
+            if (df[col] <= 0).any():
+                raise ValueError(f"All values in input/output column '{col}' must be positive for DEA.")
+
         if df.empty:
              raise ValueError("No valid numeric data for analysis.")
 
@@ -107,9 +164,9 @@ def main():
         eff_scores = list(efficiencies.values())
         summary = {
             'total_dmus': len(df),
-            'efficient_dmus': sum(1 for e in eff_scores if e >= 0.9999),
-            'inefficient_dmus': sum(1 for e in eff_scores if e < 0.9999),
-            'average_efficiency': np.mean(eff_scores) if eff_scores else 0
+            'efficient_dmus': sum(1 for e in eff_scores if not np.isnan(e) and e >= 0.9999),
+            'inefficient_dmus': sum(1 for e in eff_scores if not np.isnan(e) and e < 0.9999),
+            'average_efficiency': np.nanmean(eff_scores) if eff_scores else 0
         }
 
         response = {
@@ -118,7 +175,8 @@ def main():
                 'reference_sets': reference_sets,
                 'lambdas': lambdas,
                 'summary': summary,
-                'dmu_col': dmu_col
+                'dmu_col': dmu_col,
+                'dmu_names': analyzer.dmu_names, # Pass dmu_names for consistency
             }
         }
         
