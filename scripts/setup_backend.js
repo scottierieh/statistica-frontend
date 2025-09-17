@@ -5,6 +5,7 @@ const path = require('path');
 const backendDir = path.resolve(__dirname, '..', 'backend');
 const venvDir = path.join(backendDir, 'venv');
 const reqFile = path.join(backendDir, 'requirements.txt');
+const venvMarker = path.join(venvDir, '.setup_complete'); // Marker file
 const pythonCmd = 'python3'; // Use python3 to be more generic
 const pipCmd = path.join(venvDir, 'bin', 'pip');
 
@@ -23,6 +24,15 @@ function runPythonScript(scriptPath) {
     }
 }
 
+function getFileHash(filePath) {
+    if (!fs.existsSync(filePath)) {
+        return null;
+    }
+    const fileBuffer = fs.readFileSync(filePath);
+    const hash = require('crypto').createHash('sha256');
+    hash.update(fileBuffer);
+    return hash.digest('hex');
+}
 
 console.log('--- Setting up Python backend and generating data ---');
 
@@ -32,11 +42,20 @@ if (!fs.existsSync(reqFile)) {
     process.exit(0);
 }
 
-// Simplified check: If venv doesn't exist, set it up.
-// A more robust check could compare file mtimes, but this is safer for now.
-if (!fs.existsSync(venvDir)) {
+const reqHash = getFileHash(reqFile);
+const oldReqHash = fs.existsSync(venvMarker) ? fs.readFileSync(venvMarker, 'utf-8') : null;
+
+// Re-install if venv doesn't exist OR if requirements.txt has changed.
+if (!fs.existsSync(venvDir) || reqHash !== oldReqHash) {
     try {
-        console.log('Virtual environment not found. Setting up...');
+        if(fs.existsSync(venvDir)) {
+            console.log('requirements.txt has changed. Re-installing dependencies...');
+            // A more robust solution might be to upgrade pip packages, 
+            // but removing and recreating is simpler and more reliable in this context.
+            fs.rmSync(venvDir, { recursive: true, force: true });
+        } else {
+            console.log('Virtual environment not found. Setting up...');
+        }
 
         // 1. Create venv
         console.log(`Creating virtual environment at ${venvDir}...`);
@@ -46,6 +65,9 @@ if (!fs.existsSync(venvDir)) {
         console.log(`Installing dependencies from ${reqFile}...`);
         execSync(`${pipCmd} install -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
+        // 3. Write new hash to marker file
+        fs.writeFileSync(venvMarker, reqHash);
+
         console.log('Python backend setup complete.');
 
     } catch (error) {
@@ -53,7 +75,7 @@ if (!fs.existsSync(venvDir)) {
         process.exit(1);
     }
 } else {
-    console.log('Virtual environment already exists. Skipping setup.');
+    console.log('Virtual environment is up-to-date. Skipping setup.');
 }
 
 
