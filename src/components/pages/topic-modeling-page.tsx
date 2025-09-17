@@ -109,7 +109,7 @@ export default function TopicModelingPage({ data, categoricalHeaders, onLoadExam
                      {topicExamples.length > 0 && (
                         <CardContent>
                             <Button onClick={() => onLoadExample(topicExamples[0])} className="w-full">
-                                <BookText className="mr-2"/>
+                                <MessagesSquare className="mr-2"/>
                                 Load {topicExamples[0].name}
                             </Button>
                         </CardContent>

@@ -3,7 +3,7 @@ export const restaurantReviewsData = `review_id,text
 1,"The food was absolutely wonderful, from preparation to presentation, very pleasing."
 2,"The service was a bit slow, but the delicious food made up for it."
 3,"A very disappointing experience. The pasta was overcooked and the sauce was bland."
-4. "I had a great time with my friends. The ambiance is cozy and the staff is friendly."
+4,"I had a great time with my friends. The ambiance is cozy and the staff is friendly."
 5,"Good for a quick bite, but not for a special occasion. The prices are reasonable."
 6,"The steak was cooked to perfection! A must-try for meat lovers."
 7,"Unfortunately, our reservation was not honored and we had to wait for 45 minutes."
