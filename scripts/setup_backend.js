@@ -1,4 +1,3 @@
-
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -75,9 +74,9 @@ if (shouldReinstall()) {
         console.log(`Creating virtual environment at ${venvDir}...`);
         execSync(`${pythonCmd} -m venv ${venvDir}`, { cwd: backendDir, stdio: 'inherit' });
         
-        // 2. Install requirements with --no-cache-dir and --prefer-binary
+        // 2. Install requirements with --no-cache-dir
         console.log(`Installing dependencies from ${reqFile}...`);
-        execSync(`${pipCmd} install --no-cache-dir --prefer-binary -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
+        execSync(`${pipCmd} install --no-cache-dir -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
         // 3. Create a copy of requirements.txt for future comparison
         fs.copyFileSync(reqFile, reqCopyFile);
