@@ -32,11 +32,14 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateSummaryReportOutputSchema},
   prompt: `You are an expert data analyst and strategic consultant. Your role is to analyze the provided data summary and suggest potential actions or decisions that could be made based on this data.
 
-Generate a report that not only summarizes the data but also provides actionable insights and recommendations for decision-making. 
+Generate a comprehensive report that includes:
+1.  **Statistical Findings**: A summary of the most important statistical results.
+2.  **Actionable Insights**: Key insights derived from the findings.
+3.  **Recommendations**: Concrete recommendations for decision-making.
 
-When reporting statistical values, use APA style (e.g., *F*(1, 28) = 4.58, *p* = .042; *r* = .33, *p* < .001).
+When reporting statistical values, **strictly adhere to APA style** (e.g., *F*(1, 28) = 4.58, *p* = .042; *r* = .33, *p* < .001).
 
-Structure your report clearly with a summary, key insights, and concrete recommendations. Ensure the entire report is written in well-structured paragraphs, with line breaks separating each paragraph for readability.
+Structure your report clearly with these sections in well-structured paragraphs. Ensure each paragraph is separated by a line break for readability.
 
 Data Summary:
 - Statistics: {{{statistics}}}
