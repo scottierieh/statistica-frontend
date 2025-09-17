@@ -31,6 +31,7 @@ interface DeaResults {
         average_efficiency: number;
     };
     dmu_col: string;
+    dmu_names: string[];
 }
 
 interface FullDeaResponse {
@@ -73,7 +74,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
     }, [results]);
 
     const tierData = useMemo(() => [
-        { name: 'Efficient (1)', count: efficiencyTiers.efficient, fill: 'var(--color-efficient)' },
+        { name: 'Efficient (>=1)', count: efficiencyTiers.efficient, fill: 'var(--color-efficient)' },
         { name: 'Mostly (0.9-1)', count: efficiencyTiers.mostly, fill: 'var(--color-mostly)' },
         { name: 'Needs Imp. (0.8-0.9)', count: efficiencyTiers.needs, fill: 'var(--color-needs)' },
         { name: 'Inefficient (<0.8)', count: efficiencyTiers.inefficient, fill: 'var(--color-inefficient)' },
@@ -261,7 +262,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Total DMUs</p><p className="text-2xl font-bold">{results.summary.total_dmus}</p></div>
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Efficient DMUs</p><p className="text-2xl font-bold text-green-600">{results.summary.efficient_dmus}</p></div>
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Inefficient DMUs</p><p className="text-2xl font-bold text-destructive">{results.summary.inefficient_dmus}</p></div>
+                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Inefficient DMUs (&lt;0.8)</p><p className="text-2xl font-bold text-destructive">{results.summary.inefficient_dmus}</p></div>
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Avg. Efficiency</p><p className="text-2xl font-bold">{results.summary.average_efficiency.toFixed(3)}</p></div>
                         </CardContent>
                     </Card>
@@ -288,7 +289,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             <CardContent>
                                 <ChartContainer config={tierChartConfig} className="w-full h-[300px]">
                                     <ResponsiveContainer>
-                                        <BarChart data={tierData} layout="vertical" margin={{left: 80}}>
+                                        <BarChart data={tierData} layout="vertical" margin={{left: 120}}>
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis type="number" />
                                             <YAxis type="category" dataKey="name" />
@@ -325,9 +326,12 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                                                 <TableCell>{dmu}</TableCell>
                                                 <TableCell className="font-mono text-right">{score.toFixed(4)}</TableCell>
                                                 <TableCell>
-                                                    {score < 1 && results.reference_sets[dmu] && results.reference_sets[dmu].map((ref, i) => (
-                                                        <Badge key={i} variant="secondary" className="mr-1">{ref} ({(results.lambdas[dmu].find((l, li) => results.dmu_names[li] === ref) * 100 || 0).toFixed(1)}%)</Badge>
-                                                    ))}
+                                                    {score < 1 && results.reference_sets[dmu] && results.reference_sets[dmu].map((ref, i) => {
+                                                      const lambdaVal = results.lambdas[dmu]?.[results.dmu_names.indexOf(ref)];
+                                                      return (
+                                                        <Badge key={i} variant="secondary" className="mr-1">{ref} {lambdaVal ? `(${(lambdaVal * 100).toFixed(1)}%)` : ''}</Badge>
+                                                      )
+                                                    })}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

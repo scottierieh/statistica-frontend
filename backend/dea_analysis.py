@@ -165,7 +165,7 @@ def main():
         summary = {
             'total_dmus': len(df),
             'efficient_dmus': sum(1 for e in eff_scores if not np.isnan(e) and e >= 0.9999),
-            'inefficient_dmus': sum(1 for e in eff_scores if not np.isnan(e) and e < 0.9999),
+            'inefficient_dmus': sum(1 for e in eff_scores if not np.isnan(e) and e < 0.8),
             'average_efficiency': np.nanmean(eff_scores) if eff_scores else 0
         }
 
