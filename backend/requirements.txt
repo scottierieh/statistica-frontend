@@ -10,3 +10,4 @@ lifelines
 wordcloud
 nltk
 konlpy
+networkx

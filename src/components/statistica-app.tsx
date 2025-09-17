@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -111,8 +112,9 @@ import MdsPage from './pages/mds-page';
 import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
 import DbscanPage from './pages/dbscan-page';
 import NonlinearRegressionPage from './pages/nonlinear-regression-page';
+import SnaPage from './pages/sna-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -163,6 +165,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'acf-pacf': AcfPacfPage,
     mds: MdsPage,
     'nonlinear-regression': NonlinearRegressionPage,
+    sna: SnaPage,
 };
 
 const analysisMenu = [
@@ -263,6 +266,7 @@ const analysisMenu = [
       { id: 'survival', label: 'Survival Analysis' },
       { id: 'meta-analysis', label: 'Meta-Analysis' },
       { id: 'gbm', label: 'Gradient Boosting Machine (GBM)'},
+      { id: 'sna', label: 'Social Network Analysis' },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
   },
