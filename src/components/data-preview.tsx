@@ -31,8 +31,8 @@ export default function DataPreview({ fileName, data, headers, onDownload, onCle
                         <CardDescription>{data.length} rows, {headers.length} columns</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="secondary" size="icon" onClick={onDownload}><Download className="h-4 w-4 text-blue-600"/></Button>
-                        <Button variant="secondary" size="icon" onClick={onClearData}><Trash2 className="h-4 w-4 text-red-600"/></Button>
+                        <Button variant="default" size="icon" onClick={onDownload}><Download className="h-4 w-4"/></Button>
+                        <Button variant="destructive" size="icon" onClick={onClearData}><Trash2 className="h-4 w-4"/></Button>
                          <CollapsibleTrigger asChild>
                             <Button variant="secondary" size="icon">
                                 <ChevronsUpDown className="h-4 w-4" />
