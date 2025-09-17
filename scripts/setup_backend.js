@@ -66,9 +66,9 @@ if (shouldReinstall()) {
         console.log(`Creating virtual environment at ${venvDir}...`);
         execSync(`${pythonCmd} -m venv ${venvDir}`, { cwd: backendDir, stdio: 'inherit' });
         
-        // 2. Install requirements
+        // 2. Install requirements with --no-cache-dir
         console.log(`Installing dependencies from ${reqFile}...`);
-        execSync(`${pipCmd} install -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
+        execSync(`${pipCmd} install --no-cache-dir -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
         // 3. Create a copy of requirements.txt for future comparison
         fs.copyFileSync(reqFile, reqCopyFile);
