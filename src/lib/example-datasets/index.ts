@@ -269,7 +269,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Iris Flowers',
         description: 'Sepal and petal measurements for three species of iris flowers.',
         icon: Users,
-        analysisTypes: ['stats', 'correlation', 'one-way-anova', 'visuals', 'discriminant', 'kmeans', 'frequency', 'crosstab', 'pca', 'normality', 'homogeneity', 'manova'],
+        analysisTypes: ['stats', 'correlation', 'one-way-anova', 'visuals', 'discriminant', 'kmeans', 'frequency', 'pca', 'normality', 'homogeneity', 'manova'],
         recommendedAnalysis: 'discriminant',
         data: irisData
     },
@@ -278,7 +278,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Restaurant Tips',
         description: 'Tips received by a server, along with customer and bill info.',
         icon: Coffee,
-        analysisTypes: ['stats', 'one-way-anova', 'visuals', 'frequency', 'crosstab', 'normality', 'homogeneity', 't-test'],
+        analysisTypes: ['stats', 'one-way-anova', 'visuals', 'frequency', 'normality', 'homogeneity', 't-test'],
         data: tipsData
     },
     {
