@@ -13,4 +13,3 @@ konlpy
 networkx
 plotly
 pulp
-scikit-learn-extra
