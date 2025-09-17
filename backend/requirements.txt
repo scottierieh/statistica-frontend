@@ -12,3 +12,4 @@ nltk
 konlpy
 networkx
 plotly
+pulp
