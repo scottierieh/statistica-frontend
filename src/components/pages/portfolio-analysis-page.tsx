@@ -6,23 +6,50 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, DollarSign } from 'lucide-react';
+import { Sigma, Loader2, DollarSign, TrendingUp, ArrowDownRight, Zap } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { DatePickerWithRange } from '../ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
 import { subYears, format } from 'date-fns';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { LineChart, CartesianGrid, XAxis, Tooltip, Line, ResponsiveContainer, YAxis, Legend } from 'recharts';
+
+interface SummaryStats {
+    annual_return: number;
+    cumulative_returns: number;
+    annual_volatility: number;
+    sharpe_ratio: number;
+    max_drawdown: number;
+}
+
+interface CumulativeReturnData {
+    date: string;
+    cumulative_returns: number;
+}
+
+interface AnalysisResults {
+    summary_stats: SummaryStats;
+    cumulative_returns_data: CumulativeReturnData[];
+    portfolio_weights: { [key: string]: number };
+}
 
 interface AnalysisResponse {
-    results: {
-        summary: {
-            annual_return: number;
-            cumulative_returns: number;
-            sharpe_ratio: number;
-            max_drawdown: number;
-        }
-    };
-    report_html: string; // base64 encoded html
+    results: AnalysisResults;
 }
+
+const StatCard = ({ title, value, unit, icon: Icon }: { title: string, value: number, unit?: string, icon: React.ElementType }) => (
+    <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            <Icon className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+            <div className="text-2xl font-bold">
+                {value.toFixed(2)}{unit}
+            </div>
+        </CardContent>
+    </Card>
+);
 
 export default function PortfolioAnalysisPage() {
     const { toast } = useToast();
@@ -79,23 +106,30 @@ export default function PortfolioAnalysisPage() {
         }
 
     }, [tickers, dateRange, toast]);
-    
-    const reportHtml = useMemo(() => {
-        if (!analysisResult) return null;
-        try {
-            return atob(analysisResult.report_html);
-        } catch (e) {
-            console.error("Failed to decode base64 report:", e);
-            return "<p>Error displaying report.</p>";
-        }
-    }, [analysisResult]);
 
+    const results = analysisResult?.results;
+    
+    const chartData = useMemo(() => {
+        if (!results) return [];
+        return results.cumulative_returns_data.map(d => ({
+            date: new Date(d.date).getTime(),
+            returns: (d as any).cumulative_returns * 100
+        }));
+    }, [results]);
+
+    const chartConfig = {
+      returns: {
+        label: "Cumulative Returns",
+        color: "hsl(var(--chart-1))",
+      },
+    };
+    
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center gap-2"><DollarSign /> Portfolio Performance Analysis</CardTitle>
-                    <CardDescription>Enter stock tickers (comma-separated) and a date range to generate a performance tearsheet.</CardDescription>
+                    <CardDescription>Enter stock tickers (comma-separated) and a date range to analyze an equally-weighted portfolio.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid gap-2">
@@ -119,20 +153,78 @@ export default function PortfolioAnalysisPage() {
                 </CardFooter>
             </Card>
 
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[600px] w-full" /></CardContent></Card>}
-
-            {analysisResult && reportHtml && (
-                 <Card>
-                    <CardHeader><CardTitle>Pyfolio Performance Report</CardTitle></CardHeader>
-                    <CardContent>
-                        <iframe
-                            srcDoc={reportHtml}
-                            className="w-full h-[80vh] border-0"
-                            title="Pyfolio Report"
-                            sandbox="allow-scripts"
-                        />
+            {isLoading && (
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-6 w-48" />
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                        </div>
+                        <Skeleton className="h-96 w-full" />
                     </CardContent>
                 </Card>
+            )}
+
+            {results && (
+                 <div className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Performance Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+                            <StatCard title="Cumulative Returns" value={results.summary_stats.cumulative_returns * 100} unit="%" icon={TrendingUp} />
+                            <StatCard title="Annualized Return" value={results.summary_stats.annual_return * 100} unit="%" icon={TrendingUp} />
+                            <StatCard title="Annualized Volatility" value={results.summary_stats.annual_volatility * 100} unit="%" icon={ArrowDownRight} />
+                            <StatCard title="Sharpe Ratio" value={results.summary_stats.sharpe_ratio} icon={Zap} />
+                            <StatCard title="Max Drawdown" value={results.summary_stats.max_drawdown * 100} unit="%" icon={ArrowDownRight} />
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Portfolio Growth</CardTitle>
+                            <CardDescription>Cumulative returns over the selected period.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={chartConfig} className="h-[400px] w-full">
+                                <ResponsiveContainer>
+                                <LineChart data={chartData} margin={{ left: 12, right: 12 }}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis
+                                        dataKey="date"
+                                        tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                                        type="number"
+                                        domain={['dataMin', 'dataMax']}
+                                        dy={10}
+                                    />
+                                    <YAxis
+                                        tickFormatter={(value) => `${value}%`}
+                                    />
+                                    <Tooltip
+                                        content={<ChartTooltipContent 
+                                        indicator="line" 
+                                        labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                                        formatter={(value) => `${(value as number).toFixed(2)}%`}
+                                        />}
+                                    />
+                                    <Legend />
+                                    <Line
+                                        dataKey="returns"
+                                        type="monotone"
+                                        stroke="var(--color-returns)"
+                                        strokeWidth={2}
+                                        dot={false}
+                                    />
+                                </LineChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
+                </div>
             )}
         </div>
     );

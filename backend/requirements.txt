@@ -15,7 +15,4 @@ plotly
 pulp
 scikit-learn-extra
 hdbscan
-pyfolio-reloaded
-empyrical
-QuantLib-Python
 yfinance

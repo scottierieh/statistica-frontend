@@ -6,98 +6,91 @@ import numpy as np
 import yfinance as yf
 from datetime import datetime, timedelta
 import warnings
-import base64
-import io
 
 warnings.filterwarnings('ignore')
-
-try:
-    import pyfolio as pf
-    PYFOLIO_AVAILABLE = True
-except ImportError:
-    PYFOLIO_AVAILABLE = False
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
+    elif isinstance(obj, (float, np.floating)):
         if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
+    elif isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
     return obj
+
+def calculate_sharpe_ratio(returns, risk_free_rate=0.0):
+    """Sharpe Ratio 계산"""
+    excess_returns = returns - risk_free_rate / 252
+    return np.sqrt(252) * (excess_returns.mean() / excess_returns.std()) if excess_returns.std() != 0 else 0
+
+def calculate_max_drawdown(cumulative_returns):
+    """Max Drawdown 계산"""
+    peak = cumulative_returns.expanding(min_periods=1).max()
+    drawdown = (cumulative_returns - peak) / peak
+    return drawdown.min()
 
 def main():
     try:
-        if not PYFOLIO_AVAILABLE:
-            raise ImportError("Pyfolio is not installed. Please add 'pyfolio-reloaded' and 'empyrical' to requirements.txt.")
-
         payload = json.load(sys.stdin)
         tickers = payload.get('tickers', [])
         start_date = payload.get('startDate')
         end_date = payload.get('endDate')
-        benchmark = payload.get('benchmark', '^GSPC')
-        weights = payload.get('weights')
+        benchmark_ticker = payload.get('benchmark', '^GSPC')
+        weights_list = payload.get('weights')
 
         if not tickers:
             raise ValueError("Ticker list cannot be empty.")
 
-        # --- Data Loading ---
-        data = yf.download(tickers, start=start_date, end=end_date, progress=False)
-        if data.empty or 'Adj Close' not in data:
+        # --- 데이터 로딩 ---
+        all_tickers = tickers + ([benchmark_ticker] if benchmark_ticker else [])
+        data = yf.download(all_tickers, start=start_date, end=end_date, progress=False)['Adj Close']
+        if data.empty:
             raise ValueError(f"Could not download valid data for tickers: {', '.join(tickers)}")
         
-        prices = data['Adj Close']
+        prices = data[tickers]
         if isinstance(prices, pd.Series):
              prices = prices.to_frame(name=tickers[0])
              
         returns = prices.pct_change().dropna()
 
-        # --- Portfolio Returns ---
-        if weights and len(weights) == len(tickers):
-            portfolio_weights = pd.Series(weights, index=tickers)
-            portfolio_returns = (returns * portfolio_weights).sum(axis=1)
-        else:
-            # Equal weight if not specified
+        # --- 포트폴리오 수익률 계산 ---
+        if weights_list and len(weights_list) == len(tickers):
+            portfolio_weights = pd.Series(weights_list, index=tickers)
+        else: # 균등 가중
             n_assets = len(tickers)
             portfolio_weights = pd.Series([1/n_assets] * n_assets, index=tickers)
-            portfolio_returns = (returns * portfolio_weights).sum(axis=1)
             
-        portfolio_returns.index = portfolio_returns.index.tz_localize(None)
-
-
-        # --- Pyfolio Report Generation ---
-        with io.BytesIO() as f:
-            pf.create_full_tear_sheet(
-                portfolio_returns,
-                benchmark_rets=None, # Benchmark can be added later
-                live_start_date=None,
-                round_trips=False,
-                hide_positions=True,
-                show=False,
-                fig=None,
-                set_context=False,
-                output=f,
-                return_fig=False
-            )
-            f.seek(0)
-            html_report_base64 = base64.b64encode(f.read()).decode('utf-8')
+        portfolio_returns = (returns * portfolio_weights).sum(axis=1)
         
-        # --- Summary Stats ---
-        stats = pf.timeseries.perf_stats(portfolio_returns)
-        summary = {
-            'annual_return': stats['Annual return'],
-            'cumulative_returns': stats['Cumulative returns'],
-            'sharpe_ratio': stats['Sharpe ratio'],
-            'max_drawdown': stats['Max drawdown'],
-        }
+        # --- 벤치마크 수익률 ---
+        benchmark_returns = None
+        if benchmark_ticker and benchmark_ticker in data.columns:
+            benchmark_returns = data[benchmark_ticker].pct_change().dropna()
 
+        # --- 주요 지표 계산 ---
+        cumulative_returns = (1 + portfolio_returns).cumprod() - 1
+        annual_return = portfolio_returns.mean() * 252
+        annual_volatility = portfolio_returns.std() * np.sqrt(252)
+        sharpe_ratio = calculate_sharpe_ratio(portfolio_returns)
+        max_drawdown = calculate_max_drawdown((1 + portfolio_returns).cumprod())
+
+        # --- 결과 조합 ---
         response = {
             'results': {
-                'summary': summary,
-            },
-            'report_html': html_report_base64
+                'summary_stats': {
+                    'annual_return': annual_return,
+                    'cumulative_returns': cumulative_returns.iloc[-1],
+                    'annual_volatility': annual_volatility,
+                    'sharpe_ratio': sharpe_ratio,
+                    'max_drawdown': max_drawdown,
+                },
+                'cumulative_returns_data': cumulative_returns.reset_index().rename(columns={'index': 'date'}).to_dict('records'),
+                'portfolio_weights': portfolio_weights.to_dict(),
+            }
         }
         
         print(json.dumps(response, default=_to_native_type))
