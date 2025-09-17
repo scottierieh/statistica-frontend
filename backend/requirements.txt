@@ -19,3 +19,4 @@ yfinance
 pyfolio-reloaded
 empyrical
 QuantLib-Python
+yfinance
