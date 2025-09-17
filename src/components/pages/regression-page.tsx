@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -188,7 +187,9 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                     </CardHeader>
                      <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {regressionExamples.map((ex) => (
+                            {regressionExamples.map((ex) => {
+                                const Icon = ex.icon;
+                                return (
                                 <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
                                     <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
                                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
@@ -205,7 +206,8 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                         </Button>
                                     </CardContent>
                                 </Card>
-                            ))}
+                                )
+                            })}
                         </div>
                     </CardContent>
                 </Card>
