@@ -261,7 +261,7 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
                                             </div>
                                         )}
                                          {result.recommendations && result.recommendations.length > 0 && (
-                                            <div>
+                                            <div className="mt-4">
                                                  <h4 className="font-semibold text-sm mb-2">Recommendations</h4>
                                                 <Alert>
                                                     <Lightbulb className="h-4 w-4" />
