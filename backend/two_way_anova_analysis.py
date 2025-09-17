@@ -20,7 +20,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -56,10 +56,9 @@ class TwoWayAnovaAnalysis:
     def run_analysis(self):
         anova_table = anova_lm(self.model, typ=2)
         
-        # ** CRITICAL FIX: Get the p-value for interaction BEFORE manipulating the table **
         interaction_source_key = f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'
         interaction_p_value = anova_table.loc[interaction_source_key, 'PR(>F)'] if interaction_source_key in anova_table.index else 1.0
-
+        
         # Add partial eta-squared (η²p)
         if 'Residual' in anova_table.index:
             anova_table['η²p'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
@@ -79,7 +78,6 @@ class TwoWayAnovaAnalysis:
         self._test_assumptions()
         self._calculate_marginal_means()
         
-        # ** CRITICAL FIX: Use the correctly fetched p-value to decide on post-hoc tests **
         if interaction_p_value < self.alpha:
             self._perform_posthoc_tests()
     
