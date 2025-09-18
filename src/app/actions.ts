@@ -3,7 +3,6 @@ import { generateDataVisualization, GenerateDataVisualizationInput } from "@/ai/
 import { generateSummaryReport, GenerateSummaryReportInput } from "@/ai/flows/generate-summary-report";
 import { interpretAnova, InterpretAnovaInput } from "@/ai/flows/interpret-anova";
 import { interpretReliability, InterpretReliabilityInput } from "@/ai/flows/interpret-reliability";
-import { interpretCorrelation, InterpretCorrelationInput } from "@/ai/flows/interpret-correlation";
 import { interpretCrosstab, InterpretCrosstabInput } from "@/ai/flows/interpret-crosstab";
 import { interpretCfa, InterpretCfaInput } from "@/ai/flows/interpret-cfa";
 import { interpretFrequency, InterpretFrequencyInput } from "@/ai/flows/interpret-frequency";
@@ -49,17 +48,6 @@ export async function getReliabilityInterpretation(input: InterpretReliabilityIn
     }
 }
 
-
-export async function getCorrelationInterpretation(input: InterpretCorrelationInput) {
-    try {
-        const result = await interpretCorrelation(input);
-        return { success: true, interpretation: result.interpretation };
-    } catch (error) {
-        console.error(error);
-        return { success: false, error: "Failed to generate correlation interpretation." };
-    }
-}
-
 export async function getCrosstabInterpretation(input: InterpretCrosstabInput) {
     try {
         const result = await interpretCrosstab(input);
@@ -99,3 +87,5 @@ export async function getKmeansInterpretation(input: InterpretKmeansInput) {
         return { success: false, error: "Failed to generate K-Means interpretation." };
     }
 }
+
+    

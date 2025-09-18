@@ -27,6 +27,65 @@ def _interpret_correlation_magnitude(r):
     if abs_r >= 0.1: return 'small'
     return 'negligible'
 
+def generate_interpretation(summary_stats, effect_sizes, strongest_correlations, method):
+    """
+    Generates a textual interpretation and recommendations from the correlation results.
+    """
+    
+    # Interpretation
+    interpretation_parts = []
+    
+    # 1. Overall Pattern
+    mean_corr = summary_stats['mean_correlation']
+    mean_desc = "generally weak"
+    if abs(mean_corr) > 0.5:
+        mean_desc = "generally strong"
+    elif abs(mean_corr) > 0.3:
+        mean_desc = "generally moderate"
+    interpretation_parts.append(
+        f"The analysis, using the {method} method, reveals a total of {summary_stats['total_pairs']} variable pairs. "
+        f"The average correlation is {mean_corr:.3f}, suggesting the relationships are {mean_desc} on average."
+    )
+    
+    # 2. Key Findings
+    significant_pct = (summary_stats['significant_correlations'] / summary_stats['total_pairs'] * 100) if summary_stats['total_pairs'] > 0 else 0
+    strongest_pos = next((c for c in strongest_correlations if c['correlation'] > 0), None)
+    strongest_neg = next((c for c in strongest_correlations if c['correlation'] < 0), None)
+    
+    findings_str = (
+        f"Out of these, {summary_stats['significant_correlations']} pairs ({significant_pct:.1f}%) show a statistically significant relationship (p < 0.05). "
+        f"The dominant effect size is '{effect_sizes['strongest_effect']}', found in {effect_sizes['distribution'][effect_sizes['strongest_effect']]} pairs. "
+    )
+    
+    if strongest_pos:
+        findings_str += (
+            f"The strongest positive correlation is between '{strongest_pos['variable_1']}' and '{strongest_pos['variable_2']}' (r = {strongest_pos['correlation']:.3f}, p = {strongest_pos['p_value']:.4f}). "
+            f"This indicates that as '{strongest_pos['variable_1']}' increases, '{strongest_pos['variable_2']}' also tends to increase. "
+        )
+        
+    if strongest_neg:
+        findings_str += (
+            f"The strongest negative correlation is between '{strongest_neg['variable_1']}' and '{strongest_neg['variable_2']}' (r = {strongest_neg['correlation']:.3f}, p = {strongest_neg['p_value']:.4f}). "
+            f"This suggests that as '{strongest_neg['variable_1']}' increases, '{strongest_neg['variable_2']}' tends to decrease."
+        )
+    interpretation_parts.append(findings_str)
+    
+    # Recommendations
+    recommendations = []
+    if strongest_pos:
+        recommendations.append(f"Investigate the strong positive relationship between '{strongest_pos['variable_1']}' and '{strongest_pos['variable_2']}' to understand the underlying mechanism. This could be a key driver in the dataset.")
+    if strongest_neg:
+        recommendations.append(f"Explore the inverse relationship between '{strongest_neg['variable_1']}' and '{strongest_neg['variable_2']}'. Understanding this trade-off could be critical for decision-making.")
+    if significant_pct < 20:
+        recommendations.append("Most variables appear to be independent. Focus on the few significant relationships that do exist.")
+    if significant_pct > 70:
+        recommendations.append("High multicollinearity is likely present. If building a predictive model (like regression), consider feature selection or regularization techniques to avoid unstable estimates.")
+    if effect_sizes['distribution']['large'] > 0:
+        recommendations.append("The presence of 'large' effect sizes suggests practically important relationships exist. These should be prioritized for further analysis or business strategy.")
+
+    return "\n\n".join(interpretation_parts), recommendations
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -129,12 +188,16 @@ def main():
         # Strongest correlations
         strongest_correlations = sorted(all_correlations, key=lambda x: abs(x['correlation']), reverse=True)[:10]
 
+        interpretation, recommendations = generate_interpretation(summary_stats, effect_sizes_summary, strongest_correlations, method)
+
         response = {
             "correlation_matrix": corr_matrix.to_dict(),
             "p_value_matrix": p_value_matrix.to_dict(),
             "summary_statistics": summary_stats,
             "effect_sizes": effect_sizes_summary,
-            "strongest_correlations": strongest_correlations
+            "strongest_correlations": strongest_correlations,
+            "interpretation": interpretation,
+            "recommendations": recommendations,
         }
 
         print(json.dumps(response, default=_to_native_type))
@@ -146,3 +209,4 @@ def main():
 if __name__ == '__main__':
     main()
 
+    

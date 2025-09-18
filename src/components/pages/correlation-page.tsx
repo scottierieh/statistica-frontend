@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BarChart, TrendingUp, Zap, Bot } from 'lucide-react';
+import { Sigma, Loader2, BarChart, TrendingUp, Zap, Bot, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +28,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { getCorrelationInterpretation } from '@/app/actions';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 interface CorrelationResults {
   correlation_matrix: { [key: string]: { [key: string]: number } };
@@ -52,52 +52,9 @@ interface CorrelationResults {
     p_value: number;
     significant: boolean;
   }[];
+  interpretation: string;
+  recommendations: string[];
 }
-
-const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
-  const [interpretation, setInterpretation] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!promise) {
-        setInterpretation(null);
-        setLoading(false);
-        return;
-    };
-    let isMounted = true;
-    setLoading(true);
-    promise.then((desc) => {
-        if (isMounted) {
-            setInterpretation(desc);
-            setLoading(false);
-        }
-    });
-    return () => { isMounted = false; };
-  }, [promise]);
-  
-  const formattedInterpretation = useMemo(() => {
-    if (!interpretation) return null;
-    return interpretation
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<i>$1</i>');
-  }, [interpretation]);
-
-
-  if (loading) return <Skeleton className="h-24 w-full" />;
-  if (!interpretation) return null;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
-      </CardContent>
-    </Card>
-  );
-};
-
 
 const CorrelationHeatmap = ({ matrix, pValues, title }: { matrix: { [key: string]: { [key: string]: number } }, pValues: { [key: string]: { [key: string]: number } }, title: string }) => {
     const headers = Object.keys(matrix);
@@ -212,14 +169,11 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
   const [results, setResults] = useState<CorrelationResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [correlationMethod, setCorrelationMethod] = useState<'pearson' | 'spearman' | 'kendall'>('pearson');
-  const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
-
 
   useEffect(() => {
     setSelectedHeaders(numericHeaders.slice(0, 8));
     setControlVars([]);
     setResults(null);
-    setAiPromise(null);
   }, [numericHeaders, data]);
 
 
@@ -242,7 +196,6 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
     }
     setIsLoading(true);
     setResults(null);
-    setAiPromise(null);
     
     try {
         const response = await fetch('/api/analysis/correlation', {
@@ -263,14 +216,6 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
         
         const result: CorrelationResults = await response.json();
         setResults(result);
-
-        const promise = getCorrelationInterpretation({
-          correlationMatrix: JSON.stringify(result.correlation_matrix),
-          pValueMatrix: JSON.stringify(result.p_value_matrix),
-          strongestCorrelations: JSON.stringify(result.strongest_correlations),
-          method: correlationMethod,
-        }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
-        setAiPromise(promise);
 
     } catch (e: any) {
         console.error('Analysis error:', e);
@@ -404,7 +349,28 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
 
       {results && !isLoading && (
         <>
-            <AIGeneratedInterpretation promise={aiPromise} />
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n\n/g, '<br/><br/>') }} />
+                </CardContent>
+            </Card>
+            
+            {results.recommendations.length > 0 && (
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2"><Lightbulb /> Recommendations</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
+                            {results.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                        </ul>
+                    </CardContent>
+                </Card>
+            )}
+
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -499,3 +465,5 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
     </div>
   )
 }
+
+    
