@@ -47,10 +47,6 @@ interface CorrelationResults {
     significant_correlations: number;
     total_pairs: number;
   };
-  effect_sizes: {
-    distribution: { [key: string]: number };
-    strongest_effect: string;
-  };
   strongest_correlations: {
     variable_1: string;
     variable_2: string;
@@ -58,6 +54,10 @@ interface CorrelationResults {
     p_value: number;
     significant: boolean;
   }[];
+  interpretation: {
+    title: string;
+    body: string;
+  };
   pairs_plot?: string;
   heatmap_plot?: string;
 }
@@ -272,6 +272,48 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     </CardContent>
                 </Card>
             )}
+            <div className="grid lg:grid-cols-2 gap-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Key Finding</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm whitespace-pre-wrap font-sans">{results.interpretation?.body}</p>
+                    </CardContent>
+                </Card>
+                <div className="grid grid-cols-2 gap-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Mean Correlation</CardTitle>
+                            <BarChart className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{results.summary_statistics.mean_correlation.toFixed(3)}</div>
+                            <p className="text-xs text-muted-foreground">across all pairs</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Significant Pairs</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">
+                                {results.summary_statistics.significant_correlations} / {results.summary_statistics.total_pairs}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                ({((results.summary_statistics.significant_correlations / results.summary_statistics.total_pairs) * 100 || 0).toFixed(1)}%)
+                                at p &lt; 0.05
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+            
+            <div className="grid gap-4 md:grid-cols-1">
+                 <StrongestCorrelationsChart data={results.strongest_correlations} />
+            </div>
+            
             {plotData && (
                 <Card>
                     <CardHeader>
@@ -288,86 +330,6 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     </CardContent>
                 </Card>
             )}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Mean Correlation</CardTitle>
-                        <BarChart className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{results.summary_statistics.mean_correlation.toFixed(3)}</div>
-                        <p className="text-xs text-muted-foreground">across all pairs</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Significant Pairs</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {results.summary_statistics.significant_correlations} / {results.summary_statistics.total_pairs}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            ({((results.summary_statistics.significant_correlations / results.summary_statistics.total_pairs) * 100 || 0).toFixed(1)}%)
-                            at p &lt; 0.05
-                        </p>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Strongest Effect Size</CardTitle>
-                        <Zap className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold capitalize">{results.effect_sizes.strongest_effect}</div>
-                         <p className="text-xs text-muted-foreground">
-                            {results.effect_sizes.distribution[results.effect_sizes.strongest_effect] || 0} pairs
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-            
-            <div className="grid gap-4 md:grid-cols-1">
-                 <StrongestCorrelationsChart data={results.strongest_correlations} />
-            </div>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Detailed Correlation Pairs</CardTitle>
-                    <CardDescription>All analyzed correlation pairs sorted by absolute strength.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="h-72">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Rank</TableHead>
-                                    <TableHead>Variable 1</TableHead>
-                                    <TableHead>Variable 2</TableHead>
-                                    <TableHead className="text-right">Correlation (r)</TableHead>
-                                    <TableHead className="text-right">P-value</TableHead>
-                                    <TableHead className="text-center">Significant</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {results.strongest_correlations.map((corr, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell>{index + 1}</TableCell>
-                                        <TableCell>{corr.variable_1}</TableCell>
-                                        <TableCell>{corr.variable_2}</TableCell>
-                                        <TableCell className="text-right font-mono">{corr.correlation.toFixed(3)}</TableCell>
-                                        <TableCell className="text-right font-mono">{corr.p_value < 0.001 ? "<.001" : corr.p_value.toFixed(3)}</TableCell>
-                                        <TableCell className="text-center">
-                                            {corr.significant ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
         </>
       )}
       {!results && !isLoading && (
