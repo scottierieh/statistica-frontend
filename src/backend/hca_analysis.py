@@ -155,11 +155,11 @@ class HierarchicalClusterAnalysis:
             }
 
     def plot_results(self):
-        fig = plt.figure(figsize=(15, 18))
-        gs = fig.add_gridspec(4, 2)
+        fig, axes = plt.subplots(3, 2, figsize=(15, 18))
+        fig.suptitle('Hierarchical Clustering Results', fontsize=16, fontweight='bold')
 
         # 1. Dendrogram
-        ax1 = fig.add_subplot(gs[0, :])
+        ax1 = fig.add_subplot(plt.subplot2grid((3, 2), (0, 0), colspan=2))
         cut_height = 0
         if self.n_clusters > 1 and len(self.linkage_matrix) >= self.n_clusters -1 :
             cut_height = self.linkage_matrix[-(self.n_clusters - 1), 2]
@@ -169,24 +169,9 @@ class HierarchicalClusterAnalysis:
         ax1.set_xlabel('Sample Index')
         ax1.set_ylabel('Distance')
         ax1.legend()
-
-        # 2. Silhouette Plot
-        ax2 = fig.add_subplot(gs[1, 0])
-        if self.results.get('validation_scores'):
-            scores = self.results['validation_scores']
-            ax2.plot(scores['k_range'], scores['silhouette'], 'bo-', label='Silhouette Score')
-            if self.results.get('optimal_k_recommendation', {}).get('silhouette'):
-                best_k_sil = self.results['optimal_k_recommendation']['silhouette']
-                best_score_sil = scores['silhouette'][scores['k_range'].index(best_k_sil)]
-                ax2.plot(best_k_sil, best_score_sil, 'ro', markersize=10, label=f'Optimal: {best_k_sil}')
-            ax2.set_title('Silhouette Score by Number of Clusters')
-            ax2.set_xlabel('Number of Clusters')
-            ax2.set_ylabel('Silhouette Score')
-            ax2.legend()
-            ax2.grid(True, alpha=0.3)
-
-        # 3. PCA Plot
-        ax3 = fig.add_subplot(gs[1, 1])
+        
+        # 2. PCA Plot
+        ax3 = axes[1,0]
         if self.n_features > 1:
             pca = PCA(n_components=2)
             pca_data = pca.fit_transform(self.cluster_data_scaled)
@@ -197,21 +182,20 @@ class HierarchicalClusterAnalysis:
             ax3.legend(title='Cluster')
             ax3.grid(True, alpha=0.3)
 
-        # 4. Cluster Size Distribution
-        ax4 = fig.add_subplot(gs[2, 0])
+        # 3. Cluster Size Distribution
+        ax4 = axes[1, 1]
         cluster_sizes = pd.Series(self.cluster_labels).value_counts().sort_index()
         sns.barplot(x=cluster_sizes.index, y=cluster_sizes.values, ax=ax4, palette='viridis')
         ax4.set_title('Cluster Size Distribution')
         ax4.set_xlabel('Cluster')
         ax4.set_ylabel('Number of Samples')
 
-        # 5. Centroid Heatmap
-        ax5 = fig.add_subplot(gs[2, 1])
+        # 4. Centroid Heatmap
+        ax5 = axes[2, 0]
         if 'profiles' in self.results:
             centroids_scaled = []
             cluster_names = []
             for name, profile in sorted(self.results['profiles'].items()):
-                # Recreate scaled centroids for comparison
                 scaled_center = self.cluster_data_scaled[self.cluster_labels == int(name.split(' ')[1])].mean().values
                 centroids_scaled.append(scaled_center)
                 cluster_names.append(name)
@@ -222,8 +206,8 @@ class HierarchicalClusterAnalysis:
                 ax5.set_title('Scaled Centroid Heatmap')
                 ax5.tick_params(axis='x', rotation=45)
         
-        # 6. Snake Plot
-        ax6 = fig.add_subplot(gs[3, :])
+        # 5. Snake Plot
+        ax6 = axes[2, 1]
         if 'profiles' in self.results and centroids_scaled:
             centroid_df_norm = (centroid_df - centroid_df.min()) / (centroid_df.max() - centroid_df.min())
             centroid_df_norm.T.plot(ax=ax6)
@@ -274,3 +258,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
