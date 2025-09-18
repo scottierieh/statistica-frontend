@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -114,9 +115,8 @@ class NonParametricTests:
             'W_plus': W_plus, 'W_minus': W_minus, 'n_pairs': len(data1), 'effect_size': r,
             'effect_size_interpretation': effect_size_interp, 'alpha': alpha, 'is_significant': is_significant,
             'alternative': alternative, 'variables': [var1, var2], 'descriptive_stats': desc_stats,
-            'interpretation': self._interpret_wilcoxon(is_significant, var1, var2, effect_size_interp['text'], r, p_value, alpha, statistic)
+            'interpretation': self._interpret_wilcoxon(is_significant, var1, var2, effect_size_interp['level'], r, p_value, alpha, statistic, desc_stats)
         }
-        self.results['wilcoxon'] = result
         return result
 
     def kruskal_wallis_test(self, group_col: str, value_col: str, alpha: float = 0.05) -> Dict:
@@ -236,20 +236,20 @@ class NonParametricTests:
 
         return interpretation
 
-    def _interpret_wilcoxon(self, is_sig, v1, v2, effect, r, p, alpha, w_stat):
+    def _interpret_wilcoxon(self, is_sig, v1, v2, effect_level, r, p, alpha, w_stat, desc_stats):
         sig_text = "statistically significant" if is_sig else "not statistically significant"
         p_text = self._format_p_value(p)
+        med1 = desc_stats[v1]['median']
+        med2 = desc_stats[v2]['median']
 
         interpretation = (
             f"A Wilcoxon Signed-Rank test was conducted to determine if there was a median difference between '{v1}' and '{v2}'.\n"
             f"The results indicated a {sig_text} difference between the paired values, W = {w_stat}, {p_text}.\n"
         )
         if is_sig:
-            med1 = self.results['wilcoxon']['descriptive_stats'][v1]['median']
-            med2 = self.results['wilcoxon']['descriptive_stats'][v2]['median']
             interpretation += f"The median for '{v1}' (Mdn = {med1:.2f}) was {'' if med1 == med2 else ('higher' if med1 > med2 else 'lower')} than the median for '{v2}' (Mdn = {med2:.2f}). "
 
-        interpretation += f"The effect size was {effect.lower()} (r = {r:.3f})."
+        interpretation += f"The effect size was {effect_level.lower()} (r = {r:.3f})."
 
         return interpretation
         
@@ -258,7 +258,7 @@ class NonParametricTests:
         return {
             'decision': f"{'Reject' if is_sig else 'Fail to reject'} H₀",
             'conclusion': f"A Kruskal-Wallis H test showed that there was a {'statistically significant' if is_sig else 'not statistically significant'} difference in scores between the different groups, H({df}) = {h_stat:.2f}, {p_text}.",
-            'practical_significance': f"The magnitude of the differences between the groups was {effect} (ε²={es:.3f})."
+            'practical_significance': f"The magnitude of the differences between the groups was {effect.lower()} (ε²={es:.3f})."
         }
 
     def _interpret_friedman(self, is_sig, var, effect, W, p, alpha, stat, df):
@@ -356,6 +356,7 @@ def main():
             result = tester.mann_whitney_u_test(**params)
         elif test_type == 'wilcoxon':
             result = tester.wilcoxon_signed_rank_test(**params)
+            tester.results['wilcoxon'] = result
         elif test_type == 'kruskal_wallis':
             result = tester.kruskal_wallis_test(**params)
         elif test_type == 'friedman':
