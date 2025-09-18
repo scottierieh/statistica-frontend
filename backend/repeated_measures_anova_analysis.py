@@ -52,28 +52,56 @@ class RepeatedMeasuresAnova:
 
     def run_analysis(self):
         try:
-            aov = pg.rm_anova(data=self.long_data,
-                              dv=self.dependent_var,
-                              within=self.within_name,
-                              subject=self.subject_col,
-                              between=self.between_col if self.between_col else None,
-                              detailed=True,
-                              effsize="np2")
+            # Build arguments dynamically for rm_anova
+            kwargs = {
+                'data': self.long_data,
+                'dv': self.dependent_var,
+                'within': self.within_name,
+                'subject': self.subject_col,
+                'detailed': True,
+                'effsize': "np2"
+            }
+            if self.between_col:
+                kwargs['between'] = self.between_col
+            
+            aov = pg.rm_anova(**kwargs)
 
             self.results['anova_table'] = aov.to_dict('records')
             
-            # Sphericity test
-            sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within=self.within_name, subject=self.subject_col)
-            if isinstance(sphericity_test, tuple): # Older pingouin versions
-                 self.results['mauchly_test'] = {'spher': sphericity_test[0], 'p-value': sphericity_test[1]}
-            else: # Newer pingouin versions return dataframe
-                 self.results['mauchly_test'] = sphericity_test.to_dict('records')[0]
+            # Sphericity test is only relevant for within-subject effects with > 2 levels
+            if len(self.within_cols) > 2:
+                sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within=self.within_name, subject=self.subject_col)
+                if isinstance(sphericity_test, tuple): # Older pingouin versions
+                    self.results['mauchly_test'] = {'spher': sphericity_test[0], 'p-value': sphericity_test[1], 'sphericity': sphericity_test[2]}
+                else: # Newer pingouin versions return dataframe
+                    spher_dict = sphericity_test.to_dict('records')[0]
+                    self.results['mauchly_test'] = spher_dict
+            else:
+                self.results['mauchly_test'] = None
 
 
-            # Post-hoc tests if significant interaction
-            interaction_row = aov[aov['Source'] == f'{self.within_name} * {self.between_col}'] if self.between_col else None
-            if interaction_row is not None and not interaction_row.empty and interaction_row['p-GG-corr'].iloc[0] < self.alpha:
-                posthoc = pg.pairwise_tests(data=self.long_data, dv=self.dependent_var, within=self.within_name, subject=self.subject_col, between=self.between_col)
+            # Post-hoc tests if significant interaction or main effect
+            perform_posthoc = False
+            if self.between_col:
+                interaction_row = aov[aov['Source'] == f'{self.within_name} * {self.between_col}']
+                if not interaction_row.empty and (interaction_row['p-GG-corr'].iloc[0] < self.alpha if 'p-GG-corr' in interaction_row.columns and not pd.isna(interaction_row['p-GG-corr'].iloc[0]) else interaction_row['p-unc'].iloc[0] < self.alpha):
+                    perform_posthoc = True
+            else: # No between-subject factor, check main within-subject effect
+                within_row = aov[aov['Source'] == self.within_name]
+                if not within_row.empty and (within_row['p-GG-corr'].iloc[0] < self.alpha if 'p-GG-corr' in within_row.columns and not pd.isna(within_row['p-GG-corr'].iloc[0]) else within_row['p-unc'].iloc[0] < self.alpha):
+                    perform_posthoc = True
+
+            if perform_posthoc:
+                posthoc_args = {
+                    'data': self.long_data,
+                    'dv': self.dependent_var,
+                    'within': self.within_name,
+                    'subject': self.subject_col
+                }
+                if self.between_col:
+                    posthoc_args['between'] = self.between_col
+                
+                posthoc = pg.pairwise_tests(**posthoc_args)
                 self.results['posthoc_results'] = posthoc.to_dict('records')
 
         except Exception as e:
@@ -81,33 +109,34 @@ class RepeatedMeasuresAnova:
 
 
     def plot_results(self):
-        if 'error' in self.results or not self.long_data.empty:
-            fig, ax = plt.subplots(figsize=(8, 6))
-            
-            hue = self.between_col if self.between_col else None
-            
-            sns.pointplot(data=self.long_data, 
-                          x=self.within_name, 
-                          y=self.dependent_var, 
-                          hue=hue, 
-                          ax=ax,
-                          dodge=True,
-                          errorbar='ci')
-                          
-            ax.set_title(f'Interaction Plot: {self.dependent_var} over Time')
-            ax.set_xlabel('Time / Condition')
-            ax.set_ylabel(f'Mean of {self.dependent_var}')
-            if hue:
-                ax.legend(title=hue)
-            ax.grid(True, linestyle='--', alpha=0.6)
-            
-            plt.tight_layout()
-            buf = io.BytesIO()
-            plt.savefig(buf, format='png')
-            plt.close(fig)
-            buf.seek(0)
-            return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
-        return None
+        if 'error' in self.results or not hasattr(self, 'long_data') or self.long_data.empty:
+            return None
+        
+        fig, ax = plt.subplots(figsize=(8, 6))
+        
+        hue = self.between_col if self.between_col else None
+        
+        sns.pointplot(data=self.long_data, 
+                      x=self.within_name, 
+                      y=self.dependent_var, 
+                      hue=hue, 
+                      ax=ax,
+                      dodge=True,
+                      errorbar='ci')
+                      
+        ax.set_title(f'Interaction Plot: {self.dependent_var} over Time')
+        ax.set_xlabel('Time / Condition')
+        ax.set_ylabel(f'Mean of {self.dependent_var}')
+        if hue:
+            ax.legend(title=hue)
+        ax.grid(True, linestyle='--', alpha=0.6)
+        
+        plt.tight_layout()
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
 
 
 def main():
@@ -135,7 +164,8 @@ def main():
         print(json.dumps(response, default=_to_native_type, indent=2))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        error_response = {"error": str(e)}
+        sys.stderr.write(json.dumps(error_response))
         sys.exit(1)
 
 if __name__ == '__main__':

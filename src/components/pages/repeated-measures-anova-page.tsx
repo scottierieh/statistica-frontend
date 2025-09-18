@@ -48,7 +48,7 @@ interface PostHocResult {
 
 interface RmAnovaResults {
     anova_table: AnovaRow[];
-    mauchly_test: MauchlyResult;
+    mauchly_test: MauchlyResult | null;
     posthoc_results?: PostHocResult[];
     error?: string;
 }
@@ -65,6 +65,7 @@ const getSignificanceStars = (p: number | undefined) => {
     if (p < 0.05) return '*';
     return '';
 };
+
 
 interface RmAnovaPageProps {
     data: DataSet;
@@ -260,21 +261,23 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                             </Table>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Test of Sphericity (Mauchly's W)</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <dl className="grid grid-cols-2 gap-4">
-                                <div><dt className="text-sm font-medium text-muted-foreground">Statistic</dt><dd className="text-lg font-bold font-mono">{results.mauchly_test?.spher?.toFixed(4) ?? results.mauchly_test?.W?.toFixed(4) ?? 'N/A'}</dd></div>
-                                <div><dt className="text-sm font-medium text-muted-foreground">p-value</dt><dd className="text-lg font-bold font-mono">{results.mauchly_test?.['p-value']?.toFixed(4)}</dd></div>
-                            </dl>
-                            <p className="text-sm text-muted-foreground mt-4">
-                                Sphericity assumption is {isSphericityAssumed ? <Badge>Met</Badge> : <Badge variant="destructive">Violated</Badge>}.
-                                {isSphericityAssumed ? ' Standard p-value (p-unc) can be used.' : ' Use the Greenhouse-Geisser (p-GG-corr) corrected p-value.'}
-                            </p>
-                        </CardContent>
-                    </Card>
+                    {results.mauchly_test && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Test of Sphericity (Mauchly's W)</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <dl className="grid grid-cols-2 gap-4">
+                                    <div><dt className="text-sm font-medium text-muted-foreground">Statistic</dt><dd className="text-lg font-bold font-mono">{results.mauchly_test?.spher?.toFixed(4) ?? results.mauchly_test?.W?.toFixed(4) ?? 'N/A'}</dd></div>
+                                    <div><dt className="text-sm font-medium text-muted-foreground">p-value</dt><dd className="text-lg font-bold font-mono">{results.mauchly_test?.['p-value']?.toFixed(4)}</dd></div>
+                                </dl>
+                                <p className="text-sm text-muted-foreground mt-4">
+                                    Sphericity assumption is {isSphericityAssumed ? <Badge>Met</Badge> : <Badge variant="destructive">Violated</Badge>}.
+                                    {isSphericityAssumed ? ' Standard p-value (p-unc) can be used.' : ' Use the Greenhouse-Geisser (p-GG-corr) corrected p-value.'}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
                     {results.posthoc_results && (
                         <Card>
                              <CardHeader><CardTitle>Post-Hoc Pairwise Comparisons</CardTitle></CardHeader>
@@ -283,20 +286,20 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Contrast</TableHead>
-                                            {betweenCol && <TableHead>{betweenCol}</TableHead>}
-                                            <TableHead>A</TableHead>
-                                            <TableHead>B</TableHead>
-                                            <TableHead className="text-right">p-value</TableHead>
+                                            {results.posthoc_results[0]?.A && <TableHead>{betweenCol || 'Factor A'}</TableHead>}
+                                            <TableHead>{results.posthoc_results[0]?.B ? 'A' : 'Group 1'}</TableHead>
+                                            <TableHead>{results.posthoc_results[0]?.B ? 'B' : 'Group 2'}</TableHead>
+                                            <TableHead className="text-right">p-value (corrected)</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {results.posthoc_results.map((row, i) => (
                                             <TableRow key={i}>
                                                 <TableCell>{row.Contrast}</TableCell>
-                                                {betweenCol && <TableCell>{row.A === -1 ? '' : row.A}</TableCell>}
-                                                <TableCell>{row.A !== -1 && row.B === -1 ? row.A : row.B}</TableCell>
-                                                <TableCell>{row.A !== -1 && row.B !== -1 ? row.B : ''}</TableCell>
-                                                <TableCell className="text-right font-mono">{row['p-unc'].toFixed(4)} {getSignificanceStars(row['p-unc'])}</TableCell>
+                                                {row.A && <TableCell>{row.A === -1 ? 'Overall' : row.A}</TableCell>}
+                                                <TableCell>{row.B ? row.A : row.A}</TableCell>
+                                                <TableCell>{row.B || ''}</TableCell>
+                                                <TableCell className="text-right font-mono">{(row['p-corr'] ?? row['p-unc'])?.toFixed(4)} {getSignificanceStars(row['p-corr'] ?? row['p-unc'])}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
