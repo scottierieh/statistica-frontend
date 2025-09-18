@@ -12,14 +12,15 @@ from statsmodels.stats.anova import anova_lm
 import warnings
 import io
 import base64
+import math
 
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -42,61 +43,130 @@ class AncovaAnalysis:
         all_vars = [self.dependent_var, self.factor_var] + self.covariate_vars
         self.clean_data = self.data[all_vars].dropna().copy()
         
-        # Sanitize column names for formula
-        self.dependent_var_clean = self.dependent_var.replace(' ', '_').replace('.', '')
-        self.factor_var_clean = self.factor_var.replace(' ', '_').replace('.', '')
-        self.covariate_vars_clean = [c.replace(' ', '_').replace('.', '') for c in self.covariate_vars]
+        for var in [self.dependent_var] + self.covariate_vars:
+            self.clean_data[var] = pd.to_numeric(self.clean_data[var], errors='coerce')
         
-        self.clean_data.columns = [self.dependent_var_clean, self.factor_var_clean] + self.covariate_vars_clean
+        self.clean_data.dropna(inplace=True)
+        
+        # Sanitize column names for formula
+        self.dv_clean = self.dependent_var.replace(' ', '_').replace('.', '_')
+        self.fv_clean = self.factor_var.replace(' ', '_').replace('.', '_')
+        self.cv_clean = [c.replace(' ', '_').replace('.', '_') for c in self.covariate_vars]
+        
+        rename_dict = {
+            self.dependent_var: self.dv_clean,
+            self.factor_var: self.fv_clean,
+            **dict(zip(self.covariate_vars, self.cv_clean))
+        }
+        self.clean_data.rename(columns=rename_dict, inplace=True)
+        
+    def _generate_interpretation(self):
+        if 'anova_table' not in self.results:
+            return "Interpretation could not be generated as analysis results are missing."
+
+        anova_dict = {row['Source']: row for row in self.results['anova_table']}
+        
+        def format_p(p_val):
+            return f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
+        
+        def get_effect_size_interp(eta_sq_p):
+            if eta_sq_p is None: return "unknown"
+            if eta_sq_p >= 0.14: return "large"
+            if eta_sq_p >= 0.06: return "medium"
+            if eta_sq_p >= 0.01: return "small"
+            return "negligible"
+
+        interpretation = f"A one-way ANCOVA was conducted to determine a statistically significant difference between '{self.factor_var}' groups on '{self.dependent_var}' after controlling for '{', '.join(self.covariate_vars)}'.\n"
+
+        # Main Effect of Factor
+        factor_res = anova_dict.get(self.factor_var)
+        if factor_res and 'p_value' in factor_res and factor_res['p_value'] is not None:
+            sig_text = "a statistically significant" if factor_res['p_value'] < self.alpha else "no statistically significant"
+            p_text = format_p(factor_res['p_value'])
+            effect_size = factor_res.get('eta_sq_partial', 0)
+            effect_interp = get_effect_size_interp(effect_size)
+            
+            interpretation += (
+                f"There was {sig_text} main effect of '{self.factor_var}' on '{self.dependent_var}', "
+                f"F({factor_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {factor_res['F']:.2f}, {p_text}, with a {effect_interp} effect size (partial η² = {effect_size:.3f}).\n"
+            )
+
+        # Effect of Covariates
+        for i, cov in enumerate(self.covariate_vars):
+            cov_res = anova_dict.get(cov)
+            if cov_res and 'p_value' in cov_res and cov_res['p_value'] is not None:
+                sig_text = "a statistically significant" if cov_res['p_value'] < self.alpha else "no statistically significant"
+                p_text = format_p(cov_res['p_value'])
+                effect_size = cov_res.get('eta_sq_partial', 0)
+                effect_interp = get_effect_size_interp(effect_size)
+
+                interpretation += (
+                    f"The covariate, '{cov}', had {sig_text} effect on '{self.dependent_var}', "
+                    f"F({cov_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {cov_res['F']:.2f}, {p_text}, with a {effect_interp} effect size (partial η² = {effect_size:.3f}).\n"
+                )
+
+        # Interaction Effect
+        interaction_key = f'{self.factor_var} * {self.covariate_vars[0]}'
+        int_res = anova_dict.get(interaction_key) # Simple interaction for now
+        if int_res and 'p_value' in int_res and int_res['p_value'] is not None:
+            sig_text = "a statistically significant" if int_res['p_value'] < self.alpha else "no statistically significant"
+            if sig_text == "a statistically significant":
+                interpretation += (
+                    f"A significant interaction between '{self.factor_var}' and '{self.covariate_vars[0]}' was found, suggesting the effect of the factor on the dependent variable differs depending on the level of the covariate.\n"
+                )
+
+        self.results['interpretation'] = interpretation.strip()
 
     def run_analysis(self):
-        covariates_formula = ' + '.join([f'Q("{c}")' for c in self.covariate_vars_clean])
-        formula = f'Q("{self.dependent_var_clean}") ~ C(Q("{self.factor_var_clean}"), Sum) * ({covariates_formula})'
+        covariates_formula = ' + '.join([f'Q("{c}")' for c in self.cv_clean])
+        # Using Type II SS, interaction is tested separately from main effects
+        formula = f'Q("{self.dv_clean}") ~ Q("{self.fv_clean}") + {covariates_formula} + Q("{self.fv_clean}"):{covariates_formula}'
         
-        model = ols(formula, data=self.clean_data).fit()
-        anova_table = anova_lm(model, typ=2)
-        
+        try:
+            model = ols(formula, data=self.clean_data).fit()
+            anova_table = anova_lm(model, typ=2)
+        except Exception as e:
+            # A simpler model if interaction fails (e.g., due to collinearity)
+            formula = f'Q("{self.dv_clean}") ~ Q("{self.fv_clean}") + {covariates_formula}'
+            model = ols(formula, data=self.clean_data).fit()
+            anova_table = anova_lm(model, typ=2)
+            warnings.warn(f"Could not fit interaction model, proceeding without it. Error: {e}")
+
         # Add partial eta-squared
-        if 'Residual' in anova_table.index and 'sum_sq' in anova_table.columns:
-            anova_table['eta_sq_partial'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
-        else:
-            anova_table['eta_sq_partial'] = np.nan
+        ss_resid = anova_table.loc['Residual', 'sum_sq']
+        anova_table['eta_sq_partial'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + ss_resid)
         
         self.results['model_summary'] = str(model.summary())
         
-        # Clean up source names
-        cleaned_index = {}
-        cleaned_index[f'C(Q("{self.factor_var_clean}"), Sum)'] = self.factor_var
-        for cov in self.covariate_vars_clean:
-            cleaned_index[f'Q("{cov}")'] = cov
-        
-        interaction_term = f'C(Q("{self.factor_var_clean}"), Sum):Q("{self.covariate_vars_clean[0]}")' # Simple assumption for now
-        cleaned_index[interaction_term] = f'{self.factor_var} * {self.covariate_vars[0]}'
+        # Clean up source names for readability
+        cleaned_index = {
+            f'Q("{self.fv_clean}")': self.factor_var,
+            **{f'Q("{cv}")': self.covariate_vars[i] for i, cv in enumerate(self.cv_clean)}
+        }
+        for i, cv in enumerate(self.cv_clean):
+             interaction_key = f'Q("{self.fv_clean}"):Q("{cv}")'
+             cleaned_index[interaction_key] = f'{self.factor_var} * {self.covariate_vars[i]}'
 
-        # More robust cleaning for multiple covariates
-        for cov in self.covariate_vars_clean:
-             interaction_key = f'C(Q("{self.factor_var_clean}"), Sum):Q("{cov}")'
-             original_cov_name = self.covariate_vars[self.covariate_vars_clean.index(cov)]
-             cleaned_index[interaction_key] = f'{self.factor_var} * {original_cov_name}'
+        anova_table_renamed = anova_table.rename(index=cleaned_index)
 
-
-        anova_table = anova_table.rename(index=cleaned_index)
-
-        # Replace NaN with None before converting to dict
-        self.results['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p_value'}).replace({np.nan: None}).to_dict('records')
+        # Convert to dict, handling NaN
+        self.results['anova_table'] = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p_value'}).to_dict('records')
         self.results['residuals'] = model.resid.tolist()
         
         self._test_assumptions(model)
+        self._generate_interpretation()
 
     def _test_assumptions(self, model):
         residuals = model.resid
         # 1. Normality of residuals
         shapiro_stat, shapiro_p = stats.shapiro(residuals)
         
-        # 2. Homogeneity of variances
-        levene_stat, levene_p = stats.levene(
-            *[group[self.dependent_var_clean] for name, group in self.clean_data.groupby(self.factor_var_clean)]
-        )
+        # 2. Homogeneity of variances (Levene's test on the groups)
+        groups = [group[self.dv_clean].values for name, group in self.clean_data.groupby(self.fv_clean)]
+        if len(groups) > 1:
+            levene_stat, levene_p = stats.levene(*groups)
+        else:
+            levene_stat, levene_p = (np.nan, np.nan)
         
         self.results['assumptions'] = {
             'normality': {'statistic': shapiro_stat, 'p_value': shapiro_p, 'met': shapiro_p > self.alpha},
@@ -104,50 +174,48 @@ class AncovaAnalysis:
         }
 
     def plot_results(self):
-        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
         fig.suptitle('ANCOVA Results', fontsize=16)
 
-        # Interaction plot
+        # Interaction plot for the first covariate
         if self.covariate_vars_clean:
-            # Use original names for plotting
-            original_cov_name_to_plot = self.covariate_vars[0]
-            clean_cov_name_to_plot = self.covariate_vars_clean[0]
+            original_cov_name = self.covariate_vars[0]
+            clean_cov_name = self.cv_clean[0]
             
-            temp_plot_data = self.clean_data.rename(columns={
-                self.dependent_var_clean: self.dependent_var,
-                self.factor_var_clean: self.factor_var,
-                clean_cov_name_to_plot: original_cov_name_to_plot
-            })
-
-            sns.lmplot(
-                x=original_cov_name_to_plot, 
-                y=self.dependent_var, 
-                hue=self.factor_var, 
-                data=temp_plot_data, 
-                ci=None
+            sns.scatterplot(
+                data=self.clean_data, 
+                x=clean_cov_name, 
+                y=self.dv_clean, 
+                hue=self.fv_clean, 
+                ax=axes[0]
             )
-            plt.title(f'Interaction Plot: {self.dependent_var} vs {original_cov_name_to_plot} by {self.factor_var}')
             
-            # Need to capture lmplot to a buffer as it creates its own figure
-            lmplot_buf = io.BytesIO()
-            plt.savefig(lmplot_buf, format='png', bbox_inches='tight')
-            plt.close() # Close the figure created by lmplot
-            lmplot_buf.seek(0)
-            
-            # Use a single buffer for all plots
-            buf = io.BytesIO()
-            final_fig, final_ax = plt.subplots(1,1, figsize=(8,6))
-            final_ax.imshow(plt.imread(lmplot_buf))
-            final_ax.axis('off')
-            final_fig.suptitle(f'Interaction Plot', fontsize=14)
+            for group_name, group_data in self.clean_data.groupby(self.fv_clean):
+                group_model = ols(f'Q("{self.dv_clean}") ~ Q("{clean_cov_name}")', data=group_data).fit()
+                x_vals = np.linspace(group_data[clean_cov_name].min(), group_data[clean_cov_name].max(), 100)
+                y_vals = group_model.predict(pd.DataFrame({clean_cov_name: x_vals}))
+                axes[0].plot(x_vals, y_vals, label=f'Fit: {group_name}')
 
-            plt.tight_layout()
-            plt.savefig(buf, format='png')
-            plt.close(final_fig)
-            buf.seek(0)
-            
-            return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
-        return None
+            axes[0].set_title(f'Interaction: {self.dependent_var} vs {original_cov_name}')
+            axes[0].set_xlabel(original_cov_name)
+            axes[0].set_ylabel(self.dependent_var)
+            axes[0].legend()
+            axes[0].grid(True, alpha=0.3)
+        else:
+             axes[0].text(0.5, 0.5, 'No covariates to plot.', ha='center', va='center')
+
+
+        # Q-Q plot for residuals
+        sm.qqplot(self.results['residuals'], line='s', ax=axes[1])
+        axes[1].set_title('Q-Q Plot of Residuals')
+        axes[1].grid(True, alpha=0.3)
+        
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
 
 def main():
     try:
