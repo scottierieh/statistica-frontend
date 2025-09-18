@@ -28,7 +28,7 @@ except ImportError:
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer): return int(obj)
-    elif isinstance(obj, (np.floating, float)):
+    elif isinstance(obj, (float, np.floating)):
         if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
@@ -154,7 +154,7 @@ class RegressionAnalysis:
         
         final_features = features
 
-        if selection_method != 'none':
+        if HAS_STATSMODELS and selection_method != 'none':
             final_features, stepwise_log = perform_stepwise_selection(X_selected, self.y, method=selection_method)
             X_selected = X_selected[final_features]
 
@@ -185,7 +185,8 @@ class RegressionAnalysis:
             'features': list(X_scaled.columns),
             'metrics': metrics,
             'diagnostics': diagnostics,
-            'stepwise_log': stepwise_log
+            'stepwise_log': stepwise_log,
+            'interpretation': self._generate_interpretation(metrics, diagnostics)
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -219,7 +220,8 @@ class RegressionAnalysis:
         
         self.results[model_name] = {
             'model_name': model_name, 'model_type': 'polynomial_regression', 'features': list(poly_feature_names),
-            'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': []
+            'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': [],
+            'interpretation': self._generate_interpretation(metrics, diagnostics)
         }
         self.y_pred = y_pred
         self.X_scaled = X_poly_df
@@ -259,7 +261,8 @@ class RegressionAnalysis:
 
         self.results[model_name] = {
             'model_name': model_name, 'model_type': f'{reg_type}_regression', 'features': list(X_scaled.columns),
-            'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': []
+            'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': [],
+            'interpretation': self._generate_interpretation(metrics, diagnostics)
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -342,6 +345,54 @@ class RegressionAnalysis:
         except:
             diagnostics['normality_tests'] = {}
         return diagnostics
+    
+    def _generate_interpretation(self, metrics, diagnostics):
+        adj_r2 = metrics.get('adj_r2', 0)
+        
+        if adj_r2 >= 0.7:
+            power_desc = "very high explanatory power"
+        elif adj_r2 >= 0.5:
+            power_desc = "high explanatory power"
+        elif adj_r2 >= 0.25:
+            power_desc = "moderate explanatory power"
+        else:
+            power_desc = "low explanatory power"
+            
+        interpretation = f"The model has {power_desc}, with an adjusted R-squared of {adj_r2:.4f}. This means that approximately {adj_r2*100:.1f}% of the variance in the target variable can be explained by the predictors in the model.\n\n"
+
+        coeffs = diagnostics.get('coefficient_tests', {})
+        p_values = coeffs.get('pvalues', {})
+        
+        if p_values:
+            significant_vars = [var for var, p in p_values.items() if p < self.alpha and var != 'const']
+            if significant_vars:
+                interpretation += f"The following variables were found to be statistically significant predictors (p < {self.alpha}): {', '.join(significant_vars)}."
+            else:
+                interpretation += "No variables were found to be statistically significant predictors at the p < 0.05 level."
+        else:
+            interpretation += "Significance testing for individual predictors was not performed for this model type."
+            
+        # Diagnostic interpretation
+        warnings = []
+        normality_p = diagnostics.get('normality_tests', {}).get('shapiro_wilk', {}).get('p_value')
+        if normality_p is not None and normality_p < self.alpha:
+            warnings.append("Warning: The residuals are not normally distributed (Shapiro-Wilk p < 0.05). This can affect the validity of p-values for the coefficients. Consider transforming the dependent variable (e.g., log transformation) or using a robust regression method.")
+
+        hetero_p = diagnostics.get('heteroscedasticity_tests', {}).get('breusch_pagan', {}).get('p_value')
+        if hetero_p is not None and hetero_p < self.alpha:
+            warnings.append("Warning: Heteroscedasticity detected (Breusch-Pagan p < 0.05), meaning the variance of residuals is not constant. This can lead to unreliable standard errors. Consider using robust standard errors or a different model specification.")
+
+        vif_data = diagnostics.get('vif', {})
+        high_vif_vars = [var for var, vif in vif_data.items() if vif > 10]
+        if high_vif_vars:
+            warnings.append(f"Warning: High multicollinearity detected (VIF > 10) for variables: {', '.join(high_vif_vars)}. This suggests these variables are highly correlated, which can inflate standard errors and make coefficient estimates unstable. Consider removing one or more of these variables and re-running the analysis.")
+
+        if warnings:
+            interpretation += "\n\n--- Diagnostic Warnings ---\n" + "\n".join(warnings)
+
+
+        return interpretation
+
 
     
     def plot_results(self, model_name):
@@ -438,3 +489,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
+
+    
