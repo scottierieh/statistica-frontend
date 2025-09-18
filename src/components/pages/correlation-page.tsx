@@ -52,6 +52,7 @@ interface CorrelationResults {
     significant: boolean;
   }[];
   interpretation: string;
+  recommendations: string[];
 }
 
 const CorrelationHeatmap = ({ matrix, pValues, title }: { matrix: { [key: string]: { [key: string]: number } }, pValues: { [key: string]: { [key: string]: number } }, title: string }) => {
@@ -136,7 +137,7 @@ const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strong
             </CardHeader>
             <CardContent>
                  <ChartContainer config={chartConfig} className="w-full h-[300px]">
-                    <RechartsBarChart layout="vertical" data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <RechartsBarChart layout="vertical" data={chartData} margin={{ top: 5, right: 30, left: 100, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
                         <XAxis type="number" dataKey="correlation" domain={[-1, 1]}/>
                         <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 10 }} />
@@ -352,9 +353,21 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation?.replace(/\n\n/g, '<br/><br/>') || '' }} />
+                    <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation?.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') || '' }} />
                 </CardContent>
             </Card>
+
+             {results.recommendations && results.recommendations.length > 0 && (
+                <Alert>
+                    <Lightbulb className="h-4 w-4" />
+                    <AlertTitle>Recommendations</AlertTitle>
+                    <AlertDescription>
+                        <ul className="list-disc pl-5">
+                            {results.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                        </ul>
+                    </AlertDescription>
+                </Alert>
+            )}
 
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
