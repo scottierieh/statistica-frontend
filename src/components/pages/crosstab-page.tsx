@@ -18,6 +18,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCrosstabInterpretation } from '@/app/actions';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
+interface Interpretation {
+    title: string;
+    description: string;
+}
+
 interface CrosstabResults {
     contingency_table: { [key: string]: { [key: string]: number } };
     chi_squared: {
@@ -28,6 +33,14 @@ interface CrosstabResults {
     cramers_v: number;
     phi_coefficient: number;
     contingency_coefficient: number;
+    interpretations: {
+        chi_squared: Interpretation;
+        p_value: Interpretation;
+        df: Interpretation;
+        cramers_v: Interpretation;
+        phi: Interpretation;
+        contingency_coeff: Interpretation;
+    };
     row_var: string;
     col_var: string;
     row_levels: string[];
@@ -259,6 +272,8 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
         );
     }
     
+    const results = analysisResult?.results;
+
     return (
         <div className="flex flex-col gap-4">
             <Card>
@@ -287,54 +302,68 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {analysisResult && (
+            {results && (
                 <div className="space-y-4">
                     <AIGeneratedInterpretation promise={aiPromise} />
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Chi-Squared Test & Measures of Association</CardTitle>
-                            <CardDescription>Tests whether there is a significant association between {rowVar} and {colVar}.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-6">
-                            <Table>
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell>Chi-Squared (χ²)</TableCell>
-                                        <TableCell className="text-right font-mono">{analysisResult.results.chi_squared.statistic.toFixed(3)}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>p-value</TableCell>
-                                        <TableCell className="text-right font-mono">{analysisResult.results.chi_squared.p_value < 0.001 ? "<.001" : analysisResult.results.chi_squared.p_value.toFixed(4)} {getSignificanceStars(analysisResult.results.chi_squared.p_value)}</TableCell>
-                                    </TableRow>
-                                     <TableRow>
-                                        <TableCell>Degrees of Freedom</TableCell>
-                                        <TableCell className="text-right font-mono">{analysisResult.results.chi_squared.degrees_of_freedom}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Phi (φ)</TableCell>
-                                        <TableCell className="text-right font-mono">{analysisResult.results.phi_coefficient.toFixed(3)}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Contingency Coefficient</TableCell>
-                                        <TableCell className="text-right font-mono">{analysisResult.results.contingency_coefficient.toFixed(3)}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Cramer's V</TableCell>
-                                        <TableCell className="text-right font-mono">{analysisResult.results.cramers_v.toFixed(3)}</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                            <Alert variant={analysisResult.results.chi_squared.p_value < 0.05 ? 'default' : 'destructive'}>
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>{analysisResult.results.chi_squared.p_value < 0.05 ? "Result is Statistically Significant" : "Result is Not Statistically Significant"}</AlertTitle>
-                                <AlertDescription>
-                                    {analysisResult.results.chi_squared.p_value < 0.05
-                                        ? `There IS a statistically significant association between the variables (p < 0.05).`
-                                        : `There is NO statistically significant association between the variables (p >= 0.05).`}
-                                </AlertDescription>
-                            </Alert>
-                        </CardContent>
-                    </Card>
+                    <div className="grid lg:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Chi-Squared Test & Measures of Association</CardTitle>
+                                <CardDescription>Tests whether there is a significant association between {rowVar} and {colVar}.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <Alert variant={results.chi_squared.p_value < 0.05 ? 'default' : 'destructive'}>
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>{results.chi_squared.p_value < 0.05 ? "Result is Statistically Significant" : "Result is Not Statistically Significant"}</AlertTitle>
+                                    <AlertDescription>
+                                        {results.chi_squared.p_value < 0.05
+                                            ? `There IS a statistically significant association between the variables (p < 0.05).`
+                                            : `There is NO statistically significant association between the variables (p >= 0.05).`}
+                                    </AlertDescription>
+                                </Alert>
+                                <Table>
+                                    <TableBody>
+                                        <TableRow>
+                                            <TableCell className="font-medium">Chi-Squared (χ²)</TableCell>
+                                            <TableCell className="font-mono text-right">{results.chi_squared.statistic.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell className="font-medium">p-value</TableCell>
+                                            <TableCell className="font-mono text-right">{results.chi_squared.p_value < 0.001 ? "<.001" : results.chi_squared.p_value.toFixed(4)} {getSignificanceStars(results.chi_squared.p_value)}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell className="font-medium">Degrees of Freedom</TableCell>
+                                            <TableCell className="font-mono text-right">{results.chi_squared.degrees_of_freedom}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell className="font-medium">Cramer's V</TableCell>
+                                            <TableCell className="font-mono text-right">{results.cramers_v.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                         <TableRow>
+                                            <TableCell className="font-medium">Phi (φ)</TableCell>
+                                            <TableCell className="font-mono text-right">{results.phi_coefficient.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                         <TableRow>
+                                            <TableCell className="font-medium">Contingency Coeff.</TableCell>
+                                            <TableCell className="font-mono text-right">{results.contingency_coefficient.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                         <Card>
+                            <CardHeader><CardTitle>Statistical Explanations</CardTitle></CardHeader>
+                            <CardContent className="space-y-4 text-sm">
+                                {Object.values(results.interpretations).map((interp, i) => (
+                                    <div key={i}>
+                                        <h4 className="font-semibold">{interp.title}</h4>
+                                        <p className="text-muted-foreground">{interp.description}</p>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    </div>
+
                     <Card>
                          <CardHeader>
                             <CardTitle className="font-headline">Contingency Table</CardTitle>
