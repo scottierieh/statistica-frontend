@@ -354,7 +354,7 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n\n/g, '<br/><br/>') }} />
+                    <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation?.replace(/\n\n/g, '<br/><br/>') || '' }} />
                 </CardContent>
             </Card>
             
@@ -465,5 +465,3 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
     </div>
   )
 }
-
-    
