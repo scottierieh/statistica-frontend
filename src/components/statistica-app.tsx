@@ -78,7 +78,6 @@ import CfaPage from './pages/cfa-page';
 import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
 import NonParametricPage from './pages/nonparametric-page';
-import TTestPage from './pages/t-test-page';
 import HcaPage from './pages/hca-page';
 import ManovaPage from './pages/manova-page';
 import RegressionPage from './pages/regression-page';
@@ -139,9 +138,6 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'kruskal-wallis': NonParametricPage,
     'friedman': NonParametricPage,
     'mcnemar': NonParametricPage,
-    't-test-one-sample': TTestPage,
-    't-test-independent': TTestPage,
-    't-test-paired': TTestPage,
     hca: HcaPage,
     manova: ManovaPage,
     'rm-anova': RepeatedMeasuresAnovaPage,
@@ -200,14 +196,6 @@ const analysisMenu = [
     field: 'Hypothesis Testing',
     icon: Sigma,
     subCategories: [
-      {
-        name: 'T-Tests',
-        methods: [
-          { id: 't-test-one-sample', label: 'One-Sample t-Test' },
-          { id: 't-test-independent', label: 'Independent Samples t-Test' },
-          { id: 't-test-paired', label: 'Paired Samples t-Test' },
-        ]
-      },
       {
         name: 'ANOVA',
         methods: [
