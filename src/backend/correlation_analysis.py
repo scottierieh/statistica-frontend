@@ -3,9 +3,9 @@ import sys
 import json
 import numpy as np
 import pandas as pd
-from scipy import stats
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import math
+import pingouin as pg
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -35,14 +35,15 @@ def main():
         variables = payload.get('variables')
         method = payload.get('method', 'pearson')
         alpha = payload.get('alpha', 0.05)
+        control_vars = payload.get('controlVars')
 
         if not data or not variables:
             raise ValueError("Missing 'data' or 'variables'")
 
         df = pd.DataFrame(data)
         
-        # Ensure only specified variables are used and they are numeric
-        df_clean = df[variables].copy()
+        all_analysis_vars = list(set(variables + (control_vars or [])))
+        df_clean = df[all_analysis_vars].copy()
         for col in df_clean.columns:
             df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
         
@@ -51,32 +52,38 @@ def main():
         if df_clean.shape[0] < 2:
             raise ValueError("Not enough valid data points for analysis.")
 
-        n_vars = len(df_clean.columns)
-        current_vars = df_clean.columns.tolist()
+        n_vars = len(variables)
 
-        corr_matrix = pd.DataFrame(np.eye(n_vars), index=current_vars, columns=current_vars)
-        p_value_matrix = pd.DataFrame(np.zeros((n_vars, n_vars)), index=current_vars, columns=current_vars)
+        corr_matrix = pd.DataFrame(np.eye(n_vars), index=variables, columns=variables)
+        p_value_matrix = pd.DataFrame(np.zeros((n_vars, n_vars)), index=variables, columns=variables)
         
         all_correlations = []
 
         for i in range(n_vars):
             for j in range(i + 1, n_vars):
-                var1 = current_vars[i]
-                var2 = current_vars[j]
-                
-                col1 = df_clean[var1]
-                col2 = df_clean[var2]
+                var1 = variables[i]
+                var2 = variables[j]
                 
                 corr, p_value = np.nan, np.nan
-                if method == 'pearson':
-                    corr, p_value = pearsonr(col1, col2)
-                elif method == 'spearman':
-                    corr, p_value = spearmanr(col1, col2)
-                elif method == 'kendall':
-                    corr, p_value = kendalltau(col1, col2)
+
+                if control_vars and len(control_vars) > 0:
+                    # Partial Correlation
+                    partial_corr_result = pg.partial_corr(data=df_clean, x=var1, y=var2, covar=control_vars, method=method)
+                    corr = partial_corr_result['r'].iloc[0]
+                    p_value = partial_corr_result['p-val'].iloc[0]
+                else:
+                    # Regular Correlation
+                    col1 = df_clean[var1]
+                    col2 = df_clean[var2]
+                    if method == 'pearson':
+                        corr, p_value = pearsonr(col1, col2)
+                    elif method == 'spearman':
+                        corr, p_value = spearmanr(col1, col2)
+                    elif method == 'kendall':
+                        corr, p_value = kendalltau(col1, col2)
                 
-                corr_matrix.iloc[i, j] = corr_matrix.iloc[j, i] = corr
-                p_value_matrix.iloc[i, j] = p_value_matrix.iloc[j, i] = p_value
+                corr_matrix.loc[var1, var2] = corr_matrix.loc[var2, var1] = corr
+                p_value_matrix.loc[var1, var2] = p_value_matrix.loc[var2, var1] = p_value
                 
                 if not np.isnan(corr):
                     all_correlations.append({
@@ -138,3 +145,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
