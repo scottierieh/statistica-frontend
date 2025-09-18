@@ -178,13 +178,13 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     const renderResult = () => {
         if (!analysisResult) return null;
         const { results, plot } = analysisResult;
-
-        if (!results || !results.descriptives) {
-            return (
+        
+        if (!results) {
+             return (
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Analysis Incomplete</CardTitle>
-                        <CardDescription>The analysis did not return complete descriptive statistics.</CardDescription>
+                        <CardDescription>The analysis did not return any results.</CardDescription>
                     </CardHeader>
                 </Card>
             );
@@ -295,4 +295,3 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
-
