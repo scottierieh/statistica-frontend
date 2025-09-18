@@ -77,8 +77,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
     const handleAnalysis = useCallback(async () => {
-        let params: any = {};
-        let testType: TestType = activeTest;
+        let testParams: any = {};
 
         switch(activeTest) {
             case 'one_sample':
@@ -319,6 +318,3 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
-
-
-    
