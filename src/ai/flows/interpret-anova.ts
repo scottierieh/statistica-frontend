@@ -43,11 +43,11 @@ Here are the results:
 - Degrees of Freedom: ({{{dfBetween}}}, {{{dfWithin}}})
 - p-value: {{{pValue}}}
 
-Based on these results, provide a concise, easy-to-understand interpretation.
-- Start with a clear topic sentence summarizing the main finding.
-- In the first paragraph, state the conclusion in APA style, including the F-statistic, degrees of freedom, and p-value. For example: A one-way ANOVA revealed a statistically significant difference in the means of '{{{valueVar}}}' across the groups of '{{{groupVar}}}', *F*({{{dfBetween}}}, {{{dfWithin}}}) = {{{fStat}}}, *p* = {{{pValue}}}.
-- In a new paragraph, explain what the p-value and F-statistic represent in this context in simple terms.
-- Keep the entire interpretation to 2-3 short paragraphs, each separated by a line break.
+Based on these results, provide a concise, easy-to-understand interpretation broken into clear paragraphs.
+- **Paragraph 1:** Start with a clear topic sentence summarizing the main finding. Then, state the conclusion in APA style, including the F-statistic, degrees of freedom, and p-value. For example: A one-way ANOVA revealed a statistically significant difference in the means of '{{{valueVar}}}' across the groups of '{{{groupVar}}}', *F*({{{dfBetween}}}, {{{dfWithin}}}) = {{{fStat}}}, *p* = {{{pValue}}}.
+- **Paragraph 2:** In a new paragraph, explain what the p-value and F-statistic represent in this context in simple terms.
+- **Paragraph 3:** Provide a concluding sentence about the practical implication of the finding.
+- Ensure each section is a distinct paragraph separated by a line break.
 - Do not use markdown, just plain text.
 `, 
 });

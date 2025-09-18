@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -103,7 +104,8 @@ const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null
     if (!interpretation) return null;
     return interpretation
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<i>$1</i>');
+      .replace(/\*(.*?)\*/g, '<i>$1</i>')
+      .replace(/\n/g, '<br />');
   }, [interpretation]);
 
 
