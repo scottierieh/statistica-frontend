@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -20,11 +19,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 type TestType = 'one_sample' | 'independent_samples' | 'paired_samples';
 
-interface Interpretation {
-    title: string;
-    description: string;
-}
-
 interface TTestResults {
     test_type: string;
     significant: boolean;
@@ -34,7 +28,6 @@ interface TTestResults {
     cohens_d: number;
     mean_diff?: number;
     confidence_interval?: [number, number];
-    interpretations?: { [key: string]: Interpretation };
 }
 
 interface FullAnalysisResponse {
@@ -53,7 +46,7 @@ interface TTestPageProps {
 export default function TTestPage({ data, numericHeaders, categoricalHeaders, onLoadExample, activeAnalysis }: TTestPageProps) {
     const { toast } = useToast();
     
-    const activeTest = useMemo(() => {
+    const activeTest: TestType = useMemo(() => {
         const test = activeAnalysis.replace('t-test-', '');
         if (test === 'independent') return 'independent_samples';
         if (test === 'paired') return 'paired_samples';
@@ -77,20 +70,23 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
     const handleAnalysis = useCallback(async () => {
-        let testParams: any = {};
+        let params: any = {};
+        let testType: TestType = activeTest;
 
         switch(activeTest) {
             case 'one_sample':
                 if (!osVar) { toast({ variant: "destructive", title: "Please select a variable." }); return; }
-                testParams = { variable: osVar, test_value: osTestValue };
+                params = { variable: osVar, test_value: osTestValue };
                 break;
             case 'independent_samples':
                 if (!isDepVar || !isGroupVar) { toast({ variant: "destructive", title: "Please select dependent and group variables." }); return; }
-                testParams = { variable: isDepVar, group_variable: isGroupVar, equal_var: isEqualVar };
+                params = { variable: isDepVar, group_variable: isGroupVar, equal_var: isEqualVar };
+                testType = 'independent_samples';
                 break;
             case 'paired_samples':
                 if (!psVar1 || !psVar2 || psVar1 === psVar2) { toast({ variant: "destructive", title: "Please select two different variables." }); return; }
-                testParams = { variable1: psVar1, variable2: psVar2 };
+                params = { variable1: psVar1, variable2: psVar2 };
+                testType = 'paired_samples';
                 break;
         }
 
@@ -101,7 +97,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             const response = await fetch('/api/analysis/t-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, testType: activeTest, params: testParams })
+                body: JSON.stringify({ data, testType, params })
             });
 
             if (!response.ok) {
@@ -141,7 +137,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                     <Card>
                         <CardHeader><CardTitle>Visualization</CardTitle></CardHeader>
                         <CardContent>
-                            <Image src={plot} alt={`${results.test_type} plot`} width={1000} height={800} className="rounded-md border mx-auto" />
+                            <Image src={plot} alt={`${results.test_type.replace(/_/g, ' ')} plot`} width={1000} height={800} className="rounded-md border mx-auto" />
                         </CardContent>
                     </Card>
                 )}
@@ -191,16 +187,10 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                                 )}
                             </TableBody>
                         </Table>
-                         {results.interpretations && (
-                            <div className="mt-6 space-y-4">
-                                <h3 className="font-semibold">Statistical Interpretations</h3>
-                                {Object.values(results.interpretations).map((interp: any, i) => (
-                                    <div key={i} className="text-sm">
-                                        <h4 className="font-medium">{interp.title}</h4>
-                                        <p className="text-muted-foreground">{interp.description}</p>
-                                    </div>
-                                ))}
-                            </div>
+                         {activeTest === 'one_sample' && (
+                           <p className="text-sm text-muted-foreground mt-4">
+                                The p-value indicates the probability of observing your data, or something more extreme, if the true population mean was indeed the test value of {osTestValue}. A small p-value (typically &lt; 0.05) suggests the observed sample mean is significantly different from the test value.
+                           </p>
                          )}
                     </CardContent>
                 </Card>
@@ -254,7 +244,6 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         case 'one_sample':
           return (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Compares a sample mean to a known value.</p>
               <div className="grid md:grid-cols-2 gap-4">
                 <div><Label>Variable</Label><Select value={osVar} onValueChange={setOsVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                 <div><Label>Test Value (μ₀)</Label><Input type="number" value={osTestValue} onChange={(e) => setOsTestValue(Number(e.target.value))} /></div>
@@ -264,7 +253,6 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         case 'independent_samples':
           return (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Compares the means of two independent groups.</p>
               <div className="grid md:grid-cols-2 gap-4">
                 <div><Label>Dependent Variable</Label><Select value={isDepVar} onValueChange={setIsDepVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                 <div><Label>Grouping Variable</Label><Select value={isGroupVar} onValueChange={setIsGroupVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
@@ -278,7 +266,6 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         case 'paired_samples':
           return (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Compares the means of two related groups (e.g., before and after).</p>
               <div className="grid md:grid-cols-2 gap-4">
                 <div><Label>Variable 1 (e.g., Pre-test)</Label><Select value={psVar1} onValueChange={setPsVar1}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                 <div><Label>Variable 2 (e.g., Post-test)</Label><Select value={psVar2} onValueChange={setPsVar2}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h => h !== psVar1).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
