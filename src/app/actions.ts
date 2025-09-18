@@ -7,7 +7,7 @@ import { interpretReliability, InterpretReliabilityInput } from "@/ai/flows/inte
 import { interpretCrosstab, InterpretCrosstabInput } from "@/ai/flows/interpret-crosstab";
 import { interpretCfa, InterpretCfaInput } from "@/ai/flows/interpret-cfa";
 import { interpretFrequency, InterpretFrequencyInput } from "@/ai/flows/interpret-frequency";
-import { interpretKmeans, InterpretKmeansInput } from "@/ai/flows/interpret-kmeans";
+import { interpretClustering, InterpretClusteringInput } from "@/ai/flows/interpret-clustering";
 
 export async function getVisualizationDescription(input: GenerateDataVisualizationInput) {
     try {
@@ -79,9 +79,9 @@ export async function getFrequencyInterpretation(input: InterpretFrequencyInput)
     }
 }
 
-export async function getKmeansInterpretation(input: InterpretKmeansInput) {
+export async function getClusteringInterpretation(input: InterpretClusteringInput) {
     try {
-        const result = await interpretKmeans(input);
+        const result = await interpretClustering(input);
         return { success: true, interpretation: result.interpretation };
     } catch (error) {
         console.error(error);

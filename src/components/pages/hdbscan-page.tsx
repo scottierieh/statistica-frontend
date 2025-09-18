@@ -7,13 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, ScanSearch } from 'lucide-react';
+import { Sigma, Loader2, ScanSearch, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Input } from '../ui/input';
+import { getClusteringInterpretation } from '@/app/actions';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface HdbscanResults {
     n_clusters: number;
@@ -23,12 +25,55 @@ interface HdbscanResults {
     min_samples: number | null;
     labels: number[];
     probabilities: number[];
+    profiles: {
+        [key: string]: {
+            size: number;
+            percentage: number;
+            centroid: { [key: string]: number };
+        }
+    };
 }
 
 interface FullAnalysisResponse {
     results: HdbscanResults;
     plot: string;
 }
+
+const InterpretationDisplay = ({ promise }: { promise: Promise<string | null> | null }) => {
+    const [interpretation, setInterpretation] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (!promise) {
+            setInterpretation(null);
+            setLoading(false);
+            return;
+        };
+        let isMounted = true;
+        setLoading(true);
+        promise.then((desc) => {
+            if (isMounted && desc) {
+                setInterpretation(desc);
+            }
+            if (isMounted) setLoading(false);
+        });
+        return () => { isMounted = false; };
+    }, [promise]);
+
+    if (loading) return <Skeleton className="h-24 w-full" />;
+    if (!interpretation) return null;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: interpretation }} />
+            </CardContent>
+        </Card>
+    );
+};
 
 interface HdbscanPageProps {
     data: DataSet;
@@ -43,11 +88,13 @@ export default function HdbscanPage({ data, numericHeaders, onLoadExample }: Hdb
     const [minSamples, setMinSamples] = useState<number | null>(null);
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
+    const [aiPromise, setAiPromise] = useState<Promise<string | null> | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         setSelectedItems(numericHeaders);
         setAnalysisResult(null);
+        setAiPromise(null);
     }, [data, numericHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
@@ -64,6 +111,7 @@ export default function HdbscanPage({ data, numericHeaders, onLoadExample }: Hdb
 
         setIsLoading(true);
         setAnalysisResult(null);
+        setAiPromise(null);
 
         try {
             const response = await fetch('/api/analysis/hdbscan', {
@@ -82,10 +130,19 @@ export default function HdbscanPage({ data, numericHeaders, onLoadExample }: Hdb
                 throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
 
-            const result = await response.json();
+            const result: FullAnalysisResponse = await response.json();
             if (result.error) throw new Error(result.error);
             
             setAnalysisResult(result);
+            
+             const aiInterpretationPromise = getClusteringInterpretation({
+                modelType: 'HDBSCAN',
+                nClusters: result.results.n_clusters,
+                nNoise: result.results.n_noise,
+                totalSamples: result.results.n_samples,
+                clusterProfiles: JSON.stringify(result.results.profiles),
+            }).then(res => res.success ? res.interpretation : `AI Error: ${res.error}`);
+            setAiPromise(aiInterpretationPromise);
 
         } catch (e: any) {
             console.error('HDBSCAN error:', e);
@@ -182,16 +239,18 @@ export default function HdbscanPage({ data, numericHeaders, onLoadExample }: Hdb
 
             {analysisResult && results && (
                  <div className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">HDBSCAN Results</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Clusters Found</p><p className="text-2xl font-bold">{results.n_clusters}</p></div>
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Noise Points</p><p className="text-2xl font-bold">{results.n_noise} ({((results.n_noise / results.n_samples) * 100).toFixed(1)}%)</p></div>
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Total Samples</p><p className="text-2xl font-bold">{results.n_samples}</p></div>
-                        </CardContent>
-                    </Card>
+                    <div className="grid lg:grid-cols-2 gap-4">
+                         <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">HDBSCAN Results</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid grid-cols-2 gap-4 text-center">
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Clusters Found</p><p className="text-2xl font-bold">{results.n_clusters}</p></div>
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Noise Points</p><p className="text-2xl font-bold">{results.n_noise} ({((results.n_noise / results.n_samples) * 100).toFixed(1)}%)</p></div>
+                            </CardContent>
+                        </Card>
+                        <InterpretationDisplay promise={aiPromise} />
+                    </div>
 
                     {analysisResult.plot && (
                         <Card>
@@ -204,6 +263,39 @@ export default function HdbscanPage({ data, numericHeaders, onLoadExample }: Hdb
                             </CardContent>
                         </Card>
                     )}
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Cluster Profiles</CardTitle>
+                            <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Cluster</TableHead>
+                                        <TableHead>Size (%)</TableHead>
+                                        {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {Object.entries(results.profiles).map(([clusterName, profile]) => (
+                                        <TableRow key={clusterName}>
+                                            <TableCell className="font-semibold">{clusterName}</TableCell>
+                                            <TableCell>
+                                                {profile.size}
+                                                <span className="text-muted-foreground ml-1">({profile.percentage.toFixed(1)}%)</span>
+                                            </TableCell>
+                                            {selectedItems.map(item => (
+                                                <TableCell key={item} className="text-right font-mono">
+                                                    {profile.centroid[item].toFixed(2)}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
                 </div>
             )}
             

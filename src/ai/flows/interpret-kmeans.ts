@@ -1,57 +1,68 @@
+
 'use server';
 
 /**
  * @fileOverview Interprets the results of K-Means clustering validation metrics.
  *
- * - interpretKmeans - A function that provides an interpretation of the cluster validation scores.
- * - InterpretKmeansInput - The input type for the interpretKmeans function.
- * - InterpretKmeansOutput - The return type for the interpretKmeans function.
+ * - interpretClustering - A function that provides an interpretation of the cluster validation scores.
+ * - InterpretClusteringInput - The input type for the interpretClustering function.
+ * - InterpretClusteringOutput - The return type for the interpretClustering function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const InterpretKmeansInputSchema = z.object({
-  silhouetteScore: z.number().describe("The Silhouette Score. Ranges from -1 to 1. Closer to 1 is better."),
-  calinskiHarabaszScore: z.number().describe("The Calinski-Harabasz Score. Higher is better."),
-  daviesBouldinScore: z.number().describe("The Davies-Bouldin Score. Closer to 0 is better."),
+const InterpretClusteringInputSchema = z.object({
+  modelType: z.string().describe("The type of clustering model used (e.g., K-Means, DBSCAN, HDBSCAN)."),
+  nClusters: z.number().describe("The number of clusters found."),
+  nNoise: z.number().optional().describe("The number of noise points found (for density-based models)."),
+  totalSamples: z.number().describe("The total number of data points."),
+  clusterProfiles: z.string().optional().describe("A JSON string representing the mean values of variables for each cluster."),
+  silhouetteScore: z.number().optional().describe("The Silhouette Score. Ranges from -1 to 1. Closer to 1 is better."),
+  calinskiHarabaszScore: z.number().optional().describe("The Calinski-Harabasz Score. Higher is better."),
+  daviesBouldinScore: z.number().optional().describe("The Davies-Bouldin Score. Closer to 0 is better."),
 });
-export type InterpretKmeansInput = z.infer<typeof InterpretKmeansInputSchema>;
+export type InterpretClusteringInput = z.infer<typeof InterpretClusteringInputSchema>;
 
-const InterpretKmeansOutputSchema = z.object({
-  interpretation: z.string().describe('A human-readable interpretation of the K-Means validation metrics.'),
+const InterpretClusteringOutputSchema = z.object({
+  interpretation: z.string().describe('A human-readable interpretation of the clustering validation metrics.'),
 });
-export type InterpretKmeansOutput = z.infer<typeof InterpretKmeansOutputSchema>;
+export type InterpretClusteringOutput = z.infer<typeof InterpretClusteringOutputSchema>;
 
-export async function interpretKmeans(input: InterpretKmeansInput): Promise<InterpretKmeansOutput> {
-  return interpretKmeansFlow(input);
+export async function interpretClustering(input: InterpretClusteringInput): Promise<InterpretClusteringOutput> {
+  return interpretClusteringFlow(input);
 }
 
 const prompt = ai.definePrompt({
-  name: 'interpretKmeansPrompt',
-  input: {schema: InterpretKmeansInputSchema},
-  output: {schema: InterpretKmeansOutputSchema},
-  prompt: `You are an expert data scientist. You are to provide a concise interpretation of K-Means cluster validation metrics.
+  name: 'interpretClusteringPrompt',
+  input: {schema: InterpretClusteringInputSchema},
+  output: {schema: InterpretClusteringOutputSchema},
+  prompt: `You are an expert data scientist. You are to provide a concise interpretation of clustering results.
 
-Here are the key metrics:
+Here are the key metrics for the {{{modelType}}} model:
+- Clusters Found: {{{nClusters}}}
+{{#if nNoise}}- Noise Points: {{{nNoise}}} ({{eval '({{nNoise}} / {{totalSamples}}) * 100'}})% of total
+{{/if}}- Total Samples: {{{totalSamples}}}
 - Silhouette Score: {{{silhouetteScore}}}
 - Calinski-Harabasz Score: {{{calinskiHarabaszScore}}}
 - Davies-Bouldin Score: {{{daviesBouldinScore}}}
+- Cluster Profiles (Centroids): {{{clusterProfiles}}}
+
 
 Provide a paragraph that explains what these metrics mean in simple terms and assesses the quality of the clustering based on the provided values.
-- Explain that the **Silhouette Score** (closer to 1 is better) measures how similar an object is to its own cluster compared to other clusters.
-- Explain that the **Calinski-Harabasz Score** (higher is better) is the ratio of between-cluster dispersion to within-cluster dispersion.
-- Explain that the **Davies-Bouldin Score** (closer to 0 is better) measures the average similarity between each cluster and its most similar one.
-- Based on the scores, provide an overall judgement (e.g., "These scores suggest a well-defined clustering structure," or "The clustering structure appears to be weak/ambiguous.").
-- Keep the entire interpretation to a single, readable paragraph. Do not use markdown.
+- Start with an overall summary of the findings (e.g., number of clusters, noise points).
+- If validation scores are available, explain them briefly (Silhouette closer to 1 is better, Calinski-Harabasz higher is better, Davies-Bouldin closer to 0 is better).
+- Provide an overall judgement of the clustering quality based on the scores.
+- If cluster profiles are provided, briefly describe the key characteristics of 1-2 of the most distinct clusters based on their centroids.
+- Keep the entire interpretation to a concise, readable paragraph. Do not use markdown.
 `,
 });
 
-const interpretKmeansFlow = ai.defineFlow(
+const interpretClusteringFlow = ai.defineFlow(
   {
-    name: 'interpretKmeansFlow',
-    inputSchema: InterpretKmeansInputSchema,
-    outputSchema: InterpretKmeansOutputSchema,
+    name: 'interpretClusteringFlow',
+    inputSchema: InterpretClusteringInputSchema,
+    outputSchema: InterpretClusteringOutputSchema,
   },
   async input => {
     const {output} = await prompt(input);
