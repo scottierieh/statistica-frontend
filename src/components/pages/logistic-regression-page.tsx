@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target } from 'lucide-react';
+import { Sigma, Loader2, Target, CheckCircle, XCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -67,10 +67,10 @@ export default function LogisticRegressionPage({ data, numericHeaders, allHeader
         return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
     }, [data, categoricalHeaders]);
 
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 1 && binaryCategoricalHeaders.length >= 1, [data, numericHeaders, binaryCategoricalHeaders]);
+    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2, [data, allHeaders]);
 
     useEffect(() => {
-        const defaultDepVar = binaryCategoricalHeaders[0];
+        const defaultDepVar = binaryCategoricalHeaders[0] || allHeaders[0];
         setDependentVar(defaultDepVar);
         const initialIndepVars = allHeaders.filter(h => h !== defaultDepVar);
         setIndependentVars(initialIndepVars);
@@ -183,7 +183,7 @@ export default function LogisticRegressionPage({ data, numericHeaders, allHeader
                             <Label>Dependent Variable (Binary Outcome)</Label>
                             <Select value={dependentVar} onValueChange={setDependentVar}>
                                 <SelectTrigger><SelectValue placeholder="Select an outcome variable" /></SelectTrigger>
-                                <SelectContent>{binaryCategoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                <SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div>
