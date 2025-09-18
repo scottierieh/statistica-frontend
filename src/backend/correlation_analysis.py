@@ -31,68 +31,6 @@ def _interpret_correlation_magnitude(r):
     if abs_r >= 0.1: return 'weak'
     return 'negligible'
 
-def generate_interpretation(all_correlations, method, alpha=0.05):
-    """
-    Generates a comprehensive textual interpretation of the correlation results.
-    """
-    interpretation_parts = []
-    
-    if not all_correlations:
-        return "No valid correlation pairs were found for analysis."
-
-    significant_correlations = [c for c in all_correlations if c['significant']]
-    
-    # 1. Overall Summary
-    total_pairs = len(all_correlations)
-    significant_count = len(significant_correlations)
-    mean_corr_list = [c['correlation'] for c in all_correlations if c.get('correlation') is not None]
-    mean_corr = np.mean(mean_corr_list) if mean_corr_list else 0
-    
-    interpretation_parts.append(
-        f"A {method.title()} correlation analysis was conducted on {total_pairs} variable pairs. "
-        f"Of these, {significant_count} pairs ({significant_count/total_pairs:.1%}) showed a statistically significant relationship (p < {alpha}). "
-        f"The average correlation coefficient was {mean_corr:.3f}, indicating a generally weak overall relationship strength."
-    )
-
-    # 2. Detailed Significant Findings
-    if significant_correlations:
-        details = ["The following significant relationships were identified:"]
-        # Sort by absolute correlation value to present the most important ones first
-        for corr in sorted(significant_correlations, key=lambda x: abs(x['correlation']), reverse=True):
-            var1 = corr['variable_1']
-            var2 = corr['variable_2']
-            r = corr['correlation']
-            p = corr['p_value']
-            
-            magnitude = _interpret_correlation_magnitude(r)
-            direction = "positive" if r > 0 else "negative"
-            direction_desc = "increases" if r > 0 else "decreases"
-            
-            p_string = f"p < .001" if p < 0.001 else f"p = {p:.3f}"
-            
-            details.append(
-                f"- A **{magnitude} {direction}** correlation was found between **'{var1}'** and **'{var2}'** "
-                f"(*r* = {r:.3f}, {p_string}). This suggests that as '{var1}' increases, '{var2}' tends to {direction_desc}."
-            )
-        interpretation_parts.append("\n".join(details))
-    else:
-        interpretation_parts.append("No statistically significant correlations were found among the analyzed variables.")
-
-    # 3. Conclusion
-    if significant_correlations:
-        strongest_corr = max(significant_correlations, key=lambda x: abs(x['correlation']))
-        conclusion = (
-            "**Conclusion**: The analysis reveals several key relationships, with the strongest being between "
-            f"'{strongest_corr['variable_1']}' and '{strongest_corr['variable_2']}'. These findings can guide further investigation, such as regression analysis, to explore causality. "
-            "It is important to remember that correlation does not imply causation."
-        )
-        interpretation_parts.append(conclusion)
-    else:
-         interpretation_parts.append("**Conclusion**: The variables appear to be largely independent of one another. Further analysis may require different statistical approaches or data transformations.")
-
-
-    return "\n\n".join(interpretation_parts)
-
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -171,17 +109,16 @@ def main():
             summary_stats = { 'mean_correlation': 0,'median_correlation': 0,'std_dev': 0,'range': [0, 0],'significant_correlations': 0,'total_pairs': 0}
         
         effect_sizes_list = [_interpret_correlation_magnitude(c['correlation']) for c in all_correlations]
-        effect_size_counts = { 'large': effect_sizes_list.count('large'), 'medium': effect_sizes_list.count('medium'), 'small': effect_sizes_list.count('small'), 'negligible': effect_sizes_list.count('negligible')}
+        effect_size_counts = { 'very strong': effect_sizes_list.count('very strong'), 'strong': effect_sizes_list.count('strong'),'moderate': effect_sizes_list.count('moderate'), 'weak': effect_sizes_list.count('weak'), 'negligible': effect_sizes_list.count('negligible')}
 
         strongest_effect = 'negligible'
-        if effect_size_counts.get('large', 0) > 0: strongest_effect = 'large'
-        elif effect_size_counts.get('medium', 0) > 0: strongest_effect = 'medium'
-        elif effect_size_counts.get('small', 0) > 0: strongest_effect = 'small'
+        if effect_size_counts.get('very strong', 0) > 0: strongest_effect = 'very strong'
+        elif effect_size_counts.get('strong', 0) > 0: strongest_effect = 'strong'
+        elif effect_size_counts.get('moderate', 0) > 0: strongest_effect = 'moderate'
+        elif effect_size_counts.get('weak', 0) > 0: strongest_effect = 'weak'
         
         effect_sizes_summary = {'distribution': effect_size_counts, 'strongest_effect': strongest_effect}
         strongest_correlations = sorted(all_correlations, key=lambda x: abs(x['correlation']), reverse=True)[:10]
-
-        interpretation = generate_interpretation(all_correlations, method, alpha)
 
         response = {
             "correlation_matrix": corr_matrix.to_dict(),
@@ -189,7 +126,6 @@ def main():
             "summary_statistics": summary_stats,
             "effect_sizes": effect_sizes_summary,
             "strongest_correlations": strongest_correlations,
-            "interpretation": interpretation,
         }
 
         print(json.dumps(response, default=_to_native_type, ensure_ascii=False))

@@ -51,7 +51,6 @@ interface CorrelationResults {
     p_value: number;
     significant: boolean;
   }[];
-  interpretation: string;
 }
 
 const CorrelationHeatmap = ({ matrix, pValues, title }: { matrix: { [key: string]: { [key: string]: number } }, pValues: { [key: string]: { [key: string]: number } }, title: string }) => {
@@ -312,15 +311,6 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
 
       {results && !isLoading && (
         <>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation?.replace(/\n\n/g, '<br/><br/>') || '' }} />
-                </CardContent>
-            </Card>
-
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -415,5 +405,3 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
     </div>
   )
 }
-
-    
