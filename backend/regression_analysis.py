@@ -350,12 +350,11 @@ class RegressionAnalysis:
         return diagnostics
     
     def _generate_interpretation(self, metrics, diagnostics, model_name, target_variable, features):
-        interpretation = ""
         model_type_str = model_name.replace('_', ' ').title()
         
         # Sentence 1: Purpose
         feature_list = ", ".join(f"'{f}'" for f in features)
-        interpretation += f"A {model_type_str} regression was run to predict '{target_variable}' from {feature_list}. "
+        interpretation = f"A {model_type_str} regression was run to predict '{target_variable}' from {feature_list}. "
 
         # Sentence 2: Model Significance
         f_stat = diagnostics.get('f_statistic')
@@ -366,28 +365,38 @@ class RegressionAnalysis:
 
         if all(v is not None for v in [f_stat, f_pvalue, df_model, df_resid, r_squared]):
             p_val_str = f"p < .001" if f_pvalue < 0.001 else f"p = {f_pvalue:.3f}"
-            model_sig_str = "significant" if f_pvalue < self.alpha else "not significant"
-            interpretation += (f"This resulted in a {model_sig_str} model, F({int(df_model)}, {int(df_resid)}) = {f_stat:.3f}, {p_val_str}, R² = {r_squared:.3f}. ")
+            model_sig_str = "statistically significant" if f_pvalue < self.alpha else "not statistically significant"
+            interpretation += (f"The overall regression model was {model_sig_str}, F({int(df_model)}, {int(df_resid)}) = {f_stat:.2f}, {p_val_str}. ")
 
-        # Sentence 3: Individual Predictors
+        # Sentence 3: R-squared
+        adj_r2 = metrics.get('adj_r2')
+        if adj_r2 is not None:
+             interpretation += f"The model explained {adj_r2*100:.1f}% of the variance in '{target_variable}' (R²adj = {adj_r2:.3f}).\n"
+
+        # Sentence 4 & 5: Individual Predictors
         coeffs = diagnostics.get('coefficient_tests')
         if coeffs and coeffs.get('pvalues'):
+            params = coeffs['params']
             p_values = coeffs['pvalues']
-            t_values = coeffs['tvalues']
             
-            sig_vars = [var for var, p in p_values.items() if p < self.alpha and var != 'const']
-            nonsig_vars = [var for var, p in p_values.items() if p >= self.alpha and var != 'const']
+            for var in features:
+                if var in p_values and p_values[var] < self.alpha:
+                    b = params.get(var, 0)
+                    direction = "an increase" if b > 0 else "a decrease"
+                    interpretation += f"It was found that '{var}' significantly predicted '{target_variable}' (b = {b:.3f}, p < {self.alpha}). For every one unit increase in '{var}', the '{target_variable}' is predicted to {direction} by {abs(b):.3f} units.\n"
+
+        # Sentence 6: Regression Equation
+        if coeffs:
+            b0 = coeffs['params'].get('const', 0)
+            b1_str_parts = []
+            for var in features:
+                 b_val = coeffs['params'].get(var)
+                 if b_val is not None:
+                     b1_str_parts.append(f"{b_val:.3f} * ({var})")
             
-            if sig_vars:
-                sig_descs = [f"'{var}' (t = {t_values.get(var, 0):.2f}, p < {self.alpha})" for var in sig_vars]
-                interpretation += f"The individual predictors were examined further, and {', '.join(sig_descs)} {'was' if len(sig_descs) == 1 else 'were'} found to be significant. "
-            if nonsig_vars:
-                nonsig_descs = [f"'{var}' (t = {t_values.get(var, 0):.2f}, p = {p_values.get(var, 0):.3f})" for var in nonsig_vars]
-                if sig_vars:
-                    interpretation += f"However, {', '.join(nonsig_descs)} {'was' if len(nonsig_descs) == 1 else 'were'} not significant. "
-                else:
-                     interpretation += f"None of the individual predictors were found to be significant. "
-            
+            b1_str = " + ".join(b1_str_parts).replace('+ -', '- ')
+            interpretation += f"\nThe final regression equation is: {target_variable} = {b0:.3f} + {b1_str}."
+
         interpretation = interpretation.strip()
 
         # Diagnostic warnings
