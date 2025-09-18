@@ -1,3 +1,4 @@
+
 import sys
 import json
 import numpy as np
@@ -18,6 +19,8 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
+        if np.isnan(obj):
+            return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
@@ -105,7 +108,7 @@ class KMeansAnalysis:
             }
 
     def plot_results(self):
-        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
         fig.suptitle('K-Means Clustering Results', fontsize=16, fontweight='bold')
 
         # 1. Elbow Plot
