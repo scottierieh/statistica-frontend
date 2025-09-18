@@ -1,5 +1,4 @@
 pandas
-pingouin
 numpy
 scipy
 scikit-learn
@@ -18,3 +17,4 @@ hdbscan
 yfinance
 pyfolio
 quantlib
+    

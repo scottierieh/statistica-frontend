@@ -52,7 +52,6 @@ interface CorrelationResults {
     significant: boolean;
   }[];
   interpretation: string;
-  recommendations: string[];
 }
 
 const CorrelationHeatmap = ({ matrix, pValues, title }: { matrix: { [key: string]: { [key: string]: number } }, pValues: { [key: string]: { [key: string]: number } }, title: string }) => {
@@ -164,26 +163,18 @@ interface CorrelationPageProps {
 export default function CorrelationPage({ data, numericHeaders, onLoadExample }: CorrelationPageProps) {
   const { toast } = useToast();
   const [selectedHeaders, setSelectedHeaders] = useState<string[]>(numericHeaders.slice(0, 8));
-  const [controlVars, setControlVars] = useState<string[]>([]);
   const [results, setResults] = useState<CorrelationResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [correlationMethod, setCorrelationMethod] = useState<'pearson' | 'spearman' | 'kendall'>('pearson');
 
   useEffect(() => {
     setSelectedHeaders(numericHeaders.slice(0, 8));
-    setControlVars([]);
     setResults(null);
   }, [numericHeaders, data]);
 
 
   const handleSelectionChange = (header: string, checked: boolean) => {
     setSelectedHeaders(prev => 
-      checked ? [...prev, header] : prev.filter(h => h !== header)
-    );
-  };
-
-  const handleControlVarChange = (header: string, checked: boolean) => {
-    setControlVars(prev => 
       checked ? [...prev, header] : prev.filter(h => h !== header)
     );
   };
@@ -204,7 +195,6 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                 data: data,
                 variables: selectedHeaders,
                 method: correlationMethod, 
-                controlVars: controlVars.length > 0 ? controlVars : undefined,
             })
         });
 
@@ -223,16 +213,11 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
     } finally {
         setIsLoading(false);
     }
-  }, [data, selectedHeaders, toast, correlationMethod, controlVars]);
+  }, [data, selectedHeaders, toast, correlationMethod]);
   
   const canRun = useMemo(() => {
     return data.length > 0 && numericHeaders.length >= 2;
   }, [data, numericHeaders]);
-
-  const availableControlVars = useMemo(() => {
-    const selectedSet = new Set(selectedHeaders);
-    return numericHeaders.filter(h => !selectedSet.has(h));
-  }, [numericHeaders, selectedHeaders]);
 
   if (!canRun) {
     const corrExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('correlation'));
@@ -280,48 +265,27 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
       <Card>
         <CardHeader>
           <CardTitle className="font-headline">Correlation Analysis Setup</CardTitle>
-          <CardDescription>Select variables, choose a method, and optionally add control variables for partial correlation.</CardDescription>
+          <CardDescription>Select variables and choose a correlation method.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-            <div className="grid md:grid-cols-2 gap-4">
-                 <div>
-                    <Label>Variables for Correlation</Label>
-                    <ScrollArea className="h-40 border rounded-md p-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        {numericHeaders.map(header => (
-                        <div key={header} className="flex items-center space-x-2">
-                            <Checkbox
-                            id={`corr-${header}`}
-                            checked={selectedHeaders.includes(header)}
-                            onCheckedChange={(checked) => handleSelectionChange(header, checked as boolean)}
-                            />
-                            <label htmlFor={`corr-${header}`} className="text-sm font-medium leading-none">
-                            {header}
-                            </label>
-                        </div>
-                        ))}
+            <div>
+                <Label>Variables for Correlation</Label>
+                <ScrollArea className="h-40 border rounded-md p-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {numericHeaders.map(header => (
+                    <div key={header} className="flex items-center space-x-2">
+                        <Checkbox
+                        id={`corr-${header}`}
+                        checked={selectedHeaders.includes(header)}
+                        onCheckedChange={(checked) => handleSelectionChange(header, checked as boolean)}
+                        />
+                        <label htmlFor={`corr-${header}`} className="text-sm font-medium leading-none">
+                        {header}
+                        </label>
                     </div>
-                    </ScrollArea>
+                    ))}
                 </div>
-                 <div>
-                    <Label>Control Variables (for Partial Correlation)</Label>
-                    <ScrollArea className="h-40 border rounded-md p-4">
-                    <div className="space-y-2">
-                        {availableControlVars.map(header => (
-                        <div key={`ctrl-${header}`} className="flex items-center space-x-2">
-                            <Checkbox
-                            id={`ctrl-${header}`}
-                            checked={controlVars.includes(header)}
-                            onCheckedChange={(checked) => handleControlVarChange(header, checked as boolean)}
-                            />
-                            <label htmlFor={`ctrl-${header}`} className="text-sm font-medium leading-none">
-                            {header}
-                            </label>
-                        </div>
-                        ))}
-                    </div>
-                    </ScrollArea>
-                </div>
+                </ScrollArea>
             </div>
            <div className="flex flex-wrap items-center justify-end gap-4">
                 <div className="flex items-center gap-2">
@@ -353,21 +317,9 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation?.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') || '' }} />
+                    <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation?.replace(/\n\n/g, '<br/><br/>') || '' }} />
                 </CardContent>
             </Card>
-
-             {results.recommendations && results.recommendations.length > 0 && (
-                <Alert>
-                    <Lightbulb className="h-4 w-4" />
-                    <AlertTitle>Recommendations</AlertTitle>
-                    <AlertDescription>
-                        <ul className="list-disc pl-5">
-                            {results.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
-                        </ul>
-                    </AlertDescription>
-                </Alert>
-            )}
 
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
@@ -410,7 +362,7 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
             </div>
             
             <div className="grid gap-4 lg:grid-cols-1">
-                <CorrelationHeatmap matrix={results.correlation_matrix} pValues={results.p_value_matrix} title={`${controlVars.length > 0 ? 'Partial ' : ''}${correlationMethod.charAt(0).toUpperCase() + correlationMethod.slice(1)} Correlation Matrix`} />
+                <CorrelationHeatmap matrix={results.correlation_matrix} pValues={results.p_value_matrix} title={`${correlationMethod.charAt(0).toUpperCase() + correlationMethod.slice(1)} Correlation Matrix`} />
             </div>
 
             <div className="grid gap-4 md:grid-cols-1">
@@ -463,3 +415,5 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
     </div>
   )
 }
+
+    

@@ -4,40 +4,7 @@ import json
 import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr, spearmanr, kendalltau
-from scipy.linalg import pinv
 import math
-
-def calculate_partial_correlation(x, y, z_list, method='pearson'):
-    """
-    Calculate partial correlation between x and y controlling for one or more variables in z_list.
-    """
-    try:
-        # Create the design matrix for control variables
-        Z_matrix = np.column_stack([np.ones(len(x))] + z_list)
-        
-        # Calculate residuals for x
-        beta_x = np.linalg.lstsq(Z_matrix, x, rcond=None)[0]
-        x_residual = x - Z_matrix @ beta_x
-        
-        # Calculate residuals for y
-        beta_y = np.linalg.lstsq(Z_matrix, y, rcond=None)[0]
-        y_residual = y - Z_matrix @ beta_y
-        
-        # Calculate correlation between residuals
-        if method == 'pearson':
-            corr, p_value = pearsonr(x_residual, y_residual)
-        elif method == 'spearman':
-            corr, p_value = spearmanr(x_residual, y_residual)
-        elif method == 'kendall':
-            corr, p_value = kendalltau(x_residual, y_residual)
-        else:
-            raise ValueError(f"Unknown method: {method}")
-            
-        return corr, p_value
-        
-    except Exception as e:
-        return np.nan, np.nan
-
 
 def _to_native_type(obj):
     """Convert numpy types to native Python types for JSON serialization"""
@@ -63,14 +30,13 @@ def _interpret_correlation_magnitude(r):
     if abs_r >= 0.1: return 'small'
     return 'negligible'
 
-def generate_interpretation(summary_stats, effect_sizes, strongest_correlations, method, control_vars):
+def generate_interpretation(summary_stats, effect_sizes, strongest_correlations, method):
     """
     Generates a comprehensive textual interpretation of the correlation results.
     """
     interpretation_parts = []
     
     try:
-        # 1. Overall Pattern
         mean_corr = summary_stats.get('mean_correlation', 0)
         total_pairs = summary_stats.get('total_pairs', 0)
         
@@ -85,15 +51,12 @@ def generate_interpretation(summary_stats, effect_sizes, strongest_correlations,
         elif abs(mean_corr) >= 0.1:
             mean_desc = "generally weak"
             
-        control_text = f" while controlling for {', '.join(control_vars)}" if control_vars else ""
-
         interpretation_parts.append(
             f"📊 **Correlation Analysis Summary**\n"
-            f"This report details the {method.title()} correlation analysis{control_text}. A total of **{total_pairs}** variable pairs were analyzed. "
+            f"This report details the {method.title()} correlation analysis. A total of **{total_pairs}** variable pairs were analyzed. "
             f"The average correlation coefficient was **{mean_corr:.3f}**, suggesting a {mean_desc} overall relationship strength across the variables."
         )
         
-        # 2. Statistical Significance & Effect Size
         significant_count = summary_stats.get('significant_correlations', 0)
         significant_pct = (significant_count / total_pairs * 100) if total_pairs > 0 else 0
         effect_dist = effect_sizes.get('distribution', {})
@@ -105,7 +68,6 @@ def generate_interpretation(summary_stats, effect_sizes, strongest_correlations,
             f"The dominant effect size was **{strongest_effect}**, with {effect_dist.get(strongest_effect, 0)} pairs falling into this category. This indicates the practical importance of the observed relationships."
         )
         
-        # 3. Strongest Correlations
         if strongest_correlations and len(strongest_correlations) > 0:
             strongest_pos = next((c for c in strongest_correlations if c['correlation'] > 0), None)
             strongest_neg = next((c for c in strongest_correlations if c['correlation'] < 0), None)
@@ -124,24 +86,11 @@ def generate_interpretation(summary_stats, effect_sizes, strongest_correlations,
             
             if correlation_details:
                 interpretation_parts.append(f"🔍 **Key Findings**\n" + "\n".join(correlation_details))
-
-        # 4. Recommendations
-        recommendations = []
-        if significant_pct < 20 and total_pairs > 5:
-            recommendations.append("Consider if the sample size is sufficient, as the rate of significant findings is low.")
-        if strongest_effect in ['negligible', 'small']:
-            recommendations.append("Most relationships are weak. It may be fruitful to explore non-linear relationships or include other relevant variables.")
-        if control_vars:
-             recommendations.append(f"The analysis controlled for {', '.join(control_vars)}. Consider running the analysis with different control variables to further understand the relationships.")
         
-        if not recommendations:
-            recommendations.append("The analysis shows clear patterns. For deeper insights, consider follow-up regression analyses on the strongest relationships.")
-        
-        return "\n\n".join(interpretation_parts), recommendations
+        return "\n\n".join(interpretation_parts)
         
     except Exception as e:
-        return f"Error generating interpretation: {str(e)}", []
-
+        return f"Error generating interpretation: {str(e)}"
 
 def main():
     try:
@@ -151,15 +100,13 @@ def main():
         variables = payload.get('variables')
         method = payload.get('method', 'pearson')
         alpha = payload.get('alpha', 0.05)
-        control_vars = payload.get('controlVars')
 
         if not data or not variables:
             raise ValueError("Missing 'data' or 'variables'")
 
         df = pd.DataFrame(data)
         
-        all_analysis_vars = list(set(variables + (control_vars or [])))
-        df_clean = df[all_analysis_vars].copy()
+        df_clean = df[variables].copy()
         for col in df_clean.columns:
             df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
         
@@ -183,20 +130,16 @@ def main():
                 corr, p_value = np.nan, np.nan
 
                 try:
-                    if control_vars and len(control_vars) > 0:
-                        control_data = [df_clean[cv].values for cv in control_vars]
-                        corr, p_value = calculate_partial_correlation(df_clean[var1].values, df_clean[var2].values, control_data, method=method)
+                    col1 = df_clean[var1]
+                    col2 = df_clean[var2]
+                    if method == 'pearson':
+                        corr, p_value = pearsonr(col1, col2)
+                    elif method == 'spearman':
+                        corr, p_value = spearmanr(col1, col2)
+                    elif method == 'kendall':
+                        corr, p_value = kendalltau(col1, col2)
                     else:
-                        col1 = df_clean[var1]
-                        col2 = df_clean[var2]
-                        if method == 'pearson':
-                            corr, p_value = pearsonr(col1, col2)
-                        elif method == 'spearman':
-                            corr, p_value = spearmanr(col1, col2)
-                        elif method == 'kendall':
-                            corr, p_value = kendalltau(col1, col2)
-                        else:
-                            raise ValueError(f"Unknown correlation method: {method}")
+                        raise ValueError(f"Unknown correlation method: {method}")
                     
                     corr_matrix.loc[var1, var2] = corr_matrix.loc[var2, var1] = corr
                     p_value_matrix.loc[var1, var2] = p_value_matrix.loc[var2, var1] = p_value
@@ -236,7 +179,7 @@ def main():
         effect_sizes_summary = {'distribution': effect_size_counts, 'strongest_effect': strongest_effect}
         strongest_correlations = sorted(all_correlations, key=lambda x: abs(x['correlation']), reverse=True)[:10]
 
-        interpretation, recommendations = generate_interpretation(summary_stats, effect_sizes_summary, strongest_correlations, method, control_vars)
+        interpretation = generate_interpretation(summary_stats, effect_sizes_summary, strongest_correlations, method)
 
         response = {
             "correlation_matrix": corr_matrix.to_dict(),
@@ -245,7 +188,6 @@ def main():
             "effect_sizes": effect_sizes_summary,
             "strongest_correlations": strongest_correlations,
             "interpretation": interpretation,
-            "recommendations": recommendations
         }
 
         print(json.dumps(response, default=_to_native_type, ensure_ascii=False))
@@ -257,3 +199,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
