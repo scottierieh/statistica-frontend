@@ -5,6 +5,10 @@ import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import math
+import matplotlib.pyplot as plt
+import seaborn as sns
+import io
+import base64
 
 def _to_native_type(obj):
     """Convert numpy types to native Python types for JSON serialization"""
@@ -30,6 +34,47 @@ def _interpret_correlation_magnitude(r):
     if abs_r >= 0.3: return 'moderate'
     if abs_r >= 0.1: return 'weak'
     return 'negligible'
+
+def generate_pairs_plot(df, method='pearson'):
+    """Generates a pairs plot (scatter matrix) for the dataframe."""
+    
+    def corr_func(x, y, **kwargs):
+        if method == 'pearson':
+            r, p = pearsonr(x, y)
+        elif method == 'spearman':
+            r, p = spearmanr(x, y)
+        elif method == 'kendall':
+            r, p = kendalltau(x, y)
+        else:
+            r, p = np.nan, np.nan
+        
+        ax = plt.gca()
+        ax.annotate(f"{r:.2f}", xy=(.5, .6), xycoords=ax.transAxes, ha='center', va='center', fontsize=14)
+        
+        stars = ''
+        if p < 0.001: stars = '***'
+        elif p < 0.01: stars = '**'
+        elif p < 0.05: stars = '*'
+        ax.annotate(stars, xy=(.5, .4), xycoords=ax.transAxes, ha='center', va='center', fontsize=16, color='red')
+
+    g = sns.PairGrid(df)
+    g.map_upper(corr_func)
+    g.map_lower(sns.scatterplot, s=30, color='rebeccapurple', alpha=0.6)
+    g.map_diag(sns.histplot, kde=True, color='skyblue')
+    
+    # Adjust labels to prevent overlap
+    for ax in g.axes.flatten():
+        ax.set_ylabel(ax.get_ylabel(), rotation=0, horizontalalignment='right')
+        ax.set_xlabel(ax.get_xlabel(), rotation=90, horizontalalignment='right')
+
+    plt.tight_layout()
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close()
+    buf.seek(0)
+    
+    return base64.b64encode(buf.read()).decode('utf-8')
+
 
 def main():
     try:
@@ -120,12 +165,16 @@ def main():
         effect_sizes_summary = {'distribution': effect_size_counts, 'strongest_effect': strongest_effect}
         strongest_correlations = sorted(all_correlations, key=lambda x: abs(x['correlation']), reverse=True)[:10]
 
+        # Generate plot
+        pairs_plot_img = generate_pairs_plot(df_clean[current_vars], method)
+
         response = {
             "correlation_matrix": corr_matrix.to_dict(),
             "p_value_matrix": p_value_matrix.to_dict(),
             "summary_statistics": summary_stats,
             "effect_sizes": effect_sizes_summary,
             "strongest_correlations": strongest_correlations,
+            "pairs_plot": f"data:image/png;base64,{pairs_plot_img}"
         }
 
         print(json.dumps(response, default=_to_native_type, ensure_ascii=False))

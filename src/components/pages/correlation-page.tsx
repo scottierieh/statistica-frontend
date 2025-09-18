@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BarChart, TrendingUp, Zap, Bot, Lightbulb } from 'lucide-react';
+import { Sigma, Loader2, BarChart, TrendingUp, Zap, Bot, Lightbulb, Copy } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import Image from 'next/image';
 
 interface CorrelationResults {
   correlation_matrix: { [key: string]: { [key: string]: number } };
@@ -51,6 +52,7 @@ interface CorrelationResults {
     p_value: number;
     significant: boolean;
   }[];
+  pairs_plot: string;
 }
 
 const CorrelationHeatmap = ({ matrix, pValues, title }: { matrix: { [key: string]: { [key: string]: number } }, pValues: { [key: string]: { [key: string]: number } }, title: string }) => {
@@ -311,6 +313,17 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
 
       {results && !isLoading && (
         <>
+            {results.pairs_plot && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Pairs Plot</CardTitle>
+                        <CardDescription>A matrix of scatterplots, distributions, and correlation coefficients.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <Image src={results.pairs_plot} alt="Pairs Plot" width={800} height={800} className="w-full rounded-md border" />
+                    </CardContent>
+                </Card>
+            )}
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
