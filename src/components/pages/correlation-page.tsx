@@ -8,11 +8,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BarChart, TrendingUp, Zap, Bot, Lightbulb, Copy } from 'lucide-react';
+import { Sigma, Loader2, BarChart, TrendingUp, Zap, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import {
@@ -27,7 +26,6 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import Image from 'next/image';
 
 interface CorrelationResults {
@@ -52,8 +50,10 @@ interface CorrelationResults {
     p_value: number;
     significant: boolean;
   }[];
-  pairs_plot: string;
-  heatmap_plot: string;
+  interpretation: string;
+  recommendations?: string[];
+  pairs_plot?: string;
+  heatmap_plot?: string;
 }
 
 const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strongest_correlations'] }) => {
@@ -264,11 +264,11 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     </CardContent>
                 </Card>
             )}
-            {results.pairs_plot && (
+             {results.pairs_plot && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Pairs Plot</CardTitle>
-                        <CardDescription>A matrix of scatterplots, distributions, and correlation coefficients.</CardDescription>
+                        <CardDescription>A matrix of scatterplots for each variable pair, distributions for each variable, and correlation coefficients.</CardDescription>
                     </CardHeader>
                     <CardContent>
                          <Image src={`data:image/png;base64,${results.pairs_plot}`} alt="Pairs Plot" width={800} height={800} className="w-full rounded-md border" />
@@ -318,11 +318,33 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
             <div className="grid gap-4 md:grid-cols-1">
                  <StrongestCorrelationsChart data={results.strongest_correlations} />
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Lightbulb />Interpretation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation?.replace(/\n\n/g, '<br/><br/>') || '' }} />
+                </CardContent>
+            </Card>
+
+            {results.recommendations && results.recommendations.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Recommendations</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="list-disc pl-5 space-y-2 text-sm">
+                            {results.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                        </ul>
+                    </CardContent>
+                </Card>
+            )}
             
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Strongest Correlations (Table)</CardTitle>
-                    <CardDescription>Top 10 strongest relationships found in the data, sorted by absolute correlation value.</CardDescription>
+                    <CardTitle className="font-headline">Detailed Correlation Pairs</CardTitle>
+                    <CardDescription>All analyzed correlation pairs sorted by absolute strength.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ScrollArea className="h-72">

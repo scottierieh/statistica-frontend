@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         } else {
           try {
             const jsonResult = JSON.parse(result);
-            resolve(NextResponse.json(jsonResult));
+            resolve(NextResponse.json(jsonResult)); // Ensure the raw result is passed
           } catch(e) {
             console.error('Failed to parse python script output');
             console.error(result);
