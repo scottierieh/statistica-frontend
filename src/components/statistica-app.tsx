@@ -549,7 +549,7 @@ export default function StatisticaApp() {
               <h1 className="text-xl font-headline font-bold">Statistica</h1>
             </div>
           </SidebarHeader>
-          <SidebarContent className="flex flex-col p-2 gap-0">
+          <SidebarContent className="flex flex-col p-2 gap-2">
             <div className='p-2'>
               <DataUploader 
                 onFileSelected={handleFileSelected}
@@ -560,7 +560,7 @@ export default function StatisticaApp() {
               placeholder="Search analyses..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="mx-2 mb-2 w-auto"
+              className="mb-2"
             />
             <SidebarMenu>
                 <SidebarMenuItem>
