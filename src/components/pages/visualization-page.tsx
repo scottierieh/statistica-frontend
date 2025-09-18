@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -170,6 +171,11 @@ const ChartRenderer = ({ type, data, config, aiPromise }: { type: string, data: 
                                 <Scatter name="Violin" data={data} shape={<ViolinShape />} />
                             </ScatterChart>
                         )}
+                        {type === 'heatmap' && (
+                            <div className="w-full h-full flex items-center justify-center">
+                                <Image src={`data:image/png;base64,${data}`} alt="Heatmap" width={400} height={400} />
+                            </div>
+                        )}
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
@@ -179,16 +185,23 @@ const ChartRenderer = ({ type, data, config, aiPromise }: { type: string, data: 
 
 const BoxPlotShape = (props: any) => {
     const { x, y, width, height, payload } = props;
+    if (!payload || !payload.stats) return null;
+    
     const { q1, q3, min, max, median } = payload.stats;
-    const bandWidth = height / (max - min);
+    
+    // Handle case where max and min are the same to avoid division by zero
+    const range = max - min;
+    const bandWidth = range > 0 ? height / range : 0;
+
+    const toY = (value: number) => y + (max - value) * bandWidth;
 
     return (
         <g>
-            <line x1={x + width / 2} y1={y + (max - max) * bandWidth} x2={x + width / 2} y2={y + (max - min) * bandWidth} stroke="black" />
-            <rect x={x} y={y + (max - q3) * bandWidth} width={width} height={(q3 - q1) * bandWidth} fill="hsl(var(--primary))" />
-            <line x1={x} y1={y + (max - median) * bandWidth} x2={x + width} y2={y + (max - median) * bandWidth} stroke="white" strokeWidth={2} />
-            <line x1={x} y1={y + (max - min) * bandWidth} x2={x + width} y2={y + (max - min) * bandWidth} stroke="black" />
-            <line x1={x} y1={y + (max - max) * bandWidth} x2={x + width} y2={y + (max - max) * bandWidth} stroke="black" />
+            <line x1={x + width / 2} y1={toY(max)} x2={x + width / 2} y2={toY(min)} stroke="black" />
+            <rect x={x} y={toY(q3)} width={width} height={(q3 - q1) * bandWidth} fill="hsl(var(--primary))" />
+            <line x1={x} y1={toY(median)} x2={x + width} y2={toY(median)} stroke="white" strokeWidth={2} />
+            <line x1={x + width * 0.25} y1={toY(min)} x2={x + width * 0.75} y2={toY(min)} stroke="black" />
+            <line x1={x + width * 0.25} y1={toY(max)} x2={x + width * 0.75} y2={toY(max)} stroke="black" />
         </g>
     )
 }
@@ -242,95 +255,123 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
     setActiveChart(null);
   }, [data, numericHeaders, categoricalHeaders]);
 
-  const handleRunAnalysis = useCallback((chartType: string) => {
+  const handleRunAnalysis = useCallback(async (chartType: string) => {
     setActiveChart(chartType);
     let result: any = {};
     let aiPromise: Promise<string | null> | null = null;
     
-    switch(chartType) {
-        case 'histogram':
-        case 'density':
-        case 'box':
-        case 'violin':
-            if (!distColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
-            const values = data.map(d => d[distColumn]).filter(v => typeof v === 'number') as number[];
-            
-            if (chartType === 'histogram') {
-                const min = Math.min(...values); const max = Math.max(...values);
-                const binCount = Math.max(10, Math.floor(Math.sqrt(values.length)));
-                const binWidth = (max - min) / binCount;
-                const bins = Array.from({ length: binCount }, (_, i) => ({ name: `${(min + i * binWidth).toFixed(1)}`, count: 0 }));
-                values.forEach(v => { let idx = Math.floor((v - min) / binWidth); if(idx >= binCount) idx = binCount -1; if(bins[idx]) bins[idx].count++; });
-                result = { data: bins, config: { title: `Distribution of ${distColumn}`, chartConfig: { count: { label: 'Frequency' }} }};
-            } else if (chartType === 'box') {
-                 const sorted = [...values].sort((a,b) => a - b);
-                 const q1 = sorted[Math.floor(sorted.length * 0.25)];
-                 const median = sorted[Math.floor(sorted.length * 0.5)];
-                 const q3 = sorted[Math.floor(sorted.length * 0.75)];
-                 const boxData = [{ name: distColumn, stats: { min: sorted[0], max: sorted[sorted.length - 1], q1, median, q3 } }];
-                 result = { data: boxData, config: { title: `Box Plot of ${distColumn}` } };
-            }
-            // Simplified Violin and Density
-            else {
-                const mean = values.reduce((a,b) => a+b, 0) / values.length;
-                const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / values.length);
-                const densityData = Array.from({length: 100}, (_, i) => {
-                    const x = mean - 3 * std + i * (6 * std / 99);
-                    const y = (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / std, 2));
-                    return { value: x, density: y, name: distColumn };
+    try {
+        switch(chartType) {
+            case 'histogram':
+            case 'density':
+            case 'box':
+            case 'violin':
+                if (!distColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
+                const values = data.map(d => d[distColumn]).filter(v => typeof v === 'number') as number[];
+                
+                if (chartType === 'histogram') {
+                    const min = Math.min(...values); const max = Math.max(...values);
+                    const binCount = Math.max(10, Math.floor(Math.sqrt(values.length)));
+                    const binWidth = (max - min) / binCount;
+                    const bins = Array.from({ length: binCount }, (_, i) => ({ name: `${(min + i * binWidth).toFixed(1)}`, count: 0 }));
+                    values.forEach(v => { let idx = Math.floor((v - min) / binWidth); if(idx >= binCount) idx = binCount -1; if(bins[idx]) bins[idx].count++; });
+                    result = { data: bins, config: { title: `Distribution of ${distColumn}`, chartConfig: { count: { label: 'Frequency' }} }};
+                } else if (chartType === 'box') {
+                    const sorted = [...values].sort((a,b) => a - b);
+                    const q1 = sorted[Math.floor(sorted.length * 0.25)];
+                    const median = sorted[Math.floor(sorted.length * 0.5)];
+                    const q3 = sorted[Math.floor(sorted.length * 0.75)];
+                    const boxData = [{ name: distColumn, range: [sorted[0], sorted[sorted.length-1]], stats: { min: sorted[0], max: sorted[sorted.length - 1], q1, median, q3 } }];
+                    result = { data: boxData, config: { title: `Box Plot of ${distColumn}` } };
+                }
+                // Simplified Violin and Density
+                else {
+                    const mean = values.reduce((a,b) => a+b, 0) / values.length;
+                    const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / values.length);
+                    const densityData = Array.from({length: 100}, (_, i) => {
+                        const x = mean - 3 * std + i * (6 * std / 99);
+                        const y = (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / std, 2));
+                        return { value: x, density: y, name: distColumn };
+                    });
+                    result = { data: densityData, config: { title: `${chartType === 'density' ? 'Density' : 'Violin'} Plot of ${distColumn}` } };
+                }
+                break;
+            case 'bar':
+                if (!barColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
+                const barCounts: {[key: string]: number} = {};
+                data.forEach(row => { const key = String(row[barColumn]); barCounts[key] = (barCounts[key] || 0) + 1; });
+                const barData = Object.entries(barCounts).map(([name, count]) => ({ [barColumn]: name, 'count': count }));
+                result = { data: barData, config: { title: `Frequency of ${barColumn}`, xCol: barColumn, yCol: 'count', chartConfig: { count: { label: 'Count' }}}};
+                break;
+            case 'scatter':
+                if (!scatterX || !scatterY) { toast({ title: "Error", description: "Please select X and Y variables."}); return; }
+                const scatterData = data.map(d => ({ [scatterX]: d[scatterX], [scatterY]: d[scatterY] })).filter(d => typeof d[scatterX] === 'number' && typeof d[scatterY] === 'number');
+                result = { data: scatterData, config: { title: `Scatter Plot of ${scatterY} vs ${scatterX}`, xCol: scatterX, yCol: scatterY, trendLine: scatterTrend }};
+                break;
+            case 'bubble':
+                if (!bubbleX || !bubbleY || !bubbleZ) { toast({ title: "Error", description: "Please select X, Y, and Z variables."}); return; }
+                const bubbleData = data.map(d => ({ [bubbleX]: d[bubbleX], [bubbleY]: d[bubbleY], [bubbleZ]: d[bubbleZ] })).filter(d => typeof d[bubbleX] === 'number' && typeof d[bubbleY] === 'number' && typeof d[bubbleZ] === 'number');
+                result = { data: bubbleData, config: { title: `Bubble Chart`, xCol: bubbleX, yCol: bubbleY, zCol: bubbleZ }};
+                break;
+            case 'pie':
+            case 'donut':
+                if (!pieNameCol || !pieValueCol) { toast({ title: "Error", description: "Please select name and value columns."}); return; }
+                const aggregatedData: {[key: string]: number} = {};
+                data.forEach(d => {
+                    const name = String(d[pieNameCol]);
+                    const value = typeof d[pieValueCol] === 'number' ? d[pieValueCol] as number : 0;
+                    aggregatedData[name] = (aggregatedData[name] || 0) + value;
                 });
-                result = { data: densityData, config: { title: `${chartType === 'density' ? 'Density' : 'Violin'} Plot of ${distColumn}` } };
-            }
-            break;
-        case 'bar':
-             if (!barColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
-             const barCounts: {[key: string]: number} = {};
-             data.forEach(row => { const key = String(row[barColumn]); barCounts[key] = (barCounts[key] || 0) + 1; });
-             const barData = Object.entries(barCounts).map(([name, count]) => ({ [barColumn]: name, 'count': count }));
-             result = { data: barData, config: { title: `Frequency of ${barColumn}`, xCol: barColumn, yCol: 'count', chartConfig: { count: { label: 'Count' }}}};
-             break;
-        case 'scatter':
-            if (!scatterX || !scatterY) { toast({ title: "Error", description: "Please select X and Y variables."}); return; }
-            const scatterData = data.map(d => ({ [scatterX]: d[scatterX], [scatterY]: d[scatterY] })).filter(d => typeof d[scatterX] === 'number' && typeof d[scatterY] === 'number');
-            result = { data: scatterData, config: { title: `Scatter Plot of ${scatterY} vs ${scatterX}`, xCol: scatterX, yCol: scatterY, trendLine: scatterTrend }};
-            break;
-        case 'bubble':
-            if (!bubbleX || !bubbleY || !bubbleZ) { toast({ title: "Error", description: "Please select X, Y, and Z variables."}); return; }
-            const bubbleData = data.map(d => ({ [bubbleX]: d[bubbleX], [bubbleY]: d[bubbleY], [bubbleZ]: d[bubbleZ] })).filter(d => typeof d[bubbleX] === 'number' && typeof d[bubbleY] === 'number' && typeof d[bubbleZ] === 'number');
-            result = { data: bubbleData, config: { title: `Bubble Chart`, xCol: bubbleX, yCol: bubbleY, zCol: bubbleZ }};
-            break;
-        case 'pie':
-        case 'donut':
-            if (!pieNameCol || !pieValueCol) { toast({ title: "Error", description: "Please select name and value columns."}); return; }
-            const aggregatedData: {[key: string]: number} = {};
-            data.forEach(d => {
-                const name = String(d[pieNameCol]);
-                const value = typeof d[pieValueCol] === 'number' ? d[pieValueCol] as number : 0;
-                aggregatedData[name] = (aggregatedData[name] || 0) + value;
-            });
-            const pieData = Object.entries(aggregatedData).map(([name, value]) => ({ [pieNameCol]: name, [pieValueCol]: value }));
-            const total = pieData.reduce((sum, item) => sum + item[pieValueCol], 0);
-            const pieDataWithPercent = pieData.map(item => ({...item, percent: item[pieValueCol] / total}));
-            result = { data: pieDataWithPercent, config: { title: `${chartType} Chart of ${pieValueCol} by ${pieNameCol}`, nameCol: pieNameCol, valueCol: pieValueCol, colors: ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]}};
-            break;
-         case 'grouped-bar':
-         case 'stacked-bar':
-             if (!groupedBarCategory1 || !groupedBarCategory2 || !groupedBarValue) { toast({ title: "Error", description: "Please select two categories and one value."}); return; }
-             const groupedData: {[key:string]: any} = {};
-             data.forEach(d => {
-                 const key = String(d[groupedBarCategory1]);
-                 const subKey = String(d[groupedBarCategory2]);
-                 const value = typeof d[groupedBarValue] === 'number' ? d[groupedBarValue] as number : 0;
-                 if (!groupedData[key]) groupedData[key] = { [groupedBarCategory1]: key };
-                 groupedData[key][subKey] = (groupedData[key][subKey] || 0) + value;
-             });
-             const seriesNames = Array.from(new Set(data.map(d => d[groupedBarCategory2])));
-             result = { data: Object.values(groupedData), config: { title: `Bar Chart`, xCol: groupedBarCategory1, yCol: groupedBarValue, series: seriesNames.map(s=>({key:s})), colors: ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"] } };
-             break;
-    }
+                const pieData = Object.entries(aggregatedData).map(([name, value]) => ({ [pieNameCol]: name, [pieValueCol]: value }));
+                const total = pieData.reduce((sum, item) => sum + item[pieValueCol], 0);
+                const pieDataWithPercent = pieData.map(item => ({...item, percent: item[pieValueCol] / total}));
+                result = { data: pieDataWithPercent, config: { title: `${chartType} Chart of ${pieValueCol} by ${pieNameCol}`, nameCol: pieNameCol, valueCol: pieValueCol, colors: ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]}};
+                break;
+            case 'grouped-bar':
+            case 'stacked-bar':
+                if (!groupedBarCategory1 || !groupedBarCategory2 || !groupedBarValue) { toast({ title: "Error", description: "Please select two categories and one value."}); return; }
+                const groupedData: {[key:string]: any} = {};
+                data.forEach(d => {
+                    const key = String(d[groupedBarCategory1]);
+                    const subKey = String(d[groupedBarCategory2]);
+                    const value = typeof d[groupedBarValue] === 'number' ? d[groupedBarValue] as number : 0;
+                    if (!groupedData[key]) groupedData[key] = { [groupedBarCategory1]: key };
+                    groupedData[key][subKey] = (groupedData[key][subKey] || 0) + value;
+                });
+                const seriesNames = Array.from(new Set(data.map(d => String(d[groupedBarCategory2]))));
+                result = { data: Object.values(groupedData), config: { title: `Bar Chart`, xCol: groupedBarCategory1, yCol: groupedBarValue, series: seriesNames.map(s=>({key:s})), colors: ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"] } };
+                break;
+            case 'heatmap':
+                 const corrResponse = await fetch('/api/analysis/correlation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data, variables: heatmapVars, method: 'pearson' })
+                });
+                if (!corrResponse.ok) throw new Error("Failed to calculate correlation matrix for heatmap.");
+                const corrResult = await corrResponse.json();
+                result = { data: corrResult.heatmap_plot, config: { title: 'Correlation Heatmap'} };
+                break;
+        }
+
+        if (result && chartType !== 'heatmap') {
+            aiPromise = getVisualizationDescription({
+                dataDescription: `The data contains columns: ${allHeaders.join(', ')}.`,
+                chartType: chartType,
+                chartTitle: result.config.title,
+                xAxisLabel: result.config.xCol || '',
+                yAxisLabel: result.config.yCol || '',
+            }).then(res => res.success ? res.description ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
+
+            result.aiPromise = aiPromise;
+        }
     
-    setAnalysisResult(result);
-  }, [data, toast, distColumn, barColumn, scatterX, scatterY, scatterTrend, bubbleX, bubbleY, bubbleZ, pieNameCol, pieValueCol, groupedBarCategory1, groupedBarCategory2, groupedBarValue]);
+        setAnalysisResult(result);
+    } catch(e: any) {
+        toast({ title: "Chart Error", description: e.message });
+        setAnalysisResult(null);
+    }
+
+  }, [data, toast, distColumn, barColumn, scatterX, scatterY, scatterTrend, bubbleX, bubbleY, bubbleZ, pieNameCol, pieValueCol, groupedBarCategory1, groupedBarCategory2, groupedBarValue, allHeaders, heatmapVars]);
 
    if (!canRun) {
       const vizExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('visuals'));
@@ -379,6 +420,7 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
       relationship: [
         { id: 'scatter', label: 'Scatter Plot', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
         { id: 'bubble', label: 'Bubble Chart', icon: Dot, disabled: numericHeaders.length < 3 },
+        { id: 'heatmap', label: 'Heatmap', icon: BarChartIcon, disabled: numericHeaders.length < 2 },
       ],
       categorical: [
         { id: 'bar', label: 'Bar Chart', icon: BarChartIcon, disabled: categoricalHeaders.length === 0 },
@@ -447,6 +489,16 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
                             <div><Label>Value Column:</Label><Select value={groupedBarValue} onValueChange={setGroupedBarValue}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         </div>
                     )}
+                    {activeChart === 'heatmap' && (
+                        <div>
+                            <Label>Variables for Heatmap:</Label>
+                            <ScrollArea className="h-24 border rounded p-2">
+                                {numericHeaders.map(h => (
+                                    <div key={h}><Checkbox checked={heatmapVars.includes(h)} onCheckedChange={(c) => setHeatmapVars(p => c ? [...p, h] : p.filter(i => i !== h))}/> <Label>{h}</Label></div>
+                                ))}
+                            </ScrollArea>
+                        </div>
+                    )}
                 </div>
             </div>
           </Tabs>
@@ -463,3 +515,4 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
     </div>
   );
 }
+
