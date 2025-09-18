@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, FlaskConical } from 'lucide-react';
+import { Sigma, Loader2, FlaskConical, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '../ui/badge';
 import Image from 'next/image';
@@ -16,6 +16,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 type TestType = 'one_sample' | 'independent_samples' | 'paired_samples';
 
@@ -84,17 +85,17 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             case 'one_sample':
                 if (!osVar) { toast({ variant: "destructive", title: "Please select a variable." }); return; }
                 params = { variable: osVar, test_value: osTestValue };
-                testTypeForApi = 'one-sample-t-test'
+                testTypeForApi = 'one_sample'
                 break;
             case 'independent_samples':
                 if (!isDepVar || !isGroupVar) { toast({ variant: "destructive", title: "Please select dependent and group variables." }); return; }
                 params = { variable: isDepVar, group_variable: isGroupVar, equal_var: isEqualVar };
-                testTypeForApi = 'independent-samples-t-test'
+                testTypeForApi = 'independent_samples'
                 break;
             case 'paired_samples':
                 if (!psVar1 || !psVar2 || psVar1 === psVar2) { toast({ variant: "destructive", title: "Please select two different variables." }); return; }
                 params = { variable1: psVar1, variable2: psVar2 };
-                testTypeForApi = 'paired-samples-t-test'
+                testTypeForApi = 'paired_samples'
                 break;
         }
 
@@ -135,10 +136,33 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         setAnalysisResult(null);
     }, [numericHeaders, categoricalHeaders, data]);
 
-
     const renderResult = () => {
         if (!analysisResult) return null;
         const { results, plot } = analysisResult;
+        
+        const renderDescriptives = () => {
+            if (!results.descriptives) return null;
+            if (activeTest === 'one_sample') {
+                const stats = results.descriptives[results.variable];
+                return (
+                    <TableRow>
+                        <TableCell>{results.variable}</TableCell>
+                        <TableCell className="text-right font-mono">{stats.n}</TableCell>
+                        <TableCell className="text-right font-mono">{stats.mean.toFixed(3)}</TableCell>
+                        <TableCell className="text-right font-mono">{stats.std_dev.toFixed(3)}</TableCell>
+                    </TableRow>
+                )
+            }
+            return Object.entries(results.descriptives).map(([name, stats]) => (
+                <TableRow key={name}>
+                    <TableCell>{name}</TableCell>
+                    <TableCell className="text-right font-mono">{stats.n}</TableCell>
+                    <TableCell className="text-right font-mono">{stats.mean.toFixed(3)}</TableCell>
+                    <TableCell className="text-right font-mono">{stats.std_dev.toFixed(3)}</TableCell>
+                </TableRow>
+            ))
+        }
+
         return (
             <div className="space-y-4">
                  {plot && (
@@ -189,14 +213,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                             <Table>
                                 <TableHeader><TableRow><TableHead>Group/Variable</TableHead><TableHead className="text-right">N</TableHead><TableHead className="text-right">Mean</TableHead><TableHead className="text-right">Std. Dev.</TableHead></TableRow></TableHeader>
                                 <TableBody>
-                                    {results.descriptives && Object.entries(results.descriptives).map(([name, stats]) => (
-                                        <TableRow key={name}>
-                                            <TableCell>{name}</TableCell>
-                                            <TableCell className="text-right font-mono">{stats.n}</TableCell>
-                                            <TableCell className="text-right font-mono">{stats.mean.toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">{stats.std_dev.toFixed(3)}</TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {renderDescriptives()}
                                 </TableBody>
                             </Table>
                         </CardContent>
@@ -206,7 +223,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                     <Card>
                         <CardHeader><CardTitle>Statistical Interpretations</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            {Object.values(results.interpretations).map((interp, i) => (
+                            {Object.values(results.interpretations).map((interp: any, i: number) => (
                                 <div key={i}>
                                     <h4 className="font-semibold">{interp.title}</h4>
                                     <p className="text-sm text-muted-foreground">{interp.description}</p>
@@ -326,3 +343,5 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
+
+    
