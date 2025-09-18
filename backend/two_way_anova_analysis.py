@@ -13,14 +13,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import io
 import base64
+import math
 
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj) or np.isinf(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -73,13 +74,17 @@ class TwoWayAnovaAnalysis:
         }
         anova_table_renamed = anova_table.rename(index=cleaned_index)
         
-        self.results['anova_table'] = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).to_dict('records')
+        # Ensure NaN values are converted to None for JSON compatibility
+        anova_df = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'})
+        self.results['anova_table'] = anova_df.replace({np.nan: None}).to_dict('records')
         
         self._test_assumptions()
         self._calculate_marginal_means()
         
         if interaction_p_value < self.alpha:
             self._perform_posthoc_tests()
+        
+        self._generate_interpretation()
     
     def _test_assumptions(self):
         residuals = self.model.resid
@@ -119,6 +124,37 @@ class TwoWayAnovaAnalysis:
         results_df = pd.DataFrame(data=tukey_result._results_table.data[1:], columns=tukey_result._results_table.data[0])
         results_df.rename(columns={'p-adj': 'p_adj'}, inplace=True)
         self.results['posthoc_results'] = results_df.to_dict('records')
+
+    def _generate_interpretation(self):
+        anova_results = {row['Source']: row for row in self.results['anova_table']}
+        interaction_key = f'{self.factor_a} * {self.factor_b}'
+        interaction_res = anova_results.get(interaction_key)
+        
+        interpretation = (
+            f"A Two-Way ANOVA was conducted to determine the effects of '{self.factor_a}' and '{self.factor_b}' on '{self.dependent_var}'.\n"
+        )
+        
+        if interaction_res and interaction_res['p-value'] is not None:
+            interaction_sig = interaction_res['p-value'] < self.alpha
+            p_val_text = f"p < .001" if interaction_res['p-value'] < 0.001 else f"p = {interaction_res['p-value']:.3f}"
+            sig_text = "statistically significant" if interaction_sig else "not statistically significant"
+            
+            interpretation += (
+                f"There was a {sig_text} interaction between the effects of '{self.factor_a}' and '{self.factor_b}' on '{self.dependent_var}', "
+                f"F({interaction_res['df']:.0f}, {anova_results['Residual']['df']:.0f}) = {interaction_res['F']:.2f}, {p_val_text}.\n"
+            )
+            
+            if interaction_sig and 'posthoc_results' in self.results:
+                sig_pairs = [res for res in self.results['posthoc_results'] if res['reject']]
+                if sig_pairs:
+                    interpretation += "A Tukey post-hoc test revealed that "
+                    details = []
+                    for pair in sig_pairs[:3]: # Limit to first 3 for brevity
+                        details.append(f"the difference between '{pair['group1']}' and '{pair['group2']}' was significant (p = {pair['p_adj']:.3f})")
+                    interpretation += ", and ".join(details) + "."
+
+        self.results['interpretation'] = interpretation.strip()
+
 
     def plot_results(self):
         fig, axes = plt.subplots(2, 2, figsize=(14, 12))
@@ -184,3 +220,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
