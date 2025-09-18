@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -8,13 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Columns, AlertTriangle, Bot } from 'lucide-react';
+import { Sigma, Loader2, Columns, AlertTriangle, HelpCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { getCrosstabInterpretation } from '@/app/actions';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 interface Interpretation {
     title: string;
@@ -57,47 +58,6 @@ const getSignificanceStars = (p: number) => {
     return '';
 };
 
-const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
-  const [interpretation, setInterpretation] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!promise) {
-        setInterpretation(null);
-        setLoading(false);
-        return;
-    };
-    let isMounted = true;
-    setLoading(true);
-    promise.then((desc) => {
-        if (isMounted) {
-            setInterpretation(desc);
-            setLoading(false);
-        }
-    });
-    return () => { isMounted = false; };
-  }, [promise]);
-  
-  const formattedInterpretation = useMemo(() => {
-    if (!interpretation) return null;
-    return interpretation.replace(/\n/g, '<br />');
-  }, [interpretation]);
-
-
-  if (loading) return <Skeleton className="h-24 w-full" />;
-  if (!interpretation) return null;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
-      </CardContent>
-    </Card>
-  );
-};
 
 interface CrosstabPageProps {
     data: DataSet;
@@ -112,7 +72,6 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [tableFormat, setTableFormat] = useState('counts');
-    const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
 
 
     useEffect(() => {
@@ -131,7 +90,6 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
         setIsLoading(true);
         setAnalysisResult(null);
-        setAiPromise(null);
 
         try {
             const response = await fetch('/api/analysis/crosstab', {
@@ -150,24 +108,6 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
             setAnalysisResult(result);
             
-            const tableData = result.results.contingency_table;
-            const totalObs = Object.values(tableData).flatMap(Object.values).reduce((sum, val) => sum + val, 0);
-
-            const promise = getCrosstabInterpretation({
-              rowVar: result.results.row_var,
-              colVar: result.results.col_var,
-              chi2: result.results.chi_squared.statistic,
-              df: result.results.chi_squared.degrees_of_freedom,
-              pValue: result.results.chi_squared.p_value,
-              cramersV: result.results.cramers_v,
-              phi: result.results.phi_coefficient,
-              contingencyCoeff: result.results.contingency_coefficient,
-              contingencyTable: JSON.stringify(result.results.contingency_table),
-              totalObservations: totalObs,
-            }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
-
-            setAiPromise(promise);
-
         } catch (e: any) {
             console.error('Crosstab Analysis error:', e);
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message || 'An unexpected error occurred.' });
@@ -274,6 +214,40 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
     
     const results = analysisResult?.results;
 
+    const renderInterpretations = () => {
+        if (!results) return null;
+        const interpData = results.interpretations;
+
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle>Understanding the Statistics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <Tabs defaultValue="chi_squared">
+                        <TabsList>
+                            <TabsTrigger value="chi_squared">χ² Test</TabsTrigger>
+                            <TabsTrigger value="cramers_v">Cramér's V</TabsTrigger>
+                            <TabsTrigger value="phi">Phi (φ)</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="chi_squared" className="pt-2">
+                            <h4 className="font-semibold">{interpData.chi_squared.title} & p-value</h4>
+                            <p className="text-sm text-muted-foreground">{interpData.chi_squared.description} {interpData.p_value.description}</p>
+                        </TabsContent>
+                         <TabsContent value="cramers_v" className="pt-2">
+                             <h4 className="font-semibold">{interpData.cramers_v.title}</h4>
+                            <p className="text-sm text-muted-foreground">{interpData.cramers_v.description}</p>
+                        </TabsContent>
+                         <TabsContent value="phi" className="pt-2">
+                             <h4 className="font-semibold">{interpData.phi.title}</h4>
+                            <p className="text-sm text-muted-foreground">{interpData.phi.description}</p>
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
+             </Card>
+        )
+    }
+
     return (
         <div className="flex flex-col gap-4">
             <Card>
@@ -304,7 +278,6 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
             {results && (
                 <div className="space-y-4">
-                    <AIGeneratedInterpretation promise={aiPromise} />
                     <div className="grid lg:grid-cols-2 gap-4">
                         <Card>
                             <CardHeader>
@@ -313,13 +286,13 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <Alert variant={results.chi_squared.p_value < 0.05 ? 'default' : 'destructive'}>
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{results.chi_squared.p_value < 0.05 ? "Result is Statistically Significant" : "Result is Not Statistically Significant"}</AlertTitle>
-                                    <AlertDescription>
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <AlertTitle>{results.chi_squared.p_value < 0.05 ? "Result is Statistically Significant" : "Result is Not Statistically Significant"}</AlertTitle>
+                                  <AlertDescription>
                                         {results.chi_squared.p_value < 0.05
                                             ? `There IS a statistically significant association between the variables (p < 0.05).`
                                             : `There is NO statistically significant association between the variables (p >= 0.05).`}
-                                    </AlertDescription>
+                                  </AlertDescription>
                                 </Alert>
                                 <Table>
                                     <TableBody>
@@ -338,14 +311,6 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                                         <TableRow>
                                             <TableCell className="font-medium">Cramer's V</TableCell>
                                             <TableCell className="font-mono text-right">{results.cramers_v.toFixed(3)}</TableCell>
-                                        </TableRow>
-                                         <TableRow>
-                                            <TableCell className="font-medium">Phi (φ)</TableCell>
-                                            <TableCell className="font-mono text-right">{results.phi_coefficient.toFixed(3)}</TableCell>
-                                        </TableRow>
-                                         <TableRow>
-                                            <TableCell className="font-medium">Contingency Coeff.</TableCell>
-                                            <TableCell className="font-mono text-right">{results.contingency_coefficient.toFixed(3)}</TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
@@ -375,6 +340,7 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                         </CardHeader>
                         <CardContent>{renderContingencyTable()}</CardContent>
                     </Card>
+                    {renderInterpretations()}
                 </div>
             )}
 
