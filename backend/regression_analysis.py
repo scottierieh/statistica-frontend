@@ -371,6 +371,25 @@ class RegressionAnalysis:
                 interpretation += "No variables were found to be statistically significant predictors at the p < 0.05 level."
         else:
             interpretation += "Significance testing for individual predictors was not performed for this model type."
+            
+        # Diagnostic interpretation
+        warnings = []
+        normality_p = diagnostics.get('normality_tests', {}).get('shapiro_wilk', {}).get('p_value')
+        if normality_p is not None and normality_p < self.alpha:
+            warnings.append("Warning: The residuals are not normally distributed (p < 0.05). This can affect the validity of p-values for the coefficients. Consider transforming the dependent variable or using a robust regression method.")
+
+        hetero_p = diagnostics.get('heteroscedasticity_tests', {}).get('breusch_pagan', {}).get('p_value')
+        if hetero_p is not None and hetero_p < self.alpha:
+            warnings.append("Warning: Heteroscedasticity detected (p < 0.05), meaning the variance of residuals is not constant. This can lead to unreliable standard errors. Consider using robust standard errors or transforming the data.")
+
+        vif_data = diagnostics.get('vif', {})
+        high_vif_vars = [var for var, vif in vif_data.items() if vif > 10]
+        if high_vif_vars:
+            warnings.append(f"Warning: High multicollinearity detected (VIF > 10) for variables: {', '.join(high_vif_vars)}. This suggests these variables are highly correlated, which can inflate standard errors and make coefficient estimates unstable. Consider removing one or more of these variables and re-running the analysis.")
+
+        if warnings:
+            interpretation += "\n\n--- Diagnostic Warnings ---\n" + "\n".join(warnings)
+
 
         return interpretation
 
@@ -470,3 +489,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
