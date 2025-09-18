@@ -36,6 +36,7 @@ interface TTestResults {
     confidence_interval?: [number, number];
     descriptives: { [key: string]: { n: number; mean: number; std_dev: number } };
     interpretations?: { [key: string]: Interpretation };
+    variable?: string;
 }
 
 interface FullAnalysisResponse {
@@ -145,7 +146,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         
         const renderDescriptives = () => {
             if (!results.descriptives) return null;
-             if (activeTest === 'one_sample') {
+            if (activeTest === 'one_sample') {
                 const stats = results.descriptives[results.variable as string];
                 if (!stats) return null;
                 return (
