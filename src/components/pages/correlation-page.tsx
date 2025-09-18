@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -358,7 +357,7 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                 </CardContent>
             </Card>
             
-            {results.recommendations.length > 0 && (
+            {results.recommendations && results.recommendations.length > 0 && (
                  <Card>
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2"><Lightbulb /> Recommendations</CardTitle>
