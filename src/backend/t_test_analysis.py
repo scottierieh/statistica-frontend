@@ -92,6 +92,12 @@ class TTestAnalysis:
         
         cohens_d = (sample_mean - test_value) / sample_std if sample_std > 0 else 0
         
+        descriptives = {
+            variable: {
+                "n": n, "mean": sample_mean, "std_dev": sample_std
+            }
+        }
+        
         self.results['one_sample'] = {
             'test_type': 'one_sample',
             'variable': variable,
@@ -104,6 +110,7 @@ class TTestAnalysis:
             'significant': p_value < self.alpha,
             'confidence_interval': (ci_lower, ci_upper),
             'cohens_d': cohens_d,
+            'descriptives': descriptives,
             'data_values': data_values
         }
         self.results['one_sample']['interpretations'] = get_interpretations(self.results['one_sample'])
@@ -138,11 +145,17 @@ class TTestAnalysis:
             pooled_std = np.sqrt((std1**2 + std2**2) / 2)
             cohens_d = (mean1 - mean2) / pooled_std if pooled_std > 0 else 0
         
+        descriptives = {
+            str(groups[0]): {"n": n1, "mean": mean1, "std_dev": std1},
+            str(groups[1]): {"n": n2, "mean": mean2, "std_dev": std2}
+        }
+            
         self.results['independent_samples'] = {
             'test_type': 'independent_samples', 'variable': variable, 'group_variable': group_variable, 'groups': list(groups), 'equal_var': equal_var,
             'n1': n1, 'n2': n2, 'mean1': mean1, 'mean2': mean2, 'std1': std1, 'std2': std2,
             't_statistic': t_stat, 'degrees_of_freedom': df, 'p_value': p_value, 'significant': p_value < self.alpha,
-            'cohens_d': cohens_d, 'data1': group1_data, 'data2': group2_data
+            'cohens_d': cohens_d, 'descriptives': descriptives,
+            'data1': group1_data, 'data2': group2_data
         }
         self.results['independent_samples']['interpretations'] = get_interpretations(self.results['independent_samples'])
         return self.results['independent_samples']
@@ -164,10 +177,16 @@ class TTestAnalysis:
         
         cohens_d = mean_diff / std_diff if std_diff > 0 else 0
         
+        descriptives = {
+            variable1: {"n": len(data1), "mean": np.mean(data1), "std_dev": np.std(data1, ddof=1)},
+            variable2: {"n": len(data2), "mean": np.mean(data2), "std_dev": np.std(data2, ddof=1)}
+        }
+        
         self.results['paired_samples'] = {
             'test_type': 'paired_samples', 'variable1': variable1, 'variable2': variable2, 'n': n,
             'mean_diff': mean_diff, 't_statistic': t_stat, 'degrees_of_freedom': df, 'p_value': p_value,
             'significant': p_value < self.alpha, 'cohens_d': cohens_d, 
+            'descriptives': descriptives,
             'data1': data1, 'data2': data2, 'differences': differences
         }
         self.results['paired_samples']['interpretations'] = get_interpretations(self.results['paired_samples'])
@@ -197,7 +216,7 @@ class TTestAnalysis:
             axes[0,0].set_title('Group Distributions')
             axes[0,0].legend()
             
-            sns.boxplot(data=[result['data1'], result['data2']], ax=axes[0,1])
+            sns.boxplot(data=[result['data1'], result['data2']], ax=axes[0,1], palette=['skyblue', 'lightcoral'])
             axes[0,1].set_xticklabels(result['groups'])
             axes[0,1].set_title('Group Boxplots')
 
@@ -273,3 +292,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    

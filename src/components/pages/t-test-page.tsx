@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -33,6 +34,7 @@ interface TTestResults {
     cohens_d: number;
     mean_diff?: number;
     confidence_interval?: [number, number];
+    descriptives: { [key: string]: { n: number; mean: number; std_dev: number } };
     interpretations?: { [key: string]: Interpretation };
 }
 
@@ -147,54 +149,59 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                         </CardContent>
                     </Card>
                 )}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">{results.test_type.replace(/_/g, ' ')} t-Test Results</CardTitle>
-                        <CardDescription>
-                            The result is {results.significant ? <Badge>significant</Badge> : <Badge variant="secondary">not significant</Badge>} at α=0.05.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Statistic</TableHead>
-                                    <TableHead className="text-right">Value</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow>
-                                    <TableCell>t-statistic</TableCell>
-                                    <TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell>p-value</TableCell>
-                                    <TableCell className="text-right font-mono">{results.p_value < 0.001 ? '< 0.001' : results.p_value.toFixed(3)}</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell>Degrees of Freedom</TableCell>
-                                    <TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell>Cohen's d</TableCell>
-                                    <TableCell className="text-right font-mono">{results.cohens_d.toFixed(3)}</TableCell>
-                                </TableRow>
-                                {results.mean_diff !== undefined && (
+                 <div className="grid md:grid-cols-2 gap-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">t-Test Results</CardTitle>
+                            <CardDescription>
+                                The result is {results.significant ? <Badge>significant</Badge> : <Badge variant="secondary">not significant</Badge>} at α=0.05.
+                                {results.p_value < 0.001 ? ' (p < .001)' : ` (p = ${results.p_value.toFixed(3)})`}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell>Mean Difference</TableCell>
-                                        <TableCell className="text-right font-mono">{results.mean_diff.toFixed(3)}</TableCell>
+                                        <TableHead>Statistic</TableHead>
+                                        <TableHead className="text-right">Value</TableHead>
                                     </TableRow>
-                                )}
-                                {results.confidence_interval && (
+                                </TableHeader>
+                                <TableBody>
                                     <TableRow>
-                                        <TableCell>95% Confidence Interval</TableCell>
-                                        <TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(2)}, {results.confidence_interval[1].toFixed(2)}]</TableCell>
+                                        <TableCell>t-statistic</TableCell>
+                                        <TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                                    <TableRow>
+                                        <TableCell>Degrees of Freedom</TableCell>
+                                        <TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Cohen's d</TableCell>
+                                        <TableCell className="text-right font-mono">{results.cohens_d.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader><CardTitle>Descriptive Statistics</CardTitle></CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Group/Variable</TableHead><TableHead className="text-right">N</TableHead><TableHead className="text-right">Mean</TableHead><TableHead className="text-right">Std. Dev.</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {Object.entries(results.descriptives).map(([name, stats]) => (
+                                        <TableRow key={name}>
+                                            <TableCell>{name}</TableCell>
+                                            <TableCell className="text-right font-mono">{stats.n}</TableCell>
+                                            <TableCell className="text-right font-mono">{stats.mean.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{stats.std_dev.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
                  {results.interpretations && (
                     <Card>
                         <CardHeader>
