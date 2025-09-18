@@ -27,14 +27,19 @@ def _to_native_type(obj):
 
 def plot_hdbscan_results(df, labels, probabilities, profiles, pca_components, explained_variance_ratio):
     """Generates a comprehensive plot for HDBSCAN results."""
-    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+    fig = plt.figure(figsize=(15, 12))
     fig.suptitle('HDBSCAN Clustering Results', fontsize=16, fontweight='bold')
+
+    # Define layout using gridspec
+    gs = fig.add_gridspec(2, 2)
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax3 = fig.add_subplot(gs[1, :]) # Snake plot spans the bottom row
 
     # 1. PCA Scatter Plot
     plot_df = pd.DataFrame(pca_components, columns=['PC1', 'PC2'])
     plot_df['cluster'] = labels
     plot_df['probability'] = probabilities
-    ax1 = axes[0, 0]
 
     unique_labels = sorted(list(set(labels)))
     palette = sns.color_palette("viridis", n_colors=len(unique_labels) - (1 if -1 in unique_labels else 0))
@@ -55,7 +60,6 @@ def plot_hdbscan_results(df, labels, probabilities, profiles, pca_components, ex
     # 2. Cluster Size Distribution
     cluster_sizes = pd.Series(labels).value_counts().sort_index()
     cluster_names = [f'Cluster {i}' if i != -1 else 'Noise' for i in cluster_sizes.index]
-    ax2 = axes[0, 1]
     sns.barplot(x=cluster_names, y=cluster_sizes.values, ax=ax2, palette='viridis')
     ax2.set_title('Cluster Size Distribution')
     ax2.set_xlabel('Cluster')
@@ -63,20 +67,16 @@ def plot_hdbscan_results(df, labels, probabilities, profiles, pca_components, ex
     ax2.tick_params(axis='x', rotation=45)
 
     # 3. Snake Plot
-    ax3 = axes[1, 0]
     if profiles:
         centroids_df = pd.DataFrame({name: prof['centroid'] for name, prof in profiles.items() if name != 'Noise'}).T
         if not centroids_df.empty:
-            scaled_centroids = (centroids_df - centroids_df.min()) / (centroids_df.max() - centroids_df.min())
-            scaled_centroids.T.plot(ax=ax3)
+            scaled_centroids = (centroids_df - centroids_df.mean()) / centroids_df.std()
+            scaled_centroids.T.plot(ax=ax3, marker='o')
             ax3.set_title('Snake Plot of Scaled Centroids')
             ax3.set_xlabel('Features')
-            ax3.set_ylabel('Normalized Value')
-            ax3.legend(title='Cluster')
+            ax3.set_ylabel('Standardized Value (Z-score)')
+            ax3.legend(title='Cluster', bbox_to_anchor=(1.05, 1), loc='upper left')
             ax3.grid(True, linestyle='--', alpha=0.5)
-
-    # 4. Hide empty plot
-    axes[1, 1].axis('off')
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     buf = io.BytesIO()
