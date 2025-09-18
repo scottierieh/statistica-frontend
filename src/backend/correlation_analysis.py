@@ -29,7 +29,7 @@ def _interpret_correlation_magnitude(r):
 
 def generate_interpretation(summary_stats, effect_sizes, strongest_correlations, method):
     """
-    Generates a textual interpretation and recommendations from the correlation results.
+    Generates a textual interpretation of the correlation results.
     """
     
     # Interpretation
@@ -70,20 +70,7 @@ def generate_interpretation(summary_stats, effect_sizes, strongest_correlations,
         )
     interpretation_parts.append(findings_str)
     
-    # Recommendations
-    recommendations = []
-    if strongest_pos:
-        recommendations.append(f"Investigate the strong positive relationship between '{strongest_pos['variable_1']}' and '{strongest_pos['variable_2']}' to understand the underlying mechanism. This could be a key driver in the dataset.")
-    if strongest_neg:
-        recommendations.append(f"Explore the inverse relationship between '{strongest_neg['variable_1']}' and '{strongest_neg['variable_2']}'. Understanding this trade-off could be critical for decision-making.")
-    if significant_pct < 20:
-        recommendations.append("Most variables appear to be independent. Focus on the few significant relationships that do exist.")
-    if significant_pct > 70:
-        recommendations.append("High multicollinearity is likely present. If building a predictive model (like regression), consider feature selection or regularization techniques to avoid unstable estimates.")
-    if effect_sizes['distribution']['large'] > 0:
-        recommendations.append("The presence of 'large' effect sizes suggests practically important relationships exist. These should be prioritized for further analysis or business strategy.")
-
-    return "\n\n".join(interpretation_parts), recommendations
+    return "\n\n".join(interpretation_parts)
 
 
 def main():
@@ -188,7 +175,7 @@ def main():
         # Strongest correlations
         strongest_correlations = sorted(all_correlations, key=lambda x: abs(x['correlation']), reverse=True)[:10]
 
-        interpretation, recommendations = generate_interpretation(summary_stats, effect_sizes_summary, strongest_correlations, method)
+        interpretation = generate_interpretation(summary_stats, effect_sizes_summary, strongest_correlations, method)
 
         response = {
             "correlation_matrix": corr_matrix.to_dict(),
@@ -196,8 +183,7 @@ def main():
             "summary_statistics": summary_stats,
             "effect_sizes": effect_sizes_summary,
             "strongest_correlations": strongest_correlations,
-            "interpretation": interpretation,
-            "recommendations": recommendations,
+            "interpretation": interpretation
         }
 
         print(json.dumps(response, default=_to_native_type))
@@ -208,5 +194,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
