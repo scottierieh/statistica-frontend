@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -9,12 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Columns, AlertTriangle } from 'lucide-react';
+import { Sigma, Loader2, Columns, AlertTriangle, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { getCrosstabInterpretation } from '@/app/actions';
 
 interface Interpretation {
     title: string;
@@ -57,6 +57,47 @@ const getSignificanceStars = (p: number) => {
     return '';
 };
 
+const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
+  const [interpretation, setInterpretation] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!promise) {
+        setInterpretation(null);
+        setLoading(false);
+        return;
+    };
+    let isMounted = true;
+    setLoading(true);
+    promise.then((desc) => {
+        if (isMounted) {
+            setInterpretation(desc);
+            setLoading(false);
+        }
+    });
+    return () => { isMounted = false; };
+  }, [promise]);
+  
+  const formattedInterpretation = useMemo(() => {
+    if (!interpretation) return null;
+    return interpretation.replace(/\n/g, '<br />');
+  }, [interpretation]);
+
+
+  if (loading) return <Skeleton className="h-24 w-full" />;
+  if (!interpretation) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
+      </CardContent>
+    </Card>
+  );
+};
 
 interface CrosstabPageProps {
     data: DataSet;
@@ -71,6 +112,8 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [tableFormat, setTableFormat] = useState('counts');
+    const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
+
 
     useEffect(() => {
         setRowVar(categoricalHeaders[0] || '');
@@ -88,6 +131,7 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
         setIsLoading(true);
         setAnalysisResult(null);
+        setAiPromise(null);
 
         try {
             const response = await fetch('/api/analysis/crosstab', {
@@ -105,6 +149,24 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
             if ((result as any).error) throw new Error((result as any).error);
 
             setAnalysisResult(result);
+            
+            const tableData = result.results.contingency_table;
+            const totalObs = Object.values(tableData).flatMap(Object.values).reduce((sum, val) => sum + val, 0);
+
+            const promise = getCrosstabInterpretation({
+              rowVar: result.results.row_var,
+              colVar: result.results.col_var,
+              chi2: result.results.chi_squared.statistic,
+              df: result.results.chi_squared.degrees_of_freedom,
+              pValue: result.results.chi_squared.p_value,
+              cramersV: result.results.cramers_v,
+              phi: result.results.phi_coefficient,
+              contingencyCoeff: result.results.contingency_coefficient,
+              contingencyTable: JSON.stringify(result.results.contingency_table),
+              totalObservations: totalObs,
+            }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
+
+            setAiPromise(promise);
 
         } catch (e: any) {
             console.error('Crosstab Analysis error:', e);
@@ -242,6 +304,7 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
             {results && (
                 <div className="space-y-4">
+                    <AIGeneratedInterpretation promise={aiPromise} />
                     <div className="grid lg:grid-cols-2 gap-4">
                         <Card>
                             <CardHeader>
@@ -288,17 +351,14 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                                 </Table>
                             </CardContent>
                         </Card>
-                         <Card>
-                            <CardHeader><CardTitle>Statistical Explanations</CardTitle></CardHeader>
-                            <CardContent className="space-y-4 text-sm">
-                                {Object.values(results.interpretations).map((interp, i) => (
-                                    <div key={i}>
-                                        <h4 className="font-semibold">{interp.title}</h4>
-                                        <p className="text-muted-foreground">{interp.description}</p>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
+                        {analysisResult.plot && (
+                            <Card>
+                                <CardHeader><CardTitle className="font-headline">Visualization</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Image src={analysisResult.plot} alt="Crosstabulation bar chart" width={1000} height={600} className="w-full rounded-md border" />
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
 
                     <Card>
@@ -315,14 +375,6 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                         </CardHeader>
                         <CardContent>{renderContingencyTable()}</CardContent>
                     </Card>
-                     {analysisResult.plot && (
-                        <Card>
-                            <CardHeader><CardTitle className="font-headline">Visualization</CardTitle></CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.plot} alt="Crosstabulation bar chart" width={1000} height={600} className="w-full rounded-md border" />
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
             )}
 

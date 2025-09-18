@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -22,6 +21,7 @@ const InterpretCrosstabInputSchema = z.object({
   phi: z.number().describe("Phi coefficient for effect size, relevant for 2x2 tables."),
   contingencyCoeff: z.number().describe("Contingency coefficient for effect size."),
   contingencyTable: z.string().describe("The contingency table as a JSON string."),
+  totalObservations: z.number().describe("The total number of observations (N).")
 });
 export type InterpretCrosstabInput = z.infer<typeof InterpretCrosstabInputSchema>;
 
@@ -45,16 +45,13 @@ The user analyzed the relationship between two categorical variables: '{{{rowVar
 Here are the key results:
 - Chi-squared (χ²) statistic: {{{chi2}}}
 - Degrees of Freedom: {{{df}}}
+- Total Observations (N): {{{totalObservations}}}
 - p-value: {{{pValue}}}
 - Cramer's V (effect size): {{{cramersV}}}
-- Phi Coefficient (for 2x2 tables): {{{phi}}}
-- Contingency Coefficient: {{{contingencyCoeff}}}
-- Contingency Table: {{{contingencyTable}}}
 
-Based on these results, provide a concise, easy-to-understand interpretation broken into clear paragraphs.
-- **Paragraph 1: Main Finding.** Start by stating the conclusion in APA style: is there a statistically significant association between '{{{rowVar}}}' and '{{{colVar}}}'? (e.g., A Chi-squared test of independence was performed to examine the relation between '{{{rowVar}}}' and '{{{colVar}}}'. The relation between these variables was significant, χ²({{{df}}}) = {{{chi2}}}, *p* = {{{pValue}}}.). Use a significance level of alpha = 0.05.
-- **Paragraph 2: Effect Size.** Explain the strength of the association using Cramer's V. General guidelines: <0.1 is negligible, 0.1-0.2 is weak, 0.2-0.4 is moderate, 0.4-0.6 is relatively strong, >0.6 is strong. If it is a 2x2 table, also mention the Phi coefficient.
-- **Paragraph 3: Table Insights.** If the association is significant, briefly point out which cells in the contingency table seem to contribute most to this relationship (where observed counts differ most from what would be expected by chance).
+Based on these results, provide a concise, easy-to-understand interpretation broken into two clear paragraphs.
+- **Paragraph 1: Main Finding.** Start with a sentence stating the purpose of the test. Then, report the main finding in a single sentence using APA style. For example: "A chi-square test of independence was conducted to determine whether there is an association between '{{{rowVar}}}' and '{{{colVar}}}'. The analysis revealed a statistically {significant/non-significant} association, χ²({{{df}}}, N = {{{totalObservations}}}) = {{{chi2}}}, p = {{{pValue}}}." (Use p < .05 as the threshold for significance).
+- **Paragraph 2: Effect Size and Practical Implications.** In a new paragraph, explain the strength of the association using Cramer's V. General guidelines: <0.1 is negligible, 0.1-0.2 is weak, 0.2-0.4 is moderate, 0.4-0.6 is relatively strong, >0.6 is strong. Briefly explain what this means in practical terms for the relationship between the variables.
 - Ensure each section is a distinct paragraph separated by a line break.
 - Do not use markdown for emphasis, use plain text.
 `, 
