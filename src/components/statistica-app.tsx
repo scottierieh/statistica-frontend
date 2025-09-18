@@ -198,23 +198,30 @@ const analysisMenu = [
     icon: Sigma,
     subCategories: [
       {
-        name: 'Mean & Variance Tests',
+        name: 'T-Tests',
         methods: [
           { id: 't-test-one-sample', label: 'One-Sample t-Test' },
           { id: 't-test-independent', label: 'Independent Samples t-Test' },
           { id: 't-test-paired', label: 'Paired Samples t-Test' },
-          { id: 'one-way-anova', label: 'One-Way ANOVA' },
-          { id: 'two-way-anova', label: 'Two-Way ANOVA' },
-          { id: 'rm-anova', label: 'Repeated Measures ANOVA' },
-          { id: 'ancova', label: 'ANCOVA' },
-          { id: 'manova', label: 'MANOVA' },
+        ]
+      },
+      {
+        name: 'ANOVA',
+        methods: [
+            { id: 'one-way-anova', label: 'One-Way ANOVA' },
+            { id: 'two-way-anova', label: 'Two-Way ANOVA' },
+            { id: 'rm-anova', label: 'Repeated Measures ANOVA' },
+            { id: 'ancova', label: 'ANCOVA' },
+            { id: 'manova', label: 'MANOVA' },
         ]
       },
       {
         name: 'Non-Parametric Tests',
         methods: [
-          { id: 'mann-whitney', label: 'Mann-Whitney / Wilcoxon' },
-          { id: 'kruskal-wallis', label: 'Kruskal-Wallis / Friedman' },
+          { id: 'mann-whitney', label: 'Mann-Whitney U Test' },
+          { id: 'wilcoxon', label: 'Wilcoxon Signed-Rank' },
+          { id: 'kruskal-wallis', label: 'Kruskal-Wallis Test' },
+          { id: 'friedman', label: 'Friedman Test' },
           { id: 'mcnemar', label: "McNemar's Test" },
         ]
       },

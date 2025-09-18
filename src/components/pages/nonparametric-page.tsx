@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -10,9 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, FlaskConical } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 type TestType = 'mann_whitney' | 'wilcoxon' | 'kruskal_wallis' | 'friedman' | 'mcnemar';
@@ -27,7 +27,16 @@ interface NonParametricPageProps {
 
 export default function NonParametricPage({ data, numericHeaders, categoricalHeaders, onLoadExample, activeAnalysis }: NonParametricPageProps) {
     const { toast } = useToast();
-    const [activeTest, setActiveTest] = useState<TestType>('mann_whitney');
+    
+    const activeTest: TestType = useMemo(() => {
+        const test = activeAnalysis;
+        if (test === 'mann-whitney') return 'mann_whitney';
+        if (test === 'wilcoxon') return 'wilcoxon';
+        if (test === 'kruskal-wallis') return 'kruskal_wallis';
+        if (test === 'friedman') return 'friedman';
+        if (test === 'mcnemar') return 'mcnemar';
+        return 'mann_whitney';
+    }, [activeAnalysis]);
     
     // State for each test
     const [mwGroupCol, setMwGroupCol] = useState(categoricalHeaders.find(h => new Set(data.map(d => d[h]).filter(g => g != null)).size === 2) || categoricalHeaders[0]);
@@ -43,7 +52,6 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
     
     const [mcNemarVar1, setMcNemarVar1] = useState<string | undefined>();
     const [mcNemarVar2, setMcNemarVar2] = useState<string | undefined>();
-
 
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -63,18 +71,7 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
         setMcNemarVar1(binaryCategoricalHeaders.find(h => h.includes('pre')) || binaryCategoricalHeaders[0]);
         setMcNemarVar2(binaryCategoricalHeaders.find(h => h.includes('post')) || binaryCategoricalHeaders[1]);
         setAnalysisResult(null);
-
-         const testIdMap: {[key: string]: TestType} = {
-            'mann-whitney': 'mann_whitney',
-            'wilcoxon': 'wilcoxon',
-            'kruskal-wallis': 'kruskal_wallis',
-            'friedman': 'friedman',
-            'mcnemar': 'mcnemar'
-        };
-        const initialTest = testIdMap[activeAnalysis] || 'mann_whitney';
-        setActiveTest(initialTest);
-
-    }, [numericHeaders, categoricalHeaders, data, binaryCategoricalHeaders, activeAnalysis]);
+    }, [numericHeaders, categoricalHeaders, data, binaryCategoricalHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
@@ -255,70 +252,82 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
         );
     }
     
+    const renderSetup = () => {
+      switch(activeTest) {
+        case 'mann_whitney':
+          return (
+             <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">Compares two independent groups.</p>
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div><Label>Group Variable</Label><Select value={mwGroupCol} onValueChange={setMwGroupCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{binaryCategoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    <div><Label>Value Variable</Label><Select value={mwValueCol} onValueChange={setMwValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                </div>
+            </div>
+          );
+        case 'wilcoxon':
+          return (
+             <div className="space-y-4">
+                 <p className="text-sm text-muted-foreground">Compares two related (paired) samples.</p>
+                 <div className="grid md:grid-cols-2 gap-4">
+                    <div><Label>Variable 1 (e.g., Pre-test)</Label><Select value={wxVar1} onValueChange={setWxVar1}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    <div><Label>Variable 2 (e.g., Post-test)</Label><Select value={wxVar2} onValueChange={setWxVar2}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h=> h!==wxVar1).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                </div>
+            </div>
+          );
+        case 'kruskal_wallis':
+          return (
+             <div className="space-y-4">
+                 <p className="text-sm text-muted-foreground">Compares three or more independent groups.</p>
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div><Label>Group Variable</Label><Select value={kwGroupCol} onValueChange={setKwGroupCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    <div><Label>Value Variable</Label><Select value={kwValueCol} onValueChange={setKwValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                </div>
+            </div>
+          );
+        case 'friedman':
+          return (
+             <div className="space-y-4">
+                 <p className="text-sm text-muted-foreground">Compares three or more related (repeated measures) samples.</p>
+                <div><Label>Select 3+ Variables</Label>
+                    <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-16">
+                        {numericHeaders.map(h=><Badge key={h} variant={friedmanVars.includes(h) ? "default" : "secondary"} onClick={() => setFriedmanVars(p=>p.includes(h)?p.filter(v=>v!==h):[...p,h])} className="cursor-pointer">{h}</Badge>)}
+                    </div>
+                 </div>
+            </div>
+          );
+        case 'mcnemar':
+          return (
+             <div className="space-y-4">
+                 <p className="text-sm text-muted-foreground">Tests for changes in proportions for paired nominal data.</p>
+                 <div className="grid md:grid-cols-2 gap-4">
+                    <div><Label>Variable 1 (e.g., Before)</Label><Select value={mcNemarVar1} onValueChange={setMcNemarVar1}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{binaryCategoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    <div><Label>Variable 2 (e.g., After)</Label><Select value={mcNemarVar2} onValueChange={setMcNemarVar2}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{binaryCategoricalHeaders.filter(h => h !== mcNemarVar1).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                </div>
+            </div>
+          );
+        default: return null;
+      }
+    }
+    
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Non-Parametric Test Setup</CardTitle>
-                    <CardDescription>Choose a test and select the appropriate variables.</CardDescription>
+                    <CardTitle className="font-headline">{activeTest.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Test</CardTitle>
                 </CardHeader>
                 <CardContent>
-                     <Tabs value={activeTest} onValueChange={(v) => {setActiveTest(v as TestType); setAnalysisResult(null);}} className="w-full">
-                        <TabsList>
-                            <TabsTrigger value="mann_whitney">Mann-Whitney U</TabsTrigger>
-                            <TabsTrigger value="wilcoxon">Wilcoxon</TabsTrigger>
-                            <TabsTrigger value="kruskal_wallis">Kruskal-Wallis</TabsTrigger>
-                            <TabsTrigger value="friedman">Friedman</TabsTrigger>
-                            <TabsTrigger value="mcnemar">McNemar</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="mann_whitney" className="pt-4">
-                            <p className="text-sm text-muted-foreground mb-2">Compares two independent groups.</p>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div><label>Group Variable</label><Select value={mwGroupCol} onValueChange={setMwGroupCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{binaryCategoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                                <div><label>Value Variable</label><Select value={mwValueCol} onValueChange={setMwValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                            </div>
-                        </TabsContent>
-                         <TabsContent value="wilcoxon" className="pt-4">
-                             <p className="text-sm text-muted-foreground mb-2">Compares two related (paired) samples.</p>
-                             <div className="grid md:grid-cols-2 gap-4">
-                                <div><label>Variable 1 (e.g., Pre-test)</label><Select value={wxVar1} onValueChange={setWxVar1}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                                <div><label>Variable 2 (e.g., Post-test)</label><Select value={wxVar2} onValueChange={setWxVar2}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h=> h!==wxVar1).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="kruskal_wallis" className="pt-4">
-                             <p className="text-sm text-muted-foreground mb-2">Compares three or more independent groups.</p>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div><label>Group Variable</label><Select value={kwGroupCol} onValueChange={setKwGroupCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                                <div><label>Value Variable</label><Select value={kwValueCol} onValueChange={setKwValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="friedman" className="pt-4">
-                             <p className="text-sm text-muted-foreground mb-2">Compares three or more related (repeated measures) samples.</p>
-                            <div><label>Select 3+ Variables</label>
-                                <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-16">
-                                    {numericHeaders.map(h=><Badge key={h} variant={friedmanVars.includes(h) ? "default" : "secondary"} onClick={() => setFriedmanVars(p=>p.includes(h)?p.filter(v=>v!==h):[...p,h])} className="cursor-pointer">{h}</Badge>)}
-                                </div>
-                             </div>
-                        </TabsContent>
-                        <TabsContent value="mcnemar" className="pt-4">
-                             <p className="text-sm text-muted-foreground mb-2">Tests for changes in proportions for paired nominal data.</p>
-                             <div className="grid md:grid-cols-2 gap-4">
-                                <div><label>Variable 1 (e.g., Before)</label><Select value={mcNemarVar1} onValueChange={setMcNemarVar1}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{binaryCategoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                                <div><label>Variable 2 (e.g., After)</label><Select value={mcNemarVar2} onValueChange={setMcNemarVar2}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{binaryCategoricalHeaders.filter(h => h !== mcNemarVar1).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-                    <div className="flex justify-end mt-4">
-                        <Button onClick={handleAnalysis} disabled={isLoading}>
-                            {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
-                        </Button>
-                    </div>
+                    {renderSetup()}
                 </CardContent>
+                <CardFooter className="flex justify-end mt-4">
+                    <Button onClick={handleAnalysis} disabled={isLoading}>
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
+                    </Button>
+                </CardFooter>
             </Card>
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
             {!isLoading && analysisResult && renderResult()}
-            {!isLoading && !analysisResult && <div className="text-center text-muted-foreground py-10"><FlaskConical className="mx-auto h-12 w-12"/><p className="mt-2">Select a test and variables, then click 'Run Analysis'.</p></div>}
+            {!isLoading && !analysisResult && <div className="text-center text-muted-foreground py-10"><FlaskConical className="mx-auto h-12 w-12"/><p className="mt-2">Select variables, then click 'Run Analysis'.</p></div>}
         </div>
     );
 }
