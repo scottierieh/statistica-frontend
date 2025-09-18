@@ -28,6 +28,13 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
+
+const Plot = dynamic(() => import('react-plotly.js'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-[400px]" />,
+});
+
 
 interface CorrelationResults {
   correlation_matrix: { [key: string]: { [key: string]: number } };
@@ -200,6 +207,8 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
     )
   }
 
+  const plotData = results ? JSON.parse(results.heatmap_plot || '{}') : null;
+
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -263,14 +272,19 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     </CardContent>
                 </Card>
             )}
-            {results.heatmap_plot && (
+            {plotData && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Correlation Matrix Heatmap</CardTitle>
                         <CardDescription>Visual representation of the correlation matrix. Warmer colors indicate positive correlation, cooler colors indicate negative.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <Image src={`data:image/png;base64,${results.heatmap_plot}`} alt="Correlation Heatmap" width={1000} height={800} className="w-full rounded-md border" />
+                         <Plot
+                            data={plotData.data}
+                            layout={plotData.layout}
+                            useResizeHandler={true}
+                            className="w-full h-[600px]"
+                         />
                     </CardContent>
                 </Card>
             )}

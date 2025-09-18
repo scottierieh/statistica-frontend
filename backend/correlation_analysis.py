@@ -1,17 +1,103 @@
 
+
 import sys
 import json
 import numpy as np
 import pandas as pd
-from scipy import stats
 from scipy.stats import pearsonr, spearmanr, kendalltau
+import math
+import matplotlib.pyplot as plt
+import seaborn as sns
+import io
+import base64
+import plotly.graph_objects as go
+import plotly.io as pio
+
+
+def _to_native_type(obj):
+    """Convert numpy types to native Python types for JSON serialization"""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, str):
+        return str(obj)
+    return obj
 
 def _interpret_correlation_magnitude(r):
+    """Interpret the magnitude of correlation coefficient"""
     abs_r = abs(r)
-    if abs_r >= 0.5: return 'large'
-    if abs_r >= 0.3: return 'medium'
-    if abs_r >= 0.1: return 'small'
+    if abs_r >= 0.7: return 'very strong'
+    if abs_r >= 0.5: return 'strong'
+    if abs_r >= 0.3: return 'moderate'
+    if abs_r >= 0.1: return 'weak'
     return 'negligible'
+
+def generate_pairs_plot(df, method='pearson'):
+    """Generates a pairs plot (scatter matrix) for the dataframe."""
+    
+    def corr_func(x, y, **kwargs):
+        if method == 'pearson':
+            r, p = pearsonr(x, y)
+        elif method == 'spearman':
+            r, p = spearmanr(x, y)
+        elif method == 'kendall':
+            r, p = kendalltau(x, y)
+        else:
+            r, p = np.nan, np.nan
+        
+        ax = plt.gca()
+        ax.annotate(f"{r:.2f}", xy=(.5, .6), xycoords=ax.transAxes, ha='center', va='center', fontsize=14)
+        
+        stars = ''
+        if p < 0.001: stars = '***'
+        elif p < 0.01: stars = '**'
+        elif p < 0.05: stars = '*'
+        ax.annotate(stars, xy=(.5, .4), xycoords=ax.transAxes, ha='center', va='center', fontsize=16, color='red')
+
+    g = sns.PairGrid(df)
+    g.map_upper(corr_func)
+    g.map_lower(sns.scatterplot, s=30, color='rebeccapurple', alpha=0.6)
+    g.map_diag(sns.histplot, kde=True, color='skyblue')
+    
+    # Adjust labels to prevent overlap
+    for ax in g.axes.flatten():
+        ax.set_ylabel(ax.get_ylabel(), rotation=0, horizontalalignment='right')
+        ax.set_xlabel(ax.get_xlabel(), rotation=90, horizontalalignment='right')
+
+    plt.tight_layout()
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close()
+    buf.seek(0)
+    
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+def generate_heatmap_plotly(df, title='Correlation Matrix'):
+    """Generates an interactive heatmap using Plotly."""
+    fig = go.Figure(data=go.Heatmap(
+        z=df.values,
+        x=df.columns,
+        y=df.columns,
+        colorscale='RdBu',
+        zmin=-1,
+        zmax=1,
+        text=np.around(df.values, decimals=2),
+        texttemplate="%{text}",
+        hoverongaps=False
+    ))
+    fig.update_layout(
+        title=title,
+        xaxis_tickangle=-45
+    )
+    return pio.to_json(fig)
+
 
 def main():
     try:
@@ -27,7 +113,6 @@ def main():
 
         df = pd.DataFrame(data)
         
-        # Ensure only specified variables are used and they are numeric
         df_clean = df[variables].copy()
         for col in df_clean.columns:
             df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
@@ -50,76 +135,78 @@ def main():
                 var1 = current_vars[i]
                 var2 = current_vars[j]
                 
-                col1 = df_clean[var1]
-                col2 = df_clean[var2]
-                
                 corr, p_value = np.nan, np.nan
-                if method == 'pearson':
-                    corr, p_value = pearsonr(col1, col2)
-                elif method == 'spearman':
-                    corr, p_value = spearmanr(col1, col2)
-                elif method == 'kendall':
-                    corr, p_value = kendalltau(col1, col2)
-                
-                corr_matrix.iloc[i, j] = corr_matrix.iloc[j, i] = corr
-                p_value_matrix.iloc[i, j] = p_value_matrix.iloc[j, i] = p_value
-                
-                if not np.isnan(corr):
-                    all_correlations.append({
-                        'variable_1': var1,
-                        'variable_2': var2,
-                        'correlation': corr,
-                        'p_value': p_value,
-                        'significant': bool(p_value < alpha)
-                    })
 
-        # Summary statistics
-        upper_triangle = corr_matrix.values[np.triu_indices_from(corr_matrix.values, k=1)]
-        upper_triangle_clean = upper_triangle[~np.isnan(upper_triangle)]
+                try:
+                    col1 = df_clean[var1]
+                    col2 = df_clean[var2]
+                    if method == 'pearson':
+                        corr, p_value = pearsonr(col1, col2)
+                    elif method == 'spearman':
+                        corr, p_value = spearmanr(col1, col2)
+                    elif method == 'kendall':
+                        corr, p_value = kendalltau(col1, col2)
+                    else:
+                        raise ValueError(f"Unknown correlation method: {method}")
+                    
+                    corr_matrix.loc[var1, var2] = corr_matrix.loc[var2, var1] = corr
+                    p_value_matrix.loc[var1, var2] = p_value_matrix.loc[var2, var1] = p_value
+                    
+                    if not np.isnan(corr) and not np.isnan(p_value):
+                        all_correlations.append({
+                            'variable_1': var1,
+                            'variable_2': var2,
+                            'correlation': corr,
+                            'p_value': p_value,
+                            'significant': bool(p_value < alpha)
+                        })
+                except Exception:
+                    continue
 
-        summary_stats = {
-            'mean_correlation': float(np.mean(upper_triangle_clean)) if len(upper_triangle_clean) > 0 else 0,
-            'median_correlation': float(np.median(upper_triangle_clean)) if len(upper_triangle_clean) > 0 else 0,
-            'std_dev': float(np.std(upper_triangle_clean)) if len(upper_triangle_clean) > 0 else 0,
-            'range': [float(np.min(upper_triangle_clean)), float(np.max(upper_triangle_clean))] if len(upper_triangle_clean) > 0 else [0, 0],
-            'significant_correlations': int(sum(1 for c in all_correlations if c['significant'])),
-            'total_pairs': int(len(all_correlations))
-        }
+        if len(all_correlations) > 0:
+            correlations_only = [c['correlation'] for c in all_correlations if c.get('correlation') is not None]
+            summary_stats = {
+                'mean_correlation': np.mean(correlations_only) if correlations_only else 0,
+                'median_correlation': np.median(correlations_only) if correlations_only else 0,
+                'std_dev': np.std(correlations_only) if correlations_only else 0,
+                'range': [np.min(correlations_only), np.max(correlations_only)] if correlations_only else [0,0],
+                'significant_correlations': sum(1 for c in all_correlations if c['significant']),
+                'total_pairs': len(all_correlations)
+            }
+        else:
+            summary_stats = { 'mean_correlation': 0,'median_correlation': 0,'std_dev': 0,'range': [0, 0],'significant_correlations': 0,'total_pairs': 0}
         
-        # Effect Sizes
         effect_sizes_list = [_interpret_correlation_magnitude(c['correlation']) for c in all_correlations]
-        effect_size_counts = {
-            'large': effect_sizes_list.count('large'),
-            'medium': effect_sizes_list.count('medium'),
-            'small': effect_sizes_list.count('small'),
-            'negligible': effect_sizes_list.count('negligible')
-        }
+        effect_size_counts = { 'very strong': effect_sizes_list.count('very strong'), 'strong': effect_sizes_list.count('strong'),'moderate': effect_sizes_list.count('moderate'), 'weak': effect_sizes_list.count('weak'), 'negligible': effect_sizes_list.count('negligible')}
 
         strongest_effect = 'negligible'
-        if effect_size_counts['large'] > 0: strongest_effect = 'large'
-        elif effect_size_counts['medium'] > 0: strongest_effect = 'medium'
-        elif effect_size_counts['small'] > 0: strongest_effect = 'small'
+        if effect_size_counts.get('very strong', 0) > 0: strongest_effect = 'very strong'
+        elif effect_size_counts.get('strong', 0) > 0: strongest_effect = 'strong'
+        elif effect_size_counts.get('moderate', 0) > 0: strongest_effect = 'moderate'
+        elif effect_size_counts.get('weak', 0) > 0: strongest_effect = 'weak'
         
-        effect_sizes_summary = {
-            'distribution': effect_size_counts,
-            'strongest_effect': strongest_effect
-        }
-
-        # Strongest correlations
+        effect_sizes_summary = {'distribution': effect_size_counts, 'strongest_effect': strongest_effect}
         strongest_correlations = sorted(all_correlations, key=lambda x: abs(x['correlation']), reverse=True)[:10]
+
+        # Generate plots
+        pairs_plot_img = generate_pairs_plot(df_clean[current_vars], method)
+        heatmap_plot_json = generate_heatmap_plotly(corr_matrix, title=f'{method.capitalize()} Correlation Matrix')
 
         response = {
             "correlation_matrix": corr_matrix.to_dict(),
             "p_value_matrix": p_value_matrix.to_dict(),
             "summary_statistics": summary_stats,
             "effect_sizes": effect_sizes_summary,
-            "strongest_correlations": strongest_correlations
+            "strongest_correlations": strongest_correlations,
+            "pairs_plot": f"data:image/png;base64,{pairs_plot_img}",
+            "heatmap_plot": heatmap_plot_json,
         }
 
-        print(json.dumps(response))
+        print(json.dumps(response, default=_to_native_type, ensure_ascii=False))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        error_response = { "error": str(e), "error_type": type(e).__name__ }
+        print(json.dumps(error_response, default=_to_native_type), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == '__main__':
