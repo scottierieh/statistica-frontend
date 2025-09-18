@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -45,7 +46,18 @@ def plot_hdbscan_results(df, labels, probabilities, profiles, pca_components, ex
     palette = sns.color_palette("viridis", n_colors=len(unique_labels) - (1 if -1 in unique_labels else 0))
     
     clustered_points = plot_df[plot_df['cluster'] != -1]
-    sns.scatterplot(x=clustered_points['PC1'], y=clustered_points['PC2'], hue=clustered_points['cluster'], size=clustered_points['probability'], sizes=(20, 200), palette=palette, alpha=0.7, ax=ax1, legend='full')
+    
+    sns.scatterplot(
+        x=clustered_points['PC1'], 
+        y=clustered_points['PC2'], 
+        hue=clustered_points['cluster'], 
+        size=clustered_points['probability'], 
+        sizes=(20, 200), 
+        palette=palette, 
+        alpha=0.7, 
+        ax=ax1,
+        legend=False # Remove size legend
+    )
 
     noise_points = plot_df[plot_df['cluster'] == -1]
     if not noise_points.empty:
@@ -54,7 +66,14 @@ def plot_hdbscan_results(df, labels, probabilities, profiles, pca_components, ex
     ax1.set_title('Cluster Visualization (PCA)')
     ax1.set_xlabel(f'Principal Component 1 ({explained_variance_ratio[0]:.1%})')
     ax1.set_ylabel(f'Principal Component 2 ({explained_variance_ratio[1]:.1%})')
-    ax1.legend(title='Cluster', bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    # Manually create legend for clusters only
+    handles, labels = ax1.get_legend_handles_labels()
+    # Filter out the size legend handles if seaborn still adds them
+    filtered_handles = [h for h, l in zip(handles, labels) if not l.startswith('probability')]
+    filtered_labels = [l for l in labels if not l.startswith('probability')]
+    ax1.legend(filtered_handles, filtered_labels, title='Cluster', bbox_to_anchor=(1.05, 1), loc='upper left')
+
     ax1.grid(True, linestyle='--', alpha=0.6)
 
     # 2. Cluster Size Distribution
