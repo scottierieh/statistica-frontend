@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, BoxPlot, GanttChart, Dot } from 'lucide-react';
+import { AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Box, GanttChart, Dot } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -33,6 +33,7 @@ import { Button } from '../ui/button';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
+import Image from 'next/image';
 
 interface VisualizationPageProps {
   data: DataSet;
@@ -371,7 +372,7 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
   const chartTypes = {
       distribution: [
         { id: 'histogram', label: 'Histogram', icon: BarChartIcon, disabled: numericHeaders.length === 0 },
-        { id: 'box', label: 'Box Plot', icon: BoxPlot, disabled: numericHeaders.length === 0 },
+        { id: 'box', label: 'Box Plot', icon: Box, disabled: numericHeaders.length === 0 },
         { id: 'violin', label: 'Violin Plot', icon: GanttChart, disabled: numericHeaders.length === 0 },
         { id: 'density', label: 'Density Plot', icon: AreaChart, disabled: numericHeaders.length === 0 },
       ],
