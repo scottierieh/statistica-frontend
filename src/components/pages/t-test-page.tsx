@@ -192,7 +192,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                                 </Table>
                             </TabsContent>
                             <TabsContent value="interpretations" className="mt-4 space-y-4 text-sm">
-                                {Object.values(results.interpretations).map((interp: any, i) => (
+                                {results.interpretations && Object.values(results.interpretations).map((interp: any, i) => (
                                     <div key={i}>
                                         <h4 className="font-semibold">{interp.title}</h4>
                                         <p className="text-muted-foreground">{interp.description}</p>
@@ -301,4 +301,3 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
-
