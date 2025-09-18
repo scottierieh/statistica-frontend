@@ -7,13 +7,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Binary } from 'lucide-react';
+import { Sigma, Loader2, Binary, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { getKmeansInterpretation } from '@/app/actions';
 
 interface KMeansResults {
     optimal_k?: {
@@ -51,16 +52,51 @@ interface KMeansPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
+const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
+  const [interpretation, setInterpretation] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!promise) {
+        setInterpretation(null);
+        setLoading(false);
+        return;
+    };
+    let isMounted = true;
+    setLoading(true);
+    promise.then((desc) => {
+        if (isMounted) {
+            setInterpretation(desc);
+            setLoading(false);
+        }
+    });
+    return () => { isMounted = false; };
+  }, [promise]);
+  
+  if (loading) return <Skeleton className="h-16 w-full" />;
+  if (!interpretation) return null;
+
+  return (
+    <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2"><Bot /> AI Interpretation</h4>
+        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>
+    </div>
+  );
+};
+
+
 export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMeansPageProps) {
     const { toast } = useToast();
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
     const [nClusters, setNClusters] = useState<number>(3);
     const [analysisResult, setAnalysisResult] = useState<FullKMeansResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
 
     useEffect(() => {
         setSelectedItems(numericHeaders);
         setAnalysisResult(null);
+        setAiPromise(null);
     }, [data, numericHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
@@ -81,6 +117,7 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
 
         setIsLoading(true);
         setAnalysisResult(null);
+        setAiPromise(null);
 
         try {
             const response = await fetch('/api/analysis/kmeans', {
@@ -98,10 +135,19 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                 throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
 
-            const result = await response.json();
+            const result: FullKMeansResponse = await response.json();
             if (result.error) throw new Error(result.error);
             
             setAnalysisResult(result);
+
+            if (result.results.final_metrics) {
+                const promise = getKmeansInterpretation({
+                    silhouetteScore: result.results.final_metrics.silhouette,
+                    calinskiHarabaszScore: result.results.final_metrics.calinski_harabasz,
+                    daviesBouldinScore: result.results.final_metrics.davies_bouldin,
+                }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
+                setAiPromise(promise);
+            }
 
         } catch (e: any) {
             console.error('K-Means error:', e);
@@ -215,7 +261,7 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                     <div className="grid lg:grid-cols-3 gap-4">
                         <Card className="lg:col-span-2">
                             <CardHeader>
-                                <CardTitle className="font-headline">Cluster Profiles</CardTitle>
+                                <CardTitle className="font-headline">Cluster Profiles (Centroids)</CardTitle>
                                 <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -260,6 +306,7 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                                     <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Davies-Bouldin</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.davies_bouldin.toFixed(3)}</dd></div>
                                     <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Inertia (WCSS)</dt><dd className="text-lg font-bold font-mono">{results.clustering_summary?.inertia.toFixed(2)}</dd></div>
                                 </dl>
+                                <AIGeneratedInterpretation promise={aiPromise} />
                             </CardContent>
                         </Card>
                     </div>

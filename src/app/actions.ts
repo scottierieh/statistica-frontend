@@ -7,6 +7,7 @@ import { interpretCorrelation, InterpretCorrelationInput } from "@/ai/flows/inte
 import { interpretCrosstab, InterpretCrosstabInput } from "@/ai/flows/interpret-crosstab";
 import { interpretCfa, InterpretCfaInput } from "@/ai/flows/interpret-cfa";
 import { interpretFrequency, InterpretFrequencyInput } from "@/ai/flows/interpret-frequency";
+import { interpretKmeans, InterpretKmeansInput } from "@/ai/flows/interpret-kmeans";
 
 export async function getVisualizationDescription(input: GenerateDataVisualizationInput) {
     try {
@@ -86,5 +87,15 @@ export async function getFrequencyInterpretation(input: InterpretFrequencyInput)
     } catch (error) {
         console.error(error);
         return { success: false, error: "Failed to generate frequency interpretation." };
+    }
+}
+
+export async function getKmeansInterpretation(input: InterpretKmeansInput) {
+    try {
+        const result = await interpretKmeans(input);
+        return { success: true, interpretation: result.interpretation };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: "Failed to generate K-Means interpretation." };
     }
 }
