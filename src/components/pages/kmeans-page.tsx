@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -136,7 +137,7 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
             }
 
             const result: FullKMeansResponse = await response.json();
-            if (result.error) throw new Error(result.error);
+            if ((result as any).error) throw new Error((result as any).error);
             
             setAnalysisResult(result);
 
