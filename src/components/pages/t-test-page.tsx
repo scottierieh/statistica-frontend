@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -189,7 +188,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                             <Table>
                                 <TableHeader><TableRow><TableHead>Group/Variable</TableHead><TableHead className="text-right">N</TableHead><TableHead className="text-right">Mean</TableHead><TableHead className="text-right">Std. Dev.</TableHead></TableRow></TableHeader>
                                 <TableBody>
-                                    {Object.entries(results.descriptives).map(([name, stats]) => (
+                                    {results.descriptives && Object.entries(results.descriptives).map(([name, stats]) => (
                                         <TableRow key={name}>
                                             <TableCell>{name}</TableCell>
                                             <TableCell className="text-right font-mono">{stats.n}</TableCell>
@@ -202,21 +201,6 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                         </CardContent>
                     </Card>
                 </div>
-                 {results.interpretations && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Statistical Interpretations</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 text-sm">
-                            {Object.values(results.interpretations).map((interp, i) => (
-                                <div key={i}>
-                                    <h4 className="font-semibold">{interp.title}</h4>
-                                    <p className="text-muted-foreground">{interp.description}</p>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                )}
             </div>
         )
     };
@@ -328,4 +312,3 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
-
