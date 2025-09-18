@@ -20,6 +20,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 type TestType = 'one_sample' | 'independent_samples' | 'paired_samples';
 
+interface Interpretation {
+    title: string;
+    description: string;
+}
+
+interface TTestResults {
+    test_type: string;
+    significant: boolean;
+    p_value: number;
+    t_statistic: number;
+    degrees_of_freedom: number;
+    cohens_d: number;
+    mean_diff?: number;
+    confidence_interval?: [number, number];
+    interpretations: { [key: string]: Interpretation };
+}
+
+interface FullAnalysisResponse {
+    results: TTestResults;
+    plot: string;
+}
+
 interface TTestPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -42,7 +64,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     const [psVar1, setPsVar1] = useState(numericHeaders[0]);
     const [psVar2, setPsVar2] = useState(numericHeaders[1]);
 
-    const [analysisResult, setAnalysisResult] = useState<any>(null);
+    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
@@ -124,44 +146,60 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Statistic</TableHead>
-                                    <TableHead className="text-right">Value</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow>
-                                    <TableCell>t-statistic</TableCell>
-                                    <TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell>p-value</TableCell>
-                                    <TableCell className="text-right font-mono">{results.p_value < 0.001 ? '< 0.001' : results.p_value.toFixed(3)}</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell>Degrees of Freedom</TableCell>
-                                    <TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell>
-                                </TableRow>
-                                <TableRow>
-                                    <TableCell>Cohen's d</TableCell>
-                                    <TableCell className="text-right font-mono">{results.cohens_d.toFixed(3)}</TableCell>
-                                </TableRow>
-                                {results.mean_difference !== undefined && (
-                                    <TableRow>
-                                        <TableCell>Mean Difference</TableCell>
-                                        <TableCell className="text-right font-mono">{results.mean_difference.toFixed(3)}</TableCell>
-                                    </TableRow>
-                                )}
-                                {results.confidence_interval && (
-                                     <TableRow>
-                                        <TableCell>95% Confidence Interval</TableCell>
-                                        <TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(2)}, {results.confidence_interval[1].toFixed(2)}]</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                        <Tabs defaultValue='statistics'>
+                            <TabsList>
+                                <TabsTrigger value="statistics">Statistics</TabsTrigger>
+                                <TabsTrigger value="interpretations">Interpretations</TabsTrigger>
+                            </TabsList>
+                             <TabsContent value="statistics" className="mt-4">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Statistic</TableHead>
+                                            <TableHead className="text-right">Value</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow>
+                                            <TableCell>t-statistic</TableCell>
+                                            <TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>p-value</TableCell>
+                                            <TableCell className="text-right font-mono">{results.p_value < 0.001 ? '< 0.001' : results.p_value.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>Degrees of Freedom</TableCell>
+                                            <TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>Cohen's d</TableCell>
+                                            <TableCell className="text-right font-mono">{results.cohens_d.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                        {results.mean_diff !== undefined && (
+                                            <TableRow>
+                                                <TableCell>Mean Difference</TableCell>
+                                                <TableCell className="text-right font-mono">{results.mean_diff.toFixed(3)}</TableCell>
+                                            </TableRow>
+                                        )}
+                                        {results.confidence_interval && (
+                                            <TableRow>
+                                                <TableCell>95% Confidence Interval</TableCell>
+                                                <TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(2)}, {results.confidence_interval[1].toFixed(2)}]</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </TabsContent>
+                            <TabsContent value="interpretations" className="mt-4 space-y-4 text-sm">
+                                {Object.values(results.interpretations).map((interp: any, i) => (
+                                    <div key={i}>
+                                        <h4 className="font-semibold">{interp.title}</h4>
+                                        <p className="text-muted-foreground">{interp.description}</p>
+                                    </div>
+                                ))}
+                            </TabsContent>
+                        </Tabs>
                     </CardContent>
                 </Card>
             </div>
@@ -263,3 +301,4 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
+

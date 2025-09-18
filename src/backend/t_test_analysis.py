@@ -27,6 +27,47 @@ def _to_native_type(obj):
         return bool(obj)
     return obj
 
+def get_interpretations(result):
+    test_type = result.get('test_type')
+    p_val = result.get('p_value', 1.0)
+    alpha = 0.05 # Assuming alpha is 0.05
+    significant = p_val < alpha
+    
+    interpretations = {}
+
+    if 't_statistic' in result:
+        t_stat = result['t_statistic']
+        interpretations['t_statistic'] = {
+            "title": "t-statistic",
+            "description": f"The t-statistic ({t_stat:.3f}) measures how many standard errors the sample mean is from the hypothesized mean (or from the other sample's mean). A larger absolute value indicates a larger difference relative to the variability in the data."
+        }
+    if 'p_value' in result:
+        interpretations['p_value'] = {
+            "title": "p-value",
+            "description": f"The p-value ({p_val:.4f}) indicates the probability of observing a result as extreme as, or more extreme than, the one obtained, assuming the null hypothesis is true. A p-value less than {alpha} is typically considered statistically significant."
+        }
+    if 'degrees_of_freedom' in result:
+        df = result['degrees_of_freedom']
+        interpretations['degrees_of_freedom'] = {
+            "title": "Degrees of Freedom (df)",
+            "description": f"Degrees of freedom ({df:.0f}) represent the number of independent pieces of information used to calculate the statistic. It is related to the sample size."
+        }
+    if 'cohens_d' in result:
+        cohens_d = result['cohens_d']
+        abs_d = abs(cohens_d)
+        if abs_d >= 0.8: interp = 'large'
+        elif abs_d >= 0.5: interp = 'medium'
+        elif abs_d >= 0.2: interp = 'small'
+        else: interp = 'negligible'
+        
+        interpretations['cohens_d'] = {
+            "title": "Cohen's d (Effect Size)",
+            "description": f"Cohen's d ({cohens_d:.3f}) measures the standardized difference between two means. A value of {cohens_d:.3f} indicates a {interp} effect size. It helps assess the practical significance of the result, regardless of statistical significance."
+        }
+    
+    return interpretations
+
+
 class TTestAnalysis:
     def __init__(self, data, alpha=0.05):
         self.data = data.copy()
@@ -65,6 +106,7 @@ class TTestAnalysis:
             'cohens_d': cohens_d,
             'data_values': data_values
         }
+        self.results['one_sample']['interpretations'] = get_interpretations(self.results['one_sample'])
         return self.results['one_sample']
     
     def independent_samples_ttest(self, variable, group_variable, equal_var=True, alternative='two-sided'):
@@ -102,6 +144,7 @@ class TTestAnalysis:
             't_statistic': t_stat, 'degrees_of_freedom': df, 'p_value': p_value, 'significant': p_value < self.alpha,
             'cohens_d': cohens_d, 'data1': group1_data, 'data2': group2_data
         }
+        self.results['independent_samples']['interpretations'] = get_interpretations(self.results['independent_samples'])
         return self.results['independent_samples']
     
     def paired_samples_ttest(self, variable1, variable2, alternative='two-sided'):
@@ -127,6 +170,7 @@ class TTestAnalysis:
             'significant': p_value < self.alpha, 'cohens_d': cohens_d, 
             'data1': data1, 'data2': data2, 'differences': differences
         }
+        self.results['paired_samples']['interpretations'] = get_interpretations(self.results['paired_samples'])
         return self.results['paired_samples']
 
     def plot_results(self, test_type=None, figsize=(10, 8)):
@@ -217,5 +261,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
