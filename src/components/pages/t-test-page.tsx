@@ -53,7 +53,13 @@ interface TTestPageProps {
 
 export default function TTestPage({ data, numericHeaders, categoricalHeaders, onLoadExample, activeAnalysis }: TTestPageProps) {
     const { toast } = useToast();
-    const activeTest = activeAnalysis.split('-').slice(1).join('_') as TestType;
+    
+    const activeTest = useMemo(() => {
+        if (activeAnalysis.startsWith('t-test-')) {
+            return activeAnalysis.replace('t-test-', '').replace(/-/g, '_') as TestType;
+        }
+        return 'one_sample';
+    }, [activeAnalysis]);
     
     // State for each test
     const [osVar, setOsVar] = useState(numericHeaders[0]);
@@ -254,7 +260,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         case 'one_sample':
           return (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Compares a sample mean to a known population mean.</p>
+              <p className="text-sm text-muted-foreground">Compares a sample mean to a known value.</p>
               <div className="grid md:grid-cols-2 gap-4">
                 <div><Label>Variable</Label><Select value={osVar} onValueChange={setOsVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                 <div><Label>Test Value (μ₀)</Label><Input type="number" value={osTestValue} onChange={(e) => setOsTestValue(Number(e.target.value))} /></div>
@@ -293,7 +299,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">t-Test</CardTitle>
+                    <CardTitle className="font-headline">{activeTest.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} t-Test</CardTitle>
                     <CardDescription>
                       {
                         activeTest === 'one_sample' ? 'Compares a sample mean to a known value.' :
