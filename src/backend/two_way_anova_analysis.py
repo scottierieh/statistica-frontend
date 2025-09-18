@@ -57,10 +57,9 @@ class TwoWayAnovaAnalysis:
     def run_analysis(self):
         anova_table = anova_lm(self.model, typ=2)
         
-        # Get interaction p-value BEFORE renaming columns
         interaction_source_key = f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'
         interaction_p_value = anova_table.loc[interaction_source_key, 'PR(>F)'] if interaction_source_key in anova_table.index else 1.0
-
+        
         # Add partial eta-squared (η²p)
         if 'Residual' in anova_table.index:
             anova_table['η²p'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
@@ -186,3 +185,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
