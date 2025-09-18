@@ -184,19 +184,30 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">{results.test_type} Results</CardTitle>
-                        <CardDescription>
-                            {results.interpretation.decision} (p={results.p_value < 0.001 ? '<.001' : results.p_value.toFixed(3)})
-                        </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <p>{results.interpretation.conclusion}.</p>
-                        {results.effect_size && <p>The effect size was {results.effect_size_interpretation.text.toLowerCase()}.</p>}
+                        <p className="text-sm">{results.interpretation}</p>
                     </CardContent>
                 </Card>
                  <Card>
                     <CardHeader><CardTitle>Statistics</CardTitle></CardHeader>
                     <CardContent>
-                        {activeTest === 'mcnemar' ? renderMcNemarResult() : (
+                        {activeTest === 'mcnemar' ? renderMcNemarResult() : activeTest === 'mann_whitney' ? (
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Statistic</TableHead>
+                                        <TableHead className="text-right">Value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow><TableCell>Mann-Whitney U</TableCell><TableCell className="font-mono text-right">{results.U?.toFixed(3)}</TableCell></TableRow>
+                                    <TableRow><TableCell>Z-score</TableCell><TableCell className="font-mono text-right">{results.z_score?.toFixed(4)}</TableCell></TableRow>
+                                    <TableRow><TableCell>P-value</TableCell><TableCell className="font-mono text-right">{results.p_value?.toFixed(4)}</TableCell></TableRow>
+                                    <TableRow><TableCell>Effect Size (r)</TableCell><TableCell className="font-mono text-right">{results.effect_size?.toFixed(3)}</TableCell></TableRow>
+                                </TableBody>
+                            </Table>
+                        ) : (
                             <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm">
                                 <dt>Statistic</dt><dd className="font-mono text-right">{results.statistic.toFixed(3)}</dd>
                                 <dt>P-value</dt><dd className="font-mono text-right">{results.p_value.toFixed(4)}</dd>
@@ -209,7 +220,7 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
             </div>
         )
     };
-    
+
     if (!canRun) {
         const testExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('nonparametric'));
         return (
@@ -253,7 +264,7 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
         );
     }
     
-    const renderSetup = () => {
+    const renderSetupUI = () => {
       switch(activeTest) {
         case 'mann_whitney':
           return (
@@ -317,7 +328,7 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
                     <CardTitle className="font-headline">{activeTest.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Test</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {renderSetup()}
+                    {renderSetupUI()}
                 </CardContent>
                 <CardFooter className="flex justify-end mt-4">
                     <Button onClick={handleAnalysis} disabled={isLoading}>
