@@ -118,6 +118,7 @@ import NonlinearRegressionPage from './pages/nonlinear-regression-page';
 import SnaPage from './pages/sna-page';
 import TopicModelingPage from './pages/topic-modeling-page';
 import DeaPage from './pages/dea-page';
+import TTestPage from './pages/t-test-page';
 
 type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
 
@@ -178,6 +179,9 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     sna: SnaPage,
     'topic-modeling': TopicModelingPage,
     dea: DeaPage,
+    't-test-one-sample': TTestPage,
+    't-test-independent': TTestPage,
+    't-test-paired': TTestPage,
 };
 
 const analysisMenu = [
@@ -196,6 +200,14 @@ const analysisMenu = [
     field: 'Hypothesis Testing',
     icon: Sigma,
     subCategories: [
+      {
+        name: 'T-Test',
+        methods: [
+          { id: 't-test-one-sample', label: 'One-Sample T-Test' },
+          { id: 't-test-independent', label: 'Independent Samples T-Test', implemented: false },
+          { id: 't-test-paired', label: 'Paired Samples T-Test', implemented: false },
+        ]
+      },
       {
         name: 'ANOVA',
         methods: [
