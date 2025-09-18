@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, TrendingUp } from 'lucide-react';
+import { Sigma, Loader2, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -559,3 +559,4 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     
 
     
+
