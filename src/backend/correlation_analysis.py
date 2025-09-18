@@ -25,72 +25,70 @@ def _to_native_type(obj):
 def _interpret_correlation_magnitude(r):
     """Interpret the magnitude of correlation coefficient"""
     abs_r = abs(r)
-    if abs_r >= 0.5: return 'large'
-    if abs_r >= 0.3: return 'medium'
-    if abs_r >= 0.1: return 'small'
+    if abs_r >= 0.7: return 'very strong'
+    if abs_r >= 0.5: return 'strong'
+    if abs_r >= 0.3: return 'moderate'
+    if abs_r >= 0.1: return 'weak'
     return 'negligible'
 
-def generate_interpretation(summary_stats, effect_sizes, strongest_correlations, method):
+def generate_interpretation(all_correlations, method, alpha=0.05):
     """
     Generates a comprehensive textual interpretation of the correlation results.
     """
     interpretation_parts = []
     
-    try:
-        mean_corr = summary_stats.get('mean_correlation', 0)
-        total_pairs = summary_stats.get('total_pairs', 0)
-        
-        if total_pairs == 0:
-            return "No valid correlation pairs found for analysis.", []
+    if not all_correlations:
+        return "No valid correlation pairs were found for analysis."
 
-        mean_desc = "generally negligible"
-        if abs(mean_corr) >= 0.5:
-            mean_desc = "generally strong"
-        elif abs(mean_corr) >= 0.3:
-            mean_desc = "generally moderate"
-        elif abs(mean_corr) >= 0.1:
-            mean_desc = "generally weak"
+    significant_correlations = [c for c in all_correlations if c['significant']]
+    
+    # 1. Overall Summary
+    total_pairs = len(all_correlations)
+    significant_count = len(significant_correlations)
+    mean_corr = np.mean([c['correlation'] for c in all_correlations])
+    
+    interpretation_parts.append(
+        f"A {method.title()} correlation analysis was conducted on {total_pairs} variable pairs. "
+        f"Of these, {significant_count} pairs ({significant_count/total_pairs:.1%}) showed a statistically significant relationship (p < {alpha}). "
+        f"The average correlation coefficient was {mean_corr:.3f}, indicating a generally weak overall relationship strength."
+    )
+
+    # 2. Detailed Significant Findings
+    if significant_correlations:
+        details = ["The following significant relationships were identified:"]
+        # Sort by absolute correlation value to present the most important ones first
+        for corr in sorted(significant_correlations, key=lambda x: abs(x['correlation']), reverse=True):
+            var1 = corr['variable_1']
+            var2 = corr['variable_2']
+            r = corr['correlation']
+            p = corr['p_value']
             
-        interpretation_parts.append(
-            f"📊 **Correlation Analysis Summary**\n"
-            f"This report details the {method.title()} correlation analysis. A total of **{total_pairs}** variable pairs were analyzed. "
-            f"The average correlation coefficient was **{mean_corr:.3f}**, suggesting a {mean_desc} overall relationship strength across the variables."
-        )
-        
-        significant_count = summary_stats.get('significant_correlations', 0)
-        significant_pct = (significant_count / total_pairs * 100) if total_pairs > 0 else 0
-        effect_dist = effect_sizes.get('distribution', {})
-        strongest_effect = effect_sizes.get('strongest_effect', 'negligible')
-        
-        interpretation_parts.append(
-            f"📈 **Significance and Effect Size**\n"
-            f"**{significant_count}** pairs ({significant_pct:.1f}%) showed a statistically significant correlation (p < 0.05). "
-            f"The dominant effect size was **{strongest_effect}**, with {effect_dist.get(strongest_effect, 0)} pairs falling into this category. This indicates the practical importance of the observed relationships."
-        )
-        
-        if strongest_correlations and len(strongest_correlations) > 0:
-            strongest_pos = next((c for c in strongest_correlations if c['correlation'] > 0), None)
-            strongest_neg = next((c for c in strongest_correlations if c['correlation'] < 0), None)
+            magnitude = _interpret_correlation_magnitude(r)
+            direction = "positive" if r > 0 else "negative"
+            direction_desc = "increases" if r > 0 else "decreases"
             
-            correlation_details = []
-            
-            if strongest_pos:
-                correlation_details.append(
-                    f"The strongest positive correlation was between **{strongest_pos['variable_1']}** and **{strongest_pos['variable_2']}** (r = {strongest_pos['correlation']:.3f}, p = {strongest_pos['p_value']:.4f}). This indicates that as one variable increases, the other tends to significantly increase."
-                )
-                
-            if strongest_neg:
-                correlation_details.append(
-                    f"The strongest negative correlation was between **{strongest_neg['variable_1']}** and **{strongest_neg['variable_2']}** (r = {strongest_neg['correlation']:.3f}, p = {strongest_neg['p_value']:.4f}). This implies that as one variable increases, the other tends to significantly decrease."
-                )
-            
-            if correlation_details:
-                interpretation_parts.append(f"🔍 **Key Findings**\n" + "\n".join(correlation_details))
-        
-        return "\n\n".join(interpretation_parts)
-        
-    except Exception as e:
-        return f"Error generating interpretation: {str(e)}"
+            details.append(
+                f"- A **{magnitude} {direction}** correlation was found between **{var1}** and **{var2}** "
+                f"(r = {r:.3f}, p = {p:.4f}). This suggests that as '{var1}' increases, '{var2}' tends to {direction_desc}."
+            )
+        interpretation_parts.append("\n".join(details))
+    else:
+        interpretation_parts.append("No statistically significant correlations were found among the analyzed variables.")
+
+    # 3. Conclusion/Recommendations
+    if significant_correlations:
+        strongest_corr = max(significant_correlations, key=lambda x: abs(x['correlation']))
+        recommendations = [
+            "**Conclusion**: The analysis reveals several key relationships, with the strongest being between "
+            f"'{strongest_corr['variable_1']}' and '{strongest_corr['variable_2']}'. These findings can guide further investigation, such as regression analysis, to explore causality.",
+            "**Recommendation**: Focus on the variables with strong and moderate correlations for predictive modeling. For pairs with weak correlations, their practical significance may be limited, even if statistically significant."
+        ]
+        interpretation_parts.append("\n".join(recommendations))
+    else:
+         interpretation_parts.append("**Conclusion**: The variables appear to be largely independent of one another. Further analysis may require different statistical approaches or data transformations.")
+
+
+    return "\n\n".join(interpretation_parts)
 
 def main():
     try:
@@ -172,14 +170,14 @@ def main():
         effect_size_counts = { 'large': effect_sizes_list.count('large'), 'medium': effect_sizes_list.count('medium'), 'small': effect_sizes_list.count('small'), 'negligible': effect_sizes_list.count('negligible')}
 
         strongest_effect = 'negligible'
-        if effect_size_counts['large'] > 0: strongest_effect = 'large'
-        elif effect_size_counts['medium'] > 0: strongest_effect = 'medium'
-        elif effect_size_counts['small'] > 0: strongest_effect = 'small'
+        if effect_size_counts.get('large', 0) > 0: strongest_effect = 'large'
+        elif effect_size_counts.get('medium', 0) > 0: strongest_effect = 'medium'
+        elif effect_size_counts.get('small', 0) > 0: strongest_effect = 'small'
         
         effect_sizes_summary = {'distribution': effect_size_counts, 'strongest_effect': strongest_effect}
         strongest_correlations = sorted(all_correlations, key=lambda x: abs(x['correlation']), reverse=True)[:10]
 
-        interpretation = generate_interpretation(summary_stats, effect_sizes_summary, strongest_correlations, method)
+        interpretation = generate_interpretation(all_correlations, method, alpha)
 
         response = {
             "correlation_matrix": corr_matrix.to_dict(),
