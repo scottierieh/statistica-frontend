@@ -45,7 +45,8 @@ def generate_interpretation(all_correlations, method, alpha=0.05):
     # 1. Overall Summary
     total_pairs = len(all_correlations)
     significant_count = len(significant_correlations)
-    mean_corr = np.mean([c['correlation'] for c in all_correlations])
+    mean_corr_list = [c['correlation'] for c in all_correlations if c.get('correlation') is not None]
+    mean_corr = np.mean(mean_corr_list) if mean_corr_list else 0
     
     interpretation_parts.append(
         f"A {method.title()} correlation analysis was conducted on {total_pairs} variable pairs. "
@@ -67,23 +68,25 @@ def generate_interpretation(all_correlations, method, alpha=0.05):
             direction = "positive" if r > 0 else "negative"
             direction_desc = "increases" if r > 0 else "decreases"
             
+            p_string = f"p < .001" if p < 0.001 else f"p = {p:.3f}"
+            
             details.append(
-                f"- A **{magnitude} {direction}** correlation was found between **{var1}** and **{var2}** "
-                f"(r = {r:.3f}, p = {p:.4f}). This suggests that as '{var1}' increases, '{var2}' tends to {direction_desc}."
+                f"- A **{magnitude} {direction}** correlation was found between **'{var1}'** and **'{var2}'** "
+                f"(*r* = {r:.3f}, {p_string}). This suggests that as '{var1}' increases, '{var2}' tends to {direction_desc}."
             )
         interpretation_parts.append("\n".join(details))
     else:
         interpretation_parts.append("No statistically significant correlations were found among the analyzed variables.")
 
-    # 3. Conclusion/Recommendations
+    # 3. Conclusion
     if significant_correlations:
         strongest_corr = max(significant_correlations, key=lambda x: abs(x['correlation']))
-        recommendations = [
+        conclusion = (
             "**Conclusion**: The analysis reveals several key relationships, with the strongest being between "
-            f"'{strongest_corr['variable_1']}' and '{strongest_corr['variable_2']}'. These findings can guide further investigation, such as regression analysis, to explore causality.",
-            "**Recommendation**: Focus on the variables with strong and moderate correlations for predictive modeling. For pairs with weak correlations, their practical significance may be limited, even if statistically significant."
-        ]
-        interpretation_parts.append("\n".join(recommendations))
+            f"'{strongest_corr['variable_1']}' and '{strongest_corr['variable_2']}'. These findings can guide further investigation, such as regression analysis, to explore causality. "
+            "It is important to remember that correlation does not imply causation."
+        )
+        interpretation_parts.append(conclusion)
     else:
          interpretation_parts.append("**Conclusion**: The variables appear to be largely independent of one another. Further analysis may require different statistical approaches or data transformations.")
 
@@ -113,17 +116,18 @@ def main():
         if df_clean.shape[0] < 2:
             raise ValueError("Not enough valid data points for analysis.")
 
-        n_vars = len(variables)
+        n_vars = len(df_clean.columns)
+        current_vars = df_clean.columns.tolist()
 
-        corr_matrix = pd.DataFrame(np.eye(n_vars), index=variables, columns=variables)
-        p_value_matrix = pd.DataFrame(np.zeros((n_vars, n_vars)), index=variables, columns=variables)
+        corr_matrix = pd.DataFrame(np.eye(n_vars), index=current_vars, columns=current_vars)
+        p_value_matrix = pd.DataFrame(np.zeros((n_vars, n_vars)), index=current_vars, columns=current_vars)
         
         all_correlations = []
 
         for i in range(n_vars):
             for j in range(i + 1, n_vars):
-                var1 = variables[i]
-                var2 = variables[j]
+                var1 = current_vars[i]
+                var2 = current_vars[j]
                 
                 corr, p_value = np.nan, np.nan
 
@@ -142,7 +146,7 @@ def main():
                     corr_matrix.loc[var1, var2] = corr_matrix.loc[var2, var1] = corr
                     p_value_matrix.loc[var1, var2] = p_value_matrix.loc[var2, var1] = p_value
                     
-                    if not np.isnan(corr):
+                    if not np.isnan(corr) and not np.isnan(p_value):
                         all_correlations.append({
                             'variable_1': var1,
                             'variable_2': var2,
@@ -154,12 +158,12 @@ def main():
                     continue
 
         if len(all_correlations) > 0:
-            correlations_only = [c['correlation'] for c in all_correlations]
+            correlations_only = [c['correlation'] for c in all_correlations if c.get('correlation') is not None]
             summary_stats = {
-                'mean_correlation': np.mean(correlations_only),
-                'median_correlation': np.median(correlations_only),
-                'std_dev': np.std(correlations_only),
-                'range': [np.min(correlations_only), np.max(correlations_only)],
+                'mean_correlation': np.mean(correlations_only) if correlations_only else 0,
+                'median_correlation': np.median(correlations_only) if correlations_only else 0,
+                'std_dev': np.std(correlations_only) if correlations_only else 0,
+                'range': [np.min(correlations_only), np.max(correlations_only)] if correlations_only else [0,0],
                 'significant_correlations': sum(1 for c in all_correlations if c['significant']),
                 'total_pairs': len(all_correlations)
             }
@@ -197,5 +201,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
