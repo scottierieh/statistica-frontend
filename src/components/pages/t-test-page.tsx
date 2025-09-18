@@ -79,24 +79,27 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
 
     const handleAnalysis = useCallback(async () => {
         let params: any = {};
-        let testTypeForApi: string = activeTest;
+        let testTypeForApi: string;
 
         switch(activeTest) {
             case 'one_sample':
                 if (!osVar) { toast({ variant: "destructive", title: "Please select a variable." }); return; }
                 params = { variable: osVar, test_value: osTestValue };
-                testTypeForApi = 'one_sample'
+                testTypeForApi = 'one_sample';
                 break;
             case 'independent_samples':
                 if (!isDepVar || !isGroupVar) { toast({ variant: "destructive", title: "Please select dependent and group variables." }); return; }
                 params = { variable: isDepVar, group_variable: isGroupVar, equal_var: isEqualVar };
-                testTypeForApi = 'independent_samples'
+                testTypeForApi = 'independent_samples';
                 break;
             case 'paired_samples':
                 if (!psVar1 || !psVar2 || psVar1 === psVar2) { toast({ variant: "destructive", title: "Please select two different variables." }); return; }
                 params = { variable1: psVar1, variable2: psVar2 };
-                testTypeForApi = 'paired_samples'
+                testTypeForApi = 'paired_samples';
                 break;
+            default:
+                toast({variant: 'destructive', title: 'Invalid Test', description: 'Selected test type is not recognized.'});
+                return;
         }
 
         setIsLoading(true);
@@ -142,8 +145,9 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         
         const renderDescriptives = () => {
             if (!results.descriptives) return null;
-            if (activeTest === 'one_sample') {
-                const stats = results.descriptives[results.variable];
+             if (activeTest === 'one_sample') {
+                const stats = results.descriptives[results.variable as string];
+                if (!stats) return null;
                 return (
                     <TableRow>
                         <TableCell>{results.variable}</TableCell>
@@ -343,5 +347,3 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
-
-    
