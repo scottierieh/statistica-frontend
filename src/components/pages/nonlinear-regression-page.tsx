@@ -7,20 +7,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Atom } from 'lucide-react';
+import { Sigma, Loader2, Atom, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface AnalysisResponse {
     results: {
         parameters: { [key: string]: number };
+        standard_errors: { [key: string]: number };
+        p_values: { [key: string]: number };
         r_squared: number;
+        aic: number;
+        rss: number;
+        interpretation: string;
     };
     plot: string;
 }
+
+const getSignificanceStars = (p: number | undefined) => {
+    if (p === undefined) return '';
+    if (p < 0.001) return '***';
+    if (p < 0.01) return '**';
+    if (p < 0.05) return '*';
+    return '';
+};
+
 
 interface NonlinearRegressionPageProps {
     data: DataSet;
@@ -148,11 +163,25 @@ export default function NonlinearRegressionPage({ data, numericHeaders, onLoadEx
 
             {results && analysisResult?.plot && (
                 <div className="space-y-4">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Model Fit & Interpretation</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Alert>
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Key Findings</AlertTitle>
+                                <AlertDescription>
+                                    <p className="whitespace-pre-wrap">{results.interpretation}</p>
+                                </AlertDescription>
+                            </Alert>
+                        </CardContent>
+                    </Card>
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">{modelType.charAt(0).toUpperCase() + modelType.slice(1)} Regression Fit</CardTitle>
                             <CardDescription>
-                                R-squared: <Badge>{results.r_squared.toFixed(4)}</Badge>
+                                R-squared: <Badge>{results.r_squared.toFixed(4)}</Badge> | AIC: <Badge variant="secondary">{results.aic.toFixed(2)}</Badge> | RSS: <Badge variant="secondary">{results.rss.toFixed(2)}</Badge>
                             </CardDescription>
                         </CardHeader>
                         <CardContent className='grid md:grid-cols-2 gap-4'>
@@ -163,7 +192,9 @@ export default function NonlinearRegressionPage({ data, numericHeaders, onLoadEx
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Parameter</TableHead>
-                                            <TableHead className="text-right">Value</TableHead>
+                                            <TableHead className="text-right">Estimate</TableHead>
+                                            <TableHead className="text-right">Std. Error</TableHead>
+                                            <TableHead className="text-right">p-value</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -171,6 +202,8 @@ export default function NonlinearRegressionPage({ data, numericHeaders, onLoadEx
                                             <TableRow key={param}>
                                                 <TableCell>{param}</TableCell>
                                                 <TableCell className="text-right font-mono">{value.toFixed(4)}</TableCell>
+                                                <TableCell className="text-right font-mono">{results.standard_errors[param]?.toFixed(4)}</TableCell>
+                                                <TableCell className="text-right font-mono">{results.p_values[param] < 0.001 ? '<.001' : results.p_values[param]?.toFixed(4)} {getSignificanceStars(results.p_values[param])}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
