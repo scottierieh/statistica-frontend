@@ -72,7 +72,7 @@ class TTestAnalysis:
         self.results['one_sample'] = result
         return result
     
-    def independent_samples_ttest(self, variable, group_variable, equal_var=True, alternative='two-sided'):
+    def independent_samples_ttest(self, variable, group_variable, alternative='two-sided'):
         clean_data = self.data[[variable, group_variable]].dropna()
         groups = clean_data[group_variable].unique()
         
@@ -82,6 +82,10 @@ class TTestAnalysis:
         group1_data = clean_data[clean_data[group_variable] == groups[0]][variable].values
         group2_data = clean_data[clean_data[group_variable] == groups[1]][variable].values
         
+        # Levene's test for homogeneity of variances
+        levene_stat, levene_p = stats.levene(group1_data, group2_data)
+        equal_var = levene_p > self.alpha
+
         n1, n2 = len(group1_data), len(group2_data)
         mean1, mean2 = np.mean(group1_data), np.mean(group2_data)
         std1, std2 = np.std(group1_data, ddof=1), np.std(group2_data, ddof=1)
@@ -92,13 +96,13 @@ class TTestAnalysis:
             df = n1 + n2 - 2
             pooled_std = np.sqrt(((n1-1)*std1**2 + (n2-1)*std2**2) / df) if df > 0 else 0
             cohens_d = (mean1 - mean2) / pooled_std if pooled_std > 0 else 0
-        else:
+        else: # Welch's t-test
             s1_sq_n1 = std1**2 / n1 if n1 > 0 else 0
             s2_sq_n2 = std2**2 / n2 if n2 > 0 else 0
             df_num = (s1_sq_n1 + s2_sq_n2)**2
             df_den = ((s1_sq_n1**2/(n1-1)) + (s2_sq_n2**2/(n2-1))) if n1 > 1 and n2 > 1 else np.inf
             df = df_num / df_den if df_den > 0 else np.inf
-            pooled_std = np.sqrt((std1**2 + std2**2) / 2)
+            pooled_std = np.sqrt((std1**2 + std2**2) / 2) # For Cohen's d in Welch's
             cohens_d = (mean1 - mean2) / pooled_std if pooled_std > 0 else 0
         
         descriptives = {
@@ -111,6 +115,7 @@ class TTestAnalysis:
             'n1': n1, 'n2': n2, 'mean1': mean1, 'mean2': mean2, 'std1': std1, 'std2': std2,
             't_statistic': t_stat, 'degrees_of_freedom': df, 'p_value': p_value, 'significant': p_value < self.alpha,
             'cohens_d': cohens_d, 'descriptives': descriptives,
+            'levene_test': {'statistic': levene_stat, 'p_value': levene_p, 'assumption_met': equal_var},
             'data1': group1_data, 'data2': group2_data
         }
         result['interpretation'] = self._generate_interpretation(result)
@@ -155,14 +160,75 @@ class TTestAnalysis:
 
     def _generate_interpretation(self, result):
         test_type = result['test_type']
-        p_val = result['p_value']
-        significant = result['significant']
         
-        if test_type == 'paired_samples':
+        if test_type == 'one_sample':
+            return self._interpret_one_sample_ttest(result)
+        elif test_type == 'independent_samples':
+            return self._interpret_independent_ttest(result)
+        elif test_type == 'paired_samples':
             return self._interpret_paired_ttest(result)
         
         # Fallback for other test types
+        p_val = result['p_value']
+        significant = result['significant']
         return f"The test was statistically {'significant' if significant else 'not significant'} with a p-value of {p_val:.4f}."
+
+    def _interpret_one_sample_ttest(self, res):
+        p_text = f"p < .001" if res['p_value'] < 0.001 else f"p = {res['p_value']:.3f}"
+        sig_text = "statistically significant" if res['significant'] else "not statistically significant"
+        effect_interp = get_effect_size_interpretation(res['cohens_d'])
+        
+        m = res['sample_mean']
+        sd = res['descriptives'][res['variable']]['std_dev']
+
+        interpretation = (
+            f"A one-sample t-test was run to determine whether the mean of '{res['variable']}' was different from the test value of {res['test_value']}.\n"
+            f"The sample mean (M={m:.2f}, SD={sd:.2f}) was found to be {sig_text}ly different from {res['test_value']}, "
+            f"t({res['degrees_of_freedom']}) = {res['t_statistic']:.2f}, {p_text}.\n"
+        )
+        
+        ci = res['confidence_interval']
+        interpretation += (
+            f"The 95% confidence interval for the mean is [{ci[0]:.2f}, {ci[1]:.2f}]. "
+        )
+        if not (ci[0] <= res['test_value'] <= ci[1]):
+             interpretation += f"Since this interval does not contain the test value of {res['test_value']}, the result is significant. "
+        else:
+             interpretation += f"Since this interval contains the test value of {res['test_value']}, the result is not significant. "
+
+
+        interpretation += f"The calculated Cohen's d of {res['cohens_d']:.3f} indicates a {effect_interp} effect size."
+        
+        return interpretation.strip()
+
+    def _interpret_independent_ttest(self, res):
+        p_text = f"p < .001" if res['p_value'] < 0.001 else f"p = {res['p_value']:.3f}"
+        sig_text = "statistically significant" if res['significant'] else "not statistically significant"
+        effect_interp = get_effect_size_interpretation(res['cohens_d'])
+
+        g1, g2 = res['groups']
+        m1, sd1 = res['descriptives'][str(g1)]['mean'], res['descriptives'][str(g1)]['std_dev']
+        m2, sd2 = res['descriptives'][str(g2)]['mean'], res['descriptives'][str(g2)]['std_dev']
+
+        interpretation = (
+            f"An independent-samples t-test was conducted to compare '{res['variable']}' between two groups: '{g1}' and '{g2}'.\n"
+        )
+        
+        levene_p = res['levene_test']['p_value']
+        if levene_p > self.alpha:
+            interpretation += f"Levene's test for equality of variances was not significant (p = {levene_p:.3f}), so equal variances were assumed. "
+        else:
+            interpretation += f"Levene's test was significant (p = {levene_p:.3f}), so equal variances were not assumed (Welch's t-test was used). "
+
+        interpretation += (
+            f"There was a {sig_text} difference in the scores for '{g1}' (M={m1:.2f}, SD={sd1:.2f}) and '{g2}' (M={m2:.2f}, SD={sd2:.2f}); "
+            f"t({res['degrees_of_freedom']:.2f}) = {res['t_statistic']:.2f}, {p_text}.\n"
+        )
+        
+        interpretation += f"The calculated Cohen's d of {res['cohens_d']:.3f} indicates a {effect_interp} effect size."
+        
+        return interpretation.strip()
+
 
     def _interpret_paired_ttest(self, res):
         p_text = f"p < .001" if res['p_value'] < 0.001 else f"p = {res['p_value']:.3f}"
@@ -283,3 +349,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+      
