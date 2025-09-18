@@ -80,9 +80,6 @@ export default function DataUploader({ onFileSelected, loading }: DataUploaderPr
     >
       <UploadCloud className={cn("mb-2 h-8 w-8 text-muted-foreground transition-transform group-hover:scale-110", isDragging && "text-primary scale-110")} />
       <h3 className="mb-1 text-sm font-semibold">Upload Data</h3>
-      <p className="mb-2 text-xs text-muted-foreground">
-        Drag & Drop or
-      </p>
        <input
         ref={fileInputRef}
         type="file"
