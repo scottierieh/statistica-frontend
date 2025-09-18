@@ -60,7 +60,7 @@ class NonParametricTests:
         
         # Calculate effect size r
         mean_u = n1 * n2 / 2
-        std_u = np.sqrt(n1 * n2 * (n1 + n2 + 1) / 12)
+        std_u = np.sqrt(n1 * n2 * (n1 + n2 + 1) / 12) if (n1+n2) > 0 else 0
         z_score = (min(U1, U2) - mean_u) / std_u if std_u > 0 else 0
         r = abs(z_score) / np.sqrt(n1 + n2) if (n1 + n2) > 0 else 0
         
@@ -78,18 +78,19 @@ class NonParametricTests:
             'effect_size': r, 'effect_size_interpretation': effect_size_interp, 'alpha': alpha,
             'is_significant': is_significant, 'alternative': alternative, 'groups': groups,
             'descriptive_stats': desc_stats,
-            'interpretation': self._interpret_mann_whitney(is_significant, groups, effect_size_interp['level'], r, p_value, alpha, group_col, value_col, desc_stats, statistic, z_score),
+            'interpretation': self._interpret_mann_whitney(is_significant, groups, p_value, group_col, value_col, desc_stats, z_score),
             'group_col': group_col, 'value_col': value_col
         }
         self.results['mann_whitney'] = result
         return result
 
     def wilcoxon_signed_rank_test(self, var1: str, var2: str, alternative: str = 'two-sided', alpha: float = 0.05) -> Dict:
-        data1 = self.data[var1].dropna()
-        data2 = self.data[var2].dropna()
-        valid_indices = data1.index.intersection(data2.index)
-        data1 = data1.loc[valid_indices]
-        data2 = data2.loc[valid_indices]
+        clean_data = self.data[[var1, var2]].dropna()
+        if len(clean_data) < 10:
+             raise ValueError("Wilcoxon test requires at least 10 complete pairs.")
+        
+        data1 = clean_data[var1]
+        data2 = clean_data[var2]
 
         if len(data1) == 0: raise ValueError("No valid paired observations found")
         
@@ -121,7 +122,7 @@ class NonParametricTests:
             'alternative': alternative, 'variables': [var1, var2], 'descriptive_stats': desc_stats,
             'interpretation': self._interpret_wilcoxon(is_significant, var1, var2, effect_size_interp['level'], r, p_value, alpha, statistic, desc_stats)
         }
-        self.results['wilcoxon'] = result
+        self.results[activeTest] = result
         return result
 
     def kruskal_wallis_test(self, group_col: str, value_col: str, alpha: float = 0.05) -> Dict:
@@ -220,43 +221,49 @@ class NonParametricTests:
         level = 'Strong' if w >= 0.3 else 'Moderate' if w >= 0.1 else 'Weak'
         return {'level': level.lower(), 'text': level}
     
-    def _format_p_value(self, p): return "< .001" if p < 0.001 else f"{p:.3f}"
+    def _format_p_value(self, p, alpha): 
+        return f"< {alpha}" if p < alpha else f"= {p:.3f}"
     
-    def _interpret_mann_whitney(self, is_sig, groups, effect_level, r, p, alpha, group_col, value_col, desc_stats, u_stat, z_score):
-        p_text = self._format_p_value(p)
+    def _interpret_mann_whitney(self, is_sig, groups, p, group_col, value_col, desc_stats, z_score):
+        p_text = self._format_p_value(p, 0.05)
         g1, g2 = groups[0], groups[1]
-        med1, rank1 = desc_stats[g1]['median'], desc_stats[g1]['mean_rank']
-        med2, rank2 = desc_stats[g2]['median'], desc_stats[g2]['mean_rank']
+        
+        rank1 = desc_stats[g1]['mean_rank']
+        rank2 = desc_stats[g2]['mean_rank']
 
-        interpretation = (
-            f"**Introduction:** A Mann-Whitney U test was conducted to determine if there was a statistically significant difference in '{value_col}' between two independent groups: '{g1}' and '{g2}'. This non-parametric test was chosen as an alternative to the t-test.\n\n"
-            f"**Method:** The analysis ranked all '{value_col}' scores from both groups and compared the mean ranks between the '{g1}' group (n={desc_stats[g1]['n']}) and the '{g2}' group (n={desc_stats[g2]['n']}).\n\n"
-            f"**Results:** The results indicated that the median '{value_col}' for '{g1}' (Mdn = {med1:.2f}, mean rank = {rank1:.2f}) was {'not ' if not is_sig else ''}statistically significantly different from '{g2}' (Mdn = {med2:.2f}, mean rank = {rank2:.2f}), U = {u_stat}, z = {z_score:.2f}, {p_text}.\n\n"
-            f"**Discussion:** {'Since the p-value is greater than the alpha level of ' + str(alpha) + ', we fail to reject the null hypothesis. ' if not is_sig else 'The p-value is less than the alpha level of ' + str(alpha) + ', indicating a significant result. '}"
-            f"There is evidence to suggest a difference in '{value_col}' scores between the two groups. The magnitude of the difference was {effect_level}, with an effect size (r) of {r:.3f}.\n\n"
-            f"**Conclusion:** The analysis {'' if is_sig else 'did not find a '}found a significant difference in '{value_col}' between the '{g1}' and '{g2}' groups. {'Further research could investigate other factors or use a larger sample size to increase statistical power.' if not is_sig else ''}"
+        higher_group = g1 if rank1 > rank2 else g2
+        lower_group = g2 if rank1 > rank2 else g1
+
+        sig_diff_text = "a significant difference" if is_sig else "no significant difference"
+        
+        interp = (
+            f"A Mann-Whitney U test was conducted to determine whether there was a difference in '{value_col}' between '{g1}' and '{g2}'. "
+            f"Results of that analysis indicated that there was {sig_diff_text}, z = {z_score:.4f}, {p_text}."
         )
-        return interpretation
+
+        if is_sig:
+            interp += f" Golfers on the '{higher_group}' group finishing higher in the '{value_col}' than golfers on the '{lower_group}' group."
+
+        return interp
 
     def _interpret_wilcoxon(self, is_sig, v1, v2, effect_level, r, p, alpha, w_stat, desc_stats):
-        sig_text = "statistically significant" if is_sig else "not statistically significant"
-        p_text = self._format_p_value(p)
+        p_text = self._format_p_value(p, alpha)
         med1 = desc_stats[v1]['median']
         med2 = desc_stats[v2]['median']
 
         interpretation = (
-            f"A Wilcoxon Signed-Rank test was conducted to determine if there was a median difference between '{v1}' and '{v2}'.\n"
-            f"The results indicated a {sig_text} difference between the paired values, W = {w_stat}, {p_text}.\n"
+            f"A Wilcoxon Signed-Rank test was conducted to determine if there was a median difference between '{v1}' (Mdn = {med1:.2f}) and '{v2}' (Mdn = {med2:.2f}).\n"
+            f"The results indicated a {'statistically significant' if is_sig else 'not statistically significant'} difference between the paired values, W = {w_stat}, {p_text}.\n"
         )
         if is_sig:
-            interpretation += f"The median for '{v1}' (Mdn = {med1:.2f}) was {'' if med1 == med2 else ('higher' if med1 > med2 else 'lower')} than the median for '{v2}' (Mdn = {med2:.2f}). "
-
+             interpretation += f"The median for '{v1}' was {'' if med1 == med2 else ('higher' if med1 > med2 else 'lower')} than the median for '{v2}'. "
+        
         interpretation += f"The effect size was {effect_level} (r = {r:.3f})."
 
         return interpretation
         
     def _interpret_kruskal_wallis(self, is_sig, groups, effect, es, p, alpha, h_stat, df):
-        p_text = self._format_p_value(p)
+        p_text = self._format_p_value(p, alpha)
         return {
             'decision': f"{'Reject' if is_sig else 'Fail to reject'} H₀",
             'conclusion': f"A Kruskal-Wallis H test showed that there was a {'statistically significant' if is_sig else 'not statistically significant'} difference in scores between the different groups, H({df}) = {h_stat:.2f}, {p_text}.",
@@ -264,7 +271,7 @@ class NonParametricTests:
         }
 
     def _interpret_friedman(self, is_sig, var, effect, W, p, alpha, stat, df):
-        p_text = self._format_p_value(p)
+        p_text = self._format_p_value(p, alpha)
         return {
             'decision': f"{'Reject' if is_sig else 'Fail to reject'} H₀",
             'conclusion': f"A Friedman test revealed a {'statistically significant' if is_sig else 'not statistically significant'} difference in scores across the conditions, χ²({df}) = {stat:.2f}, {p_text}.",
@@ -272,9 +279,9 @@ class NonParametricTests:
         }
 
     def plot_results(self, test_type):
-        if test_type not in self.results:
+        result = self.results.get(test_type)
+        if not result:
              raise ValueError(f"No results found for test type: {test_type}")
-        result = self.results[test_type]
         
         if test_type == 'mcnemar':
             table = pd.DataFrame(result['contingency_table'])
@@ -329,7 +336,7 @@ class NonParametricTests:
                 sns.barplot(x=vars, y=mean_ranks, ax=ax[1])
                 ax[1].set_title('Mean Ranks')
 
-            fig.suptitle(f"{result['test_type']} (p={self._format_p_value(result['p_value'])})")
+            fig.suptitle(f"{result['test_type']} (p={self._format_p_value(result['p_value'], result['alpha'])})")
 
         plt.tight_layout(rect=[0, 0, 1, 0.96])
         
@@ -353,6 +360,9 @@ def main():
         tester = NonParametricTests(data)
         result = {}
         
+        global activeTest 
+        activeTest = test_type
+        
         if test_type == 'mann_whitney':
             result = tester.mann_whitney_u_test(**params)
         elif test_type == 'wilcoxon':
@@ -366,9 +376,6 @@ def main():
         else:
             raise ValueError(f"Unknown test type: {test_type}")
         
-        # After a successful test, store the result under its key for plotting
-        tester.results[test_type] = result
-
         plot_image = tester.plot_results(test_type)
         
         response = { 'results': result, 'plot': plot_image }
