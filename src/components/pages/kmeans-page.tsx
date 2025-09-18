@@ -68,7 +68,10 @@ const InterpretationDisplay = ({ interpretations }: { interpretations: KMeansRes
         <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-sm text-muted-foreground">
-        <p><strong>Overall Quality:</strong> {interpretations.overall_quality}</p>
+        <div>
+            <strong className="text-foreground">Overall Quality:</strong>
+            <p dangerouslySetInnerHTML={{ __html: interpretations.overall_quality }} />
+        </div>
         <div>
           <h4 className="font-semibold text-foreground mb-2">Cluster Profiles:</h4>
           <ul className="space-y-2 list-disc pl-5">
@@ -77,7 +80,10 @@ const InterpretationDisplay = ({ interpretations }: { interpretations: KMeansRes
             ))}
           </ul>
         </div>
-        <p><strong>Distribution:</strong> {interpretations.cluster_distribution}</p>
+        <div>
+            <strong className="text-foreground">Distribution:</strong>
+            <p dangerouslySetInnerHTML={{ __html: interpretations.cluster_distribution }} />
+        </div>
       </CardContent>
     </Card>
   );
@@ -284,7 +290,7 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                                     </ScrollArea>
                                 </CardContent>
                             </Card>
-                             <Card>
+                            <Card>
                                 <CardHeader>
                                     <CardTitle className="font-headline">Cluster Validation</CardTitle>
                                     <CardDescription>Metrics to evaluate the quality of the clustering.</CardDescription>
