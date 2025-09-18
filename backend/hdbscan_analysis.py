@@ -56,7 +56,7 @@ def plot_hdbscan_results(df, labels, probabilities, profiles, pca_components, ex
         palette=palette, 
         alpha=0.7, 
         ax=ax1,
-        legend=False # Remove size legend
+        legend=False # Remove all default legends
     )
 
     noise_points = plot_df[plot_df['cluster'] == -1]
@@ -69,10 +69,17 @@ def plot_hdbscan_results(df, labels, probabilities, profiles, pca_components, ex
     
     # Manually create legend for clusters only
     handles, labels = ax1.get_legend_handles_labels()
-    # Filter out the size legend handles if seaborn still adds them
-    filtered_handles = [h for h, l in zip(handles, labels) if not l.startswith('probability')]
-    filtered_labels = [l for l in labels if not l.startswith('probability')]
-    ax1.legend(filtered_handles, filtered_labels, title='Cluster', bbox_to_anchor=(1.05, 1), loc='upper left')
+    # Filter out the size legend handles if seaborn still adds them, and the noise handle which we add manually
+    cluster_handles = [h for h, l in zip(handles, labels) if l != 'Noise' and not l.startswith('probability')]
+    cluster_labels = [l for l in labels if l != 'Noise' and not l.startswith('probability')]
+
+    # Add the noise handle back if it exists
+    noise_handle = [h for h, l in zip(handles, labels) if l == 'Noise']
+    if noise_handle:
+        cluster_handles.append(noise_handle[0])
+        cluster_labels.append('Noise')
+
+    ax1.legend(cluster_handles, cluster_labels, title='Cluster', bbox_to_anchor=(1.05, 1), loc='upper left')
 
     ax1.grid(True, linestyle='--', alpha=0.6)
 
