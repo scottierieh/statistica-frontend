@@ -253,62 +253,58 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                         </CardContent>
                     </Card>
 
-                    <div className="grid lg:grid-cols-3 gap-4">
-                        <div className="lg:col-span-2 flex flex-col gap-4">
-                           <Card>
-                                <CardHeader>
-                                    <CardTitle className="font-headline">Cluster Profiles (Centroids)</CardTitle>
-                                    <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <ScrollArea className="h-72">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Cluster</TableHead>
-                                                    <TableHead>Size (%)</TableHead>
-                                                    {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {Object.entries(results.profiles).map(([clusterName, profile]) => (
-                                                    <TableRow key={clusterName}>
-                                                        <TableCell className="font-semibold">{clusterName}</TableCell>
-                                                        <TableCell>
-                                                            {profile.size}
-                                                            <span className="text-muted-foreground ml-1">({profile.percentage.toFixed(1)}%)</span>
+                    <div className="grid lg:grid-cols-2 gap-4">
+                       <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Cluster Profiles (Centroids)</CardTitle>
+                                <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ScrollArea className="h-72">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Cluster</TableHead>
+                                                <TableHead>Size (%)</TableHead>
+                                                {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {Object.entries(results.profiles).map(([clusterName, profile]) => (
+                                                <TableRow key={clusterName}>
+                                                    <TableCell className="font-semibold">{clusterName}</TableCell>
+                                                    <TableCell>
+                                                        {profile.size}
+                                                        <span className="text-muted-foreground ml-1">({profile.percentage.toFixed(1)}%)</span>
+                                                    </TableCell>
+                                                    {selectedItems.map(item => (
+                                                        <TableCell key={item} className="text-right font-mono">
+                                                            {profile.centroid[item].toFixed(2)}
                                                         </TableCell>
-                                                        {selectedItems.map(item => (
-                                                            <TableCell key={item} className="text-right font-mono">
-                                                                {profile.centroid[item].toFixed(2)}
-                                                            </TableCell>
-                                                        ))}
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </ScrollArea>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="font-headline">Cluster Validation</CardTitle>
-                                    <CardDescription>Metrics to evaluate the quality of the clustering.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                        <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Silhouette Score</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.silhouette.toFixed(3)}</dd></div>
-                                        <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Calinski-Harabasz</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.calinski_harabasz.toFixed(2)}</dd></div>
-                                        <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Davies-Bouldin</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.davies_bouldin.toFixed(3)}</dd></div>
-                                        <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Inertia (WCSS)</dt><dd className="text-lg font-bold font-mono">{results.clustering_summary?.inertia.toFixed(2)}</dd></div>
-                                    </dl>
-                                </CardContent>
-                            </Card>
-                        </div>
-                        <div className="lg:col-span-1">
-                            <InterpretationDisplay interpretations={results.interpretations} />
-                        </div>
+                                                    ))}
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Cluster Validation</CardTitle>
+                                <CardDescription>Metrics to evaluate the quality of the clustering.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                    <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Silhouette Score</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.silhouette.toFixed(3)}</dd></div>
+                                    <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Calinski-Harabasz</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.calinski_harabasz.toFixed(2)}</dd></div>
+                                    <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Davies-Bouldin</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.davies_bouldin.toFixed(3)}</dd></div>
+                                    <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Inertia (WCSS)</dt><dd className="text-lg font-bold font-mono">{results.clustering_summary?.inertia.toFixed(2)}</dd></div>
+                                </dl>
+                            </CardContent>
+                        </Card>
                     </div>
+                    <InterpretationDisplay interpretations={results.interpretations} />
                 </div>
             )}
             
