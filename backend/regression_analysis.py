@@ -376,11 +376,11 @@ class RegressionAnalysis:
         warnings = []
         normality_p = diagnostics.get('normality_tests', {}).get('shapiro_wilk', {}).get('p_value')
         if normality_p is not None and normality_p < self.alpha:
-            warnings.append("Warning: The residuals are not normally distributed (p < 0.05). This can affect the validity of p-values for the coefficients. Consider transforming the dependent variable or using a robust regression method.")
+            warnings.append("Warning: The residuals are not normally distributed (p < 0.05). This can affect the validity of p-values for the coefficients. Consider transforming the dependent variable (e.g., log transformation) or using a robust regression method.")
 
         hetero_p = diagnostics.get('heteroscedasticity_tests', {}).get('breusch_pagan', {}).get('p_value')
         if hetero_p is not None and hetero_p < self.alpha:
-            warnings.append("Warning: Heteroscedasticity detected (p < 0.05), meaning the variance of residuals is not constant. This can lead to unreliable standard errors. Consider using robust standard errors or transforming the data.")
+            warnings.append("Warning: Heteroscedasticity detected (p < 0.05), meaning the variance of residuals is not constant. This can lead to unreliable standard errors. Consider using robust standard errors or a different model specification.")
 
         vif_data = diagnostics.get('vif', {})
         high_vif_vars = [var for var, vif in vif_data.items() if vif > 10]
@@ -489,5 +489,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
 
     
