@@ -15,6 +15,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Badge } from '../ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LogisticRegressionResults {
     metrics: {
@@ -37,6 +38,8 @@ interface LogisticRegressionResults {
         auc: number;
     };
     dependent_classes: string[];
+    interpretation: string;
+    model_summary: any;
 }
 
 interface FullAnalysisResponse {
@@ -47,11 +50,12 @@ interface FullAnalysisResponse {
 interface LogisticRegressionPageProps {
     data: DataSet;
     numericHeaders: string[];
+    allHeaders: string[];
     categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function LogisticRegressionPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: LogisticRegressionPageProps) {
+export default function LogisticRegressionPage({ data, numericHeaders, allHeaders, categoricalHeaders, onLoadExample }: LogisticRegressionPageProps) {
     const { toast } = useToast();
     const [dependentVar, setDependentVar] = useState<string | undefined>();
     const [independentVars, setIndependentVars] = useState<string[]>([]);
@@ -63,16 +67,17 @@ export default function LogisticRegressionPage({ data, numericHeaders, categoric
         return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
     }, [data, categoricalHeaders]);
 
-    const canRun = useMemo(() => data.length > 0 && (numericHeaders.length + categoricalHeaders.length) >= 2, [data, numericHeaders, categoricalHeaders]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 1 && binaryCategoricalHeaders.length >= 1, [data, numericHeaders, binaryCategoricalHeaders]);
 
     useEffect(() => {
-        setDependentVar(binaryCategoricalHeaders[0]);
-        const initialIndepVars = [...numericHeaders, ...categoricalHeaders].filter(h => h !== binaryCategoricalHeaders[0]);
+        const defaultDepVar = binaryCategoricalHeaders[0];
+        setDependentVar(defaultDepVar);
+        const initialIndepVars = allHeaders.filter(h => h !== defaultDepVar);
         setIndependentVars(initialIndepVars);
         setAnalysisResult(null);
-    }, [data, numericHeaders, categoricalHeaders, binaryCategoricalHeaders]);
+    }, [data, allHeaders, binaryCategoricalHeaders]);
 
-    const availableFeatures = useMemo(() => [...numericHeaders, ...categoricalHeaders].filter(h => h !== dependentVar), [numericHeaders, categoricalHeaders, dependentVar]);
+    const availableFeatures = useMemo(() => allHeaders.filter(h => h !== dependentVar), [allHeaders, dependentVar]);
     
     const handleIndepVarChange = (header: string, checked: boolean) => {
         setIndependentVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
@@ -178,7 +183,7 @@ export default function LogisticRegressionPage({ data, numericHeaders, categoric
                             <Label>Dependent Variable (Binary Outcome)</Label>
                             <Select value={dependentVar} onValueChange={setDependentVar}>
                                 <SelectTrigger><SelectValue placeholder="Select an outcome variable" /></SelectTrigger>
-                                <SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                <SelectContent>{binaryCategoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div>
@@ -212,6 +217,20 @@ export default function LogisticRegressionPage({ data, numericHeaders, categoric
                         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Accuracy</p><p className="text-2xl font-bold">{(results.metrics.accuracy * 100).toFixed(1)}%</p></div>
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">AUC</p><p className="text-2xl font-bold">{results.roc_data.auc.toFixed(3)}</p></div>
+                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Pseudo R²</p><p className="text-2xl font-bold">{results.model_summary.prsquared.toFixed(3)}</p></div>
+                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">LLR p-value</p><p className="text-2xl font-bold">{results.model_summary.llr_pvalue < 0.001 ? '<.001' : results.model_summary.llr_pvalue.toFixed(3)}</p></div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader><CardTitle className="font-headline">Interpretation</CardTitle></CardHeader>
+                        <CardContent>
+                            <Alert>
+                                <AlertTitle>Summary</AlertTitle>
+                                <AlertDescription>
+                                    <p className="whitespace-pre-wrap">{results.interpretation}</p>
+                                </AlertDescription>
+                            </Alert>
                         </CardContent>
                     </Card>
 
