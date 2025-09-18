@@ -68,6 +68,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getSummaryReport } from '@/app/actions';
 import DescriptiveStatsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
+import PartialCorrelationPage from './pages/partial-correlation-page';
 import AnovaPage from './pages/anova-page';
 import AncovaPage from './pages/ancova-page';
 import VisualizationPage from './pages/visualization-page';
@@ -120,11 +121,12 @@ import TopicModelingPage from './pages/topic-modeling-page';
 import DeaPage from './pages/dea-page';
 import TTestPage from './pages/t-test-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
     correlation: CorrelationPage,
+    'partial-correlation': PartialCorrelationPage,
     'one-way-anova': AnovaPage,
     'two-way-anova': TwoWayAnovaPage,
     ancova: AncovaPage,
@@ -234,7 +236,10 @@ const analysisMenu = [
     subCategories: [
       {
         name: 'Correlation',
-        methods: [ { id: 'correlation', label: 'Correlation Analysis' } ]
+        methods: [ 
+            { id: 'correlation', label: 'Correlation Analysis' },
+            { id: 'partial-correlation', label: 'Partial Correlation' }
+        ]
       },
       {
         name: 'Linear Models',

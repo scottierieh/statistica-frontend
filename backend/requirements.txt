@@ -17,4 +17,4 @@ hdbscan
 yfinance
 pyfolio
 quantlib
-    
+pingouin
