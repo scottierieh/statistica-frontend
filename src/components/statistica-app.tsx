@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -186,7 +185,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
 
 const analysisMenu = [
   {
-    field: 'Descriptive',
+    field: 'Exploratory Data Analysis (EDA)',
     icon: BarChart,
     methods: [
       { id: 'stats', label: 'Descriptive Statistics' },
@@ -548,6 +547,14 @@ export default function StatisticaApp() {
               </div>
               <h1 className="text-xl font-headline font-bold">Statistica</h1>
             </div>
+             <div className="relative flex items-center">
+                <SidebarInput 
+                  placeholder="Search analyses..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+            </div>
           </SidebarHeader>
           <SidebarContent className="flex flex-col p-2 gap-2">
             <div className='p-2'>
@@ -556,12 +563,6 @@ export default function StatisticaApp() {
                 loading={isUploading}
               />
             </div>
-             <SidebarInput 
-              placeholder="Search analyses..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="mb-2"
-            />
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton
