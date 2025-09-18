@@ -17,6 +17,7 @@ import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Switch } from '../ui/switch';
 
 interface TTestPageProps {
     data: DataSet;
@@ -84,7 +85,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                     toast({ variant: "destructive", title: "Please select a value and group variable." });
                     return;
                 }
-                 params = { variable: independentVar, group_variable: groupVar, equal_var: true };
+                 params = { variable: independentVar, group_variable: groupVar };
                 break;
             case 'paired_samples':
                  if (!pairedVar1 || !pairedVar2 || pairedVar1 === pairedVar2) {
@@ -228,59 +229,68 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                         </Alert>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">{results.test_type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())} t-Test Results</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Statistic</TableHead>
-                                    <TableHead className="text-right">Value</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow><TableCell>t-statistic</TableCell><TableCell className="text-right font-mono">{results.t_statistic?.toFixed(4)}</TableCell></TableRow>
-                                <TableRow><TableCell>p-value</TableCell><TableCell className="text-right font-mono">{results.p_value?.toFixed(4)}</TableCell></TableRow>
-                                <TableRow><TableCell>Degrees of Freedom</TableCell><TableCell className="text-right font-mono">{results.degrees_of_freedom}</TableCell></TableRow>
-                                {results.cohens_d && <TableRow><TableCell>Cohen's d</TableCell><TableCell className="text-right font-mono">{results.cohens_d.toFixed(4)}</TableCell></TableRow>}
-                                {results.confidence_interval && <TableRow><TableCell>95% CI of Difference</TableCell><TableCell className="text-right font-mono">[{results.confidence_interval[0]?.toFixed(2)}, {results.confidence_interval[1]?.toFixed(2)}]</TableCell></TableRow>}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-                {descriptives && (
+                <div className="grid md:grid-cols-2 gap-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Descriptive Statistics</CardTitle>
+                            <CardTitle className="font-headline">{results.test_type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())} Results</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Variable</TableHead>
-                                        <TableHead className="text-right">N</TableHead>
-                                        <TableHead className="text-right">Mean</TableHead>
-                                        <TableHead className="text-right">Std. Deviation</TableHead>
-                                        <TableHead className="text-right">Std. Error Mean</TableHead>
+                                        <TableHead>Statistic</TableHead>
+                                        <TableHead className="text-right">Value</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {Object.entries(descriptives).map(([key, value]: [string, any]) => (
-                                        <TableRow key={key}>
-                                            <TableCell>{key}</TableCell>
-                                            <TableCell className="text-right font-mono">{value.n}</TableCell>
-                                            <TableCell className="text-right font-mono">{value.mean?.toFixed(4)}</TableCell>
-                                            <TableCell className="text-right font-mono">{value.std_dev?.toFixed(5)}</TableCell>
-                                            <TableCell className="text-right font-mono">{value.se_mean?.toFixed(5) || 'N/A'}</TableCell>
-                                        </TableRow>
-                                    ))}
+                                    <TableRow><TableCell>t-statistic</TableCell><TableCell className="text-right font-mono">{results.t_statistic?.toFixed(4)}</TableCell></TableRow>
+                                    <TableRow><TableCell>p-value</TableCell><TableCell className="text-right font-mono">{results.p_value?.toFixed(4)}</TableCell></TableRow>
+                                    <TableRow><TableCell>Degrees of Freedom</TableCell><TableCell className="text-right font-mono">{results.degrees_of_freedom?.toFixed(2)}</TableCell></TableRow>
+                                    {results.cohens_d && <TableRow><TableCell>Cohen's d</TableCell><TableCell className="text-right font-mono">{results.cohens_d.toFixed(4)}</TableCell></TableRow>}
+                                    {results.confidence_interval && <TableRow><TableCell>95% CI of Difference</TableCell><TableCell className="text-right font-mono">[{results.confidence_interval[0]?.toFixed(2)}, {results.confidence_interval[1]?.toFixed(2)}]</TableCell></TableRow>}
                                 </TableBody>
                             </Table>
                         </CardContent>
                     </Card>
-                )}
+                    {descriptives && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Descriptive Statistics</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Variable/Group</TableHead>
+                                            <TableHead className="text-right">N</TableHead>
+                                            <TableHead className="text-right">Mean</TableHead>
+                                            <TableHead className="text-right">Std. Dev.</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {Object.entries(descriptives).map(([key, value]: [string, any]) => (
+                                            <TableRow key={key}>
+                                                <TableCell>{key}</TableCell>
+                                                <TableCell className="text-right font-mono">{value.n}</TableCell>
+                                                <TableCell className="text-right font-mono">{value.mean?.toFixed(4)}</TableCell>
+                                                <TableCell className="text-right font-mono">{value.std_dev?.toFixed(5)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                {results.levene_test && (
+                                    <div className="mt-4 text-sm flex items-center justify-between">
+                                        <span>Homogeneity of Variances (Levene's Test):</span>
+                                        <div className="flex items-center gap-2">
+                                            {results.levene_test.assumption_met ? <CheckCircle2 className="w-4 h-4 text-green-600"/> : <AlertTriangle className="w-4 h-4 text-orange-500" />}
+                                            <span className="font-mono">p = {results.levene_test.p_value.toFixed(3)}</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
             </div>
         )
     };
