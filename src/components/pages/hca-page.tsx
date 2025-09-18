@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Binary } from 'lucide-react';
+import { Sigma, Loader2, Binary, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -40,12 +40,48 @@ interface HcaResults {
         mean: number;
         std: number;
     };
+    interpretations: {
+        overall_quality: string;
+        cluster_profiles: string[];
+        cluster_distribution: string;
+    };
 }
 
 interface FullHcaResponse {
     results: HcaResults;
     plot: string;
 }
+
+const InterpretationDisplay = ({ interpretations }: { interpretations: HcaResults['interpretations'] | undefined }) => {
+  if (!interpretations) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm text-muted-foreground">
+        <div>
+            <strong className="text-foreground">Overall Quality:</strong>
+            <p dangerouslySetInnerHTML={{ __html: interpretations.overall_quality.replace(/\n/g, '<br />') }} />
+        </div>
+        <div>
+          <h4 className="font-semibold text-foreground mb-2">Cluster Profiles:</h4>
+          <ul className="space-y-2 list-disc pl-5">
+            {interpretations.cluster_profiles.map((profile, index) => (
+              <li key={index} dangerouslySetInnerHTML={{ __html: profile }} />
+            ))}
+          </ul>
+        </div>
+        <div>
+            <strong className="text-foreground">Distribution:</strong>
+            <p dangerouslySetInnerHTML={{ __html: interpretations.cluster_distribution }} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 
 interface HcaPageProps {
     data: DataSet;
@@ -310,6 +346,7 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
                             )}
                          </div>
                     </div>
+                    <InterpretationDisplay interpretations={results.interpretations} />
                 </div>
             )}
             

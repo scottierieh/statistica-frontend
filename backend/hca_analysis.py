@@ -1,3 +1,4 @@
+
 import sys
 import json
 import numpy as np
@@ -19,6 +20,8 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
+        if np.isnan(obj) or np.isinf(obj):
+            return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
@@ -125,6 +128,8 @@ class HierarchicalClusterAnalysis:
                 'calinski_harabasz': calinski_harabasz_score(self.cluster_data_scaled, self.cluster_labels),
                 'davies_bouldin': davies_bouldin_score(self.cluster_data_scaled, self.cluster_labels),
             }
+        
+        self.results['interpretations'] = self.generate_interpretations()
 
     def stability_analysis(self, n_bootstrap=50, sample_ratio=0.8):
         stability_scores = []
@@ -151,12 +156,65 @@ class HierarchicalClusterAnalysis:
                 'std': std_stability
             }
 
+    def generate_interpretations(self):
+        if 'profiles' not in self.results or 'final_metrics' not in self.results:
+            return {}
+
+        interpretations = {
+            'overall_quality': '',
+            'cluster_profiles': [],
+            'cluster_distribution': ''
+        }
+
+        # 1. Overall Quality Interpretation
+        metrics = self.results['final_metrics']
+        silhouette = metrics['silhouette']
+        calinski = metrics['calinski_harabasz']
+        davies = metrics['davies_bouldin']
+        
+        if silhouette >= 0.7: quality_desc = "strong and well-defined."
+        elif silhouette >= 0.5: quality_desc = "reasonable and distinct."
+        elif silhouette >= 0.25: quality_desc = "weak and could have some overlap."
+        else: quality_desc = "not well-defined; results should be interpreted with caution."
+        
+        interpretations['overall_quality'] = (
+            f"The <strong>Silhouette Score of {silhouette:.3f}</strong> indicates the clustering structure is {quality_desc} "
+            f"The <strong>Calinski-Harabasz Score ({calinski:.2f})</strong>, which measures cluster separation, is relatively high, which is good. "
+            f"The <strong>Davies-Bouldin Score ({davies:.3f})</strong>, measuring cluster similarity, is low, which is also good. "
+        )
+
+        # 2. Cluster Profile Interpretation
+        overall_means = self.cluster_data.mean()
+        
+        for name, profile in self.results['profiles'].items():
+            centroid = pd.Series(profile['centroid'])
+            deviations = (centroid - overall_means) / overall_means.std()
+            
+            top_features = deviations.nlargest(2).index.tolist()
+            bottom_features = deviations.nsmallest(2).index.tolist()
+            
+            profile_desc = f"<strong>{name} ({profile['percentage']:.1f}% of data):</strong> This cluster is characterized by high values in <strong>{', '.join(top_features)}</strong> and low values in <strong>{', '.join(bottom_features)}</strong>."
+            interpretations['cluster_profiles'].append(profile_desc)
+
+        # 3. Cluster Distribution Interpretation
+        percentages = [p['percentage'] for p in self.results['profiles'].values()]
+        if len(percentages) > 1:
+            max_p = max(percentages)
+            min_p = min(percentages)
+            if max_p / min_p > 3:
+                dist_desc = "The cluster sizes are imbalanced, with some clusters being significantly larger than others."
+            else:
+                dist_desc = "The clusters are relatively balanced in size."
+            interpretations['cluster_distribution'] = dist_desc
+
+        return interpretations
+
     def plot_results(self):
-        fig = plt.figure(figsize=(15, 18))
-        gs = fig.add_gridspec(4, 2)
+        fig, axes = plt.subplots(3, 2, figsize=(15, 18))
+        fig.suptitle('Hierarchical Clustering Results', fontsize=16, fontweight='bold')
 
         # 1. Dendrogram
-        ax1 = fig.add_subplot(gs[0, :])
+        ax1 = fig.add_subplot(plt.subplot2grid((3, 2), (0, 0), colspan=2))
         cut_height = 0
         if self.n_clusters > 1 and len(self.linkage_matrix) >= self.n_clusters -1 :
             cut_height = self.linkage_matrix[-(self.n_clusters - 1), 2]
@@ -166,24 +224,9 @@ class HierarchicalClusterAnalysis:
         ax1.set_xlabel('Sample Index')
         ax1.set_ylabel('Distance')
         ax1.legend()
-
-        # 2. Silhouette Plot
-        ax2 = fig.add_subplot(gs[1, 0])
-        if self.results.get('validation_scores'):
-            scores = self.results['validation_scores']
-            ax2.plot(scores['k_range'], scores['silhouette'], 'bo-', label='Silhouette Score')
-            if self.results.get('optimal_k_recommendation', {}).get('silhouette'):
-                best_k_sil = self.results['optimal_k_recommendation']['silhouette']
-                best_score_sil = scores['silhouette'][scores['k_range'].index(best_k_sil)]
-                ax2.plot(best_k_sil, best_score_sil, 'ro', markersize=10, label=f'Optimal: {best_k_sil}')
-            ax2.set_title('Silhouette Score by Number of Clusters')
-            ax2.set_xlabel('Number of Clusters')
-            ax2.set_ylabel('Silhouette Score')
-            ax2.legend()
-            ax2.grid(True, alpha=0.3)
-
-        # 3. PCA Plot
-        ax3 = fig.add_subplot(gs[1, 1])
+        
+        # 2. PCA Plot
+        ax3 = axes[1,0]
         if self.n_features > 1:
             pca = PCA(n_components=2)
             pca_data = pca.fit_transform(self.cluster_data_scaled)
@@ -194,21 +237,20 @@ class HierarchicalClusterAnalysis:
             ax3.legend(title='Cluster')
             ax3.grid(True, alpha=0.3)
 
-        # 4. Cluster Size Distribution
-        ax4 = fig.add_subplot(gs[2, 0])
+        # 3. Cluster Size Distribution
+        ax4 = axes[1, 1]
         cluster_sizes = pd.Series(self.cluster_labels).value_counts().sort_index()
         sns.barplot(x=cluster_sizes.index, y=cluster_sizes.values, ax=ax4, palette='viridis')
         ax4.set_title('Cluster Size Distribution')
         ax4.set_xlabel('Cluster')
         ax4.set_ylabel('Number of Samples')
 
-        # 5. Centroid Heatmap
-        ax5 = fig.add_subplot(gs[2, 1])
+        # 4. Centroid Heatmap
+        ax5 = axes[2, 0]
         if 'profiles' in self.results:
             centroids_scaled = []
             cluster_names = []
             for name, profile in sorted(self.results['profiles'].items()):
-                # Recreate scaled centroids for comparison
                 scaled_center = self.cluster_data_scaled[self.cluster_labels == int(name.split(' ')[1])].mean().values
                 centroids_scaled.append(scaled_center)
                 cluster_names.append(name)
@@ -219,8 +261,8 @@ class HierarchicalClusterAnalysis:
                 ax5.set_title('Scaled Centroid Heatmap')
                 ax5.tick_params(axis='x', rotation=45)
         
-        # 6. Snake Plot
-        ax6 = fig.add_subplot(gs[3, :])
+        # 5. Snake Plot
+        ax6 = axes[2, 1]
         if 'profiles' in self.results and centroids_scaled:
             centroid_df_norm = (centroid_df - centroid_df.min()) / (centroid_df.max() - centroid_df.min())
             centroid_df_norm.T.plot(ax=ax6)
