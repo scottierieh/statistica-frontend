@@ -67,6 +67,7 @@ class AncovaAnalysis:
         anova_dict = {row['Source']: row for row in self.results['anova_table']}
         
         def format_p(p_val):
+            if p_val is None: return "p = n/a"
             return f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
         
         def get_effect_size_interp(eta_sq_p):
@@ -76,81 +77,89 @@ class AncovaAnalysis:
             if eta_sq_p >= 0.01: return "small"
             return "negligible"
 
-        interpretation = f"A one-way ANCOVA was conducted to determine a statistically significant difference between '{self.factor_var}' groups on '{self.dependent_var}' after controlling for '{', '.join(self.covariate_vars)}'.\n"
+        interpretation = f"A One-Way ANCOVA was conducted to examine the effect of '{self.factor_a}' on '{self.dependent_var}', while considering the influence of '{', '.join(self.covariate_vars)}'.\n"
 
         # Main Effect of Factor
-        factor_res = anova_dict.get(self.factor_var)
-        if factor_res and 'p_value' in factor_res and factor_res['p_value'] is not None:
-            sig_text = "a statistically significant" if factor_res['p_value'] < self.alpha else "no statistically significant"
-            p_text = format_p(factor_res['p_value'])
-            effect_size = factor_res.get('eta_sq_partial', 0)
+        factor_res = anova_dict.get(self.factor_a)
+        if factor_res and 'p-value' in factor_res and factor_res['p-value'] is not None:
+            sig_text = "a statistically significant" if factor_res['p-value'] < self.alpha else "no statistically significant"
+            p_text = format_p(factor_res['p-value'])
+            effect_size = factor_res.get('η²p', 0)
             effect_interp = get_effect_size_interp(effect_size)
             
             interpretation += (
-                f"There was {sig_text} main effect of '{self.factor_var}' on '{self.dependent_var}', "
-                f"F({factor_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {factor_res['F']:.2f}, {p_text}, with a {effect_interp} effect size (partial η² = {effect_size:.3f}).\n"
+                f"There was {sig_text} main effect for '{self.factor_a}', "
+                f"F({factor_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {factor_res['F']:.2f}, {p_text}, with a {effect_interp} effect size (η²p = {effect_size:.3f}).\n"
             )
 
         # Effect of Covariates
         for i, cov in enumerate(self.covariate_vars):
             cov_res = anova_dict.get(cov)
-            if cov_res and 'p_value' in cov_res and cov_res['p_value'] is not None:
-                sig_text = "a statistically significant" if cov_res['p_value'] < self.alpha else "no statistically significant"
-                p_text = format_p(cov_res['p_value'])
-                effect_size = cov_res.get('eta_sq_partial', 0)
+            if cov_res and 'p-value' in cov_res and cov_res['p-value'] is not None:
+                sig_text = "a statistically significant" if cov_res['p-value'] < self.alpha else "no statistically significant"
+                p_text = format_p(cov_res['p-value'])
+                effect_size = cov_res.get('η²p', 0)
                 effect_interp = get_effect_size_interp(effect_size)
 
                 interpretation += (
                     f"The covariate, '{cov}', had {sig_text} effect on '{self.dependent_var}', "
-                    f"F({cov_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {cov_res['F']:.2f}, {p_text}, with a {effect_interp} effect size (partial η² = {effect_size:.3f}).\n"
+                    f"F({cov_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {cov_res['F']:.2f}, {p_text}, with a {effect_interp} effect size (η²p = {effect_size:.3f}).\n"
                 )
 
         # Interaction Effect
-        interaction_key = f'{self.factor_var} * {self.covariate_vars[0]}'
+        interaction_key = f'{self.factor_a} * {self.covariate_vars[0]}'
         int_res = anova_dict.get(interaction_key) # Simple interaction for now
-        if int_res and 'p_value' in int_res and int_res['p_value'] is not None:
-            sig_text = "a statistically significant" if int_res['p_value'] < self.alpha else "no statistically significant"
-            if sig_text == "a statistically significant":
-                interpretation += (
-                    f"A significant interaction between '{self.factor_var}' and '{self.covariate_vars[0]}' was found, suggesting the effect of the factor on the dependent variable differs depending on the level of the covariate.\n"
-                )
+        if int_res and 'p-value' in int_res and int_res['p-value'] is not None:
+            sig_text = "a statistically significant" if int_res['p-value'] < self.alpha else "no statistically significant"
+            p_text_int = format_p(int_res['p-value'])
+            effect_size_int = int_res.get('η²p', 0)
+            interp_int = get_effect_size_interp(effect_size_int)
+
+            interpretation += (
+                f"The analysis also revealed {sig_text} interaction effect between '{self.factor_a}' and '{self.covariate_vars[0]}', "
+                f"F({int_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {int_res['F']:.2f}, {p_text_int}, indicating that the effect of '{self.factor_a}' on '{self.dependent_var}' depends on the level of '{self.covariate_vars[0]}'. "
+                f"The effect size for this interaction was {interp_int} (η²p = {effect_size_int:.3f})."
+            )
 
         self.results['interpretation'] = interpretation.strip()
+
 
     def run_analysis(self):
         covariates_formula = ' + '.join([f'Q("{c}")' for c in self.cv_clean])
         # Using Type II SS, interaction is tested separately from main effects
-        formula = f'Q("{self.dv_clean}") ~ Q("{self.fv_clean}") + {covariates_formula} + Q("{self.fv_clean}"):{covariates_formula}'
+        formula = f'Q("{self.dv_clean}") ~ C(Q("{self.fv_clean}")) * ({covariates_formula})'
         
         try:
             model = ols(formula, data=self.clean_data).fit()
             anova_table = anova_lm(model, typ=2)
         except Exception as e:
-            # A simpler model if interaction fails (e.g., due to collinearity)
-            formula = f'Q("{self.dv_clean}") ~ Q("{self.fv_clean}") + {covariates_formula}'
+            # A simpler model if interaction fails
+            formula = f'Q("{self.dv_clean}") ~ C(Q("{self.fv_clean}")) + {covariates_formula}'
             model = ols(formula, data=self.clean_data).fit()
             anova_table = anova_lm(model, typ=2)
             warnings.warn(f"Could not fit interaction model, proceeding without it. Error: {e}")
 
-        # Add partial eta-squared
-        ss_resid = anova_table.loc['Residual', 'sum_sq']
-        anova_table['eta_sq_partial'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + ss_resid)
+        # Add partial eta-squared (η²p)
+        if 'Residual' in anova_table.index and 'sum_sq' in anova_table.columns:
+             anova_table['η²p'] = anova_table['sum_sq'] / (anova_table['sum_sq'] + anova_table.loc['Residual', 'sum_sq'])
+        else:
+             anova_table['η²p'] = np.nan
         
         self.results['model_summary'] = str(model.summary())
         
         # Clean up source names for readability
         cleaned_index = {
-            f'Q("{self.fv_clean}")': self.factor_var,
+            f'C(Q("{self.fv_clean}"))': self.factor_a,
             **{f'Q("{cv}")': self.covariate_vars[i] for i, cv in enumerate(self.cv_clean)}
         }
         for i, cv in enumerate(self.cv_clean):
-             interaction_key = f'Q("{self.fv_clean}"):Q("{cv}")'
-             cleaned_index[interaction_key] = f'{self.factor_var} * {self.covariate_vars[i]}'
+             interaction_key = f'C(Q("{self.fv_clean}")):Q("{cv}")'
+             cleaned_index[interaction_key] = f'{self.factor_a} * {self.covariate_vars[i]}'
 
         anova_table_renamed = anova_table.rename(index=cleaned_index)
 
         # Convert to dict, handling NaN
-        self.results['anova_table'] = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p_value'}).to_dict('records')
+        self.results['anova_table'] = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'}).to_dict('records')
         self.results['residuals'] = model.resid.tolist()
         
         self._test_assumptions(model)
@@ -178,7 +187,7 @@ class AncovaAnalysis:
         fig.suptitle('ANCOVA Results', fontsize=16)
 
         # Interaction plot for the first covariate
-        if self.covariate_vars_clean:
+        if self.cv_clean:
             original_cov_name = self.covariate_vars[0]
             clean_cov_name = self.cv_clean[0]
             
