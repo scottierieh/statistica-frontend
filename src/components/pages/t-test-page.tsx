@@ -144,19 +144,6 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         if (!analysisResult) return null;
         const { results, plot } = analysisResult;
         
-        const renderDescriptives = () => {
-            if (!results.descriptives) return null;
-            
-            return Object.entries(results.descriptives).map(([name, stats]) => (
-                <TableRow key={name}>
-                    <TableCell>{name}</TableCell>
-                    <TableCell className="text-right font-mono">{stats.n}</TableCell>
-                    <TableCell className="text-right font-mono">{stats.mean.toFixed(3)}</TableCell>
-                    <TableCell className="text-right font-mono">{stats.std_dev.toFixed(3)}</TableCell>
-                </TableRow>
-            ))
-        }
-
         return (
             <div className="space-y-4">
                  {plot && (
@@ -207,7 +194,14 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                             <Table>
                                 <TableHeader><TableRow><TableHead>Group/Variable</TableHead><TableHead className="text-right">N</TableHead><TableHead className="text-right">Mean</TableHead><TableHead className="text-right">Std. Dev.</TableHead></TableRow></TableHeader>
                                 <TableBody>
-                                    {renderDescriptives()}
+                                    {results.descriptives && Object.entries(results.descriptives).map(([name, stats]) => (
+                                        <TableRow key={name}>
+                                            <TableCell>{name}</TableCell>
+                                            <TableCell className="text-right font-mono">{stats.n}</TableCell>
+                                            <TableCell className="text-right font-mono">{stats.mean.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{stats.std_dev.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                    ))}
                                 </TableBody>
                             </Table>
                         </CardContent>
@@ -337,3 +331,5 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
+
+    

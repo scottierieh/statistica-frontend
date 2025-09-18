@@ -261,6 +261,7 @@ def main():
         
         tester = TTestAnalysis(data)
         result = {}
+        
         if test_type == 'one_sample':
             result = tester.one_sample_ttest(**params)
         elif test_type == 'independent_samples':
