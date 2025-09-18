@@ -50,8 +50,6 @@ interface CorrelationResults {
     p_value: number;
     significant: boolean;
   }[];
-  interpretation: string;
-  recommendations?: string[];
   pairs_plot?: string;
   heatmap_plot?: string;
 }
@@ -253,17 +251,6 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
 
       {results && !isLoading && (
         <>
-            {results.heatmap_plot && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Correlation Matrix Heatmap</CardTitle>
-                        <CardDescription>Visual representation of the correlation matrix. Warmer colors indicate positive correlation, cooler colors indicate negative.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <Image src={`data:image/png;base64,${results.heatmap_plot}`} alt="Correlation Heatmap" width={1000} height={800} className="w-full rounded-md border" />
-                    </CardContent>
-                </Card>
-            )}
              {results.pairs_plot && (
                 <Card>
                     <CardHeader>
@@ -272,6 +259,17 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     </CardHeader>
                     <CardContent>
                          <Image src={`data:image/png;base64,${results.pairs_plot}`} alt="Pairs Plot" width={800} height={800} className="w-full rounded-md border" />
+                    </CardContent>
+                </Card>
+            )}
+            {results.heatmap_plot && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Correlation Matrix Heatmap</CardTitle>
+                        <CardDescription>Visual representation of the correlation matrix. Warmer colors indicate positive correlation, cooler colors indicate negative.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <Image src={`data:image/png;base64,${results.heatmap_plot}`} alt="Correlation Heatmap" width={1000} height={800} className="w-full rounded-md border" />
                     </CardContent>
                 </Card>
             )}
@@ -318,28 +316,6 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
             <div className="grid gap-4 md:grid-cols-1">
                  <StrongestCorrelationsChart data={results.strongest_correlations} />
             </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2"><Lightbulb />Interpretation</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation?.replace(/\n\n/g, '<br/><br/>') || '' }} />
-                </CardContent>
-            </Card>
-
-            {results.recommendations && results.recommendations.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Recommendations</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="list-disc pl-5 space-y-2 text-sm">
-                            {results.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
-                        </ul>
-                    </CardContent>
-                </Card>
-            )}
             
             <Card>
                 <CardHeader>

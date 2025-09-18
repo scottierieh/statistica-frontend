@@ -6,7 +6,7 @@ import path from 'path';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const pythonExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python');
+    const pythonExecutable = process.env.NODE_ENV === 'development' ? path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python') : 'python3';
     const scriptPath = path.resolve(process.cwd(), 'backend', 'correlation_analysis.py');
 
     const pythonProcess = spawn(pythonExecutable, [scriptPath]);
