@@ -72,6 +72,7 @@ import CorrelationPage from './pages/correlation-page';
 import PartialCorrelationPage from './pages/partial-correlation-page';
 import AnovaPage from './pages/anova-page';
 import AncovaPage from './pages/ancova-page';
+import MancovaPage from './pages/mancova-page';
 import VisualizationPage from './pages/visualization-page';
 import ReliabilityPage from './pages/reliability-page';
 import DiscriminantPage from './pages/discriminant-page';
@@ -122,7 +123,7 @@ import TopicModelingPage from './pages/topic-modeling-page';
 import DeaPage from './pages/dea-page';
 import TTestPage from './pages/t-test-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -131,6 +132,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'one-way-anova': AnovaPage,
     'two-way-anova': TwoWayAnovaPage,
     ancova: AncovaPage,
+    mancova: MancovaPage,
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
     efa: EfaPage,
@@ -217,6 +219,7 @@ const analysisMenu = [
             { id: 'rm-anova', label: 'Repeated Measures ANOVA' },
             { id: 'ancova', label: 'ANCOVA' },
             { id: 'manova', label: 'MANOVA' },
+            { id: 'mancova', label: 'MANCOVA' },
         ]
       },
       {
