@@ -182,47 +182,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
     
-    if (!canRun) {
-        const regressionExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('regression'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Regression Analysis</CardTitle>
-                        <CardDescription>
-                           To perform regression, you need data with at least two numeric variables. Try an example dataset.
-                        </CardDescription>
-                    </CardHeader>
-                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {regressionExamples.map((ex) => {
-                                const Icon = ex.icon;
-                                return (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                            <TrendingUp className="h-6 w-6 text-secondary-foreground" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                            Load this data
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
-    }
-
     const results = analysisResult?.results;
     const coeffs = results?.diagnostics?.coefficient_tests;
 
@@ -394,7 +353,47 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                 return <p>Select a model type.</p>;
         }
     };
-
+    
+    if (!canRun) {
+        const regressionExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('regression'));
+        return (
+            <div className="flex flex-1 items-center justify-center">
+                <Card className="w-full max-w-2xl text-center">
+                    <CardHeader>
+                        <CardTitle className="font-headline">Regression Analysis</CardTitle>
+                        <CardDescription>
+                           To perform regression, you need data with at least two numeric variables. Try an example dataset.
+                        </CardDescription>
+                    </CardHeader>
+                     <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {regressionExamples.map((ex) => {
+                                const Icon = ex.icon;
+                                return (
+                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
+                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                                            <TrendingUp className="h-6 w-6 text-secondary-foreground" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                            Load this data
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                                )
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
 
     return (
         <div className="flex flex-col gap-4">
@@ -426,11 +425,31 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                             <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">R-squared</p><p className="text-2xl font-bold">{results.metrics?.r2.toFixed(4)}</p></div>
                             <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">Adj. R-squared</p><p className="text-2xl font-bold">{results.metrics?.adj_r2.toFixed(4)}</p></div>
                             <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{results.metrics?.rmse.toFixed(3)}</p></div>
-                            <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{results.metrics?.mae.toFixed(3)}</p></div>
+                            <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">F-statistic p-value</p><p className="text-2xl font-bold">{results.diagnostics.f_pvalue != null ? (results.diagnostics.f_pvalue < 0.001 ? '< 0.001' : results.diagnostics.f_pvalue.toFixed(4)) : 'N/A'}</p></div>
                         </CardContent>
                     </Card>
 
-                    <div className="grid lg:grid-cols-2 gap-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Interpretation & Recommendations</CardTitle>
+                        </CardHeader>
+                         <CardContent className="space-y-4">
+                            <p className="text-sm whitespace-pre-wrap font-sans">{interpretationText}</p>
+                            {warnings.length > 0 && (
+                                <div className="space-y-2">
+                                    {warnings.map((warning, i) => (
+                                        <Alert key={i} variant="destructive">
+                                            <AlertTriangle className="h-4 w-4" />
+                                            <AlertTitle>Warning</AlertTitle>
+                                            <AlertDescription>{warning.replace('Warning: ', '')}</AlertDescription>
+                                        </Alert>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                    
+                     <div className="grid lg:grid-cols-2 gap-4">
                         <Card>
                             <CardHeader><CardTitle className="font-headline">Coefficients</CardTitle></CardHeader>
                             <CardContent>
@@ -468,22 +487,18 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                     <div className="flex justify-between items-center">
                                         <span>Normality (Shapiro-Wilk):</span>
                                         <div className="flex items-center gap-2">
-                                            {results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null && (
-                                                <Badge variant={results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'default' : 'destructive'}>
-                                                    {results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'Not Significant' : 'Significant'}
-                                                </Badge>
-                                            )}
+                                            <Badge variant={results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null && results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'default' : 'destructive'}>
+                                                {results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null ? (results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'Not Significant' : 'Significant') : 'N/A'}
+                                            </Badge>
                                             <span className="font-mono">p={results.diagnostics.normality_tests?.shapiro_wilk?.p_value?.toFixed(3) ?? 'N/A'}</span>
                                         </div>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span>Homoscedasticity (Breusch-Pagan):</span>
                                         <div className="flex items-center gap-2">
-                                            {results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null && (
-                                                <Badge variant={results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'default' : 'destructive'}>
-                                                    {results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'Not Significant' : 'Significant'}
-                                                </Badge>
-                                            )}
+                                            <Badge variant={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null && results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'default' : 'destructive'}>
+                                                {results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null ? (results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'Not Significant' : 'Significant') : 'N/A'}
+                                            </Badge>
                                             <span className="font-mono">p={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value?.toFixed(3) ?? 'N/A'}</span>
                                         </div>
                                     </div>
@@ -512,24 +527,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                         </Card>
                     </div>
 
-                    <Card>
-                        <CardHeader><CardTitle className="font-headline">Interpretation & Recommendations</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-sm whitespace-pre-wrap font-sans">{interpretationText}</p>
-                            {warnings.length > 0 && (
-                                <div className="space-y-2">
-                                    {warnings.map((warning, i) => (
-                                        <Alert key={i} variant="destructive">
-                                            <AlertTriangle className="h-4 w-4" />
-                                            <AlertTitle>Warning</AlertTitle>
-                                            <AlertDescription>{warning.replace('Warning: ', '')}</AlertDescription>
-                                        </Alert>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
                     {analysisResult.plot && (
                         <Card>
                             <CardHeader><CardTitle>Diagnostic Plots</CardTitle></CardHeader>
@@ -538,7 +535,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                     )}
                 </div>
             )}
-
         </div>
     );
 }
+
