@@ -280,7 +280,7 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
                                 <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <ScrollArea className="h-72">
+                                <div className="overflow-x-auto">
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
@@ -306,7 +306,7 @@ export default function HcaPage({ data, numericHeaders, onLoadExample }: HcaPage
                                             ))}
                                         </TableBody>
                                     </Table>
-                                </ScrollArea>
+                                </div>
                             </CardContent>
                         </Card>
                          <div className="space-y-4">
