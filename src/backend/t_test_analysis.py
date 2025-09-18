@@ -67,7 +67,6 @@ def get_interpretations(result):
     
     return interpretations
 
-
 class TTestAnalysis:
     def __init__(self, data, alpha=0.05):
         self.data = data.copy()
@@ -179,7 +178,8 @@ class TTestAnalysis:
         
         descriptives = {
             variable1: {"n": len(data1), "mean": np.mean(data1), "std_dev": np.std(data1, ddof=1)},
-            variable2: {"n": len(data2), "mean": np.mean(data2), "std_dev": np.std(data2, ddof=1)}
+            variable2: {"n": len(data2), "mean": np.mean(data2), "std_dev": np.std(data2, ddof=1)},
+            "differences": {"n": n, "mean": mean_diff, "std_dev": std_diff}
         }
         
         self.results['paired_samples'] = {
@@ -258,10 +258,9 @@ def main():
         data = pd.DataFrame(payload.get('data'))
         test_type = payload.get('testType')
         params = payload.get('params')
-
+        
         tester = TTestAnalysis(data)
         result = {}
-        
         if test_type == 'one_sample':
             result = tester.one_sample_ttest(**params)
         elif test_type == 'independent_samples':
@@ -273,6 +272,7 @@ def main():
 
         plot_image = tester.plot_results(test_type)
         response = {'results': result, 'plot': plot_image}
+        
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
