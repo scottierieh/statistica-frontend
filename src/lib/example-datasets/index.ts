@@ -245,8 +245,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Work Stress & Performance',
         description: 'Job stress, exhaustion, and performance data. Ideal for Mediation Analysis.',
         icon: Network,
-        analysisTypes: ['stats', 'correlation', 'mediation'],
-        recommendedAnalysis: 'mediation',
+        analysisTypes: ['correlation', 'mediation'],
         data: workStressData,
     },
     {
