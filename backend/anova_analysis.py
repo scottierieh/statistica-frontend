@@ -173,13 +173,13 @@ class OneWayANOVA:
                 m2, std2 = desc_res[g2]['mean'], desc_res[g2]['std']
 
                 if res['reject']: # If significant
-                    comp_text = f"'{g1}' (M = {m1:.2f}, SD = {std1:.2f}) was significantly different from '{g2}' (M = {m2:.2f}, SD = {std2:.2f})"
+                    comp_text = f"the time to respond was significantly lower for those that received the {g1} (M = {m1:.2f}, SD = {std1:.2f}) compared to {g2} (M = {m2:.2f}, SD = {std2:.2f})"
                     post_hoc_interp.append(comp_text)
                 else:
                     non_sig_pairs.append(f"'{g1}' and '{g2}' (p = {res['p_adj']:.3f})")
 
             if post_hoc_interp:
-                interpretation += "\n\nA Tukey post-hoc test revealed that " + ", and ".join(post_hoc_interp) + "."
+                interpretation += "\nA Tukey post-hoc test revealed that " + ", and ".join(post_hoc_interp) + "."
             if non_sig_pairs:
                 interpretation += "\nThere was no statistically significant difference between " + ", and ".join(non_sig_pairs) + "."
         

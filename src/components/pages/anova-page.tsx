@@ -82,14 +82,15 @@ interface EffectSizeInterpretation {
 const InterpretationDisplay = ({ text }: { text: string | null }) => {
   const formattedInterpretation = useMemo(() => {
     if (!text) return null;
+    // Replace markdown-like syntax with HTML tags
     return text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<i>$1</i>')
-      .replace(/F\((.*?)\)\s*=\s*(.*?),/g, '<i>F</i>($1) = $2,')
-      .replace(/p\s*=\s*(\.\d+)/g, '<i>p</i> = $1')
-      .replace(/p\s*<\s*(\.\d+)/g, '<i>p</i> < $1')
-      .replace(/M\s*=\s*([\d.]+)/g, '<i>M</i> = $1')
-      .replace(/SD\s*=\s*([\d.]+)/g, '<i>SD</i> = $1');
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+      .replace(/\*(.*?)\*/g, '<i>$1</i>') // Italics
+      .replace(/F\((.*?)\)\s*=\s*(.*?),/g, '<i>F</i>($1) = $2,') // F-statistic
+      .replace(/p\s*=\s*(\.\d+)/g, '<i>p</i> = $1') // p-value
+      .replace(/p\s*<\s*(\.\d+)/g, '<i>p</i> < $1') // p < value
+      .replace(/M\s*=\s*([\d.]+)/g, '<i>M</i> = $1') // Mean
+      .replace(/SD\s*=\s*([\d.]+)/g, '<i>SD</i> = $1'); // Standard Deviation
   }, [text]);
 
   if (!text) return null;
