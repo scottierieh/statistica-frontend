@@ -25,10 +25,6 @@ const InterpretClusteringOutputSchema = z.object({
 });
 export type InterpretClusteringOutput = z.infer<typeof InterpretClusteringOutputSchema>;
 
-export async function interpretClustering(input: InterpretClusteringInput): Promise<InterpretClusteringOutput> {
-  return interpretClusteringFlow(input);
-}
-
 const prompt = ai.definePrompt({
   name: 'interpretClusteringPrompt',
   input: {schema: InterpretClusteringInputSchema},
@@ -60,3 +56,7 @@ const interpretClusteringFlow = ai.defineFlow(
     return output!;
   }
 );
+
+export async function interpretClustering(input: InterpretClusteringInput): Promise<InterpretClusteringOutput> {
+  return interpretClusteringFlow(input);
+}
