@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -25,6 +26,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Badge } from '../ui/badge';
+import Image from 'next/image';
 
 
 // Type definitions for the Discriminant Analysis results
@@ -33,6 +35,7 @@ interface AnalysisResults {
     predictor_vars: string[];
     lda?: MethodResult;
     qda?: MethodResult;
+    plot?: string;
 }
 
 interface MethodResult {
@@ -40,6 +43,7 @@ interface MethodResult {
         accuracy: number;
         confusion_matrix: number[][];
         per_group_accuracy: { [key: string]: number };
+        posterior_probabilities?: { [key: string]: number };
     };
     coefficients?: number[][];
     intercepts?: number[];
@@ -154,6 +158,16 @@ const ResultDisplay = ({ analysisResults, methodName }: { analysisResults: Analy
                     </CardContent>
                 </Card>
              </div>
+            
+            {methodName === 'lda' && analysisResults.plot && (
+                <Card>
+                    <CardHeader><CardTitle>Visualizations</CardTitle></CardHeader>
+                    <CardContent>
+                        <Image src={analysisResults.plot} alt="Discriminant Analysis Plots" width={1800} height={500} className="w-full rounded-md border"/>
+                    </CardContent>
+                </Card>
+            )}
+
 
             <GroupMeansChart means={results.group_means} groups={analysisResults.groups} predictors={analysisResults.predictor_vars} />
 
