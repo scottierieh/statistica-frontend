@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -534,7 +533,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                     </div>
                      {results.interpretation && (
                         <Card>
-                            <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
+                            <CardHeader><CardTitle>Interpretation & Recommendations</CardTitle></CardHeader>
                             <CardContent>
                                 <p className="text-sm whitespace-pre-wrap">{results.interpretation}</p>
                             </CardContent>
@@ -545,5 +544,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     );
 }
+
+    
 
     
