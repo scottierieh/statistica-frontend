@@ -38,6 +38,7 @@ import Image from 'next/image';
 
 interface VisualizationPageProps {
   data: DataSet;
+  allHeaders: string[];
   numericHeaders: string[];
   categoricalHeaders: string[];
   onLoadExample: (example: ExampleDataSet) => void;
@@ -189,16 +190,18 @@ const BoxPlotShape = (props: any) => {
     
     const { q1, q3, min, max, median } = payload.stats;
     
-    // Handle case where max and min are the same to avoid division by zero
     const range = max - min;
     const bandWidth = range > 0 ? height / range : 0;
 
-    const toY = (value: number) => y + (max - value) * bandWidth;
+    const toY = (value: number) => {
+        if (isNaN(value) || bandWidth === 0) return y + height / 2;
+        return y + (max - value) * bandWidth;
+    }
 
     return (
         <g>
             <line x1={x + width / 2} y1={toY(max)} x2={x + width / 2} y2={toY(min)} stroke="black" />
-            <rect x={x} y={toY(q3)} width={width} height={(q3 - q1) * bandWidth} fill="hsl(var(--primary))" />
+            <rect x={x} y={toY(q3)} width={width} height={Math.abs((q3 - q1) * bandWidth)} fill="hsl(var(--primary))" />
             <line x1={x} y1={toY(median)} x2={x + width} y2={toY(median)} stroke="white" strokeWidth={2} />
             <line x1={x + width * 0.25} y1={toY(min)} x2={x + width * 0.75} y2={toY(min)} stroke="black" />
             <line x1={x + width * 0.25} y1={toY(max)} x2={x + width * 0.75} y2={toY(max)} stroke="black" />
@@ -213,7 +216,7 @@ const ViolinShape = (props: any) => {
 };
 
 
-export default function VisualizationPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: VisualizationPageProps) {
+export default function VisualizationPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: VisualizationPageProps) {
   const {toast} = useToast();
   const [activeCategory, setActiveCategory] = useState('distribution');
   const [activeChart, setActiveChart] = useState<string | null>(null);
