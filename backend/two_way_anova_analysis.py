@@ -127,31 +127,67 @@ class TwoWayAnovaAnalysis:
 
     def _generate_interpretation(self):
         anova_results = {row['Source']: row for row in self.results['anova_table']}
-        interaction_key = f'{self.factor_a} * {self.factor_b}'
-        interaction_res = anova_results.get(interaction_key)
         
-        interpretation = (
-            f"A Two-Way ANOVA was conducted to determine the effects of '{self.factor_a}' and '{self.factor_b}' on '{self.dependent_var}'.\n"
-        )
+        def format_p(p_val):
+            return f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
         
-        if interaction_res and interaction_res['p-value'] is not None:
-            interaction_sig = interaction_res['p-value'] < self.alpha
-            p_val_text = f"p < .001" if interaction_res['p-value'] < 0.001 else f"p = {interaction_res['p-value']:.3f}"
-            sig_text = "statistically significant" if interaction_sig else "not statistically significant"
-            
+        def get_effect_size_interp(eta):
+            if eta >= 0.14: return "large"
+            if eta >= 0.06: return "medium"
+            if eta >= 0.01: return "small"
+            return "negligible"
+
+        interpretation = f"A Two-Way ANOVA was conducted to examine the effects of '{self.factor_a}' and '{self.factor_b}' on '{self.dependent_var}'.\n"
+
+        # Main Effect A
+        res_a = anova_results.get(self.factor_a)
+        if res_a:
+            sig_text_a = "a statistically significant" if res_a['p-value'] < self.alpha else "no statistically significant"
+            p_text_a = format_p(res_a['p-value'])
+            effect_size_a = res_a.get('η²p', 0)
+            interp_a = get_effect_size_interp(effect_size_a)
             interpretation += (
-                f"There was a {sig_text} interaction between the effects of '{self.factor_a}' and '{self.factor_b}' on '{self.dependent_var}', "
-                f"F({interaction_res['df']:.0f}, {anova_results['Residual']['df']:.0f}) = {interaction_res['F']:.2f}, {p_val_text}.\n"
+                f"There was {sig_text_a} main effect for '{self.factor_a}', "
+                f"F({res_a['df']:.0f}, {anova_results['Residual']['df']:.0f}) = {res_a['F']:.2f}, {p_text_a}, with a {interp_a} effect size (η²p = {effect_size_a:.3f}).\n"
             )
-            
-            if interaction_sig and 'posthoc_results' in self.results:
+
+        # Main Effect B
+        res_b = anova_results.get(self.factor_b)
+        if res_b:
+            sig_text_b = "a statistically significant" if res_b['p-value'] < self.alpha else "no statistically significant"
+            p_text_b = format_p(res_b['p-value'])
+            effect_size_b = res_b.get('η²p', 0)
+            interp_b = get_effect_size_interp(effect_size_b)
+            interpretation += (
+                f"There was {sig_text_b} main effect for '{self.factor_b}', "
+                f"F({res_b['df']:.0f}, {anova_results['Residual']['df']:.0f}) = {res_b['F']:.2f}, {p_text_b}, with a {interp_b} effect size (η²p = {effect_size_b:.3f}).\n"
+            )
+
+        # Interaction Effect
+        interaction_key = f'{self.factor_a} * {self.factor_b}'
+        res_int = anova_results.get(interaction_key)
+        if res_int and res_int['p-value'] is not None:
+            sig_text_int = "a statistically significant" if res_int['p-value'] < self.alpha else "no statistically significant"
+            p_text_int = format_p(res_int['p-value'])
+            effect_size_int = res_int.get('η²p', 0)
+            interp_int = get_effect_size_interp(effect_size_int)
+            interpretation += (
+                f"The analysis also revealed {sig_text_int} interaction effect between '{self.factor_a}' and '{self.factor_b}', "
+                f"F({res_int['df']:.0f}, {anova_results['Residual']['df']:.0f}) = {res_int['F']:.2f}, {p_text_int}, indicating that the effect of one factor depends on the level of the other. The effect size was {interp_int} (η²p = {effect_size_int:.3f}).\n"
+            )
+
+            # Post-hoc for significant interaction
+            if res_int['p-value'] < self.alpha and 'posthoc_results' in self.results:
                 sig_pairs = [res for res in self.results['posthoc_results'] if res['reject']]
                 if sig_pairs:
-                    interpretation += "A Tukey post-hoc test revealed that "
+                    interpretation += "\nSimple main effects analysis using Tukey's HSD revealed that "
                     details = []
-                    for pair in sig_pairs[:3]: # Limit to first 3 for brevity
+                    for pair in sig_pairs[:3]: # Limit for brevity
                         details.append(f"the difference between '{pair['group1']}' and '{pair['group2']}' was significant (p = {pair['p_adj']:.3f})")
                     interpretation += ", and ".join(details) + "."
+                    if len(sig_pairs) > 3:
+                        interpretation += f" along with {len(sig_pairs) - 3} other significant differences."
+
 
         self.results['interpretation'] = interpretation.strip()
 
@@ -212,6 +248,7 @@ def main():
             'plot': plot_image
         }
         
+        # Use the robust _to_native_type converter for the final JSON dump
         print(json.dumps(response, default=_to_native_type, indent=2))
 
     except Exception as e:
@@ -220,4 +257,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
