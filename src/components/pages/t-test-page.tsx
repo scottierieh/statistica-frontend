@@ -146,18 +146,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         
         const renderDescriptives = () => {
             if (!results.descriptives) return null;
-            if (activeTest === 'one_sample') {
-                const stats = results.descriptives[results.variable as string];
-                if (!stats) return null;
-                return (
-                    <TableRow>
-                        <TableCell>{results.variable}</TableCell>
-                        <TableCell className="text-right font-mono">{stats.n}</TableCell>
-                        <TableCell className="text-right font-mono">{stats.mean.toFixed(3)}</TableCell>
-                        <TableCell className="text-right font-mono">{stats.std_dev.toFixed(3)}</TableCell>
-                    </TableRow>
-                )
-            }
+            
             return Object.entries(results.descriptives).map(([name, stats]) => (
                 <TableRow key={name}>
                     <TableCell>{name}</TableCell>

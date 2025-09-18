@@ -262,23 +262,12 @@ def main():
         tester = TTestAnalysis(data)
         result = {}
         
-        test_params = {}
-        if test_type == 'one-sample-t-test':
-             test_type = 'one_sample'
-        if test_type == 'independent-samples-t-test':
-            test_type = 'independent_samples'
-        if test_type == 'paired-samples-t-test':
-            test_type = 'paired_samples'
-
         if test_type == 'one_sample':
-            test_params = { 'variable': params.get('variable'), 'test_value': params.get('test_value') }
-            result = tester.one_sample_ttest(**test_params)
+            result = tester.one_sample_ttest(**params)
         elif test_type == 'independent_samples':
-            test_params = { 'variable': params.get('variable'), 'group_variable': params.get('group_variable'), 'equal_var': params.get('equal_var', True) }
-            result = tester.independent_samples_ttest(**test_params)
+            result = tester.independent_samples_ttest(**params)
         elif test_type == 'paired_samples':
-            test_params = { 'variable1': params.get('variable1'), 'variable2': params.get('variable2') }
-            result = tester.paired_samples_ttest(**test_params)
+            result = tester.paired_samples_ttest(**params)
         else:
              raise ValueError(f"Unknown test type: {test_type}")
 
