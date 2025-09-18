@@ -85,6 +85,14 @@ const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null
     return () => { isMounted = false; };
   }, [promise]);
   
+  const formattedInterpretation = useMemo(() => {
+    if (!interpretation) return null;
+    return interpretation
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<i>$1</i>');
+  }, [interpretation]);
+
+
   if (loading) return <Skeleton className="h-24 w-full" />;
   if (!interpretation) return null;
 
@@ -94,7 +102,7 @@ const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null
         <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>
+        <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
       </CardContent>
     </Card>
   );
