@@ -58,7 +58,11 @@ class NonParametricTests:
         R1 = np.sum(ranks[:n1])
         R2 = np.sum(ranks[n1:])
         
-        r = 1 - (2 * min(U1, U2)) / (n1 * n2) if n1 > 0 and n2 > 0 else 0
+        # Calculate effect size r
+        mean_u = n1 * n2 / 2
+        std_u = np.sqrt(n1 * n2 * (n1 + n2 + 1) / 12)
+        z_score = (min(U1, U2) - mean_u) / std_u if std_u > 0 else 0
+        r = abs(z_score) / np.sqrt(n1 + n2) if (n1 + n2) > 0 else 0
         
         desc_stats = {
             groups[0]: {'n': n1, 'median': np.median(group1_data), 'mean_rank': R1 / n1 if n1 > 0 else 0},
@@ -74,7 +78,7 @@ class NonParametricTests:
             'effect_size': r, 'effect_size_interpretation': effect_size_interp, 'alpha': alpha,
             'is_significant': is_significant, 'alternative': alternative, 'groups': groups,
             'descriptive_stats': desc_stats,
-            'interpretation': self._interpret_mann_whitney(is_significant, groups, effect_size_interp['level'], r, p_value, alpha, group_col, value_col, desc_stats, statistic),
+            'interpretation': self._interpret_mann_whitney(is_significant, groups, effect_size_interp['level'], r, p_value, alpha, group_col, value_col, desc_stats, statistic, z_score),
             'group_col': group_col, 'value_col': value_col
         }
         self.results['mann_whitney'] = result
@@ -117,6 +121,7 @@ class NonParametricTests:
             'alternative': alternative, 'variables': [var1, var2], 'descriptive_stats': desc_stats,
             'interpretation': self._interpret_wilcoxon(is_significant, var1, var2, effect_size_interp['level'], r, p_value, alpha, statistic, desc_stats)
         }
+        self.results['wilcoxon'] = result
         return result
 
     def kruskal_wallis_test(self, group_col: str, value_col: str, alpha: float = 0.05) -> Dict:
@@ -217,23 +222,20 @@ class NonParametricTests:
     
     def _format_p_value(self, p): return "< .001" if p < 0.001 else f"{p:.3f}"
     
-    def _interpret_mann_whitney(self, is_sig, groups, effect_level, r, p, alpha, group_col, value_col, desc_stats, u_stat):
-        sig_text = "statistically significant" if is_sig else "not statistically significant"
+    def _interpret_mann_whitney(self, is_sig, groups, effect_level, r, p, alpha, group_col, value_col, desc_stats, u_stat, z_score):
         p_text = self._format_p_value(p)
-        
         g1, g2 = groups[0], groups[1]
-        med1 = desc_stats[g1]['median']
-        med2 = desc_stats[g2]['median']
-        
+        med1, rank1 = desc_stats[g1]['median'], desc_stats[g1]['mean_rank']
+        med2, rank2 = desc_stats[g2]['median'], desc_stats[g2]['mean_rank']
+
         interpretation = (
-            f"A Mann-Whitney U test was run to determine if there were differences in '{value_col}' between two groups: '{g1}' and '{g2}'.\n"
-            f"Distributions of the '{value_col}' for the two groups were {'not ' if not is_sig else ''}statistically significantly different, U = {u_stat}, {p_text}.\n"
+            f"**Introduction:** A Mann-Whitney U test was conducted to determine if there was a statistically significant difference in '{value_col}' between two independent groups: '{g1}' and '{g2}'. This non-parametric test was chosen as an alternative to the t-test.\n\n"
+            f"**Method:** The analysis ranked all '{value_col}' scores from both groups and compared the mean ranks between the '{g1}' group (n={desc_stats[g1]['n']}) and the '{g2}' group (n={desc_stats[g2]['n']}).\n\n"
+            f"**Results:** The results indicated that the median '{value_col}' for '{g1}' (Mdn = {med1:.2f}, mean rank = {rank1:.2f}) was {'not ' if not is_sig else ''}statistically significantly different from '{g2}' (Mdn = {med2:.2f}, mean rank = {rank2:.2f}), U = {u_stat}, z = {z_score:.2f}, {p_text}.\n\n"
+            f"**Discussion:** {'Since the p-value is greater than the alpha level of ' + str(alpha) + ', we fail to reject the null hypothesis. ' if not is_sig else 'The p-value is less than the alpha level of ' + str(alpha) + ', indicating a significant result. '}"
+            f"There is evidence to suggest a difference in '{value_col}' scores between the two groups. The magnitude of the difference was {effect_level}, with an effect size (r) of {r:.3f}.\n\n"
+            f"**Conclusion:** The analysis {'' if is_sig else 'did not find a '}found a significant difference in '{value_col}' between the '{g1}' and '{g2}' groups. {'Further research could investigate other factors or use a larger sample size to increase statistical power.' if not is_sig else ''}"
         )
-        if is_sig:
-            interpretation += f"The median '{value_col}' for the '{g1}' group (Mdn = {med1:.2f}) was {'' if med1 == med2 else ('higher' if med1 > med2 else 'lower')} than for the '{g2}' group (Mdn = {med2:.2f}). "
-
-        interpretation += f"The magnitude of the differences between the groups was {effect_level.lower()} (r = {r:.3f})."
-
         return interpretation
 
     def _interpret_wilcoxon(self, is_sig, v1, v2, effect_level, r, p, alpha, w_stat, desc_stats):
@@ -249,7 +251,7 @@ class NonParametricTests:
         if is_sig:
             interpretation += f"The median for '{v1}' (Mdn = {med1:.2f}) was {'' if med1 == med2 else ('higher' if med1 > med2 else 'lower')} than the median for '{v2}' (Mdn = {med2:.2f}). "
 
-        interpretation += f"The effect size was {effect_level.lower()} (r = {r:.3f})."
+        interpretation += f"The effect size was {effect_level} (r = {r:.3f})."
 
         return interpretation
         
@@ -350,13 +352,11 @@ def main():
 
         tester = NonParametricTests(data)
         result = {}
-        plot_image = None
         
         if test_type == 'mann_whitney':
             result = tester.mann_whitney_u_test(**params)
         elif test_type == 'wilcoxon':
             result = tester.wilcoxon_signed_rank_test(**params)
-            tester.results['wilcoxon'] = result
         elif test_type == 'kruskal_wallis':
             result = tester.kruskal_wallis_test(**params)
         elif test_type == 'friedman':
@@ -365,6 +365,9 @@ def main():
             result = tester.mcnemar_test(**params)
         else:
             raise ValueError(f"Unknown test type: {test_type}")
+        
+        # After a successful test, store the result under its key for plotting
+        tester.results[test_type] = result
 
         plot_image = tester.plot_results(test_type)
         
@@ -377,5 +380,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
