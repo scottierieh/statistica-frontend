@@ -85,6 +85,6 @@ export async function getClusteringInterpretation(input: InterpretClusteringInpu
         return { success: true, interpretation: result.interpretation };
     } catch (error) {
         console.error(error);
-        return { success: false, error: "Failed to generate K-Means interpretation." };
+        return { success: false, error: "Failed to generate Clustering interpretation." };
     }
 }
