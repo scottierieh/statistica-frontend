@@ -134,20 +134,23 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     cfa: CfaPage,
     mediation: MediationPage,
     moderation: ModerationPage,
-    nonparametric: NonParametricPage,
     'mann-whitney': NonParametricPage,
     'wilcoxon': NonParametricPage,
     'kruskal-wallis': NonParametricPage,
     'friedman': NonParametricPage,
     'mcnemar': NonParametricPage,
-    't-test': TTestPage,
     't-test-one-sample': TTestPage,
     't-test-independent': TTestPage,
     't-test-paired': TTestPage,
     hca: HcaPage,
     manova: ManovaPage,
     'rm-anova': RepeatedMeasuresAnovaPage,
-    regression: RegressionPage,
+    'regression-simple': RegressionPage,
+    'regression-multiple': RegressionPage,
+    'regression-polynomial': RegressionPage,
+    'regression-ridge': RegressionPage,
+    'regression-lasso': RegressionPage,
+    'regression-elasticnet': RegressionPage,
     'logistic-regression': LogisticRegressionPage,
     glm: GlmPage,
     kmeans: KMeansPage,
@@ -230,17 +233,35 @@ const analysisMenu = [
   {
     field: 'Correlation / Regression',
     icon: Link2,
-    methods: [
-      { id: 'correlation', label: 'Correlation Analysis' },
-      { id: 'regression-simple', label: 'Simple Linear Regression' },
-      { id: 'regression-multiple', label: 'Multiple Linear Regression' },
-      { id: 'regression-polynomial', label: 'Polynomial Regression' },
-      { id: 'regression-ridge', label: 'Ridge Regression' },
-      { id: 'regression-lasso', label: 'Lasso Regression' },
-      { id: 'regression-elasticnet', label: 'Elastic Net Regression' },
-      { id: 'logistic-regression', label: 'Logistic Regression' },
-      { id: 'glm', label: 'Probit / Logit Regression (GLM)' },
-      { id: 'nonlinear-regression', label: 'Nonlinear Regression' },
+    subCategories: [
+      {
+        name: 'Correlation',
+        methods: [ { id: 'correlation', label: 'Correlation Analysis' } ]
+      },
+      {
+        name: 'Linear Models',
+        methods: [
+            { id: 'regression-simple', label: 'Simple Linear Regression' },
+            { id: 'regression-multiple', label: 'Multiple Linear Regression' },
+            { id: 'regression-polynomial', label: 'Polynomial Regression' },
+            { id: 'nonlinear-regression', label: 'Nonlinear Regression' },
+        ]
+      },
+       {
+        name: 'Regularized Models',
+        methods: [
+            { id: 'regression-ridge', label: 'Ridge Regression' },
+            { id: 'regression-lasso', label: 'Lasso Regression' },
+            { id: 'regression-elasticnet', label: 'Elastic Net Regression' },
+        ]
+      },
+      {
+        name: 'Categorical Outcome',
+        methods: [
+            { id: 'logistic-regression', label: 'Logistic Regression' },
+            { id: 'glm', label: 'Generalized Linear Models (GLM)' },
+        ]
+      },
     ]
   },
    {
@@ -455,14 +476,9 @@ export default function StatisticaApp() {
     URL.revokeObjectURL(url);
   };
   
-  const pageKey = activeAnalysis.startsWith('regression-') ? 'regression' 
-              : activeAnalysis.startsWith('t-test-') ? 't-test' 
-              : activeAnalysis;
-
-  const ActivePageComponent = pageKey && analysisPages[pageKey] 
-    ? analysisPages[pageKey]
-    : DescriptiveStatsPage;
-
+  const pageKey = Object.keys(analysisPages).find(key => activeAnalysis.startsWith(key) && key.includes(activeAnalysis.split('-')[0])) || 'stats';
+  
+  const ActivePageComponent = analysisPages[pageKey] || DescriptiveStatsPage;
 
   const hasData = data.length > 0;
   

@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -68,15 +69,14 @@ interface RegressionPageProps {
     data: DataSet;
     numericHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
-    activeAnalysis: string; // e.g., 'regression-simple'
+    activeAnalysis: string; 
 }
 
 export default function RegressionPage({ data, numericHeaders, onLoadExample, activeAnalysis }: RegressionPageProps) {
     const { toast } = useToast();
     const [targetVar, setTargetVar] = useState<string | undefined>(numericHeaders[numericHeaders.length - 1]);
     
-    const initialModelType = activeAnalysis.split('-')[1] || 'simple';
-    const [modelType, setModelType] = useState(initialModelType);
+    const modelType = useMemo(() => activeAnalysis.replace('regression-', ''), [activeAnalysis]);
     const [selectionMethod, setSelectionMethod] = useState('none');
 
     // State for different models
@@ -271,124 +271,129 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     )
 
+    const renderSetupUI = () => {
+        switch (modelType) {
+            case 'simple':
+                return (
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Target Variable (Y)</Label>
+                            <Select value={targetVar} onValueChange={setTargetVar}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Feature Variable (X)</Label>
+                            <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{availableFeatures.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                );
+            case 'multiple':
+                return (
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Target Variable (Y)</Label>
+                            <Select value={targetVar} onValueChange={setTargetVar}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        {renderMultiFeatureSelector()}
+                    </div>
+                );
+            case 'polynomial':
+                return (
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Target Variable (Y)</Label>
+                            <Select value={targetVar} onValueChange={setTargetVar}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <div className='mt-4'>
+                                <Label htmlFor="poly-degree">Polynomial Degree</Label>
+                                <Input id="poly-degree" type="number" value={polyDegree} onChange={(e) => setPolyDegree(Number(e.target.value))} min="2" className="w-32" />
+                           </div>
+                        </div>
+                        {renderMultiFeatureSelector()}
+                    </div>
+                );
+            case 'ridge':
+                return (
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Target Variable (Y)</Label>
+                            <Select value={targetVar} onValueChange={setTargetVar}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <div className='mt-4'>
+                                <Label htmlFor="ridge-alpha">Alpha (Regularization Strength)</Label>
+                                <Input id="ridge-alpha" type="number" value={ridgeAlpha ?? ''} onChange={(e) => setRidgeAlpha(Number(e.target.value))} min="0" step="0.1" className="w-32" />
+                           </div>
+                        </div>
+                        {renderMultiFeatureSelector()}
+                    </div>
+                );
+            case 'lasso':
+                 return (
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Target Variable (Y)</Label>
+                            <Select value={targetVar} onValueChange={setTargetVar}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <div className='mt-4'>
+                                <Label htmlFor="lasso-alpha">Alpha (Regularization Strength)</Label>
+                                <Input id="lasso-alpha" type="number" value={lassoAlpha ?? ''} onChange={(e) => setLassoAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
+                           </div>
+                        </div>
+                       {renderMultiFeatureSelector()}
+                    </div>
+                );
+            case 'elasticnet':
+                 return (
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Target Variable (Y)</Label>
+                            <Select value={targetVar} onValueChange={setTargetVar}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <div className='mt-4 space-y-2'>
+                                <div>
+                                    <Label htmlFor="elastic-alpha">Alpha (Regularization Strength)</Label>
+                                    <Input id="elastic-alpha" type="number" value={elasticNetAlpha} onChange={(e) => setElasticNetAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
+                                </div>
+                                 <div>
+                                    <Label htmlFor="l1-ratio">L1 Ratio (0=Ridge, 1=Lasso)</Label>
+                                    <Input id="l1-ratio" type="number" value={elasticNetL1Ratio} onChange={(e) => setElasticNetL1Ratio(Number(e.target.value))} min="0" max="1" step="0.01" className="w-32" />
+                                </div>
+                           </div>
+                        </div>
+                       {renderMultiFeatureSelector()}
+                    </div>
+                );
+            default:
+                return <p>Select a model type.</p>;
+        }
+    };
+
+
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Regression Analysis Setup</CardTitle>
-                    <CardDescription>Select a regression model type, then configure its variables and parameters.</CardDescription>
+                    <CardDescription>Select a regression model, then configure its variables and parameters.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Tabs value={modelType} onValueChange={(v) => {setModelType(v); setAnalysisResult(null);}} className="w-full">
-                        <TabsList className='mb-4 flex-wrap h-auto justify-start'>
-                            <TabsTrigger value="simple">Simple Linear</TabsTrigger>
-                            <TabsTrigger value="multiple">Multiple Linear</TabsTrigger>
-                            <TabsTrigger value="polynomial">Polynomial</TabsTrigger>
-                            <TabsTrigger value="ridge">Ridge</TabsTrigger>
-                            <TabsTrigger value="lasso">Lasso</TabsTrigger>
-                            <TabsTrigger value="elasticnet">Elastic Net</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="simple">
-                           <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <Label>Target Variable (Y)</Label>
-                                    <Select value={targetVar} onValueChange={setTargetVar}>
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                </div>
-                                <div>
-                                    <Label>Feature Variable (X)</Label>
-                                    <Select value={simpleFeatureVar} onValueChange={setSimpleFeatureVar}>
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>{availableFeatures.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="multiple">
-                           <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <Label>Target Variable (Y)</Label>
-                                    <Select value={targetVar} onValueChange={setTargetVar}>
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                </div>
-                                {renderMultiFeatureSelector()}
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="polynomial">
-                           <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <Label>Target Variable (Y)</Label>
-                                    <Select value={targetVar} onValueChange={setTargetVar}>
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                    <div className='mt-4'>
-                                        <Label htmlFor="poly-degree">Polynomial Degree</Label>
-                                        <Input id="poly-degree" type="number" value={polyDegree} onChange={(e) => setPolyDegree(Number(e.target.value))} min="2" className="w-32" />
-                                   </div>
-                                </div>
-                                {renderMultiFeatureSelector()}
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="ridge">
-                           <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <Label>Target Variable (Y)</Label>
-                                    <Select value={targetVar} onValueChange={setTargetVar}>
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                    <div className='mt-4'>
-                                        <Label htmlFor="ridge-alpha">Alpha (Regularization Strength)</Label>
-                                        <Input id="ridge-alpha" type="number" value={ridgeAlpha ?? ''} onChange={(e) => setRidgeAlpha(Number(e.target.value))} min="0" step="0.1" className="w-32" />
-                                   </div>
-                                </div>
-                                {renderMultiFeatureSelector()}
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="lasso">
-                           <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <Label>Target Variable (Y)</Label>
-                                    <Select value={targetVar} onValueChange={setTargetVar}>
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                    <div className='mt-4'>
-                                        <Label htmlFor="lasso-alpha">Alpha (Regularization Strength)</Label>
-                                        <Input id="lasso-alpha" type="number" value={lassoAlpha ?? ''} onChange={(e) => setLassoAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
-                                   </div>
-                                </div>
-                               {renderMultiFeatureSelector()}
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="elasticnet">
-                           <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <Label>Target Variable (Y)</Label>
-                                    <Select value={targetVar} onValueChange={setTargetVar}>
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                    <div className='mt-4 space-y-2'>
-                                        <div>
-                                            <Label htmlFor="elastic-alpha">Alpha (Regularization Strength)</Label>
-                                            <Input id="elastic-alpha" type="number" value={elasticNetAlpha} onChange={(e) => setElasticNetAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
-                                        </div>
-                                         <div>
-                                            <Label htmlFor="l1-ratio">L1 Ratio (0=Ridge, 1=Lasso)</Label>
-                                            <Input id="l1-ratio" type="number" value={elasticNetL1Ratio} onChange={(e) => setElasticNetL1Ratio(Number(e.target.value))} min="0" max="1" step="0.01" className="w-32" />
-                                        </div>
-                                   </div>
-                                </div>
-                               {renderMultiFeatureSelector()}
-                            </div>
-                        </TabsContent>
-                    </Tabs>
+                    {renderSetupUI()}
                     <div className="flex justify-end mt-4">
                         <Button onClick={handleAnalysis} disabled={getAnalysisButtonDisabled()}>
                             {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
