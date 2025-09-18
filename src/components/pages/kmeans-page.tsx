@@ -16,6 +16,7 @@ import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface KMeansResults {
     optimal_k?: {
@@ -98,7 +99,9 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
 
     const handleItemSelectionChange = (header: string, checked: boolean) => {
-        setSelectedItems(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+        setSelectedItems(prev => 
+          checked ? [...prev, header] : prev.filter(h => h !== header)
+        );
     };
 
     const handleAnalysis = useCallback(async () => {
