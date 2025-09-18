@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart as PieChartIcon } from 'lucide-react';
+import { AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, BoxPlot, GanttChart, Dot } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -22,6 +22,7 @@ import {
   Pie,
   Cell,
   Legend,
+  ZAxis,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { getVisualizationDescription } from '@/app/actions';
@@ -29,9 +30,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { DataSet } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
-import { Sigma } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
+import { Checkbox } from '../ui/checkbox';
 
 interface VisualizationPageProps {
   data: DataSet;
@@ -75,7 +76,7 @@ const ChartRenderer = ({ type, data, config, aiPromise }: { type: string, data: 
                 <AIGeneratedDescription promise={aiPromise} />
             </CardHeader>
             <CardContent>
-                <ChartContainer config={config.chartConfig || {}} className="w-full h-[320px]">
+                <ChartContainer config={config.chartConfig || {}} className="w-full h-[400px]">
                     <ResponsiveContainer>
                         {type === 'histogram' && (
                              <BarChart data={data}>
@@ -86,23 +87,24 @@ const ChartRenderer = ({ type, data, config, aiPromise }: { type: string, data: 
                                 <Bar dataKey="count" fill="var(--color-primary)" radius={4} />
                             </BarChart>
                         )}
-                        {type === 'bar' && (
-                             <BarChart data={data}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey={config.xCol} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                                <YAxis />
+                        {(type === 'bar' || type === 'grouped-bar' || type === 'stacked-bar') && (
+                             <BarChart data={data} layout={config.layout || 'horizontal'}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey={config.xCol} type={config.layout === 'vertical' ? 'number' : 'category'} />
+                                <YAxis dataKey={config.yCol} type={config.layout === 'vertical' ? 'category' : 'number'} width={config.layout === 'vertical' ? 100 : undefined} />
                                 <Tooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey={config.yCol} fill="var(--color-primary)" radius={4} />
+                                <Legend />
+                                {config.series.map((s: any, i: number) => <Bar key={s.key} dataKey={s.key} stackId={type === 'stacked-bar' ? 'a' : undefined} fill={config.colors[i % config.colors.length]} radius={[4, 4, 0, 0]} />)}
                             </BarChart>
                         )}
                         {type === 'density' && (
-                            <LineChart data={data} margin={{ left: 12, right: 12 }}>
+                            <AreaChart data={data} margin={{ left: 12, right: 12 }}>
                                 <CartesianGrid vertical={false} />
                                 <XAxis dataKey="value" type="number" domain={['dataMin', 'dataMax']} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
                                 <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
                                 <Tooltip content={<ChartTooltipContent />} />
                                 <Line type="monotone" dataKey="density" stroke="var(--color-stroke)" strokeWidth={2} dot={false} />
-                            </LineChart>
+                            </AreaChart>
                         )}
                         {type === 'scatter' && (
                              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
@@ -111,6 +113,18 @@ const ChartRenderer = ({ type, data, config, aiPromise }: { type: string, data: 
                                 <YAxis type="number" dataKey={config.yCol} name={config.yCol} unit="" />
                                 <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
                                 <Scatter name={`${config.yCol} vs ${config.xCol}`} data={data} fill="var(--color-primary)" />
+                                {config.trendLine && <Line type="linear" dataKey={config.yCol} stroke="hsl(var(--destructive))" dot={false} isAnimationActive={false} />}
+                            </ScatterChart>
+                        )}
+                        {type === 'bubble' && (
+                             <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                <CartesianGrid />
+                                <XAxis type="number" dataKey={config.xCol} name={config.xCol} />
+                                <YAxis type="number" dataKey={config.yCol} name={config.yCol} />
+                                <ZAxis type="number" dataKey={config.zCol} name={config.zCol} range={[100, 1000]} />
+                                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
+                                <Legend />
+                                <Scatter name="Bubbles" data={data} fill="hsl(var(--chart-2))" shape="circle" />
                             </ScatterChart>
                         )}
                          {(type === 'pie' || type === 'donut') && (
@@ -133,11 +147,55 @@ const ChartRenderer = ({ type, data, config, aiPromise }: { type: string, data: 
                                 <Legend />
                             </PieChart>
                         )}
+                        {type === 'box' && (
+                             <BarChart data={data}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip content={<ChartTooltipContent />} />
+                                <Bar dataKey="range" shape={<BoxPlotShape />} />
+                             </BarChart>
+                        )}
+                        {type === 'violin' && (
+                             <ScatterChart
+                                width={500}
+                                height={300}
+                                margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                                >
+                                <CartesianGrid />
+                                <XAxis type="category" dataKey="name" name="name" />
+                                <YAxis type="number" dataKey="value" name="value" />
+                                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
+                                <Scatter name="Violin" data={data} shape={<ViolinShape />} />
+                            </ScatterChart>
+                        )}
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
         </Card>
     );
+};
+
+const BoxPlotShape = (props: any) => {
+    const { x, y, width, height, payload } = props;
+    const { q1, q3, min, max, median } = payload.stats;
+    const bandWidth = height / (max - min);
+
+    return (
+        <g>
+            <line x1={x + width / 2} y1={y + (max - max) * bandWidth} x2={x + width / 2} y2={y + (max - min) * bandWidth} stroke="black" />
+            <rect x={x} y={y + (max - q3) * bandWidth} width={width} height={(q3 - q1) * bandWidth} fill="hsl(var(--primary))" />
+            <line x1={x} y1={y + (max - median) * bandWidth} x2={x + width} y2={y + (max - median) * bandWidth} stroke="white" strokeWidth={2} />
+            <line x1={x} y1={y + (max - min) * bandWidth} x2={x + width} y2={y + (max - min) * bandWidth} stroke="black" />
+            <line x1={x} y1={y + (max - max) * bandWidth} x2={x + width} y2={y + (max - max) * bandWidth} stroke="black" />
+        </g>
+    )
+}
+
+const ViolinShape = (props: any) => {
+    const { cx, cy, payload } = props;
+    // This is a simplified representation. A real violin plot would require density calculation.
+    return <Dot cx={cx} cy={cy} r={5} fill="hsl(var(--primary))" />;
 };
 
 
@@ -147,15 +205,25 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
   const [activeChart, setActiveChart] = useState<string | null>(null);
 
   // State for chart configs
-  const [histColumn, setHistColumn] = useState(numericHeaders[0]);
+  const [distColumn, setDistColumn] = useState(numericHeaders[0]);
   const [barColumn, setBarColumn] = useState(categoricalHeaders[0]);
-  const [densityColumn, setDensityColumn] = useState(numericHeaders[0]);
-
+  
   const [scatterX, setScatterX] = useState(numericHeaders[0]);
   const [scatterY, setScatterY] = useState(numericHeaders.length > 1 ? numericHeaders[1] : numericHeaders[0]);
+  const [scatterTrend, setScatterTrend] = useState(false);
+
+  const [bubbleX, setBubbleX] = useState(numericHeaders[0]);
+  const [bubbleY, setBubbleY] = useState(numericHeaders[1]);
+  const [bubbleZ, setBubbleZ] = useState(numericHeaders[2]);
   
   const [pieNameCol, setPieNameCol] = useState(categoricalHeaders[0]);
   const [pieValueCol, setPieValueCol] = useState(numericHeaders[0]);
+  
+  const [groupedBarCategory1, setGroupedBarCategory1] = useState(categoricalHeaders[0]);
+  const [groupedBarCategory2, setGroupedBarCategory2] = useState(categoricalHeaders[1]);
+  const [groupedBarValue, setGroupedBarValue] = useState(numericHeaders[0]);
+
+  const [heatmapVars, setHeatmapVars] = useState<string[]>(numericHeaders.slice(0, 5));
 
 
   const [analysisResult, setAnalysisResult] = useState<any>(null);
@@ -163,9 +231,8 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
   const canRun = useMemo(() => data.length > 0 && (numericHeaders.length > 0 || categoricalHeaders.length > 0), [data, numericHeaders, categoricalHeaders]);
   
   useEffect(() => {
-    setHistColumn(numericHeaders[0]);
+    setDistColumn(numericHeaders[0]);
     setBarColumn(categoricalHeaders[0]);
-    setDensityColumn(numericHeaders[0]);
     setScatterX(numericHeaders[0]);
     setScatterY(numericHeaders[1] || numericHeaders[0]);
     setPieNameCol(categoricalHeaders[0]);
@@ -181,42 +248,55 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
     
     switch(chartType) {
         case 'histogram':
-            if (!histColumn) { toast({ title: "Error", description: "Please select a variable for the histogram."}); return; }
-            const histValues = data.map(d => d[histColumn]).filter(v => typeof v === 'number') as number[];
-            const min = Math.min(...histValues); const max = Math.max(...histValues);
-            const binCount = Math.max(10, Math.floor(Math.sqrt(histValues.length)));
-            const binWidth = (max - min) / binCount;
-            const bins = Array.from({ length: binCount }, (_, i) => ({ name: `${(min + i * binWidth).toFixed(1)}`, count: 0 }));
-            histValues.forEach(v => { let idx = Math.floor((v - min) / binWidth); if(idx >= binCount) idx = binCount -1; if(bins[idx]) bins[idx].count++; });
-            aiPromise = getVisualizationDescription({ dataDescription: `Distribution of ${histColumn}`, chartType: 'Histogram', chartTitle: `Histogram of ${histColumn}`, xAxisLabel: histColumn, yAxisLabel: 'Frequency' }).then(r => r.success ? r.description : null);
-            result = { data: bins, config: { title: `Distribution of ${histColumn}`, chartConfig: { count: { label: 'Frequency' }} }, aiPromise };
+        case 'density':
+        case 'box':
+        case 'violin':
+            if (!distColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
+            const values = data.map(d => d[distColumn]).filter(v => typeof v === 'number') as number[];
+            
+            if (chartType === 'histogram') {
+                const min = Math.min(...values); const max = Math.max(...values);
+                const binCount = Math.max(10, Math.floor(Math.sqrt(values.length)));
+                const binWidth = (max - min) / binCount;
+                const bins = Array.from({ length: binCount }, (_, i) => ({ name: `${(min + i * binWidth).toFixed(1)}`, count: 0 }));
+                values.forEach(v => { let idx = Math.floor((v - min) / binWidth); if(idx >= binCount) idx = binCount -1; if(bins[idx]) bins[idx].count++; });
+                result = { data: bins, config: { title: `Distribution of ${distColumn}`, chartConfig: { count: { label: 'Frequency' }} }};
+            } else if (chartType === 'box') {
+                 const sorted = [...values].sort((a,b) => a - b);
+                 const q1 = sorted[Math.floor(sorted.length * 0.25)];
+                 const median = sorted[Math.floor(sorted.length * 0.5)];
+                 const q3 = sorted[Math.floor(sorted.length * 0.75)];
+                 const boxData = [{ name: distColumn, stats: { min: sorted[0], max: sorted[sorted.length - 1], q1, median, q3 } }];
+                 result = { data: boxData, config: { title: `Box Plot of ${distColumn}` } };
+            }
+            // Simplified Violin and Density
+            else {
+                const mean = values.reduce((a,b) => a+b, 0) / values.length;
+                const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / values.length);
+                const densityData = Array.from({length: 100}, (_, i) => {
+                    const x = mean - 3 * std + i * (6 * std / 99);
+                    const y = (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / std, 2));
+                    return { value: x, density: y, name: distColumn };
+                });
+                result = { data: densityData, config: { title: `${chartType === 'density' ? 'Density' : 'Violin'} Plot of ${distColumn}` } };
+            }
             break;
         case 'bar':
-             if (!barColumn) { toast({ title: "Error", description: "Please select a variable for the bar chart."}); return; }
+             if (!barColumn) { toast({ title: "Error", description: "Please select a variable."}); return; }
              const barCounts: {[key: string]: number} = {};
              data.forEach(row => { const key = String(row[barColumn]); barCounts[key] = (barCounts[key] || 0) + 1; });
              const barData = Object.entries(barCounts).map(([name, count]) => ({ [barColumn]: name, 'count': count }));
-             aiPromise = getVisualizationDescription({ dataDescription: `Counts of ${barColumn}`, chartType: 'Bar Chart', chartTitle: `Frequency of ${barColumn}`, xAxisLabel: barColumn, yAxisLabel: 'Count' }).then(r => r.success ? r.description : null);
-             result = { data: barData, config: { title: `Frequency of ${barColumn}`, xCol: barColumn, yCol: 'count', chartConfig: { count: { label: 'Count' }} }, aiPromise };
+             result = { data: barData, config: { title: `Frequency of ${barColumn}`, xCol: barColumn, yCol: 'count', chartConfig: { count: { label: 'Count' }}}};
              break;
-        case 'density':
-            if (!densityColumn) { toast({ title: "Error", description: "Please select a variable for the density plot."}); return; }
-            const densityValues = data.map(d => d[densityColumn]).filter(v => typeof v === 'number') as number[];
-            const densityMean = densityValues.reduce((a,b) => a+b, 0) / densityValues.length;
-            const densityStd = Math.sqrt(densityValues.map(x => Math.pow(x - densityMean, 2)).reduce((a,b) => a+b, 0) / densityValues.length);
-            const densityData = Array.from({length: 100}, (_, i) => {
-                const x = densityMean - 3 * densityStd + i * (6 * densityStd / 99);
-                const y = (1 / (densityStd * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - densityMean) / densityStd, 2));
-                return { value: x, density: y };
-            });
-            aiPromise = getVisualizationDescription({ dataDescription: `Density of ${densityColumn}`, chartType: 'Density Plot', chartTitle: `Density Plot of ${densityColumn}`, xAxisLabel: densityColumn, yAxisLabel: 'Density' }).then(r => r.success ? r.description : null);
-            result = { data: densityData, config: { title: `Density Plot of ${densityColumn}`, chartConfig: { stroke: { color: "hsl(var(--chart-1))" }, fill: { color: "hsl(var(--chart-1))" }}}, aiPromise};
-            break;
         case 'scatter':
-            if (!scatterX || !scatterY) { toast({ title: "Error", description: "Please select X and Y variables for the scatter plot."}); return; }
+            if (!scatterX || !scatterY) { toast({ title: "Error", description: "Please select X and Y variables."}); return; }
             const scatterData = data.map(d => ({ [scatterX]: d[scatterX], [scatterY]: d[scatterY] })).filter(d => typeof d[scatterX] === 'number' && typeof d[scatterY] === 'number');
-            aiPromise = getVisualizationDescription({ dataDescription: `Relationship between ${scatterX} and ${scatterY}`, chartType: 'Scatter Plot', chartTitle: `Scatter Plot of ${scatterY} vs ${scatterX}`, xAxisLabel: scatterX, yAxisLabel: scatterY }).then(r => r.success ? r.description : null);
-            result = { data: scatterData, config: { title: `Scatter Plot of ${scatterY} vs ${scatterX}`, xCol: scatterX, yCol: scatterY, chartConfig: { [scatterY]: { label: scatterY }}}, aiPromise };
+            result = { data: scatterData, config: { title: `Scatter Plot of ${scatterY} vs ${scatterX}`, xCol: scatterX, yCol: scatterY, trendLine: scatterTrend }};
+            break;
+        case 'bubble':
+            if (!bubbleX || !bubbleY || !bubbleZ) { toast({ title: "Error", description: "Please select X, Y, and Z variables."}); return; }
+            const bubbleData = data.map(d => ({ [bubbleX]: d[bubbleX], [bubbleY]: d[bubbleY], [bubbleZ]: d[bubbleZ] })).filter(d => typeof d[bubbleX] === 'number' && typeof d[bubbleY] === 'number' && typeof d[bubbleZ] === 'number');
+            result = { data: bubbleData, config: { title: `Bubble Chart`, xCol: bubbleX, yCol: bubbleY, zCol: bubbleZ }};
             break;
         case 'pie':
         case 'donut':
@@ -230,16 +310,26 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
             const pieData = Object.entries(aggregatedData).map(([name, value]) => ({ [pieNameCol]: name, [pieValueCol]: value }));
             const total = pieData.reduce((sum, item) => sum + item[pieValueCol], 0);
             const pieDataWithPercent = pieData.map(item => ({...item, percent: item[pieValueCol] / total}));
-            
-            aiPromise = getVisualizationDescription({ dataDescription: `Proportions of ${pieValueCol} by ${pieNameCol}`, chartType: `${chartType} chart`, chartTitle: `${chartType} chart of ${pieValueCol} by ${pieNameCol}`, xAxisLabel: pieNameCol, yAxisLabel: pieValueCol }).then(r => r.success ? r.description : null);
-            result = { data: pieDataWithPercent, config: { title: `${chartType} Chart of ${pieValueCol} by ${pieNameCol}`, nameCol: pieNameCol, valueCol: pieValueCol, colors: ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]}, aiPromise };
+            result = { data: pieDataWithPercent, config: { title: `${chartType} Chart of ${pieValueCol} by ${pieNameCol}`, nameCol: pieNameCol, valueCol: pieValueCol, colors: ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]}};
             break;
-
-        default:
-            toast({title: "Not Implemented", description: `Chart type '${chartType}' is not yet available.`});
+         case 'grouped-bar':
+         case 'stacked-bar':
+             if (!groupedBarCategory1 || !groupedBarCategory2 || !groupedBarValue) { toast({ title: "Error", description: "Please select two categories and one value."}); return; }
+             const groupedData: {[key:string]: any} = {};
+             data.forEach(d => {
+                 const key = String(d[groupedBarCategory1]);
+                 const subKey = String(d[groupedBarCategory2]);
+                 const value = typeof d[groupedBarValue] === 'number' ? d[groupedBarValue] as number : 0;
+                 if (!groupedData[key]) groupedData[key] = { [groupedBarCategory1]: key };
+                 groupedData[key][subKey] = (groupedData[key][subKey] || 0) + value;
+             });
+             const seriesNames = Array.from(new Set(data.map(d => d[groupedBarCategory2])));
+             result = { data: Object.values(groupedData), config: { title: `Bar Chart`, xCol: groupedBarCategory1, yCol: groupedBarValue, series: seriesNames.map(s=>({key:s})), colors: ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"] } };
+             break;
     }
+    
     setAnalysisResult(result);
-  }, [data, toast, histColumn, barColumn, densityColumn, scatterX, scatterY, pieNameCol, pieValueCol]);
+  }, [data, toast, distColumn, barColumn, scatterX, scatterY, scatterTrend, bubbleX, bubbleY, bubbleZ, pieNameCol, pieValueCol, groupedBarCategory1, groupedBarCategory2, groupedBarValue]);
 
    if (!canRun) {
       const vizExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('visuals'));
@@ -248,9 +338,7 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
             <Card className="w-full max-w-2xl text-center">
                 <CardHeader>
                     <CardTitle className="font-headline">Data Visualization</CardTitle>
-                    <CardDescription>
-                        To visualize data, you need to upload data with at least one numeric variable. Try one of our example datasets.
-                    </CardDescription>
+                    <CardDescription>To visualize data, you need to upload a file. Try one of our example datasets.</CardDescription>
                 </CardHeader>
                  <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -268,9 +356,7 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
                                     </div>
                                 </CardHeader>
                                 <CardFooter>
-                                    <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                        Load this data
-                                    </Button>
+                                    <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">Load this data</Button>
                                 </CardFooter>
                             </Card>
                             )
@@ -285,13 +371,18 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
   const chartTypes = {
       distribution: [
         { id: 'histogram', label: 'Histogram', icon: BarChartIcon, disabled: numericHeaders.length === 0 },
-        { id: 'bar', label: 'Bar Chart', icon: BarChartIcon, disabled: categoricalHeaders.length === 0 },
+        { id: 'box', label: 'Box Plot', icon: BoxPlot, disabled: numericHeaders.length === 0 },
+        { id: 'violin', label: 'Violin Plot', icon: GanttChart, disabled: numericHeaders.length === 0 },
         { id: 'density', label: 'Density Plot', icon: AreaChart, disabled: numericHeaders.length === 0 },
       ],
       relationship: [
         { id: 'scatter', label: 'Scatter Plot', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
+        { id: 'bubble', label: 'Bubble Chart', icon: Dot, disabled: numericHeaders.length < 3 },
       ],
       categorical: [
+        { id: 'bar', label: 'Bar Chart', icon: BarChartIcon, disabled: categoricalHeaders.length === 0 },
+        { id: 'grouped-bar', label: 'Grouped Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
+        { id: 'stacked-bar', label: 'Stacked Bar', icon: BarChartIcon, disabled: categoricalHeaders.length < 2 || numericHeaders.length < 1 },
         { id: 'pie', label: 'Pie Chart', icon: PieChartIcon, disabled: numericHeaders.length === 0 || categoricalHeaders.length === 0 },
         { id: 'donut', label: 'Donut Chart', icon: PieChartIcon, disabled: numericHeaders.length === 0 || categoricalHeaders.length === 0 },
       ]
@@ -322,25 +413,37 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
                 </div>
                 
                  <div className="mt-4 pt-4 border-t">
-                    {activeChart === 'histogram' && (
-                        <div><Label>Variable:</Label><Select value={histColumn} onValueChange={setHistColumn}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    {(activeChart === 'histogram' || activeChart === 'density' || activeChart === 'box' || activeChart === 'violin') && (
+                        <div><Label>Variable:</Label><Select value={distColumn} onValueChange={setDistColumn}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     )}
                      {activeChart === 'bar' && (
                         <div><Label>Variable:</Label><Select value={barColumn} onValueChange={setBarColumn}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     )}
-                    {activeChart === 'density' && (
-                         <div><Label>Variable:</Label><Select value={densityColumn} onValueChange={setDensityColumn}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                    )}
                     {activeChart === 'scatter' && (
-                        <div className="flex gap-4">
+                        <div className="flex gap-4 items-center">
                             <div><Label>X-Axis:</Label><Select value={scatterX} onValueChange={setScatterX}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                             <div><Label>Y-Axis:</Label><Select value={scatterY} onValueChange={setScatterY}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h=>h !== scatterX).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                            <div className="flex items-center space-x-2 pt-6"><Checkbox id="trendline" checked={scatterTrend} onCheckedChange={c => setScatterTrend(!!c)}/><Label htmlFor="trendline">Show Trend Line</Label></div>
+                        </div>
+                    )}
+                    {activeChart === 'bubble' && (
+                        <div className="flex gap-4">
+                            <div><Label>X-Axis:</Label><Select value={bubbleX} onValueChange={setBubbleX}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                            <div><Label>Y-Axis:</Label><Select value={bubbleY} onValueChange={setBubbleY}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h=>h !== bubbleX).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                            <div><Label>Size (Z-Axis):</Label><Select value={bubbleZ} onValueChange={setBubbleZ}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h=>h !== bubbleX && h !== bubbleY).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         </div>
                     )}
                     {(activeChart === 'pie' || activeChart === 'donut') && (
                          <div className="flex gap-4">
                             <div><Label>Name Column:</Label><Select value={pieNameCol} onValueChange={setPieNameCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                             <div><Label>Value Column:</Label><Select value={pieValueCol} onValueChange={setPieValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        </div>
+                    )}
+                    {(activeChart === 'grouped-bar' || activeChart === 'stacked-bar') && (
+                         <div className="flex gap-4">
+                            <div><Label>Category Axis:</Label><Select value={groupedBarCategory1} onValueChange={setGroupedBarCategory1}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                            <div><Label>Group By:</Label><Select value={groupedBarCategory2} onValueChange={setGroupedBarCategory2}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.filter(h=>h !== groupedBarCategory1).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                            <div><Label>Value Column:</Label><Select value={groupedBarValue} onValueChange={setGroupedBarValue}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         </div>
                     )}
                 </div>
