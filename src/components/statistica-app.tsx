@@ -140,6 +140,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'kruskal-wallis': NonParametricPage,
     'friedman': NonParametricPage,
     'mcnemar': NonParametricPage,
+    't-test': TTestPage,
     't-test-one-sample': TTestPage,
     't-test-independent': TTestPage,
     't-test-paired': TTestPage,
