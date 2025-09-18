@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -11,7 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const InterpretClusteringInputSchema = z.object({
+const InterpretClusteringInputSchema = z.object({
   modelType: z.string().describe("The type of clustering model used (e.g., K-Means, DBSCAN, HDBSCAN)."),
   nClusters: z.number().describe("The number of clusters found."),
   nNoise: z.number().describe("The number of points classified as noise."),
