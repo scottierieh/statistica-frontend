@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -8,12 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Columns, Bot } from 'lucide-react';
+import { Sigma, Loader2, Columns, Bot, AlertCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCrosstabInterpretation } from '@/app/actions';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface CrosstabResults {
     contingency_table: { [key: string]: { [key: string]: number } };
@@ -306,13 +308,15 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                                     </TableRow>
                                 </TableBody>
                             </Table>
-                            <div className="flex items-center justify-center p-4 bg-muted rounded-lg">
-                                {analysisResult.results.chi_squared.p_value < 0.05 ? (
-                                    <p className="text-center font-semibold">There IS a statistically significant association between the variables.</p>
-                                ) : (
-                                    <p className="text-center font-semibold text-muted-foreground">There is NO statistically significant association between the variables.</p>
-                                )}
-                            </div>
+                            <Alert variant={analysisResult.results.chi_squared.p_value < 0.05 ? 'default' : 'destructive'}>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>{analysisResult.results.chi_squared.p_value < 0.05 ? "Result is Statistically Significant" : "Result is Not Statistically Significant"}</AlertTitle>
+                                <AlertDescription>
+                                    {analysisResult.results.chi_squared.p_value < 0.05
+                                        ? `There IS a statistically significant association between the variables (p < 0.05).`
+                                        : `There is NO statistically significant association between the variables (p >= 0.05).`}
+                                </AlertDescription>
+                            </Alert>
                         </CardContent>
                     </Card>
                     <Card>
