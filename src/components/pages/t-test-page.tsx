@@ -177,7 +177,8 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     
     const renderResult = () => {
         if (!analysisResult) return null;
-        const { results, plot } = analysisResult;
+        const { results } = analysisResult;
+        const plot = analysisResult.plot;
         
         if (!results) {
              return (
@@ -202,7 +203,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                 )}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="font-headline">{results.test_type.replace(/_/g, ' ')} t-Test Results</CardTitle>
+                        <CardTitle className="font-headline">{results.test_type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())} t-Test Results</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -213,11 +214,11 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow><TableCell>t-statistic</TableCell><TableCell className="text-right font-mono">{results.t_statistic.toFixed(4)}</TableCell></TableRow>
-                                <TableRow><TableCell>p-value</TableCell><TableCell className="text-right font-mono">{results.p_value.toFixed(4)}</TableCell></TableRow>
+                                <TableRow><TableCell>t-statistic</TableCell><TableCell className="text-right font-mono">{results.t_statistic?.toFixed(4)}</TableCell></TableRow>
+                                <TableRow><TableCell>p-value</TableCell><TableCell className="text-right font-mono">{results.p_value?.toFixed(4)}</TableCell></TableRow>
                                 <TableRow><TableCell>Degrees of Freedom</TableCell><TableCell className="text-right font-mono">{results.degrees_of_freedom}</TableCell></TableRow>
                                 {results.cohens_d && <TableRow><TableCell>Cohen's d</TableCell><TableCell className="text-right font-mono">{results.cohens_d.toFixed(4)}</TableCell></TableRow>}
-                                {results.confidence_interval && <TableRow><TableCell>95% CI</TableCell><TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(2)}, {results.confidence_interval[1].toFixed(2)}]</TableCell></TableRow>}
+                                {results.confidence_interval && <TableRow><TableCell>95% CI</TableCell><TableCell className="text-right font-mono">[{results.confidence_interval[0]?.toFixed(2)}, {results.confidence_interval[1]?.toFixed(2)}]</TableCell></TableRow>}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -229,14 +230,14 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                         </CardHeader>
                         <CardContent>
                             <Table>
-                                <TableHeader><TableRow><TableHead>Group/Variable</TableHead><TableHead className="text-right">N</TableHead><TableHead className="text-right">Mean</TableHead><TableHead className="text-right">Std. Dev.</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">N</TableHead><TableHead className="text-right">Mean</TableHead><TableHead className="text-right">Std. Dev.</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {Object.entries(results.descriptives).map(([key, value]: [string, any]) => (
                                         <TableRow key={key}>
                                             <TableCell>{key}</TableCell>
                                             <TableCell className="text-right font-mono">{value.n}</TableCell>
-                                            <TableCell className="text-right font-mono">{value.mean.toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">{value.std_dev.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{value.mean?.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{value.std_dev?.toFixed(3)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
