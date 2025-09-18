@@ -1,3 +1,4 @@
+
 import sys
 import json
 import pandas as pd
@@ -44,10 +45,14 @@ def main():
         row_totals = contingency_table.sum(axis=1)
         col_totals = contingency_table.sum(axis=0)
 
+        phi2 = chi2 / total if total > 0 else 0
+        phi = np.sqrt(phi2)
+        contingency_coeff = np.sqrt(chi2 / (chi2 + total)) if (chi2 + total) > 0 else 0
+
         # Cramer's V
-        phi2 = chi2 / total
-        n, k = contingency_table.shape
-        cramers_v = np.sqrt(phi2 / min(n-1, k-1)) if min(n-1, k-1) > 0 else 0
+        n_rows, n_cols = contingency_table.shape
+        min_dim = min(n_rows - 1, n_cols - 1)
+        cramers_v = np.sqrt(phi2 / min_dim) if min_dim > 0 else 0
 
         # --- Plotting ---
         plt.figure(figsize=(10, 6))
@@ -72,6 +77,8 @@ def main():
                     'p_value': p,
                     'degrees_of_freedom': dof
                 },
+                'phi_coefficient': phi,
+                'contingency_coefficient': contingency_coeff,
                 'cramers_v': cramers_v,
                 'row_var': row_var,
                 'col_var': col_var,

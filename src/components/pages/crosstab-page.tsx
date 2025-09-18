@@ -26,6 +26,8 @@ interface CrosstabResults {
         degrees_of_freedom: number;
     };
     cramers_v: number;
+    phi_coefficient: number;
+    contingency_coefficient: number;
     row_var: string;
     col_var: string;
     row_levels: string[];
@@ -312,7 +314,15 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                                         <TableCell className="text-right font-mono">{analysisResult.results.chi_squared.degrees_of_freedom}</TableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell>Cramer's V (Effect Size)</TableCell>
+                                        <TableCell>Phi (φ)</TableCell>
+                                        <TableCell className="text-right font-mono">{analysisResult.results.phi_coefficient.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Contingency Coefficient</TableCell>
+                                        <TableCell className="text-right font-mono">{analysisResult.results.contingency_coefficient.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Cramer's V</TableCell>
                                         <TableCell className="text-right font-mono">{analysisResult.results.cramers_v.toFixed(3)}</TableCell>
                                     </TableRow>
                                 </TableBody>
