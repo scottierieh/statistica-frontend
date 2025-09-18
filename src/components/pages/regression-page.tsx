@@ -48,6 +48,7 @@ interface RegressionResultsData {
         }
     };
     stepwise_log?: string[];
+    interpretation?: string;
 }
 
 interface FullAnalysisResponse {
@@ -524,6 +525,14 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                             </Card>
                          )}
                     </div>
+                     {results.interpretation && (
+                        <Card>
+                            <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
+                            <CardContent>
+                                <p className="text-sm whitespace-pre-wrap">{results.interpretation}</p>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             )}
         </div>

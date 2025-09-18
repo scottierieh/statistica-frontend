@@ -14,6 +14,7 @@ from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import io
 import base64
 import warnings
+import math
 warnings.filterwarnings('ignore')
 
 try:
@@ -28,7 +29,7 @@ except ImportError:
 def _to_native_type(obj):
     if isinstance(obj, np.integer): return int(obj)
     elif isinstance(obj, (float, np.floating)):
-        if np.isnan(obj) or np.isinf(obj):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray): return obj.tolist()
@@ -184,7 +185,8 @@ class RegressionAnalysis:
             'features': list(X_scaled.columns),
             'metrics': metrics,
             'diagnostics': diagnostics,
-            'stepwise_log': stepwise_log
+            'stepwise_log': stepwise_log,
+            'interpretation': self._generate_interpretation(metrics, diagnostics)
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -218,7 +220,8 @@ class RegressionAnalysis:
         
         self.results[model_name] = {
             'model_name': model_name, 'model_type': 'polynomial_regression', 'features': list(poly_feature_names),
-            'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': []
+            'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': [],
+            'interpretation': self._generate_interpretation(metrics, diagnostics)
         }
         self.y_pred = y_pred
         self.X_scaled = X_poly_df
@@ -258,7 +261,8 @@ class RegressionAnalysis:
 
         self.results[model_name] = {
             'model_name': model_name, 'model_type': f'{reg_type}_regression', 'features': list(X_scaled.columns),
-            'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': []
+            'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': [],
+            'interpretation': self._generate_interpretation(metrics, diagnostics)
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -341,6 +345,35 @@ class RegressionAnalysis:
         except:
             diagnostics['normality_tests'] = {}
         return diagnostics
+    
+    def _generate_interpretation(self, metrics, diagnostics):
+        adj_r2 = metrics.get('adj_r2', 0)
+        
+        if adj_r2 >= 0.7:
+            power_desc = "very high explanatory power"
+        elif adj_r2 >= 0.5:
+            power_desc = "high explanatory power"
+        elif adj_r2 >= 0.25:
+            power_desc = "moderate explanatory power"
+        else:
+            power_desc = "low explanatory power"
+            
+        interpretation = f"The model has {power_desc}, with an adjusted R-squared of {adj_r2:.4f}. This means that approximately {adj_r2*100:.1f}% of the variance in the target variable can be explained by the predictors in the model.\n\n"
+
+        coeffs = diagnostics.get('coefficient_tests', {})
+        p_values = coeffs.get('pvalues', {})
+        
+        if p_values:
+            significant_vars = [var for var, p in p_values.items() if p < self.alpha and var != 'const']
+            if significant_vars:
+                interpretation += f"The following variables were found to be statistically significant predictors (p < {self.alpha}): {', '.join(significant_vars)}."
+            else:
+                interpretation += "No variables were found to be statistically significant predictors at the p < 0.05 level."
+        else:
+            interpretation += "Significance testing for individual predictors was not performed for this model type."
+
+        return interpretation
+
 
     
     def plot_results(self, model_name):
