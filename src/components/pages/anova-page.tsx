@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Sigma, AlertCircle, Loader2, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { getAnovaInterpretation } from '@/app/actions';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Image from 'next/image';
 
@@ -24,6 +23,7 @@ interface AnovaResults {
     assumptions: AssumptionChecks;
     post_hoc_tukey?: PostHocResult[];
     effect_size_interpretation: EffectSizeInterpretation;
+    interpretation: string;
 }
 
 interface FullAnovaResponse {
@@ -79,43 +79,25 @@ interface EffectSizeInterpretation {
     eta_squared_interpretation: string;
 }
 
-const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
-  const [interpretation, setInterpretation] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!promise) {
-        setInterpretation(null);
-        setLoading(false);
-        return;
-    };
-    let isMounted = true;
-    setLoading(true);
-    promise.then((desc) => {
-        if (isMounted) {
-            setInterpretation(desc);
-            setLoading(false);
-        }
-    });
-    return () => { isMounted = false; };
-  }, [promise]);
-  
+const InterpretationDisplay = ({ text }: { text: string | null }) => {
   const formattedInterpretation = useMemo(() => {
-    if (!interpretation) return null;
-    return interpretation
+    if (!text) return null;
+    return text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<i>$1</i>')
-      .replace(/\n/g, '<br />');
-  }, [interpretation]);
+      .replace(/F\((.*?)\)\s*=\s*(.*?),/g, '<i>F</i>($1) = $2,')
+      .replace(/p\s*=\s*(\.\d+)/g, '<i>p</i> = $1')
+      .replace(/p\s*<\s*(\.\d+)/g, '<i>p</i> < $1')
+      .replace(/M\s*=\s*([\d.]+)/g, '<i>M</i> = $1')
+      .replace(/SD\s*=\s*([\d.]+)/g, '<i>SD</i> = $1');
+  }, [text]);
 
-
-  if (loading) return <Skeleton className="h-24 w-full" />;
-  if (!interpretation) return null;
+  if (!text) return null;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
+        <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
@@ -145,7 +127,6 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
     const [groupVar, setGroupVar] = useState(categoricalHeaders[0]);
     const [valueVar, setValueVar] = useState(numericHeaders[0]);
     const [analysisResponse, setAnalysisResponse] = useState<FullAnovaResponse | null>(null);
-    const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const canRun = useMemo(() => {
@@ -156,7 +137,6 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         setGroupVar(categoricalHeaders[0] || '');
         setValueVar(numericHeaders[0] || '');
         setAnalysisResponse(null);
-        setAiPromise(null);
     }, [categoricalHeaders, numericHeaders, data]);
 
     const handleAnalysis = useCallback(async () => {
@@ -167,7 +147,6 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
 
         setIsLoading(true);
         setAnalysisResponse(null);
-        setAiPromise(null);
         
         const backendUrl = '/api/analysis/anova';
 
@@ -197,20 +176,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                 throw new Error((result as any).error);
             }
             setAnalysisResponse(result);
-            const anovaResult = result.results;
-
-            if (anovaResult.anova) {
-                const promise = getAnovaInterpretation({
-                    fStat: anovaResult.anova.f_statistic,
-                    dfBetween: anovaResult.anova.df_between,
-                    dfWithin: anovaResult.anova.df_within,
-                    pValue: anovaResult.anova.p_value,
-                    groupVar: groupVar,
-                    valueVar: valueVar,
-                }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
-                setAiPromise(promise);
-            }
-
+            
 
         } catch(e: any) {
             console.error('Analysis error:', e);
@@ -389,7 +355,7 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                                 </div>
                             </CardContent>
                         </Card>
-                        <AIGeneratedInterpretation promise={aiPromise} />
+                         <InterpretationDisplay text={anovaResult.interpretation} />
                     </div>
 
                     <div className="lg:col-span-1 flex flex-col gap-4">
@@ -505,3 +471,5 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
     
     
 
+
+    

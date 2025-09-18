@@ -1,11 +1,10 @@
+
 'use server';
 
 /**
  * @fileOverview Interprets the results of an ANOVA test.
  *
- * - interpretAnova - A function that provides an interpretation of ANOVA results.
- * - InterpretAnovaInput - The input type for the interpretAnova function.
- * - InterpretAnovaOutput - The return type for the interpretAnova function.
+ * This flow is deprecated. The interpretation logic has been moved to the Python backend.
  */
 
 import {ai} from '@/ai/genkit';
@@ -27,30 +26,10 @@ const InterpretAnovaOutputSchema = z.object({
 export type InterpretAnovaOutput = z.infer<typeof InterpretAnovaOutputSchema>;
 
 export async function interpretAnova(input: InterpretAnovaInput): Promise<InterpretAnovaOutput> {
-  return interpretAnovaFlow(input);
+  // This function is deprecated.
+  // The backend now generates the interpretation directly.
+  return Promise.resolve({ interpretation: "This AI flow is deprecated and should not be called." });
 }
-
-const prompt = ai.definePrompt({
-  name: 'interpretAnovaPrompt',
-  input: {schema: InterpretAnovaInputSchema},
-  output: {schema: InterpretAnovaOutputSchema},
-  prompt: `You are an expert statistician. You are to interpret the results of a one-way ANOVA test in APA style.
-
-The user is comparing the means of the numeric variable '{{{valueVar}}}' across different groups defined by the categorical variable '{{{groupVar}}}'.
-
-Here are the results:
-- F-statistic: {{{fStat}}}
-- Degrees of Freedom: ({{{dfBetween}}}, {{{dfWithin}}})
-- p-value: {{{pValue}}}
-
-Based on these results, provide a concise, easy-to-understand interpretation broken into clear paragraphs.
-- **Paragraph 1:** Start with a clear topic sentence summarizing the main finding. Then, state the conclusion in APA style, including the F-statistic, degrees of freedom, and p-value. For example: A one-way ANOVA revealed a statistically significant difference in the means of '{{{valueVar}}}' across the groups of '{{{groupVar}}}', *F*({{{dfBetween}}}, {{{dfWithin}}}) = {{{fStat}}}, *p* = {{{pValue}}}.
-- **Paragraph 2:** In a new paragraph, explain what the p-value and F-statistic represent in this context in simple terms.
-- **Paragraph 3:** Provide a concluding sentence about the practical implication of the finding.
-- Ensure each section is a distinct paragraph separated by a line break.
-- Do not use markdown, just plain text.
-`, 
-});
 
 const interpretAnovaFlow = ai.defineFlow(
   {
@@ -59,7 +38,8 @@ const interpretAnovaFlow = ai.defineFlow(
     outputSchema: InterpretAnovaOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+     return { interpretation: "This AI flow is deprecated and should not be called." };
   }
 );
+
+    
