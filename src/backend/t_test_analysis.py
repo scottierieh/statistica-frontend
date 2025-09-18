@@ -44,7 +44,7 @@ def get_interpretations(result):
     if 'p_value' in result:
         interpretations['p_value'] = {
             "title": "p-value",
-            "description": f"The p-value ({p_val:.4f}) indicates the probability of observing a result as extreme as, or more extreme than, the one obtained, assuming the null hypothesis is true. A p-value less than {alpha} is typically considered statistically significant."
+            "description": f"The p-value ({p_val:.4f}) indicates the probability of observing a result as extreme as, or more extreme than, the one obtained, assuming the null hypothesis is true. Since p {'<' if significant else '>='} {alpha}, the result is considered statistically {'significant' if significant else 'not significant'}."
         }
     if 'degrees_of_freedom' in result:
         df = result['degrees_of_freedom']
@@ -242,14 +242,26 @@ def main():
 
         tester = TTestAnalysis(data)
         result = {}
-        if test_type == 'one_sample':
-            result = tester.one_sample_ttest(**params)
-        elif test_type == 'independent_samples':
-            result = tester.independent_samples_ttest(**params)
-        elif test_type == 'paired_samples':
-            result = tester.paired_samples_ttest(**params)
+        
+        test_params = {}
+        if test_type == 'one-sample' or test_type == 'one_sample_t_test':
+            test_type = 'one_sample'
+            test_params = { 'variable': params.get('variable'), 'test_value': params.get('test_value') }
+        elif test_type == 'independent-samples' or test_type == 'independent_samples_t_test':
+            test_type = 'independent_samples'
+            test_params = { 'variable': params.get('variable'), 'group_variable': params.get('group_variable'), 'equal_var': params.get('equal_var', True) }
+        elif test_type == 'paired-samples' or test_type == 'paired_samples_t_test':
+            test_type = 'paired_samples'
+            test_params = { 'variable1': params.get('variable1'), 'variable2': params.get('variable2') }
         else:
-            raise ValueError(f"Unknown test type: {test_type}")
+             raise ValueError(f"Unknown test type: {test_type}")
+
+        if test_type == 'one_sample':
+            result = tester.one_sample_ttest(**test_params)
+        elif test_type == 'independent_samples':
+            result = tester.independent_samples_ttest(**test_params)
+        elif test_type == 'paired_samples':
+            result = tester.paired_samples_ttest(**test_params)
 
         plot_image = tester.plot_results(test_type)
         response = {'results': result, 'plot': plot_image}
@@ -261,8 +273,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-    
-
-    

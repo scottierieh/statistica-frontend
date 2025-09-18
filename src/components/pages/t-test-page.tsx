@@ -19,6 +19,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 type TestType = 'one_sample' | 'independent_samples' | 'paired_samples';
 
+interface Interpretation {
+    title: string;
+    description: string;
+}
+
 interface TTestResults {
     test_type: string;
     significant: boolean;
@@ -28,6 +33,7 @@ interface TTestResults {
     cohens_d: number;
     mean_diff?: number;
     confidence_interval?: [number, number];
+    interpretations?: { [key: string]: Interpretation };
 }
 
 interface FullAnalysisResponse {
@@ -97,7 +103,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             const response = await fetch('/api/analysis/t-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, testType, params })
+                body: JSON.stringify({ data, testType: testType, params })
             });
 
             if (!response.ok) {
@@ -187,13 +193,23 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                                 )}
                             </TableBody>
                         </Table>
-                         {activeTest === 'one_sample' && (
-                           <p className="text-sm text-muted-foreground mt-4">
-                                The p-value indicates the probability of observing your data, or something more extreme, if the true population mean was indeed the test value of {osTestValue}. A small p-value (typically &lt; 0.05) suggests the observed sample mean is significantly different from the test value.
-                           </p>
-                         )}
                     </CardContent>
                 </Card>
+                 {results.interpretations && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Statistical Interpretations</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 text-sm">
+                            {Object.values(results.interpretations).map((interp, i) => (
+                                <div key={i}>
+                                    <h4 className="font-semibold">{interp.title}</h4>
+                                    <p className="text-muted-foreground">{interp.description}</p>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         )
     };
@@ -305,3 +321,4 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
+
