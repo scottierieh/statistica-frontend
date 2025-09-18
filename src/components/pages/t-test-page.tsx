@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -25,14 +26,26 @@ interface TTestPageProps {
 
 export default function TTestPage({ data, numericHeaders, categoricalHeaders, onLoadExample, activeAnalysis }: TTestPageProps) {
     const { toast } = useToast();
-    const [testType, setTestType] = useState('one_sample');
+    
+    const initialTestType = useMemo(() => {
+        if (activeAnalysis.includes('one-sample')) return 'one_sample';
+        if (activeAnalysis.includes('independent')) return 'independent_samples';
+        if (activeAnalysis.includes('paired')) return 'paired_samples';
+        return 'one_sample';
+    }, [activeAnalysis]);
+
+    const [testType, setTestType] = useState(initialTestType);
     
     // States for different tests
     const [oneSampleVar, setOneSampleVar] = useState<string | undefined>(numericHeaders[0]);
     const [testValue, setTestValue] = useState<number>(0);
     
+    const binaryCategoricalHeaders = useMemo(() => {
+        return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
+    }, [data, categoricalHeaders]);
+
     const [independentVar, setIndependentVar] = useState<string | undefined>(numericHeaders[0]);
-    const [groupVar, setGroupVar] = useState<string | undefined>();
+    const [groupVar, setGroupVar] = useState<string | undefined>(binaryCategoricalHeaders[0]);
     
     const [pairedVar1, setPairedVar1] = useState<string | undefined>(numericHeaders[0]);
     const [pairedVar2, setPairedVar2] = useState<string | undefined>(numericHeaders[1]);
@@ -40,23 +53,15 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     
-    const binaryCategoricalHeaders = useMemo(() => {
-        return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
-    }, [data, categoricalHeaders]);
-
     useEffect(() => {
-        const currentTestType = activeAnalysis.includes('one-sample') ? 'one_sample' 
-            : activeAnalysis.includes('independent') ? 'independent_samples' 
-            : 'paired_samples';
-        setTestType(currentTestType);
-        
+        setTestType(initialTestType);
         setOneSampleVar(numericHeaders[0]);
         setIndependentVar(numericHeaders[0]);
         setGroupVar(binaryCategoricalHeaders[0]);
         setPairedVar1(numericHeaders[0]);
         setPairedVar2(numericHeaders[1]);
         setAnalysisResult(null);
-    }, [activeAnalysis, data, numericHeaders, binaryCategoricalHeaders]);
+    }, [initialTestType, data, numericHeaders, binaryCategoricalHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
@@ -134,6 +139,9 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                     </div>
                 );
             case 'independent_samples':
+                 if (binaryCategoricalHeaders.length === 0) {
+                    return <p className="text-destructive-foreground bg-destructive p-3 rounded-md">This test requires a categorical variable with exactly two groups. None found.</p>
+                }
                 return (
                      <div className="grid md:grid-cols-2 gap-4">
                         <div>
@@ -153,6 +161,9 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                     </div>
                 );
             case 'paired_samples':
+                if (numericHeaders.length < 2) {
+                    return <p className="text-destructive-foreground bg-destructive p-3 rounded-md">This test requires at least two numeric variables to compare.</p>
+                }
                  return (
                      <div className="grid md:grid-cols-2 gap-4">
                         <div>
@@ -191,6 +202,8 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             );
         }
 
+        const descriptives = results.descriptives;
+
         return (
             <div className="space-y-4">
                  {plot && (
@@ -223,21 +236,30 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                         </Table>
                     </CardContent>
                 </Card>
-                {results.descriptives && (
+                {descriptives && (
                     <Card>
                         <CardHeader>
                             <CardTitle>Descriptive Statistics</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <Table>
-                                <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">N</TableHead><TableHead className="text-right">Mean</TableHead><TableHead className="text-right">Std. Dev.</TableHead></TableRow></TableHeader>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Variable</TableHead>
+                                        <TableHead className="text-right">N</TableHead>
+                                        <TableHead className="text-right">Mean</TableHead>
+                                        <TableHead className="text-right">Std. Deviation</TableHead>
+                                        <TableHead className="text-right">Std. Error Mean</TableHead>
+                                    </TableRow>
+                                </TableHeader>
                                 <TableBody>
-                                    {Object.entries(results.descriptives).map(([key, value]: [string, any]) => (
+                                    {Object.entries(descriptives).map(([key, value]: [string, any]) => (
                                         <TableRow key={key}>
                                             <TableCell>{key}</TableCell>
                                             <TableCell className="text-right font-mono">{value.n}</TableCell>
-                                            <TableCell className="text-right font-mono">{value.mean?.toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">{value.std_dev?.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{value.mean?.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right font-mono">{value.std_dev?.toFixed(5)}</TableCell>
+                                            <TableCell className="text-right font-mono">{value.se_mean?.toFixed(5) || 'N/A'}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

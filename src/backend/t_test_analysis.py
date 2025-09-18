@@ -93,7 +93,7 @@ class TTestAnalysis:
         
         descriptives = {
             variable: {
-                "n": n, "mean": sample_mean, "std_dev": sample_std
+                "n": n, "mean": sample_mean, "std_dev": sample_std, "se_mean": standard_error
             }
         }
         
