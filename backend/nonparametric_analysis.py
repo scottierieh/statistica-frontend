@@ -107,7 +107,11 @@ class NonParametricTests:
         W_minus = np.sum(ranks[non_zero_diffs < 0])
         
         n_diff = len(non_zero_diffs)
-        r = 1 - (2 * min(W_plus, W_minus)) / (n_diff * (n_diff + 1) / 2) if n_diff > 0 else 0
+        mean_W = n_diff * (n_diff + 1) / 4
+        std_W = np.sqrt(n_diff * (n_diff + 1) * (2 * n_diff + 1) / 24)
+        z_score = (statistic - mean_W) / std_W if std_W > 0 else 0
+
+        r = z_score / np.sqrt(n_diff) if n_diff > 0 else 0
         
         desc_stats = {
             var1: {'n': len(data1), 'median': np.median(data1), 'mean': np.mean(data1), 'std': np.std(data1, ddof=1)},
@@ -118,12 +122,13 @@ class NonParametricTests:
         effect_size_interp = self._interpret_effect_size(r, 'correlation')
         
         result = {
-            'test_type': 'Wilcoxon Signed-Rank Test', 'statistic': statistic, 'p_value': p_value,
+            'test_type': 'Wilcoxon Signed-Rank Test', 'statistic': statistic, 'p_value': p_value, 'z_score': z_score,
             'W_plus': W_plus, 'W_minus': W_minus, 'n_pairs': len(data1), 'effect_size': r,
             'effect_size_interpretation': effect_size_interp, 'alpha': alpha, 'is_significant': is_significant,
             'alternative': alternative, 'variables': [var1, var2], 'descriptive_stats': desc_stats,
-            'interpretation': self._interpret_wilcoxon(is_significant, var1, var2, effect_size_interp, r, p_value, alpha, statistic, desc_stats)
+            'interpretation': self._interpret_wilcoxon(is_significant, var1, var2, p_value, z_score, desc_stats)
         }
+        
         self.results['wilcoxon'] = result
         return result
 
@@ -227,42 +232,45 @@ class NonParametricTests:
         return f"< {alpha}" if p < alpha else f"= {p:.3f}"
     
     def _interpret_mann_whitney(self, is_sig, groups, p, group_col, value_col, desc_stats, z_score):
-        p_text = self._format_p_value(p, 0.05)
-        g1, g2 = groups[0], groups[1]
+        p_text = self._format_p_value(p, 0.05).replace('=', 'p =')
 
-        rank1 = desc_stats[g1]['mean_rank']
-        rank2 = desc_stats[g2]['mean_rank']
+        g1_name, g2_name = groups[0], groups[1]
+        g1_rank, g2_rank = desc_stats[g1_name]['mean_rank'], desc_stats[g2_name]['mean_rank']
 
-        higher_group = g1 if rank1 > rank2 else g2
-        lower_group = g2 if rank1 > rank2 else g1
+        higher_group = g1_name if g1_rank > g2_rank else g2_name
+        lower_group = g2_name if g1_rank > g2_rank else g1_name
 
-        sig_text = "a significant difference" if is_sig else "no significant difference"
-
+        sig_text = "was a significant difference" if is_sig else "was no significant difference"
+        
         interp = (
-            f"A Mann-Whitney U test was conducted to determine if there was a difference in '{value_col}' between the '{g1}' and '{g2}' groups. "
-            f"Results of that analysis indicated that there was {sig_text}, z = {z_score:.4f}, {p_text}."
+            f"A Mann-Whitney U test was conducted to determine whether there was a difference in '{value_col}' between the '{g1_name}' and '{g2_name}' groups. "
+            f"Results indicated that there {sig_text}, z = {z_score:.2f}, {p_text}."
         )
 
         if is_sig:
-            interp += f" The '{higher_group}' group had significantly higher ranks for '{value_col}' than the '{lower_group}' group."
+            interp += f" The results indicate that the '{higher_group}' group had significantly higher scores for '{value_col}' than the '{lower_group}' group."
 
         return interp
 
-    def _interpret_wilcoxon(self, is_sig, v1, v2, effect_size_interp, r, p, alpha, w_stat, desc_stats):
-        p_text = self._format_p_value(p, alpha)
+    def _interpret_wilcoxon(self, is_sig, v1, v2, p, z_score, desc_stats):
+        p_text = f"p < .05" if p < 0.05 else f"p = {p:.2f}"
+        
         med1 = desc_stats[v1]['median']
         med2 = desc_stats[v2]['median']
 
-        interpretation = (
-            f"A Wilcoxon Signed-Rank test was conducted to determine if there was a median difference between '{v1}' (Mdn = {med1:.2f}) and '{v2}' (Mdn = {med2:.2f}).\n"
-            f"The results indicated a {'statistically significant' if is_sig else 'not statistically significant'} difference between the paired values, W = {w_stat}, {p_text}.\n"
-        )
-        if is_sig:
-             interpretation += f"The median for '{v1}' was {'' if med1 == med2 else ('higher' if med1 > med2 else 'lower')} than the median for '{v2}'. "
-        
-        interpretation += f"The effect size was {effect_size_interp['level']} (r = {r:.3f})."
+        preferred = f"'{v1}' was the preferred option and received significantly more favorable rankings than '{v2}'." if med1 > med2 else f"'{v2}' was the preferred option and received significantly more favorable rankings than '{v1}'."
 
-        return interpretation
+        sig_text = "was a significant difference" if is_sig else "was no significant difference"
+        
+        interp = (
+            f"A Wilcoxon Signed-Rank test was conducted to determine if there was a difference in the ranking of '{v1}' and '{v2}'. "
+            f"Results indicated that there {sig_text}, z = {z_score:.2f}, {p_text}. "
+        )
+
+        if is_sig:
+            interp += f"The results indicate that {preferred}"
+
+        return interp
         
     def _interpret_kruskal_wallis(self, is_sig, groups, effect_size_interp, es, p, alpha, h_stat, df):
         p_text = self._format_p_value(p, alpha)
@@ -387,4 +395,5 @@ def main():
 if __name__ == '__main__':
     main()
 
+    
     
