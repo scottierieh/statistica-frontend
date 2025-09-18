@@ -104,26 +104,28 @@ export default function TTestPage({ data, numericHeaders, onLoadExample }: TTest
                         </Table>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Descriptive Statistics</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">N</TableHead><TableHead className="text-right">Mean</TableHead><TableHead className="text-right">Std. Dev.</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {Object.entries(results.descriptives).map(([key, value]: [string, any]) => (
-                                    <TableRow key={key}>
-                                        <TableCell>{key}</TableCell>
-                                        <TableCell className="text-right font-mono">{value.n}</TableCell>
-                                        <TableCell className="text-right font-mono">{value.mean.toFixed(3)}</TableCell>
-                                        <TableCell className="text-right font-mono">{value.std_dev.toFixed(3)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                {results.descriptives && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Descriptive Statistics</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">N</TableHead><TableHead className="text-right">Mean</TableHead><TableHead className="text-right">Std. Dev.</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {Object.entries(results.descriptives).map(([key, value]: [string, any]) => (
+                                        <TableRow key={key}>
+                                            <TableCell>{key}</TableCell>
+                                            <TableCell className="text-right font-mono">{value.n}</TableCell>
+                                            <TableCell className="text-right font-mono">{value.mean.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{value.std_dev.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         )
     };
@@ -187,4 +189,3 @@ export default function TTestPage({ data, numericHeaders, onLoadExample }: TTest
         </div>
     );
 }
-
