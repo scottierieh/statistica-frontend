@@ -108,7 +108,7 @@ class KMeansAnalysis:
             }
 
     def plot_results(self):
-        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         fig.suptitle('K-Means Clustering Results', fontsize=16, fontweight='bold')
 
         # 1. Elbow Plot
