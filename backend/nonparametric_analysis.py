@@ -18,7 +18,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj) or np.isinf(obj):
+        if np.isnan(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -72,7 +72,7 @@ class NonParametricTests:
             'effect_size': r, 'effect_size_interpretation': effect_size_interp['text'], 'alpha': alpha,
             'is_significant': is_significant, 'alternative': alternative, 'groups': groups,
             'descriptive_stats': desc_stats,
-            'interpretation': self._interpret_mann_whitney(is_significant, groups, effect_size_interp, r, p_value, alpha, group_col, value_col, desc_stats, U1),
+            'interpretation': self._interpret_mann_whitney(is_significant, groups, effect_size_interp['level'], r, p_value, alpha, group_col, value_col, desc_stats, statistic),
             'group_col': group_col, 'value_col': value_col
         }
         self.results['mann_whitney'] = result
@@ -212,7 +212,7 @@ class NonParametricTests:
     
     def _format_p_value(self, p): return "< .001" if p < 0.001 else f"{p:.3f}"
     
-    def _interpret_mann_whitney(self, is_sig, groups, effect, r, p, alpha, group_col, value_col, desc_stats):
+    def _interpret_mann_whitney(self, is_sig, groups, effect_level, r, p, alpha, group_col, value_col, desc_stats, u_stat):
         sig_text = "statistically significant" if is_sig else "not statistically significant"
         p_text = self._format_p_value(p)
         
@@ -222,12 +222,12 @@ class NonParametricTests:
         
         interpretation = (
             f"A Mann-Whitney U test was run to determine if there were differences in '{value_col}' between two groups: '{g1}' and '{g2}'.\n"
-            f"Distributions of the '{value_col}' for the two groups were {'not ' if not is_sig else ''}statistically significantly different, U = {self.results['mann_whitney']['statistic']}, {p_text}.\n"
+            f"Distributions of the '{value_col}' for the two groups were {'not ' if not is_sig else ''}statistically significantly different, U = {u_stat}, {p_text}.\n"
         )
         if is_sig:
             interpretation += f"The median '{value_col}' for the '{g1}' group (Mdn = {med1:.2f}) was {'' if med1 == med2 else ('higher' if med1 > med2 else 'lower')} than for the '{g2}' group (Mdn = {med2:.2f}). "
 
-        interpretation += f"The magnitude of the differences between the groups was {effect['level'].lower()} (r = {r:.3f})."
+        interpretation += f"The magnitude of the differences between the groups was {effect_level.lower()} (r = {r:.3f})."
 
         return interpretation
 
@@ -360,4 +360,3 @@ if __name__ == '__main__':
     main()
 
     
-
