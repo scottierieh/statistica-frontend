@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -12,11 +13,12 @@ import { Sigma, Loader2, FlaskConical } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
+
 
 type TestType = 'one_sample' | 'independent_samples' | 'paired_samples';
 
@@ -55,7 +57,10 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     
     const activeTest = useMemo(() => {
         if (activeAnalysis.startsWith('t-test-')) {
-            return activeAnalysis.replace('t-test-', '').replace(/-/g, '_') as TestType;
+            const test = activeAnalysis.replace('t-test-', '');
+            if (test === 'independent') return 'independent_samples';
+            if (test === 'paired') return 'paired_samples';
+            return test.replace(/-/g, '_') as TestType;
         }
         return 'one_sample';
     }, [activeAnalysis]);
@@ -77,7 +82,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
     const handleAnalysis = useCallback(async () => {
-        let params: any;
+        let params: any = {};
         let testParams: any = {};
         switch(activeTest) {
             case 'one_sample':
