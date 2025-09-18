@@ -338,17 +338,17 @@ const SidebarInput = React.forwardRef<
   React.ComponentProps<"input">
 >(({ className, ...props }, ref) => {
   return (
-    <div className="relative" data-sidebar="input-wrapper">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className="relative flex items-center" data-sidebar="input-wrapper">
       <Input
         ref={ref}
         data-sidebar="input"
         className={cn(
-          "h-9 w-full bg-background shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring pl-9",
+          "h-9 w-full bg-background shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring pr-9",
           className
         )}
         {...props}
       />
+      <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
     </div>
   )
 })
