@@ -145,7 +145,7 @@ const CorrelationHeatmap = ({ matrix, pValues, title }: { matrix: { [key: string
                                                     className={cn("text-center font-mono p-0 text-xs border", isDiagonal && "bg-muted/50")}
                                                     style={{ backgroundColor: isDiagonal ? undefined : getColor(value) }}
                                                 >
-                                                   <div className={cn("p-1 h-full w-full flex items-center justify-center", isSignificant && !isDiagonal && "ring-2 ring-green-400 ring-inset")}>
+                                                   <div className={cn("p-1 h-full w-full flex items-center justify-center")}>
                                                        {isDiagonal ? "1" : value !== undefined && !isNaN(value) ? value.toFixed(2) : '-'}
                                                     </div>
                                                 </TableCell>
