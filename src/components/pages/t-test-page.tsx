@@ -17,8 +17,6 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
-
 
 type TestType = 'one_sample' | 'independent_samples' | 'paired_samples';
 
@@ -56,12 +54,9 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     const { toast } = useToast();
     
     const activeTest = useMemo(() => {
-        if (activeAnalysis.startsWith('t-test-')) {
-            const test = activeAnalysis.replace('t-test-', '');
-            if (test === 'independent') return 'independent_samples';
-            if (test === 'paired') return 'paired_samples';
-            return test.replace(/-/g, '_') as TestType;
-        }
+        const test = activeAnalysis.replace('t-test-', '');
+        if (test === 'independent') return 'independent_samples';
+        if (test === 'paired') return 'paired_samples';
         return 'one_sample';
     }, [activeAnalysis]);
     
@@ -158,60 +153,44 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Tabs defaultValue='statistics'>
-                            <TabsList>
-                                <TabsTrigger value="statistics">Statistics</TabsTrigger>
-                                <TabsTrigger value="interpretations">Interpretations</TabsTrigger>
-                            </TabsList>
-                             <TabsContent value="statistics" className="mt-4">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Statistic</TableHead>
-                                            <TableHead className="text-right">Value</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow>
-                                            <TableCell>t-statistic</TableCell>
-                                            <TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableCell>p-value</TableCell>
-                                            <TableCell className="text-right font-mono">{results.p_value < 0.001 ? '< 0.001' : results.p_value.toFixed(3)}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableCell>Degrees of Freedom</TableCell>
-                                            <TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableCell>Cohen's d</TableCell>
-                                            <TableCell className="text-right font-mono">{results.cohens_d.toFixed(3)}</TableCell>
-                                        </TableRow>
-                                        {results.mean_diff !== undefined && (
-                                            <TableRow>
-                                                <TableCell>Mean Difference</TableCell>
-                                                <TableCell className="text-right font-mono">{results.mean_diff.toFixed(3)}</TableCell>
-                                            </TableRow>
-                                        )}
-                                        {results.confidence_interval && (
-                                            <TableRow>
-                                                <TableCell>95% Confidence Interval</TableCell>
-                                                <TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(2)}, {results.confidence_interval[1].toFixed(2)}]</TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </TabsContent>
-                            <TabsContent value="interpretations" className="mt-4 space-y-4 text-sm">
-                                {results.interpretations && Object.values(results.interpretations).map((interp: any, i) => (
-                                    <div key={i}>
-                                        <h4 className="font-semibold">{interp.title}</h4>
-                                        <p className="text-muted-foreground">{interp.description}</p>
-                                    </div>
-                                ))}
-                            </TabsContent>
-                        </Tabs>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Statistic</TableHead>
+                                    <TableHead className="text-right">Value</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell>t-statistic</TableCell>
+                                    <TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>p-value</TableCell>
+                                    <TableCell className="text-right font-mono">{results.p_value < 0.001 ? '< 0.001' : results.p_value.toFixed(3)}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Degrees of Freedom</TableCell>
+                                    <TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell>Cohen's d</TableCell>
+                                    <TableCell className="text-right font-mono">{results.cohens_d.toFixed(3)}</TableCell>
+                                </TableRow>
+                                {results.mean_diff !== undefined && (
+                                    <TableRow>
+                                        <TableCell>Mean Difference</TableCell>
+                                        <TableCell className="text-right font-mono">{results.mean_diff.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                )}
+                                {results.confidence_interval && (
+                                    <TableRow>
+                                        <TableCell>95% Confidence Interval</TableCell>
+                                        <TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(2)}, {results.confidence_interval[1].toFixed(2)}]</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
             </div>
@@ -328,5 +307,3 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
-
-    
