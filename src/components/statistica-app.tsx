@@ -56,6 +56,7 @@ import {
   ScanSearch,
   Atom,
   MessagesSquare,
+  Search,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -569,7 +570,7 @@ export default function StatisticaApp() {
                     onClick={() => setActiveAnalysis('visuals')}
                     isActive={activeAnalysis === 'visuals'}
                     >
-                    <BarChart2 />
+                    <Presentation />
                     <span>Visualizations</span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
