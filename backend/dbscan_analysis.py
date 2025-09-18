@@ -25,6 +25,64 @@ def _to_native_type(obj):
         return obj.tolist()
     return obj
 
+def plot_dbscan_results(df, labels, profiles, pca_components, explained_variance_ratio):
+    """Generates a comprehensive plot for DBSCAN results."""
+    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+    fig.suptitle('DBSCAN Clustering Results', fontsize=16, fontweight='bold')
+
+    # 1. PCA Scatter Plot
+    plot_df = pd.DataFrame(pca_components, columns=['PC1', 'PC2'])
+    plot_df['cluster'] = labels
+    ax1 = axes[0, 0]
+    unique_labels = sorted(list(set(labels)))
+    palette = sns.color_palette("viridis", n_colors=len(unique_labels) - (1 if -1 in unique_labels else 0))
+    
+    for i, label in enumerate(unique_labels):
+        if label == -1:
+            sns.scatterplot(x=plot_df[plot_df['cluster'] == label]['PC1'], y=plot_df[plot_df['cluster'] == label]['PC2'], color='gray', marker='x', s=50, label='Noise', ax=ax1)
+        else:
+            sns.scatterplot(x=plot_df[plot_df['cluster'] == label]['PC1'], y=plot_df[plot_df['cluster'] == label]['PC2'], color=palette[i - (1 if -1 in unique_labels else 0)], label=f'Cluster {label}', s=80, alpha=0.7, ax=ax1)
+
+    ax1.set_title('Cluster Visualization (PCA)')
+    ax1.set_xlabel(f'Principal Component 1 ({explained_variance_ratio[0]:.1%})')
+    ax1.set_ylabel(f'Principal Component 2 ({explained_variance_ratio[1]:.1%})')
+    ax1.legend(title='Cluster')
+    ax1.grid(True, linestyle='--', alpha=0.6)
+
+    # 2. Cluster Size Distribution
+    cluster_sizes = pd.Series(labels).value_counts().sort_index()
+    cluster_names = [f'Cluster {i}' if i != -1 else 'Noise' for i in cluster_sizes.index]
+    ax2 = axes[0, 1]
+    sns.barplot(x=cluster_names, y=cluster_sizes.values, ax=ax2, palette='viridis')
+    ax2.set_title('Cluster Size Distribution')
+    ax2.set_xlabel('Cluster')
+    ax2.set_ylabel('Number of Samples')
+    ax2.tick_params(axis='x', rotation=45)
+
+    # 3. Snake Plot
+    ax3 = axes[1, 0]
+    if profiles:
+        centroids_df = pd.DataFrame({name: prof['centroid'] for name, prof in profiles.items() if name != 'Noise'}).T
+        if not centroids_df.empty:
+            scaled_centroids = (centroids_df - centroids_df.min()) / (centroids_df.max() - centroids_df.min())
+            scaled_centroids.T.plot(ax=ax3)
+            ax3.set_title('Snake Plot of Scaled Centroids')
+            ax3.set_xlabel('Features')
+            ax3.set_ylabel('Normalized Value')
+            ax3.legend(title='Cluster')
+            ax3.grid(True, linestyle='--', alpha=0.5)
+
+    # 4. Hide empty plot
+    axes[1, 1].axis('off')
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -85,49 +143,7 @@ def main():
         if df.shape[1] >= 2:
             pca = PCA(n_components=2)
             X_pca = pca.fit_transform(X_scaled)
-            
-            plot_df = pd.DataFrame(X_pca, columns=['PC1', 'PC2'])
-            plot_df['cluster'] = labels
-
-            plt.figure(figsize=(8, 6))
-            
-            # Use a categorical palette, handle noise points separately
-            unique_labels = sorted(list(set(labels)))
-            palette = sns.color_palette("viridis", n_colors=len(unique_labels) - (1 if -1 in unique_labels else 0))
-            
-            for i, label in enumerate(unique_labels):
-                if label == -1:
-                    # Noise points
-                    sns.scatterplot(
-                        x=plot_df[plot_df['cluster'] == label]['PC1'],
-                        y=plot_df[plot_df['cluster'] == label]['PC2'],
-                        color='gray',
-                        marker='x',
-                        s=50,
-                        label='Noise'
-                    )
-                else:
-                    sns.scatterplot(
-                        x=plot_df[plot_df['cluster'] == label]['PC1'],
-                        y=plot_df[plot_df['cluster'] == label]['PC2'],
-                        color=palette[i - (1 if -1 in unique_labels else 0)],
-                        label=f'Cluster {label}',
-                        s=80,
-                        alpha=0.7
-                    )
-
-            plt.title('DBSCAN Clustering (PCA Projection)')
-            plt.xlabel(f'Principal Component 1 ({pca.explained_variance_ratio_[0]:.1%})')
-            plt.ylabel(f'Principal Component 2 ({pca.explained_variance_ratio_[1]:.1%})')
-            plt.legend(title='Cluster')
-            plt.grid(True, linestyle='--', alpha=0.6)
-            plt.tight_layout()
-
-            buf = io.BytesIO()
-            plt.savefig(buf, format='png')
-            plt.close()
-            buf.seek(0)
-            plot_image = base64.b64encode(buf.read()).decode('utf-8')
+            plot_image = plot_dbscan_results(df, labels, profiles, X_pca, pca.explained_variance_ratio_)
 
         response = {
             'results': summary,

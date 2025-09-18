@@ -16,6 +16,8 @@ import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Input } from '../ui/input';
 import { getClusteringInterpretation } from '@/app/actions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+
 
 interface DbscanResults {
     n_clusters: number;
@@ -251,52 +253,64 @@ export default function DbscanPage({ data, numericHeaders, onLoadExample }: Dbsc
                         </Card>
                         <InterpretationDisplay promise={aiPromise} />
                     </div>
-
-                    {analysisResult.plot && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Cluster Visualization</CardTitle>
-                                <CardDescription>Clusters are visualized using the first two principal components.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.plot} alt="DBSCAN Cluster Plot" width={800} height={600} className="w-full rounded-md border"/>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Cluster Profiles</CardTitle>
-                            <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                           <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Cluster</TableHead>
-                                        <TableHead>Size (%)</TableHead>
-                                        {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(results.profiles).map(([clusterName, profile]) => (
-                                        <TableRow key={clusterName}>
-                                            <TableCell className="font-semibold">{clusterName}</TableCell>
-                                            <TableCell>
-                                                {profile.size}
-                                                <span className="text-muted-foreground ml-1">({profile.percentage.toFixed(1)}%)</span>
-                                            </TableCell>
-                                            {selectedItems.map(item => (
-                                                <TableCell key={item} className="text-right font-mono">
-                                                    {profile.centroid[item].toFixed(2)}
-                                                </TableCell>
+                    
+                    <Tabs defaultValue="visuals" className="w-full">
+                        <TabsList>
+                            <TabsTrigger value="visuals">Visualizations</TabsTrigger>
+                            <TabsTrigger value="data">Cluster Profiles</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="visuals">
+                            {analysisResult.plot && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="font-headline">Cluster Visualization</CardTitle>
+                                        <CardDescription>Clusters are visualized using the first two principal components.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Image src={analysisResult.plot} alt="DBSCAN Cluster Plot" width={1500} height={1200} className="w-full rounded-md border"/>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </TabsContent>
+                        <TabsContent value="data">
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle className="font-headline">Cluster Profiles</CardTitle>
+                                    <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                <div className="overflow-x-auto">
+                                   <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Cluster</TableHead>
+                                                <TableHead>Size (%)</TableHead>
+                                                {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {Object.entries(results.profiles).map(([clusterName, profile]) => (
+                                                <TableRow key={clusterName}>
+                                                    <TableCell className="font-semibold">{clusterName}</TableCell>
+                                                    <TableCell>
+                                                        {profile.size}
+                                                        <span className="text-muted-foreground ml-1">({profile.percentage.toFixed(1)}%)</span>
+                                                    </TableCell>
+                                                    {selectedItems.map(item => (
+                                                        <TableCell key={item} className="text-right font-mono">
+                                                            {profile.centroid[item].toFixed(2)}
+                                                        </TableCell>
+                                                    ))}
+                                                </TableRow>
                                             ))}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
+
                 </div>
             )}
             

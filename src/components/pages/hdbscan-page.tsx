@@ -4,6 +4,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,7 @@ import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Input } from '../ui/input';
 import { getClusteringInterpretation } from '@/app/actions';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface HdbscanResults {
     n_clusters: number;
@@ -252,50 +253,62 @@ export default function HdbscanPage({ data, numericHeaders, onLoadExample }: Hdb
                         <InterpretationDisplay promise={aiPromise} />
                     </div>
 
-                    {analysisResult.plot && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Cluster Visualization</CardTitle>
-                                <CardDescription>Clusters are visualized using the first two principal components. Point size indicates cluster membership probability.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.plot} alt="HDBSCAN Cluster Plot" width={1000} height={800} className="w-full rounded-md border"/>
-                            </CardContent>
-                        </Card>
-                    )}
-                     <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Cluster Profiles</CardTitle>
-                            <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                           <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Cluster</TableHead>
-                                        <TableHead>Size (%)</TableHead>
-                                        {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(results.profiles).map(([clusterName, profile]) => (
-                                        <TableRow key={clusterName}>
-                                            <TableCell className="font-semibold">{clusterName}</TableCell>
-                                            <TableCell>
-                                                {profile.size}
-                                                <span className="text-muted-foreground ml-1">({profile.percentage.toFixed(1)}%)</span>
-                                            </TableCell>
-                                            {selectedItems.map(item => (
-                                                <TableCell key={item} className="text-right font-mono">
-                                                    {profile.centroid[item].toFixed(2)}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                    <Tabs defaultValue="visuals" className="w-full">
+                        <TabsList>
+                            <TabsTrigger value="visuals">Visualizations</TabsTrigger>
+                            <TabsTrigger value="data">Cluster Profiles</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="visuals">
+                            {analysisResult.plot && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="font-headline">Cluster Visualization</CardTitle>
+                                        <CardDescription>Clusters are visualized using the first two principal components. Point size indicates cluster membership probability.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Image src={analysisResult.plot} alt="HDBSCAN Cluster Plot" width={1500} height={1200} className="w-full rounded-md border"/>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </TabsContent>
+                        <TabsContent value="data">
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle className="font-headline">Cluster Profiles</CardTitle>
+                                    <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="overflow-x-auto">
+                                       <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Cluster</TableHead>
+                                                    <TableHead>Size (%)</TableHead>
+                                                    {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {Object.entries(results.profiles).map(([clusterName, profile]) => (
+                                                    <TableRow key={clusterName}>
+                                                        <TableCell className="font-semibold">{clusterName}</TableCell>
+                                                        <TableCell>
+                                                            {profile.size}
+                                                            <span className="text-muted-foreground ml-1">({profile.percentage.toFixed(1)}%)</span>
+                                                        </TableCell>
+                                                        {selectedItems.map(item => (
+                                                            <TableCell key={item} className="text-right font-mono">
+                                                                {profile.centroid[item].toFixed(2)}
+                                                            </TableCell>
+                                                        ))}
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
                 </div>
             )}
             
