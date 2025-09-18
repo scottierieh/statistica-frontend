@@ -18,7 +18,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj) or np.isinf(obj):
+        if np.isnan(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -58,6 +58,22 @@ def main():
         n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
         n_noise_ = list(labels).count(-1)
 
+        # Calculate cluster profiles
+        profiles = {}
+        unique_labels = np.unique(labels)
+        
+        for label in unique_labels:
+            mask = (labels == label)
+            cluster_data = df[mask]
+            
+            cluster_name = f'Cluster {label}' if label != -1 else 'Noise'
+            
+            profiles[cluster_name] = {
+                'size': int(mask.sum()),
+                'percentage': float(mask.sum() / len(df) * 100),
+                'centroid': cluster_data.mean().to_dict(),
+            }
+
         summary = {
             'n_clusters': n_clusters_,
             'n_noise': n_noise_,
@@ -65,7 +81,8 @@ def main():
             'min_cluster_size': min_cluster_size,
             'min_samples': min_samples,
             'labels': labels.tolist(),
-            'probabilities': clusterer.probabilities_.tolist()
+            'probabilities': clusterer.probabilities_.tolist(),
+            'profiles': profiles,
         }
 
         # --- Plotting ---
