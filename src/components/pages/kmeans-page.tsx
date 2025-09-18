@@ -284,22 +284,24 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                                     </ScrollArea>
                                 </CardContent>
                             </Card>
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle className="font-headline">Cluster Validation</CardTitle>
+                                    <CardDescription>Metrics to evaluate the quality of the clustering.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                        <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Silhouette Score</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.silhouette.toFixed(3)}</dd></div>
+                                        <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Calinski-Harabasz</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.calinski_harabasz.toFixed(2)}</dd></div>
+                                        <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Davies-Bouldin</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.davies_bouldin.toFixed(3)}</dd></div>
+                                        <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Inertia (WCSS)</dt><dd className="text-lg font-bold font-mono">{results.clustering_summary?.inertia.toFixed(2)}</dd></div>
+                                    </dl>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        <div className="lg:col-span-1">
                             <InterpretationDisplay interpretations={results.interpretations} />
                         </div>
-                         <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Cluster Validation</CardTitle>
-                                <CardDescription>Metrics to evaluate the quality of the clustering.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                    <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Silhouette Score</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.silhouette.toFixed(3)}</dd></div>
-                                    <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Calinski-Harabasz</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.calinski_harabasz.toFixed(2)}</dd></div>
-                                    <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Davies-Bouldin</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.davies_bouldin.toFixed(3)}</dd></div>
-                                    <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Inertia (WCSS)</dt><dd className="text-lg font-bold font-mono">{results.clustering_summary?.inertia.toFixed(2)}</dd></div>
-                                </dl>
-                            </CardContent>
-                        </Card>
                     </div>
                 </div>
             )}
