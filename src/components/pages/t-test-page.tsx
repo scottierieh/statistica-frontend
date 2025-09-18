@@ -78,7 +78,8 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
 
     const handleAnalysis = useCallback(async () => {
         let params: any = {};
-        let testParams: any = {};
+        let testType: TestType = activeTest;
+
         switch(activeTest) {
             case 'one_sample':
                 if (!osVar) { toast({ variant: "destructive", title: "Please select a variable." }); return; }
@@ -191,6 +192,17 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                                 )}
                             </TableBody>
                         </Table>
+                         {results.interpretations && (
+                            <div className="mt-6 space-y-4">
+                                <h3 className="font-semibold">Statistical Interpretations</h3>
+                                {Object.values(results.interpretations).map((interp: any, i) => (
+                                    <div key={i} className="text-sm">
+                                        <h4 className="font-medium">{interp.title}</h4>
+                                        <p className="text-muted-foreground">{interp.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                         )}
                     </CardContent>
                 </Card>
             </div>
@@ -307,3 +319,6 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
+
+
+    
