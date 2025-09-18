@@ -39,7 +39,7 @@ def get_interpretations(result):
         t_stat = result['t_statistic']
         interpretations['t_statistic'] = {
             "title": "t-statistic",
-            "description": f"The t-statistic ({t_stat:.3f}) measures how many standard errors the sample mean is from the hypothesized mean. A larger absolute value indicates a larger difference relative to the variability in the data."
+            "description": f"The t-statistic ({t_stat:.3f}) measures how many standard errors the sample mean is from the hypothesized mean (or from the other sample's mean). A larger absolute value indicates a larger difference relative to the variability in the data."
         }
     if 'p_value' in result:
         interpretations['p_value'] = {
@@ -114,7 +114,7 @@ class TTestAnalysis:
         }
         self.results['one_sample']['interpretations'] = get_interpretations(self.results['one_sample'])
         return self.results['one_sample']
-    
+
     def plot_results(self, test_type=None, figsize=(10, 8)):
         if not self.results: return None
         test_type = test_type or list(self.results.keys())[0]
@@ -125,13 +125,37 @@ class TTestAnalysis:
         
         if test_type == 'one_sample':
             axes[0, 0].hist(result['data_values'], bins=20, alpha=0.7, color='skyblue', edgecolor='black')
-            axes[0, 0].axvline(result['sample_mean'], color='red', linestyle='--', label=f"Sample Mean ({result['sample_mean']:.2f})")
-            axes[0, 0].axvline(result['test_value'], color='orange', linestyle='--', label=f"Test Value ({result['test_value']})")
+            axes[0, 0].axvline(result['sample_mean'], color='red', linestyle='--', label=f'Sample Mean ({result["sample_mean"]:.2f})')
+            axes[0, 0].axvline(result['test_value'], color='orange', linestyle='--', label=f'Test Value ({result["test_value"]})')
             axes[0, 0].set_title('Data Distribution')
             axes[0, 0].legend()
             
             stats.probplot(result['data_values'], dist="norm", plot=axes[0, 1])
             axes[0, 1].set_title('Q-Q Plot')
+
+        elif test_type == 'independent_samples':
+            sns.histplot(result['data1'], ax=axes[0,0], color='skyblue', label=str(result['groups'][0]), kde=True)
+            sns.histplot(result['data2'], ax=axes[0,0], color='lightcoral', label=str(result['groups'][1]), kde=True)
+            axes[0,0].set_title('Group Distributions')
+            axes[0,0].legend()
+            
+            sns.boxplot(data=[result['data1'], result['data2']], ax=axes[0,1], palette=['skyblue', 'lightcoral'])
+            axes[0,1].set_xticklabels(result['groups'])
+            axes[0,1].set_title('Group Boxplots')
+
+        elif test_type == 'paired_samples':
+            min_val = min(np.min(result['data1']), np.min(result['data2'])) if len(result['data1']) > 0 and len(result['data2']) > 0 else 0
+            max_val = max(np.max(result['data1']), np.max(result['data2'])) if len(result['data1']) > 0 and len(result['data2']) > 0 else 1
+            
+            axes[0, 0].scatter(result['data1'], result['data2'], alpha=0.6)
+            axes[0, 0].plot([min_val, max_val], [min_val, max_val], 'r--')
+            axes[0, 0].set_xlabel(result['variable1'])
+            axes[0, 0].set_ylabel(result['variable2'])
+            axes[0, 0].set_title('Before vs After')
+
+            sns.histplot(result['differences'], ax=axes[0,1], color='lightgreen', kde=True)
+            axes[0,1].axvline(0, color='black', linestyle='--')
+            axes[0,1].set_title('Distribution of Differences')
 
         df = result.get('degrees_of_freedom')
         if df and df > 0:
@@ -164,7 +188,7 @@ def main():
         if test_type == 'one_sample':
             result = tester.one_sample_ttest(**params)
         else:
-             raise ValueError(f"Unknown test type: {test_type}")
+             raise ValueError(f"Unknown or unsupported test type: {test_type}")
 
         plot_image = tester.plot_results(test_type)
         response = {'results': result, 'plot': plot_image}
@@ -177,3 +201,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
