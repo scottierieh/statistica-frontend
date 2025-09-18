@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Binary } from 'lucide-react';
+import { Sigma, Loader2, Binary, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -34,12 +34,48 @@ interface KMedoidsResults {
         davies_bouldin: number;
         calinski_harabasz: number;
     };
+    interpretations: {
+        overall_quality: string;
+        cluster_profiles: string[];
+        cluster_distribution: string;
+    };
 }
 
 interface FullKMedoidsResponse {
     results: KMedoidsResults;
     plot: string;
 }
+
+const InterpretationDisplay = ({ interpretations }: { interpretations: KMedoidsResults['interpretations'] | undefined }) => {
+  if (!interpretations) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm text-muted-foreground">
+        <div>
+            <strong className="text-foreground">Overall Quality:</strong>
+            <p dangerouslySetInnerHTML={{ __html: interpretations.overall_quality.replace(/\n/g, '<br />') }} />
+        </div>
+        <div>
+          <h4 className="font-semibold text-foreground mb-2">Cluster Profiles:</h4>
+          <ul className="space-y-2 list-disc pl-5">
+            {interpretations.cluster_profiles.map((profile, index) => (
+              <li key={index} dangerouslySetInnerHTML={{ __html: profile }} />
+            ))}
+          </ul>
+        </div>
+        <div>
+            <strong className="text-foreground">Distribution:</strong>
+            <p dangerouslySetInnerHTML={{ __html: interpretations.cluster_distribution }} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 
 interface KMedoidsPageProps {
     data: DataSet;
@@ -184,7 +220,7 @@ export default function KMedoidsPage({ data, numericHeaders, onLoadExample }: KM
                         <CardHeader>
                             <CardTitle className="font-headline">Analysis Visualizations</CardTitle>
                             <CardDescription>
-                                A comprehensive overview of the K-Medoids clustering results.
+                                A comprehensive overview of the K-Medoids clustering results. Medoids (cluster centers) are marked with an 'X'.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -195,7 +231,7 @@ export default function KMedoidsPage({ data, numericHeaders, onLoadExample }: KM
                     <div className="grid lg:grid-cols-3 gap-4">
                         <Card className="lg:col-span-2">
                             <CardHeader>
-                                <CardTitle className="font-headline">Cluster Medoids</CardTitle>
+                                <CardTitle className="font-headline">Cluster Medoids (Exemplars)</CardTitle>
                                 <CardDescription>The actual data points serving as the center of each cluster.</CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -221,7 +257,7 @@ export default function KMedoidsPage({ data, numericHeaders, onLoadExample }: KM
                                 </Table>
                             </CardContent>
                         </Card>
-                         <Card>
+                        <Card>
                             <CardHeader>
                                 <CardTitle className="font-headline">Cluster Validation</CardTitle>
                                 <CardDescription>Metrics to evaluate the quality of the clustering.</CardDescription>
@@ -236,6 +272,7 @@ export default function KMedoidsPage({ data, numericHeaders, onLoadExample }: KM
                             </CardContent>
                         </Card>
                     </div>
+                     <InterpretationDisplay interpretations={results.interpretations} />
                 </div>
             )}
             

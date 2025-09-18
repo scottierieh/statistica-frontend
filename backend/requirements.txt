@@ -11,10 +11,6 @@ nltk
 konlpy
 networkx
 plotly
-pulp
 scikit-learn-extra
 hdbscan
-yfinance
-pyfolio
-quantlib
 pingouin
