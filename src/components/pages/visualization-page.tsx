@@ -21,6 +21,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { getVisualizationDescription } from '@/app/actions';
@@ -95,14 +96,13 @@ const ChartRenderer = ({ type, data, config, aiPromise }: { type: string, data: 
                             </BarChart>
                         )}
                         {type === 'density' && (
-                            <AreaChart data={data} margin={{ left: 12, right: 12 }}>
+                            <LineChart data={data} margin={{ left: 12, right: 12 }}>
                                 <CartesianGrid vertical={false} />
                                 <XAxis dataKey="value" type="number" domain={['dataMin', 'dataMax']} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
                                 <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
                                 <Tooltip content={<ChartTooltipContent />} />
-                                <defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-fill)" stopOpacity={0.8} /><stop offset="95%" stopColor="var(--color-fill)" stopOpacity={0.1} /></linearGradient></defs>
                                 <Line type="monotone" dataKey="density" stroke="var(--color-stroke)" strokeWidth={2} dot={false} />
-                            </AreaChart>
+                            </LineChart>
                         )}
                         {type === 'scatter' && (
                              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
@@ -113,16 +113,26 @@ const ChartRenderer = ({ type, data, config, aiPromise }: { type: string, data: 
                                 <Scatter name={`${config.yCol} vs ${config.xCol}`} data={data} fill="var(--color-primary)" />
                             </ScatterChart>
                         )}
-                        {type === 'pie' || type === 'donut' ? (
+                         {(type === 'pie' || type === 'donut') && (
                             <PieChart>
-                                <Pie data={data} dataKey={config.valueCol} nameKey={config.nameCol} cx="50%" cy="50%" outerRadius={100} innerRadius={type === 'donut' ? 60 : 0} label={p => `${p[config.nameCol]}: ${(p.percent * 100).toFixed(0)}%`}>
-                                     {data.map((entry: any, index: number) => (
+                                <Pie 
+                                    data={data} 
+                                    dataKey={config.valueCol} 
+                                    nameKey={config.nameCol} 
+                                    cx="50%" 
+                                    cy="50%" 
+                                    outerRadius={100} 
+                                    innerRadius={type === 'donut' ? 60 : 0} 
+                                    label={p => `${p[config.nameCol]}: ${(p.percent * 100).toFixed(0)}%`}
+                                >
+                                    {data.map((entry: any, index: number) => (
                                         <Cell key={`cell-${index}`} fill={config.colors[index % config.colors.length]} />
                                     ))}
                                 </Pie>
                                 <Tooltip content={<ChartTooltipContent />} />
+                                <Legend />
                             </PieChart>
-                        ) : null}
+                        )}
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
@@ -190,7 +200,6 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
              result = { data: barData, config: { title: `Frequency of ${barColumn}`, xCol: barColumn, yCol: 'count', chartConfig: { count: { label: 'Count' }} }, aiPromise };
              break;
         case 'density':
-            // Simplified density calculation
             if (!densityColumn) { toast({ title: "Error", description: "Please select a variable for the density plot."}); return; }
             const densityValues = data.map(d => d[densityColumn]).filter(v => typeof v === 'number') as number[];
             const densityMean = densityValues.reduce((a,b) => a+b, 0) / densityValues.length;
@@ -212,9 +221,18 @@ export default function VisualizationPage({ data, numericHeaders, categoricalHea
         case 'pie':
         case 'donut':
             if (!pieNameCol || !pieValueCol) { toast({ title: "Error", description: "Please select name and value columns."}); return; }
-            const pieData = data.map(d => ({ [pieNameCol]: d[pieNameCol], [pieValueCol]: d[pieValueCol] })).filter(d => typeof d[pieValueCol] === 'number');
+            const aggregatedData: {[key: string]: number} = {};
+            data.forEach(d => {
+                const name = String(d[pieNameCol]);
+                const value = typeof d[pieValueCol] === 'number' ? d[pieValueCol] as number : 0;
+                aggregatedData[name] = (aggregatedData[name] || 0) + value;
+            });
+            const pieData = Object.entries(aggregatedData).map(([name, value]) => ({ [pieNameCol]: name, [pieValueCol]: value }));
+            const total = pieData.reduce((sum, item) => sum + item[pieValueCol], 0);
+            const pieDataWithPercent = pieData.map(item => ({...item, percent: item[pieValueCol] / total}));
+            
             aiPromise = getVisualizationDescription({ dataDescription: `Proportions of ${pieValueCol} by ${pieNameCol}`, chartType: `${chartType} chart`, chartTitle: `${chartType} chart of ${pieValueCol} by ${pieNameCol}`, xAxisLabel: pieNameCol, yAxisLabel: pieValueCol }).then(r => r.success ? r.description : null);
-            result = { data: pieData, config: { title: `${chartType} Chart of ${pieValueCol} by ${pieNameCol}`, nameCol: pieNameCol, valueCol: pieValueCol, colors: ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]}, aiPromise };
+            result = { data: pieDataWithPercent, config: { title: `${chartType} Chart of ${pieValueCol} by ${pieNameCol}`, nameCol: pieNameCol, valueCol: pieValueCol, colors: ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]}, aiPromise };
             break;
 
         default:
