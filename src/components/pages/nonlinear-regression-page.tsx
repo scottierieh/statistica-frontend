@@ -181,7 +181,7 @@ export default function NonlinearRegressionPage({ data, numericHeaders, onLoadEx
                         <CardHeader>
                             <CardTitle className="font-headline">{modelType.charAt(0).toUpperCase() + modelType.slice(1)} Regression Fit</CardTitle>
                             <CardDescription>
-                                R-squared: <Badge>{results.r_squared.toFixed(4)}</Badge> | AIC: <Badge variant="secondary">{results.aic.toFixed(2)}</Badge> | RSS: <Badge variant="secondary">{results.rss.toFixed(2)}</Badge>
+                                R-squared: <Badge>{results.r_squared.toFixed(4)}</Badge> | AIC: <Badge variant="secondary">{results.aic?.toFixed(2) ?? 'N/A'}</Badge> | RSS: <Badge variant="secondary">{results.rss?.toFixed(2) ?? 'N/A'}</Badge>
                             </CardDescription>
                         </CardHeader>
                         <CardContent className='grid md:grid-cols-2 gap-4'>
