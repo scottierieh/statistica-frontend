@@ -94,7 +94,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
+    
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== targetVar), [numericHeaders, targetVar]);
     
     useEffect(() => {
@@ -182,6 +182,15 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
     
+    const { interpretationText, warnings } = useMemo(() => {
+        if (!analysisResult?.results?.interpretation) return { interpretationText: '', warnings: [] };
+        const parts = analysisResult.results.interpretation.split('--- Diagnostic Warnings ---');
+        return {
+            interpretationText: parts[0] || '',
+            warnings: parts[1] ? parts[1].trim().split('\n').filter(line => line.startsWith('Warning:')) : []
+        };
+    }, [analysisResult]);
+
     const results = analysisResult?.results;
     const coeffs = results?.diagnostics?.coefficient_tests;
 
@@ -200,15 +209,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         return false;
     }
     
-    const { interpretationText, warnings } = useMemo(() => {
-        if (!results?.interpretation) return { interpretationText: '', warnings: [] };
-        const parts = results.interpretation.split('--- Diagnostic Warnings ---');
-        return {
-            interpretationText: parts[0] || '',
-            warnings: parts[1] ? parts[1].trim().split('\n').filter(line => line.startsWith('Warning:')) : []
-        };
-    }, [results]);
-
     const renderMultiFeatureSelector = () => (
         <div className="flex flex-col gap-4">
             <div>
@@ -487,7 +487,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                     <div className="flex justify-between items-center">
                                         <span>Normality (Shapiro-Wilk):</span>
                                         <div className="flex items-center gap-2">
-                                            <Badge variant={results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null && results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'default' : 'destructive'}>
+                                             <Badge variant={results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null && results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'secondary' : 'destructive'}>
                                                 {results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null ? (results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'Not Significant' : 'Significant') : 'N/A'}
                                             </Badge>
                                             <span className="font-mono">p={results.diagnostics.normality_tests?.shapiro_wilk?.p_value?.toFixed(3) ?? 'N/A'}</span>
@@ -496,7 +496,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                     <div className="flex justify-between items-center">
                                         <span>Homoscedasticity (Breusch-Pagan):</span>
                                         <div className="flex items-center gap-2">
-                                            <Badge variant={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null && results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'default' : 'destructive'}>
+                                            <Badge variant={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null && results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'secondary' : 'destructive'}>
                                                 {results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null ? (results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'Not Significant' : 'Significant') : 'N/A'}
                                             </Badge>
                                             <span className="font-mono">p={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value?.toFixed(3) ?? 'N/A'}</span>
@@ -513,7 +513,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                                             <TableRow key={key}>
                                                                 <TableCell>{key}</TableCell>
                                                                 <TableCell className="text-right">
-                                                                    <Badge variant={value > 10 ? 'destructive' : value > 5 ? 'secondary' : 'outline'}>{value.toFixed(2)}</Badge>
+                                                                    <Badge variant={value > 10 ? 'destructive' : value > 5 ? 'secondary' : 'default'}>{value.toFixed(2)}</Badge>
                                                                 </TableCell>
                                                             </TableRow>
                                                         ))}
@@ -538,4 +538,3 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     );
 }
-
