@@ -50,13 +50,14 @@ class NonParametricTests:
         statistic, p_value = stats.mannwhitneyu(group1_data, group2_data, alternative=alternative)
         
         n1, n2 = len(group1_data), len(group2_data)
-        U1 = statistic
-        U2 = n1 * n2 - U1
         
         combined_data = np.concatenate([group1_data, group2_data])
         ranks = rankdata(combined_data)
         R1 = np.sum(ranks[:n1])
         R2 = np.sum(ranks[n1:])
+        
+        U1 = R1 - n1 * (n1 + 1) / 2
+        U2 = R2 - n2 * (n2 + 1) / 2
         
         # Calculate effect size r
         mean_u = n1 * n2 / 2
@@ -75,6 +76,7 @@ class NonParametricTests:
         result = {
             'test_type': 'Mann-Whitney U Test', 'statistic': statistic, 'p_value': p_value,
             'U1': U1, 'U2': U2, 'R1': R1, 'R2': R2, 'n1': n1, 'n2': n2,
+            'z_score': z_score,
             'effect_size': r, 'effect_size_interpretation': effect_size_interp, 'alpha': alpha,
             'is_significant': is_significant, 'alternative': alternative, 'groups': groups,
             'descriptive_stats': desc_stats,
@@ -120,9 +122,9 @@ class NonParametricTests:
             'W_plus': W_plus, 'W_minus': W_minus, 'n_pairs': len(data1), 'effect_size': r,
             'effect_size_interpretation': effect_size_interp, 'alpha': alpha, 'is_significant': is_significant,
             'alternative': alternative, 'variables': [var1, var2], 'descriptive_stats': desc_stats,
-            'interpretation': self._interpret_wilcoxon(is_significant, var1, var2, effect_size_interp['level'], r, p_value, alpha, statistic, desc_stats)
+            'interpretation': self._interpret_wilcoxon(is_significant, var1, var2, effect_size_interp, r, p_value, alpha, statistic, desc_stats)
         }
-        self.results[activeTest] = result
+        self.results['wilcoxon'] = result
         return result
 
     def kruskal_wallis_test(self, group_col: str, value_col: str, alpha: float = 0.05) -> Dict:
@@ -144,7 +146,7 @@ class NonParametricTests:
             'test_type': 'Kruskal-Wallis H Test', 'statistic': statistic, 'p_value': p_value, 'df': df,
             'n_groups': k, 'n_total': n_total, 'effect_size': epsilon_squared,
             'effect_size_interpretation': effect_size_interp, 'alpha': alpha, 'is_significant': is_significant,
-            'interpretation': self._interpret_kruskal_wallis(is_significant, self.data[group_col].unique(), effect_size_interp['text'], epsilon_squared, p_value, alpha, statistic, df),
+            'interpretation': self._interpret_kruskal_wallis(is_significant, self.data[group_col].unique(), effect_size_interp, epsilon_squared, p_value, alpha, statistic, df),
             'group_col': group_col, 'value_col': value_col
         }
         self.results['kruskal_wallis'] = result
@@ -169,7 +171,7 @@ class NonParametricTests:
             'test_type': 'Friedman Test', 'statistic': statistic, 'p_value': p_value, 'df': df,
             'n_subjects': n_subjects, 'k_conditions': k_conditions, 'effect_size': W,
             'effect_size_interpretation': effect_size_interp, 'alpha': alpha, 'is_significant': is_significant,
-            'interpretation': self._interpret_friedman(is_significant, variables, effect_size_interp['text'], W, p_value, alpha, statistic, df),
+            'interpretation': self._interpret_friedman(is_significant, variables, effect_size_interp, W, p_value, alpha, statistic, df),
             'variables': variables
         }
         self.results['friedman'] = result
@@ -227,26 +229,26 @@ class NonParametricTests:
     def _interpret_mann_whitney(self, is_sig, groups, p, group_col, value_col, desc_stats, z_score):
         p_text = self._format_p_value(p, 0.05)
         g1, g2 = groups[0], groups[1]
-        
+
         rank1 = desc_stats[g1]['mean_rank']
         rank2 = desc_stats[g2]['mean_rank']
 
         higher_group = g1 if rank1 > rank2 else g2
         lower_group = g2 if rank1 > rank2 else g1
 
-        sig_diff_text = "a significant difference" if is_sig else "no significant difference"
-        
+        sig_text = "a significant difference" if is_sig else "no significant difference"
+
         interp = (
-            f"A Mann-Whitney U test was conducted to determine whether there was a difference in '{value_col}' between '{g1}' and '{g2}'. "
-            f"Results of that analysis indicated that there was {sig_diff_text}, z = {z_score:.4f}, {p_text}."
+            f"A Mann-Whitney U test was conducted to determine if there was a difference in '{value_col}' between the '{g1}' and '{g2}' groups. "
+            f"Results of that analysis indicated that there was {sig_text}, z = {z_score:.4f}, {p_text}."
         )
 
         if is_sig:
-            interp += f" Golfers on the '{higher_group}' group finishing higher in the '{value_col}' than golfers on the '{lower_group}' group."
+            interp += f" The '{higher_group}' group had significantly higher ranks for '{value_col}' than the '{lower_group}' group."
 
         return interp
 
-    def _interpret_wilcoxon(self, is_sig, v1, v2, effect_level, r, p, alpha, w_stat, desc_stats):
+    def _interpret_wilcoxon(self, is_sig, v1, v2, effect_size_interp, r, p, alpha, w_stat, desc_stats):
         p_text = self._format_p_value(p, alpha)
         med1 = desc_stats[v1]['median']
         med2 = desc_stats[v2]['median']
@@ -258,24 +260,24 @@ class NonParametricTests:
         if is_sig:
              interpretation += f"The median for '{v1}' was {'' if med1 == med2 else ('higher' if med1 > med2 else 'lower')} than the median for '{v2}'. "
         
-        interpretation += f"The effect size was {effect_level} (r = {r:.3f})."
+        interpretation += f"The effect size was {effect_size_interp['level']} (r = {r:.3f})."
 
         return interpretation
         
-    def _interpret_kruskal_wallis(self, is_sig, groups, effect, es, p, alpha, h_stat, df):
+    def _interpret_kruskal_wallis(self, is_sig, groups, effect_size_interp, es, p, alpha, h_stat, df):
         p_text = self._format_p_value(p, alpha)
         return {
             'decision': f"{'Reject' if is_sig else 'Fail to reject'} H₀",
             'conclusion': f"A Kruskal-Wallis H test showed that there was a {'statistically significant' if is_sig else 'not statistically significant'} difference in scores between the different groups, H({df}) = {h_stat:.2f}, {p_text}.",
-            'practical_significance': f"The magnitude of the differences between the groups was {effect.lower()} (ε²={es:.3f})."
+            'practical_significance': f"The magnitude of the differences between the groups was {effect_size_interp['level']} (ε²={es:.3f})."
         }
 
-    def _interpret_friedman(self, is_sig, var, effect, W, p, alpha, stat, df):
+    def _interpret_friedman(self, is_sig, var, effect_size_interp, W, p, alpha, stat, df):
         p_text = self._format_p_value(p, alpha)
         return {
             'decision': f"{'Reject' if is_sig else 'Fail to reject'} H₀",
             'conclusion': f"A Friedman test revealed a {'statistically significant' if is_sig else 'not statistically significant'} difference in scores across the conditions, χ²({df}) = {stat:.2f}, {p_text}.",
-            'practical_significance': f"The level of concordance among the ranks was {effect.lower()} (Kendall's W = {W:.3f})."
+            'practical_significance': f"The level of concordance among the ranks was {effect_size_interp['level']} (Kendall's W = {W:.3f})."
         }
 
     def plot_results(self, test_type):
@@ -360,9 +362,6 @@ def main():
         tester = NonParametricTests(data)
         result = {}
         
-        global activeTest 
-        activeTest = test_type
-        
         if test_type == 'mann_whitney':
             result = tester.mann_whitney_u_test(**params)
         elif test_type == 'wilcoxon':
@@ -387,3 +386,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
