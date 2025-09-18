@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -10,12 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Columns, Bot, AlertTriangle } from 'lucide-react';
+import { Sigma, Loader2, Columns, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getCrosstabInterpretation } from '@/app/actions';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface Interpretation {
@@ -59,51 +57,6 @@ const getSignificanceStars = (p: number) => {
     return '';
 };
 
-const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
-  const [interpretation, setInterpretation] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!promise) {
-        setInterpretation(null);
-        setLoading(false);
-        return;
-    };
-    let isMounted = true;
-    setLoading(true);
-    promise.then((desc) => {
-        if (isMounted) {
-            setInterpretation(desc);
-            setLoading(false);
-        }
-    });
-    return () => { isMounted = false; };
-  }, [promise]);
-  
-  const formattedInterpretation = useMemo(() => {
-    if (!interpretation) return null;
-    // Chain replacements for both bold and italics
-    return interpretation
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<i>$1</i>');
-  }, [interpretation]);
-
-
-  if (loading) return <Skeleton className="h-24 w-full" />;
-  if (!interpretation) return null;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
-      </CardContent>
-    </Card>
-  );
-};
-
 
 interface CrosstabPageProps {
     data: DataSet;
@@ -118,13 +71,11 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [tableFormat, setTableFormat] = useState('counts');
-    const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
 
     useEffect(() => {
         setRowVar(categoricalHeaders[0] || '');
         setColVar(categoricalHeaders[1] || '');
         setAnalysisResult(null);
-        setAiPromise(null);
     }, [data, categoricalHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && categoricalHeaders.length >= 2, [data, categoricalHeaders]);
@@ -137,7 +88,6 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
         setIsLoading(true);
         setAnalysisResult(null);
-        setAiPromise(null);
 
         try {
             const response = await fetch('/api/analysis/crosstab', {
@@ -155,20 +105,6 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
             if ((result as any).error) throw new Error((result as any).error);
 
             setAnalysisResult(result);
-            
-            const promise = getCrosstabInterpretation({
-                rowVar: result.results.row_var,
-                colVar: result.results.col_var,
-                chi2: result.results.chi_squared.statistic,
-                df: result.results.chi_squared.degrees_of_freedom,
-                pValue: result.results.chi_squared.p_value,
-                cramersV: result.results.cramers_v,
-                contingencyTable: JSON.stringify(result.results.contingency_table),
-                phi: result.results.phi_coefficient, // Added for AI context
-                contingencyCoeff: result.results.contingency_coefficient, // Added for AI context
-            }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
-            setAiPromise(promise);
-
 
         } catch (e: any) {
             console.error('Crosstab Analysis error:', e);
@@ -191,31 +127,33 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                            To perform a crosstabulation, you need data with at least two categorical variables. Try an example dataset.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {crosstabExamples.map((ex) => {
-                                const Icon = ex.icon;
-                                return (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                            <Icon className="h-6 w-6 text-secondary-foreground" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </div>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                            Load this data
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
+                    {crosstabExamples.length > 0 && (
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {crosstabExamples.map((ex) => {
+                                    const Icon = ex.icon;
+                                    return (
+                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
+                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                                                <Icon className="h-6 w-6 text-secondary-foreground" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
+                                            </div>
+                                        </CardHeader>
+                                        <CardFooter>
+                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                                Load this data
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                    )
+                                })}
+                            </div>
+                        </CardContent>
+                    )}
                 </Card>
             </div>
         );
@@ -304,7 +242,6 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
             {results && (
                 <div className="space-y-4">
-                    <AIGeneratedInterpretation promise={aiPromise} />
                     <div className="grid lg:grid-cols-2 gap-4">
                         <Card>
                             <CardHeader>
