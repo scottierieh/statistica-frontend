@@ -78,22 +78,23 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
 
     const handleAnalysis = useCallback(async () => {
         let params: any = {};
-        let testType: TestType = activeTest;
+        let testTypeForApi: string = activeTest;
 
         switch(activeTest) {
             case 'one_sample':
                 if (!osVar) { toast({ variant: "destructive", title: "Please select a variable." }); return; }
                 params = { variable: osVar, test_value: osTestValue };
+                testTypeForApi = 'one_sample_t_test'
                 break;
             case 'independent_samples':
                 if (!isDepVar || !isGroupVar) { toast({ variant: "destructive", title: "Please select dependent and group variables." }); return; }
                 params = { variable: isDepVar, group_variable: isGroupVar, equal_var: isEqualVar };
-                testType = 'independent_samples';
+                testTypeForApi = 'independent_samples_t_test'
                 break;
             case 'paired_samples':
                 if (!psVar1 || !psVar2 || psVar1 === psVar2) { toast({ variant: "destructive", title: "Please select two different variables." }); return; }
                 params = { variable1: psVar1, variable2: psVar2 };
-                testType = 'paired_samples';
+                testTypeForApi = 'paired_samples_t_test'
                 break;
         }
 
@@ -104,7 +105,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             const response = await fetch('/api/analysis/t-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, testType: testType, params })
+                body: JSON.stringify({ data, testType: testTypeForApi, params })
             });
 
             if (!response.ok) {
