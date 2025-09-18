@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -34,7 +35,7 @@ interface TTestResults {
     cohens_d: number;
     mean_diff?: number;
     confidence_interval?: [number, number];
-    interpretations: { [key: string]: Interpretation };
+    interpretations?: { [key: string]: Interpretation };
 }
 
 interface FullAnalysisResponse {
@@ -47,11 +48,12 @@ interface TTestPageProps {
     numericHeaders: string[];
     categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
+    activeAnalysis: string;
 }
 
-export default function TTestPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: TTestPageProps) {
+export default function TTestPage({ data, numericHeaders, categoricalHeaders, onLoadExample, activeAnalysis }: TTestPageProps) {
     const { toast } = useToast();
-    const [activeTest, setActiveTest] = useState<TestType>('independent_samples');
+    const activeTest = activeAnalysis.split('-').slice(1).join('_') as TestType;
     
     // State for each test
     const [osVar, setOsVar] = useState(numericHeaders[0]);
@@ -246,58 +248,73 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             </div>
         );
     }
+
+    const renderSetup = () => {
+      switch(activeTest) {
+        case 'one_sample':
+          return (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Compares a sample mean to a known population mean.</p>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div><Label>Variable</Label><Select value={osVar} onValueChange={setOsVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                <div><Label>Test Value (μ₀)</Label><Input type="number" value={osTestValue} onChange={(e) => setOsTestValue(Number(e.target.value))} /></div>
+              </div>
+            </div>
+          );
+        case 'independent_samples':
+          return (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Compares the means of two independent groups.</p>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div><Label>Dependent Variable</Label><Select value={isDepVar} onValueChange={setIsDepVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                <div><Label>Grouping Variable</Label><Select value={isGroupVar} onValueChange={setIsGroupVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch id="equal-variance-switch" checked={isEqualVar} onCheckedChange={setIsEqualVar} />
+                <Label htmlFor="equal-variance-switch">Assume equal variances (Student's t-test)</Label>
+              </div>
+            </div>
+          );
+        case 'paired_samples':
+          return (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Compares the means of two related groups (e.g., before and after).</p>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div><Label>Variable 1 (e.g., Pre-test)</Label><Select value={psVar1} onValueChange={setPsVar1}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                <div><Label>Variable 2 (e.g., Post-test)</Label><Select value={psVar2} onValueChange={setPsVar2}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h => h !== psVar1).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+              </div>
+            </div>
+          );
+        default: return null;
+      }
+    }
     
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">t-Test Setup</CardTitle>
-                    <CardDescription>Choose a test and select the appropriate variables.</CardDescription>
+                    <CardTitle className="font-headline">t-Test</CardTitle>
+                    <CardDescription>
+                      {
+                        activeTest === 'one_sample' ? 'Compares a sample mean to a known value.' :
+                        activeTest === 'independent_samples' ? 'Compares the means of two independent groups.' :
+                        'Compares the means of two related measurements.'
+                      }
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                     <Tabs value={activeTest} onValueChange={(v) => {setActiveTest(v as TestType); setAnalysisResult(null);}} className="w-full">
-                        <TabsList>
-                            <TabsTrigger value="independent_samples">Independent Samples</TabsTrigger>
-                            <TabsTrigger value="paired_samples">Paired Samples</TabsTrigger>
-                            <TabsTrigger value="one_sample">One Sample</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="one_sample" className="pt-4 space-y-4">
-                            <p className="text-sm text-muted-foreground">Compares a sample mean to a known population mean.</p>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div><Label>Variable</Label><Select value={osVar} onValueChange={setOsVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                                <div><Label>Test Value (μ₀)</Label><Input type="number" value={osTestValue} onChange={(e) => setOsTestValue(Number(e.target.value))} /></div>
-                            </div>
-                        </TabsContent>
-                         <TabsContent value="independent_samples" className="pt-4 space-y-4">
-                             <p className="text-sm text-muted-foreground">Compares the means of two independent groups.</p>
-                             <div className="grid md:grid-cols-2 gap-4">
-                                <div><Label>Dependent Variable</Label><Select value={isDepVar} onValueChange={setIsDepVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                                <div><Label>Grouping Variable</Label><Select value={isGroupVar} onValueChange={setIsGroupVar}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Switch id="equal-variance-switch" checked={isEqualVar} onCheckedChange={setIsEqualVar} />
-                                <Label htmlFor="equal-variance-switch">Assume equal variances (Student's t-test)</Label>
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="paired_samples" className="pt-4 space-y-4">
-                             <p className="text-sm text-muted-foreground">Compares the means of two related groups (e.g., before and after).</p>
-                             <div className="grid md:grid-cols-2 gap-4">
-                                <div><Label>Variable 1 (e.g., Pre-test)</Label><Select value={psVar1} onValueChange={setPsVar1}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                                <div><Label>Variable 2 (e.g., Post-test)</Label><Select value={psVar2} onValueChange={setPsVar2}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h => h !== psVar1).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-                    <div className="flex justify-end mt-4">
-                        <Button onClick={handleAnalysis} disabled={isLoading}>
-                            {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
-                        </Button>
-                    </div>
+                    {renderSetup()}
                 </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button onClick={handleAnalysis} disabled={isLoading}>
+                      {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
+                  </Button>
+                </CardFooter>
             </Card>
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
             {!isLoading && analysisResult && renderResult()}
-            {!isLoading && !analysisResult && <div className="text-center text-muted-foreground py-10"><FlaskConical className="mx-auto h-12 w-12"/><p className="mt-2">Select a test and variables, then click 'Run Analysis'.</p></div>}
+            {!isLoading && !analysisResult && <div className="text-center text-muted-foreground py-10"><FlaskConical className="mx-auto h-12 w-12"/><p className="mt-2">Select variables, then click 'Run Analysis'.</p></div>}
         </div>
     );
 }

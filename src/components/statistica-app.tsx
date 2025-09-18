@@ -140,7 +140,9 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'kruskal-wallis': NonParametricPage,
     'friedman': NonParametricPage,
     'mcnemar': NonParametricPage,
-    't-test': TTestPage,
+    't-test-one-sample': TTestPage,
+    't-test-independent': TTestPage,
+    't-test-paired': TTestPage,
     hca: HcaPage,
     manova: ManovaPage,
     'rm-anova': RepeatedMeasuresAnovaPage,
@@ -197,7 +199,9 @@ const analysisMenu = [
       {
         name: 'Mean & Variance Tests',
         methods: [
-          { id: 't-test', label: 't-Test' },
+          { id: 't-test-one-sample', label: 'One-Sample t-Test' },
+          { id: 't-test-independent', label: 'Independent Samples t-Test' },
+          { id: 't-test-paired', label: 'Paired Samples t-Test' },
           { id: 'one-way-anova', label: 'One-Way ANOVA' },
           { id: 'two-way-anova', label: 'Two-Way ANOVA' },
           { id: 'rm-anova', label: 'Repeated Measures ANOVA' },
@@ -443,7 +447,10 @@ export default function StatisticaApp() {
     URL.revokeObjectURL(url);
   };
   
-  const pageKey = activeAnalysis.startsWith('regression-') ? 'regression' : activeAnalysis;
+  const pageKey = activeAnalysis.startsWith('regression-') ? 'regression' 
+              : activeAnalysis.startsWith('t-test-') ? 't-test' 
+              : activeAnalysis;
+
   const ActivePageComponent = pageKey && analysisPages[pageKey] 
     ? analysisPages[pageKey]
     : DescriptiveStatsPage;
