@@ -73,13 +73,12 @@ export default function TTestPage({ data, numericHeaders, onLoadExample }: TTest
         if (!analysisResult) return null;
         const { results, plot } = analysisResult;
         
-        // Add a guard clause to ensure descriptives object exists before rendering
         if (!results || !results.descriptives) {
             return (
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Analysis Incomplete</CardTitle>
-                        <CardDescription>The analysis did not return descriptive statistics.</CardDescription>
+                        <CardDescription>The analysis did not return complete descriptive statistics.</CardDescription>
                     </CardHeader>
                 </Card>
             );
