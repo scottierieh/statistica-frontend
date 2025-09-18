@@ -280,24 +280,32 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                             <CardDescription>Tests whether there is a significant association between {rowVar} and {colVar}.</CardDescription>
                         </CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-6">
-                            <dl className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <dt className="text-muted-foreground">Chi-Squared (χ²)</dt>
-                                    <dd className="font-mono text-lg">{analysisResult.results.chi_squared.statistic.toFixed(3)}</dd>
-                                </div>
-                                 <div className="flex justify-between items-center">
-                                    <dt className="text-muted-foreground">p-value</dt>
-                                    <dd className="font-mono text-lg">{analysisResult.results.chi_squared.p_value.toFixed(4)} {getSignificanceStars(analysisResult.results.chi_squared.p_value)}</dd>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <dt className="text-muted-foreground">Degrees of Freedom</dt>
-                                    <dd className="font-mono text-lg">{analysisResult.results.chi_squared.degrees_of_freedom}</dd>
-                                </div>
-                                 <div className="flex justify-between items-center">
-                                    <dt className="text-muted-foreground">Cramer's V (Effect Size)</dt>
-                                    <dd className="font-mono text-lg">{analysisResult.results.cramers_v.toFixed(3)}</dd>
-                                </div>
-                            </dl>
+                           <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Statistic</TableHead>
+                                        <TableHead className="text-right">Value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>Chi-Squared (χ²)</TableCell>
+                                        <TableCell className="text-right font-mono">{analysisResult.results.chi_squared.statistic.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>p-value</TableCell>
+                                        <TableCell className="text-right font-mono">{analysisResult.results.chi_squared.p_value < 0.001 ? "<.001" : analysisResult.results.chi_squared.p_value.toFixed(4)} {getSignificanceStars(analysisResult.results.chi_squared.p_value)}</TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell>Degrees of Freedom</TableCell>
+                                        <TableCell className="text-right font-mono">{analysisResult.results.chi_squared.degrees_of_freedom}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Cramer's V (Effect Size)</TableCell>
+                                        <TableCell className="text-right font-mono">{analysisResult.results.cramers_v.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
                             <div className="flex items-center justify-center p-4 bg-muted rounded-lg">
                                 {analysisResult.results.chi_squared.p_value < 0.05 ? (
                                     <p className="text-center font-semibold">There IS a statistically significant association between the variables.</p>
