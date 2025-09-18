@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BarChart, TrendingUp, Zap, Lightbulb } from 'lucide-react';
+import { Sigma, Loader2, BarChart, TrendingUp, Zap, Lightbulb, Bot, AlertTriangle, MessageSquareQuote } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +27,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface CorrelationResults {
   correlation_matrix: { [key: string]: { [key: string]: number } };
@@ -52,6 +53,8 @@ interface CorrelationResults {
   }[];
   pairs_plot?: string;
   heatmap_plot?: string;
+  interpretation?: string;
+  recommendations?: string[];
 }
 
 const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strongest_correlations'] }) => {
@@ -353,6 +356,29 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     </ScrollArea>
                 </CardContent>
             </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation?.replace(/\n\n/g, '<br/><br/>') || '' }} />
+                </CardContent>
+            </Card>
+            
+            {results.recommendations && results.recommendations.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2"><Lightbulb /> Recommendations</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
+                            {results.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                        </ul>
+                    </CardContent>
+                </Card>
+            )}
+
         </>
       )}
       {!results && !isLoading && (
