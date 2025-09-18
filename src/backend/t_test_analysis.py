@@ -27,6 +27,46 @@ def _to_native_type(obj):
         return bool(obj)
     return obj
 
+def get_interpretations(result):
+    test_type = result.get('test_type')
+    p_val = result.get('p_value', 1.0)
+    alpha = 0.05 # Assuming alpha is 0.05
+    significant = p_val < alpha
+    
+    interpretations = {}
+
+    if 't_statistic' in result:
+        t_stat = result['t_statistic']
+        interpretations['t_statistic'] = {
+            "title": "t-statistic",
+            "description": f"The t-statistic ({t_stat:.3f}) measures how many standard errors the sample mean is from the hypothesized mean. A larger absolute value indicates a larger difference relative to the variability in the data."
+        }
+    if 'p_value' in result:
+        interpretations['p_value'] = {
+            "title": "p-value",
+            "description": f"The p-value ({p_val:.4f}) indicates the probability of observing a result as extreme as, or more extreme than, the one obtained, assuming the null hypothesis is true. Since p {'<' if significant else '>='} {alpha}, the result is considered statistically {'significant' if significant else 'not significant'}."
+        }
+    if 'degrees_of_freedom' in result:
+        df = result['degrees_of_freedom']
+        interpretations['degrees_of_freedom'] = {
+            "title": "Degrees of Freedom (df)",
+            "description": f"Degrees of freedom ({df:.0f}) represent the number of independent pieces of information used to calculate the statistic. It is related to the sample size."
+        }
+    if 'cohens_d' in result:
+        cohens_d = result['cohens_d']
+        abs_d = abs(cohens_d)
+        if abs_d >= 0.8: interp = 'large'
+        elif abs_d >= 0.5: interp = 'medium'
+        elif abs_d >= 0.2: interp = 'small'
+        else: interp = 'negligible'
+        
+        interpretations['cohens_d'] = {
+            "title": "Cohen's d (Effect Size)",
+            "description": f"Cohen's d ({cohens_d:.3f}) measures the standardized difference between two means. A value of {cohens_d:.3f} indicates a {interp} effect size. It helps assess the practical significance of the result, regardless of statistical significance."
+        }
+    
+    return interpretations
+
 class TTestAnalysis:
     def __init__(self, data, alpha=0.05):
         self.data = data.copy()
@@ -72,26 +112,38 @@ class TTestAnalysis:
             'descriptives': descriptives,
             'data_values': data_values
         }
+        self.results['one_sample']['interpretations'] = get_interpretations(self.results['one_sample'])
         return self.results['one_sample']
-
+    
     def plot_results(self, test_type=None, figsize=(10, 8)):
         if not self.results: return None
         test_type = test_type or list(self.results.keys())[0]
         result = self.results.get(test_type)
         if not result: return None
 
-        fig, axes = plt.subplots(1, 2, figsize=figsize)
+        fig, axes = plt.subplots(2, 2, figsize=figsize)
         
         if test_type == 'one_sample':
-            axes[0].hist(result['data_values'], bins=20, alpha=0.7, color='skyblue', edgecolor='black')
-            axes[0].axvline(result['sample_mean'], color='red', linestyle='--', label=f'Sample Mean ({result["sample_mean"]:.2f})')
-            axes[0].axvline(result['test_value'], color='orange', linestyle='--', label=f'Test Value ({result["test_value"]})')
-            axes[0].set_title('Data Distribution')
-            axes[0].legend()
+            axes[0, 0].hist(result['data_values'], bins=20, alpha=0.7, color='skyblue', edgecolor='black')
+            axes[0, 0].axvline(result['sample_mean'], color='red', linestyle='--', label=f"Sample Mean ({result['sample_mean']:.2f})")
+            axes[0, 0].axvline(result['test_value'], color='orange', linestyle='--', label=f"Test Value ({result['test_value']})")
+            axes[0, 0].set_title('Data Distribution')
+            axes[0, 0].legend()
             
-            stats.probplot(result['data_values'], dist="norm", plot=axes[1])
-            axes[1].set_title('Q-Q Plot')
+            stats.probplot(result['data_values'], dist="norm", plot=axes[0, 1])
+            axes[0, 1].set_title('Q-Q Plot')
 
+        df = result.get('degrees_of_freedom')
+        if df and df > 0:
+            x = np.linspace(-4, 4, 500)
+            y = t.pdf(x, df)
+            axes[1, 0].plot(x, y, label=f't-distribution (df={df:.1f})')
+            axes[1, 0].axvline(result['t_statistic'], color='red', linestyle='--', label=f"t-stat = {result['t_statistic']:.2f}")
+            axes[1, 0].set_title('Test Statistic on t-Distribution')
+            axes[1, 0].legend()
+        
+        axes[1,1].axis('off')
+        
         plt.tight_layout()
         buf = io.BytesIO()
         plt.savefig(buf, format='png')
@@ -112,7 +164,7 @@ def main():
         if test_type == 'one_sample':
             result = tester.one_sample_ttest(**params)
         else:
-             raise ValueError(f"Unknown or unsupported test type: {test_type}")
+             raise ValueError(f"Unknown test type: {test_type}")
 
         plot_image = tester.plot_results(test_type)
         response = {'results': result, 'plot': plot_image}
