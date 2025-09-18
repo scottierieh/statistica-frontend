@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
         } else {
           try {
             const jsonResult = JSON.parse(result);
-            resolve(NextResponse.json(jsonResult)); // Ensure the raw result is passed
+            resolve(NextResponse.json(jsonResult));
           } catch(e) {
             console.error('Failed to parse python script output');
             console.error(result);
