@@ -10,19 +10,29 @@ from scipy.stats import t, levene, shapiro
 import warnings
 import io
 import base64
+import math
 
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     elif isinstance(obj, np.bool_):
         return bool(obj)
     return obj
+
+def get_effect_size_interpretation(d):
+    abs_d = abs(d)
+    if abs_d >= 0.8: return "large"
+    elif abs_d >= 0.5: return "medium"
+    elif abs_d >= 0.2: return "small"
+    else: return "negligible"
 
 class TTestAnalysis:
     def __init__(self, data, alpha=0.05):
@@ -33,8 +43,8 @@ class TTestAnalysis:
     def one_sample_ttest(self, variable, test_value, alternative='two-sided'):
         data_values = self.data[variable].dropna().values
         
-        if len(data_values) == 0:
-            raise ValueError("No valid data found for the specified variable")
+        if len(data_values) < 2:
+            raise ValueError("Not enough valid data for the specified variable (minimum 2 required).")
         
         n = len(data_values)
         sample_mean = np.mean(data_values)
@@ -44,25 +54,23 @@ class TTestAnalysis:
         t_stat, p_value = stats.ttest_1samp(data_values, test_value, alternative=alternative)
         df = n - 1
         
-        ci_lower, ci_upper = t.interval(1 - self.alpha, df, loc=sample_mean, scale=standard_error)
+        ci_lower, ci_upper = t.interval(1 - self.alpha, df, loc=sample_mean, scale=standard_error) if df > 0 else (np.nan, np.nan)
         
         cohens_d = (sample_mean - test_value) / sample_std if sample_std > 0 else 0
         
-        self.results['one_sample'] = {
-            'test_type': 'one_sample',
-            'variable': variable,
-            'test_value': test_value,
-            'n': n,
-            'sample_mean': sample_mean,
-            't_statistic': t_stat,
-            'degrees_of_freedom': df,
-            'p_value': p_value,
-            'significant': p_value < self.alpha,
-            'confidence_interval': (ci_lower, ci_upper),
-            'cohens_d': cohens_d,
-            'data_values': data_values
+        descriptives = {
+            variable: { "n": n, "mean": sample_mean, "std_dev": sample_std, "se_mean": standard_error }
         }
-        return self.results['one_sample']
+        
+        result = {
+            'test_type': 'one_sample', 'variable': variable, 'test_value': test_value, 'n': n,
+            'sample_mean': sample_mean, 't_statistic': t_stat, 'degrees_of_freedom': df,
+            'p_value': p_value, 'significant': p_value < self.alpha, 'confidence_interval': (ci_lower, ci_upper),
+            'cohens_d': cohens_d, 'descriptives': descriptives, 'data_values': data_values
+        }
+        result['interpretation'] = self._generate_interpretation(result)
+        self.results['one_sample'] = result
+        return result
     
     def independent_samples_ttest(self, variable, group_variable, equal_var=True, alternative='two-sided'):
         clean_data = self.data[[variable, group_variable]].dropna()
@@ -93,17 +101,25 @@ class TTestAnalysis:
             pooled_std = np.sqrt((std1**2 + std2**2) / 2)
             cohens_d = (mean1 - mean2) / pooled_std if pooled_std > 0 else 0
         
-        self.results['independent_samples'] = {
+        descriptives = {
+            str(groups[0]): {"n": n1, "mean": mean1, "std_dev": std1},
+            str(groups[1]): {"n": n2, "mean": mean2, "std_dev": std2}
+        }
+            
+        result = {
             'test_type': 'independent_samples', 'variable': variable, 'group_variable': group_variable, 'groups': list(groups), 'equal_var': equal_var,
             'n1': n1, 'n2': n2, 'mean1': mean1, 'mean2': mean2, 'std1': std1, 'std2': std2,
             't_statistic': t_stat, 'degrees_of_freedom': df, 'p_value': p_value, 'significant': p_value < self.alpha,
-            'cohens_d': cohens_d, 'data1': group1_data, 'data2': group2_data
+            'cohens_d': cohens_d, 'descriptives': descriptives,
+            'data1': group1_data, 'data2': group2_data
         }
-        return self.results['independent_samples']
+        result['interpretation'] = self._generate_interpretation(result)
+        self.results['independent_samples'] = result
+        return result
     
     def paired_samples_ttest(self, variable1, variable2, alternative='two-sided'):
         clean_data = self.data[[variable1, variable2]].dropna()
-        if len(clean_data) == 0: raise ValueError("No complete pairs found")
+        if len(clean_data) < 2: raise ValueError("Not enough complete pairs found (minimum 2).")
         
         data1 = clean_data[variable1].values
         data2 = clean_data[variable2].values
@@ -115,16 +131,64 @@ class TTestAnalysis:
         df = n - 1
         mean_diff = np.mean(differences)
         std_diff = np.std(differences, ddof=1)
+        se_diff = std_diff / np.sqrt(n) if n > 0 else 0
+        
+        ci_lower, ci_upper = t.interval(1 - self.alpha, df, loc=mean_diff, scale=se_diff) if df > 0 else (np.nan, np.nan)
         
         cohens_d = mean_diff / std_diff if std_diff > 0 else 0
         
-        self.results['paired_samples'] = {
+        descriptives = {
+            variable1: {"n": len(data1), "mean": np.mean(data1), "std_dev": np.std(data1, ddof=1)},
+            variable2: {"n": len(data2), "mean": np.mean(data2), "std_dev": np.std(data2, ddof=1)},
+            "differences": {"n": n, "mean": mean_diff, "std_dev": std_diff}
+        }
+        
+        result = {
             'test_type': 'paired_samples', 'variable1': variable1, 'variable2': variable2, 'n': n,
             'mean_diff': mean_diff, 't_statistic': t_stat, 'degrees_of_freedom': df, 'p_value': p_value,
-            'significant': p_value < self.alpha, 'cohens_d': cohens_d, 
-            'data1': data1, 'data2': data2, 'differences': differences
+            'significant': p_value < self.alpha, 'cohens_d': cohens_d, 'confidence_interval': (ci_lower, ci_upper),
+            'descriptives': descriptives, 'data1': data1, 'data2': data2, 'differences': differences
         }
-        return self.results['paired_samples']
+        result['interpretation'] = self._generate_interpretation(result)
+        self.results['paired_samples'] = result
+        return result
+
+    def _generate_interpretation(self, result):
+        test_type = result['test_type']
+        p_val = result['p_value']
+        significant = result['significant']
+        
+        if test_type == 'paired_samples':
+            return self._interpret_paired_ttest(result)
+        
+        # Fallback for other test types
+        return f"The test was statistically {'significant' if significant else 'not significant'} with a p-value of {p_val:.4f}."
+
+    def _interpret_paired_ttest(self, res):
+        p_text = f"p < .001" if res['p_value'] < 0.001 else f"p = {res['p_value']:.3f}"
+        sig_text = "statistically significant" if res['significant'] else "not statistically significant"
+        effect_interp = get_effect_size_interpretation(res['cohens_d'])
+
+        m1 = res['descriptives'][res['variable1']]['mean']
+        sd1 = res['descriptives'][res['variable1']]['std_dev']
+        m2 = res['descriptives'][res['variable2']]['mean']
+        sd2 = res['descriptives'][res['variable2']]['std_dev']
+        
+        interpretation = (
+            f"A paired-samples t-test was conducted to compare '{res['variable1']}' and '{res['variable2']}'.\n"
+            f"There was a {sig_text} difference in the scores for '{res['variable1']}' (M={m1:.2f}, SD={sd1:.2f}) and '{res['variable2']}' (M={m2:.2f}, SD={sd2:.2f}); t({res['degrees_of_freedom']}) = {res['t_statistic']:.2f}, {p_text}.\n"
+        )
+        
+        mean_diff = res['mean_diff']
+        ci = res['confidence_interval']
+        interpretation += (
+            f"The mean difference was {mean_diff:.2f}, with a 95% confidence interval ranging from {ci[0]:.2f} to {ci[1]:.2f}. "
+            f"This result suggests that the effect is {sig_text}. "
+        )
+
+        interpretation += f"The calculated Cohen's d of {res['cohens_d']:.3f} indicates a {effect_interp} effect size."
+        
+        return interpretation.strip()
 
     def plot_results(self, test_type=None, figsize=(10, 8)):
         if not self.results: return None
@@ -150,13 +214,13 @@ class TTestAnalysis:
             axes[0,0].set_title('Group Distributions')
             axes[0,0].legend()
             
-            sns.boxplot(data=[result['data1'], result['data2']], ax=axes[0,1])
+            sns.boxplot(data=[result['data1'], result['data2']], ax=axes[0,1], palette=['skyblue', 'lightcoral'])
             axes[0,1].set_xticklabels(result['groups'])
             axes[0,1].set_title('Group Boxplots')
 
         elif test_type == 'paired_samples':
-            min_val = min(np.min(result['data1']), np.min(result['data2']))
-            max_val = max(np.max(result['data1']), np.max(result['data2']))
+            min_val = min(np.min(result['data1']), np.min(result['data2'])) if len(result['data1']) > 0 and len(result['data2']) > 0 else 0
+            max_val = max(np.max(result['data1']), np.max(result['data2'])) if len(result['data1']) > 0 and len(result['data2']) > 0 else 1
             
             axes[0, 0].scatter(result['data1'], result['data2'], alpha=0.6)
             axes[0, 0].plot([min_val, max_val], [min_val, max_val], 'r--')
@@ -169,13 +233,16 @@ class TTestAnalysis:
             axes[0,1].set_title('Distribution of Differences')
 
         df = result.get('degrees_of_freedom')
-        if df and df > 0:
+        if df and df > 0 and np.isfinite(df):
             x = np.linspace(-4, 4, 500)
             y = t.pdf(x, df)
             axes[1, 0].plot(x, y, label=f't-distribution (df={df:.1f})')
             axes[1, 0].axvline(result['t_statistic'], color='red', linestyle='--', label=f"t-stat = {result['t_statistic']:.2f}")
             axes[1, 0].set_title('Test Statistic on t-Distribution')
             axes[1, 0].legend()
+        else:
+            axes[1, 0].text(0.5, 0.5, "Could not plot t-distribution.", ha='center', va='center')
+
         
         axes[1,1].axis('off')
         
@@ -192,9 +259,10 @@ def main():
         data = pd.DataFrame(payload.get('data'))
         test_type = payload.get('testType')
         params = payload.get('params')
-
+        
         tester = TTestAnalysis(data)
         result = {}
+        
         if test_type == 'one_sample':
             result = tester.one_sample_ttest(**params)
         elif test_type == 'independent_samples':
@@ -202,10 +270,11 @@ def main():
         elif test_type == 'paired_samples':
             result = tester.paired_samples_ttest(**params)
         else:
-            raise ValueError(f"Unknown test type: {test_type}")
+             raise ValueError(f"Unknown test type: {test_type}")
 
         plot_image = tester.plot_results(test_type)
         response = {'results': result, 'plot': plot_image}
+        
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
@@ -214,5 +283,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    

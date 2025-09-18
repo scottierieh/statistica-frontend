@@ -15,6 +15,8 @@ import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface TTestPageProps {
     data: DataSet;
@@ -214,6 +216,18 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                         </CardContent>
                     </Card>
                 )}
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Interpretation</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Alert variant={results.significant ? 'default' : 'secondary'}>
+                            {results.significant ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <AlertTriangle className="h-4 w-4" />}
+                            <AlertTitle>{results.significant ? 'Statistically Significant' : 'Not Statistically Significant'}</AlertTitle>
+                            <AlertDescription className="whitespace-pre-wrap">{results.interpretation}</AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">{results.test_type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())} t-Test Results</CardTitle>
@@ -231,7 +245,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                                 <TableRow><TableCell>p-value</TableCell><TableCell className="text-right font-mono">{results.p_value?.toFixed(4)}</TableCell></TableRow>
                                 <TableRow><TableCell>Degrees of Freedom</TableCell><TableCell className="text-right font-mono">{results.degrees_of_freedom}</TableCell></TableRow>
                                 {results.cohens_d && <TableRow><TableCell>Cohen's d</TableCell><TableCell className="text-right font-mono">{results.cohens_d.toFixed(4)}</TableCell></TableRow>}
-                                {results.confidence_interval && <TableRow><TableCell>95% CI</TableCell><TableCell className="text-right font-mono">[{results.confidence_interval[0]?.toFixed(2)}, {results.confidence_interval[1]?.toFixed(2)}]</TableCell></TableRow>}
+                                {results.confidence_interval && <TableRow><TableCell>95% CI of Difference</TableCell><TableCell className="text-right font-mono">[{results.confidence_interval[0]?.toFixed(2)}, {results.confidence_interval[1]?.toFixed(2)}]</TableCell></TableRow>}
                             </TableBody>
                         </Table>
                     </CardContent>
