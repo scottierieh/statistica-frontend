@@ -228,8 +228,8 @@ export default function KMedoidsPage({ data, numericHeaders, onLoadExample }: KM
                         </CardContent>
                     </Card>
 
-                    <div className="grid lg:grid-cols-2 gap-4">
-                        <Card className="lg:col-span-1">
+                    <div className="grid lg:grid-cols-3 gap-4">
+                        <Card className="lg:col-span-2">
                             <CardHeader>
                                 <CardTitle className="font-headline">Cluster Medoids (Exemplars)</CardTitle>
                                 <CardDescription>The actual data points serving as the center of each cluster.</CardDescription>
