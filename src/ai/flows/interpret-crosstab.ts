@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -18,6 +19,8 @@ const InterpretCrosstabInputSchema = z.object({
   df: z.number().describe("The degrees of freedom for the test."),
   pValue: z.number().describe("The calculated p-value."),
   cramersV: z.number().describe("Cramer's V for effect size."),
+  phi: z.number().describe("Phi coefficient for effect size, relevant for 2x2 tables."),
+  contingencyCoeff: z.number().describe("Contingency coefficient for effect size."),
   contingencyTable: z.string().describe("The contingency table as a JSON string."),
 });
 export type InterpretCrosstabInput = z.infer<typeof InterpretCrosstabInputSchema>;
@@ -44,14 +47,16 @@ Here are the key results:
 - Degrees of Freedom: {{{df}}}
 - p-value: {{{pValue}}}
 - Cramer's V (effect size): {{{cramersV}}}
+- Phi Coefficient (for 2x2 tables): {{{phi}}}
+- Contingency Coefficient: {{{contingencyCoeff}}}
 - Contingency Table: {{{contingencyTable}}}
 
 Based on these results, provide a concise, easy-to-understand interpretation broken into clear paragraphs.
 - **Paragraph 1: Main Finding.** Start by stating the conclusion in APA style: is there a statistically significant association between '{{{rowVar}}}' and '{{{colVar}}}'? (e.g., A Chi-squared test of independence was performed to examine the relation between '{{{rowVar}}}' and '{{{colVar}}}'. The relation between these variables was significant, χ²({{{df}}}) = {{{chi2}}}, *p* = {{{pValue}}}.). Use a significance level of alpha = 0.05.
-- **Paragraph 2: Effect Size.** Explain the strength of the association using Cramer's V. General guidelines: <0.1 is negligible, 0.1-0.2 is weak, 0.2-0.4 is moderate, 0.4-0.6 is relatively strong, >0.6 is strong.
+- **Paragraph 2: Effect Size.** Explain the strength of the association using Cramer's V. General guidelines: <0.1 is negligible, 0.1-0.2 is weak, 0.2-0.4 is moderate, 0.4-0.6 is relatively strong, >0.6 is strong. If it is a 2x2 table, also mention the Phi coefficient.
 - **Paragraph 3: Table Insights.** If the association is significant, briefly point out which cells in the contingency table seem to contribute most to this relationship (where observed counts differ most from what would be expected by chance).
 - Ensure each section is a distinct paragraph separated by a line break.
-- Do not use markdown, just plain text.
+- Do not use markdown for emphasis, use plain text.
 `, 
 });
 

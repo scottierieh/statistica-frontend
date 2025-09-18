@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Columns, Bot, AlertCircle } from 'lucide-react';
+import { Sigma, Loader2, Columns, Bot, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -69,6 +69,7 @@ const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null
   
   const formattedInterpretation = useMemo(() => {
     if (!interpretation) return null;
+    // Chain replacements for both bold and italics
     return interpretation
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<i>$1</i>');
@@ -150,6 +151,8 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                 pValue: result.results.chi_squared.p_value,
                 cramersV: result.results.cramers_v,
                 contingencyTable: JSON.stringify(result.results.contingency_table),
+                phi: result.results.phi_coefficient, // Added for AI context
+                contingencyCoeff: result.results.contingency_coefficient, // Added for AI context
             }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
             setAiPromise(promise);
 
@@ -289,17 +292,11 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                     <AIGeneratedInterpretation promise={aiPromise} />
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Chi-Squared Test of Independence</CardTitle>
+                            <CardTitle className="font-headline">Chi-Squared Test & Measures of Association</CardTitle>
                             <CardDescription>Tests whether there is a significant association between {rowVar} and {colVar}.</CardDescription>
                         </CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-6">
-                           <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Statistic</TableHead>
-                                        <TableHead className="text-right">Value</TableHead>
-                                    </TableRow>
-                                </TableHeader>
+                            <Table>
                                 <TableBody>
                                     <TableRow>
                                         <TableCell>Chi-Squared (χ²)</TableCell>
@@ -328,7 +325,7 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                                 </TableBody>
                             </Table>
                             <Alert variant={analysisResult.results.chi_squared.p_value < 0.05 ? 'default' : 'destructive'}>
-                                <AlertCircle className="h-4 w-4" />
+                                <AlertTriangle className="h-4 w-4" />
                                 <AlertTitle>{analysisResult.results.chi_squared.p_value < 0.05 ? "Result is Statistically Significant" : "Result is Not Statistically Significant"}</AlertTitle>
                                 <AlertDescription>
                                     {analysisResult.results.chi_squared.p_value < 0.05
