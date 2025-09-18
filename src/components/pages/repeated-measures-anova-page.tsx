@@ -112,7 +112,13 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
             const response = await fetch('/api/analysis/repeated-measures-anova', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, subjectCol, withinCols, betweenCol, dependentVar: 'measurement' })
+                body: JSON.stringify({ 
+                    data, 
+                    subjectCol, 
+                    withinCols, 
+                    betweenCol: betweenCol === 'none' ? undefined : betweenCol, 
+                    dependentVar: 'measurement' 
+                })
             });
 
             if (!response.ok) {
@@ -283,21 +289,19 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                              <CardHeader><CardTitle>Post-Hoc Pairwise Comparisons</CardTitle></CardHeader>
                              <CardContent>
                                 <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Contrast</TableHead>
-                                            {results.posthoc_results[0]?.A && <TableHead>{betweenCol || 'Factor A'}</TableHead>}
-                                            <TableHead>{results.posthoc_results[0]?.B ? 'A' : 'Group 1'}</TableHead>
-                                            <TableHead>{results.posthoc_results[0]?.B ? 'B' : 'Group 2'}</TableHead>
-                                            <TableHead className="text-right">p-value (corrected)</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
+                                    <TableHeader><TableRow>
+                                        <TableHead>Contrast</TableHead>
+                                        {results.posthoc_results[0]?.A && <TableHead>{betweenCol || 'Factor A'}</TableHead>}
+                                        <TableHead>{results.posthoc_results[0]?.B ? 'A' : 'Group 1'}</TableHead>
+                                        <TableHead>{results.posthoc_results[0]?.B ? 'B' : 'Group 2'}</TableHead>
+                                        <TableHead className="text-right">p-value (corrected)</TableHead>
+                                    </TableRow></TableHeader>
                                     <TableBody>
                                         {results.posthoc_results.map((row, i) => (
                                             <TableRow key={i}>
                                                 <TableCell>{row.Contrast}</TableCell>
                                                 {row.A && <TableCell>{row.A === -1 ? 'Overall' : row.A}</TableCell>}
-                                                <TableCell>{row.B ? row.A : row.A}</TableCell>
+                                                <TableCell>{row.A}</TableCell>
                                                 <TableCell>{row.B || ''}</TableCell>
                                                 <TableCell className="text-right font-mono">{(row['p-corr'] ?? row['p-unc'])?.toFixed(4)} {getSignificanceStars(row['p-corr'] ?? row['p-unc'])}</TableCell>
                                             </TableRow>
