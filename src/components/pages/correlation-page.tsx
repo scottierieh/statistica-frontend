@@ -53,68 +53,8 @@ interface CorrelationResults {
     significant: boolean;
   }[];
   pairs_plot: string;
+  heatmap_plot: string;
 }
-
-const CorrelationHeatmap = ({ matrix, pValues, title }: { matrix: { [key: string]: { [key: string]: number } }, pValues: { [key: string]: { [key: string]: number } }, title: string }) => {
-    const headers = Object.keys(matrix);
-
-    const getColor = (value: number) => {
-        if (isNaN(value)) return 'hsl(var(--muted))';
-        const intensity = Math.min(Math.abs(value), 1);
-        
-        // Blue for positive, Red for negative
-        if (value > 0) {
-            return `hsla(220, 80%, 60%, ${intensity * 0.8})`;
-        } else {
-            return `hsla(0, 80%, 60%, ${intensity * 0.8})`;
-        }
-    };
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline text-lg">{title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <ScrollArea className="w-full">
-                    <div style={{ minWidth: `${headers.length * 6}rem` }}>
-                        <Table className="table-fixed">
-                             <TableHeader>
-                                <TableRow>
-                                    <TableHead className="sticky left-0 bg-card z-10 w-24 min-w-24"></TableHead>
-                                    {headers.map(h => <TableHead key={h} className="text-center text-xs px-1">{h}</TableHead>)}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {headers.map((rowHeader) => (
-                                    <TableRow key={rowHeader}>
-                                        <TableHead className="sticky left-0 bg-card z-10 w-24 min-w-24 text-xs px-1">{rowHeader}</TableHead>
-                                        {headers.map((colHeader) => {
-                                            const value = matrix[rowHeader]?.[colHeader];
-                                            const isDiagonal = rowHeader === colHeader;
-                                            
-                                            return (
-                                                <TableCell 
-                                                    key={`${rowHeader}-${colHeader}`} 
-                                                    className={cn("text-center font-mono p-0 text-xs border", isDiagonal && "bg-muted/50")}
-                                                    style={{ backgroundColor: isDiagonal ? undefined : getColor(value) }}
-                                                >
-                                                   <div className={cn("p-1 h-full w-full flex items-center justify-center")}>
-                                                       {isDiagonal ? "1" : value !== undefined && !isNaN(value) ? value.toFixed(2) : '-'}
-                                                    </div>
-                                                </TableCell>
-                                            );
-                                        })}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </ScrollArea>
-            </CardContent>
-        </Card>
-    );
-};
 
 const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strongest_correlations'] }) => {
     const chartData = data.map(item => ({
@@ -313,6 +253,17 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
 
       {results && !isLoading && (
         <>
+            {results.heatmap_plot && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Correlation Matrix Heatmap</CardTitle>
+                        <CardDescription>Visual representation of the correlation matrix. Warmer colors indicate positive correlation, cooler colors indicate negative.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <Image src={`data:image/png;base64,${results.heatmap_plot}`} alt="Correlation Heatmap" width={1000} height={800} className="w-full rounded-md border" />
+                    </CardContent>
+                </Card>
+            )}
             {results.pairs_plot && (
                 <Card>
                     <CardHeader>
@@ -320,7 +271,7 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                         <CardDescription>A matrix of scatterplots, distributions, and correlation coefficients.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <Image src={results.pairs_plot} alt="Pairs Plot" width={800} height={800} className="w-full rounded-md border" />
+                         <Image src={`data:image/png;base64,${results.pairs_plot}`} alt="Pairs Plot" width={800} height={800} className="w-full rounded-md border" />
                     </CardContent>
                 </Card>
             )}
@@ -364,10 +315,6 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                 </Card>
             </div>
             
-            <div className="grid gap-4 lg:grid-cols-1">
-                <CorrelationHeatmap matrix={results.correlation_matrix} pValues={results.p_value_matrix} title={`${correlationMethod.charAt(0).toUpperCase() + correlationMethod.slice(1)} Correlation Matrix`} />
-            </div>
-
             <div className="grid gap-4 md:grid-cols-1">
                  <StrongestCorrelationsChart data={results.strongest_correlations} />
             </div>

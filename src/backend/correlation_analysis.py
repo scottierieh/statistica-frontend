@@ -75,6 +75,22 @@ def generate_pairs_plot(df, method='pearson'):
     
     return base64.b64encode(buf.read()).decode('utf-8')
 
+def generate_heatmap(df, title='Correlation Matrix'):
+    """Generates a heatmap for the correlation matrix."""
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(df, annot=True, cmap='coolwarm', fmt=".2f", vmin=-1, vmax=1)
+    plt.title(title, fontsize=16)
+    plt.xticks(rotation=45, ha='right')
+    plt.yticks(rotation=0)
+    plt.tight_layout()
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close()
+    buf.seek(0)
+    
+    return base64.b64encode(buf.read()).decode('utf-8')
+
 
 def main():
     try:
@@ -165,8 +181,9 @@ def main():
         effect_sizes_summary = {'distribution': effect_size_counts, 'strongest_effect': strongest_effect}
         strongest_correlations = sorted(all_correlations, key=lambda x: abs(x['correlation']), reverse=True)[:10]
 
-        # Generate plot
+        # Generate plots
         pairs_plot_img = generate_pairs_plot(df_clean[current_vars], method)
+        heatmap_plot_img = generate_heatmap(corr_matrix, title=f'{method.capitalize()} Correlation Matrix')
 
         response = {
             "correlation_matrix": corr_matrix.to_dict(),
@@ -174,7 +191,8 @@ def main():
             "summary_statistics": summary_stats,
             "effect_sizes": effect_sizes_summary,
             "strongest_correlations": strongest_correlations,
-            "pairs_plot": f"data:image/png;base64,{pairs_plot_img}"
+            "pairs_plot": f"data:image/png;base64,{pairs_plot_img}",
+            "heatmap_plot": f"data:image/png;base64,{heatmap_plot_img}"
         }
 
         print(json.dumps(response, default=_to_native_type, ensure_ascii=False))
