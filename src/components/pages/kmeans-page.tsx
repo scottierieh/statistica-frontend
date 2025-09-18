@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -15,7 +16,6 @@ import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { getKmeansInterpretation } from '@/app/actions';
 
 interface KMeansResults {
     optimal_k?: {
@@ -40,6 +40,11 @@ interface KMeansResults {
         davies_bouldin: number;
         calinski_harabasz: number;
     };
+    interpretations: {
+        overall_quality: string;
+        cluster_profiles: string[];
+        cluster_distribution: string;
+    };
 }
 
 interface FullKMeansResponse {
@@ -53,35 +58,27 @@ interface KMeansPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
-  const [interpretation, setInterpretation] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!promise) {
-        setInterpretation(null);
-        setLoading(false);
-        return;
-    };
-    let isMounted = true;
-    setLoading(true);
-    promise.then((desc) => {
-        if (isMounted) {
-            setInterpretation(desc);
-            setLoading(false);
-        }
-    });
-    return () => { isMounted = false; };
-  }, [promise]);
-  
-  if (loading) return <Skeleton className="h-16 w-full" />;
-  if (!interpretation) return null;
+const InterpretationDisplay = ({ interpretations }: { interpretations: KMeansResults['interpretations'] | undefined }) => {
+  if (!interpretations) return null;
 
   return (
-    <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-        <h4 className="font-semibold text-sm mb-2 flex items-center gap-2"><Bot /> AI Interpretation</h4>
-        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interpretation}</p>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm text-muted-foreground">
+        <p><strong>Overall Quality:</strong> {interpretations.overall_quality}</p>
+        <div>
+          <h4 className="font-semibold text-foreground mb-2">Cluster Profiles:</h4>
+          <ul className="space-y-2 list-disc pl-5">
+            {interpretations.cluster_profiles.map((profile, index) => (
+              <li key={index} dangerouslySetInnerHTML={{ __html: profile }} />
+            ))}
+          </ul>
+        </div>
+        <p><strong>Distribution:</strong> {interpretations.cluster_distribution}</p>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -92,12 +89,10 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
     const [nClusters, setNClusters] = useState<number>(3);
     const [analysisResult, setAnalysisResult] = useState<FullKMeansResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
 
     useEffect(() => {
         setSelectedItems(numericHeaders);
         setAnalysisResult(null);
-        setAiPromise(null);
     }, [data, numericHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
@@ -118,7 +113,6 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
 
         setIsLoading(true);
         setAnalysisResult(null);
-        setAiPromise(null);
 
         try {
             const response = await fetch('/api/analysis/kmeans', {
@@ -140,15 +134,6 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
             if ((result as any).error) throw new Error((result as any).error);
             
             setAnalysisResult(result);
-
-            if (result.results.final_metrics) {
-                const promise = getKmeansInterpretation({
-                    silhouetteScore: result.results.final_metrics.silhouette,
-                    calinskiHarabaszScore: result.results.final_metrics.calinski_harabasz,
-                    daviesBouldinScore: result.results.final_metrics.davies_bouldin,
-                }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
-                setAiPromise(promise);
-            }
 
         } catch (e: any) {
             console.error('K-Means error:', e);
@@ -255,46 +240,49 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Image src={analysisResult.plot} alt="Comprehensive K-Means Plots" width={1500} height={1200} className="w-full rounded-md border"/>
+                            <Image src={analysisResult.plot} alt="Comprehensive K-Means Plots" width={1200} height={1000} className="w-full rounded-md border"/>
                         </CardContent>
                     </Card>
 
                     <div className="grid lg:grid-cols-3 gap-4">
-                        <Card className="lg:col-span-2">
-                            <CardHeader>
-                                <CardTitle className="font-headline">Cluster Profiles (Centroids)</CardTitle>
-                                <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ScrollArea className="h-72">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Cluster</TableHead>
-                                                <TableHead>Size (%)</TableHead>
-                                                {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {Object.entries(results.profiles).map(([clusterName, profile]) => (
-                                                <TableRow key={clusterName}>
-                                                    <TableCell className="font-semibold">{clusterName}</TableCell>
-                                                    <TableCell>
-                                                        {profile.size}
-                                                        <span className="text-muted-foreground ml-1">({profile.percentage.toFixed(1)}%)</span>
-                                                    </TableCell>
-                                                    {selectedItems.map(item => (
-                                                        <TableCell key={item} className="text-right font-mono">
-                                                            {profile.centroid[item].toFixed(2)}
-                                                        </TableCell>
-                                                    ))}
+                        <div className="lg:col-span-2 flex flex-col gap-4">
+                           <Card>
+                                <CardHeader>
+                                    <CardTitle className="font-headline">Cluster Profiles (Centroids)</CardTitle>
+                                    <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ScrollArea className="h-72">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Cluster</TableHead>
+                                                    <TableHead>Size (%)</TableHead>
+                                                    {selectedItems.map(item => <TableHead key={item} className="text-right">{item}</TableHead>)}
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </ScrollArea>
-                            </CardContent>
-                        </Card>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {Object.entries(results.profiles).map(([clusterName, profile]) => (
+                                                    <TableRow key={clusterName}>
+                                                        <TableCell className="font-semibold">{clusterName}</TableCell>
+                                                        <TableCell>
+                                                            {profile.size}
+                                                            <span className="text-muted-foreground ml-1">({profile.percentage.toFixed(1)}%)</span>
+                                                        </TableCell>
+                                                        {selectedItems.map(item => (
+                                                            <TableCell key={item} className="text-right font-mono">
+                                                                {profile.centroid[item].toFixed(2)}
+                                                            </TableCell>
+                                                        ))}
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </ScrollArea>
+                                </CardContent>
+                            </Card>
+                            <InterpretationDisplay interpretations={results.interpretations} />
+                        </div>
                          <Card>
                             <CardHeader>
                                 <CardTitle className="font-headline">Cluster Validation</CardTitle>
@@ -307,7 +295,6 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                                     <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Davies-Bouldin</dt><dd className="text-lg font-bold font-mono">{results.final_metrics?.davies_bouldin.toFixed(3)}</dd></div>
                                     <div className="space-y-1"><dt className="text-sm font-medium text-muted-foreground">Inertia (WCSS)</dt><dd className="text-lg font-bold font-mono">{results.clustering_summary?.inertia.toFixed(2)}</dd></div>
                                 </dl>
-                                <AIGeneratedInterpretation promise={aiPromise} />
                             </CardContent>
                         </Card>
                     </div>
