@@ -253,8 +253,8 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                         </CardContent>
                     </Card>
 
-                    <div className="grid lg:grid-cols-2 gap-4">
-                       <Card>
+                    <div className="grid lg:grid-cols-3 gap-4">
+                        <Card className="lg:col-span-2">
                             <CardHeader>
                                 <CardTitle className="font-headline">Cluster Profiles (Centroids)</CardTitle>
                                 <CardDescription>Mean values of each variable for the identified clusters.</CardDescription>
@@ -304,7 +304,7 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
                             </CardContent>
                         </Card>
                     </div>
-                    <InterpretationDisplay interpretations={results.interpretations} />
+                     <InterpretationDisplay interpretations={results.interpretations} />
                 </div>
             )}
             
@@ -316,3 +316,4 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
         </div>
     );
 }
+
