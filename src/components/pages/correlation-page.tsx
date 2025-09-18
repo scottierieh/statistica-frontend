@@ -261,21 +261,10 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
 
       {results && !isLoading && (
         <>
-             {results.pairs_plot && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Pairs Plot</CardTitle>
-                        <CardDescription>A matrix of scatterplots for each variable pair, distributions for each variable, and correlation coefficients.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <Image src={`data:image/png;base64,${results.pairs_plot}`} alt="Pairs Plot" width={800} height={800} className="w-full rounded-md border" />
-                    </CardContent>
-                </Card>
-            )}
             <div className="grid lg:grid-cols-2 gap-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="font-headline">Key Finding</CardTitle>
+                        <CardTitle className="font-headline">{results.interpretation?.title || 'Key Finding'}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm whitespace-pre-wrap font-sans">{results.interpretation?.body}</p>
@@ -314,6 +303,18 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                  <StrongestCorrelationsChart data={results.strongest_correlations} />
             </div>
             
+             {results.pairs_plot && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Pairs Plot</CardTitle>
+                        <CardDescription>A matrix of scatterplots for each variable pair, distributions for each variable, and correlation coefficients.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <Image src={`data:image/png;base64,${results.pairs_plot}`} alt="Pairs Plot" width={800} height={800} className="w-full rounded-md border" />
+                    </CardContent>
+                </Card>
+            )}
+
             {plotData && (
                 <Card>
                     <CardHeader>
