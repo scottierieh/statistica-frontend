@@ -139,6 +139,67 @@ class KMedoidsAnalysis:
                 'davies_bouldin': davies_bouldin_score(self.cluster_data_scaled, self.cluster_labels),
                 'calinski_harabasz': calinski_harabasz_score(self.cluster_data_scaled, self.cluster_labels),
             }
+        
+        self.results['interpretations'] = self.generate_interpretations()
+
+    def generate_interpretations(self):
+        if 'profiles' not in self.results or 'final_metrics' not in self.results:
+            return {}
+
+        interpretations = {
+            'overall_quality': '',
+            'cluster_profiles': [],
+            'cluster_distribution': ''
+        }
+
+        # 1. Overall Quality Interpretation
+        metrics = self.results['final_metrics']
+        silhouette = metrics['silhouette']
+        calinski = metrics['calinski_harabasz']
+        davies = metrics['davies_bouldin']
+        inertia = self.results['clustering_summary']['inertia']
+
+        if silhouette >= 0.7:
+            quality_desc = "strong and well-defined."
+        elif silhouette >= 0.5:
+            quality_desc = "reasonable and distinct."
+        elif silhouette >= 0.25:
+            quality_desc = "weak and could have some overlap."
+        else:
+            quality_desc = "not well-defined; results should be interpreted with caution."
+        
+        interpretations['overall_quality'] = (
+            f"The <strong>Silhouette Score of {silhouette:.3f}</strong> indicates the clustering structure is {quality_desc} "
+            f"The <strong>Calinski-Harabasz Score ({calinski:.2f})</strong>, which measures cluster separation, is relatively high, which is good. "
+            f"The <strong>Davies-Bouldin Score ({davies:.3f})</strong>, measuring cluster similarity, is low, which is also good. "
+            f"The <strong>Inertia (within-cluster sum of squares) is {inertia:.2f}</strong>; lower values indicate denser clusters."
+        )
+
+        # 2. Cluster Profile Interpretation
+        overall_means = self.cluster_data.mean()
+        
+        for name, profile in self.results['profiles'].items():
+            centroid = pd.Series(profile['centroid'])
+            deviations = (centroid - overall_means) / overall_means.std()
+            
+            top_features = deviations.nlargest(2).index.tolist()
+            bottom_features = deviations.nsmallest(2).index.tolist()
+            
+            profile_desc = f"<strong>{name} ({profile['percentage']:.1f}% of data):</strong> This cluster is characterized by high values in <strong>{', '.join(top_features)}</strong> and low values in <strong>{', '.join(bottom_features)}</strong>."
+            interpretations['cluster_profiles'].append(profile_desc)
+
+        # 3. Cluster Distribution Interpretation
+        percentages = [p['percentage'] for p in self.results['profiles'].values()]
+        if len(percentages) > 1:
+            max_p = max(percentages)
+            min_p = min(percentages)
+            if max_p / min_p > 3:
+                dist_desc = "The cluster sizes are imbalanced, with some clusters being significantly larger than others."
+            else:
+                dist_desc = "The clusters are relatively balanced in size."
+            interpretations['cluster_distribution'] = dist_desc
+
+        return interpretations
 
     def plot_results(self):
         fig, axes = plt.subplots(1, 2, figsize=(15, 6))
@@ -177,7 +238,7 @@ class KMedoidsAnalysis:
                 angles += angles[:1]
                 
                 ax_radar = fig.add_subplot(122, polar=True)
-                for i, (name, row) in enumerate(medoids_norm.iterrows()):
+                for i, (idx, row) in enumerate(medoids_norm.iterrows()):
                     values = row.tolist()
                     values += values[:1]
                     ax_radar.plot(angles, values, label=f'Cluster {i+1}')
