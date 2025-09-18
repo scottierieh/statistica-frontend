@@ -179,9 +179,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     sna: SnaPage,
     'topic-modeling': TopicModelingPage,
     dea: DeaPage,
-    't-test-one-sample': TTestPage,
-    't-test-independent': TTestPage,
-    't-test-paired': TTestPage,
+    't-test': TTestPage,
 };
 
 const analysisMenu = [
@@ -204,8 +202,8 @@ const analysisMenu = [
         name: 'T-Test',
         methods: [
           { id: 't-test-one-sample', label: 'One-Sample T-Test' },
-          { id: 't-test-independent', label: 'Independent Samples T-Test', implemented: false },
-          { id: 't-test-paired', label: 'Paired Samples T-Test', implemented: false },
+          { id: 't-test-independent', label: 'Independent Samples T-Test' },
+          { id: 't-test-paired', label: 'Paired Samples T-Test' },
         ]
       },
       {
@@ -476,7 +474,7 @@ export default function StatisticaApp() {
     URL.revokeObjectURL(url);
   };
   
-  const pageKey = Object.keys(analysisPages).find(key => activeAnalysis.startsWith(key) && key.includes(activeAnalysis.split('-')[0])) || 'stats';
+  const pageKey = Object.keys(analysisPages).find(key => activeAnalysis.startsWith(key.split('-')[0])) || 'stats';
   
   const ActivePageComponent = analysisPages[pageKey] || DescriptiveStatsPage;
 
@@ -519,7 +517,7 @@ export default function StatisticaApp() {
             return sub;
           }
           return null;
-        }).filter(Boolean) as (typeof category.subCategories);
+        }).filter(Boolean) as (typeof category.subCategories)[];
       }
 
       if (matchingMethods.length > 0 || matchingSubCategories.length > 0) {

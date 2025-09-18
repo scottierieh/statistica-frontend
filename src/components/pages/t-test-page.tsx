@@ -18,29 +18,75 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 interface TTestPageProps {
     data: DataSet;
     numericHeaders: string[];
+    categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
+    activeAnalysis: string;
 }
 
-export default function TTestPage({ data, numericHeaders, onLoadExample }: TTestPageProps) {
+export default function TTestPage({ data, numericHeaders, categoricalHeaders, onLoadExample, activeAnalysis }: TTestPageProps) {
     const { toast } = useToast();
-    const [variable, setVariable] = useState<string | undefined>(numericHeaders[0]);
+    const [testType, setTestType] = useState('one_sample');
+    
+    // States for different tests
+    const [oneSampleVar, setOneSampleVar] = useState<string | undefined>(numericHeaders[0]);
     const [testValue, setTestValue] = useState<number>(0);
+    
+    const [independentVar, setIndependentVar] = useState<string | undefined>(numericHeaders[0]);
+    const [groupVar, setGroupVar] = useState<string | undefined>();
+    
+    const [pairedVar1, setPairedVar1] = useState<string | undefined>(numericHeaders[0]);
+    const [pairedVar2, setPairedVar2] = useState<string | undefined>(numericHeaders[1]);
+
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
+    
+    const binaryCategoricalHeaders = useMemo(() => {
+        return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
+    }, [data, categoricalHeaders]);
 
     useEffect(() => {
-        setVariable(numericHeaders[0]);
+        const currentTestType = activeAnalysis.includes('one-sample') ? 'one_sample' 
+            : activeAnalysis.includes('independent') ? 'independent_samples' 
+            : 'paired_samples';
+        setTestType(currentTestType);
+        
+        setOneSampleVar(numericHeaders[0]);
+        setIndependentVar(numericHeaders[0]);
+        setGroupVar(binaryCategoricalHeaders[0]);
+        setPairedVar1(numericHeaders[0]);
+        setPairedVar2(numericHeaders[1]);
         setAnalysisResult(null);
-    }, [numericHeaders, data]);
+    }, [activeAnalysis, data, numericHeaders, binaryCategoricalHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
     const handleAnalysis = useCallback(async () => {
-        if (!variable) {
-            toast({ variant: "destructive", title: "Please select a variable." });
-            return;
+        let params: any = {};
+        let currentTestType = testType;
+
+        switch(testType) {
+            case 'one_sample':
+                if (!oneSampleVar) {
+                    toast({ variant: "destructive", title: "Please select a variable." });
+                    return;
+                }
+                params = { variable: oneSampleVar, test_value: testValue };
+                break;
+            case 'independent_samples':
+                if (!independentVar || !groupVar) {
+                    toast({ variant: "destructive", title: "Please select a value and group variable." });
+                    return;
+                }
+                 params = { variable: independentVar, group_variable: groupVar, equal_var: true };
+                break;
+            case 'paired_samples':
+                 if (!pairedVar1 || !pairedVar2 || pairedVar1 === pairedVar2) {
+                    toast({ variant: "destructive", title: "Please select two different variables." });
+                    return;
+                }
+                params = { variable1: pairedVar1, variable2: pairedVar2 };
+                break;
         }
-        const params = { variable, test_value: testValue };
 
         setIsLoading(true);
         setAnalysisResult(null);
@@ -49,7 +95,7 @@ export default function TTestPage({ data, numericHeaders, onLoadExample }: TTest
             const response = await fetch('/api/analysis/t-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, testType: 'one_sample', params })
+                body: JSON.stringify({ data, testType: currentTestType, params })
             });
 
             if (!response.ok) {
@@ -67,12 +113,72 @@ export default function TTestPage({ data, numericHeaders, onLoadExample }: TTest
         } finally {
             setIsLoading(false);
         }
-    }, [data, variable, testValue, toast]);
+    }, [data, testType, oneSampleVar, testValue, independentVar, groupVar, pairedVar1, pairedVar2, toast]);
+    
+    const renderSetupUI = () => {
+        switch (testType) {
+            case 'one_sample':
+                return (
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Variable</Label>
+                            <Select value={oneSampleVar} onValueChange={setOneSampleVar}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Test Value (μ₀)</Label>
+                            <Input type="number" value={testValue} onChange={e => setTestValue(Number(e.target.value))} />
+                        </div>
+                    </div>
+                );
+            case 'independent_samples':
+                return (
+                     <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Group Variable</Label>
+                             <Select value={groupVar} onValueChange={setGroupVar}>
+                                <SelectTrigger><SelectValue placeholder="Select group..."/></SelectTrigger>
+                                <SelectContent>{binaryCategoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Value Variable</Label>
+                             <Select value={independentVar} onValueChange={setIndependentVar}>
+                                <SelectTrigger><SelectValue placeholder="Select value..."/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                );
+            case 'paired_samples':
+                 return (
+                     <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Variable 1 (e.g. Pre-test)</Label>
+                             <Select value={pairedVar1} onValueChange={setPairedVar1}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                           <Label>Variable 2 (e.g. Post-test)</Label>
+                             <Select value={pairedVar2} onValueChange={setPairedVar2}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{numericHeaders.filter(h => h !== pairedVar1).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                );
+            default: return null;
+        }
+    }
     
     const renderResult = () => {
         if (!analysisResult) return null;
         const { results, plot } = analysisResult;
-        
+
         if (!results || !results.descriptives) {
             return (
                 <Card>
@@ -96,7 +202,7 @@ export default function TTestPage({ data, numericHeaders, onLoadExample }: TTest
                 )}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="font-headline">One-Sample t-Test Results</CardTitle>
+                        <CardTitle className="font-headline">{results.test_type.replace(/_/g, ' ')} t-Test Results</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -110,8 +216,8 @@ export default function TTestPage({ data, numericHeaders, onLoadExample }: TTest
                                 <TableRow><TableCell>t-statistic</TableCell><TableCell className="text-right font-mono">{results.t_statistic.toFixed(4)}</TableCell></TableRow>
                                 <TableRow><TableCell>p-value</TableCell><TableCell className="text-right font-mono">{results.p_value.toFixed(4)}</TableCell></TableRow>
                                 <TableRow><TableCell>Degrees of Freedom</TableCell><TableCell className="text-right font-mono">{results.degrees_of_freedom}</TableCell></TableRow>
-                                <TableRow><TableCell>Cohen's d</TableCell><TableCell className="text-right font-mono">{results.cohens_d.toFixed(4)}</TableCell></TableRow>
-                                <TableRow><TableCell>95% CI</TableCell><TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(2)}, {results.confidence_interval[1].toFixed(2)}]</TableCell></TableRow>
+                                {results.cohens_d && <TableRow><TableCell>Cohen's d</TableCell><TableCell className="text-right font-mono">{results.cohens_d.toFixed(4)}</TableCell></TableRow>}
+                                {results.confidence_interval && <TableRow><TableCell>95% CI</TableCell><TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(2)}, {results.confidence_interval[1].toFixed(2)}]</TableCell></TableRow>}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -123,7 +229,7 @@ export default function TTestPage({ data, numericHeaders, onLoadExample }: TTest
                         </CardHeader>
                         <CardContent>
                             <Table>
-                                <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">N</TableHead><TableHead className="text-right">Mean</TableHead><TableHead className="text-right">Std. Dev.</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Group/Variable</TableHead><TableHead className="text-right">N</TableHead><TableHead className="text-right">Mean</TableHead><TableHead className="text-right">Std. Dev.</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {Object.entries(results.descriptives).map(([key, value]: [string, any]) => (
                                         <TableRow key={key}>
@@ -170,23 +276,11 @@ export default function TTestPage({ data, numericHeaders, onLoadExample }: TTest
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">One-Sample T-Test</CardTitle>
-                    <CardDescription>Test if the mean of a single variable is different from a specified value.</CardDescription>
+                    <CardTitle className="font-headline">T-Test Analysis</CardTitle>
+                    <CardDescription>Select a test type and configure the variables for the analysis.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <Label>Variable</Label>
-                            <Select value={variable} onValueChange={setVariable}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>Test Value (μ₀)</Label>
-                            <Input type="number" value={testValue} onChange={e => setTestValue(Number(e.target.value))} />
-                        </div>
-                    </div>
+                <CardContent>
+                    {renderSetupUI()}
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading}>
@@ -197,7 +291,8 @@ export default function TTestPage({ data, numericHeaders, onLoadExample }: TTest
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
             {!isLoading && analysisResult && renderResult()}
-            {!isLoading && !analysisResult && <div className="text-center text-muted-foreground py-10"><FlaskConical className="mx-auto h-12 w-12"/><p className="mt-2">Select a variable and set a test value, then click 'Run Analysis'.</p></div>}
+            {!isLoading && !analysisResult && <div className="text-center text-muted-foreground py-10"><FlaskConical className="mx-auto h-12 w-12"/><p className="mt-2">Select variables, then click 'Run Analysis'.</p></div>}
         </div>
     );
 }
+
