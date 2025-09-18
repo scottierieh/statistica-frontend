@@ -186,7 +186,7 @@ class RegressionAnalysis:
             'metrics': metrics,
             'diagnostics': diagnostics,
             'stepwise_log': stepwise_log,
-            'interpretation': self._generate_interpretation(metrics, diagnostics)
+            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, list(X_scaled.columns))
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -221,7 +221,7 @@ class RegressionAnalysis:
         self.results[model_name] = {
             'model_name': model_name, 'model_type': 'polynomial_regression', 'features': list(poly_feature_names),
             'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': [],
-            'interpretation': self._generate_interpretation(metrics, diagnostics)
+            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, list(poly_feature_names))
         }
         self.y_pred = y_pred
         self.X_scaled = X_poly_df
@@ -262,7 +262,7 @@ class RegressionAnalysis:
         self.results[model_name] = {
             'model_name': model_name, 'model_type': f'{reg_type}_regression', 'features': list(X_scaled.columns),
             'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': [],
-            'interpretation': self._generate_interpretation(metrics, diagnostics)
+            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, list(X_scaled.columns))
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -291,6 +291,9 @@ class RegressionAnalysis:
 
             diagnostics['f_statistic'] = sm_model.fvalue
             diagnostics['f_pvalue'] = sm_model.f_pvalue
+            diagnostics['df_model'] = sm_model.df_model
+            diagnostics['df_resid'] = sm_model.df_resid
+
             diagnostics['coefficient_tests'] = {
                 'params': sm_model.params.to_dict(),
                 'pvalues': sm_model.pvalues.to_dict(),
@@ -346,33 +349,48 @@ class RegressionAnalysis:
             diagnostics['normality_tests'] = {}
         return diagnostics
     
-    def _generate_interpretation(self, metrics, diagnostics):
-        adj_r2 = metrics.get('adj_r2', 0)
+    def _generate_interpretation(self, metrics, diagnostics, model_name, target_variable, features):
+        interpretation = ""
+        model_type_str = model_name.replace('_', ' ').title()
         
-        if adj_r2 >= 0.7:
-            power_desc = "very high explanatory power"
-        elif adj_r2 >= 0.5:
-            power_desc = "high explanatory power"
-        elif adj_r2 >= 0.25:
-            power_desc = "moderate explanatory power"
-        else:
-            power_desc = "low explanatory power"
-            
-        interpretation = f"The model has {power_desc}, with an adjusted R-squared of {adj_r2:.4f}. This means that approximately {adj_r2*100:.1f}% of the variance in the target variable can be explained by the predictors in the model.\n\n"
+        # Sentence 1: Purpose
+        feature_list = ", ".join(f"'{f}'" for f in features)
+        interpretation += f"A {model_type_str} regression was run to predict '{target_variable}' from {feature_list}. "
 
-        coeffs = diagnostics.get('coefficient_tests', {})
-        p_values = coeffs.get('pvalues', {})
-        
-        if p_values:
-            significant_vars = [var for var, p in p_values.items() if p < self.alpha and var != 'const']
-            if significant_vars:
-                interpretation += f"The following variables were found to be statistically significant predictors (p < {self.alpha}): {', '.join(significant_vars)}."
-            else:
-                interpretation += "No variables were found to be statistically significant predictors at the p < 0.05 level."
-        else:
-            interpretation += "Significance testing for individual predictors was not performed for this model type."
+        # Sentence 2: Model Significance
+        f_stat = diagnostics.get('f_statistic')
+        f_pvalue = diagnostics.get('f_pvalue')
+        df_model = diagnostics.get('df_model')
+        df_resid = diagnostics.get('df_resid')
+        r_squared = metrics.get('r2')
+
+        if all(v is not None for v in [f_stat, f_pvalue, df_model, df_resid, r_squared]):
+            p_val_str = f"p < .001" if f_pvalue < 0.001 else f"p = {f_pvalue:.3f}"
+            model_sig_str = "significant" if f_pvalue < self.alpha else "not significant"
+            interpretation += (f"This resulted in a {model_sig_str} model, F({int(df_model)}, {int(df_resid)}) = {f_stat:.3f}, {p_val_str}, R² = {r_squared:.3f}. ")
+
+        # Sentence 3: Individual Predictors
+        coeffs = diagnostics.get('coefficient_tests')
+        if coeffs and coeffs.get('pvalues'):
+            p_values = coeffs['pvalues']
+            t_values = coeffs['tvalues']
             
-        # Diagnostic interpretation
+            sig_vars = [var for var, p in p_values.items() if p < self.alpha and var != 'const']
+            nonsig_vars = [var for var, p in p_values.items() if p >= self.alpha and var != 'const']
+            
+            if sig_vars:
+                sig_descs = [f"'{var}' (t = {t_values.get(var, 0):.2f}, p < {self.alpha})" for var in sig_vars]
+                interpretation += f"The individual predictors were examined further, and {', '.join(sig_descs)} {'was' if len(sig_descs) == 1 else 'were'} found to be significant. "
+            if nonsig_vars:
+                nonsig_descs = [f"'{var}' (t = {t_values.get(var, 0):.2f}, p = {p_values.get(var, 0):.3f})" for var in nonsig_vars]
+                if sig_vars:
+                    interpretation += f"However, {', '.join(nonsig_descs)} {'was' if len(nonsig_descs) == 1 else 'were'} not significant. "
+                else:
+                     interpretation += f"None of the individual predictors were found to be significant. "
+            
+        interpretation = interpretation.strip()
+
+        # Diagnostic warnings
         warnings = []
         normality_p = diagnostics.get('normality_tests', {}).get('shapiro_wilk', {}).get('p_value')
         if normality_p is not None and normality_p < self.alpha:
@@ -389,7 +407,6 @@ class RegressionAnalysis:
 
         if warnings:
             interpretation += "\n\n--- Diagnostic Warnings ---\n" + "\n".join(warnings)
-
 
         return interpretation
 
@@ -489,6 +506,8 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
 
     
 
