@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -485,18 +486,24 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                 <dl className="space-y-3 text-sm">
                                     <div className="flex justify-between items-start">
                                         <span>Normality (Shapiro-Wilk):</span>
-                                        <div className="text-right">
-                                            {results.diagnostics.normality_tests?.shapiro_wilk?.p_value ? (
-                                                <Badge variant={results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'secondary' : 'destructive'}>p={results.diagnostics.normality_tests.shapiro_wilk.p_value.toFixed(3)}</Badge>
-                                            ) : <Badge variant="outline">N/A</Badge>}
+                                        <div className="text-right flex items-center gap-2">
+                                             {results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null && (
+                                                <Badge variant={results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'secondary' : 'destructive'}>
+                                                    {results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'Not Significant' : 'Significant'}
+                                                </Badge>
+                                            )}
+                                            <span className="font-mono">p={results.diagnostics.normality_tests?.shapiro_wilk?.p_value?.toFixed(3) ?? 'N/A'}</span>
                                         </div>
                                     </div>
                                     <div className="flex justify-between items-start">
                                         <span>Homoscedasticity (Breusch-Pagan):</span>
-                                        <div className="text-right">
-                                            {results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value ? (
-                                                <Badge variant={results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'secondary' : 'destructive'}>p={results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value.toFixed(3)}</Badge>
-                                            ) : <Badge variant="outline">N/A</Badge>}
+                                        <div className="text-right flex items-center gap-2">
+                                            {results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null && (
+                                                <Badge variant={results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'secondary' : 'destructive'}>
+                                                    {results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'Not Significant' : 'Significant'}
+                                                </Badge>
+                                            )}
+                                            <span className="font-mono">p={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value?.toFixed(3) ?? 'N/A'}</span>
                                         </div>
                                     </div>
                                 </dl>
