@@ -194,8 +194,6 @@ def main():
             "strongest_correlations": strongest_correlations,
             "pairs_plot": f"data:image/png;base64,{pairs_plot_img}",
             "heatmap_plot": f"data:image/png;base64,{heatmap_plot_img}",
-            "interpretation": "Interpretation has been removed.",
-            "recommendations": []
         }
 
         print(json.dumps(response, default=_to_native_type, ensure_ascii=False))
