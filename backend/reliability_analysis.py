@@ -5,12 +5,13 @@ import json
 import pandas as pd
 import pingouin as pg
 import numpy as np
+import math
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -32,27 +33,22 @@ def _generate_interpretation(results):
     alpha = results['alpha']
     n_items = results['n_items']
     alpha_if_deleted = results['item_statistics']['alpha_if_deleted']
-    df_items = pd.DataFrame(results['df_items'])
     
-    alpha_level_text = get_alpha_interpretation_level(alpha).lower()
+    alpha_level = get_alpha_interpretation_level(alpha)
 
     # Paragraph 1: Main finding and explanation
     interp = (
-        f"The internal consistency of the {n_items}-item scale was assessed using Cronbach's alpha.\n"
-        f"The overall reliability of the measure was {alpha_level_text}, Cronbach’s α = {alpha:.2f}.\n"
+        f"Internal reliability of the {n_items}-item scale was investigated using Cronbach's alpha.\n"
+        f"The overall reliability of the measure was {alpha_level.lower()}, Cronbach’s α = {alpha:.2f}.\n"
     )
 
     # Paragraph 2: Recommendations based on item-if-deleted stats
     items_to_consider_removing = [item for item, new_alpha in alpha_if_deleted.items() if new_alpha > alpha and new_alpha - alpha > 0.01]
 
     if items_to_consider_removing:
-        final_alpha_if_all_removed = pg.cronbach_alpha(data=df_items.drop(columns=items_to_consider_removing))[0]
-        final_alpha_level_text = get_alpha_interpretation_level(final_alpha_if_all_removed).lower()
-        
         interp += (
-            f"Item-level analysis indicated that elimination of several items would increase reliability. "
-            f"Specifically, removing items such as “{', '.join(items_to_consider_removing)}” would improve the internal consistency. "
-            f"After removing these items, the revised {n_items - len(items_to_consider_removing)}-item scale showed {final_alpha_level_text} internal consistency, α = {final_alpha_if_all_removed:.2f}."
+            f"Item-level analysis indicated that removal of certain items would increase reliability. "
+            f"Specifically, removing items such as “{', '.join(items_to_consider_removing)}” would improve the internal consistency of the scale."
         )
     elif alpha < 0.7:
          interp += "Given the poor reliability, it is recommended that the items of this scale be carefully reviewed and revised. Consideration should be given to item clarity, relevance, and potential redundancy."
@@ -110,12 +106,16 @@ def main():
             alpha_if_del = pg.cronbach_alpha(data=df_items.drop(columns=item))[0]
             alpha_if_deleted[item] = alpha_if_del
 
+        sem_value = np.nan
+        if alpha_results[0] >= 0:
+            sem_value = df_items.sum(axis=1).std() * (1 - alpha_results[0])**0.5
+
         response = {
             'alpha': alpha_results[0],
             'n_items': df_items.shape[1],
             'n_cases': df_items.shape[0],
             'confidence_interval': list(alpha_results[1]),
-            'sem': df_items.sum(axis=1).std() * (1 - alpha_results[0])**0.5 if alpha_results[0] >= 0 else np.nan,
+            'sem': sem_value,
             'item_statistics': {
                 'means': df_items.mean().to_dict(),
                 'stds': df_items.std().to_dict(),
@@ -128,14 +128,10 @@ def main():
                 'variance': total_score.var(),
                 'avg_inter_item_correlation': df_items.corr().values[np.triu_indices_from(df_items.corr().values, k=1)].mean()
             },
-            'df_items': df_items.to_dict('records') # Pass data for interpretation logic
         }
         
         response['interpretation'] = _generate_interpretation(response)
         
-        # remove temporary data from final response
-        del response['df_items']
-
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
