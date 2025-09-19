@@ -37,15 +37,9 @@ interface StandardizedSolution {
 }
 
 interface ParameterEstimates {
-    loadings: number[][];
-    factor_covariances: number[][];
-    error_variances: number[];
-}
-
-interface ConfidenceIntervals {
-    loadings: { lower: number[][]; upper: number[][] };
-    factor_covariances: { lower: number[][]; upper: number[][] };
-    error_variances: { lower: number[]; upper: number[] };
+    loadings: { [key: string]: number };
+    phi: { [key: string]: number };
+    theta: { [key: string]: number };
 }
 
 interface CfaResults {
@@ -66,8 +60,6 @@ interface CfaResults {
         indicators: string[];
     };
     parameters: ParameterEstimates;
-    standard_errors: any;
-    confidence_intervals: ConfidenceIntervals | null;
     convergence: boolean;
     interpretation?: string;
 }
@@ -374,7 +366,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                             </CardHeader>
                             <CardContent>
                                 <Table>
-                                    <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead>Indicator</TableHead><TableHead>Loading</TableHead><TableHead>SE</TableHead><TableHead>95% CI</TableHead></TableRow></TableHeader>
+                                    <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead>Indicator</TableHead><TableHead>Loading</TableHead></TableRow></TableHeader>
                                     <TableBody>
                                         {results.model_spec.factors.map((factor, fIndex) => {
                                             const factorItems = factors.find(f=>f.name === factor)?.items || [];
@@ -383,17 +375,12 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                                 if(itemIndex === -1 || !results.standardized_solution) return null;
                                                 
                                                 const loading = results.standardized_solution.loadings[itemIndex]?.[fIndex] ?? 0;
-                                                const se = results.standard_errors?.loadings?.[itemIndex]?.[fIndex];
-                                                const ci_lower = results.confidence_intervals?.loadings?.lower?.[itemIndex]?.[fIndex];
-                                                const ci_upper = results.confidence_intervals?.loadings?.upper?.[itemIndex]?.[fIndex];
 
                                                 return (
                                                     <TableRow key={`${fIndex}-${iIndex}`}>
                                                         {iIndex === 0 && <TableCell rowSpan={factorItems.length} className="font-semibold align-top">{factor}</TableCell>}
                                                         <TableCell>{item}</TableCell>
                                                         <TableCell className="font-mono">{loading.toFixed(3)}</TableCell>
-                                                        <TableCell className="font-mono">{se?.toFixed(3) ?? 'N/A'}</TableCell>
-                                                        <TableCell className="font-mono">{ci_lower !== undefined && ci_upper !== undefined ? `[${ci_lower.toFixed(3)}, ${ci_upper.toFixed(3)}]` : 'N/A'}</TableCell>
                                                     </TableRow>
                                                 )
                                             })
@@ -422,7 +409,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                             ))}
                                         </TableBody>
                                     </Table>
-                                    <CardDescription className="text-xs mt-2">CR &gt; 0.7 and AVE &gt; 0.5 are generally acceptable.</CardDescription>
+                                    <CardDescription className="text-xs mt-2">CR > 0.7 and AVE > 0.5 are generally acceptable.</CardDescription>
                                 </CardContent>
                             </Card>
                              {results.discriminant_validity.fornell_larcker_criterion && (
@@ -472,7 +459,3 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         </div>
     );
 }
-
-
-
-    

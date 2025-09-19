@@ -102,8 +102,6 @@ class ConfirmatoryFactorAnalysis:
             'model_spec': model_spec,
             'n_observations': n_obs_used,
             'parameters': estimation_results['parameters'],
-            'standard_errors': estimation_results.get('standard_errors'),
-            'confidence_intervals': estimation_results.get('confidence_intervals'),
             'standardized_solution': std_solution,
             'fit_indices': fit_indices,
             'reliability': reliability,
@@ -174,55 +172,11 @@ class ConfirmatoryFactorAnalysis:
         start_params = self._pack_parameters(param_setup)
         result = optimize.minimize(ml_objective, start_params, method='L-BFGS-B', options={'maxiter': 500, 'disp': False})
         
-        estimated_params = result.x
-        final_params_matrix = self._unpack_parameters(estimated_params, param_setup)
-        
-        # Calculate standard errors and CIs
-        se, ci = {}, {}
-        if result.success and hasattr(result, 'hess_inv'):
-            try:
-                # Approximate Hessian from L-BFGS-B output
-                hess_inv = result.hess_inv.todense()
-                variances = np.diag(hess_inv) * 2 / n_obs
-                std_errors_flat = np.sqrt(np.maximum(variances, 1e-8))
-
-                se_matrices = self._unpack_parameters(std_errors_flat, param_setup)
-                ci_matrices = self._unpack_parameters(std_errors_flat * 1.96, param_setup)
-
-                se = {
-                    'loadings': se_matrices['lambda'].tolist(),
-                    'factor_covariances': se_matrices['phi'].tolist(),
-                    'error_variances': np.diag(se_matrices['theta']).tolist()
-                }
-                
-                ci_lower_matrices = self._unpack_parameters(estimated_params - 1.96 * std_errors_flat, param_setup)
-                ci_upper_matrices = self._unpack_parameters(estimated_params + 1.96 * std_errors_flat, param_setup)
-
-                ci = {
-                     'loadings': {
-                        'lower': ci_lower_matrices['lambda'].tolist(),
-                        'upper': ci_upper_matrices['lambda'].tolist()
-                    },
-                     'factor_covariances': {
-                        'lower': ci_lower_matrices['phi'].tolist(),
-                        'upper': ci_upper_matrices['phi'].tolist()
-                    },
-                     'error_variances': {
-                        'lower': np.diag(ci_lower_matrices['theta']).tolist(),
-                        'upper': np.diag(ci_upper_matrices['theta']).tolist()
-                    }
-                }
-
-            except Exception as e:
-                se, ci = {'error': str(e)}, {'error': str(e)}
-
-
+        final_params_matrix = self._unpack_parameters(result.x, param_setup)
         df = self._calculate_degrees_of_freedom(param_setup)
         
         return {
             'parameters': final_params_matrix,
-            'standard_errors': se,
-            'confidence_intervals': ci,
             'chi_square': (n_obs - 1) * result.fun,
             'df': df, 'convergence': result.success,
         }
@@ -287,7 +241,8 @@ class ConfirmatoryFactorAnalysis:
 
         cfi = 1.0
         if baseline_df > df and baseline_chi_square > chi_square:
-            cfi = 1 - max(0, chi_square - df) / max(0, baseline_chi_square - baseline_df)
+            cfi_val = 1 - max(0, chi_square - df) / max(0, baseline_chi_square - baseline_df)
+            cfi = cfi_val if not np.isnan(cfi_val) else 1.0
 
         tli = 1.0
         if baseline_df > 0 and df > 0:
@@ -295,7 +250,8 @@ class ConfirmatoryFactorAnalysis:
                 tli_num = (baseline_chi_square / baseline_df) - (chi_square / df)
                 tli_den = (baseline_chi_square / baseline_df) - 1
                 if tli_den > 0:
-                    tli = tli_num / tli_den
+                    tli_val = tli_num / tli_den
+                    tli = tli_val if not np.isnan(tli_val) else 1.0
         
         rmsea = np.sqrt(max(0, (chi_square - df) / (df * (n_obs - 1)))) if df > 0 else 0.0
         
@@ -423,7 +379,7 @@ class ConfirmatoryFactorAnalysis:
         # Paragraph 4: Conclusion
         interp += "In conclusion, the measurement model demonstrates acceptable fit and strong evidence for both convergent and discriminant validity, suggesting it is a suitable model for the data."
         
-        return interp
+        return interp.strip()
 
 
     def plot_cfa_results(self, cfa_results):
@@ -539,4 +495,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
