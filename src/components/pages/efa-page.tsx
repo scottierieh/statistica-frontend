@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BrainCircuit, AlertCircle, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Settings, RotateCw, Replace } from 'lucide-react';
+import { Sigma, Loader2, BrainCircuit, AlertTriangle, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Settings, RotateCw, Replace, Bot, CheckCircle2 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
@@ -16,6 +16,7 @@ import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 // Type definitions for the EFA results
 interface EfaResults {
@@ -28,12 +29,43 @@ interface EfaResults {
     variables: string[];
     n_factors: number;
     plot?: string;
+    communalities: number[];
+    adequacy: {
+        kmo: number;
+        kmo_interpretation: string;
+        bartlett_statistic: number;
+        bartlett_p_value: number;
+        bartlett_significant: boolean;
+    };
+    interpretation: { [key: string]: { variables: string[], loadings: number[] } };
+    full_interpretation: string;
 }
 
-interface EfaPageProps {
-    data: DataSet;
-    numericHeaders: string[];
-    onLoadExample: (example: ExampleDataSet) => void;
+const InterpretationDisplay = ({ results }: { results: EfaResults | undefined }) => {
+    if (!results?.full_interpretation) return null;
+    
+    const isSuitable = results.adequacy.kmo >= 0.6 && results.adequacy.bartlett_significant;
+
+    const formattedInterpretation = useMemo(() => {
+        return results.full_interpretation
+            .replace(/\n/g, '<br />')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    }, [results.full_interpretation]);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Alert variant={isSuitable ? 'default' : 'destructive'}>
+                    {isSuitable ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                    <AlertTitle>{isSuitable ? "Data Suitable for Factor Analysis" : "Data May Not Be Suitable"}</AlertTitle>
+                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />
+                </Alert>
+            </CardContent>
+        </Card>
+    );
 }
 
 const DualListBox = ({ allItems, selectedItems, setSelectedItems }: { allItems: string[], selectedItems: string[], setSelectedItems: (items: string[]) => void }) => {
@@ -128,6 +160,12 @@ const DualListBox = ({ allItems, selectedItems, setSelectedItems }: { allItems: 
     );
 };
 
+interface EfaPageProps {
+    data: DataSet;
+    numericHeaders: string[];
+    onLoadExample: (example: ExampleDataSet) => void;
+}
+
 export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPageProps) {
     const { toast } = useToast();
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
@@ -211,14 +249,9 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                                 const Icon = ex.icon;
                                 return (
                                 <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                            <Icon className="h-6 w-6 text-secondary-foreground" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </div>
+                                    <CardHeader>
+                                        <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                        <CardDescription className="text-xs">{ex.description}</CardDescription>
                                     </CardHeader>
                                     <CardFooter>
                                         <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
@@ -235,6 +268,8 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
         )
     }
     
+    const results = analysisResult;
+
     return (
         <div className="flex flex-col gap-4">
             <Card>
@@ -304,18 +339,19 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                 </Card>
             )}
 
-            {analysisResult && (
+            {results && (
                 <>
-                {analysisResult.plot && (
+                {results.plot && (
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">Visual Summary</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Image src={analysisResult.plot} alt="EFA Visual Summary" width={1400} height={600} className="w-full rounded-md border" />
+                            <Image src={results.plot} alt="EFA Visual Summary" width={1400} height={600} className="w-full rounded-md border" />
                         </CardContent>
                     </Card>
                 )}
+                <InterpretationDisplay results={results} />
                 <div className="grid lg:grid-cols-3 gap-4">
                     <Card className="lg:col-span-1">
                         <CardHeader>
@@ -331,20 +367,68 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {analysisResult.variance_explained.per_factor.map((variance, i) => (
+                                    {results.variance_explained.per_factor.map((variance, i) => (
                                          <TableRow key={i}>
                                             <TableCell>Factor {i+1}</TableCell>
                                             <TableCell className="text-right font-mono">{variance.toFixed(2)}%</TableCell>
-                                            <TableCell className="text-right font-mono">{analysisResult.variance_explained.cumulative[i].toFixed(2)}%</TableCell>
+                                            <TableCell className="text-right font-mono">{results.variance_explained.cumulative[i].toFixed(2)}%</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
                         </CardContent>
                     </Card>
-                    <Card className="lg:col-span-2">
+                     <Card className="lg:col-span-1">
                         <CardHeader>
-                            <CardTitle className="font-headline">Factor Loadings (Rotated)</CardTitle>
+                            <CardTitle className="font-headline">Communalities</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <ScrollArea className="h-72">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Variable</TableHead>
+                                            <TableHead className="text-right">Communality</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {results.variables.map((variable, i) => (
+                                            <TableRow key={variable}>
+                                                <TableCell>{variable}</TableCell>
+                                                <TableCell className="text-right font-mono">{results.communalities[i].toFixed(3)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                             </ScrollArea>
+                        </CardContent>
+                    </Card>
+                    <Card className="lg:col-span-1">
+                        <CardHeader>
+                            <CardTitle className="font-headline">Data Adequacy</CardTitle>
+                        </CardHeader>
+                         <CardContent>
+                            <dl className="space-y-4 text-sm">
+                                <div>
+                                    <dt className="font-medium">Kaiser-Meyer-Olkin (KMO) Test</dt>
+                                    <dd className="font-mono text-lg">{results.adequacy.kmo.toFixed(3)} <Badge>{results.adequacy.kmo_interpretation}</Badge></dd>
+                                </div>
+                                <div>
+                                    <dt className="font-medium">Bartlett's Test of Sphericity</dt>
+                                    <dd>
+                                        <span className="font-mono">
+                                            χ² ≈ {results.adequacy.bartlett_statistic?.toFixed(2) ?? 'N/A'}, p {'< .001' ?? results.adequacy.bartlett_p_value?.toFixed(3)}
+                                        </span>
+                                        {results.adequacy.bartlett_significant ? <Badge>Significant</Badge> : <Badge variant="secondary">Not Significant</Badge>}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </CardContent>
+                    </Card>
+                </div>
+                 <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Factor Loadings</CardTitle>
                             <CardDescription>Indicates how much each variable is associated with each factor. Loadings &gt; 0.4 are highlighted.</CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -353,16 +437,16 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Variable</TableHead>
-                                            {Array.from({length: analysisResult.n_factors}, (_, i) => (
+                                            {Array.from({length: results.n_factors}, (_, i) => (
                                                 <TableHead key={i} className="text-right">Factor {i+1}</TableHead>
                                             ))}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {analysisResult.variables.map((variable, varIndex) => (
+                                        {results.variables.map((variable, varIndex) => (
                                             <TableRow key={variable}>
                                                 <TableCell className="font-medium">{variable}</TableCell>
-                                                {analysisResult.factor_loadings[varIndex].map((loading, factorIndex) => (
+                                                {results.factor_loadings[varIndex].map((loading, factorIndex) => (
                                                     <TableCell 
                                                         key={factorIndex} 
                                                         className={`text-right font-mono ${Math.abs(loading) >= 0.4 ? 'font-bold text-primary' : ''}`}
@@ -377,7 +461,6 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                             </ScrollArea>
                         </CardContent>
                     </Card>
-                </div>
                 </>
             )}
 

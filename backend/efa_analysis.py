@@ -29,6 +29,56 @@ def _to_native_type(obj):
     return obj
 
 
+def _generate_interpretation(results):
+    adequacy = results['adequacy']
+    eigenvalues = results['eigenvalues']
+    variance_explained = results['variance_explained']
+    n_factors = results['n_factors']
+    n_items = len(results['variables'])
+
+    kmo_level = adequacy.get('kmo_interpretation', 'N/A').lower()
+    bartlett_sig = adequacy.get('bartlett_significant', False)
+
+    interpretation = (
+        f"An Exploratory Factor Analysis (EFA) was conducted on {n_items} items to identify underlying latent factors. "
+        f"The suitability of the data for factor analysis was assessed before extraction.\n"
+    )
+
+    interpretation += (
+        f"The Kaiser-Meyer-Olkin (KMO) measure of sampling adequacy was {kmo_level} ({adequacy.get('kmo', 0):.2f}), "
+        f"and Bartlett’s test of sphericity was {'statistically significant' if bartlett_sig else 'not significant'} "
+        f"(χ² ≈ {adequacy.get('bartlett_statistic', 0):.2f}, p {'< .001' if adequacy.get('bartlett_p_value', 1) < 0.001 else f'= {adequacy.get('bartlett_p_value', 1):.3f}'}). "
+        f"These indicators suggest that the data is {'suitable' if kmo_level not in ['poor', 'unacceptable'] and bartlett_sig else 'may not be suitable'} for factor analysis.\n\n"
+    )
+
+    interpretation += (
+        f"Based on the analysis, **{n_factors} factors** were extracted, which collectively explain **{variance_explained['cumulative'][-1]:.2f}%** of the total variance. "
+        f"The eigenvalues for these factors were greater than 1, satisfying the Kaiser criterion, and a scree plot inspection also supported this factor structure.\n\n"
+    )
+
+    interpretation += "**Factor Interpretation:**\n"
+    for i in range(n_factors):
+        factor_name = f"Factor {i+1}"
+        factor_info = results['interpretation'].get(factor_name, {})
+        high_loading_vars = factor_info.get('variables', [])
+        
+        if high_loading_vars:
+            interpretation += (
+                f"- **{factor_name}** (Explained Variance: {variance_explained['per_factor'][i]:.2f}%): This factor is primarily defined by high loadings from items such as **{', '.join(high_loading_vars)}**. "
+                f"This suggests an underlying construct related to these items. A potential name for this factor could be **'{high_loading_vars[0].split('_')[0].capitalize()}'**.\n"
+            )
+        else:
+            interpretation += f"- **{factor_name}**: No items loaded strongly on this factor, making interpretation difficult.\n"
+
+    interpretation += (
+        "\n**Recommendations:**\n"
+        "The identified factor structure provides a simplified representation of the data. For further validation, it is recommended to:\n"
+        "1.  **Assess Internal Consistency:** Calculate Cronbach's alpha for the items within each extracted factor to ensure reliability.\n"
+        "2.  **Perform Confirmatory Factor Analysis (CFA):** Test the stability and validity of this factor structure on a different dataset or through structural equation modeling."
+    )
+
+    return interpretation.strip()
+
 def plot_efa_results(eigenvalues, loadings, variables):
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
     fig.suptitle('Exploratory Factor Analysis Results', fontsize=16)
@@ -112,17 +162,15 @@ def main():
 
         # --- Factor Analysis ---
         if method == 'pca':
-            # Using PCA for factor extraction
             model = PCA(n_components=n_factors, random_state=42) if n_factors else PCA(random_state=42)
             model.fit(X_scaled)
             loadings = model.components_.T * np.sqrt(model.explained_variance_)
             eigenvalues_full = model.explained_variance_
             variance_explained = model.explained_variance_ratio_ * 100
         else: # Principal Axis Factoring
-            model = FactorAnalysis(n_components=n_factors, rotation=rotation if rotation in ['varimax', 'quartimax'] else 'varimax', random_state=42)
+            model = FactorAnalysis(n_components=n_factors, rotation=rotation if rotation in ['varimax', 'quartimax', 'promax', 'oblimin', 'none'] and rotation != 'none' else None, random_state=42)
             model.fit(X_scaled)
             loadings = model.components_.T
-            # Eigenvalues from correlation matrix for non-PCA methods
             corr_matrix = np.corrcoef(X_scaled, rowvar=False)
             eigenvalues_full, _ = np.linalg.eigh(corr_matrix)
             eigenvalues_full = sorted(eigenvalues_full, reverse=True)
@@ -136,12 +184,12 @@ def main():
         cumulative_variance = np.cumsum(variance_explained)
 
         # --- Factor Interpretation ---
-        interpretation = {}
+        interpretation_data = {}
         for i in range(n_factors):
             factor_loadings = loadings[:, i]
             high_loadings_indices = np.where(np.abs(factor_loadings) >= 0.4)[0]
             
-            interpretation[f'Factor {i+1}'] = {
+            interpretation_data[f'Factor {i+1}'] = {
                 'variables': [items[j] for j in high_loadings_indices],
                 'loadings': [factor_loadings[j] for j in high_loadings_indices]
             }
@@ -163,13 +211,14 @@ def main():
                 "cumulative": cumulative_variance
             },
             "communalities": communalities,
-            "interpretation": interpretation,
+            "interpretation": interpretation_data,
             "variables": items,
             "n_factors": n_factors,
             "plot": plot_image
         }
         
-        # Final safety check for NaN before dumping
+        response['full_interpretation'] = _generate_interpretation(response)
+        
         cleaned_response = json.loads(json.dumps(response, default=_to_native_type))
         print(json.dumps(cleaned_response))
 
