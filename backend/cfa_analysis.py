@@ -373,9 +373,7 @@ class ConfirmatoryFactorAnalysis:
             fit_assessment = "a poor"
         
         interp += (
-            f"The overall fit of the measurement model presented mixed results. While the Comparative Fit Index (CFI = {fit_indices.get('cfi', 0):.3f}), Tucker-Lewis Index (TLI = {fit_indices.get('tli', 0):.3f}), and Root Mean Square Error of Approximation (RMSEA = {fit_indices.get('rmsea', 0):.3f}) indicated {fit_assessment} fit to the data, these values should be considered in context. "
-            f"The Standardized Root Mean Square Residual (SRMR = {fit_indices.get('srmr', 0):.3f}) was {'above' if fit_indices.get('srmr',0) > .08 else 'within'} the conventional cutoff of .08. "
-            f"The chi-square statistic was χ²({fit_indices.get('df', 0):.0f}, N={n_obs}) = {fit_indices.get('chi_square', 0):.2f}, {p_val_text}, which is often significant in large samples.\n\n"
+            f"A confirmatory factor analysis (CFA) was conducted to examine the factorial validity of the measurement model. The hypothesized model demonstrated {fit_assessment} fit to the data, χ²(df = {fit_indices.get('df', 0):.0f}, N={n_obs}) = {fit_indices.get('chi_square', 0):.2f}, {p_val_text}, CFI = {fit_indices.get('cfi', 0):.2f}, TLI = {fit_indices.get('tli', 0):.2f}, RMSEA = {fit_indices.get('rmsea', 0):.3f}, SRMR = {fit_indices.get('srmr', 0):.3f}.\n\n"
         )
         
         # Convergent Validity
@@ -384,10 +382,11 @@ class ConfirmatoryFactorAnalysis:
             all_cr_ok = all(r.get('composite_reliability', 0) > 0.7 for r in reliability.values())
             all_ave_ok = all(r.get('average_variance_extracted', 0) > 0.5 for r in reliability.values())
 
+            convergent_text = "Convergent validity was "
             if all_loadings_ok and all_cr_ok and all_ave_ok:
-                convergent_text = "Convergent validity was strongly supported by the factor loadings, Composite Reliability (CR) values, and Average Variance Extracted (AVE) values."
+                convergent_text += "strongly supported by the factor loadings, Composite Reliability (CR) values, and Average Variance Extracted (AVE) values."
             else:
-                convergent_text = "Convergent validity showed mixed support."
+                convergent_text += "showed mixed support."
             
             interp += convergent_text + "\n"
 
@@ -402,61 +401,19 @@ class ConfirmatoryFactorAnalysis:
             interp += "Discriminant validity was established using the Fornell-Larcker criterion. For each factor, the square root of its AVE was greater than its correlation with any other factor, indicating that each construct is distinct from the others.\n\n"
 
         # Conclusion
-        interp += "In conclusion, while the convergent and discriminant validity of the measurement model were excellent, the mixed model fit statistics suggest that while the constructs are well-defined, their structural relationships might be complex or require further model refinement."
+        interp += "In conclusion, the measurement model demonstrates strong convergent and discriminant validity. Model fit indices are generally acceptable, suggesting the model represents the data well."
         
         return interp.strip()
 
 
     def plot_cfa_results(self, cfa_results):
-        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-        fig.suptitle(f'CFA Results: {cfa_results["model_name"]}', fontsize=16, fontweight='bold')
-
-        # Fit Indices Table
-        fit = cfa_results.get('fit_indices', {})
-        axes[0].axis('off')
-        
-        fit_data = [
-            ['χ²', f"{fit.get('chi_square', 0):.2f}"],
-            ['df', f"{fit.get('df', 0)}"],
-            ['p-value', f"{fit.get('p_value', 1.0):.3f}"],
-            ['CFI', f"{fit.get('cfi', 0.0):.3f}"],
-            ['TLI', f"{fit.get('tli', 0.0):.3f}"],
-            ['RMSEA', f"{fit.get('rmsea', 0.0):.3f}"],
-            ['SRMR', f"{fit.get('srmr', 0.0):.3f}"],
-        ]
-
-        table = axes[0].table(cellText=fit_data, colLabels=['Index', 'Value'], loc='center', cellLoc='center')
-        table.auto_set_font_size(False)
-        table.set_fontsize(12)
-        table.scale(1, 1.5)
-        axes[0].set_title('Model Fit Indices', pad=20)
-
-
-        # Q-Q Plot of Residuals
-        ax2 = axes[1]
-        residuals = cfa_results.get('residuals')
-        if residuals:
-            stats.probplot(residuals, dist="norm", plot=ax2)
-            ax2.set_title('Q-Q Plot of Residuals')
-            ax2.grid(True, alpha=0.3)
-        else:
-            ax2.text(0.5, 0.5, 'Residuals not available.', ha='center', va='center')
-
-
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        plt.close(fig)
-        buf.seek(0)
-        
-        qq_plot_img = base64.b64encode(buf.read()).decode('utf-8')
-        
-        # We will create a second plot for other visualizations
-        fig2, axes2 = plt.subplots(1, 2, figsize=(14, 6))
+        # First figure for Reliability and Factor Correlations
+        fig1, axes1 = plt.subplots(1, 2, figsize=(14, 6))
+        fig1.suptitle(f'CFA Results: {cfa_results["model_name"]}', fontsize=16, fontweight='bold')
         
         # Reliability Plot
         reliability = cfa_results.get('reliability', {})
-        ax_rel = axes2[0]
+        ax_rel = axes1[0]
         if reliability:
             factors = list(reliability.keys())
             cr_values = [r['composite_reliability'] for r in reliability.values()]
@@ -476,7 +433,7 @@ class ConfirmatoryFactorAnalysis:
             ax_rel.grid(True, axis='y', linestyle='--', alpha=0.6)
 
         # Factor Correlations Plot
-        ax_corr = axes2[1]
+        ax_corr = axes1[1]
         std_sol = cfa_results.get('standardized_solution')
         if std_sol and std_sol['factor_correlations'] is not None:
             corr_df = pd.DataFrame(std_sol['factor_correlations'],
@@ -489,13 +446,29 @@ class ConfirmatoryFactorAnalysis:
             sns.heatmap(corr_df, annot=True, fmt=".2f", cmap='coolwarm', ax=ax_corr, mask=mask, vmin=-1, vmax=1)
             ax_corr.set_title('Factor Correlation Matrix')
 
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+        buf1 = io.BytesIO()
+        plt.savefig(buf1, format='png')
+        plt.close(fig1)
+        buf1.seek(0)
+        main_plot_img = base64.b64encode(buf1.read()).decode('utf-8')
+        
+        # Second figure for Q-Q Plot
+        fig2, ax2 = plt.subplots(1, 1, figsize=(7, 6))
+        residuals = cfa_results.get('residuals')
+        if residuals:
+            stats.probplot(residuals, dist="norm", plot=ax2)
+            ax2.set_title('Q-Q Plot of Residuals')
+            ax2.grid(True, alpha=0.3)
+        else:
+            ax2.text(0.5, 0.5, 'Residuals not available.', ha='center', va='center')
+        
         plt.tight_layout()
         buf2 = io.BytesIO()
         plt.savefig(buf2, format='png')
         plt.close(fig2)
         buf2.seek(0)
-        
-        main_plot_img = base64.b64encode(buf2.read()).decode('utf-8')
+        qq_plot_img = base64.b64encode(buf2.read()).decode('utf-8')
         
         return f"data:image/png;base64,{main_plot_img}", f"data:image/png;base64,{qq_plot_img}"
 

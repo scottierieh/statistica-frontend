@@ -361,31 +361,38 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                 <>
                     <InterpretationDisplay results={results} />
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {fitIndices && (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="font-headline">Model Fit & Diagnostics</CardTitle>
-                                </CardHeader>
-                                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Index</TableHead><TableHead className="text-right">Value</TableHead><TableHead>Assessment</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            <TableRow><TableCell>CFI</TableCell><TableCell className="text-right font-mono">{fitIndices.cfi.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices.cfi > 0.9 ? 'default' : 'destructive'}>{fitIndices.cfi > 0.9 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
-                                            <TableRow><TableCell>TLI</TableCell><TableCell className="text-right font-mono">{fitIndices.tli.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices.tli > 0.9 ? 'default' : 'destructive'}>{fitIndices.tli > 0.9 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
-                                            <TableRow><TableCell>RMSEA</TableCell><TableCell className="text-right font-mono">{fitIndices.rmsea.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices.rmsea < 0.08 ? 'default' : 'destructive'}>{fitIndices.rmsea < 0.08 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
-                                            <TableRow><TableCell>SRMR</TableCell><TableCell className="text-right font-mono">{fitIndices.srmr.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices.srmr < 0.08 ? 'default' : 'destructive'}>{fitIndices.srmr < 0.08 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
-                                            <TableRow><TableCell>χ²(df={fitIndices.df})</TableCell><TableCell className="text-right font-mono">{fitIndices.chi_square.toFixed(2)}</TableCell><TableCell><Badge variant={fitIndices.p_value > 0.05 ? 'default' : 'destructive'}>p {(fitIndices.p_value || 0).toFixed(3)}</Badge></TableCell></TableRow>
-                                        </TableBody>
-                                    </Table>
-                                     {analysisResult.qq_plot && (
-                                        <div className="flex flex-col items-center">
-                                            <Label className="mb-2">Q-Q Plot of Residuals</Label>
-                                            <Image src={analysisResult.qq_plot} alt="Q-Q Plot" width={300} height={300} className="rounded-md border" />
-                                        </div>
-                                    )}
+                       <Card>
+                          <CardHeader><CardTitle>Model Fit & Diagnostics</CardTitle></CardHeader>
+                          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <Table>
+                                <TableHeader><TableRow><TableHead>Index</TableHead><TableHead className="text-right">Value</TableHead><TableHead>Assessment</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    <TableRow><TableCell>CFI</TableCell><TableCell className="text-right font-mono">{fitIndices?.cfi.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices && fitIndices.cfi > 0.9 ? 'default' : 'destructive'}>{fitIndices && fitIndices.cfi > 0.9 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
+                                    <TableRow><TableCell>TLI</TableCell><TableCell className="text-right font-mono">{fitIndices?.tli.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices && fitIndices.tli > 0.9 ? 'default' : 'destructive'}>{fitIndices && fitIndices.tli > 0.9 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
+                                    <TableRow><TableCell>RMSEA</TableCell><TableCell className="text-right font-mono">{fitIndices?.rmsea.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices && fitIndices.rmsea < 0.08 ? 'default' : 'destructive'}>{fitIndices && fitIndices.rmsea < 0.08 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
+                                    <TableRow><TableCell>SRMR</TableCell><TableCell className="text-right font-mono">{fitIndices?.srmr.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices && fitIndices.srmr < 0.08 ? 'default' : 'destructive'}>{fitIndices && fitIndices.srmr < 0.08 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
+                                    <TableRow><TableCell>χ²(df={fitIndices?.df})</TableCell><TableCell className="text-right font-mono">{fitIndices?.chi_square.toFixed(2)}</TableCell><TableCell><Badge variant={fitIndices && fitIndices.p_value > 0.05 ? 'default' : 'destructive'}>p {(fitIndices?.p_value || 0).toFixed(3)}</Badge></TableCell></TableRow>
+                                </TableBody>
+                            </Table>
+                             {analysisResult.qq_plot && (
+                                <div className="flex flex-col items-center">
+                                    <Label className="mb-2">Q-Q Plot of Residuals</Label>
+                                    <Image src={analysisResult.qq_plot} alt="Q-Q Plot" width={300} height={300} className="rounded-md border" />
+                                </div>
+                            )}
+                          </CardContent>
+                       </Card>
+
+                        {analysisResult.plot && (
+                           <Card>
+                                <CardHeader><CardTitle>Analysis Visuals</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Image src={analysisResult.plot} alt="CFA summary plot" width={700} height={300} className="w-full rounded-md border" />
                                 </CardContent>
-                            </Card>
+                           </Card>
                         )}
+                    </div>
+                    <div className="grid lg:grid-cols-2 gap-4">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="font-headline">Reliability & Convergent Validity</CardTitle>
@@ -410,8 +417,6 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                 <CardDescription className="text-xs mt-2">CR > 0.7 and AVE > 0.5 are generally acceptable.</CardDescription>
                             </CardContent>
                         </Card>
-                    </div>
-                    <div className="grid lg:grid-cols-2 gap-4">
                          {results.discriminant_validity.fornell_larcker_criterion && (
                             <Card>
                                 <CardHeader>
@@ -423,28 +428,6 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                 </CardContent>
                             </Card>
                          )}
-                          {results.standardized_solution?.factor_correlations && (
-                            <Card>
-                                 <CardHeader><CardTitle className="font-headline">Latent Factor Correlations</CardTitle></CardHeader>
-                                 <CardContent>
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead></TableHead>{results.model_spec.factors.map(f => <TableHead key={f} className="text-center">{f}</TableHead>)}</TableRow></TableHeader>
-                                        <TableBody>
-                                            {results.model_spec.factors.map((f1, i) => (
-                                                <TableRow key={f1}>
-                                                    <TableHead>{f1}</TableHead>
-                                                    {results.model_spec.factors.map((f2, j) => (
-                                                        <TableCell key={f2} className="text-center font-mono">
-                                                            {results.standardized_solution?.factor_correlations[i][j].toFixed(3)}
-                                                        </TableCell>
-                                                    ))}
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                 </CardContent>
-                            </Card>
-                          )}
                     </div>
                      <Card>
                         <CardHeader>
