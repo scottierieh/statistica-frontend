@@ -464,17 +464,17 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                 <Button onClick={runSensitivityAnalysis}>Analyze</Button>
                                             </div>
                                             {sensitivityResult && (
-                                                 <ChartContainer config={sensitivityChartConfig} className="w-full h-[300px]">
+                                                 <div className="h-[300px] w-full">
                                                       <ResponsiveContainer>
                                                           <LineChart data={sensitivityResult}>
                                                               <CartesianGrid strokeDasharray="3 3" />
                                                               <XAxis dataKey="level" />
                                                               <YAxis />
                                                               <Tooltip content={<ChartTooltipContent />} />
-                                                              <Line type="monotone" dataKey="utility" name="Utility" stroke="var(--color-utility)" />
+                                                              <Line type="monotone" dataKey="utility" name="Utility" stroke="hsl(var(--chart-1))" />
                                                           </LineChart>
                                                       </ResponsiveContainer>
-                                                </ChartContainer>
+                                                </div>
                                             )}
                                         </CardContent>
                                     </Card>
