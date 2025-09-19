@@ -205,7 +205,7 @@ class OneWayANOVA:
         if not self.results:
             return None
 
-        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         fig.suptitle('One-Way ANOVA Results', fontsize=16, fontweight='bold')
 
         sns.boxplot(x=self.group_col, y=self.value_col, data=self.clean_data, ax=axes[0, 0])
