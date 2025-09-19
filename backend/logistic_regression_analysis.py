@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -51,7 +52,8 @@ class LogisticRegressionAnalysis:
         self.X = pd.get_dummies(X_raw, drop_first=True, dtype=float)
         self.feature_names = self.X.columns.tolist()
         
-        self.y = self.clean_data[self.dependent_var + '_encoded']
+        # Ensure y is a 1D array
+        self.y = self.clean_data[self.dependent_var + '_encoded'].values.ravel()
         
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_size, random_state=self.random_state, stratify=self.y)
 
@@ -88,8 +90,8 @@ class LogisticRegressionAnalysis:
             'confusion_matrix': cm.tolist(),
             'classification_report': class_report
         }
-        self.results['coefficients'] = self.model_fit.params[1:].to_dict()
-        self.results['odds_ratios'] = conf['Odds Ratio'][1:].to_dict()
+        self.results['coefficients'] = self.model_fit.params.to_dict()
+        self.results['odds_ratios'] = conf['Odds Ratio'].to_dict()
         
         fpr, tpr, _ = roc_curve(y_true, y_prob)
         roc_auc = auc(fpr, tpr)
@@ -115,32 +117,34 @@ class LogisticRegressionAnalysis:
         chi2 = summary['llr']
         df = summary['df_model']
         p_val = summary['llr_pvalue']
-        nagelkerke_r2 = 1 - (np.exp(summary['llnull']) / np.exp(summary['llf']))**(2/len(self.y)) if summary['llnull'] != 0 else 0
+        pseudo_r2 = summary['prsquared']
         accuracy = res['metrics']['accuracy']
         
         # Sentence 1: Purpose
-        interpretation = f"A logistic regression was performed to assess the effects of {', '.join(self.independent_vars)} on the likelihood of {self.dependent_var}.\n\n"
+        interpretation = f"A logistic regression was performed to ascertain the effects of {len(self.independent_vars)} predictors on the likelihood that respondents would be classified as one group or another in '{self.dependent_var}'.\n\n"
 
         # Sentence 2: Model Significance
         model_sig_text = "statistically significant" if p_val < 0.05 else "not statistically significant"
         p_val_text = f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
-        interpretation += f"The logistic regression model was {model_sig_text}, χ²({df:.0f}) = {chi2:.3f}, {p_val_text}. "
+        interpretation += f"The logistic regression model was {model_sig_text}, χ²({df:.0f}, N = {len(self.clean_data)}) = {chi2:.3f}, {p_val_text}. "
         
         # Sentence 3: Model Fit
-        interpretation += f"The model explained {nagelkerke_r2*100:.1f}% (Nagelkerke R²) of the variance in {self.dependent_var} and correctly classified {accuracy*100:.1f}% of cases.\n\n"
+        interpretation += f"The model explained {pseudo_r2*100:.1f}% (Pseudo R²) of the variance in {self.dependent_var} and correctly classified {accuracy*100:.1f}% of cases.\n\n"
         
         # Sentence 4: Individual Predictors
         odds_ratios = res['odds_ratios']
         p_values = self.model_fit.pvalues[1:] # Exclude const
         
+        sig_preds = []
         for var, p in p_values.items():
             if p < 0.05:
                 odds = odds_ratios.get(var)
                 if odds is not None:
-                     if odds > 1:
-                        interpretation += f"Increasing {var} was associated with a {odds:.2f} times increased likelihood of the outcome. "
-                     else:
-                        interpretation += f"Increasing {var} was associated with a {(1-odds)*100:.1f}% decreased likelihood of the outcome. "
+                     change_text = f"{odds:.2f} times as likely" if odds > 1 else f"{(1-odds)*100:.1f}% less likely"
+                     sig_preds.append(f"'{var.replace('_', ' ')}' was associated with a {change_text} to be in the target group")
+
+        if sig_preds:
+            interpretation += "Of the predictor variables, " + ", and ".join(sig_preds) + "."
 
         self.results['interpretation'] = interpretation.strip()
 
