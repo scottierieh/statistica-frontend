@@ -7,12 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Users, AlertTriangle } from 'lucide-react';
+import { Sigma, Loader2, Users, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
-import { Badge } from '../ui/badge';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
