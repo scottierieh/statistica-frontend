@@ -9,12 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, TrendingUp } from 'lucide-react';
+import { Sigma, Loader2, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
-// Type definitions for the Moderation Analysis results
 interface RegressionResult {
     coefficients: number[];
     std_errors: number[];
@@ -32,7 +32,7 @@ interface RegressionResult {
 interface RsquaredChange {
     delta_r2: number;
     f_change: number;
-p_change: number;
+    p_change: number;
 }
 
 interface SimpleSlope {
@@ -48,23 +48,18 @@ interface EffectSize {
     interpretation: string;
 }
 
-interface JNResult {
-    has_significant_regions: boolean;
-    significant_range: [number, number] | null;
-}
-
 interface ModerationResults {
     step1: RegressionResult;
     step2: RegressionResult;
     r_squared_change: RsquaredChange;
     simple_slopes: SimpleSlope[];
     effect_size?: EffectSize;
-    jn_summary?: JNResult;
+    interpretation: string;
 }
 
 interface FullAnalysisResponse {
     results: ModerationResults;
-    plot: string; // base64 image string
+    plot: string; 
 }
 
 const getSignificanceStars = (p: number | undefined) => {
@@ -222,44 +217,28 @@ export default function ModerationPage({ data, numericHeaders, onLoadExample }: 
                 <>
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Moderation Effect Summary</CardTitle>
-                             <CardDescription>
-                                The interaction effect is {isSignificant ? <Badge>Statistically Significant</Badge> : <Badge variant="secondary">Not Significant</Badge>}.
-                                This means the effect of {xVar} on {yVar} {isSignificant ? "depends on the level of" : "does not significantly depend on the level of"} {mVar}.
-                            </CardDescription>
+                            <CardTitle className="font-headline">Analysis Interpretation</CardTitle>
                         </CardHeader>
-                        <CardContent className='grid md:grid-cols-2 gap-4'>
-                             <Image src={analysisResult.plot} alt="Moderation Plot" width={800} height={600} className="w-full rounded-md border" />
-                             <div className="space-y-4">
-                                <Card>
-                                    <CardHeader className='pb-2'>
-                                        <CardTitle className='text-lg'>Model Fit</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                                            <dt className="font-medium text-muted-foreground">R²</dt><dd className="font-mono">{model.r_squared.toFixed(4)}</dd>
-                                            <dt className="font-medium text-muted-foreground">Adjusted R²</dt><dd className="font-mono">{model.adj_r_squared.toFixed(4)}</dd>
-                                            <dt className="font-medium text-muted-foreground">F-statistic</dt><dd className="font-mono">{model.f_stat.toFixed(2)}</dd>
-                                            <dt className="font-medium text-muted-foreground">p-value</dt><dd className="font-mono">{model.f_p_value.toFixed(4)}</dd>
-                                        </dl>
-                                    </CardContent>
-                                </Card>
-                                 <Card>
-                                    <CardHeader className='pb-2'>
-                                        <CardTitle className='text-lg'>Interaction Effect (R² Change)</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                                            <dt className="font-medium text-muted-foreground">ΔR²</dt><dd className="font-mono">{results.r_squared_change.delta_r2.toFixed(4)}</dd>
-                                            <dt className="font-medium text-muted-foreground">F-change</dt><dd className="font-mono">{results.r_squared_change.f_change.toFixed(2)}</dd>
-                                            <dt className="font-medium text-muted-foreground">p-value</dt><dd className="font-mono">{results.r_squared_change.p_change.toFixed(4)}</dd>
-                                        </dl>
-                                    </CardContent>
-                                </Card>
-                             </div>
+                        <CardContent>
+                            <Alert variant={isSignificant ? 'default' : 'secondary'}>
+                                {isSignificant ? <CheckCircle className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-muted-foreground" />}
+                                <AlertTitle>{isSignificant ? "Significant Moderation Effect Found" : "No Significant Moderation Effect"}</AlertTitle>
+                                <AlertDescription>
+                                    <p className="whitespace-pre-wrap">{results.interpretation}</p>
+                                </AlertDescription>
+                            </Alert>
                         </CardContent>
                     </Card>
 
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Interaction Plot</CardTitle>
+                        </CardHeader>
+                         <CardContent className='flex justify-center'>
+                             <Image src={analysisResult.plot} alt="Moderation Plot" width={800} height={600} className="w-full max-w-2xl rounded-md border" />
+                        </CardContent>
+                    </Card>
+                    
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">Hierarchical Regression Results</CardTitle>
@@ -278,7 +257,7 @@ export default function ModerationPage({ data, numericHeaders, onLoadExample }: 
                                     <TableRow><TableCell>(Intercept)</TableCell><TableCell className="text-right font-mono">{model.coefficients[0].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[0].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[0].toFixed(4)} {getSignificanceStars(model.p_values[0])}</TableCell></TableRow>
                                     <TableRow><TableCell>{xVar} (X)</TableCell><TableCell className="text-right font-mono">{model.coefficients[1].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[1].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[1].toFixed(4)} {getSignificanceStars(model.p_values[1])}</TableCell></TableRow>
                                     <TableRow><TableCell>{mVar} (M)</TableCell><TableCell className="text-right font-mono">{model.coefficients[2].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[2].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[2].toFixed(4)} {getSignificanceStars(model.p_values[2])}</TableCell></TableRow>
-                                    <TableRow className="font-bold"><TableCell>X * M Interaction</TableCell><TableCell className="text-right font-mono">{model.coefficients[3].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[3].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[3].toFixed(4)} {getSignificanceStars(model.p_values[3])}</TableCell></TableRow>
+                                    <TableRow className="font-bold bg-muted/50"><TableCell>X * M Interaction</TableCell><TableCell className="text-right font-mono">{model.coefficients[3].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.std_errors[3].toFixed(4)}</TableCell><TableCell className="text-right font-mono">{model.p_values[3].toFixed(4)} {getSignificanceStars(model.p_values[3])}</TableCell></TableRow>
                                 </TableBody>
                             </Table>
                         </CardContent>
@@ -311,41 +290,23 @@ export default function ModerationPage({ data, numericHeaders, onLoadExample }: 
                                 </Table>
                             </CardContent>
                         </Card>
-                        <div className='space-y-4'>
-                            {results.effect_size && (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="font-headline">Effect Size</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                            <dt className="font-medium text-muted-foreground">Cohen's f²</dt>
-                                            <dd className="font-mono text-right">{results.effect_size.f_squared.toFixed(4)}</dd>
-                                            <dt className="font-medium text-muted-foreground">Interpretation</dt>
-                                            <dd className="text-right"><Badge variant="secondary">{results.effect_size.interpretation}</Badge></dd>
-                                        </dl>
-                                    </CardContent>
-                                </Card>
-                            )}
-                            {results.jn_summary && (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="font-headline">Johnson-Neyman Regions</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {results.jn_summary.has_significant_regions ? (
-                                            <>
-                                                <p className='text-sm font-semibold'>Significant regions found!</p>
-                                                <p className='text-sm text-muted-foreground'>The effect of {xVar} is significant when {mVar} is between <span className='font-mono font-semibold'>{results.jn_summary.significant_range?.[0].toFixed(3)}</span> and <span className='font-mono font-semibold'>{results.jn_summary.significant_range?.[1].toFixed(3)}</span>.</p>
-                                            </>
-                                        ) : (
-                                            <p className='text-sm text-muted-foreground'>No significant regions found within the observed range of the moderator.</p>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
-
+                         <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Model Fit & Effect Size</CardTitle>
+                            </CardHeader>
+                             <CardContent>
+                                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                    <dt>Model R²</dt><dd className="font-mono text-right">{model.r_squared.toFixed(4)}</dd>
+                                    <dt>Interaction ΔR²</dt><dd className="font-mono text-right">{results.r_squared_change.delta_r2.toFixed(4)}</dd>
+                                    <dt>F-statistic</dt><dd className="font-mono text-right">{model.f_stat.toFixed(2)}</dd>
+                                    <dt>Model p-value</dt><dd className="font-mono text-right">{model.f_p_value < 0.001 ? '<.001' : model.f_p_value.toFixed(4)}</dd>
+                                    {results.effect_size && <>
+                                        <dt>Effect Size (f²)</dt><dd className="font-mono text-right">{results.effect_size.f_squared.toFixed(4)}</dd>
+                                        <dt>Interpretation</dt><dd className="text-right"><Badge variant="secondary">{results.effect_size.interpretation}</Badge></dd>
+                                    </>}
+                                </dl>
+                            </CardContent>
+                        </Card>
                     </div>
                 </>
             )}

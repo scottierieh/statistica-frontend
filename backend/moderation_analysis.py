@@ -149,9 +149,9 @@ class ModerationAnalysis:
         for i, m_val in enumerate(moderator_values):
             slope = b1 + b3 * m_val
             
-            # Simplified SE for simple slope
             se_b1, se_b3 = model['std_errors'][1], model['std_errors'][3]
-            se_slope = np.sqrt(se_b1**2 + (m_val**2) * se_b3**2) # Simplified
+            # This is a simplified SE, a full calculation requires the covariance of b1 and b3
+            se_slope = np.sqrt(se_b1**2 + (m_val**2) * se_b3**2) 
             
             t_stat = slope / se_slope if se_slope > 0 else np.inf
             p_value = 2 * (1 - stats.t.cdf(np.abs(t_stat), model['df'])) if model['df'] > 0 else np.nan
@@ -185,44 +185,69 @@ class ModerationAnalysis:
             'interpretation': interpretation
         }
 
-    def johnson_neyman_regions(self):
-        model = self.results.get('step2')
-        if not model: return
-        
-        b1, b3 = model['coefficients'][1], model['coefficients'][3]
-        se_b1, se_b3 = model['std_errors'][1], model['std_errors'][3]
-        
-        # Placeholder for covariance, which is needed for accurate JN.
-        # Simplified calculation for now.
-        cov_b1b3 = 0 
-        
-        df = model['df']
-        t_crit = stats.t.ppf(1 - 0.05 / 2, df)
-        
-        a = t_crit**2 * se_b3**2 - b3**2
-        b = 2 * (t_crit**2 * cov_b1b3 - b1*b3)
-        c = t_crit**2 * se_b1**2 - b1**2
+    def _generate_interpretation(self):
+        if 'step2' not in self.results or 'r_squared_change' not in self.results:
+            self.results['interpretation'] = "Analysis could not be completed."
+            return
 
-        if a == 0:
-            jn_summary = {'has_significant_regions': False, 'significant_range': None}
-        else:
-            discriminant = b**2 - 4*a*c
-            if discriminant < 0:
-                 jn_summary = {'has_significant_regions': False, 'significant_range': None}
-            else:
-                m1 = (-b + np.sqrt(discriminant)) / (2*a)
-                m2 = (-b - np.sqrt(discriminant)) / (2*a)
-                jn_summary = {'has_significant_regions': True, 'significant_range': sorted([m1, m2])}
+        step2 = self.results['step2']
+        r2_change = self.results['r_squared_change']
 
-        self.results['jn_summary'] = jn_summary
+        def format_p(p_val):
+            return "p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
 
+        # Introduction
+        interp = (
+            f"A moderation analysis was conducted using hierarchical regression to determine if '{self.M_name}' moderates the relationship between '{self.X_name}' and '{self.Y_name}'. "
+            f"The independent variable and moderator were mean-centered before creating the interaction term.\n\n"
+        )
+        
+        # Step 1: Main effects model
+        step1 = self.results['step1']
+        interp += (
+            f"In the first step, the main effects of '{self.X_name}' and '{self.M_name}' were entered, accounting for a significant portion of the variance in '{self.Y_name}', "
+            f"R² = {step1['r_squared']:.3f}, F({step1['k']}, {step1['df']:.0f}) = {step1['f_stat']:.2f}, {format_p(step1['f_p_value'])}.\n\n"
+        )
 
+        # Step 2: Interaction effect model
+        b3_p_value = step2['p_values'][3]
+        interaction_sig = b3_p_value < 0.05
+        sig_text = "significant" if interaction_sig else "not significant"
+
+        interp += (
+            f"In the second step, the interaction term ('{self.X_name}' x '{self.M_name}') was added to the model. "
+            f"This addition led to a {sig_text} increase in the explained variance, "
+            f"ΔR² = {r2_change['delta_r2']:.3f}, F({1}, {step2['df']:.0f}) = {r2_change['f_change']:.2f}, {format_p(r2_change['p_change'])}.\n"
+        )
+        
+        b3 = step2['coefficients'][3]
+        interp += (
+            f"The interaction term itself was statistically {sig_text} (B = {b3:.3f}, {format_p(b3_p_value)}), "
+            f"indicating that the relationship between '{self.X_name}' and '{self.Y_name}' does indeed depend on the level of '{self.M_name}'.\n\n"
+        )
+
+        # Simple Slopes if interaction is significant
+        if interaction_sig and 'simple_slopes' in self.results:
+            interp += "Simple slopes analysis was performed to probe the nature of this interaction:\n"
+            for slope in self.results['simple_slopes']:
+                slope_sig = slope['p_value'] < 0.05
+                slope_sig_text = "significant" if slope_sig else "not significant"
+                interp += (
+                    f"- At {slope['label']} levels of '{self.M_name}', the effect of '{self.X_name}' on '{self.Y_name}' was {slope_sig_text} "
+                    f"(B = {slope['slope']:.3f}, {format_p(slope['p_value'])}).\n"
+                )
+        
+        # Conclusion
+        conclusion_text = f"In conclusion, the results support a moderating role for '{self.M_name}' in the relationship between '{self.X_name}' and '{self.Y_name}'." if interaction_sig else f"In conclusion, the results do not support a moderating role for '{self.M_name}' in the relationship between '{self.X_name}' and '{self.Y_name}'."
+        interp += f"\n{conclusion_text}"
+
+        self.results['interpretation'] = interp.strip()
         
     def analyze(self):
         self.hierarchical_regression()
         self.simple_slopes_analysis()
         self._calculate_effect_size()
-        self.johnson_neyman_regions()
+        self._generate_interpretation()
         return self.results
         
     def plot_results(self):
