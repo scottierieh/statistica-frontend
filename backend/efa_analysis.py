@@ -107,7 +107,7 @@ def main():
              bartlett_stat, bartlett_p = pg.sphericity(df_items, method='bartlett')
              bartlett_significant = bool(bartlett_p < 0.05) if not np.isnan(bartlett_p) else False
         except Exception:
-             bartlett_stat, bartlett_p, bartlett_significant = np.nan, np.nan, False
+             bartlett_stat, bartlett_p, bartlett_significant = None, None, False
 
 
         # --- Factor Analysis ---
