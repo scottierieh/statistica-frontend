@@ -347,7 +347,8 @@ class ConfirmatoryFactorAnalysis:
 
     def _generate_interpretation(self, fit_indices, reliability, discriminant_validity, std_solution, n_obs):
         # Paragraph 1: Model Fit
-        p_val_text = f"p < .001" if fit_indices.get('p_value', 1) < 0.001 else f"p = {fit_indices.get('p_value', 1):.3f}"
+        p_val = fit_indices.get('p_value', 1)
+        p_val_text = f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
         
         interp = (
             f"A confirmatory factor analysis (CFA) was conducted to examine the factorial validity of the measurement model. "
@@ -360,8 +361,8 @@ class ConfirmatoryFactorAnalysis:
         
         # Paragraph 2: Convergent Validity
         if reliability:
-            all_cr_ok = all(r['composite_reliability'] > 0.7 for r in reliability.values())
-            all_ave_ok = all(r['average_variance_extracted'] > 0.5 for r in reliability.values())
+            all_cr_ok = all(r.get('composite_reliability', 0) > 0.7 for r in reliability.values())
+            all_ave_ok = all(r.get('average_variance_extracted', 0) > 0.5 for r in reliability.values())
             
             convergent_text = "Convergent validity was "
             if all_cr_ok and all_ave_ok:
@@ -369,7 +370,10 @@ class ConfirmatoryFactorAnalysis:
             else:
                 convergent_text += "partially supported. "
             
-            convergent_text += "Composite Reliability (CR) values were all above the 0.70 threshold, and Average Variance Extracted (AVE) values exceeded the 0.50 cutoff for all constructs.\n\n"
+            cr_vals = [f"{k} ({v['composite_reliability']:.2f})" for k, v in reliability.items()]
+            ave_vals = [f"{k} ({v['average_variance_extracted']:.2f})" for k, v in reliability.items()]
+
+            convergent_text += f"Composite Reliability (CR) values ({', '.join(cr_vals)}) were generally above the 0.70 threshold. Average Variance Extracted (AVE) values ({', '.join(ave_vals)}) were generally above the 0.50 cutoff for all constructs.\n\n"
             interp += convergent_text
 
         # Paragraph 3: Discriminant Validity
@@ -389,9 +393,11 @@ class ConfirmatoryFactorAnalysis:
         # Fit Indices
         fit = cfa_results['fit_indices']
         axes[0,0].axis('off')
+        p_val = fit.get('p_value', 1.0)
+        p_text = "< .001" if p_val < 0.001 else f"{p_val:.3f}"
         fit_text = (
             f"Model Fit Indices:\n\n"
-            f"χ²({fit['df']}) = {fit['chi_square']:.2f}, p = {fit.get('p_value', 1.0):.3f}\n"
+            f"χ²({fit['df']:.0f}) = {fit['chi_square']:.2f}, p = {p_text}\n"
             f"CFI = {fit['cfi']:.3f}\n"
             f"TLI = {fit.get('tli', 0.0):.3f}\n"
             f"RMSEA = {fit['rmsea']:.3f}\n"
