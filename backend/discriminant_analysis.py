@@ -95,7 +95,11 @@ def main():
         heatmap_img = create_correlation_heatmap(X_raw)
 
         # --- Data Split ---
-        X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded)
+        try:
+             X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded)
+        except ValueError:
+            # Fallback for small datasets where stratification is not possible
+            X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_encoded, test_size=0.2, random_state=42)
         
         # --- LDA Implementation ---
         lda = LinearDiscriminantAnalysis(n_components=n_components)
@@ -105,7 +109,7 @@ def main():
         # --- Classification ---
         classifier = RandomForestClassifier(max_depth=2, random_state=0)
         classifier.fit(X_train_lda, y_train)
-        y_pred = classifier.predict(X_test)
+        y_pred = classifier.predict(X_test_lda)
 
         # --- Evaluation ---
         accuracy = accuracy_score(y_test, y_pred)
