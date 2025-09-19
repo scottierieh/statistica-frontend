@@ -20,6 +20,7 @@ import {
   Tooltip,
   Bar,
   ResponsiveContainer,
+  CartesianGrid,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import Image from 'next/image';
