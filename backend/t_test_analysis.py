@@ -189,12 +189,12 @@ class TTestAnalysis:
         
         ci = res['confidence_interval']
         interpretation += (
-            f"The 95% confidence interval for the mean is [{ci[0]:.2f}, {ci[1]:.2f}]. "
+            f"The 95% confidence interval for the mean is [{ci[0]:.2f}, {ci[1]:.2f}].\n"
         )
         if not (ci[0] <= res['test_value'] <= ci[1]):
-             interpretation += f"Since this interval does not contain the test value of {res['test_value']}, the result is significant. "
+             interpretation += f"Since this interval does not contain the test value of {res['test_value']}, the result is significant.\n"
         else:
-             interpretation += f"Since this interval contains the test value of {res['test_value']}, the result is not significant. "
+             interpretation += f"Since this interval contains the test value of {res['test_value']}, the result is not significant.\n"
 
 
         interpretation += f"The calculated Cohen's d of {res['cohens_d']:.3f} indicates a {effect_interp} effect size."
@@ -216,9 +216,9 @@ class TTestAnalysis:
         
         levene_p = res['levene_test']['p_value']
         if levene_p > self.alpha:
-            interpretation += f"Levene's test for equality of variances was not significant (p = {levene_p:.3f}), so equal variances were assumed. "
+            interpretation += f"Levene's test for equality of variances was not significant (p = {levene_p:.3f}), so equal variances were assumed.\n"
         else:
-            interpretation += f"Levene's test was significant (p = {levene_p:.3f}), so equal variances were not assumed (Welch's t-test was used). "
+            interpretation += f"Levene's test was significant (p = {levene_p:.3f}), so equal variances were not assumed (Welch's t-test was used).\n"
 
         interpretation += (
             f"There was a {sig_text} difference in the scores for '{g1}' (M={m1:.2f}, SD={sd1:.2f}) and '{g2}' (M={m2:.2f}, SD={sd2:.2f}); "
@@ -248,8 +248,8 @@ class TTestAnalysis:
         mean_diff = res['mean_diff']
         ci = res['confidence_interval']
         interpretation += (
-            f"The mean difference was {mean_diff:.2f}, with a 95% confidence interval ranging from {ci[0]:.2f} to {ci[1]:.2f}. "
-            f"This result suggests that the effect is {sig_text}. "
+            f"The mean difference was {mean_diff:.2f}, with a 95% confidence interval ranging from {ci[0]:.2f} to {ci[1]:.2f}.\n"
+            f"This result suggests that the effect is {sig_text}.\n"
         )
 
         interpretation += f"The calculated Cohen's d of {res['cohens_d']:.3f} indicates a {effect_interp} effect size."
@@ -332,6 +332,8 @@ def main():
         if test_type == 'one_sample':
             result = tester.one_sample_ttest(**params)
         elif test_type == 'independent_samples':
+            # Remove equal_var from params as it's now determined internally
+            params.pop('equal_var', None)
             result = tester.independent_samples_ttest(**params)
         elif test_type == 'paired_samples':
             result = tester.paired_samples_ttest(**params)
@@ -351,3 +353,5 @@ if __name__ == '__main__':
     main()
 
       
+
+    
