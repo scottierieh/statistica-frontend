@@ -39,6 +39,7 @@ def _generate_interpretation(results):
     kmo_level = adequacy.get('kmo_interpretation', 'N/A').lower()
     bartlett_sig = adequacy.get('bartlett_significant', False)
     bartlett_p_val = adequacy.get('bartlett_p_value')
+    bartlett_stat = adequacy.get('bartlett_statistic')
 
     interpretation = (
         f"An Exploratory Factor Analysis (EFA) was conducted on {n_items} items to identify underlying latent factors. "
@@ -48,12 +49,16 @@ def _generate_interpretation(results):
     p_val_text = "p = n/a"
     if bartlett_p_val is not None:
         p_val_text = "p < .001" if bartlett_p_val < 0.001 else f"p = {bartlett_p_val:.3f}"
+    
+    bartlett_stat_text = 'n/a'
+    if bartlett_stat is not None:
+        bartlett_stat_text = f'{bartlett_stat:.2f}'
 
 
     interpretation += (
         f"The Kaiser-Meyer-Olkin (KMO) measure of sampling adequacy was {kmo_level} ({adequacy.get('kmo', 0):.2f}), "
         f"and Bartlett’s test of sphericity was {'statistically significant' if bartlett_sig else 'not significant'} "
-        f"(χ² ≈ {adequacy.get('bartlett_statistic', 0):.2f}, {p_val_text}). "
+        f"(χ² ≈ {bartlett_stat_text}, {p_val_text}). "
         f"These indicators suggest that the data is {'suitable' if kmo_level not in ['poor', 'unacceptable'] and bartlett_sig else 'may not be suitable'} for factor analysis.\n\n"
     )
 
