@@ -13,19 +13,15 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from '@/lib/utils';
 import {
-  ResponsiveContainer,
   BarChart,
   XAxis,
   YAxis,
   Tooltip,
   Bar,
-  CartesianGrid,
-  Legend,
+  ResponsiveContainer,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Badge } from '../ui/badge';
 import Image from 'next/image';
 
 
@@ -54,7 +50,6 @@ interface MethodResult {
 }
 
 const ConfusionMatrix = ({ matrix, groups }: { matrix: number[][], groups: string[] }) => {
-    const total = matrix.flat().reduce((acc, val) => acc + val, 0);
     const maxVal = Math.max(...matrix.flat());
 
     const getCellColor = (value: number, row: number, col: number) => {
@@ -115,16 +110,18 @@ const GroupMeansChart = ({ means, groups, predictors }: { means: number[][], gro
             </CardHeader>
             <CardContent>
                  <ChartContainer config={chartConfig} className="w-full h-[300px]">
-                     <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} tick={{fontSize: 12}} />
-                        <YAxis />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Legend verticalAlign='top'/>
-                        {groups.map((group, i) => (
-                            <Bar key={group} dataKey={group} fill={`var(--color-${group})`} radius={4} />
-                        ))}
-                    </BarChart>
+                     <ResponsiveContainer>
+                         <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
+                            <CartesianGrid vertical={false} />
+                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} tick={{fontSize: 12}} />
+                            <YAxis />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Legend verticalAlign='top'/>
+                            {groups.map((group, i) => (
+                                <Bar key={group} dataKey={group} fill={`var(--color-${group})`} radius={4} />
+                            ))}
+                        </BarChart>
+                    </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
         </Card>
@@ -335,14 +332,9 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
                                 const Icon = ex.icon;
                                 return (
                                 <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                            <Icon className="h-6 w-6 text-secondary-foreground" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </div>
+                                    <CardHeader>
+                                        <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                        <CardDescription className="text-xs">{ex.description}</CardDescription>
                                     </CardHeader>
                                     <CardFooter>
                                         <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
