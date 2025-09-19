@@ -12,9 +12,10 @@ import { Sigma, Loader2, Plus, Trash2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
 import { Skeleton } from '../ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 
 interface AhpResults {
@@ -115,11 +116,11 @@ export default function AhpPage() {
 
     const weightsChartData = useMemo(() => {
         if (!analysisResult) return [];
-        return Object.entries(analysisResult.weights).map(([name, value]) => ({
-            name,
+        return Object.entries(analysisResult.weights).map(([name, value], index) => ({
+            name: criteria[index], // Use the name from the criteria array
             weight: value * 100 // Convert to percentage for display
         })).sort((a,b) => b.weight - a.weight);
-    }, [analysisResult]);
+    }, [analysisResult, criteria]);
 
     return (
         <div className="space-y-4">
