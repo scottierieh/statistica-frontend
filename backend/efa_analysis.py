@@ -12,6 +12,9 @@ import base64
 import pingouin as pg
 import warnings
 
+# Import the new library for KMO calculation
+from factor_analyzer.factor_analyzer import calculate_kmo
+
 warnings.filterwarnings('ignore')
 
 
@@ -27,6 +30,14 @@ def _to_native_type(obj):
     elif isinstance(obj, np.bool_):
         return bool(obj)
     return obj
+
+def _interpret_kmo(kmo):
+    if kmo >= 0.9: return 'Excellent'
+    if kmo >= 0.8: return 'Good'
+    if kmo >= 0.7: return 'Acceptable'
+    if kmo >= 0.6: return 'Questionable'
+    if kmo >= 0.5: return 'Poor'
+    return 'Unacceptable'
 
 
 def _generate_interpretation(results):
@@ -157,16 +168,16 @@ def main():
 
         # --- Adequacy Tests ---
         try:
-            kmo_result = pg.kmo(df_items)
-            kmo_overall = kmo_result.iloc[0,0] if not np.isnan(kmo_result.iloc[0,0]) else 0.0
-            kmo_interpretation = kmo_result.iloc[0,1]
+            kmo_all, kmo_model = calculate_kmo(df_items)
+            kmo_overall = kmo_model
+            kmo_interpretation = _interpret_kmo(kmo_model)
         except Exception:
             kmo_overall = 0.0
             kmo_interpretation = "Unavailable"
         
         try:
              bartlett_stat, bartlett_p = pg.sphericity(df_items, method='bartlett')
-             bartlett_significant = bool(bartlett_p < 0.05) if not np.isnan(bartlett_p) else False
+             bartlett_significant = bool(bartlett_p < 0.05) if bartlett_p is not None else False
         except Exception:
              bartlett_stat, bartlett_p, bartlett_significant = None, None, False
 
@@ -244,5 +255,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
