@@ -9,14 +9,15 @@ import seaborn as sns
 import io
 import base64
 import pingouin as pg
+import math
 
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
-        if np.isnan(obj) or np.isinf(obj):
+    elif isinstance(obj, (np.floating, float)):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -80,15 +81,19 @@ class RepeatedMeasuresAnova:
                 self.results['mauchly_test'] = None
 
 
-            # Post-hoc tests if significant interaction
+            # Post-hoc tests if significant interaction or main effect
             perform_posthoc = False
+            main_effect_p = 'p-GG-corr' if 'p-GG-corr' in aov.columns and not pd.isna(aov[aov['Source'] == self.within_name]['p-GG-corr'].iloc[0]) else 'p-unc'
+            
             if self.between_col:
                 interaction_row = aov[aov['Source'] == f'{self.within_name} * {self.between_col}']
-                if not interaction_row.empty and interaction_row['p-GG-corr'].iloc[0] < self.alpha:
-                    perform_posthoc = True
+                if not interaction_row.empty:
+                    interaction_p = interaction_row['p-GG-corr'].iloc[0] if 'p-GG-corr' in interaction_row.columns and not pd.isna(interaction_row['p-GG-corr'].iloc[0]) else interaction_row['p-unc'].iloc[0]
+                    if interaction_p < self.alpha:
+                        perform_posthoc = True
             else: # No between-subject factor, check main within-subject effect
                 within_row = aov[aov['Source'] == self.within_name]
-                if not within_row.empty and within_row['p-GG-corr'].iloc[0] < self.alpha:
+                if not within_row.empty and within_row[main_effect_p].iloc[0] < self.alpha:
                     perform_posthoc = True
 
             if perform_posthoc:
@@ -161,7 +166,7 @@ def main():
             'plot': plot_image
         }
         
-        print(json.dumps(response, default=_to_native_type, indent=2))
+        print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
         error_response = {"error": str(e)}
