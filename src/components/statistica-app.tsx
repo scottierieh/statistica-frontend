@@ -93,6 +93,7 @@ import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import CrosstabPage from './pages/crosstab-page';
 import SemPage from './pages/sem-page';
 import ConjointAnalysisPage from './pages/conjoint-analysis-page';
+import CbcAnalysisPage from './pages/cbc-analysis-page';
 import IpaPage from './pages/ipa-page';
 import PcaPage from './pages/pca-page';
 import SurvivalAnalysisPage from './pages/survival-analysis-page';
@@ -123,7 +124,7 @@ import TopicModelingPage from './pages/topic-modeling-page';
 import DeaPage from './pages/dea-page';
 import TTestPage from './pages/t-test-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -163,6 +164,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     crosstab: CrosstabPage,
     sem: SemPage,
     conjoint: ConjointAnalysisPage,
+    cbc: CbcAnalysisPage,
     ipa: IpaPage,
     pca: PcaPage,
     survival: SurvivalAnalysisPage,
@@ -314,6 +316,7 @@ const analysisMenu = [
     icon: FlaskConical,
     methods: [
       { id: 'conjoint', label: 'Conjoint Analysis' },
+      { id: 'cbc', label: 'Choice-Based Conjoint (CBC)' },
       { id: 'ipa', label: 'Importance-Performance Analysis (IPA)' },
       { id: 'survival', label: 'Survival Analysis' },
       { id: 'meta-analysis', label: 'Meta-Analysis' },
