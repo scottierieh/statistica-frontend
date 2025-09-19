@@ -9,7 +9,8 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import io
 import base64
-import pingouin as pg
+from scipy.stats import chi2
+from scipy.linalg import inv
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -35,6 +36,39 @@ def _interpret_kmo(kmo):
     if kmo >= 0.6: return 'Questionable'
     if kmo >= 0.5: return 'Poor'
     return 'Unacceptable'
+
+def _calculate_kmo(X):
+    try:
+        corr_matrix = np.corrcoef(X, rowvar=False)
+        inv_corr = inv(corr_matrix)
+        partial_corr = -inv_corr / np.sqrt(np.outer(np.diag(inv_corr), np.diag(inv_corr)))
+        np.fill_diagonal(partial_corr, 0)
+
+        sum_r2 = np.sum(np.triu(corr_matrix, 1)**2)
+        sum_a2 = np.sum(np.triu(partial_corr, 1)**2)
+
+        if sum_r2 + sum_a2 == 0:
+            return 0.0
+
+        return sum_r2 / (sum_r2 + sum_a2)
+    except np.linalg.LinAlgError:
+        return 0.0
+
+def _bartlett_sphericity(X):
+    n, p = X.shape
+    if p < 2: return None, None, False
+    try:
+        corr_matrix = np.corrcoef(X, rowvar=False)
+        det_corr = np.linalg.det(corr_matrix)
+        
+        if det_corr <= 0: return None, None, False
+
+        statistic = - (n - 1 - (2 * p + 5) / 6) * np.log(det_corr)
+        dof = p * (p - 1) // 2
+        p_value = chi2.sf(statistic, dof)
+        return statistic, p_value, p_value < 0.05
+    except Exception:
+        return None, None, False
 
 
 def _generate_interpretation(results):
@@ -164,20 +198,10 @@ def main():
         X_scaled = scaler.fit_transform(df_items)
 
         # --- Adequacy Tests ---
-        try:
-            kmo_result = pg.kmo(df_items)
-            kmo_overall = kmo_result.loc['KMO', 'KMO']
-            kmo_interpretation = _interpret_kmo(kmo_overall)
-        except Exception:
-            kmo_overall = 0.0
-            kmo_interpretation = "Unavailable"
+        kmo_overall = _calculate_kmo(X_scaled)
+        kmo_interpretation = _interpret_kmo(kmo_overall)
         
-        try:
-             bartlett_stat, bartlett_p, _ = pg.sphericity(df_items)
-             bartlett_significant = bool(bartlett_p < 0.05) if bartlett_p is not None else False
-        except Exception:
-             bartlett_stat, bartlett_p, bartlett_significant = None, None, False
-
+        bartlett_stat, bartlett_p, bartlett_significant = _bartlett_sphericity(X_scaled)
 
         # --- Factor Analysis ---
         if method == 'pca':
