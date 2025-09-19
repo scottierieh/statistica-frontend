@@ -8,13 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Component } from 'lucide-react';
+import { Sigma, Loader2, Component, Bot, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 interface PcaResults {
     eigenvalues: number[];
@@ -29,6 +30,35 @@ interface PcaResults {
 interface FullPcaResponse {
     results: PcaResults;
     plot: string;
+}
+
+const InterpretationDisplay = ({ results }: { results: PcaResults | undefined }) => {
+    if (!results?.interpretation) return null;
+    
+    const nFactorsKaiser = results.eigenvalues.filter(ev => ev > 1).length;
+    const cumulativeVariance = nFactorsKaiser > 0 ? results.cumulative_variance_ratio[nFactorsKaiser - 1] : 0;
+    const isSignificant = cumulativeVariance > 0.6; // Let's define "significant structure" as >60% variance explained
+
+    const formattedInterpretation = useMemo(() => {
+        return results.interpretation
+            .replace(/\n/g, '<br />')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    }, [results.interpretation]);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Alert variant={isSignificant ? 'default' : 'secondary'}>
+                    {isSignificant ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                    <AlertTitle>{isSignificant ? "Significant Structure Found" : "Potentially Weak Structure"}</AlertTitle>
+                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />
+                </Alert>
+            </CardContent>
+        </Card>
+    );
 }
 
 interface PcaPageProps {
@@ -192,16 +222,7 @@ export default function PcaPage({ data, numericHeaders, onLoadExample }: PcaPage
                             </CardContent>
                         </Card>
                     )}
-                    {results.interpretation && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Interpretation</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{results.interpretation}</p>
-                            </CardContent>
-                        </Card>
-                    )}
+                    <InterpretationDisplay results={results} />
                     <div className="grid lg:grid-cols-2 gap-4">
                         <Card>
                             <CardHeader>
@@ -250,7 +271,7 @@ export default function PcaPage({ data, numericHeaders, onLoadExample }: PcaPage
                                     <TableBody>
                                         {results.variables.map((variable, varIndex) => (
                                             <TableRow key={variable}>
-                                                <TableCell>{variable}</TableCell>
+                                                <TableCell className="font-medium">{variable}</TableCell>
                                                 {results.loadings[varIndex].map((loading, compIndex) => (
                                                     <TableCell 
                                                         key={compIndex} 

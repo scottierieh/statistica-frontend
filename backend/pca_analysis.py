@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -49,24 +50,27 @@ class PcaAnalysis:
         cumulative_variance = self.results['cumulative_variance_ratio']
         
         n_factors_kaiser = sum(1 for ev in eigenvalues if ev > 1)
+        if n_factors_kaiser == 0 and len(eigenvalues) > 0:
+            n_factors_kaiser = 1 # At least interpret the first component
 
         interpretation = f"A Principal Component Analysis (PCA) was conducted on {len(variables)} items to explore the underlying structure of the variables.\n"
         
-        interpretation += f"Based on the Kaiser criterion (eigenvalues > 1), {n_factors_kaiser} components were extracted.\n"
-        interpretation += f"Together, these components explained {cumulative_variance[n_factors_kaiser-1]*100:.2f}% of the total variance.\n\n"
+        interpretation += f"Based on the Kaiser criterion (eigenvalues > 1), **{n_factors_kaiser} components** were extracted.\n"
+        if n_factors_kaiser > 0:
+            interpretation += f"Together, these components explained **{cumulative_variance[n_factors_kaiser-1]*100:.2f}%** of the total variance.\n\n"
         
-        interpretation += "Component Loadings Interpretation:\n"
+        interpretation += "**Component Loadings Interpretation:**\n"
         for i in range(n_factors_kaiser):
-            interpretation += f"- **Component {i+1} (Explained Variance: {self.results['explained_variance_ratio'][i]*100:.2f}%):** This component is primarily defined by high loadings on "
+            interpretation += f"- **Component {i+1} (Explained Variance: {self.results['explained_variance_ratio'][i]*100:.2f}%):** "
             
             factor_loadings = np.array(loadings)[:, i]
             high_loadings_indices = np.where(np.abs(factor_loadings) >= 0.5)[0]
             
             if len(high_loadings_indices) > 0:
                 high_loading_vars = [variables[j] for j in high_loadings_indices]
-                interpretation += f"the variables: {', '.join(high_loading_vars)}.\nThis suggests Component {i+1} represents an underlying construct related to these items.\n"
+                interpretation += f"This component is primarily defined by high loadings on the variables: **{', '.join(high_loading_vars)}**.\nThis suggests Component {i+1} represents an underlying construct related to these items.\n"
             else:
-                interpretation += "no variables with strong loadings, making interpretation difficult.\n"
+                interpretation += "No variables had strong loadings (>= 0.5), making interpretation difficult based on this threshold.\n"
 
         interpretation += "\nIn conclusion, the PCA suggests that the data can be effectively reduced to these components, providing a simpler yet representative structure of the original variables."
         return interpretation.strip()
