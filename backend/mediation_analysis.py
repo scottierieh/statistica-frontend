@@ -30,6 +30,13 @@ class MediationAnalysis:
         
     def _prepare_data(self):
         self.clean_data = self.data[[self.X_name, self.M_name, self.Y_name]].dropna()
+        
+        self.descriptive_stats = {
+            self.X_name: {'mean': self.clean_data[self.X_name].mean(), 'std': self.clean_data[self.X_name].std()},
+            self.M_name: {'mean': self.clean_data[self.M_name].mean(), 'std': self.clean_data[self.M_name].std()},
+            self.Y_name: {'mean': self.clean_data[self.Y_name].mean(), 'std': self.clean_data[self.Y_name].std()},
+        }
+
         self.X = self.clean_data[self.X_name].values
         self.M = self.clean_data[self.M_name].values
         self.Y = self.clean_data[self.Y_name].values
@@ -157,6 +164,7 @@ class MediationAnalysis:
             self.bootstrap_analysis(n_bootstrap=n_bootstrap)
 
         self._determine_mediation_type()
+        self._generate_interpretation()
         
     def _determine_mediation_type(self):
         if 'baron_kenny' not in self.results: return
@@ -175,6 +183,55 @@ class MediationAnalysis:
         else: mediation_type = "No Mediation"
             
         self.results['mediation_type'] = mediation_type
+
+    def _generate_interpretation(self):
+        if 'baron_kenny' not in self.results:
+            self.results['interpretation'] = "Analysis did not complete successfully."
+            return
+
+        bk = self.results['baron_kenny']
+        boot = self.results.get('bootstrap')
+        mediation_type = self.results['mediation_type']
+
+        def format_p(p):
+            return f"p < .001" if p < 0.001 else f"p = {p:.3f}"
+        
+        interp = (
+            f"A mediation analysis was conducted to examine whether the effect of '{self.X_name}' on '{self.Y_name}' is mediated by '{self.M_name}'. "
+            f"All variables were standardized before analysis.\n\n"
+        )
+        
+        interp += (
+            f"The total effect of {self.X_name} on {self.Y_name} was significant (c = {bk['path_c']['coef']:.3f}, {format_p(bk['path_c']['p_value'])}).\n"
+            f"The effect of {self.X_name} on the mediator, {self.M_name}, was also significant (a = {bk['path_a']['coef']:.3f}, {format_p(bk['path_a']['p_value'])}). "
+            f"When controlling for {self.X_name}, the mediator {self.M_name} significantly predicted {self.Y_name} (b = {bk['path_b']['coef']:.3f}, {format_p(bk['path_b']['p_value'])}).\n\n"
+        )
+        
+        if boot:
+            interp += (
+                f"A bootstrap analysis with {boot['n_bootstrap']} samples revealed a significant indirect effect of {self.X_name} on {self.Y_name} through {self.M_name} "
+                f"(Indirect Effect = {boot['mean_effect']:.3f}, 95% CI [{boot['ci_lower']:.3f}, {boot['ci_upper']:.3f}]). "
+                f"Because the confidence interval does not contain zero, the mediation effect is statistically significant.\n"
+            )
+        else: # Fallback to Sobel
+             interp += (
+                f"The Sobel test indicated that the indirect effect ({bk['indirect_effect']:.3f}) was {'significant' if bk['sobel_test']['p_value'] < 0.05 else 'not significant'} "
+                f"(z = {bk['sobel_test']['z_stat']:.2f}, {format_p(bk['sobel_test']['p_value'])}).\n"
+            )
+
+        interp += f"The direct effect of {self.X_name} on {self.Y_name}, after controlling for the mediator, was {'significant' if bk['path_c_prime']['p_value'] < 0.05 else 'not significant'} (c' = {bk['path_c_prime']['coef']:.3f}, {format_p(bk['path_c_prime']['p_value'])}).\n\n"
+        
+        conclusion = ""
+        if mediation_type == "Full Mediation":
+            conclusion = f"Conclusion: These results support a **full mediation** model. The effect of {self.X_name} on {self.Y_name} is fully transmitted through {self.M_name}."
+        elif mediation_type == "Partial Mediation":
+            conclusion = f"Conclusion: These results support a **partial mediation** model. {self.X_name} influences {self.Y_name} both directly and indirectly through {self.M_name}."
+        else:
+            conclusion = f"Conclusion: The analysis suggests **no significant mediation** effect. While {self.X_name} may affect {self.Y_name}, this relationship is not explained by {self.M_name} in this model."
+        
+        interp += conclusion
+        self.results['interpretation'] = interp
+
 
     def plot_results(self):
         if 'baron_kenny' not in self.results:
@@ -250,6 +307,8 @@ def main():
                 if isinstance(obj, np.integer):
                     return int(obj)
                 if isinstance(obj, np.floating):
+                    if np.isnan(obj) or np.isinf(obj):
+                        return None
                     return float(obj)
                 if isinstance(obj, np.ndarray):
                     return obj.tolist()
@@ -263,5 +322,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    

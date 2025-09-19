@@ -14,6 +14,7 @@ import { Sigma, Loader2, Network, CheckCircle, XCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface PathResult {
     coef: number;
@@ -50,6 +51,7 @@ interface MediationResults {
     };
     bootstrap?: BootstrapResult;
     mediation_type: string;
+    interpretation: string;
 }
 
 interface FullAnalysisResponse {
@@ -213,25 +215,22 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
                 <>
                 <Card>
                     <CardHeader>
-                        <CardTitle className="font-headline">Analysis Conclusion</CardTitle>
-                         <CardDescription>
-                            The analysis suggests a <Badge>{results.mediation_type}</Badge> effect.
-                        </CardDescription>
+                        <CardTitle className="font-headline">Analysis Summary</CardTitle>
                     </CardHeader>
                     <CardContent className='grid md:grid-cols-2 gap-4'>
                          <Image src={analysisResult.plot} alt="Mediation Plot" width={1200} height={500} className="w-full rounded-md border" />
-                         <div>
-                            <h3 className='font-semibold mb-2'>Interpretation</h3>
-                            {results.mediation_type === "No Mediation" ? (
-                                <p className='text-sm text-muted-foreground'>
-                                    No significant mediation effect was found. The independent variable's effect on the dependent variable is not explained by the mediator.
-                                </p>
-                            ) : (
-                                <p className='text-sm text-muted-foreground'>
-                                    The relationship between <span className='font-bold'>{xVar}</span> and <span className='font-bold'>{yVar}</span> is significantly mediated by <span className='font-bold'>{mVar}</span>. 
-                                    {results.mediation_type === "Full Mediation" ? " The effect of the independent variable is fully transmitted through the mediator." : " The independent variable has both a direct effect and an indirect effect transmitted through the mediator."}
-                                </p>
-                            )}
+                         <div className='space-y-4'>
+                            <Alert variant={results.mediation_type !== "No Mediation" ? 'default' : 'destructive'}>
+                                {results.mediation_type !== "No Mediation" ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                                <AlertTitle>Mediation Result</AlertTitle>
+                                <AlertDescription>The analysis suggests a <span className="font-bold">{results.mediation_type}</span> effect.</AlertDescription>
+                            </Alert>
+                             <Card>
+                                <CardHeader className="pb-2"><CardTitle className="text-base">Interpretation</CardTitle></CardHeader>
+                                <CardContent>
+                                    <p className='text-sm text-muted-foreground whitespace-pre-wrap' dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}} />
+                                </CardContent>
+                            </Card>
                          </div>
                     </CardContent>
                 </Card>
@@ -254,7 +253,7 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
                         <Card>
                             <CardHeader>
                                 <CardTitle className="font-headline">Bootstrap Results</CardTitle>
-                                <CardDescription>A more robust test of the indirect effect.</CardDescription>
+                                <CardDescription>A robust test of the indirect effect using {boot.n_bootstrap} samples.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
@@ -306,10 +305,10 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                <TableRow><TableCell>c</TableCell><TableCell>Total Effect (X → Y)</TableCell><TableCell className="text-right font-mono">{bk.path_c.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c.se.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_c.p_value.toFixed(4)} {getSignificanceStars(bk.path_c.p_value)}</TableCell></TableRow>
-                                <TableRow><TableCell>a</TableCell><TableCell>X → M</TableCell><TableCell className="text-right font-mono">{bk.path_a.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_a.se.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_a.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_a.p_value.toFixed(4)} {getSignificanceStars(bk.path_a.p_value)}</TableCell></TableRow>
-                                <TableRow><TableCell>b</TableCell><TableCell>M → Y (controlling for X)</TableCell><TableCell className="text-right font-mono">{bk.path_b.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_b.se.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_b.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_b.p_value.toFixed(4)} {getSignificanceStars(bk.path_b.p_value)}</TableCell></TableRow>
-                                <TableRow><TableCell>c'</TableCell><TableCell>Direct Effect (X → Y, controlling for M)</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.se.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.p_value.toFixed(4)} {getSignificanceStars(bk.path_c_prime.p_value)}</TableCell></TableRow>
+                                <TableRow><TableCell>c</TableCell><TableCell>Total Effect (X → Y)</TableCell><TableCell className="text-right font-mono">{bk.path_c.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c.se?.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_c.p_value.toFixed(4)} {getSignificanceStars(bk.path_c.p_value)}</TableCell></TableRow>
+                                <TableRow><TableCell>a</TableCell><TableCell>X → M</TableCell><TableCell className="text-right font-mono">{bk.path_a.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_a.se?.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_a.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_a.p_value.toFixed(4)} {getSignificanceStars(bk.path_a.p_value)}</TableCell></TableRow>
+                                <TableRow><TableCell>b</TableCell><TableCell>M → Y (controlling for X)</TableCell><TableCell className="text-right font-mono">{bk.path_b.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_b.se?.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_b.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_b.p_value.toFixed(4)} {getSignificanceStars(bk.path_b.p_value)}</TableCell></TableRow>
+                                <TableRow><TableCell>c'</TableCell><TableCell>Direct Effect (X → Y, controlling for M)</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.coef.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.se?.toFixed(4)}</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.t_stat.toFixed(3)}</TableCell><TableCell className="text-right font-mono">{bk.path_c_prime.p_value.toFixed(4)} {getSignificanceStars(bk.path_c_prime.p_value)}</TableCell></TableRow>
                             </TableBody>
                         </Table>
                     </CardContent>
