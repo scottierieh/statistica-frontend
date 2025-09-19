@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BrainCircuit, Plus, Trash2, Wand2, Check, X, Bot } from 'lucide-react';
+import { Sigma, Loader2, BrainCircuit, Plus, Trash2, Wand2, Check, X, Bot, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
@@ -16,7 +16,7 @@ import { Badge } from '../ui/badge';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
-import { getCfaInterpretation } from '@/app/actions';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 
 // CFA Results Types
@@ -29,13 +29,28 @@ interface FitIndices {
     rmsea: number;
     srmr: number;
 }
+
+interface StandardizedSolution {
+    loadings: number[][];
+    factor_correlations: number[][];
+    r_squared: { [key: string]: number };
+}
+
+interface ParameterEstimates {
+    loadings: number[][];
+    factor_covariances: number[][];
+    error_variances: number[];
+}
+
+interface ConfidenceIntervals {
+    loadings: { lower: number[][]; upper: number[][] };
+    factor_covariances: { lower: number[][]; upper: number[][] };
+    error_variances: { lower: number[]; upper: number[] };
+}
+
 interface CfaResults {
     fit_indices: FitIndices;
-    standardized_solution?: {
-        loadings: number[][];
-        factor_correlations: number[][];
-        r_squared: number[];
-    };
+    standardized_solution?: StandardizedSolution;
     reliability: {
         [key: string]: {
             composite_reliability: number;
@@ -50,6 +65,9 @@ interface CfaResults {
         factors: string[];
         indicators: string[];
     };
+    parameters: ParameterEstimates;
+    standard_errors: any;
+    confidence_intervals: ConfidenceIntervals | null;
     convergence: boolean;
     interpretation?: string;
 }
@@ -65,23 +83,29 @@ interface Factor {
     items: string[];
 }
 
-const AIGeneratedInterpretation = ({ interpretation }: { interpretation?: string }) => {
-    if (!interpretation) return null;
+const InterpretationDisplay = ({ results }: { results?: CfaResults }) => {
+    if (!results?.interpretation) return null;
+    
+    const isFitGood = results.fit_indices.cfi > 0.9 && results.fit_indices.rmsea < 0.08 && results.fit_indices.srmr < 0.08;
 
     const formattedInterpretation = useMemo(() => {
-        return interpretation
+        return results.interpretation
             .replace(/\n/g, '<br />')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<i>$1</i>');
-    }, [interpretation]);
+    }, [results.interpretation]);
 
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
+                <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
+                <Alert variant={isFitGood ? 'default' : 'destructive'}>
+                    {isFitGood ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                    <AlertTitle>{isFitGood ? "Good Model Fit" : "Potential Model Fit Issues"}</AlertTitle>
+                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
+                </Alert>
             </CardContent>
         </Card>
     );
@@ -106,7 +130,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     }, [numericHeaders, data]);
     
     const canRunAnalysis = useMemo(() => {
-        return data.length > 0 && factors.length > 0 && factors.every(f => f.items.length > 1 && f.name.trim() !== '');
+        return data.length > 0 && factors.length > 0 && factors.every(f => f.items.length >= 2 && f.name.trim() !== '');
     }, [data, factors]);
 
     const handleAddFactor = () => {
@@ -220,7 +244,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     const renderDiscriminantValidityTable = () => {
         if (!results?.discriminant_validity?.fornell_larcker_criterion) return null;
         const matrix = results.discriminant_validity.fornell_larcker_criterion;
-        const factors = Object.keys(matrix);
+        const factors = Object.keys(matrix).sort();
         
         return (
             <Table>
@@ -233,7 +257,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                 const val = matrix[f1]?.[f2];
                                 const isDiagonal = i === j;
                                 const isBelowDiagonal = j < i;
-                                const isDiscriminantValid = isBelowDiagonal && matrix[f1][f1] > val;
+                                const isDiscriminantValid = isBelowDiagonal && matrix[f1][f1] > Math.abs(val);
                                 
                                 return (
                                 <TableCell key={f2} className="text-center font-mono">
@@ -332,7 +356,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
             {analysisResult && results && (
                 <>
-                    <AIGeneratedInterpretation interpretation={results.interpretation} />
+                    <InterpretationDisplay results={results} />
                     {analysisResult.plot && (
                          <Card>
                             <CardHeader>
@@ -350,21 +374,26 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                             </CardHeader>
                             <CardContent>
                                 <Table>
-                                    <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead>Indicator</TableHead><TableHead className="text-right">Loading</TableHead><TableHead className="text-right">R²</TableHead></TableRow></TableHeader>
+                                    <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead>Indicator</TableHead><TableHead>Loading</TableHead><TableHead>SE</TableHead><TableHead>95% CI</TableHead></TableRow></TableHeader>
                                     <TableBody>
                                         {results.model_spec.factors.map((factor, fIndex) => {
                                             const factorItems = factors.find(f=>f.name === factor)?.items || [];
                                             return factorItems.map((item, iIndex) => {
                                                 const itemIndex = results.model_spec.indicators.indexOf(item);
                                                 if(itemIndex === -1 || !results.standardized_solution) return null;
+                                                
                                                 const loading = results.standardized_solution.loadings[itemIndex]?.[fIndex] ?? 0;
-                                                const rSquared = loading * loading;
+                                                const se = results.standard_errors?.loadings?.[itemIndex]?.[fIndex];
+                                                const ci_lower = results.confidence_intervals?.loadings?.lower?.[itemIndex]?.[fIndex];
+                                                const ci_upper = results.confidence_intervals?.loadings?.upper?.[itemIndex]?.[fIndex];
+
                                                 return (
                                                     <TableRow key={`${fIndex}-${iIndex}`}>
                                                         {iIndex === 0 && <TableCell rowSpan={factorItems.length} className="font-semibold align-top">{factor}</TableCell>}
                                                         <TableCell>{item}</TableCell>
-                                                        <TableCell className="text-right font-mono">{loading.toFixed(3)}</TableCell>
-                                                        <TableCell className="text-right font-mono">{rSquared.toFixed(3)}</TableCell>
+                                                        <TableCell className="font-mono">{loading.toFixed(3)}</TableCell>
+                                                        <TableCell className="font-mono">{se?.toFixed(3) ?? 'N/A'}</TableCell>
+                                                        <TableCell className="font-mono">{ci_lower !== undefined && ci_upper !== undefined ? `[${ci_lower.toFixed(3)}, ${ci_upper.toFixed(3)}]` : 'N/A'}</TableCell>
                                                     </TableRow>
                                                 )
                                             })
@@ -378,7 +407,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                 <CardHeader><CardTitle className="font-headline">Reliability & Convergent Validity</CardTitle></CardHeader>
                                 <CardContent>
                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Composite Reliability (CR)</TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">CR</TableHead><TableHead className="text-right">AVE</TableHead></TableRow></TableHeader>
                                         <TableBody>
                                             {Object.entries(results.reliability).map(([factor, rel]) => (
                                                 <TableRow key={factor}>
@@ -386,24 +415,49 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                                     <TableCell className="text-right font-mono flex justify-end items-center gap-2">
                                                         {rel.composite_reliability.toFixed(3)} {rel.composite_reliability >= 0.7 ? <Check className="w-4 h-4 text-green-600"/> : <X className="w-4 h-4 text-destructive"/>}
                                                     </TableCell>
+                                                    <TableCell className="text-right font-mono flex justify-end items-center gap-2">
+                                                        {rel.average_variance_extracted.toFixed(3)} {rel.average_variance_extracted >= 0.5 ? <Check className="w-4 h-4 text-green-600"/> : <X className="w-4 h-4 text-destructive"/>}
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
-                                    <CardDescription className="text-xs mt-2">CR &gt; 0.7 is generally considered acceptable.</CardDescription>
+                                    <CardDescription className="text-xs mt-2">CR &gt; 0.7 and AVE &gt; 0.5 are generally acceptable.</CardDescription>
                                 </CardContent>
                             </Card>
                              {results.discriminant_validity.fornell_larcker_criterion && (
                                 <Card>
                                     <CardHeader>
                                         <CardTitle className="font-headline">Discriminant Validity</CardTitle>
-                                        <CardDescription>Fornell-Larcker criterion: The diagonal (√AVE) should be greater than the off-diagonal correlations.</CardDescription>
+                                        <CardDescription>Fornell-Larcker: Diagonal (√AVE) should be &gt; off-diagonal correlations.</CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         {renderDiscriminantValidityTable()}
                                     </CardContent>
                                 </Card>
                              )}
+                              {results.standardized_solution?.factor_correlations && (
+                                <Card>
+                                     <CardHeader><CardTitle className="font-headline">Latent Factor Correlations</CardTitle></CardHeader>
+                                     <CardContent>
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead></TableHead>{results.model_spec.factors.map(f => <TableHead key={f} className="text-center">{f}</TableHead>)}</TableRow></TableHeader>
+                                            <TableBody>
+                                                {results.model_spec.factors.map((f1, i) => (
+                                                    <TableRow key={f1}>
+                                                        <TableHead>{f1}</TableHead>
+                                                        {results.model_spec.factors.map((f2, j) => (
+                                                            <TableCell key={f2} className="text-center font-mono">
+                                                                {results.standardized_solution?.factor_correlations[i][j].toFixed(3)}
+                                                            </TableCell>
+                                                        ))}
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                     </CardContent>
+                                </Card>
+                              )}
                         </div>
                     </div>
                 </>

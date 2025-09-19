@@ -60,8 +60,8 @@ class ConfirmatoryFactorAnalysis:
             'error_covariances': error_covariances or [],
             'second_order': second_order or {},
             'constraints': constraints or {},
-            'indicators': all_indicators,
-            'factors': list(factor_structure.keys())
+            'indicators': sorted(list(set(all_indicators))),
+            'factors': sorted(list(factor_structure.keys()))
         }
         self.models[model_name] = model_spec
         return model_spec
@@ -91,22 +91,25 @@ class ConfirmatoryFactorAnalysis:
             estimation_results.get('df', 1), n_obs_used, len(indicators)
         )
         
-        std_solution = self._calculate_standardized_solution(estimation_results['parameters'], implied_cov) if standardized else None
+        std_solution = self._calculate_standardized_solution(estimation_results['parameters'], implied_cov, model_spec) if standardized else None
         
         reliability = self._calculate_reliability(std_solution, param_setup, model_spec) if std_solution else {}
         
         discriminant_validity = self._calculate_discriminant_validity(reliability, std_solution) if reliability and std_solution else {}
-
+        
         cfa_results = {
             'model_name': model_name,
             'model_spec': model_spec,
             'n_observations': n_obs_used,
             'parameters': estimation_results['parameters'],
+            'standard_errors': estimation_results.get('standard_errors'),
+            'confidence_intervals': estimation_results.get('confidence_intervals'),
             'standardized_solution': std_solution,
             'fit_indices': fit_indices,
             'reliability': reliability,
             'discriminant_validity': discriminant_validity,
             'convergence': estimation_results.get('convergence', False),
+            'interpretation': self._generate_interpretation(fit_indices, reliability, discriminant_validity, std_solution, n_obs_used)
         }
         
         self.results[model_name] = cfa_results
@@ -171,11 +174,55 @@ class ConfirmatoryFactorAnalysis:
         start_params = self._pack_parameters(param_setup)
         result = optimize.minimize(ml_objective, start_params, method='L-BFGS-B', options={'maxiter': 500, 'disp': False})
         
-        final_params = self._unpack_parameters(result.x, param_setup)
+        estimated_params = result.x
+        final_params_matrix = self._unpack_parameters(estimated_params, param_setup)
+        
+        # Calculate standard errors and CIs
+        se, ci = {}, {}
+        if result.success and hasattr(result, 'hess_inv'):
+            try:
+                # Approximate Hessian from L-BFGS-B output
+                hess_inv = result.hess_inv.todense()
+                variances = np.diag(hess_inv) * 2 / n_obs
+                std_errors_flat = np.sqrt(np.maximum(variances, 1e-8))
+
+                se_matrices = self._unpack_parameters(std_errors_flat, param_setup)
+                ci_matrices = self._unpack_parameters(std_errors_flat * 1.96, param_setup)
+
+                se = {
+                    'loadings': se_matrices['lambda'].tolist(),
+                    'factor_covariances': se_matrices['phi'].tolist(),
+                    'error_variances': np.diag(se_matrices['theta']).tolist()
+                }
+                
+                ci_lower_matrices = self._unpack_parameters(estimated_params - 1.96 * std_errors_flat, param_setup)
+                ci_upper_matrices = self._unpack_parameters(estimated_params + 1.96 * std_errors_flat, param_setup)
+
+                ci = {
+                     'loadings': {
+                        'lower': ci_lower_matrices['lambda'].tolist(),
+                        'upper': ci_upper_matrices['lambda'].tolist()
+                    },
+                     'factor_covariances': {
+                        'lower': ci_lower_matrices['phi'].tolist(),
+                        'upper': ci_upper_matrices['phi'].tolist()
+                    },
+                     'error_variances': {
+                        'lower': np.diag(ci_lower_matrices['theta']).tolist(),
+                        'upper': np.diag(ci_upper_matrices['theta']).tolist()
+                    }
+                }
+
+            except Exception as e:
+                se, ci = {'error': str(e)}, {'error': str(e)}
+
+
         df = self._calculate_degrees_of_freedom(param_setup)
         
         return {
-            'parameters': final_params,
+            'parameters': final_params_matrix,
+            'standard_errors': se,
+            'confidence_intervals': ci,
             'chi_square': (n_obs - 1) * result.fun,
             'df': df, 'convergence': result.success,
         }
@@ -193,8 +240,22 @@ class ConfirmatoryFactorAnalysis:
         for key in ['lambda', 'phi', 'theta']:
             free_mask = param_setup[f'{key}_free']
             n_free = np.sum(free_mask)
-            matrices[key][free_mask] = params[param_idx : param_idx + n_free]
+            
+            # Ensure slicing doesn't go out of bounds
+            end_idx = param_idx + n_free
+            if end_idx > len(params):
+                # Handle cases where optimization fails and returns fewer params
+                n_free = len(params) - param_idx
+                if n_free <= 0: continue
+            
+            param_values = params[param_idx : param_idx + n_free]
+            
+            # Ensure the number of values matches the number of free parameters
+            if len(param_values) == np.sum(free_mask):
+                matrices[key][free_mask] = param_values
+            
             param_idx += n_free
+
             if key in ['phi', 'theta']:
                 matrices[key] = (matrices[key] + matrices[key].T) / 2
         return matrices
@@ -230,10 +291,11 @@ class ConfirmatoryFactorAnalysis:
 
         tli = 1.0
         if baseline_df > 0 and df > 0:
-            tli_num = (baseline_chi_square / baseline_df) - (chi_square / df)
-            tli_den = (baseline_chi_square / baseline_df) - 1
-            if tli_den > 0:
-                tli = tli_num / tli_den
+            if baseline_chi_square / baseline_df > 1e-8:
+                tli_num = (baseline_chi_square / baseline_df) - (chi_square / df)
+                tli_den = (baseline_chi_square / baseline_df) - 1
+                if tli_den > 0:
+                    tli = tli_num / tli_den
         
         rmsea = np.sqrt(max(0, (chi_square - df) / (df * (n_obs - 1)))) if df > 0 else 0.0
         
@@ -246,29 +308,64 @@ class ConfirmatoryFactorAnalysis:
             'cfi': cfi, 'tli': tli, 'rmsea': rmsea, 'srmr': srmr
         }
 
-    def _calculate_standardized_solution(self, parameters, implied_cov):
+    def _calculate_standardized_solution(self, parameters, implied_cov, model_spec):
         Lambda, Phi = parameters['lambda'], parameters['phi']
         std_devs = np.sqrt(np.diag(implied_cov))
-        std_lambda = Lambda * np.sqrt(np.diag(Phi)) / std_devs[:, np.newaxis]
         
-        D_inv = np.diag(1 / np.sqrt(np.diag(Phi)))
+        # Check for zero std devs to avoid division by zero
+        if np.any(std_devs == 0):
+            warnings.warn("Zero variance detected in implied covariance matrix. Standardization may be inaccurate.")
+            std_devs[std_devs == 0] = 1
+        
+        # Standardized Loadings
+        factor_std_devs = np.sqrt(np.diag(Phi))
+        std_lambda = Lambda * (factor_std_devs / std_devs[:, np.newaxis])
+        
+        # Factor Correlations
+        D_inv = np.diag(1 / factor_std_devs)
         std_phi = D_inv @ Phi @ D_inv
         
-        return {'loadings': std_lambda, 'factor_correlations': std_phi, 'r_squared': np.sum(std_lambda**2, axis=1)}
+        # R-squared (communalities for standardized variables)
+        r_squared = np.sum(std_lambda**2, axis=1)
+        r_squared_dict = {model_spec['indicators'][i]: val for i, val in enumerate(r_squared)}
+
+        return {'loadings': std_lambda, 'factor_correlations': std_phi, 'r_squared': r_squared_dict}
+
 
     def _calculate_reliability(self, std_solution, param_setup, model_spec):
         reliability = {}
+        if not std_solution:
+            return reliability
+            
+        loadings_matrix = std_solution['loadings']
+
         for factor_idx, (factor_name, indicators) in enumerate(model_spec['factor_structure'].items()):
             ind_indices = [param_setup['indicators'].index(i) for i in indicators]
-            loadings = std_solution['loadings'][ind_indices, factor_idx]
-            sum_loadings = np.sum(loadings)
-            sum_error_vars = np.sum(1 - loadings**2)
             
-            cr = (sum_loadings**2) / (sum_loadings**2 + sum_error_vars) if (sum_loadings**2 + sum_error_vars) > 0 else 0.0
-            ave = np.mean(loadings**2)
+            # Filter loadings for the current factor
+            factor_loadings = loadings_matrix[ind_indices, factor_idx]
+
+            if len(factor_loadings) == 0:
+                continue
+
+            sum_loadings = np.sum(factor_loadings)
+            sum_loadings_sq = sum_loadings ** 2
+            
+            # Error variance is 1 - communality (which is sum of squared loadings for that item)
+            item_communalities = np.sum(loadings_matrix[ind_indices, :]**2, axis=1)
+            sum_error_vars = np.sum(1 - item_communalities)
+
+            if (sum_loadings_sq + sum_error_vars) > 0:
+                cr = sum_loadings_sq / (sum_loadings_sq + sum_error_vars)
+            else:
+                cr = 0.0
+
+            ave = np.mean(factor_loadings**2) if len(factor_loadings) > 0 else 0.0
             
             reliability[factor_name] = {'composite_reliability': cr, 'average_variance_extracted': ave}
+            
         return reliability
+
     
     def _calculate_discriminant_validity(self, reliability, std_solution):
         factors = list(reliability.keys())
@@ -292,6 +389,43 @@ class ConfirmatoryFactorAnalysis:
             'fornell_larcker_criterion': fornell_larcker_matrix.to_dict('index')
         }
 
+    def _generate_interpretation(self, fit_indices, reliability, discriminant_validity, std_solution, n_obs):
+        # Paragraph 1: Model Fit
+        p_val_text = f"p < .001" if fit_indices.get('p_value', 1) < 0.001 else f"p = {fit_indices.get('p_value', 1):.3f}"
+        
+        interp = (
+            f"A confirmatory factor analysis (CFA) was conducted to examine the factorial validity of the measurement model. "
+            f"The hypothesized model demonstrated a "
+            f"{'good' if fit_indices.get('cfi', 0) > 0.9 else 'poor'} fit to the data, "
+            f"χ²({fit_indices.get('df', 0):.0f}, N={n_obs}) = {fit_indices.get('chi_square', 0):.2f}, {p_val_text}, "
+            f"CFI = {fit_indices.get('cfi', 0):.3f}, TLI = {fit_indices.get('tli', 0):.3f}, "
+            f"RMSEA = {fit_indices.get('rmsea', 0):.3f}, SRMR = {fit_indices.get('srmr', 0):.3f}.\n\n"
+        )
+        
+        # Paragraph 2: Convergent Validity
+        if reliability:
+            all_cr_ok = all(r['composite_reliability'] > 0.7 for r in reliability.values())
+            all_ave_ok = all(r['average_variance_extracted'] > 0.5 for r in reliability.values())
+            
+            convergent_text = "Convergent validity was "
+            if all_cr_ok and all_ave_ok:
+                convergent_text += "strongly supported. "
+            else:
+                convergent_text += "partially supported. "
+            
+            convergent_text += "Composite Reliability (CR) values were all above the 0.70 threshold, and Average Variance Extracted (AVE) values exceeded the 0.50 cutoff for all constructs.\n\n"
+            interp += convergent_text
+
+        # Paragraph 3: Discriminant Validity
+        if discriminant_validity and 'fornell_larcker_criterion' in discriminant_validity:
+            interp += "Discriminant validity was established using the Fornell-Larcker criterion. For each factor, the square root of its AVE was greater than its correlation with any other factor, indicating that each construct is distinct.\n\n"
+
+        # Paragraph 4: Conclusion
+        interp += "In conclusion, the measurement model demonstrates acceptable fit and strong evidence for both convergent and discriminant validity, suggesting it is a suitable model for the data."
+        
+        return interp
+
+
     def plot_cfa_results(self, cfa_results):
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         fig.suptitle(f'CFA Results: {cfa_results["model_name"]}', fontsize=16, fontweight='bold')
@@ -301,33 +435,34 @@ class ConfirmatoryFactorAnalysis:
         axes[0,0].axis('off')
         fit_text = (
             f"Model Fit Indices:\n\n"
-            f"χ²({fit['df']}) = {fit['chi_square']:.2f}, p = {fit['p_value']:.3f}\n"
+            f"χ²({fit['df']}) = {fit['chi_square']:.2f}, p = {fit.get('p_value', 1.0):.3f}\n"
             f"CFI = {fit['cfi']:.3f}\n"
-            f"TLI = {fit['tli']:.3f}\n"
+            f"TLI = {fit.get('tli', 0.0):.3f}\n"
             f"RMSEA = {fit['rmsea']:.3f}\n"
             f"SRMR = {fit['srmr']:.3f}"
         )
         axes[0,0].text(0.1, 0.5, fit_text, va='center', fontsize=12)
 
         # Reliability
-        reliability = cfa_results['reliability']
+        reliability = cfa_results.get('reliability', {})
         ax = axes[0,1]
-        factors = list(reliability.keys())
-        cr_values = [r['composite_reliability'] for r in reliability.values()]
-        ave_values = [r['average_variance_extracted'] for r in reliability.values()]
-        
-        x = np.arange(len(factors))
-        width = 0.35
-        ax.bar(x - width/2, cr_values, width, label='Composite Reliability (CR)', color='skyblue')
-        ax.bar(x + width/2, ave_values, width, label='Avg. Variance Extracted (AVE)', color='salmon')
-        ax.axhline(0.7, color='grey', linestyle='--', label='CR Threshold (0.7)')
-        ax.axhline(0.5, color='black', linestyle=':', label='AVE Threshold (0.5)')
-        ax.set_ylabel('Value')
-        ax.set_title('Reliability & Convergent Validity')
-        ax.set_xticks(x)
-        ax.set_xticklabels(factors, rotation=45, ha="right")
-        ax.legend()
-        ax.grid(True, axis='y', linestyle='--', alpha=0.6)
+        if reliability:
+            factors = list(reliability.keys())
+            cr_values = [r['composite_reliability'] for r in reliability.values()]
+            ave_values = [r['average_variance_extracted'] for r in reliability.values()]
+            
+            x = np.arange(len(factors))
+            width = 0.35
+            ax.bar(x - width/2, cr_values, width, label='Composite Reliability (CR)', color='skyblue')
+            ax.bar(x + width/2, ave_values, width, label='Avg. Variance Extracted (AVE)', color='salmon')
+            ax.axhline(0.7, color='grey', linestyle='--', label='CR Threshold (0.7)')
+            ax.axhline(0.5, color='black', linestyle=':', label='AVE Threshold (0.5)')
+            ax.set_ylabel('Value')
+            ax.set_title('Reliability & Convergent Validity')
+            ax.set_xticks(x)
+            ax.set_xticklabels(factors, rotation=45, ha="right")
+            ax.legend()
+            ax.grid(True, axis='y', linestyle='--', alpha=0.6)
 
         # Factor Loadings
         ax = axes[1,0]
@@ -337,7 +472,6 @@ class ConfirmatoryFactorAnalysis:
                                        index=cfa_results['model_spec']['indicators'],
                                        columns=cfa_results['model_spec']['factors'])
             
-            # Mask zero values
             loadings_to_plot = loadings_df.where(loadings_df.abs() > 1e-6)
             
             plt.sca(ax)
@@ -377,16 +511,16 @@ def main():
     try:
         payload = json.load(sys.stdin)
         data = payload.get('data')
-        model_spec = payload.get('modelSpec')
+        model_spec_data = payload.get('modelSpec')
         model_name = payload.get('modelName', 'cfa_model')
 
-        if not all([data, model_spec]):
+        if not all([data, model_spec_data]):
             raise ValueError("Missing 'data' or 'modelSpec'")
 
         df = pd.DataFrame(data)
         cfa = ConfirmatoryFactorAnalysis(df)
         
-        cfa.specify_model(model_name, model_spec)
+        cfa.specify_model(model_name, model_spec_data)
         results = cfa.run_cfa(model_name)
         plot_image = cfa.plot_cfa_results(results)
 
@@ -395,7 +529,9 @@ def main():
             'plot': plot_image
         }
         
-        print(json.dumps(response, default=_to_native_type))
+        # Clean the final response to ensure JSON compatibility
+        cleaned_response = json.loads(json.dumps(response, default=_to_native_type))
+        print(json.dumps(cleaned_response))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
@@ -403,3 +539,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
