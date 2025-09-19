@@ -53,47 +53,51 @@ class RepeatedMeasuresAnova:
 
     def run_analysis(self):
         try:
-            # Build arguments dynamically for rm_anova
-            kwargs = {
-                'data': self.long_data,
-                'dv': self.dependent_var,
-                'within': self.within_name,
-                'subject': self.subject_col,
-                'detailed': True,
-                'effsize': "np2"
-            }
             if self.between_col:
-                kwargs['between'] = self.between_col
+                # Use mixed_anova for designs with a between-subject factor
+                aov = pg.mixed_anova(
+                    data=self.long_data,
+                    dv=self.dependent_var,
+                    within=self.within_name,
+                    subject=self.subject_col,
+                    between=self.between_col,
+                    effsize="np2"
+                )
+            else:
+                # Use rm_anova for designs with only within-subject factors
+                aov = pg.rm_anova(
+                    data=self.long_data,
+                    dv=self.dependent_var,
+                    within=self.within_name,
+                    subject=self.subject_col,
+                    detailed=True,
+                    effsize="np2"
+                )
             
-            aov = pg.rm_anova(**kwargs)
-
             self.results['anova_table'] = aov.to_dict('records')
             
             # Sphericity test is only relevant for within-subject effects with > 2 levels
             if len(self.within_cols) > 2:
                 sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within=self.within_name, subject=self.subject_col)
-                if isinstance(sphericity_test, tuple): # Older pingouin versions
-                    self.results['mauchly_test'] = {'spher': sphericity_test[0], 'p-value': sphericity_test[1], 'sphericity': sphericity_test[2]}
-                else: # Newer pingouin versions return dataframe
-                    spher_dict = sphericity_test.to_dict('records')[0]
-                    self.results['mauchly_test'] = spher_dict
+                spher_dict = sphericity_test.to_dict('records')[0] if isinstance(sphericity_test, pd.DataFrame) else {'spher': sphericity_test[0], 'p-value': sphericity_test[1], 'sphericity': sphericity_test[2]}
+                self.results['mauchly_test'] = spher_dict
             else:
                 self.results['mauchly_test'] = None
 
 
             # Post-hoc tests if significant interaction or main effect
             perform_posthoc = False
-            main_effect_p_col = 'p-GG-corr' if 'p-GG-corr' in aov.columns and not pd.isna(aov[aov['Source'] == self.within_name]['p-GG-corr'].iloc[0]) else 'p-unc'
             
+            # Check for significant interaction (if applicable) or main within-subject effect
             if self.between_col:
-                interaction_row = aov[aov['Source'] == f'{self.within_name} * {self.between_col}']
-                if not interaction_row.empty:
-                    interaction_p_col = 'p-GG-corr' if 'p-GG-corr' in interaction_row.columns and not pd.isna(interaction_row['p-GG-corr'].iloc[0]) else 'p-unc'
-                    if interaction_row[interaction_p_col].iloc[0] < self.alpha:
-                        perform_posthoc = True
-            else: # No between-subject factor, check main within-subject effect
+                interaction_source_name = f'{self.within_name} * {self.between_col}'
+                interaction_row = aov[aov['Source'] == interaction_source_name]
+                if not interaction_row.empty and interaction_row['p-unc'].iloc[0] < self.alpha:
+                    perform_posthoc = True
+            else:
                 within_row = aov[aov['Source'] == self.within_name]
-                if not within_row.empty and within_row[main_effect_p_col].iloc[0] < self.alpha:
+                p_col = 'p-GG-corr' if 'p-GG-corr' in within_row.columns and not pd.isna(within_row['p-GG-corr'].iloc[0]) else 'p-unc'
+                if not within_row.empty and within_row[p_col].iloc[0] < self.alpha:
                     perform_posthoc = True
 
             if perform_posthoc:
