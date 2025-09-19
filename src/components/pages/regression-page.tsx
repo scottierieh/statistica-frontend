@@ -61,10 +61,19 @@ interface FullAnalysisResponse {
 
 const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: string, f_pvalue?: number }) => {
     const isSignificant = f_pvalue !== undefined && f_pvalue < 0.05;
-    
+
+    const { interpretationText, warnings } = useMemo(() => {
+        if (!interpretation) return { interpretationText: '', warnings: [] };
+        const parts = interpretation.split('--- Diagnostic Warnings ---');
+        return {
+            interpretationText: parts[0] || '',
+            warnings: parts[1] ? parts[1].trim().split('\n').filter(line => line.startsWith('Warning:')) : []
+        };
+    }, [interpretation]);
+
     const formattedInterpretation = useMemo(() => {
-        if (!interpretation) return null;
-        return interpretation
+        if (!interpretationText) return null;
+        return interpretationText
             .replace(/\n/g, '<br />')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<i>$1</i>')
@@ -74,7 +83,7 @@ const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: 
             .replace(/R²adj\s*=\s*([\d.-]+)/g, '<i>R</i>²adj = $1')
             .replace(/R²\s*=\s*([\d.-]+)/g, '<i>R</i>² = $1')
             .replace(/B\s*=\s*([\d.-]+)/g, '<i>B</i> = $1');
-    }, [interpretation]);
+    }, [interpretationText]);
 
     if (!interpretation) return null;
 
@@ -83,12 +92,26 @@ const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: 
             <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
                 <Alert variant={isSignificant ? 'default' : 'secondary'}>
                     {isSignificant ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                     <AlertTitle>{isSignificant ? "Statistically Significant Model" : "Not Statistically Significant Model"}</AlertTitle>
-                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
+                    {formattedInterpretation && <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />}
                 </Alert>
+
+                {warnings.length > 0 && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Diagnostic Warnings</AlertTitle>
+                        <AlertDescription>
+                            <ul className="list-disc pl-5 mt-2">
+                                {warnings.map((warning, i) => (
+                                    <li key={i}>{warning.replace('Warning: ', '')}</li>
+                                ))}
+                            </ul>
+                        </AlertDescription>
+                    </Alert>
+                )}
             </CardContent>
         </Card>
     );
@@ -130,6 +153,8 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
+    const allHeaders = useMemo(() => numericHeaders, [numericHeaders]);
+
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== targetVar), [numericHeaders, targetVar]);
     
     useEffect(() => {
@@ -217,15 +242,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
     
-    const { interpretationText, warnings } = useMemo(() => {
-        if (!analysisResult?.results?.interpretation) return { interpretationText: '', warnings: [] };
-        const parts = analysisResult.results.interpretation.split('--- Diagnostic Warnings ---');
-        return {
-            interpretationText: parts[0] || '',
-            warnings: parts[1] ? parts[1].trim().split('\n').filter(line => line.startsWith('Warning:')) : []
-        };
-    }, [analysisResult]);
-
     const results = analysisResult?.results;
     const coeffs = results?.diagnostics?.coefficient_tests;
 
@@ -557,4 +573,5 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 }
 
     
+
 
