@@ -3,7 +3,7 @@
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +13,6 @@ import { Sigma, AlertCircle, Loader2, ShieldCheck, Settings2, Bot } from 'lucide
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
-import { getReliabilityInterpretation } from '@/app/actions';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
 
@@ -36,51 +35,8 @@ interface ReliabilityResults {
         variance: number;
         avg_inter_item_correlation: number;
     };
+    interpretation: string;
 }
-
-const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
-  const [interpretation, setInterpretation] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!promise) {
-        setInterpretation(null);
-        setLoading(false);
-        return;
-    };
-    let isMounted = true;
-    setLoading(true);
-    promise.then((desc) => {
-        if (isMounted) {
-            setInterpretation(desc);
-            setLoading(false);
-        }
-    });
-    return () => { isMounted = false; };
-  }, [promise]);
-  
-  const formattedInterpretation = useMemo(() => {
-    if (!interpretation) return null;
-    return interpretation
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<i>$1</i>');
-  }, [interpretation]);
-
-
-  if (loading) return <Skeleton className="h-24 w-full" />;
-  if (!interpretation) return null;
-
-  return (
-    <Card>
-        <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
-        </CardContent>
-    </Card>
-  );
-};
 
 const getAlphaInterpretation = (alpha: number): { level: 'Excellent' | 'Good' | 'Acceptable' | 'Questionable' | 'Poor' | 'Unacceptable', color: string } => {
     if (alpha >= 0.9) return { level: 'Excellent', color: 'bg-green-600' };
@@ -104,14 +60,12 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
     const [reverseCodeItems, setReverseCodeItems] = useState<string[]>([]);
     
     const [reliabilityResult, setReliabilityResult] = useState<ReliabilityResults | null>(null);
-    const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
       setSelectedItems(numericHeaders.slice(0, 10));
       setReverseCodeItems([]);
       setReliabilityResult(null);
-      setAiPromise(null);
     }, [data, numericHeaders])
 
     const canRun = useMemo(() => {
@@ -138,7 +92,6 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         
         setIsLoading(true);
         setReliabilityResult(null);
-        setAiPromise(null);
 
         const backendUrl = '/api/analysis/reliability';
         
@@ -161,13 +114,6 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
             const result = await response.json();
             setReliabilityResult(result);
             
-            const promise = getReliabilityInterpretation({
-                cronbachAlpha: result.alpha,
-                numItems: result.n_items,
-                numCases: result.n_cases,
-            }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
-            setAiPromise(promise);
-
         } catch(e: any) {
             console.error('Analysis error:', e);
             toast({variant: 'destructive', title: 'Reliability Analysis Error', description: e.message || 'An unexpected error occurred. Please check the console for details.'})
@@ -324,7 +270,14 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                                 </div>
                             </CardContent>
                         </Card>
-                         <AIGeneratedInterpretation promise={aiPromise} />
+                         <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{reliabilityResult.interpretation}</p>
+                            </CardContent>
+                        </Card>
                     </div>
                     <Card className="lg:col-span-1">
                         <CardHeader><CardTitle className="font-headline">Item-Total Statistics</CardTitle><CardDescription>How each item relates to the overall scale.</CardDescription></CardHeader>

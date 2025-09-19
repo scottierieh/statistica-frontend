@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -17,6 +18,52 @@ def _to_native_type(obj):
     elif isinstance(obj, np.bool_):
         return bool(obj)
     return obj
+
+def get_alpha_interpretation_level(alpha):
+    if alpha >= 0.9: return 'Excellent'
+    if alpha >= 0.8: return 'Good'
+    if alpha >= 0.7: return 'Acceptable'
+    if alpha >= 0.6: return 'Questionable'
+    if alpha >= 0.5: return 'Poor'
+    return 'Unacceptable'
+
+
+def _generate_interpretation(results):
+    alpha = results['alpha']
+    n_items = results['n_items']
+    alpha_if_deleted = results['item_statistics']['alpha_if_deleted']
+    
+    alpha_level = get_alpha_interpretation_level(alpha)
+
+    # Paragraph 1: Main finding and explanation
+    interp = (
+        f"Internal reliability for the {n_items}-item scale was investigated using Cronbach's alpha. "
+        f"The analysis indicated that the alpha for the total scale was {alpha_level.lower()} (α = {alpha:.2f}).\n\n"
+        f"Cronbach's alpha assesses the extent to which items on a scale are intercorrelated and measure a single underlying construct. "
+        f"A {alpha_level.lower()} alpha suggests that the items {'consistently' if alpha >= 0.7 else 'may not be consistently'} measuring the same concept.\n\n"
+    )
+
+    # Paragraph 2: Recommendations
+    items_to_consider_removing = [item for item, new_alpha in alpha_if_deleted.items() if new_alpha > alpha]
+
+    if items_to_consider_removing:
+        final_alpha_if_all_removed = pg.cronbach_alpha(data=results['df_items'].drop(columns=items_to_consider_removing))[0]
+        
+        interp += (
+            "Examination of individual item statistics suggests that reliability could be improved by eliminating several items. "
+            "Specifically, removing each of the following items would individually increase the scale's alpha: "
+            f"{', '.join([f'“{item}”' for item in items_to_consider_removing])}. "
+            f"If all these items were removed, the final reliability for the resulting {n_items - len(items_to_consider_removing)}-item scale would be considered "
+            f"{get_alpha_interpretation_level(final_alpha_if_all_removed).lower()} (α = {final_alpha_if_all_removed:.2f})."
+        )
+    elif alpha < 0.7:
+         interp += "Given this poor reliability, it is recommended that the items of this scale be carefully reviewed and revised. Consideration should be given to item clarity, relevance, and potential redundancy, and further psychometric evaluation would be necessary to improve its consistency."
+    else:
+        interp += "The scale demonstrates good internal consistency, and no single item's removal would substantially improve reliability."
+
+
+    return interp.strip()
+
 
 def main():
     try:
@@ -51,20 +98,17 @@ def main():
         alpha_results = pg.cronbach_alpha(data=df_items, nan_policy='listwise')
         
         # Manual calculation for item-total statistics
-        item_stats = {}
         total_score = df_items.sum(axis=1)
         
         corrected_item_total_correlations = {}
         alpha_if_deleted = {}
 
         for item in df_items.columns:
-            # Corrected Item-Total Correlation
             item_score = df_items[item]
             rest_score = total_score - item_score
             correlation = pg.corr(item_score, rest_score)['r'].iloc[0]
             corrected_item_total_correlations[item] = correlation
             
-            # Cronbach's Alpha if item deleted
             alpha_if_del = pg.cronbach_alpha(data=df_items.drop(columns=item))[0]
             alpha_if_deleted[item] = alpha_if_del
 
@@ -73,7 +117,7 @@ def main():
             'n_items': df_items.shape[1],
             'n_cases': df_items.shape[0],
             'confidence_interval': list(alpha_results[1]),
-            'sem': df_items.sum(axis=1).std() * (1 - alpha_results[0])**0.5,
+            'sem': df_items.sum(axis=1).std() * (1 - alpha_results[0])**0.5 if alpha_results[0] >= 0 else np.nan,
             'item_statistics': {
                 'means': df_items.mean().to_dict(),
                 'stds': df_items.std().to_dict(),
@@ -85,9 +129,15 @@ def main():
                 'std': total_score.std(),
                 'variance': total_score.var(),
                 'avg_inter_item_correlation': df_items.corr().values[np.triu_indices_from(df_items.corr().values, k=1)].mean()
-            }
+            },
+            'df_items': df_items.to_dict('records')
         }
         
+        response['interpretation'] = _generate_interpretation(response)
+        
+        # remove temporary data from final response
+        del response['df_items']
+
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
