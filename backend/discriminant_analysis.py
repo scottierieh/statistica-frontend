@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score, cross_val_predict
 from sklearn.metrics import accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -101,38 +101,22 @@ def main():
         eda_plots = generate_eda_plots(df_clean, group_var)
 
 
-        # --- 3. Split data ---
-        try:
-            X_train, X_test, y_train, y_test = train_test_split(
-                X_scaled, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded
-            )
-        except ValueError:
-             X_train, X_test, y_train, y_test = train_test_split(
-                X_scaled, y_encoded, test_size=0.2, random_state=42
-            )
-
-
         # --- 4. LDA ---
         n_components = min(len(groups) - 1, len(predictor_vars))
         if n_components == 0:
             raise ValueError("Not enough components for LDA (at least 1 required).")
 
-        lda = LinearDiscriminantAnalysis(n_components=n_components)
-        X_train_lda = lda.fit_transform(X_train, y_train)
-        X_test_lda = lda.transform(X_test)
-        
-        # --- 5. Classification ---
-        classifier = RandomForestClassifier(max_depth=2, random_state=0)
-        classifier.fit(X_train_lda, y_train)
-        y_pred = classifier.predict(X_test_lda)
-        
-        # --- 6. Evaluation ---
-        accuracy = accuracy_score(y_test, y_pred)
-        conf_matrix = confusion_matrix(y_test, y_pred).tolist()
-
-        # Re-fit LDA on full dataset for descriptive stats
         lda_full = LinearDiscriminantAnalysis(n_components=n_components, store_covariance=True).fit(X_scaled, y_encoded)
         X_lda_full = lda_full.transform(X_scaled)
+        
+        # --- 5. Classification Evaluation (using Cross-Validation) ---
+        # Using cross_val_score for a more robust accuracy estimate
+        accuracy_scores = cross_val_score(lda_full, X_scaled, y_encoded, cv=3)
+        accuracy = np.mean(accuracy_scores)
+        
+        # Using cross_val_predict for confusion matrix
+        y_pred = cross_val_predict(lda_full, X_scaled, y_encoded, cv=3)
+        conf_matrix = confusion_matrix(y_encoded, y_pred).tolist()
         
         # --- 7. Detailed Statistics ---
         eigenvalues = lda_full.explained_variance_ratio_
@@ -156,7 +140,7 @@ def main():
 
         results = {
             'meta': {'groups': groups, 'n_components': n_components, 'predictor_vars': predictor_vars},
-            'classification_metrics': {'accuracy': accuracy, 'confusion_matrix': conf_matrix, 'true_labels': y_test.tolist(), 'predicted_labels': y_pred.tolist()},
+            'classification_metrics': {'accuracy': accuracy, 'confusion_matrix': conf_matrix, 'true_labels': y_encoded.tolist(), 'predicted_labels': y_pred.tolist()},
             'eigenvalues': eigenvalues.tolist(),
             'canonical_correlations': canonical_correlations.tolist(),
             'wilks_lambda': {'lambda': wilks_lambda, 'F': f_approx, 'df1': df1, 'df2': df2, 'p_value': p_value_f},
@@ -207,4 +191,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
