@@ -65,7 +65,7 @@ class LogisticRegressionAnalysis:
         X_train_const = sm.add_constant(self.X_train_scaled)
         X_test_const = sm.add_constant(self.X_test_scaled)
         
-        logit_model = sm.Logit(self.y_train, X_train_const)
+        logit_model = sm.Logit(self.y_train.ravel(), X_train_const)
         self.model_fit = logit_model.fit(disp=0)
 
         y_prob = self.model_fit.predict(X_test_const)
@@ -90,8 +90,8 @@ class LogisticRegressionAnalysis:
             'confusion_matrix': cm.tolist(),
             'classification_report': class_report
         }
-        self.results['coefficients'] = self.model_fit.params.to_dict()
-        self.results['odds_ratios'] = conf['Odds Ratio'].to_dict()
+        self.results['coefficients'] = dict(zip(['const'] + self.feature_names, self.model_fit.params))
+        self.results['odds_ratios'] = dict(zip(['const'] + self.feature_names, conf['Odds Ratio']))
         
         fpr, tpr, _ = roc_curve(y_true, y_prob)
         roc_auc = auc(fpr, tpr)
@@ -206,4 +206,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
