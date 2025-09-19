@@ -465,15 +465,13 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                             </div>
                                             {sensitivityResult && (
                                                  <ChartContainer config={sensitivityChartConfig} className="w-full h-[300px]">
-                                                    <ResponsiveContainer width="100%" height={300}>
-                                                        <LineChart data={sensitivityResult}>
-                                                            <CartesianGrid strokeDasharray="3 3" />
-                                                            <XAxis dataKey="level" />
-                                                            <YAxis />
-                                                            <Tooltip content={<ChartTooltipContent />} />
-                                                            <Line type="monotone" dataKey="utility" name="Utility" stroke="var(--color-utility)" />
-                                                        </LineChart>
-                                                    </ResponsiveContainer>
+                                                      <LineChart data={sensitivityResult} width={500} height={300}>
+                                                          <CartesianGrid strokeDasharray="3 3" />
+                                                          <XAxis dataKey="level" />
+                                                          <YAxis />
+                                                          <Tooltip content={<ChartTooltipContent />} />
+                                                          <Line type="monotone" dataKey="utility" name="Utility" stroke="var(--color-utility)" />
+                                                      </LineChart>
                                                 </ChartContainer>
                                             )}
                                         </CardContent>
