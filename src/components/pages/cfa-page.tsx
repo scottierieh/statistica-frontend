@@ -31,20 +31,33 @@ interface FitIndices {
 }
 
 interface StandardizedSolution {
-    loadings: number[][];
+    loadings: { [key: string]: number };
     factor_correlations: number[][];
     r_squared: { [key: string]: number };
 }
 
 interface ParameterEstimates {
+    all_parameters: number[];
+    converged: boolean;
+    disturbances: { [key: string]: number };
+    error_variances: { [key: string]: number };
+    factor_covariances: { [key: string]: number };
+    factor_variances: { [key: string]: number };
     loadings: { [key: string]: number };
-    phi: { [key: string]: number };
-    theta: { [key: string]: number };
+    objective_value: number;
+    structural_paths: { [key: string]: number };
 }
 
 interface CfaResults {
-    fit_indices: FitIndices;
+    model_name: string;
+    model_spec: {
+        factors: string[];
+        indicators: string[];
+    };
+    n_observations: number;
+    parameters: ParameterEstimates;
     standardized_solution?: StandardizedSolution;
+    fit_indices: FitIndices;
     reliability: {
         [key: string]: {
             composite_reliability: number;
@@ -55,11 +68,6 @@ interface CfaResults {
         fornell_larcker_criterion?: { [key: string]: { [key: string]: number } };
         message?: string;
     };
-    model_spec: {
-        factors: string[];
-        indicators: string[];
-    };
-    parameters: ParameterEstimates;
     convergence: boolean;
     interpretation?: string;
 }
@@ -67,6 +75,7 @@ interface CfaResults {
 interface FullCfaResponse {
     results: CfaResults;
     plot: string | null;
+    qq_plot: string | null;
 }
 
 interface Factor {
@@ -236,16 +245,16 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     const renderDiscriminantValidityTable = () => {
         if (!results?.discriminant_validity?.fornell_larcker_criterion) return null;
         const matrix = results.discriminant_validity.fornell_larcker_criterion;
-        const factors = Object.keys(matrix).sort();
+        const factorsList = Object.keys(matrix).sort();
         
         return (
             <Table>
-                <TableHeader><TableRow><TableHead></TableHead>{factors.map(f=><TableHead key={f} className="text-center">{f}</TableHead>)}</TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead></TableHead>{factorsList.map(f=><TableHead key={f} className="text-center">{f}</TableHead>)}</TableRow></TableHeader>
                 <TableBody>
-                    {factors.map((f1, i) => (
+                    {factorsList.map((f1, i) => (
                         <TableRow key={f1}>
                             <TableHead>{f1}</TableHead>
-                            {factors.map((f2, j) => {
+                            {factorsList.map((f2, j) => {
                                 const val = matrix[f1]?.[f2];
                                 const isDiagonal = i === j;
                                 const isBelowDiagonal = j < i;
@@ -268,6 +277,8 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
             </Table>
         )
     }
+
+    const fitIndices = results?.fit_indices;
 
     return (
         <div className="flex flex-col gap-4">
@@ -349,104 +360,129 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
             {analysisResult && results && (
                 <>
                     <InterpretationDisplay results={results} />
-                    {analysisResult.plot && (
-                         <Card>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {fitIndices && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="font-headline">Model Fit & Diagnostics</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <Table>
+                                        <TableHeader><TableRow><TableHead>Index</TableHead><TableHead className="text-right">Value</TableHead><TableHead>Assessment</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            <TableRow><TableCell>CFI</TableCell><TableCell className="text-right font-mono">{fitIndices.cfi.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices.cfi > 0.9 ? 'default' : 'destructive'}>{fitIndices.cfi > 0.9 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
+                                            <TableRow><TableCell>TLI</TableCell><TableCell className="text-right font-mono">{fitIndices.tli.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices.tli > 0.9 ? 'default' : 'destructive'}>{fitIndices.tli > 0.9 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
+                                            <TableRow><TableCell>RMSEA</TableCell><TableCell className="text-right font-mono">{fitIndices.rmsea.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices.rmsea < 0.08 ? 'default' : 'destructive'}>{fitIndices.rmsea < 0.08 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
+                                            <TableRow><TableCell>SRMR</TableCell><TableCell className="text-right font-mono">{fitIndices.srmr.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices.srmr < 0.08 ? 'default' : 'destructive'}>{fitIndices.srmr < 0.08 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
+                                            <TableRow><TableCell>χ²(df={fitIndices.df})</TableCell><TableCell className="text-right font-mono">{fitIndices.chi_square.toFixed(2)}</TableCell><TableCell><Badge variant={fitIndices.p_value > 0.05 ? 'default' : 'destructive'}>p {(fitIndices.p_value || 0).toFixed(3)}</Badge></TableCell></TableRow>
+                                        </TableBody>
+                                    </Table>
+                                     {analysisResult.qq_plot && (
+                                        <div className="flex flex-col items-center">
+                                            <Label className="mb-2">Q-Q Plot of Residuals</Label>
+                                            <Image src={analysisResult.qq_plot} alt="Q-Q Plot" width={300} height={300} className="rounded-md border" />
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+                        <Card>
                             <CardHeader>
-                                <CardTitle className="font-headline">Analysis Summary</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.plot} alt="CFA Results Plot" width={1400} height={1000} className="w-full rounded-md border"/>
-                            </CardContent>
-                        </Card>
-                    )}
-                    <div className="grid lg:grid-cols-2 gap-4">
-                         <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Indicator Validity (Factor Loadings)</CardTitle>
+                                <CardTitle className="font-headline">Reliability & Convergent Validity</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <Table>
-                                    <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead>Indicator</TableHead><TableHead>Loading</TableHead></TableRow></TableHeader>
+                                    <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">CR</TableHead><TableHead className="text-right">AVE</TableHead></TableRow></TableHeader>
                                     <TableBody>
-                                        {results.model_spec.factors.map((factor, fIndex) => {
-                                            const factorItems = factors.find(f=>f.name === factor)?.items || [];
-                                            return factorItems.map((item, iIndex) => {
-                                                const itemIndex = results.model_spec.indicators.indexOf(item);
-                                                if(itemIndex === -1 || !results.standardized_solution) return null;
-                                                
-                                                const loading = results.standardized_solution.loadings[itemIndex]?.[fIndex] ?? 0;
-
-                                                return (
-                                                    <TableRow key={`${fIndex}-${iIndex}`}>
-                                                        {iIndex === 0 && <TableCell rowSpan={factorItems.length} className="font-semibold align-top">{factor}</TableCell>}
-                                                        <TableCell>{item}</TableCell>
-                                                        <TableCell className="font-mono">{loading.toFixed(3)}</TableCell>
-                                                    </TableRow>
-                                                )
-                                            })
-                                        })}
+                                        {Object.entries(results.reliability).map(([factor, rel]) => (
+                                            <TableRow key={factor}>
+                                                <TableCell className="font-semibold">{factor}</TableCell>
+                                                <TableCell className="text-right font-mono flex justify-end items-center gap-2">
+                                                    {rel.composite_reliability.toFixed(3)} {rel.composite_reliability >= 0.7 ? <Check className="w-4 h-4 text-green-600"/> : <X className="w-4 h-4 text-destructive"/>}
+                                                </TableCell>
+                                                <TableCell className="text-right font-mono flex justify-end items-center gap-2">
+                                                    {rel.average_variance_extracted.toFixed(3)} {rel.average_variance_extracted >= 0.5 ? <Check className="w-4 h-4 text-green-600"/> : <X className="w-4 h-4 text-destructive"/>}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
                                     </TableBody>
                                 </Table>
+                                <CardDescription className="text-xs mt-2">CR > 0.7 and AVE > 0.5 are generally acceptable.</CardDescription>
                             </CardContent>
                         </Card>
-                        <div className="space-y-4">
+                    </div>
+                    <div className="grid lg:grid-cols-2 gap-4">
+                         {results.discriminant_validity.fornell_larcker_criterion && (
                             <Card>
-                                <CardHeader><CardTitle className="font-headline">Reliability & Convergent Validity</CardTitle></CardHeader>
+                                <CardHeader>
+                                    <CardTitle className="font-headline">Discriminant Validity</CardTitle>
+                                    <CardDescription>Fornell-Larcker: Diagonal (√AVE) should be &gt; off-diagonal correlations.</CardDescription>
+                                </CardHeader>
                                 <CardContent>
+                                    {renderDiscriminantValidityTable()}
+                                </CardContent>
+                            </Card>
+                         )}
+                          {results.standardized_solution?.factor_correlations && (
+                            <Card>
+                                 <CardHeader><CardTitle className="font-headline">Latent Factor Correlations</CardTitle></CardHeader>
+                                 <CardContent>
                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">CR</TableHead><TableHead className="text-right">AVE</TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead></TableHead>{results.model_spec.factors.map(f => <TableHead key={f} className="text-center">{f}</TableHead>)}</TableRow></TableHeader>
                                         <TableBody>
-                                            {Object.entries(results.reliability).map(([factor, rel]) => (
-                                                <TableRow key={factor}>
-                                                    <TableCell className="font-semibold">{factor}</TableCell>
-                                                    <TableCell className="text-right font-mono flex justify-end items-center gap-2">
-                                                        {rel.composite_reliability.toFixed(3)} {rel.composite_reliability >= 0.7 ? <Check className="w-4 h-4 text-green-600"/> : <X className="w-4 h-4 text-destructive"/>}
-                                                    </TableCell>
-                                                    <TableCell className="text-right font-mono flex justify-end items-center gap-2">
-                                                        {rel.average_variance_extracted.toFixed(3)} {rel.average_variance_extracted >= 0.5 ? <Check className="w-4 h-4 text-green-600"/> : <X className="w-4 h-4 text-destructive"/>}
-                                                    </TableCell>
+                                            {results.model_spec.factors.map((f1, i) => (
+                                                <TableRow key={f1}>
+                                                    <TableHead>{f1}</TableHead>
+                                                    {results.model_spec.factors.map((f2, j) => (
+                                                        <TableCell key={f2} className="text-center font-mono">
+                                                            {results.standardized_solution?.factor_correlations[i][j].toFixed(3)}
+                                                        </TableCell>
+                                                    ))}
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
-                                    <CardDescription className="text-xs mt-2">CR > 0.7 and AVE > 0.5 are generally acceptable.</CardDescription>
-                                </CardContent>
+                                 </CardContent>
                             </Card>
-                             {results.discriminant_validity.fornell_larcker_criterion && (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="font-headline">Discriminant Validity</CardTitle>
-                                        <CardDescription>Fornell-Larcker: Diagonal (√AVE) should be &gt; off-diagonal correlations.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {renderDiscriminantValidityTable()}
-                                    </CardContent>
-                                </Card>
-                             )}
-                              {results.standardized_solution?.factor_correlations && (
-                                <Card>
-                                     <CardHeader><CardTitle className="font-headline">Latent Factor Correlations</CardTitle></CardHeader>
-                                     <CardContent>
-                                        <Table>
-                                            <TableHeader><TableRow><TableHead></TableHead>{results.model_spec.factors.map(f => <TableHead key={f} className="text-center">{f}</TableHead>)}</TableRow></TableHeader>
-                                            <TableBody>
-                                                {results.model_spec.factors.map((f1, i) => (
-                                                    <TableRow key={f1}>
-                                                        <TableHead>{f1}</TableHead>
-                                                        {results.model_spec.factors.map((f2, j) => (
-                                                            <TableCell key={f2} className="text-center font-mono">
-                                                                {results.standardized_solution?.factor_correlations[i][j].toFixed(3)}
-                                                            </TableCell>
-                                                        ))}
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                     </CardContent>
-                                </Card>
-                              )}
-                        </div>
+                          )}
                     </div>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Indicator Validity (Factor Loadings)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Latent Factor</TableHead>
+                                        <TableHead>Indicator</TableHead>
+                                        <TableHead className="text-right">Standardized Loading</TableHead>
+                                        <TableHead className="text-right">SE</TableHead>
+                                        <TableHead className="text-right">95% CI</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {results.model_spec.factors.map((factor) => {
+                                        const factorItems = factors.find(f => f.name === factor)?.items || [];
+                                        return factorItems.map((item, iIndex) => {
+                                            const loading = results.standardized_solution?.loadings[`${factor}_${item}`] ?? (iIndex === 0 ? 1 : 0); // Fixed loadings are 1
+                                            
+                                            return (
+                                                <TableRow key={`${factor}-${item}`}>
+                                                    {iIndex === 0 && <TableCell rowSpan={factorItems.length} className="font-semibold align-top">{factor}</TableCell>}
+                                                    <TableCell>{item}</TableCell>
+                                                    <TableCell className="text-right font-mono">{loading.toFixed(3)}</TableCell>
+                                                    <TableCell className="text-right font-mono text-muted-foreground">N/A</TableCell>
+                                                    <TableCell className="text-right font-mono text-muted-foreground">N/A</TableCell>
+                                                </TableRow>
+                                            );
+                                        });
+                                    })}
+                                </TableBody>
+                            </Table>
+                             <CardDescription className="text-xs mt-2">Note: Standard Errors and CIs for loadings are not available with this estimation method.</CardDescription>
+                        </CardContent>
+                    </Card>
                 </>
             )}
 

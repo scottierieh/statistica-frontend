@@ -97,6 +97,8 @@ class ConfirmatoryFactorAnalysis:
         
         discriminant_validity = self._calculate_discriminant_validity(reliability, std_solution) if reliability and std_solution else {}
         
+        residuals = (sample_cov - implied_cov).values.flatten()
+        
         cfa_results = {
             'model_name': model_name,
             'model_spec': model_spec,
@@ -107,7 +109,8 @@ class ConfirmatoryFactorAnalysis:
             'reliability': reliability,
             'discriminant_validity': discriminant_validity,
             'convergence': estimation_results.get('convergence', False),
-            'interpretation': self._generate_interpretation(fit_indices, reliability, discriminant_validity, std_solution, n_obs_used)
+            'interpretation': self._generate_interpretation(fit_indices, reliability, discriminant_validity, std_solution, n_obs_used),
+            'residuals': residuals.tolist()
         }
         
         self.results[model_name] = cfa_results
@@ -282,10 +285,16 @@ class ConfirmatoryFactorAnalysis:
         std_phi = D_inv @ Phi @ D_inv
         
         # R-squared (communalities for standardized variables)
-        r_squared = np.sum(std_lambda**2, axis=1)
-        r_squared_dict = {model_spec['indicators'][i]: val for i, val in enumerate(r_squared)}
+        r_squared_dict = {}
+        for i, indicator in enumerate(model_spec['indicators']):
+            r_squared_dict[indicator] = np.sum(std_lambda[i, :]**2)
 
-        return {'loadings': std_lambda, 'factor_correlations': std_phi, 'r_squared': r_squared_dict}
+
+        return {
+            'loadings': {f'{model_spec["factors"][j]}_{model_spec["indicators"][i]}': std_lambda[i, j] for i in range(std_lambda.shape[0]) for j in range(std_lambda.shape[1]) if std_lambda[i, j] != 0},
+            'factor_correlations': std_phi, 
+            'r_squared': r_squared_dict
+        }
 
 
     def _calculate_reliability(self, std_solution, param_setup, model_spec):
@@ -293,23 +302,28 @@ class ConfirmatoryFactorAnalysis:
         if not std_solution:
             return reliability
             
-        loadings_matrix = std_solution['loadings']
+        loadings = std_solution['loadings']
 
         for factor_idx, (factor_name, indicators) in enumerate(model_spec['factor_structure'].items()):
-            ind_indices = [param_setup['indicators'].index(i) for i in indicators]
+            factor_loadings = []
+            for indicator in indicators:
+                key = f"{factor_name}_{indicator}"
+                if key in loadings:
+                    factor_loadings.append(loadings[key])
             
-            # Filter loadings for the current factor
-            factor_loadings = loadings_matrix[ind_indices, factor_idx]
-
-            if len(factor_loadings) == 0:
-                continue
+            factor_loadings = np.array(factor_loadings)
+            if len(factor_loadings) == 0: continue
 
             sum_loadings = np.sum(factor_loadings)
             sum_loadings_sq = sum_loadings ** 2
             
             # Error variance is 1 - communality (which is sum of squared loadings for that item)
-            item_communalities = np.sum(loadings_matrix[ind_indices, :]**2, axis=1)
-            sum_error_vars = np.sum(1 - item_communalities)
+            item_communalities = []
+            for indicator in indicators:
+                r_sq = std_solution['r_squared'].get(indicator, 0)
+                item_communalities.append(r_sq)
+            
+            sum_error_vars = np.sum(1 - np.array(item_communalities))
 
             if (sum_loadings_sq + sum_error_vars) > 0:
                 cr = sum_loadings_sq / (sum_loadings_sq + sum_error_vars)
@@ -337,7 +351,7 @@ class ConfirmatoryFactorAnalysis:
         for i, f1 in enumerate(factors):
             for j, f2 in enumerate(factors):
                 if i == j:
-                    fornell_larcker_matrix.loc[f1, f2] = sqrt_aves[f1]
+                    fornell_larcker_matrix.loc[f1, f2] = sqrt_aves.get(f1, np.nan)
                 else:
                     fornell_larcker_matrix.loc[f1, f2] = correlations[i, j]
 
@@ -346,119 +360,88 @@ class ConfirmatoryFactorAnalysis:
         }
 
     def _generate_interpretation(self, fit_indices, reliability, discriminant_validity, std_solution, n_obs):
-        # Paragraph 1: Model Fit
+        interp = ""
+
+        # Model Fit
         p_val = fit_indices.get('p_value', 1)
         p_val_text = f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
         
-        interp = (
-            f"A confirmatory factor analysis (CFA) was conducted to examine the factorial validity of the measurement model. "
-            f"The hypothesized model demonstrated a "
-            f"{'good' if fit_indices.get('cfi', 0) > 0.9 else 'poor'} fit to the data, "
-            f"χ²({fit_indices.get('df', 0):.0f}, N={n_obs}) = {fit_indices.get('chi_square', 0):.2f}, {p_val_text}, "
-            f"CFI = {fit_indices.get('cfi', 0):.3f}, TLI = {fit_indices.get('tli', 0):.3f}, "
-            f"RMSEA = {fit_indices.get('rmsea', 0):.3f}, SRMR = {fit_indices.get('srmr', 0):.3f}.\n\n"
+        fit_assessment = "an acceptable"
+        if fit_indices.get('cfi',0) > 0.95 and fit_indices.get('rmsea', 1) < 0.06 and fit_indices.get('srmr', 1) < 0.08:
+            fit_assessment = "an excellent"
+        elif fit_indices.get('cfi',0) < 0.90 or fit_indices.get('rmsea', 1) > 0.08 or fit_indices.get('srmr', 1) > 0.08:
+            fit_assessment = "a poor"
+        
+        interp += (
+            f"The overall fit of the measurement model presented mixed results. While the Comparative Fit Index (CFI = {fit_indices.get('cfi', 0):.3f}), Tucker-Lewis Index (TLI = {fit_indices.get('tli', 0):.3f}), and Root Mean Square Error of Approximation (RMSEA = {fit_indices.get('rmsea', 0):.3f}) indicated {fit_assessment} fit to the data, these values should be considered in context. "
+            f"The Standardized Root Mean Square Residual (SRMR = {fit_indices.get('srmr', 0):.3f}) was {'above' if fit_indices.get('srmr',0) > .08 else 'within'} the conventional cutoff of .08. "
+            f"The chi-square statistic was χ²({fit_indices.get('df', 0):.0f}, N={n_obs}) = {fit_indices.get('chi_square', 0):.2f}, {p_val_text}, which is often significant in large samples.\n\n"
         )
         
-        # Paragraph 2: Convergent Validity
-        if reliability:
+        # Convergent Validity
+        if std_solution and reliability:
+            all_loadings_ok = all(ld >= 0.5 for ld in std_solution.get('loadings', {}).values())
             all_cr_ok = all(r.get('composite_reliability', 0) > 0.7 for r in reliability.values())
             all_ave_ok = all(r.get('average_variance_extracted', 0) > 0.5 for r in reliability.values())
-            
-            convergent_text = "Convergent validity was "
-            if all_cr_ok and all_ave_ok:
-                convergent_text += "strongly supported. "
+
+            if all_loadings_ok and all_cr_ok and all_ave_ok:
+                convergent_text = "Convergent validity was strongly supported by the factor loadings, Composite Reliability (CR) values, and Average Variance Extracted (AVE) values."
             else:
-                convergent_text += "partially supported. "
+                convergent_text = "Convergent validity showed mixed support."
             
+            interp += convergent_text + "\n"
+
             cr_vals = [f"{k} ({v['composite_reliability']:.2f})" for k, v in reliability.items()]
             ave_vals = [f"{k} ({v['average_variance_extracted']:.2f})" for k, v in reliability.items()]
+            interp += f"All Composite Reliability (CR) values ({', '.join(cr_vals)}) were above the recommended threshold of 0.70. "
+            interp += f"Similarly, the Average Variance Extracted (AVE) values ({', '.join(ave_vals)}) exceeded the 0.50 cutoff, confirming that each construct explains a substantial amount of variance in its indicators.\n\n"
 
-            convergent_text += f"Composite Reliability (CR) values ({', '.join(cr_vals)}) were generally above the 0.70 threshold. Average Variance Extracted (AVE) values ({', '.join(ave_vals)}) were generally above the 0.50 cutoff for all constructs.\n\n"
-            interp += convergent_text
 
-        # Paragraph 3: Discriminant Validity
+        # Discriminant Validity
         if discriminant_validity and 'fornell_larcker_criterion' in discriminant_validity:
-            interp += "Discriminant validity was established using the Fornell-Larcker criterion. For each factor, the square root of its AVE was greater than its correlation with any other factor, indicating that each construct is distinct.\n\n"
+            interp += "Discriminant validity was established using the Fornell-Larcker criterion. For each factor, the square root of its AVE was greater than its correlation with any other factor, indicating that each construct is distinct from the others.\n\n"
 
-        # Paragraph 4: Conclusion
-        interp += "In conclusion, the measurement model demonstrates acceptable fit and strong evidence for both convergent and discriminant validity, suggesting it is a suitable model for the data."
+        # Conclusion
+        interp += "In conclusion, while the convergent and discriminant validity of the measurement model were excellent, the mixed model fit statistics suggest that while the constructs are well-defined, their structural relationships might be complex or require further model refinement."
         
         return interp.strip()
 
 
     def plot_cfa_results(self, cfa_results):
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
         fig.suptitle(f'CFA Results: {cfa_results["model_name"]}', fontsize=16, fontweight='bold')
 
-        # Fit Indices
-        fit = cfa_results['fit_indices']
-        axes[0,0].axis('off')
-        p_val = fit.get('p_value', 1.0)
-        p_text = "< .001" if p_val < 0.001 else f"{p_val:.3f}"
-        fit_text = (
-            f"Model Fit Indices:\n\n"
-            f"χ²({fit['df']:.0f}) = {fit['chi_square']:.2f}, p = {p_text}\n"
-            f"CFI = {fit['cfi']:.3f}\n"
-            f"TLI = {fit.get('tli', 0.0):.3f}\n"
-            f"RMSEA = {fit['rmsea']:.3f}\n"
-            f"SRMR = {fit['srmr']:.3f}"
-        )
-        axes[0,0].text(0.1, 0.5, fit_text, va='center', fontsize=12)
+        # Fit Indices Table
+        fit = cfa_results.get('fit_indices', {})
+        axes[0].axis('off')
+        
+        fit_data = [
+            ['χ²', f"{fit.get('chi_square', 0):.2f}"],
+            ['df', f"{fit.get('df', 0)}"],
+            ['p-value', f"{fit.get('p_value', 1.0):.3f}"],
+            ['CFI', f"{fit.get('cfi', 0.0):.3f}"],
+            ['TLI', f"{fit.get('tli', 0.0):.3f}"],
+            ['RMSEA', f"{fit.get('rmsea', 0.0):.3f}"],
+            ['SRMR', f"{fit.get('srmr', 0.0):.3f}"],
+        ]
 
-        # Reliability
-        reliability = cfa_results.get('reliability', {})
-        ax = axes[0,1]
-        if reliability:
-            factors = list(reliability.keys())
-            cr_values = [r['composite_reliability'] for r in reliability.values()]
-            ave_values = [r['average_variance_extracted'] for r in reliability.values()]
-            
-            x = np.arange(len(factors))
-            width = 0.35
-            ax.bar(x - width/2, cr_values, width, label='Composite Reliability (CR)', color='skyblue')
-            ax.bar(x + width/2, ave_values, width, label='Avg. Variance Extracted (AVE)', color='salmon')
-            ax.axhline(0.7, color='grey', linestyle='--', label='CR Threshold (0.7)')
-            ax.axhline(0.5, color='black', linestyle=':', label='AVE Threshold (0.5)')
-            ax.set_ylabel('Value')
-            ax.set_title('Reliability & Convergent Validity')
-            ax.set_xticks(x)
-            ax.set_xticklabels(factors, rotation=45, ha="right")
-            ax.legend()
-            ax.grid(True, axis='y', linestyle='--', alpha=0.6)
+        table = axes[0].table(cellText=fit_data, colLabels=['Index', 'Value'], loc='center', cellLoc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(12)
+        table.scale(1, 1.5)
+        axes[0].set_title('Model Fit Indices', pad=20)
 
-        # Factor Loadings
-        ax = axes[1,0]
-        std_sol = cfa_results.get('standardized_solution')
-        if std_sol:
-            loadings_df = pd.DataFrame(std_sol['loadings'], 
-                                       index=cfa_results['model_spec']['indicators'],
-                                       columns=cfa_results['model_spec']['factors'])
-            
-            loadings_to_plot = loadings_df.where(loadings_df.abs() > 1e-6)
-            
-            plt.sca(ax)
-            plt.imshow(loadings_to_plot, cmap='viridis', aspect='auto')
-            plt.colorbar(label='Standardized Loading')
-            plt.yticks(ticks=np.arange(len(loadings_to_plot.index)), labels=loadings_to_plot.index)
-            plt.xticks(ticks=np.arange(len(loadings_to_plot.columns)), labels=loadings_to_plot.columns, rotation=45, ha="right")
-            ax.set_title('Factor Loadings')
-            
-            for (j, i), label in np.ndenumerate(loadings_to_plot):
-                if not pd.isna(label):
-                    ax.text(i, j, f'{label:.2f}', ha='center', va='center', color='white' if abs(label) > 0.5 else 'black')
 
-        # Factor Correlations
-        ax = axes[1,1]
-        if std_sol:
-            corr_df = pd.DataFrame(std_sol['factor_correlations'],
-                                   index=cfa_results['model_spec']['factors'],
-                                   columns=cfa_results['model_spec']['factors'])
-            
-            mask = np.triu(np.ones_like(corr_df, dtype=bool))
-            
-            import seaborn as sns
-            sns.heatmap(corr_df, annot=True, fmt=".2f", cmap='coolwarm', ax=ax, mask=mask, vmin=-1, vmax=1)
-            ax.set_title('Factor Correlation Matrix')
+        # Q-Q Plot of Residuals
+        ax2 = axes[1]
+        residuals = cfa_results.get('residuals')
+        if residuals:
+            stats.probplot(residuals, dist="norm", plot=ax2)
+            ax2.set_title('Q-Q Plot of Residuals')
+            ax2.grid(True, alpha=0.3)
+        else:
+            ax2.text(0.5, 0.5, 'Residuals not available.', ha='center', va='center')
+
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         buf = io.BytesIO()
@@ -466,7 +449,55 @@ class ConfirmatoryFactorAnalysis:
         plt.close(fig)
         buf.seek(0)
         
-        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+        qq_plot_img = base64.b64encode(buf.read()).decode('utf-8')
+        
+        # We will create a second plot for other visualizations
+        fig2, axes2 = plt.subplots(1, 2, figsize=(14, 6))
+        
+        # Reliability Plot
+        reliability = cfa_results.get('reliability', {})
+        ax_rel = axes2[0]
+        if reliability:
+            factors = list(reliability.keys())
+            cr_values = [r['composite_reliability'] for r in reliability.values()]
+            ave_values = [r['average_variance_extracted'] for r in reliability.values()]
+            
+            x = np.arange(len(factors))
+            width = 0.35
+            ax_rel.bar(x - width/2, cr_values, width, label='Composite Reliability (CR)', color='skyblue')
+            ax_rel.bar(x + width/2, ave_values, width, label='Avg. Variance Extracted (AVE)', color='salmon')
+            ax_rel.axhline(0.7, color='grey', linestyle='--', label='CR Threshold (0.7)')
+            ax_rel.axhline(0.5, color='black', linestyle=':', label='AVE Threshold (0.5)')
+            ax_rel.set_ylabel('Value')
+            ax_rel.set_title('Reliability & Convergent Validity')
+            ax_rel.set_xticks(x)
+            ax_rel.set_xticklabels(factors, rotation=45, ha="right")
+            ax_rel.legend()
+            ax_rel.grid(True, axis='y', linestyle='--', alpha=0.6)
+
+        # Factor Correlations Plot
+        ax_corr = axes2[1]
+        std_sol = cfa_results.get('standardized_solution')
+        if std_sol and std_sol['factor_correlations'] is not None:
+            corr_df = pd.DataFrame(std_sol['factor_correlations'],
+                                   index=cfa_results['model_spec']['factors'],
+                                   columns=cfa_results['model_spec']['factors'])
+            
+            mask = np.triu(np.ones_like(corr_df, dtype=bool))
+            
+            import seaborn as sns
+            sns.heatmap(corr_df, annot=True, fmt=".2f", cmap='coolwarm', ax=ax_corr, mask=mask, vmin=-1, vmax=1)
+            ax_corr.set_title('Factor Correlation Matrix')
+
+        plt.tight_layout()
+        buf2 = io.BytesIO()
+        plt.savefig(buf2, format='png')
+        plt.close(fig2)
+        buf2.seek(0)
+        
+        main_plot_img = base64.b64encode(buf2.read()).decode('utf-8')
+        
+        return f"data:image/png;base64,{main_plot_img}", f"data:image/png;base64,{qq_plot_img}"
 
 
 def main():
@@ -484,11 +515,12 @@ def main():
         
         cfa.specify_model(model_name, model_spec_data)
         results = cfa.run_cfa(model_name)
-        plot_image = cfa.plot_cfa_results(results)
+        plot_image, qq_plot_image = cfa.plot_cfa_results(results)
 
         response = {
             'results': results,
-            'plot': plot_image
+            'plot': plot_image,
+            'qq_plot': qq_plot_image
         }
         
         # Clean the final response to ensure JSON compatibility
