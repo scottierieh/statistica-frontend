@@ -30,6 +30,67 @@ class DEAAnalyzer:
         self.inputs = data[input_cols].values
         self.outputs = data[output_cols].values
         
+    def _generate_interpretation(self, results, orientation):
+        scores = np.array([s for s in results['efficiency_scores'].values() if s is not None and not np.isnan(s)])
+        if len(scores) == 0:
+            return "No efficiency scores could be calculated."
+
+        mean_score = np.mean(scores)
+        std_dev = np.std(scores)
+        min_score = np.min(scores)
+        max_score = np.max(scores)
+
+        efficient_units = [dmu for dmu, score in results['efficiency_scores'].items() if score is not None and score >= 0.9999]
+        
+        interpretation = (
+            f"Data Envelopment Analysis revealed varying efficiency levels across the "
+            f"{results['summary']['total_dmus']} examined decision-making units, with efficiency scores ranging from {min_score:.3f} "
+            f"to {max_score:.3f} (M = {mean_score:.3f}, SD = {std_dev:.3f}).\n"
+        )
+
+        interpretation += (
+            f"{len(efficient_units)} unit(s) ({', '.join(efficient_units)}) achieved full efficiency (score ≈ 1.000), "
+            f"serving as benchmark references for suboptimal performers.\n"
+        )
+        
+        inefficient_units = {dmu: score for dmu, score in results['efficiency_scores'].items() if score is not None and score < 0.9999}
+        if inefficient_units:
+            min_eff_dmu = min(inefficient_units, key=inefficient_units.get)
+            min_eff_score = inefficient_units[min_eff_dmu]
+
+            if orientation == 'input':
+                input_reduction = (1 - min_eff_score) * 100
+                interpretation += (
+                    f"Unit '{min_eff_dmu}' demonstrated the lowest efficiency (score = {min_eff_score:.3f}), "
+                    f"indicating that it could potentially reduce its inputs by {input_reduction:.1f}% "
+                    f"while maintaining current output levels.\n"
+                )
+            else: # output-oriented
+                output_increase = ((1 / min_eff_score) - 1) * 100 if min_eff_score > 0 else float('inf')
+                interpretation += (
+                    f"Unit '{min_eff_dmu}' demonstrated the lowest efficiency (score = {min_eff_score:.3f}), "
+                    f"indicating that it could potentially increase its outputs by {output_increase:.1f}% "
+                    f"using its existing resources.\n"
+                )
+
+            # Peer weights for the most inefficient unit
+            peer_weights = results['lambdas'].get(min_eff_dmu)
+            ref_set = results['reference_sets'].get(min_eff_dmu)
+            if peer_weights and ref_set:
+                peer_info = [f"{ref} (weight: {weight:.2f})" for ref, weight in zip(ref_set, [peer_weights[results['dmu_names'].index(r)] for r in ref_set]) if weight > 1e-6]
+                if peer_info:
+                    interpretation += (
+                        f"To improve, '{min_eff_dmu}' should benchmark against the practices of its peer reference set: {', '.join(peer_info)}.\n"
+                    )
+
+        interpretation += (
+            f"Overall, {results['summary']['inefficient_dmus']} out of {results['summary']['total_dmus']} units ({results['summary']['inefficient_dmus']/results['summary']['total_dmus']*100:.1f}%) "
+            "operate below the efficiency frontier, suggesting opportunities for widespread operational improvements."
+        )
+
+        return interpretation
+
+
     def analyze(self, orientation='input', rts='crs'):
         if not SCIPY_AVAILABLE:
             raise ImportError("SciPy library is not installed. Please install it via 'pip install scipy'.")
@@ -47,15 +108,11 @@ class DEAAnalyzer:
                 c[0] = 1
 
                 # Constraints
-                # Input constraints: sum(lambda_j * input_ij) <= theta * input_ik
-                # -> sum(lambda_j * input_ij) - theta * input_ik <= 0
                 A_ub = np.zeros((n_inputs, n_dmus + 1))
                 A_ub[:, 1:] = self.inputs.T
                 A_ub[:, 0] = -self.inputs[k, :]
                 b_ub = np.zeros(n_inputs)
 
-                # Output constraints: sum(lambda_j * output_rj) >= output_rk
-                # -> -sum(lambda_j * output_rj) <= -output_rk
                 A_ub_output = np.zeros((n_outputs, n_dmus + 1))
                 A_ub_output[:, 1:] = -self.outputs.T
                 b_ub_output = -self.outputs[k, :]
@@ -63,7 +120,6 @@ class DEAAnalyzer:
                 A_ub = np.vstack([A_ub, A_ub_output])
                 b_ub = np.concatenate([b_ub, b_ub_output])
 
-                # VRS constraint: sum(lambda_j) = 1
                 if rts == 'vrs':
                     A_eq = np.ones((1, n_dmus + 1))
                     A_eq[0, 0] = 0
@@ -72,7 +128,6 @@ class DEAAnalyzer:
                     A_eq = None
                     b_eq = None
 
-                # Bounds for variables (theta >= 0, lambda >= 0)
                 bounds = [(0, None)] + [(0, None) for _ in range(n_dmus)]
 
                 res = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')
@@ -85,17 +140,13 @@ class DEAAnalyzer:
                     lambdas_list.append([np.nan] * n_dmus)
             
             else: # Output-oriented
-                # Objective function: maximize phi -> minimize -phi
                 c = np.zeros(n_dmus + 1)
                 c[0] = -1
 
-                # Input constraints: sum(lambda_j * input_ij) <= input_ik
                 A_ub = np.zeros((n_inputs, n_dmus + 1))
                 A_ub[:, 1:] = self.inputs.T
                 b_ub = self.inputs[k, :]
 
-                # Output constraints: sum(lambda_j * output_rj) >= phi * output_rk
-                # -> -sum(lambda_j * output_rj) + phi * output_rk <= 0
                 A_ub_output = np.zeros((n_outputs, n_dmus + 1))
                 A_ub_output[:, 1:] = -self.outputs.T
                 A_ub_output[:, 0] = self.outputs[k, :]
@@ -112,7 +163,7 @@ class DEAAnalyzer:
                     A_eq = None
                     b_eq = None
 
-                bounds = [(1, None)] + [(0, None) for _ in range(n_dmus)] # phi >= 1
+                bounds = [(1, None)] + [(0, None) for _ in range(n_dmus)]
 
                 res = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')
 
@@ -124,13 +175,31 @@ class DEAAnalyzer:
                     efficiencies[k] = np.nan
                     lambdas_list.append([np.nan] * n_dmus)
         
-        # Prepare results
         efficiency_scores = {self.dmu_names[i]: eff for i, eff in enumerate(efficiencies)}
         lambdas = {self.dmu_names[i]: l for i, l in enumerate(lambdas_list)}
         reference_sets = {dmu: [self.dmu_names[j] for j, l_val in enumerate(lambdas_list[i]) if l_val > 1e-6]
                           for i, dmu in enumerate(self.dmu_names)}
+        
+        # Prepare final results object
+        eff_scores_list = [s for s in efficiency_scores.values() if s is not None and not np.isnan(s)]
+        summary = {
+            'total_dmus': len(self.dmu_names),
+            'efficient_dmus': sum(1 for e in eff_scores_list if e >= 0.9999),
+            'inefficient_dmus': sum(1 for e in eff_scores_list if e < 0.9999),
+            'average_efficiency': np.mean(eff_scores_list) if eff_scores_list else 0
+        }
+        
+        final_results = {
+            'efficiency_scores': efficiency_scores,
+            'reference_sets': reference_sets,
+            'lambdas': lambdas,
+            'summary': summary,
+            'dmu_col': self.dmu_names[0] if self.dmu_names else "",
+            'dmu_names': self.dmu_names,
+        }
 
-        return efficiency_scores, lambdas, reference_sets
+        final_results['interpretation'] = self._generate_interpretation(final_results, orientation)
+        return final_results
 
 
 def main():
@@ -148,7 +217,6 @@ def main():
             
         df = pd.DataFrame(data_json)
         
-        # Ensure numeric types and positive values
         for col in input_cols + output_cols:
             df[col] = pd.to_numeric(df[col], errors='coerce')
             df.dropna(subset=[col], inplace=True)
@@ -159,25 +227,10 @@ def main():
              raise ValueError("No valid numeric data for analysis.")
 
         analyzer = DEAAnalyzer(df, input_cols, output_cols, dmu_col)
-        efficiencies, lambdas, reference_sets = analyzer.analyze(orientation, rts)
-
-        eff_scores = list(efficiencies.values())
-        summary = {
-            'total_dmus': len(df),
-            'efficient_dmus': sum(1 for e in eff_scores if not np.isnan(e) and e >= 0.9999),
-            'inefficient_dmus': sum(1 for e in eff_scores if not np.isnan(e) and e < 0.8),
-            'average_efficiency': np.nanmean(eff_scores) if eff_scores else 0
-        }
+        results = analyzer.analyze(orientation, rts)
 
         response = {
-            'results': {
-                'efficiency_scores': efficiencies,
-                'reference_sets': reference_sets,
-                'lambdas': lambdas,
-                'summary': summary,
-                'dmu_col': dmu_col,
-                'dmu_names': analyzer.dmu_names, # Pass dmu_names for consistency
-            }
+            'results': results
         }
         
         print(json.dumps(response, default=_to_native_type))

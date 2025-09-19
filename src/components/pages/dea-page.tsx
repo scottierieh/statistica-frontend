@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Binary, HeartPulse, BarChart as BarChartIcon } from 'lucide-react';
+import { Sigma, Loader2, Binary, HeartPulse, BarChart as BarChartIcon, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -18,6 +18,7 @@ import { Input } from '../ui/input';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
 import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell } from 'recharts';
 import { Badge } from '../ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 
 interface DeaResults {
@@ -32,6 +33,7 @@ interface DeaResults {
     };
     dmu_col: string;
     dmu_names: string[];
+    interpretation: string;
 }
 
 interface FullDeaResponse {
@@ -257,12 +259,26 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
+                            <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <Alert>
+                                <AlertTitle>Analysis Summary</AlertTitle>
+                                <AlertDescription className="whitespace-pre-wrap">
+                                    {results.interpretation}
+                                </AlertDescription>
+                            </Alert>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
                             <CardTitle>DEA Summary</CardTitle>
                         </CardHeader>
                         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Total DMUs</p><p className="text-2xl font-bold">{results.summary.total_dmus}</p></div>
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Efficient DMUs</p><p className="text-2xl font-bold text-green-600">{results.summary.efficient_dmus}</p></div>
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Inefficient DMUs (&lt;0.8)</p><p className="text-2xl font-bold text-destructive">{results.summary.inefficient_dmus}</p></div>
+                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Inefficient DMUs</p><p className="text-2xl font-bold text-destructive">{results.summary.inefficient_dmus}</p></div>
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Avg. Efficiency</p><p className="text-2xl font-bold">{results.summary.average_efficiency.toFixed(3)}</p></div>
                         </CardContent>
                     </Card>
@@ -273,7 +289,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             <CardContent>
                                 <ChartContainer config={{}} className="w-full h-[300px]">
                                     <ResponsiveContainer>
-                                        <BarChart data={Object.values(results.efficiency_scores).map((score, i) => ({name: `DMU ${i+1}`, score}))}>
+                                        <BarChart data={Object.entries(results.efficiency_scores).map(([name, score]) => ({name, score}))}>
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis dataKey="name" tick={false} />
                                             <YAxis domain={[0, 'dataMax + 0.1']} />
@@ -317,7 +333,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                                         <TableRow>
                                             <TableHead>{results.dmu_col}</TableHead>
                                             <TableHead className="text-right">Efficiency Score</TableHead>
-                                            <TableHead>Reference Set</TableHead>
+                                            <TableHead>Reference Set (Peer Group)</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
