@@ -39,6 +39,35 @@ def _interpret_correlation_magnitude(r):
     if abs_r >= 0.1: return 'weak'
     return 'negligible'
 
+def _generate_interpretation(strongest_corr, n, method):
+    if not strongest_corr:
+        return { "title": "No Significant Correlations", "body": "No significant correlations were found among the selected variables."}
+        
+    r = strongest_corr['correlation']
+    p = strongest_corr['p_value']
+    var1 = strongest_corr['variable_1']
+    var2 = strongest_corr['variable_2']
+    
+    method_map = {
+        'pearson': "A Pearson product-moment correlation",
+        'spearman': "A Spearman rank-order correlation",
+        'kendall': "A Kendall's tau correlation"
+    }
+    
+    direction = "positive" if r > 0 else "negative"
+    strength = _interpret_correlation_magnitude(r)
+    significance = "significant" if p < 0.05 else "not significant"
+    df = n - 2 # for pearson and spearman
+    
+    title = f"Strongest Finding: {var1} & {var2}"
+    body = (
+        f"{method_map.get(method, 'A correlation')} was run to assess the relationship between '{var1}' and '{var2}'.\n"
+        f"A {strength}, {direction} correlation was found, which was statistically {significance} "
+        f"(r({df}) = {r:.3f}, p = {p:.3f})."
+    )
+    
+    return {"title": title, "body": body}
+
 def generate_pairs_plot(df, method='pearson'):
     """Generates a pairs plot (scatter matrix) for the dataframe."""
     
@@ -176,17 +205,9 @@ def main():
         else:
             summary_stats = { 'mean_correlation': 0,'median_correlation': 0,'std_dev': 0,'range': [0, 0],'significant_correlations': 0,'total_pairs': 0}
         
-        effect_sizes_list = [_interpret_correlation_magnitude(c['correlation']) for c in all_correlations]
-        effect_size_counts = { 'very strong': effect_sizes_list.count('very strong'), 'strong': effect_sizes_list.count('strong'),'moderate': effect_sizes_list.count('moderate'), 'weak': effect_sizes_list.count('weak'), 'negligible': effect_sizes_list.count('negligible')}
-
-        strongest_effect = 'negligible'
-        if effect_size_counts.get('very strong', 0) > 0: strongest_effect = 'very strong'
-        elif effect_size_counts.get('strong', 0) > 0: strongest_effect = 'strong'
-        elif effect_size_counts.get('moderate', 0) > 0: strongest_effect = 'moderate'
-        elif effect_size_counts.get('weak', 0) > 0: strongest_effect = 'weak'
+        strongest_correlations = sorted(all_correlations, key=lambda x: abs(x['correlation']), reverse=True)
         
-        effect_sizes_summary = {'distribution': effect_size_counts, 'strongest_effect': strongest_effect}
-        strongest_correlations = sorted(all_correlations, key=lambda x: abs(x['correlation']), reverse=True)[:10]
+        interpretation = _generate_interpretation(strongest_correlations[0] if strongest_correlations else None, len(df_clean), method)
 
         # Generate plots
         pairs_plot_img = generate_pairs_plot(df_clean[current_vars], method)
@@ -196,8 +217,8 @@ def main():
             "correlation_matrix": corr_matrix.to_dict(),
             "p_value_matrix": p_value_matrix.to_dict(),
             "summary_statistics": summary_stats,
-            "effect_sizes": effect_sizes_summary,
-            "strongest_correlations": strongest_correlations,
+            "strongest_correlations": strongest_correlations[:10],
+            "interpretation": interpretation,
             "pairs_plot": f"data:image/png;base64,{pairs_plot_img}",
             "heatmap_plot": heatmap_plot_json,
         }
@@ -211,3 +232,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
