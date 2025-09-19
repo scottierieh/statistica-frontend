@@ -58,6 +58,7 @@ import {
   Atom,
   MessagesSquare,
   Search,
+  GitCommit,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -123,8 +124,10 @@ import SnaPage from './pages/sna-page';
 import TopicModelingPage from './pages/topic-modeling-page';
 import DeaPage from './pages/dea-page';
 import TTestPage from './pages/t-test-page';
+import AhpPage from './pages/ahp-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
+
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -187,6 +190,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'topic-modeling': TopicModelingPage,
     dea: DeaPage,
     't-test': TTestPage,
+    ahp: AhpPage,
 };
 
 const analysisMenu = [
@@ -315,6 +319,7 @@ const analysisMenu = [
     field: 'Specialized Models',
     icon: FlaskConical,
     methods: [
+      { id: 'ahp', label: 'AHP Analysis'},
       { id: 'conjoint', label: 'Conjoint Analysis' },
       { id: 'cbc', label: 'Choice-Based Conjoint (CBC)' },
       { id: 'ipa', label: 'Importance-Performance Analysis (IPA)' },
@@ -422,9 +427,9 @@ export default function StatisticaApp() {
   };
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
-    if (example.id === 'meta-analysis') {
-        setActiveAnalysis('meta-analysis');
-        toast({title: 'Meta-Analysis', description: 'This analysis requires manual data entry. An example has been pre-filled for you.'});
+    if (example.id === 'meta-analysis' || example.id === 'ahp') {
+        setActiveAnalysis(example.id);
+        toast({title: example.name, description: 'This analysis requires manual data entry. An example has been pre-filled for you.'});
         return;
     }
     processData(example.data, example.name);
@@ -662,7 +667,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && (
+            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && activeAnalysis !== 'ahp' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
@@ -707,4 +712,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
