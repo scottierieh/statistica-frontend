@@ -14,4 +14,3 @@ plotly
 scikit-learn-extra
 hdbscan
 pingouin
-factor-analyzer

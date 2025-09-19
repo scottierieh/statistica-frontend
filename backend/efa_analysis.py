@@ -12,9 +12,6 @@ import base64
 import pingouin as pg
 import warnings
 
-# Import the new library for KMO calculation
-from factor_analyzer.factor_analyzer import calculate_kmo
-
 warnings.filterwarnings('ignore')
 
 
@@ -168,15 +165,15 @@ def main():
 
         # --- Adequacy Tests ---
         try:
-            kmo_all, kmo_model = calculate_kmo(df_items)
-            kmo_overall = kmo_model
-            kmo_interpretation = _interpret_kmo(kmo_model)
+            kmo_result = pg.kmo(df_items)
+            kmo_overall = kmo_result.loc['KMO', 'KMO']
+            kmo_interpretation = _interpret_kmo(kmo_overall)
         except Exception:
             kmo_overall = 0.0
             kmo_interpretation = "Unavailable"
         
         try:
-             bartlett_stat, bartlett_p = pg.sphericity(df_items, method='bartlett')
+             bartlett_stat, bartlett_p, _ = pg.sphericity(df_items)
              bartlett_significant = bool(bartlett_p < 0.05) if bartlett_p is not None else False
         except Exception:
              bartlett_stat, bartlett_p, bartlett_significant = None, None, False
@@ -255,3 +252,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
