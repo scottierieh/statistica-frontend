@@ -191,7 +191,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         )
     }
     
-    const alphaInterpretation = reliabilityResult ? getAlphaInterpretation(reliabilityResult.alpha) : null;
+    const alphaInterpretation = reliabilityResult ? getAlphaInterpretationLevel(reliabilityResult.alpha) : null;
 
     return (
         <div className="flex flex-col gap-4">
