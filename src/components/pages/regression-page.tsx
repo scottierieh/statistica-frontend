@@ -59,6 +59,46 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
+const InterpretationDisplay = ({ interpretation, warnings }: { interpretation: string, warnings: string[] }) => {
+    const formattedInterpretation = useMemo(() => {
+        if (!interpretation) return null;
+        return interpretation
+            .replace(/\n/g, '<br />')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<i>$1</i>')
+            .replace(/F\((.*?)\)\s*=\s*(.*?),/g, '<i>F</i>($1) = $2,')
+            .replace(/p\s*=\s*(\.\d+)/g, '<i>p</i> = $1')
+            .replace(/p\s*<\s*(\.\d+)/g, '<i>p</i> < $1')
+            .replace(/R²adj\s*=\s*([\d.-]+)/g, '<i>R</i>²adj = $1')
+            .replace(/R²\s*=\s*([\d.-]+)/g, '<i>R</i>² = $1')
+            .replace(/B\s*=\s*([\d.-]+)/g, '<i>B</i> = $1');
+    }, [interpretation]);
+
+    if (!interpretation) return null;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
+                 {warnings.length > 0 && (
+                    <div className="space-y-2 mt-4">
+                        {warnings.map((warning, i) => (
+                            <Alert key={i} variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Warning</AlertTitle>
+                                <AlertDescription>{warning.replace('Warning: ', '')}</AlertDescription>
+                            </Alert>
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    )
+}
+
 const getSignificanceStars = (p: number | undefined) => {
     if (p === undefined || p === null) return '';
     if (p < 0.001) return '***';
@@ -429,29 +469,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Interpretation</CardTitle>
-                        </CardHeader>
-                         <CardContent>
-                            <Alert variant={results.diagnostics.f_pvalue != null && results.diagnostics.f_pvalue < 0.05 ? 'default' : 'secondary'}>
-                                {results.diagnostics.f_pvalue != null && results.diagnostics.f_pvalue < 0.05 ? <CheckCircle className="h-4 w-4 text-green-600" /> : <AlertTriangle className="h-4 w-4" />}
-                                <AlertTitle>{results.diagnostics.f_pvalue != null && results.diagnostics.f_pvalue < 0.05 ? 'Statistically Significant Model' : 'Not Statistically Significant'}</AlertTitle>
-                                <AlertDescription dangerouslySetInnerHTML={{ __html: interpretationText.replace(/\n/g, '<br />')}} />
-                            </Alert>
-                             {warnings.length > 0 && (
-                                <div className="space-y-2 mt-4">
-                                    {warnings.map((warning, i) => (
-                                        <Alert key={i} variant="destructive">
-                                            <AlertTriangle className="h-4 w-4" />
-                                            <AlertTitle>Warning</AlertTitle>
-                                            <AlertDescription>{warning.replace('Warning: ', '')}</AlertDescription>
-                                        </Alert>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                    <InterpretationDisplay interpretation={interpretationText} warnings={warnings} />
                     
                      <div className="grid lg:grid-cols-2 gap-4">
                         <Card>
