@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -9,12 +8,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sigma, AlertCircle, Loader2, ShieldCheck, Settings2, Bot } from 'lucide-react';
+import { Sigma, AlertTriangle, Loader2, ShieldCheck, Settings2, Bot, CheckCircle2 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Type definitions for the rich Reliability results
 interface ReliabilityResults {
@@ -38,7 +38,7 @@ interface ReliabilityResults {
     interpretation: string;
 }
 
-const getAlphaInterpretation = (alpha: number): { level: 'Excellent' | 'Good' | 'Acceptable' | 'Questionable' | 'Poor' | 'Unacceptable', color: string } => {
+const getAlphaInterpretationLevel = (alpha: number): { level: 'Excellent' | 'Good' | 'Acceptable' | 'Questionable' | 'Poor' | 'Unacceptable', color: string } => {
     if (alpha >= 0.9) return { level: 'Excellent', color: 'bg-green-600' };
     if (alpha >= 0.8) return { level: 'Good', color: 'bg-green-500' };
     if (alpha >= 0.7) return { level: 'Acceptable', color: 'bg-yellow-500' };
@@ -47,6 +47,37 @@ const getAlphaInterpretation = (alpha: number): { level: 'Excellent' | 'Good' | 
     return { level: 'Unacceptable', color: 'bg-red-600' };
 };
 
+
+const InterpretationDisplay = ({ interpretation, alpha }: { interpretation?: string, alpha?: number }) => {
+    const isAcceptable = alpha !== undefined && alpha >= 0.7;
+
+    const formattedInterpretation = useMemo(() => {
+        if (!interpretation) return null;
+        return interpretation
+            .replace(/\n/g, '<br />')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<i>$1</i>')
+            .replace(/α\s*=\s*(\.\d+)/g, '<i>α</i> = $1');
+
+    }, [interpretation]);
+
+    if (!interpretation) return null;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Alert variant={isAcceptable ? 'default' : 'destructive'}>
+                    {isAcceptable ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                    <AlertTitle>{isAcceptable ? "Acceptable to Excellent Reliability" : "Poor to Unacceptable Reliability"}</AlertTitle>
+                    {formattedInterpretation && <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />}
+                </Alert>
+            </CardContent>
+        </Card>
+    );
+}
 
 interface ReliabilityPageProps {
     data: DataSet;
@@ -140,17 +171,13 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                                 const Icon = ex.icon;
                                 return (
                                 <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                            <Icon className="h-6 w-6 text-secondary-foreground" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </div>
+                                    <CardHeader>
+                                        <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                        <CardDescription className="text-xs">{ex.description}</CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                            <Icon className="mr-2 h-4 w-4" />
                                             Load this data
                                         </Button>
                                     </CardContent>
@@ -270,14 +297,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
                                 </div>
                             </CardContent>
                         </Card>
-                         <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{reliabilityResult.interpretation}</p>
-                            </CardContent>
-                        </Card>
+                         <InterpretationDisplay interpretation={reliabilityResult.interpretation} alpha={reliabilityResult.alpha} />
                     </div>
                     <Card className="lg:col-span-1">
                         <CardHeader><CardTitle className="font-headline">Item-Total Statistics</CardTitle><CardDescription>How each item relates to the overall scale.</CardDescription></CardHeader>
