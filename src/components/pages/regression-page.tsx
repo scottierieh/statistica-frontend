@@ -59,7 +59,9 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
-const InterpretationDisplay = ({ interpretation, warnings }: { interpretation: string, warnings: string[] }) => {
+const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: string, f_pvalue?: number }) => {
+    const isSignificant = f_pvalue !== undefined && f_pvalue < 0.05;
+    
     const formattedInterpretation = useMemo(() => {
         if (!interpretation) return null;
         return interpretation
@@ -81,22 +83,15 @@ const InterpretationDisplay = ({ interpretation, warnings }: { interpretation: s
             <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-                 <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
-                 {warnings.length > 0 && (
-                    <div className="space-y-2 mt-4">
-                        {warnings.map((warning, i) => (
-                            <Alert key={i} variant="destructive">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>Warning</AlertTitle>
-                                <AlertDescription>{warning.replace('Warning: ', '')}</AlertDescription>
-                            </Alert>
-                        ))}
-                    </div>
-                )}
+            <CardContent>
+                <Alert variant={isSignificant ? 'default' : 'secondary'}>
+                    {isSignificant ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                    <AlertTitle>{isSignificant ? "Statistically Significant Model" : "Not Statistically Significant Model"}</AlertTitle>
+                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
+                </Alert>
             </CardContent>
         </Card>
-    )
+    );
 }
 
 const getSignificanceStars = (p: number | undefined) => {
@@ -149,7 +144,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     }, [data, numericHeaders]);
 
     const handleMultiFeatureSelectionChange = (header: string, checked: boolean) => {
-        setMultipleFeatureVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+        setMultipleFeatureVars(prev => checked ? [...prev, header] : prev.filter(v => v !== header));
     };
 
     const handleAnalysis = useCallback(async () => {
@@ -469,7 +464,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                         </CardContent>
                     </Card>
 
-                    <InterpretationDisplay interpretation={interpretationText} warnings={warnings} />
+                    <InterpretationDisplay interpretation={results.interpretation} f_pvalue={results.diagnostics.f_pvalue} />
                     
                      <div className="grid lg:grid-cols-2 gap-4">
                         <Card>
@@ -562,3 +557,4 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 }
 
     
+

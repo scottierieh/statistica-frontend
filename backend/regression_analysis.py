@@ -363,11 +363,9 @@ class RegressionAnalysis:
     def _generate_interpretation(self, metrics, diagnostics, model_name, target_variable, features):
         model_type_str = model_name.replace('_', ' ').title()
         
-        # Sentence 1: Purpose
         feature_list = ", ".join(f"'{f}'" for f in features)
-        interpretation = f"A {model_type_str} regression was run to predict '{target_variable}' from {feature_list}.\n\n"
+        interpretation = f"A {model_type_str} regression was run to predict '{target_variable}' from {feature_list}.\n"
 
-        # Sentence 2 & 3: Model Significance & R-squared
         f_stat = diagnostics.get('f_statistic')
         f_pvalue = diagnostics.get('f_pvalue')
         df_model = diagnostics.get('df_model')
@@ -377,13 +375,12 @@ class RegressionAnalysis:
         if all(v is not None for v in [f_stat, f_pvalue, df_model, df_resid, adj_r2]):
             p_val_str = f"p < .001" if f_pvalue < 0.001 else f"p = {f_pvalue:.3f}"
             model_sig_str = "statistically significant" if f_pvalue < self.alpha else "not statistically significant"
-            interpretation += (f"The overall regression model was {model_sig_str}, *F*({int(df_model)}, {int(df_resid)}) = {f_stat:.2f}, {p_val_str}.\n")
+            interpretation += f"The overall regression model was {model_sig_str}, *F*({int(df_model)}, {int(df_resid)}) = {f_stat:.2f}, {p_val_str}.\n"
             interpretation += f"The model explained {adj_r2*100:.1f}% of the variance in '{target_variable}' (*R*²adj = {adj_r2:.3f}).\n\n"
         elif adj_r2 is not None:
-            interpretation += f"The model explained {adj_r2*100:.1f}% of the variance in '{target_variable}' (*R*² = {metrics.get('r2', 0):.3f}).\n\n"
+             interpretation += f"The model explained {adj_r2*100:.1f}% of the variance in '{target_variable}' (*R*² = {metrics.get('r2', 0):.3f}).\n\n"
 
 
-        # Sentence 4 & 5: Individual Predictors
         coeffs = diagnostics.get('coefficient_tests')
         if coeffs and coeffs.get('pvalues') and any(coeffs.get('pvalues')):
             params = coeffs['params']
@@ -399,7 +396,6 @@ class RegressionAnalysis:
             if sig_vars_text:
                 interpretation += f"It was found that {', '.join(sig_vars_text)} significantly predicted '{target_variable}'.\n\n"
 
-        # Sentence 6: Regression Equation
         if coeffs:
             b0 = coeffs['params'].get('const', 0)
             b1_str_parts = []
@@ -414,23 +410,22 @@ class RegressionAnalysis:
 
         interpretation = interpretation.strip()
 
-        # Diagnostic warnings
-        warnings = []
+        warnings_list = []
         normality_p = diagnostics.get('normality_tests', {}).get('shapiro_wilk', {}).get('p_value')
         if normality_p is not None and normality_p < self.alpha:
-            warnings.append("Warning: The residuals are not normally distributed (Shapiro-Wilk p < 0.05). This can affect the validity of p-values for the coefficients. Consider transforming the dependent variable (e.g., log transformation) or using a robust regression method.")
+            warnings_list.append("Warning: The residuals are not normally distributed (Shapiro-Wilk p < 0.05). This can affect the validity of p-values for the coefficients. Consider transforming the dependent variable (e.g., log transformation) or using a robust regression method.")
 
         hetero_p = diagnostics.get('heteroscedasticity_tests', {}).get('breusch_pagan', {}).get('p_value')
         if hetero_p is not None and hetero_p < self.alpha:
-            warnings.append("Warning: Heteroscedasticity detected (Breusch-Pagan p < 0.05), meaning the variance of residuals is not constant. This can lead to unreliable standard errors. Consider using robust standard errors or a different model specification.")
+            warnings_list.append("Warning: Heteroscedasticity detected (Breusch-Pagan p < 0.05), meaning the variance of residuals is not constant. This can lead to unreliable standard errors. Consider using robust standard errors or a different model specification.")
 
         vif_data = diagnostics.get('vif', {})
         high_vif_vars = [var for var, vif in vif_data.items() if vif > 10]
         if high_vif_vars:
-            warnings.append(f"Warning: High multicollinearity detected (VIF > 10) for variables: {', '.join(high_vif_vars)}. This suggests these variables are highly correlated, which can inflate standard errors and make coefficient estimates unstable. Consider removing one or more of these variables and re-running the analysis.")
+            warnings_list.append(f"Warning: High multicollinearity detected (VIF > 10) for variables: {', '.join(high_vif_vars)}. This suggests these variables are highly correlated, which can inflate standard errors and make coefficient estimates unstable. Consider removing one or more of these variables and re-running the analysis.")
 
-        if warnings:
-            interpretation += "\n\n--- Diagnostic Warnings ---\n" + "\n".join(warnings)
+        if warnings_list:
+            interpretation += "\n\n--- Diagnostic Warnings ---\n" + "\n".join(warnings_list)
 
         return interpretation
 
