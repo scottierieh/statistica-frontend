@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -22,6 +23,7 @@ interface PcaResults {
     loadings: number[][];
     n_components: number;
     variables: string[];
+    interpretation: string;
 }
 
 interface FullPcaResponse {
@@ -161,7 +163,7 @@ export default function PcaPage({ data, numericHeaders, onLoadExample }: PcaPage
                             <Label>Number of Components (Optional)</Label>
                             <Input 
                                 type="number" 
-                                placeholder="Auto"
+                                placeholder="Auto (based on eigenvalues)"
                                 value={nComponents ?? ''}
                                 onChange={e => setNComponents(e.target.value ? parseInt(e.target.value) : null)}
                                 min="1"
@@ -190,7 +192,16 @@ export default function PcaPage({ data, numericHeaders, onLoadExample }: PcaPage
                             </CardContent>
                         </Card>
                     )}
-
+                    {results.interpretation && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Interpretation</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{results.interpretation}</p>
+                            </CardContent>
+                        </Card>
+                    )}
                     <div className="grid lg:grid-cols-2 gap-4">
                         <Card>
                             <CardHeader>
@@ -241,7 +252,12 @@ export default function PcaPage({ data, numericHeaders, onLoadExample }: PcaPage
                                             <TableRow key={variable}>
                                                 <TableCell>{variable}</TableCell>
                                                 {results.loadings[varIndex].map((loading, compIndex) => (
-                                                    <TableCell key={compIndex} className="font-mono text-right">{loading.toFixed(3)}</TableCell>
+                                                    <TableCell 
+                                                        key={compIndex} 
+                                                        className={`text-right font-mono ${Math.abs(loading) >= 0.4 ? 'font-bold text-primary' : ''}`}
+                                                    >
+                                                        {loading.toFixed(3)}
+                                                    </TableCell>
                                                 ))}
                                             </TableRow>
                                         ))}
