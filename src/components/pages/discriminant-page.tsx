@@ -8,56 +8,47 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Users, CheckCircle, XCircle } from 'lucide-react';
+import { Sigma, Loader2, Users, CheckCircle, XCircle, Search, BarChart3, Binary } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  BarChart,
+  ScatterChart,
+  Scatter,
   XAxis,
   YAxis,
   Tooltip,
-  Bar,
   ResponsiveContainer,
-  CartesianGrid,
   Legend,
+  ZAxis
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import Image from 'next/image';
 
-
-// Type definitions for the Discriminant Analysis results
 interface AnalysisResults {
-    groups: string[];
-    predictor_vars: string[];
-    lda?: MethodResult;
-    qda?: MethodResult;
-    plot?: string;
-}
-
-interface MethodResult {
-    metrics: {
+    eda: {
+        pair_plot: string | null;
+        heatmap: string | null;
+    },
+    lda_results: {
+        explained_variance_ratio: number[];
+        lda_train_transformed: number[][];
+        train_labels: number[];
+    },
+    classification_results: {
         accuracy: number;
         confusion_matrix: number[][];
-        per_group_accuracy: { [key: string]: number };
-        posterior_probabilities?: { [key: string]: number };
-    };
-    coefficients?: number[][];
-    intercepts?: number[];
-    group_means: number[][];
-    priors: number[];
-    explained_variance_ratio?: number[];
-    error?: string;
+    },
+    meta: {
+        groups: string[];
+        n_components: number;
+    }
 }
 
 const ConfusionMatrix = ({ matrix, groups }: { matrix: number[][], groups: string[] }) => {
     const maxVal = Math.max(...matrix.flat());
-
     const getCellColor = (value: number, row: number, col: number) => {
-        if (row === col) {
-            return `hsl(var(--primary) / ${Math.max(0.1, value / maxVal)})`;
-        }
+        if (row === col) return `hsl(var(--primary) / ${Math.max(0.1, value / maxVal)})`;
         return `hsl(var(--destructive) / ${Math.max(0.1, value / maxVal)})`;
     }
 
@@ -74,11 +65,7 @@ const ConfusionMatrix = ({ matrix, groups }: { matrix: number[][], groups: strin
                     <TableRow key={g}>
                         <TableHead>{g}</TableHead>
                         {groups.map((_, colIndex) => (
-                            <TableCell 
-                                key={`${g}-${colIndex}`} 
-                                className="text-center font-mono"
-                                style={{backgroundColor: getCellColor(matrix[rowIndex][colIndex], rowIndex, colIndex) }}
-                            >
+                            <TableCell key={`${g}-${colIndex}`} className="text-center font-mono" style={{ backgroundColor: getCellColor(matrix[rowIndex][colIndex], rowIndex, colIndex) }}>
                                 {matrix[rowIndex][colIndex]}
                             </TableCell>
                         ))}
@@ -89,160 +76,34 @@ const ConfusionMatrix = ({ matrix, groups }: { matrix: number[][], groups: strin
     );
 };
 
-const GroupMeansChart = ({ means, groups, predictors }: { means: number[][], groups: string[], predictors: string[] }) => {
-    
-    const chartData = predictors.map((predictor, predIndex) => {
-        const entry: {[key:string]: string | number} = { name: predictor };
-        groups.forEach((group, groupIndex) => {
-            entry[group] = means[groupIndex][predIndex];
-        });
-        return entry;
-    });
+const LdaScatterPlot = ({ data, groups, explainedVariance }: { data: number[][], groups: string[], explainedVariance: number[] }) => {
+    const chartData = data.map((point, index) => ({
+        ld1: point[0],
+        ld2: point.length > 1 ? point[1] : 0,
+        group: groups[index]
+    }));
 
-    const chartConfig = groups.reduce((config, group, i) => {
-        config[group] = { label: group, color: `hsl(var(--chart-${i + 1}))`};
-        return config;
+    const chartConfig = groups.reduce((acc, group, i) => {
+        acc[group] = { label: group, color: `hsl(var(--chart-${i + 1}))` };
+        return acc;
     }, {} as any);
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">Group Means Comparison</CardTitle>
-                <CardDescription>Comparing the average standardized values of predictors across groups.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <ChartContainer config={chartConfig} className="w-full h-[300px]">
-                     <ResponsiveContainer>
-                         <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
-                            <CartesianGrid vertical={false} />
-                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} tick={{fontSize: 12}} />
-                            <YAxis />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Legend verticalAlign='top'/>
-                            {groups.map((group, i) => (
-                                <Bar key={group} dataKey={group} fill={`var(--color-${group})`} radius={4} />
-                            ))}
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
-            </CardContent>
-        </Card>
-    )
-}
-
-const ResultDisplay = ({ analysisResults, methodName }: { analysisResults: AnalysisResults, methodName: 'lda' | 'qda' }) => {
-    const results = analysisResults[methodName];
-    if (!results || results.error) {
-        return <p className="text-destructive">Error in {methodName.toUpperCase()} analysis: {results?.error}</p>
-    }
-
-    const accuracyPercent = (results.metrics.accuracy * 100).toFixed(2);
-    
-    return (
-        <div className="space-y-4">
-             <div className="grid md:grid-cols-2 gap-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Overall Performance</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-4xl font-bold">{accuracyPercent}%</p>
-                        <p className="text-sm text-muted-foreground">Overall Classification Accuracy</p>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader><CardTitle className="font-headline">Confusion Matrix</CardTitle></CardHeader>
-                    <CardContent>
-                        <ConfusionMatrix matrix={results.metrics.confusion_matrix} groups={analysisResults.groups} />
-                    </CardContent>
-                </Card>
-             </div>
-            
-            {methodName === 'lda' && analysisResults.plot && (
-                <Card>
-                    <CardHeader><CardTitle>Visualizations</CardTitle></CardHeader>
-                    <CardContent>
-                        <Image src={analysisResults.plot} alt="Discriminant Analysis Plots" width={1800} height={500} className="w-full rounded-md border"/>
-                    </CardContent>
-                </Card>
-            )}
-
-
-            <GroupMeansChart means={results.group_means} groups={analysisResults.groups} predictors={analysisResults.predictor_vars} />
-
-            {methodName === 'lda' && results.coefficients && results.intercepts && (
-                <Card>
-                    <CardHeader><CardTitle className="font-headline">Discriminant Function Coefficients</CardTitle></CardHeader>
-                    <CardContent>
-                        <ScrollArea className="h-64">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Variable</TableHead>
-                                        {results.coefficients.map((_, i) => <TableHead key={i} className="text-right">Function {i+1}</TableHead>)}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {analysisResults.predictor_vars.map((variable, varIndex) => (
-                                        <TableRow key={variable}>
-                                            <TableCell>{variable}</TableCell>
-                                             {results.coefficients?.map((func, funcIndex) => (
-                                                <TableCell key={funcIndex} className="text-right font-mono">{func[varIndex]?.toFixed(4) || 'N/A'}</TableCell>
-                                             ))}
-                                        </TableRow>
-                                    ))}
-                                    <TableRow>
-                                        <TableCell className="font-bold">Intercept</TableCell>
-                                        {results.intercepts.map((intercept, i) => (
-                                            <TableCell key={i} className="text-right font-mono font-bold">{intercept.toFixed(4)}</TableCell>
-                                        ))}
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
-            )}
-            
-            {methodName === 'lda' && results.explained_variance_ratio && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Explained Variance Ratio</CardTitle>
-                        <CardDescription>Proportion of variance explained by each discriminant function.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="space-y-2 text-sm">
-                            {results.explained_variance_ratio.map((ratio, i) => (
-                                <li key={i} className="flex justify-between">
-                                    <span>Function {i+1}:</span>
-                                    <span className="font-mono">{(ratio * 100).toFixed(2)}%</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </CardContent>
-                </Card>
-            )}
-
-             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Prior Probabilities</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ul className="space-y-2 text-sm">
-                        {results.priors.map((prior, i) => (
-                            <li key={analysisResults.groups[i]} className="flex justify-between">
-                                <span>{analysisResults.groups[i]}:</span>
-                                <span className="font-mono">{prior.toFixed(4)}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </CardContent>
-            </Card>
-
-        </div>
-    )
-}
-
+        <ChartContainer config={chartConfig} className="w-full h-96">
+            <ResponsiveContainer>
+                <ScatterChart>
+                    <XAxis type="number" dataKey="ld1" name={`LD1 (${(explainedVariance[0] * 100).toFixed(1)}%)`} />
+                    <YAxis type="number" dataKey="ld2" name={explainedVariance.length > 1 ? `LD2 (${(explainedVariance[1] * 100).toFixed(1)}%)` : ''} />
+                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
+                    <Legend />
+                    {groups.map((group, i) => (
+                        <Scatter key={group} name={group} data={chartData.filter(d => d.group === group)} fill={`var(--color-${group})`} />
+                    ))}
+                </ScatterChart>
+            </ResponsiveContainer>
+        </ChartContainer>
+    );
+};
 
 interface DiscriminantPageProps {
     data: DataSet;
@@ -269,9 +130,7 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
     }, [data, numericHeaders, categoricalHeaders]);
     
     const handlePredictorSelectionChange = (header: string, checked: boolean) => {
-        setPredictorVars(prev => 
-        checked ? [...prev, header] : prev.filter(h => h !== header)
-        );
+        setPredictorVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     };
 
     const handleAnalysis = useCallback(async () => {
@@ -283,17 +142,11 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
         setIsLoading(true);
         setAnalysisResult(null);
         
-        const backendUrl = '/api/analysis/discriminant';
-
         try {
-            const response = await fetch(backendUrl, {
+            const response = await fetch('/api/analysis/discriminant', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    data: data,
-                    groupVar: groupVar,
-                    predictorVars: predictorVars
-                })
+                body: JSON.stringify({ data, groupVar, predictorVars })
             });
 
             if (!response.ok) {
@@ -302,15 +155,12 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
             }
             
             const result = await response.json();
-
-            if (result.error) {
-              throw new Error(result.error);
-            }
+            if (result.error) throw new Error(result.error);
             setAnalysisResult(result);
 
         } catch(e: any) {
             console.error('Analysis error:', e);
-            toast({variant: 'destructive', title: 'Analysis Error', description: e.message || 'An unexpected error occurred. Please check the console for details.'})
+            toast({variant: 'destructive', title: 'Analysis Error', description: e.message || 'An unexpected error occurred.'})
             setAnalysisResult(null);
         } finally {
             setIsLoading(false);
@@ -328,30 +178,19 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
                            To perform this analysis, you need data with at least one categorical group variable and one numeric predictor variable. Try an example dataset.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {discriminantExamples.map((ex) => {
-                                const Icon = ex.icon;
-                                return (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader>
-                                        <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                        <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                            Load this data
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
+                     {discriminantExamples.length > 0 && (
+                        <CardContent>
+                           <Button onClick={() => onLoadExample(discriminantExamples[0])} className="w-full" size="sm">
+                                Load {discriminantExamples[0].name}
+                            </Button>
+                        </CardContent>
+                    )}
                 </Card>
             </div>
         )
     }
+
+    const { results } = { results: analysisResult };
 
     return (
         <div className="flex flex-col gap-4">
@@ -377,14 +216,8 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
                                 <div className="space-y-2">
                                     {numericHeaders.map(header => (
                                     <div key={header} className="flex items-center space-x-2">
-                                        <Checkbox
-                                        id={`pred-${header}`}
-                                        checked={predictorVars.includes(header)}
-                                        onCheckedChange={(checked) => handlePredictorSelectionChange(header, checked as boolean)}
-                                        />
-                                        <label htmlFor={`pred-${header}`} className="text-sm font-medium leading-none">
-                                        {header}
-                                        </label>
+                                        <Checkbox id={`pred-${header}`} checked={predictorVars.includes(header)} onCheckedChange={(checked) => handlePredictorSelectionChange(header, checked as boolean)} />
+                                        <label htmlFor={`pred-${header}`} className="text-sm font-medium leading-none">{header}</label>
                                     </div>
                                     ))}
                                 </div>
@@ -403,25 +236,40 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
                         <div className="flex flex-col items-center gap-4">
                             <Loader2 className="h-8 w-8 text-primary animate-spin" />
                             <p className="text-muted-foreground">Performing discriminant analysis...</p>
-                            <Skeleton className="h-96 w-full" />
                         </div>
                     </CardContent>
                 </Card>
             )}
             
-            {analysisResult ? (
-                <Tabs defaultValue="lda" className="w-full">
-                    <TabsList>
-                        <TabsTrigger value="lda" disabled={!analysisResult.lda || !!analysisResult.lda.error}>Linear (LDA)</TabsTrigger>
-                        <TabsTrigger value="qda" disabled={!analysisResult.qda || !!analysisResult.qda.error}>Quadratic (QDA)</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="lda" className="mt-4">
-                        {analysisResult.lda && <ResultDisplay analysisResults={analysisResult} methodName="lda" />}
-                    </TabsContent>
-                    <TabsContent value="qda" className="mt-4">
-                        {analysisResult.qda && <ResultDisplay analysisResults={analysisResult} methodName="qda" />}
-                    </TabsContent>
-                </Tabs>
+            {results ? (
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><Search/> Exploratory Data Analysis</CardTitle></CardHeader>
+                        <CardContent className="grid lg:grid-cols-2 gap-4">
+                            {results.eda.pair_plot ? <Image src={results.eda.pair_plot} alt="Pair Plot" width={600} height={600} className="rounded-md border" /> : <Skeleton className="h-96 w-full"/>}
+                            {results.eda.heatmap ? <Image src={results.eda.heatmap} alt="Heatmap" width={600} height={600} className="rounded-md border"/> : <Skeleton className="h-96 w-full"/>}
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 /> Classification Results</CardTitle></CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-4">
+                             <div>
+                                <h3 className="font-semibold text-center mb-2">Overall Accuracy</h3>
+                                <div className="p-4 bg-muted rounded-lg text-center"><p className="text-4xl font-bold">{(results.classification_results.accuracy * 100).toFixed(2)}%</p></div>
+                             </div>
+                             <div>
+                                <h3 className="font-semibold text-center mb-2">Confusion Matrix</h3>
+                                <ConfusionMatrix matrix={results.classification_results.confusion_matrix} groups={results.meta.groups} />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><Binary/> LDA Transformed Data</CardTitle></CardHeader>
+                        <CardContent>
+                            <LdaScatterPlot data={results.lda_results.lda_train_transformed} groups={results.lda_results.train_labels.map(l => results.meta.groups[l])} explainedVariance={results.lda_results.explained_variance_ratio} />
+                        </CardContent>
+                    </Card>
+                </div>
             ) : (
                  !isLoading && <div className="text-center text-muted-foreground py-10">
                     <Users className="mx-auto h-12 w-12 text-gray-400"/>
