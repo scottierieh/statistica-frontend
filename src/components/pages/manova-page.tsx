@@ -8,12 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Users } from 'lucide-react';
+import { Sigma, Loader2, Users, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import Image from 'next/image';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 interface TestStatistic {
     statistic: number;
@@ -51,6 +52,7 @@ interface ManovaResults {
     significant: boolean;
     univariate_results: { [key: string]: UnivariateResult };
     posthoc_results?: { [key: string]: PostHocResult[] };
+    interpretation: string;
 }
 
 interface FullManovaResponse {
@@ -194,7 +196,7 @@ export default function ManovaPage({ data, numericHeaders, categoricalHeaders, o
                      <div className="grid md:grid-cols-2 gap-4">
                         <div>
                              <label className="text-sm font-medium mb-1 block">Dependent Variables</label>
-                             <ScrollArea className="h-32 border rounded-md p-4">
+                             <ScrollArea className="h-32 border rounded-md p-2">
                                 <div className="space-y-2">
                                     {numericHeaders.map(h => (
                                         <div key={h} className="flex items-center space-x-2">
@@ -222,14 +224,14 @@ export default function ManovaPage({ data, numericHeaders, categoricalHeaders, o
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">MANOVA Summary</CardTitle>
-                            <CardDescription>Overall test for differences between groups across all dependent variables.</CardDescription>
+                            <CardTitle className="font-headline">Interpretation</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Badge variant={results.significant ? 'default' : 'secondary'}>
-                                {results.significant ? 'Statistically Significant' : 'Not Statistically Significant'}
-                            </Badge>
-                             <p className="text-sm text-muted-foreground mt-2">There is a {results.significant ? 'significant' : 'non-significant'} difference among the levels of <strong>{results.factor}</strong> on the combined dependent variables.</p>
+                             <Alert variant={results.significant ? 'default' : 'secondary'}>
+                                {results.significant ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <AlertTriangle className="h-4 w-4 text-orange-500" />}
+                                <AlertTitle>{results.significant ? "Statistically Significant Result" : "Not Statistically Significant"}</AlertTitle>
+                                <AlertDescription className="whitespace-pre-wrap">{results.interpretation}</AlertDescription>
+                            </Alert>
                         </CardContent>
                     </Card>
 
@@ -251,7 +253,7 @@ export default function ManovaPage({ data, numericHeaders, categoricalHeaders, o
                                             <TableCell>{name.charAt(0).toUpperCase() + name.slice(1)}</TableCell>
                                             <TableCell className="font-mono">{stats.statistic.toFixed(4)}</TableCell>
                                             <TableCell className="font-mono">{stats.F.toFixed(4)}</TableCell>
-                                            <TableCell className="font-mono">{stats.p_value.toFixed(4)} {getSignificanceStars(stats.p_value)}</TableCell>
+                                            <TableCell className="font-mono">{stats.p_value < 0.001 ? "<.001" : stats.p_value.toFixed(4)} {getSignificanceStars(stats.p_value)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -263,13 +265,13 @@ export default function ManovaPage({ data, numericHeaders, categoricalHeaders, o
                         <CardHeader><CardTitle>Univariate Follow-up Tests (ANOVA)</CardTitle></CardHeader>
                         <CardContent>
                              <Table>
-                                <TableHeader><TableRow><TableHead>Dependent Variable</TableHead><TableHead>F-value</TableHead><TableHead>p-value</TableHead><TableHead>Eta-Squared (η²)</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Dependent Variable</TableHead><TableHead>F-value</TableHead><TableHead>p-value</TableHead><TableHead>Partial η²</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {Object.entries(results.univariate_results).map(([dv, res]) => (
                                         <TableRow key={dv}>
                                             <TableCell>{dv}</TableCell>
                                             <TableCell className="font-mono">{res.f_statistic.toFixed(4)}</TableCell>
-                                            <TableCell className="font-mono">{res.p_value.toFixed(4)} {getSignificanceStars(res.p_value)}</TableCell>
+                                            <TableCell className="font-mono">{res.p_value < 0.001 ? "<.001" : res.p_value.toFixed(4)} {getSignificanceStars(res.p_value)}</TableCell>
                                             <TableCell className="font-mono">{res.eta_squared.toFixed(4)}</TableCell>
                                         </TableRow>
                                     ))}
@@ -292,7 +294,7 @@ export default function ManovaPage({ data, numericHeaders, categoricalHeaders, o
                                                     <TableRow key={i}>
                                                         <TableCell>{t.group1} vs {t.group2}</TableCell>
                                                         <TableCell className="font-mono">{t.mean_diff.toFixed(3)}</TableCell>
-                                                        <TableCell className="font-mono">{t.p_corrected.toFixed(4)} {getSignificanceStars(t.p_corrected)}</TableCell>
+                                                        <TableCell className="font-mono">{t.p_corrected < 0.001 ? "<.001" : t.p_corrected.toFixed(4)} {getSignificanceStars(t.p_corrected)}</TableCell>
                                                     </TableRow>
                                                 ))}
                                              </TableBody>

@@ -22,6 +22,8 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
+        if np.isnan(obj):
+            return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
@@ -54,6 +56,65 @@ class MultivariateANOVA:
         self.Y = self.clean_data[self.dependent_vars].values
         self.n = len(self.Y)
         self.p = len(self.dependent_vars)
+        
+    def _generate_interpretation(self, result):
+        if not result or 'test_statistics' not in result:
+            return "Interpretation could not be generated as analysis results are missing."
+
+        def format_p(p_val, include_p_equals=True):
+            if p_val is None or np.isnan(p_val): return "p = n/a"
+            prefix = "p = " if include_p_equals else ""
+            if p_val < 0.001: return f"{prefix}< .001"
+            return f"{prefix}{p_val:.3f}"
+
+        # Introduction
+        interpretation = (
+            f"A one-way MANOVA was conducted to examine group differences for the '{result['factor']}' factor "
+            f"across {len(self.dependent_vars)} dependent variables: {', '.join(self.dependent_vars)}.\n\n"
+        )
+        
+        # Multivariate Test Results
+        wilks = result['test_statistics'].get('wilks')
+        if wilks:
+            sig_text = "statistically significant" if wilks['p_value'] < self.alpha else "not statistically significant"
+            p_text = format_p(wilks['p_value'])
+            interpretation += (
+                f"The multivariate test was {sig_text}, Wilks' Λ = {wilks['statistic']:.3f}, "
+                f"F({wilks['df1']:.0f}, {wilks['df2']:.0f}) = {wilks['F']:.2f}, {p_text}, "
+                f"partial η² = {result['effect_size']:.3f}. This indicates that the groups differed "
+                f"significantly on the combined dependent variables.\n\n"
+            )
+
+        # Univariate Follow-up
+        if 'univariate_results' in result and result['significant']:
+            interpretation += "Follow-up univariate ANOVAs were conducted for each dependent variable.\n"
+            for dv, res in result['univariate_results'].items():
+                sig_text = "significant" if res['significant'] else "non-significant"
+                p_text_uv = format_p(res['p_value'])
+                df_between = result['n_groups'] - 1
+                df_within = self.n - result['n_groups']
+                interpretation += (
+                    f"- A {sig_text} group difference was found for '{dv}', "
+                    f"F({df_between}, {df_within}) = {res['f_statistic']:.2f}, {p_text_uv}, "
+                    f"partial η² = {res['eta_squared']:.3f}.\n"
+                )
+
+        # Post-hoc
+        if 'posthoc_results' in result and result['posthoc_results'] is not None:
+             sig_posthoc_found = False
+             for dv, tests in result['posthoc_results'].items():
+                 if any(t['significant_corrected'] for t in tests):
+                     sig_posthoc_found = True
+                     break
+             if sig_posthoc_found:
+                interpretation += "\nPost-hoc comparisons using Tukey's HSD indicated specific group differences:\n"
+                for dv, tests in result['posthoc_results'].items():
+                    sig_pairs = [t for t in tests if t['significant_corrected']]
+                    if sig_pairs:
+                        pair_texts = [f"'{p['group1']}' and '{p['group2']}' (MD = {p['mean_diff']:.2f}, {format_p(p['p_corrected'])})" for p in sig_pairs]
+                        interpretation += f"- For '{dv}', significant differences were found between {', '.join(pair_texts)}.\n"
+        
+        return interpretation.strip()
 
     def one_way_manova(self, factor=None):
         if factor is None:
@@ -100,6 +161,7 @@ class MultivariateANOVA:
             'univariate_results': univariate_results, 'posthoc_results': posthoc_results,
             'significant': any(ts['p_value'] < self.alpha for ts in test_stats.values())
         }
+        self.results['one_way']['interpretation'] = self._generate_interpretation(self.results['one_way'])
         return self.results['one_way']
 
     def _calculate_multivariate_test_statistics(self, H, E, df_hyp, df_error):
