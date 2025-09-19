@@ -99,10 +99,11 @@ export const exampleDatasets: ExampleDataSet[] = [
     },
     {
         id: 'cbc-data',
-        name: 'CBC data',
-        description: 'A list of emails sent between individuals in a small organization.',
-        icon: Network,
-        analysisTypes: ['cbcData'],
+        name: 'Laptop Choice Data (CBC)',
+        description: 'Simulated choice data for a Choice-Based Conjoint (CBC) analysis on laptops.',
+        icon: Target,
+        analysisTypes: ['cbc'],
+        recommendedAnalysis: 'cbc',
         data: cbcData,
     },
     {
