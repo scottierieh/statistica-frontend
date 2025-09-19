@@ -58,11 +58,12 @@ class NonParametricTests:
         
         U1 = R1 - n1 * (n1 + 1) / 2
         U2 = R2 - n2 * (n2 + 1) / 2
+        U_stat = min(U1, U2)
         
         # Calculate effect size r
         mean_u = n1 * n2 / 2
         std_u = np.sqrt(n1 * n2 * (n1 + n2 + 1) / 12) if (n1+n2) > 0 else 0
-        z_score = (min(U1, U2) - mean_u) / std_u if std_u > 0 else 0
+        z_score = (U_stat - mean_u) / std_u if std_u > 0 else 0
         r = abs(z_score) / np.sqrt(n1 + n2) if (n1 + n2) > 0 else 0
         
         desc_stats = {
@@ -75,7 +76,7 @@ class NonParametricTests:
         
         result = {
             'test_type': 'Mann-Whitney U Test', 'statistic': statistic, 'p_value': p_value,
-            'U1': U1, 'U2': U2, 'R1': R1, 'R2': R2, 'n1': n1, 'n2': n2,
+            'U': U_stat, 'R1': R1, 'R2': R2, 'n1': n1, 'n2': n2,
             'z_score': z_score,
             'effect_size': r, 'effect_size_interpretation': effect_size_interp, 'alpha': alpha,
             'is_significant': is_significant, 'alternative': alternative, 'groups': groups,
@@ -83,7 +84,6 @@ class NonParametricTests:
             'interpretation': self._interpret_mann_whitney(is_significant, groups, p_value, group_col, value_col, desc_stats, z_score),
             'group_col': group_col, 'value_col': value_col
         }
-        self.results['mann_whitney'] = result
         return result
 
     def wilcoxon_signed_rank_test(self, var1: str, var2: str, alternative: str = 'two-sided', alpha: float = 0.05) -> Dict:
@@ -129,7 +129,6 @@ class NonParametricTests:
             'interpretation': self._interpret_wilcoxon(is_significant, var1, var2, p_value, z_score, desc_stats)
         }
         
-        self.results['wilcoxon'] = result
         return result
 
     def kruskal_wallis_test(self, group_col: str, value_col: str, alpha: float = 0.05) -> Dict:
@@ -154,7 +153,6 @@ class NonParametricTests:
             'interpretation': self._interpret_kruskal_wallis(is_significant, self.data[group_col].unique(), effect_size_interp, epsilon_squared, p_value, alpha, statistic, df),
             'group_col': group_col, 'value_col': value_col
         }
-        self.results['kruskal_wallis'] = result
         return result
 
     def friedman_test(self, variables: List[str], alpha: float = 0.05) -> Dict:
@@ -179,7 +177,6 @@ class NonParametricTests:
             'interpretation': self._interpret_friedman(is_significant, variables, effect_size_interp, W, p_value, alpha, statistic, df),
             'variables': variables
         }
-        self.results['friedman'] = result
         return result
         
     def mcnemar_test(self, var1: str, var2: str, alpha: float = 0.05) -> Dict:
@@ -211,12 +208,8 @@ class NonParametricTests:
             'p_value': p_value,
             'contingency_table': contingency_table.to_dict(),
             'is_significant': is_significant,
-            'interpretation': {
-                'decision': f"{'Reject' if is_significant else 'Fail to reject'} H₀",
-                'conclusion': interpretation
-            }
+            'interpretation': interpretation
         }
-        self.results['mcnemar'] = result_dict
         return result_dict
 
     
@@ -229,7 +222,7 @@ class NonParametricTests:
         return {'level': level.lower(), 'text': level}
     
     def _format_p_value(self, p, alpha): 
-        return f"< {alpha}" if p < alpha else f"= {p:.3f}"
+        return f"p < {alpha}" if p < alpha else f"p = {p:.3f}"
     
     def _interpret_mann_whitney(self, is_sig, groups, p, group_col, value_col, desc_stats, z_score):
         p_text = self._format_p_value(p, 0.05).replace('=', 'p =')
@@ -243,55 +236,60 @@ class NonParametricTests:
         sig_text = "was a significant difference" if is_sig else "was no significant difference"
         
         interp = (
-            f"A Mann-Whitney U test was conducted to determine whether there was a difference in '{value_col}' between the '{g1_name}' and '{g2_name}' groups. "
-            f"Results indicated that there {sig_text}, z = {z_score:.2f}, {p_text}."
+            f"A Mann-Whitney U test was conducted to determine whether there was a difference in '{value_col}' between the '{g1_name}' and '{g2_name}' groups.\n"
+            f"Results of that analysis indicated that there {sig_text}, z = {z_score:.2f}, {p_text}.\n"
         )
 
         if is_sig:
-            interp += f" The results indicate that the '{higher_group}' group had significantly higher scores for '{value_col}' than the '{lower_group}' group."
+            interp += f"The results indicate that the '{higher_group}' group had a significantly higher mean rank on '{value_col}' than the '{lower_group}' group."
 
-        return interp
+        return interp.strip()
 
     def _interpret_wilcoxon(self, is_sig, v1, v2, p, z_score, desc_stats):
-        p_text = f"p < .05" if p < 0.05 else f"p = {p:.2f}"
+        p_text = self._format_p_value(p, 0.05).replace('=', 'p =')
         
         med1 = desc_stats[v1]['median']
         med2 = desc_stats[v2]['median']
 
-        preferred = f"'{v1}' was the preferred option and received significantly more favorable rankings than '{v2}'." if med1 > med2 else f"'{v2}' was the preferred option and received significantly more favorable rankings than '{v1}'."
+        preferred_var = f"'{v1}'" if med1 > med2 else f"'{v2}'"
+        other_var = f"'{v2}'" if med1 > med2 else f"'{v1}'"
 
         sig_text = "was a significant difference" if is_sig else "was no significant difference"
         
         interp = (
-            f"A Wilcoxon Signed-Rank test was conducted to determine if there was a difference in the ranking of '{v1}' and '{v2}'. "
-            f"Results indicated that there {sig_text}, z = {z_score:.2f}, {p_text}. "
+            f"A Wilcoxon Signed-Rank test was conducted to determine if there was a difference in the ranking of '{v1}' and '{v2}'.\n"
+            f"Results of that analysis indicated that there {sig_text}, z = {z_score:.2f}, {p_text}.\n"
         )
 
         if is_sig:
-            interp += f"The results indicate that {preferred}"
+            interp += f"The results indicate that {preferred_var} was the preferred option and received significantly more favorable rankings than {other_var}."
 
-        return interp
+        return interp.strip()
         
     def _interpret_kruskal_wallis(self, is_sig, groups, effect_size_interp, es, p, alpha, h_stat, df):
         p_text = self._format_p_value(p, alpha)
-        return {
-            'decision': f"{'Reject' if is_sig else 'Fail to reject'} H₀",
-            'conclusion': f"A Kruskal-Wallis H test showed that there was a {'statistically significant' if is_sig else 'not statistically significant'} difference in scores between the different groups, H({df}) = {h_stat:.2f}, {p_text}.",
-            'practical_significance': f"The magnitude of the differences between the groups was {effect_size_interp['level']} (ε²={es:.3f})."
-        }
+        
+        conclusion = f"A Kruskal-Wallis H test showed that there was a {'statistically significant' if is_sig else 'not statistically significant'} difference in scores between the different groups, H({df}) = {h_stat:.2f}, {p_text}."
+        practical_significance = f"The magnitude of the differences between the groups was {effect_size_interp['level']} (ε²={es:.3f})."
+        
+        return f"{conclusion}\n{practical_significance}"
 
     def _interpret_friedman(self, is_sig, var, effect_size_interp, W, p, alpha, stat, df):
         p_text = self._format_p_value(p, alpha)
-        return {
-            'decision': f"{'Reject' if is_sig else 'Fail to reject'} H₀",
-            'conclusion': f"A Friedman test revealed a {'statistically significant' if is_sig else 'not statistically significant'} difference in scores across the conditions, χ²({df}) = {stat:.2f}, {p_text}.",
-            'practical_significance': f"The level of concordance among the ranks was {effect_size_interp['level']} (Kendall's W = {W:.3f})."
-        }
+        
+        conclusion = f"A Friedman test revealed a {'statistically significant' if is_sig else 'not statistically significant'} difference in scores across the conditions, χ²({df}) = {stat:.2f}, {p_text}."
+        practical_significance = f"The level of concordance among the ranks was {effect_size_interp['level']} (Kendall's W = {W:.3f})."
+
+        return f"{conclusion}\n{practical_significance}"
 
     def plot_results(self, test_type):
         result = self.results.get(test_type)
         if not result:
-             raise ValueError(f"No results found for test type: {test_type}")
+            # Check if it's nested
+            if self.results and self.results.get('results'):
+                result = self.results.get('results')
+            else:
+                 raise ValueError(f"No results found for test type: {test_type}")
         
         if test_type == 'mcnemar':
             table = pd.DataFrame(result['contingency_table'])
@@ -383,6 +381,7 @@ def main():
         else:
             raise ValueError(f"Unknown test type: {test_type}")
         
+        tester.results[test_type] = result
         plot_image = tester.plot_results(test_type)
         
         response = { 'results': result, 'plot': plot_image }
@@ -396,4 +395,6 @@ if __name__ == '__main__':
     main()
 
     
+    
+
     

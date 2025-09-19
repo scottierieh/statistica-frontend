@@ -102,6 +102,7 @@ def perform_stepwise_selection(X, y, method='stepwise', p_enter=0.05, p_remove=0
                 log.append(f"Add '{best_feature}' (p={best_pvalue:.4f})")
             
             # Backward step
+            if not included: break
             model = sm.OLS(y, sm.add_constant(X[included])).fit()
             pvalues = model.pvalues.drop('const')
             worst_pvalue = p_remove
@@ -156,6 +157,8 @@ class RegressionAnalysis:
 
         if HAS_STATSMODELS and selection_method != 'none':
             final_features, stepwise_log = perform_stepwise_selection(X_selected, self.y, method=selection_method)
+            if not final_features:
+                raise ValueError("No features were selected by the stepwise method. Try adjusting p-values or using a different method.")
             X_selected = X_selected[final_features]
 
 
@@ -354,7 +357,7 @@ class RegressionAnalysis:
         
         # Sentence 1: Purpose
         feature_list = ", ".join(f"'{f}'" for f in features)
-        interpretation = f"A {model_type_str} regression was run to predict '{target_variable}' from {feature_list}. "
+        interpretation = f"A {model_type_str} regression was run to predict '{target_variable}' from {feature_list}.\n"
 
         # Sentence 2: Model Significance
         f_stat = diagnostics.get('f_statistic')
@@ -366,7 +369,7 @@ class RegressionAnalysis:
         if all(v is not None for v in [f_stat, f_pvalue, df_model, df_resid, r_squared]):
             p_val_str = f"p < .001" if f_pvalue < 0.001 else f"p = {f_pvalue:.3f}"
             model_sig_str = "statistically significant" if f_pvalue < self.alpha else "not statistically significant"
-            interpretation += (f"The overall regression model was {model_sig_str}, F({int(df_model)}, {int(df_resid)}) = {f_stat:.2f}, {p_val_str}. ")
+            interpretation += (f"The overall regression model was {model_sig_str}, F({int(df_model)}, {int(df_resid)}) = {f_stat:.2f}, {p_val_str}.\n")
 
         # Sentence 3: R-squared
         adj_r2 = metrics.get('adj_r2')
@@ -383,7 +386,7 @@ class RegressionAnalysis:
                 if var in p_values and p_values[var] < self.alpha:
                     b = params.get(var, 0)
                     direction = "an increase" if b > 0 else "a decrease"
-                    interpretation += f"It was found that '{var}' significantly predicted '{target_variable}' (b = {b:.3f}, p < {self.alpha}). For every one unit increase in '{var}', the '{target_variable}' is predicted to {direction} by {abs(b):.3f} units.\n"
+                    interpretation += f"It was found that '{var}' significantly predicted '{target_variable}' (b = {b:.3f}, p < {self.alpha}).\nFor every one unit increase in '{var}', the '{target_variable}' is predicted to {direction} by {abs(b):.3f} units.\n"
 
         # Sentence 6: Regression Equation
         if coeffs:
@@ -515,6 +518,8 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
 
     
 

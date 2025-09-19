@@ -17,7 +17,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -50,26 +50,26 @@ class PcaAnalysis:
         
         n_factors_kaiser = sum(1 for ev in eigenvalues if ev > 1)
 
-        interpretation = f"A Principal Component Analysis (PCA) was conducted on {len(variables)} items to explore the underlying structure of the variables.\n\n"
+        interpretation = f"A Principal Component Analysis (PCA) was conducted on {len(variables)} items to explore the underlying structure of the variables.\n"
         
-        interpretation += f"Based on the Kaiser criterion (eigenvalues > 1), {n_factors_kaiser} components were extracted. "
+        interpretation += f"Based on the Kaiser criterion (eigenvalues > 1), {n_factors_kaiser} components were extracted.\n"
         interpretation += f"Together, these components explained {cumulative_variance[n_factors_kaiser-1]*100:.2f}% of the total variance.\n\n"
         
         interpretation += "Component Loadings Interpretation:\n"
         for i in range(n_factors_kaiser):
             interpretation += f"- **Component {i+1} (Explained Variance: {self.results['explained_variance_ratio'][i]*100:.2f}%):** This component is primarily defined by high loadings on "
             
-            factor_loadings = loadings[:, i]
+            factor_loadings = np.array(loadings)[:, i]
             high_loadings_indices = np.where(np.abs(factor_loadings) >= 0.5)[0]
             
             if len(high_loadings_indices) > 0:
                 high_loading_vars = [variables[j] for j in high_loadings_indices]
-                interpretation += f"the variables: {', '.join(high_loading_vars)}. This suggests Component {i+1} represents an underlying construct related to these items.\n"
+                interpretation += f"the variables: {', '.join(high_loading_vars)}.\nThis suggests Component {i+1} represents an underlying construct related to these items.\n"
             else:
                 interpretation += "no variables with strong loadings, making interpretation difficult.\n"
 
         interpretation += "\nIn conclusion, the PCA suggests that the data can be effectively reduced to these components, providing a simpler yet representative structure of the original variables."
-        return interpretation
+        return interpretation.strip()
 
     def run_analysis(self):
         pca = PCA(n_components=self.n_components)
@@ -103,7 +103,7 @@ class PcaAnalysis:
 
         # Loadings Plot for first 2 components
         ax = axes[1]
-        loadings = self.results['loadings']
+        loadings = np.array(self.results['loadings'])
         if loadings.shape[1] >= 2:
             ax.scatter(loadings[:, 0], loadings[:, 1], alpha=0.8)
             ax.axhline(0, color='grey', lw=1)
@@ -153,3 +153,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    

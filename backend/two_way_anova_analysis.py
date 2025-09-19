@@ -132,6 +132,7 @@ class TwoWayAnovaAnalysis:
             return f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
         
         def get_effect_size_interp(eta):
+            if eta is None: return "unknown"
             if eta >= 0.14: return "large"
             if eta >= 0.06: return "medium"
             if eta >= 0.01: return "small"
@@ -173,7 +174,8 @@ class TwoWayAnovaAnalysis:
             interp_int = get_effect_size_interp(effect_size_int)
             interpretation += (
                 f"The analysis also revealed {sig_text_int} interaction effect between '{self.factor_a}' and '{self.factor_b}', "
-                f"F({res_int['df']:.0f}, {anova_results['Residual']['df']:.0f}) = {res_int['F']:.2f}, {p_text_int}, indicating that the effect of one factor depends on the level of the other. The effect size was {interp_int} (η²p = {effect_size_int:.3f}).\n"
+                f"F({res_int['df']:.0f}, {anova_results['Residual']['df']:.0f}) = {res_int['F']:.2f}, {p_text_int}, indicating that the effect of one factor depends on the level of the other. "
+                f"The effect size was {interp_int} (η²p = {effect_size_int:.3f}).\n"
             )
 
             # Post-hoc for significant interaction
@@ -184,7 +186,7 @@ class TwoWayAnovaAnalysis:
                     details = []
                     for pair in sig_pairs[:3]: # Limit for brevity
                         details.append(f"the difference between '{pair['group1']}' and '{pair['group2']}' was significant (p = {pair['p_adj']:.3f})")
-                    interpretation += ", and ".join(details) + "."
+                    interpretation += ", and ".join(details) + ".\n"
                     if len(sig_pairs) > 3:
                         interpretation += f" along with {len(sig_pairs) - 3} other significant differences."
 
@@ -257,3 +259,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    

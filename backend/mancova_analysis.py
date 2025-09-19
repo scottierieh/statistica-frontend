@@ -87,7 +87,7 @@ class MancovaAnalysis:
         try:
             mancova = MANOVA.from_formula(formula, data=self.clean_data)
             mv_test_results = mancova.mv_test()
-            self.results['multivariate_tests'] = mv_test_results.results[self.fv_clean]['mv test'].to_dict('index')
+            self.results['multivariate_tests'] = mv_test_results.results[f'C(Q("{self.fv_clean}"))']['mv test'].to_dict('index')
 
             # Univariate ANCOVAs
             univariate_tests = {}
@@ -151,3 +151,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    

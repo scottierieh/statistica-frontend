@@ -77,10 +77,10 @@ class AncovaAnalysis:
             if eta_sq_p >= 0.01: return "small"
             return "negligible"
 
-        interpretation = f"A One-Way ANCOVA was conducted to examine the effect of '{self.factor_a}' on '{self.dependent_var}', while considering the influence of '{', '.join(self.covariate_vars)}'.\n"
+        interpretation = f"A One-Way ANCOVA was conducted to examine the effect of '{self.factor_var}' on '{self.dependent_var}', while considering the influence of '{', '.join(self.covariate_vars)}'.\n"
 
         # Main Effect of Factor
-        factor_res = anova_dict.get(self.factor_a)
+        factor_res = anova_dict.get(self.factor_var)
         if factor_res and 'p-value' in factor_res and factor_res['p-value'] is not None:
             sig_text = "a statistically significant" if factor_res['p-value'] < self.alpha else "no statistically significant"
             p_text = format_p(factor_res['p-value'])
@@ -88,7 +88,7 @@ class AncovaAnalysis:
             effect_interp = get_effect_size_interp(effect_size)
             
             interpretation += (
-                f"There was {sig_text} main effect for '{self.factor_a}', "
+                f"There was {sig_text} main effect for '{self.factor_var}', "
                 f"F({factor_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {factor_res['F']:.2f}, {p_text}, with a {effect_interp} effect size (η²p = {effect_size:.3f}).\n"
             )
 
@@ -107,7 +107,7 @@ class AncovaAnalysis:
                 )
 
         # Interaction Effect
-        interaction_key = f'{self.factor_a} * {self.covariate_vars[0]}'
+        interaction_key = f'{self.factor_var} * {self.covariate_vars[0]}'
         int_res = anova_dict.get(interaction_key) # Simple interaction for now
         if int_res and 'p-value' in int_res and int_res['p-value'] is not None:
             sig_text = "a statistically significant" if int_res['p-value'] < self.alpha else "no statistically significant"
@@ -116,8 +116,8 @@ class AncovaAnalysis:
             interp_int = get_effect_size_interp(effect_size_int)
 
             interpretation += (
-                f"The analysis also revealed {sig_text} interaction effect between '{self.factor_a}' and '{self.covariate_vars[0]}', "
-                f"F({int_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {int_res['F']:.2f}, {p_text_int}, indicating that the effect of '{self.factor_a}' on '{self.dependent_var}' depends on the level of '{self.covariate_vars[0]}'. "
+                f"The analysis also revealed {sig_text} interaction effect between '{self.factor_var}' and '{self.covariate_vars[0]}', "
+                f"F({int_res['df']:.0f}, {anova_dict['Residual']['df']:.0f}) = {int_res['F']:.2f}, {p_text_int}, indicating that the effect of '{self.factor_var}' on '{self.dependent_var}' depends on the level of '{self.covariate_vars[0]}'. "
                 f"The effect size for this interaction was {interp_int} (η²p = {effect_size_int:.3f})."
             )
 
@@ -149,12 +149,12 @@ class AncovaAnalysis:
         
         # Clean up source names for readability
         cleaned_index = {
-            f'C(Q("{self.fv_clean}"))': self.factor_a,
+            f'C(Q("{self.fv_clean}"))': self.factor_var,
             **{f'Q("{cv}")': self.covariate_vars[i] for i, cv in enumerate(self.cv_clean)}
         }
         for i, cv in enumerate(self.cv_clean):
              interaction_key = f'C(Q("{self.fv_clean}")):Q("{cv}")'
-             cleaned_index[interaction_key] = f'{self.factor_a} * {self.covariate_vars[i]}'
+             cleaned_index[interaction_key] = f'{self.factor_var} * {self.covariate_vars[i]}'
 
         anova_table_renamed = anova_table.rename(index=cleaned_index)
 
@@ -254,3 +254,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
