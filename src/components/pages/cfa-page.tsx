@@ -51,6 +51,7 @@ interface CfaResults {
         indicators: string[];
     };
     convergence: boolean;
+    interpretation?: string;
 }
 
 interface FullCfaResponse {
@@ -64,46 +65,26 @@ interface Factor {
     items: string[];
 }
 
-const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
-  const [interpretation, setInterpretation] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!promise) {
-        setInterpretation(null);
-        setLoading(false);
-        return;
-    };
-    let isMounted = true;
-    setLoading(true);
-    promise.then((desc) => {
-        if (isMounted) {
-            setInterpretation(desc);
-            setLoading(false);
-        }
-    });
-    return () => { isMounted = false; };
-  }, [promise]);
-  
-  const formattedInterpretation = useMemo(() => {
+const AIGeneratedInterpretation = ({ interpretation }: { interpretation?: string }) => {
     if (!interpretation) return null;
-    return interpretation.replace(/\n/g, '<br />');
-  }, [interpretation]);
 
+    const formattedInterpretation = useMemo(() => {
+        return interpretation
+            .replace(/\n/g, '<br />')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<i>$1</i>');
+    }, [interpretation]);
 
-  if (loading) return <Skeleton className="h-24 w-full" />;
-  if (!interpretation) return null;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
-      </CardContent>
-    </Card>
-  );
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
+            </CardContent>
+        </Card>
+    );
 };
 
 interface CfaPageProps {
@@ -118,13 +99,10 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     
     const [analysisResult, setAnalysisResult] = useState<FullCfaResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [aiPromise, setAiPromise] = useState<Promise<string|null> | null>(null);
-
     
     useEffect(() => {
         setFactors([{id: `factor-0`, name: 'Factor 1', items: []}]);
         setAnalysisResult(null);
-        setAiPromise(null);
     }, [numericHeaders, data]);
     
     const canRunAnalysis = useMemo(() => {
@@ -165,7 +143,6 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
         setIsLoading(true);
         setAnalysisResult(null);
-        setAiPromise(null);
 
         const modelSpec = factors.reduce((acc, factor) => {
             acc[factor.name] = factor.items;
@@ -189,14 +166,6 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
             setAnalysisResult(result);
             toast({ title: 'CFA Complete', description: result.results.convergence ? 'Model converged successfully.' : 'Model did not converge.' });
-
-            const promise = getCfaInterpretation({
-                fitIndices: JSON.stringify(result.results.fit_indices),
-                factorLoadings: JSON.stringify(result.results.standardized_solution?.loadings),
-                convergentValidity: JSON.stringify(result.results.reliability),
-                discriminantValidity: JSON.stringify(result.results.discriminant_validity)
-            }).then(res => res.success ? res.interpretation ?? null : (toast({variant: 'destructive', title: 'AI Error', description: res.error}), null));
-            setAiPromise(promise);
 
         } catch (e: any) {
             console.error('CFA Analysis error:', e);
@@ -324,7 +293,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                             {factors.map((factor, idx) => (
                                 <Card key={factor.id}>
                                     <CardHeader className="flex-row items-center justify-between">
-                                        <Input value={factor.name} onChange={(e) => handleFactorNameChange(factor.id, e.target.value)} className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto"/>
+                                        <Input value={factor.name} onChange={(e) => handleFactorNameChange(factor.id, e.target.value)} placeholder="Latent Variable Name" className="text-lg font-bold border-none shadow-none focus-visible:ring-0 p-0 h-auto"/>
                                         <Button variant="ghost" size="icon" onClick={() => handleRemoveFactor(factor.id)} disabled={factors.length <= 1}>
                                             <Trash2 className="h-4 w-4 text-muted-foreground"/>
                                         </Button>
@@ -363,7 +332,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
             {analysisResult && results && (
                 <>
-                    <AIGeneratedInterpretation promise={aiPromise} />
+                    <AIGeneratedInterpretation interpretation={results.interpretation} />
                     {analysisResult.plot && (
                          <Card>
                             <CardHeader>
@@ -409,7 +378,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                 <CardHeader><CardTitle className="font-headline">Reliability & Convergent Validity</CardTitle></CardHeader>
                                 <CardContent>
                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Composite Reliability (CR)</TableHead><TableHead className="text-right">Avg. Variance Extracted (AVE)</TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Composite Reliability (CR)</TableHead></TableRow></TableHeader>
                                         <TableBody>
                                             {Object.entries(results.reliability).map(([factor, rel]) => (
                                                 <TableRow key={factor}>
@@ -417,14 +386,11 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                                     <TableCell className="text-right font-mono flex justify-end items-center gap-2">
                                                         {rel.composite_reliability.toFixed(3)} {rel.composite_reliability >= 0.7 ? <Check className="w-4 h-4 text-green-600"/> : <X className="w-4 h-4 text-destructive"/>}
                                                     </TableCell>
-                                                    <TableCell className="text-right font-mono flex justify-end items-center gap-2">
-                                                        {rel.average_variance_extracted.toFixed(3)} {rel.average_variance_extracted >= 0.5 ? <Check className="w-4 h-4 text-green-600"/> : <X className="w-4 h-4 text-destructive"/>}
-                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
-                                    <CardDescription className="text-xs mt-2">CR &gt; 0.7 and AVE &gt; 0.5 are generally considered acceptable.</CardDescription>
+                                    <CardDescription className="text-xs mt-2">CR &gt; 0.7 is generally considered acceptable.</CardDescription>
                                 </CardContent>
                             </Card>
                              {results.discriminant_validity.fornell_larcker_criterion && (
