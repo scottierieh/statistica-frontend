@@ -87,9 +87,7 @@ const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null
   
   const formattedInterpretation = useMemo(() => {
     if (!interpretation) return null;
-    return interpretation
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<i>$1</i>');
+    return interpretation.replace(/\n/g, '<br />');
   }, [interpretation]);
 
 
