@@ -38,7 +38,7 @@ def _generate_interpretation(results):
 
     # Paragraph 1: Main finding and explanation
     interp = (
-        f"Internal reliability of the {n_items}-item scale was investigated using Cronbach's alpha.\n"
+        f"The internal consistency of the {n_items}-item scale was assessed using Cronbach's alpha.\n"
         f"The overall reliability of the measure was {alpha_level.lower()}, Cronbach’s α = {alpha:.2f}.\n"
     )
 
@@ -109,6 +109,9 @@ def main():
         sem_value = np.nan
         if alpha_results[0] >= 0:
             sem_value = df_items.sum(axis=1).std() * (1 - alpha_results[0])**0.5
+        
+        if math.isnan(sem_value):
+            sem_value = None
 
         response = {
             'alpha': alpha_results[0],
