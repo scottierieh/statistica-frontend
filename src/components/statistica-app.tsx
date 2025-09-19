@@ -707,3 +707,4 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
