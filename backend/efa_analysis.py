@@ -44,10 +44,15 @@ def _generate_interpretation(results):
         f"The suitability of the data for factor analysis was assessed before extraction.\n"
     )
 
+    p_val_text = (
+        "< .001" if adequacy.get('bartlett_p_value', 1) < 0.001 
+        else f"= {adequacy.get('bartlett_p_value', 1):.3f}"
+    )
+
     interpretation += (
         f"The Kaiser-Meyer-Olkin (KMO) measure of sampling adequacy was {kmo_level} ({adequacy.get('kmo', 0):.2f}), "
         f"and Bartlett’s test of sphericity was {'statistically significant' if bartlett_sig else 'not significant'} "
-        f"(χ² ≈ {adequacy.get('bartlett_statistic', 0):.2f}, p {'< .001' if adequacy.get('bartlett_p_value', 1) < 0.001 else f'= {adequacy.get('bartlett_p_value', 1):.3f}'}). "
+        f"(χ² ≈ {adequacy.get('bartlett_statistic', 0):.2f}, p {p_val_text}). "
         f"These indicators suggest that the data is {'suitable' if kmo_level not in ['poor', 'unacceptable'] and bartlett_sig else 'may not be suitable'} for factor analysis.\n\n"
     )
 
