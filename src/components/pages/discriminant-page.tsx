@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -15,7 +16,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
-import { BarChart, XAxis, YAxis, Legend, Tooltip, Bar, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, XAxis, YAxis, Legend, Tooltip, Bar, ResponsiveContainer, CartesianGrid, ReferenceLine, ScatterChart, Scatter } from 'recharts';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 
@@ -48,7 +49,7 @@ interface DiscriminantAnalysisResults {
         [key: string]: number
     };
     group_stats: { [key: string]: { mean: number[]; std: number[]; n: number } };
-    box_m_test: { statistic: number; p_value: number };
+    box_m_test: { statistic: number | null; p_value: number | null; warning: string | null };
     group_centroids: number[][];
     lda_transformed_data: number[][];
     true_labels: number[];
@@ -67,27 +68,17 @@ const getSignificanceStars = (p: number | undefined) => {
     return '';
 };
 
+const GroupMeansChart = ({ centroids, groups, n_components }: { centroids: number[][], groups: string[], n_components: number }) => {
+    if (!centroids || centroids.length === 0) return null;
 
-interface DiscriminantPageProps {
-    data: DataSet;
-    numericHeaders: string[];
-    categoricalHeaders: string[];
-    onLoadExample: (example: ExampleDataSet) => void;
-}
-
-const GroupMeansChart = ({ data, groups }: { data: { [key: string]: { mean: number[] } }, groups: string[] }) => {
-    if (!data || Object.keys(data).length === 0) return null;
-
-    const predictorVars = Object.keys(data[Object.keys(data)[0]].mean);
-    
-    const chartData = predictorVars.map((_, i) => {
+    const chartData = Array.from({length: n_components}, (_, i) => {
         const entry: {name: string, [key: string]: number | string} = { name: `LD${i+1}` };
-        groups.forEach(group => {
-            entry[group] = data[group]?.mean[i] || 0;
+        groups.forEach((group, j) => {
+            entry[group] = centroids[j]?.[i] || 0;
         });
         return entry;
     });
-    
+
     const chartConfig = groups.reduce((acc, group, i) => {
         acc[group] = { label: group, color: `hsl(var(--chart-${(i % 5) + 1}))` };
         return acc;
@@ -102,13 +93,14 @@ const GroupMeansChart = ({ data, groups }: { data: { [key: string]: { mean: numb
             <CardContent>
                  <ChartContainer config={chartConfig} className="w-full h-[300px]">
                      <ResponsiveContainer>
-                         <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 50 }}>
+                         <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid vertical={false} />
-                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} tick={{fontSize: 12}} />
-                            <YAxis />
+                            <XAxis dataKey="name" />
+                            {n_components > 1 && <YAxis />}
                             <Tooltip content={<ChartTooltipContent />} />
                             <Legend verticalAlign='top'/>
-                            {groups.map((group, i) => (
+                             <ReferenceLine y={0} stroke="#666" />
+                            {groups.map((group) => (
                                 <Bar key={group} dataKey={group} fill={`var(--color-${group})`} radius={4} />
                             ))}
                         </BarChart>
@@ -125,17 +117,9 @@ const ResultDisplay = ({ results, plot }: { results: DiscriminantAnalysisResults
 
     return (
         <div className="space-y-4">
-            <Card>
+             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Search/> Analysis Plot</CardTitle>
-                </CardHeader>
-                <CardContent className="grid lg:grid-cols-1 gap-4">
-                    <Image src={plot} alt="Discriminant Analysis Plot" width={1500} height={1200} className="rounded-md border" />
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Overall Model Significance</CardTitle>
+                    <CardTitle className="font-headline">Overall Model Significance (Wilks' Lambda)</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Alert variant={isSignificant ? 'default' : 'destructive'}>
@@ -149,28 +133,17 @@ const ResultDisplay = ({ results, plot }: { results: DiscriminantAnalysisResults
                     </Alert>
                 </CardContent>
             </Card>
+
             <div className="grid lg:grid-cols-2 gap-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Canonical Discriminant Functions</CardTitle>
+                        <CardTitle className="flex items-center gap-2"><Search/> Discriminant Function Plot</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Function</TableHead><TableHead className="text-right">Eigenvalue</TableHead><TableHead className="text-right">% of Variance</TableHead><TableHead className="text-right">Canonical Corr.</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {results.eigenvalues.map((eig, i) => (
-                                    <TableRow key={i}>
-                                        <TableCell>{i + 1}</TableCell>
-                                        <TableCell className="font-mono text-right">{eig.toFixed(4)}</TableCell>
-                                        <TableCell className="font-mono text-right">{(eig / results.eigenvalues.reduce((a, b) => a + b, 0) * 100).toFixed(2)}%</TableCell>
-                                        <TableCell className="font-mono text-right">{results.canonical_correlations[i].toFixed(4)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                        <Image src={plot} alt="Discriminant Analysis Plot" width={800} height={600} className="rounded-md border" />
                     </CardContent>
                 </Card>
-                <GroupMeansChart data={results.group_stats} groups={results.meta.groups} />
+                 <GroupMeansChart centroids={results.group_centroids} groups={results.meta.groups} n_components={results.meta.n_components} />
             </div>
 
             <div className="grid lg:grid-cols-2 gap-4">
@@ -221,12 +194,12 @@ const ResultDisplay = ({ results, plot }: { results: DiscriminantAnalysisResults
                                 {results.meta.predictor_vars.map((v, i) => (
                                     <TableRow key={v}>
                                         <TableCell>{v}</TableCell>
-                                        {results.meta.groups.map(g => <TableCell key={g} className="font-mono text-right">{results.classification_function_coeffs![g][i].toFixed(4)}</TableCell>)}
+                                        {results.meta.groups.map(g => <TableCell key={g} className="font-mono text-right">{results.classification_function_coeffs![g][i]?.toFixed(4) || 'N/A'}</TableCell>)}
                                     </TableRow>
                                 ))}
                                 <TableRow className="font-bold border-t-2">
                                     <TableCell>(Constant)</TableCell>
-                                    {results.meta.groups.map(g => <TableCell key={g} className="font-mono text-right">{results.classification_function_intercepts![g].toFixed(4)}</TableCell>)}
+                                    {results.meta.groups.map(g => <TableCell key={g} className="font-mono text-right">{results.classification_function_intercepts![g]?.toFixed(4) || 'N/A'}</TableCell>)}
                                 </TableRow>
                             </TableBody>
                         </Table>
@@ -236,6 +209,14 @@ const ResultDisplay = ({ results, plot }: { results: DiscriminantAnalysisResults
         </div>
     );
 };
+
+
+interface DiscriminantPageProps {
+    data: DataSet;
+    numericHeaders: string[];
+    categoricalHeaders: string[];
+    onLoadExample: (example: ExampleDataSet) => void;
+}
 
 
 export default function DiscriminantPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: DiscriminantPageProps) {
@@ -382,3 +363,4 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
         </div>
     );
 }
+
