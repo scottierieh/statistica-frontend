@@ -142,7 +142,7 @@ export const exampleDatasets: ExampleDataSet[] = [
     {
         id: 'meta-analysis',
         name: 'Meta-Analysis',
-        description: 'No data needed. Input studies manually. An example will be pre-filled.',
+        description: 'Sample data for meta-analysis, not loaded from a file.',
         icon: Users,
         analysisTypes: ['meta-analysis'],
         data: metaAnalysisData,
