@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -152,7 +153,6 @@ class MediationAnalysis:
             'ci_lower': ci_lower,
             'ci_upper': ci_upper,
             'confidence_level': confidence_level,
-            'n_bootstrap': n_bootstrap,
             'significant': not (ci_lower <= 0 <= ci_upper)
         }
         return self.results['bootstrap']
@@ -208,10 +208,12 @@ class MediationAnalysis:
         )
         
         if boot:
+            sig_text = "significant" if boot['significant'] else "not significant"
+            ci_text = f"does not contain zero" if boot['significant'] else f"contains zero"
             interp += (
-                f"A bootstrap analysis with {boot['n_bootstrap']} samples revealed a significant indirect effect of {self.X_name} on {self.Y_name} through {self.M_name} "
+                f"A bootstrap analysis with {boot['n_bootstrap']} samples revealed a {sig_text} indirect effect of {self.X_name} on {self.Y_name} through {self.M_name} "
                 f"(Indirect Effect = {boot['mean_effect']:.3f}, 95% CI [{boot['ci_lower']:.3f}, {boot['ci_upper']:.3f}]). "
-                f"Because the confidence interval does not contain zero, the mediation effect is statistically significant.\n"
+                f"Because the confidence interval {ci_text}, the mediation effect is statistically {sig_text}.\n"
             )
         else: # Fallback to Sobel
              interp += (
