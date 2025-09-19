@@ -152,6 +152,7 @@ class MediationAnalysis:
             'se': np.std(indirect_effects),
             'ci_lower': ci_lower,
             'ci_upper': ci_upper,
+            'n_bootstrap': n_bootstrap,
             'confidence_level': confidence_level,
             'significant': not (ci_lower <= 0 <= ci_upper)
         }
@@ -211,7 +212,7 @@ class MediationAnalysis:
             sig_text = "significant" if boot['significant'] else "not significant"
             ci_text = f"does not contain zero" if boot['significant'] else f"contains zero"
             interp += (
-                f"A bootstrap analysis with {boot['n_bootstrap']} samples revealed a {sig_text} indirect effect of {self.X_name} on {self.Y_name} through {self.M_name} "
+                f"A bootstrap analysis with {boot.get('n_bootstrap', 'N/A')} samples revealed a {sig_text} indirect effect of {self.X_name} on {self.Y_name} through {self.M_name} "
                 f"(Indirect Effect = {boot['mean_effect']:.3f}, 95% CI [{boot['ci_lower']:.3f}, {boot['ci_upper']:.3f}]). "
                 f"Because the confidence interval {ci_text}, the mediation effect is statistically {sig_text}.\n"
             )
@@ -225,11 +226,11 @@ class MediationAnalysis:
         
         conclusion = ""
         if mediation_type == "Full Mediation":
-            conclusion = f"Conclusion: These results support a **full mediation** model. The effect of {self.X_name} on {self.Y_name} is fully transmitted through {self.M_name}."
+            conclusion = f"**Conclusion**: These results support a **full mediation** model. The effect of {self.X_name} on {self.Y_name} is fully transmitted through {self.M_name}."
         elif mediation_type == "Partial Mediation":
-            conclusion = f"Conclusion: These results support a **partial mediation** model. {self.X_name} influences {self.Y_name} both directly and indirectly through {self.M_name}."
+            conclusion = f"**Conclusion**: These results support a **partial mediation** model. {self.X_name} influences {self.Y_name} both directly and indirectly through {self.M_name}."
         else:
-            conclusion = f"Conclusion: The analysis suggests **no significant mediation** effect. While {self.X_name} may affect {self.Y_name}, this relationship is not explained by {self.M_name} in this model."
+            conclusion = f"**Conclusion**: The analysis suggests **no significant mediation** effect. While {self.X_name} may affect {self.Y_name}, this relationship is not explained by {self.M_name} in this model."
         
         interp += conclusion
         self.results['interpretation'] = interp
