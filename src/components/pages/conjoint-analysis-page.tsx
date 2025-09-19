@@ -10,12 +10,18 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, SlidersHorizontal } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, Line } from 'recharts';
+import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter } from 'recharts';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import dynamic from 'next/dynamic';
+
+const Plot = dynamic(() => import('react-plotly.js'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-[300px]" />,
+});
 
 interface AnalysisResults {
     regression: {
@@ -464,16 +470,26 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                 <Button onClick={runSensitivityAnalysis}>Analyze</Button>
                                             </div>
                                             {sensitivityResult && (
-                                                 <div className="h-[300px] w-full">
-                                                      <ResponsiveContainer>
-                                                          <LineChart data={sensitivityResult}>
-                                                              <CartesianGrid strokeDasharray="3 3" />
-                                                              <XAxis dataKey="level" />
-                                                              <YAxis />
-                                                              <Tooltip content={<ChartTooltipContent />} />
-                                                              <Line type="monotone" dataKey="utility" name="Utility" stroke="hsl(var(--chart-1))" />
-                                                          </LineChart>
-                                                      </ResponsiveContainer>
+                                                <div className="h-[300px] w-full">
+                                                    <Plot
+                                                        data={[
+                                                            {
+                                                                x: sensitivityResult.map((d: any) => d.level),
+                                                                y: sensitivityResult.map((d: any) => d.utility),
+                                                                type: 'scatter',
+                                                                mode: 'lines+markers',
+                                                                marker: {color: 'hsl(var(--primary))'},
+                                                            },
+                                                        ]}
+                                                        layout={{
+                                                            title: `Utility vs. ${sensitivityAttribute}`,
+                                                            xaxis: { title: sensitivityAttribute },
+                                                            yaxis: { title: 'Calculated Utility'},
+                                                            autosize: true,
+                                                        }}
+                                                        useResizeHandler={true}
+                                                        className="w-full h-full"
+                                                    />
                                                 </div>
                                             )}
                                         </CardContent>
