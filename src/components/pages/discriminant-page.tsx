@@ -21,6 +21,7 @@ import {
   Bar,
   ResponsiveContainer,
   CartesianGrid,
+  Legend,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import Image from 'next/image';
