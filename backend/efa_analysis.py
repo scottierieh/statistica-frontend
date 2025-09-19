@@ -38,21 +38,22 @@ def _generate_interpretation(results):
 
     kmo_level = adequacy.get('kmo_interpretation', 'N/A').lower()
     bartlett_sig = adequacy.get('bartlett_significant', False)
+    bartlett_p_val = adequacy.get('bartlett_p_value')
 
     interpretation = (
         f"An Exploratory Factor Analysis (EFA) was conducted on {n_items} items to identify underlying latent factors. "
         f"The suitability of the data for factor analysis was assessed before extraction.\n"
     )
 
-    p_val_text = (
-        "< .001" if adequacy.get('bartlett_p_value', 1) < 0.001 
-        else f"= {adequacy.get('bartlett_p_value', 1):.3f}"
-    )
+    p_val_text = "p = n/a"
+    if bartlett_p_val is not None:
+        p_val_text = "p < .001" if bartlett_p_val < 0.001 else f"p = {bartlett_p_val:.3f}"
+
 
     interpretation += (
         f"The Kaiser-Meyer-Olkin (KMO) measure of sampling adequacy was {kmo_level} ({adequacy.get('kmo', 0):.2f}), "
         f"and Bartlett’s test of sphericity was {'statistically significant' if bartlett_sig else 'not significant'} "
-        f"(χ² ≈ {adequacy.get('bartlett_statistic', 0):.2f}, p {p_val_text}). "
+        f"(χ² ≈ {adequacy.get('bartlett_statistic', 0):.2f}, {p_val_text}). "
         f"These indicators suggest that the data is {'suitable' if kmo_level not in ['poor', 'unacceptable'] and bartlett_sig else 'may not be suitable'} for factor analysis.\n\n"
     )
 
@@ -173,12 +174,17 @@ def main():
             eigenvalues_full = model.explained_variance_
             variance_explained = model.explained_variance_ratio_ * 100
         else: # Principal Axis Factoring
-            model = FactorAnalysis(n_components=n_factors, rotation=rotation if rotation in ['varimax', 'quartimax', 'promax', 'oblimin', 'none'] and rotation != 'none' else None, random_state=42)
+            fa_rotation = rotation if rotation in ['varimax', 'quartimax', 'promax', 'oblimin'] and rotation != 'none' else None
+            model = FactorAnalysis(n_components=n_factors, rotation=fa_rotation, random_state=42)
             model.fit(X_scaled)
             loadings = model.components_.T
+            
+            # For PAF, eigenvalues from the original correlation matrix are standard.
             corr_matrix = np.corrcoef(X_scaled, rowvar=False)
             eigenvalues_full, _ = np.linalg.eigh(corr_matrix)
             eigenvalues_full = sorted(eigenvalues_full, reverse=True)
+            
+            # Explained variance in PAF is the sum of squared loadings (post-rotation)
             ss_loadings_sklearn = np.sum(loadings**2, axis=0)
             variance_explained = (ss_loadings_sklearn / len(items)) * 100
 
@@ -233,3 +239,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
