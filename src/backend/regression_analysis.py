@@ -90,30 +90,37 @@ def perform_stepwise_selection(X, y, method='stepwise', p_enter=0.05, p_remove=0
             best_pvalue = p_enter
             best_feature = None
             for new_column in excluded:
-                model = sm.OLS(y, sm.add_constant(X[included + [new_column]])).fit()
-                pvalues = model.pvalues.drop('const')
-                new_pvalue = pvalues.get(new_column, 1.0)
-                if new_pvalue < best_pvalue:
-                    best_pvalue = new_pvalue
-                    best_feature = new_column
+                try:
+                    model = sm.OLS(y, sm.add_constant(X[included + [new_column]])).fit()
+                    pvalues = model.pvalues.drop('const')
+                    new_pvalue = pvalues.get(new_column, 1.0)
+                    if new_pvalue < best_pvalue:
+                        best_pvalue = new_pvalue
+                        best_feature = new_column
+                except Exception:
+                    continue # Handle potential multicollinearity issues
             if best_feature:
                 included.append(best_feature)
                 changed = True
                 log.append(f"Add '{best_feature}' (p={best_pvalue:.4f})")
             
             # Backward step
-            model = sm.OLS(y, sm.add_constant(X[included])).fit()
-            pvalues = model.pvalues.drop('const')
-            worst_pvalue = p_remove
-            worst_feature = None
-            for feature, pvalue in pvalues.items():
-                 if pvalue > worst_pvalue:
-                    worst_pvalue = pvalue
-                    worst_feature = feature
-            if worst_feature:
-                included.remove(worst_feature)
-                changed = True
-                log.append(f"Remove '{worst_feature}' (p={worst_pvalue:.4f})")
+            if not included: break
+            try:
+                model = sm.OLS(y, sm.add_constant(X[included])).fit()
+                pvalues = model.pvalues.drop('const')
+                worst_pvalue = p_remove
+                worst_feature = None
+                for feature, pvalue in pvalues.items():
+                     if pvalue > worst_pvalue:
+                        worst_pvalue = pvalue
+                        worst_feature = feature
+                if worst_feature:
+                    included.remove(worst_feature)
+                    changed = True
+                    log.append(f"Remove '{worst_feature}' (p={worst_pvalue:.4f})")
+            except Exception:
+                pass
 
             if not changed:
                 break
@@ -138,8 +145,9 @@ class RegressionAnalysis:
         numeric_features = self.data.select_dtypes(include=np.number).drop(columns=[target_variable], errors='ignore')
         categorical_features = self.data.select_dtypes(include=['object', 'category'])
         
+        X_to_process = self.data.drop(columns=[target_variable])
         if not categorical_features.empty:
-            X_encoded = pd.get_dummies(self.data.drop(columns=[target_variable]), drop_first=True)
+            X_encoded = pd.get_dummies(X_to_process, drop_first=True, dtype=float)
             self.X = X_encoded
         else:
             self.X = numeric_features
@@ -152,10 +160,12 @@ class RegressionAnalysis:
         else:
             X_selected = self.X[[col for col in features if col in self.X.columns]]
         
-        final_features = features
+        final_features = X_selected.columns.tolist()
 
         if HAS_STATSMODELS and selection_method != 'none':
             final_features, stepwise_log = perform_stepwise_selection(X_selected, self.y, method=selection_method)
+            if not final_features:
+                raise ValueError("No features were selected by the stepwise method. Try adjusting p-values or using a different method.")
             X_selected = X_selected[final_features]
 
 
@@ -186,7 +196,7 @@ class RegressionAnalysis:
             'metrics': metrics,
             'diagnostics': diagnostics,
             'stepwise_log': stepwise_log,
-            'interpretation': self._generate_interpretation(metrics, diagnostics)
+            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, list(X_scaled.columns))
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -221,7 +231,7 @@ class RegressionAnalysis:
         self.results[model_name] = {
             'model_name': model_name, 'model_type': 'polynomial_regression', 'features': list(poly_feature_names),
             'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': [],
-            'interpretation': self._generate_interpretation(metrics, diagnostics)
+            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, list(poly_feature_names))
         }
         self.y_pred = y_pred
         self.X_scaled = X_poly_df
@@ -262,7 +272,7 @@ class RegressionAnalysis:
         self.results[model_name] = {
             'model_name': model_name, 'model_type': f'{reg_type}_regression', 'features': list(X_scaled.columns),
             'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': [],
-            'interpretation': self._generate_interpretation(metrics, diagnostics)
+            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, list(X_scaled.columns))
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -291,6 +301,9 @@ class RegressionAnalysis:
 
             diagnostics['f_statistic'] = sm_model.fvalue
             diagnostics['f_pvalue'] = sm_model.f_pvalue
+            diagnostics['df_model'] = sm_model.df_model
+            diagnostics['df_resid'] = sm_model.df_resid
+
             diagnostics['coefficient_tests'] = {
                 'params': sm_model.params.to_dict(),
                 'pvalues': sm_model.pvalues.to_dict(),
@@ -346,33 +359,51 @@ class RegressionAnalysis:
             diagnostics['normality_tests'] = {}
         return diagnostics
     
-    def _generate_interpretation(self, metrics, diagnostics):
-        adj_r2 = metrics.get('adj_r2', 0)
+    def _generate_interpretation(self, metrics, diagnostics, model_name, target_variable, features):
+        model_type_str = model_name.replace('_', ' ').title()
         
-        if adj_r2 >= 0.7:
-            power_desc = "very high explanatory power"
-        elif adj_r2 >= 0.5:
-            power_desc = "high explanatory power"
-        elif adj_r2 >= 0.25:
-            power_desc = "moderate explanatory power"
-        else:
-            power_desc = "low explanatory power"
-            
-        interpretation = f"The model has {power_desc}, with an adjusted R-squared of {adj_r2:.4f}. This means that approximately {adj_r2*100:.1f}% of the variance in the target variable can be explained by the predictors in the model.\n\n"
+        feature_list = ", ".join(f"'{f}'" for f in features)
+        interpretation = f"A {model_type_str} regression was run to predict '{target_variable}' from {feature_list}.\n"
 
-        coeffs = diagnostics.get('coefficient_tests', {})
-        p_values = coeffs.get('pvalues', {})
-        
-        if p_values:
-            significant_vars = [var for var, p in p_values.items() if p < self.alpha and var != 'const']
-            if significant_vars:
-                interpretation += f"The following variables were found to be statistically significant predictors (p < {self.alpha}): {', '.join(significant_vars)}."
-            else:
-                interpretation += "No variables were found to be statistically significant predictors at the p < 0.05 level."
-        else:
-            interpretation += "Significance testing for individual predictors was not performed for this model type."
+        f_stat = diagnostics.get('f_statistic')
+        f_pvalue = diagnostics.get('f_pvalue')
+        df_model = diagnostics.get('df_model')
+        df_resid = diagnostics.get('df_resid')
+        r_squared = metrics.get('r2')
+
+        if all(v is not None for v in [f_stat, f_pvalue, df_model, df_resid, r_squared]):
+            p_val_str = f"p < .001" if f_pvalue < 0.001 else f"p = {f_pvalue:.3f}"
+            model_sig_str = "statistically significant" if f_pvalue < self.alpha else "not statistically significant"
+            interpretation += f"The overall regression model was {model_sig_str}, F({int(df_model)}, {int(df_resid)}) = {f_stat:.2f}, {p_val_str}, and accounted for {r_squared*100:.1f}% of the variance (R² = {r_squared:.3f}).\n"
+
+        coeffs = diagnostics.get('coefficient_tests')
+        if coeffs and coeffs.get('pvalues'):
+            params = coeffs['params']
+            p_values = coeffs['pvalues']
             
-        # Diagnostic interpretation
+            sig_vars = []
+            for var in features:
+                if var in p_values and p_values[var] < self.alpha:
+                    b = params.get(var, 0)
+                    sig_vars.append(f"'{var}' (B = {b:.3f})")
+            
+            if sig_vars:
+                interpretation += f"It was found that {', '.join(sig_vars)} significantly predicted '{target_variable}'.\n"
+        
+        if coeffs:
+            b0 = coeffs['params'].get('const', 0)
+            b1_str_parts = []
+            for var in features:
+                 b_val = coeffs['params'].get(var)
+                 if b_val is not None:
+                     sign = "-" if b_val < 0 else "+"
+                     b1_str_parts.append(f"{sign} {abs(b_val):.3f} * ({var})")
+            
+            b1_str = " ".join(b1_str_parts)
+            interpretation += f"\nThe final regression equation is: {target_variable} = {b0:.3f} {b1_str}."
+
+        interpretation = interpretation.strip()
+
         warnings = []
         normality_p = diagnostics.get('normality_tests', {}).get('shapiro_wilk', {}).get('p_value')
         if normality_p is not None and normality_p < self.alpha:
@@ -389,7 +420,6 @@ class RegressionAnalysis:
 
         if warnings:
             interpretation += "\n\n--- Diagnostic Warnings ---\n" + "\n".join(warnings)
-
 
         return interpretation
 
@@ -426,7 +456,7 @@ class RegressionAnalysis:
         
         # Scale-Location plot
         ax = axes[1, 1]
-        sqrt_abs_residuals = np.sqrt(np.abs(residuals / np.std(residuals)))
+        sqrt_abs_residuals = np.sqrt(np.abs(residuals / np.std(residuals))) if np.std(residuals) > 0 else np.zeros_like(residuals)
         ax.scatter(self.y_pred, sqrt_abs_residuals, alpha=0.6)
         z = np.polyfit(self.y_pred, sqrt_abs_residuals, 1)
         p = np.poly1d(z)
@@ -489,7 +519,5 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
 
     

@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Sigma, Loader2, TrendingUp, AlertTriangle, CheckCircle, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -431,12 +431,16 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Interpretation & Recommendations</CardTitle>
+                            <CardTitle className="font-headline">Interpretation</CardTitle>
                         </CardHeader>
-                         <CardContent className="space-y-4">
-                            <p className="text-sm whitespace-pre-wrap font-sans">{interpretationText}</p>
-                            {warnings.length > 0 && (
-                                <div className="space-y-2">
+                         <CardContent>
+                            <Alert variant={results.diagnostics.f_pvalue != null && results.diagnostics.f_pvalue < 0.05 ? 'default' : 'secondary'}>
+                                {results.diagnostics.f_pvalue != null && results.diagnostics.f_pvalue < 0.05 ? <CheckCircle className="h-4 w-4 text-green-600" /> : <AlertTriangle className="h-4 w-4" />}
+                                <AlertTitle>{results.diagnostics.f_pvalue != null && results.diagnostics.f_pvalue < 0.05 ? 'Statistically Significant Model' : 'Not Statistically Significant'}</AlertTitle>
+                                <AlertDescription dangerouslySetInnerHTML={{ __html: interpretationText.replace(/\n/g, '<br />')}} />
+                            </Alert>
+                             {warnings.length > 0 && (
+                                <div className="space-y-2 mt-4">
                                     {warnings.map((warning, i) => (
                                         <Alert key={i} variant="destructive">
                                             <AlertTriangle className="h-4 w-4" />
@@ -488,7 +492,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                         <span>Normality (Shapiro-Wilk):</span>
                                         <div className="flex items-center gap-2">
                                              <Badge variant={results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null && results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'secondary' : 'destructive'}>
-                                                {results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null ? (results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'Not Significant' : 'Significant') : 'N/A'}
+                                                {results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null ? (results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'Normal' : 'Not Normal') : 'N/A'}
                                             </Badge>
                                             <span className="font-mono">p={results.diagnostics.normality_tests?.shapiro_wilk?.p_value?.toFixed(3) ?? 'N/A'}</span>
                                         </div>
@@ -497,7 +501,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                         <span>Homoscedasticity (Breusch-Pagan):</span>
                                         <div className="flex items-center gap-2">
                                             <Badge variant={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null && results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'secondary' : 'destructive'}>
-                                                {results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null ? (results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'Not Significant' : 'Significant') : 'N/A'}
+                                                {results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null ? (results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'Met' : 'Violated') : 'N/A'}
                                             </Badge>
                                             <span className="font-mono">p={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value?.toFixed(3) ?? 'N/A'}</span>
                                         </div>
@@ -538,3 +542,5 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     );
 }
+
+    
