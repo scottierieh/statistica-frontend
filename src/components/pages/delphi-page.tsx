@@ -118,6 +118,7 @@ export default function DelphiPage({ data, numericHeaders, onLoadExample }: Delp
                     {delphiExamples.length > 0 && (
                         <CardContent>
                             <Button onClick={() => onLoadExample(delphiExamples[0])} className="w-full">
+                                <Users className="mr-2 h-4 w-4" />
                                 Load {delphiExamples[0].name}
                             </Button>
                         </CardContent>
@@ -203,7 +204,11 @@ export default function DelphiPage({ data, numericHeaders, onLoadExample }: Delp
                                                     <TableCell className="text-right"><Badge variant={stats.cvr > 0 ? 'default' : 'secondary'}>{stats.cvr.toFixed(3)}</Badge></TableCell>
                                                     <TableCell className="text-right"><Badge variant={stats.consensus <= 1 ? 'default' : 'secondary'}>{stats.consensus.toFixed(3)}</Badge></TableCell>
                                                     <TableCell className="text-right"><Badge variant={stats.stability <= 0.5 ? 'default' : 'secondary'}>{stats.stability.toFixed(3)}</Badge></TableCell>
-                                                    <TableCell className="text-right font-mono">{stats.convergence?.toFixed(3) ?? 'N/A'}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Badge variant={stats.convergence !== undefined && stats.convergence < 0.5 ? 'default' : 'secondary'}>
+                                                            {stats.convergence?.toFixed(3) ?? 'N/A'}
+                                                        </Badge>
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
