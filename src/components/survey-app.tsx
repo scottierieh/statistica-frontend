@@ -699,6 +699,7 @@ const getMedian = (arr: number[]): number | null => {
     return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
+
 // New Star Display Component
 const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number, total?: number, size?: string }) => {
     const fullStars = Math.floor(rating);
@@ -1463,16 +1464,16 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
     
     const handleDragEnd = (event: DragEndEvent) => {
-        const {active, over} = event;
-    
-        if (active.id !== over?.id) {
-          setSurvey((prev: any) => {
-            const oldIndex = prev.questions.findIndex((item: any) => item.id === active.id);
-            const newIndex = prev.questions.findIndex((item: any) => item.id === over!.id);
-            return { ...prev, questions: arrayMove(prev.questions, oldIndex, newIndex) };
-          });
-        }
+      const {active, over} = event;
+  
+      if (active.id !== over?.id) {
+        setSurvey((prev: any) => {
+          const oldIndex = prev.questions.findIndex((item: any) => item.id === active.id);
+          const newIndex = prev.questions.findIndex((item: any) => item.id === over!.id);
+          return { ...prev, questions: arrayMove(prev.questions, oldIndex, newIndex) };
+        });
       }
+    }
 
     const saveAndTest = () => {
         if(saveDraft()) {
@@ -2315,7 +2316,7 @@ const IpaAnalyticsDashboard = ({ data }: { data: any }) => {
     if (!data) return null;
 
     const { points, meanImportance, meanSatisfaction, quadrants } = data;
-    const quadrantInfo: any = {
+    const quadrantInfo = {
         'Concentrate Here': { icon: <Zap className="h-5 w-5 text-destructive" />, description: "High importance, low satisfaction. These are your top priorities for improvement.", color: "border-destructive"},
         'Keep Up the Good Work': { icon: <Star className="h-5 w-5 text-green-500" />, description: "High importance, high satisfaction. Your key strengths.", color: "border-green-500"},
         'Low Priority': { icon: <ShieldAlert className="h-5 w-5 text-amber-500" />, description: "Low importance, low satisfaction. Don't worry about these for now.", color: "border-amber-500"},
@@ -2347,10 +2348,10 @@ const IpaAnalyticsDashboard = ({ data }: { data: any }) => {
             </Card>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {Object.entries(quadrantInfo).map(([quadrantName, info]) => (
-                    <Card key={quadrantName} className={(info as any).color}>
+                    <Card key={quadrantName} className={info.color}>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">{(info as any).icon} {quadrantName}</CardTitle>
-                            <CardDescription>{(info as any).description}</CardDescription>
+                            <CardTitle className="flex items-center gap-2">{info.icon} {quadrantName}</CardTitle>
+                            <CardDescription>{info.description}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <ul className="list-disc pl-5 space-y-1">
