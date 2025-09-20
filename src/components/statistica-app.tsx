@@ -127,9 +127,10 @@ import DeaPage from './pages/dea-page';
 import TTestPage from './pages/t-test-page';
 import AhpPage from './pages/ahp-page';
 import DidPage from './pages/did-page';
+import DelphiPage from './pages/delphi-page';
 
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -194,6 +195,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     't-test': TTestPage,
     ahp: AhpPage,
     did: DidPage,
+    delphi: DelphiPage,
 };
 
 const analysisMenu = [
@@ -332,6 +334,7 @@ const analysisMenu = [
       { id: 'sna', label: 'Social Network Analysis' },
       { id: 'dea', label: 'Data Envelopment Analysis (DEA)' },
       { id: 'did', label: 'Difference-in-Differences' },
+      { id: 'delphi', label: 'Delphi Analysis' },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
   },
@@ -671,7 +674,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && activeAnalysis !== 'ahp' && (
+            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && activeAnalysis !== 'ahp' && activeAnalysis !== 'delphi' &&(
               <DataPreview 
                 fileName={fileName}
                 data={data}
