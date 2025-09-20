@@ -32,7 +32,7 @@ interface DelphiItemResult {
     cvr: number;
     consensus: number;
     stability: number;
-    convergence?: number;
+    convergence: number;
     positive_responses: number;
 }
 
@@ -209,13 +209,21 @@ export default function DelphiPage({ data, numericHeaders, onLoadExample }: Delp
                                                     <TableHead className="text-right">Mean</TableHead>
                                                     <TableHead className="text-right">SD</TableHead>
                                                     <TableHead className="text-right">Ne</TableHead>
-                                                    <TableHead className="text-right">Stability</TableHead>
+                                                    <TableHead className="text-right">
+                                                        <Tooltip><TooltipTrigger>Stability <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Stability (CV) ≤ 0.5</TooltipContent></Tooltip>
+                                                    </TableHead>
                                                     <TableHead className="text-right">Q3</TableHead>
                                                     <TableHead className="text-right">Q1</TableHead>
                                                     <TableHead className="text-right">Median</TableHead>
-                                                    <TableHead className="text-right">Consensus</TableHead>
-                                                    <TableHead className="text-right">Convergence</TableHead>
-                                                    <TableHead className="text-right">CVR</TableHead>
+                                                    <TableHead className="text-right">
+                                                        <Tooltip><TooltipTrigger>Consensus <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Consensus ≥ 0.75</TooltipContent></Tooltip>
+                                                    </TableHead>
+                                                    <TableHead className="text-right">
+                                                        <Tooltip><TooltipTrigger>Convergence <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Convergence ≤ 0.5</TooltipContent></Tooltip>
+                                                    </TableHead>
+                                                    <TableHead className="text-right">
+                                                        <Tooltip><TooltipTrigger>CVR <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Content Validity Ratio > 0</TooltipContent></Tooltip>
+                                                    </TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -230,8 +238,8 @@ export default function DelphiPage({ data, numericHeaders, onLoadExample }: Delp
                                                         <TableCell className="text-right font-mono">{stats.q1.toFixed(2)}</TableCell>
                                                         <TableCell className="text-right font-mono">{stats.median.toFixed(2)}</TableCell>
                                                         <TableCell className="text-right"><Badge variant={stats.consensus >= 0.75 ? 'default' : 'secondary'}>{stats.consensus.toFixed(3)}</Badge></TableCell>
-                                                        <TableCell className="text-right"><Badge variant={stats.convergence !== undefined && stats.convergence <= 0.5 ? 'default' : 'secondary'}>{stats.convergence?.toFixed(3) ?? 'N/A'}</Badge></TableCell>
-                                                        <TableCell className="text-right"><Badge variant={stats.cvr > 0.6 ? 'default' : 'secondary'}>{stats.cvr.toFixed(3)}</Badge></TableCell>
+                                                        <TableCell className="text-right"><Badge variant={stats.convergence <= 0.5 ? 'default' : 'secondary'}>{stats.convergence.toFixed(3)}</Badge></TableCell>
+                                                        <TableCell className="text-right"><Badge variant={stats.cvr > 0 ? 'default' : 'secondary'}>{stats.cvr.toFixed(3)}</Badge></TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>
