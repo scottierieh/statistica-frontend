@@ -23,6 +23,7 @@ import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
+import { Button } from './ui/button';
 
 
 type SimulationType = 'gradient-descent' | 'central-limit-theorem' | 'marketing-analysis';
@@ -218,7 +219,9 @@ export default function SimulationApp() {
               allHeaders={allHeaders} 
               numericHeaders={numericHeaders}
               categoricalHeaders={categoricalHeaders}
-              onLoadExample={handleLoadExampleData} 
+              onLoadExample={handleLoadExampleData}
+              onFileSelected={handleFileSelected}
+              isUploading={isUploading}
             />
           </div>
         </SidebarInset>

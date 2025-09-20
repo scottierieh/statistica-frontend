@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { BarChart as BarChartIcon, DollarSign, Eye, Clock, LineChart, ScatterChart as ScatterIcon, Loader2 } from 'lucide-react';
+import { BarChart as BarChartIcon, DollarSign, Eye, Clock, LineChart, ScatterChart as ScatterIcon, Loader2, Users, MapPin, Award } from 'lucide-react';
 import { DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -22,7 +22,7 @@ interface MarketingAnalysisPageProps {
 
 const ChartCard = ({ title, plotData }: { title: string, plotData: string | null }) => (
     <Card>
-        <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base font-headline">{title}</CardTitle></CardHeader>
         <CardContent>
             {plotData ? (
                 <Image src={plotData} alt={title} width={600} height={400} className="w-full h-auto rounded-md border" />
@@ -43,6 +43,11 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     const [sessionDurationCol, setSessionDurationCol] = useState<string | undefined>();
     const [dateCol, setDateCol] = useState<string | undefined>();
     const [ageGroupCol, setAgeGroupCol] = useState<string | undefined>();
+    // New state for segmentation
+    const [ltvCol, setLtvCol] = useState<string | undefined>();
+    const [genderCol, setGenderCol] = useState<string | undefined>();
+    const [countryCol, setCountryCol] = useState<string | undefined>();
+    const [membershipCol, setMembershipCol] = useState<string | undefined>();
 
     const [plots, setPlots] = useState<Record<string, string | null>>({
         revenueBySource: null,
@@ -51,6 +56,11 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
         revenueByAge: null,
         pageViewsDist: null,
         durationVsRevenue: null,
+        // New plots
+        rfmAnalysis: null,
+        revenueByGender: null,
+        revenueByCountry: null,
+        revenueByMembership: null,
     });
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -66,6 +76,11 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
         setSessionDurationCol(numericHeaders.find(h => h.toLowerCase().includes('duration')) || numericHeaders[2]);
         setDateCol(allHeaders.find(h => h.toLowerCase().includes('date')) || allHeaders[0]);
         setAgeGroupCol(categoricalHeaders.find(h => h.toLowerCase().includes('age')) || categoricalHeaders[2]);
+        // New variables
+        setLtvCol(numericHeaders.find(h => h.toLowerCase().includes('ltv')) || numericHeaders[3]);
+        setGenderCol(categoricalHeaders.find(h => h.toLowerCase().includes('gender')) || categoricalHeaders[3]);
+        setCountryCol(categoricalHeaders.find(h => h.toLowerCase().includes('country')) || categoricalHeaders[4]);
+        setMembershipCol(categoricalHeaders.find(h => h.toLowerCase().includes('membership')) || categoricalHeaders[5]);
     }, [numericHeaders, categoricalHeaders, allHeaders]);
 
     const fetchPlot = async (chartType: string, config: any) => {
@@ -85,7 +100,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     };
     
     useEffect(() => {
-        if (data.length > 0 && revenueCol && sourceCol && deviceCol && pageViewsCol && sessionDurationCol && dateCol && ageGroupCol) {
+        if (data.length > 0 && revenueCol && sourceCol && deviceCol && pageViewsCol && sessionDurationCol && dateCol && ageGroupCol && ltvCol && genderCol && countryCol && membershipCol) {
             setIsGenerating(true);
             const generatePlots = async () => {
                 const newPlots: Record<string, string | null> = {};
@@ -95,12 +110,18 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                 newPlots.revenueByAge = await fetchPlot('bar', { x_col: ageGroupCol, y_col: revenueCol });
                 newPlots.pageViewsDist = await fetchPlot('histogram', { x_col: pageViewsCol });
                 newPlots.durationVsRevenue = await fetchPlot('scatter', { x_col: sessionDurationCol, y_col: revenueCol });
+                // New plots
+                newPlots.rfmAnalysis = await fetchPlot('scatter', { x_col: ltvCol, y_col: revenueCol });
+                newPlots.revenueByGender = await fetchPlot('bar', { x_col: genderCol, y_col: revenueCol });
+                newPlots.revenueByCountry = await fetchPlot('bar', { x_col: countryCol, y_col: revenueCol });
+                newPlots.revenueByMembership = await fetchPlot('bar', { x_col: membershipCol, y_col: revenueCol });
+
                 setPlots(newPlots);
                 setIsGenerating(false);
             };
             generatePlots();
         }
-    }, [data, revenueCol, sourceCol, deviceCol, pageViewsCol, sessionDurationCol, dateCol, ageGroupCol]);
+    }, [data, revenueCol, sourceCol, deviceCol, pageViewsCol, sessionDurationCol, dateCol, ageGroupCol, ltvCol, genderCol, countryCol, membershipCol]);
 
 
     const summaryStats = useMemo(() => {
@@ -156,6 +177,10 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                     <div><Label>Page Views</Label><Select value={pageViewsCol} onValueChange={setPageViewsCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     <div><Label>Session Duration</Label><Select value={sessionDurationCol} onValueChange={setSessionDurationCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     <div><Label>Date</Label><Select value={dateCol} onValueChange={setDateCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    <div><Label>User LTV</Label><Select value={ltvCol} onValueChange={setLtvCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    <div><Label>Gender</Label><Select value={genderCol} onValueChange={setGenderCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    <div><Label>Country</Label><Select value={countryCol} onValueChange={setCountryCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                    <div><Label>Membership Level</Label><Select value={membershipCol} onValueChange={setMembershipCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                 </CardContent>
             </Card>
 
@@ -193,16 +218,30 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
 
             {!isGenerating && (
                 <>
-                <ChartCard title="Revenue Over Time" plotData={plots.revenueOverTime} />
-                <div className="grid gap-4 md:grid-cols-2">
-                    <ChartCard title="Revenue by Traffic Source" plotData={plots.revenueBySource} />
-                    <ChartCard title="Revenue by Device" plotData={plots.revenueByDevice} />
-                    <ChartCard title="Revenue by Age Group" plotData={plots.revenueByAge} />
-                    <ChartCard title="Page Views per Session" plotData={plots.pageViewsDist} />
-                    <div className="md:col-span-2">
-                        <ChartCard title="Session Duration vs. Revenue" plotData={plots.durationVsRevenue} />
-                    </div>
-                </div>
+                <Card>
+                    <CardHeader><CardTitle className="font-headline">1. General Performance</CardTitle></CardHeader>
+                    <CardContent className="grid gap-4 md:grid-cols-2">
+                        <ChartCard title="Revenue Over Time" plotData={plots.revenueOverTime} />
+                        <ChartCard title="Revenue by Traffic Source" plotData={plots.revenueBySource} />
+                        <ChartCard title="Revenue by Device" plotData={plots.revenueByDevice} />
+                        <ChartCard title="Page Views per Session" plotData={plots.pageViewsDist} />
+                        <div className="md:col-span-2">
+                            <ChartCard title="Session Duration vs. Revenue" plotData={plots.durationVsRevenue} />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader><CardTitle className="font-headline">2. Customer Segmentation</CardTitle></CardHeader>
+                    <CardContent className="grid gap-4 md:grid-cols-2">
+                         <ChartCard title="User LTV vs. Purchase Revenue" plotData={plots.rfmAnalysis} />
+                         <ChartCard title="Revenue by Age Group" plotData={plots.revenueByAge} />
+                         <ChartCard title="Revenue by Gender" plotData={plots.revenueByGender} />
+                         <ChartCard title="Revenue by Country" plotData={plots.revenueByCountry} />
+                         <div className="md:col-span-2">
+                            <ChartCard title="Revenue by Membership Level" plotData={plots.revenueByMembership} />
+                         </div>
+                    </CardContent>
+                </Card>
                 </>
             )}
         </div>
