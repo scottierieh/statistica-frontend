@@ -377,7 +377,7 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
                         </CardContent>
                     </Card>
             </div>
-        </>
+        </div>
       )}
       {!results && !isLoading && (
         <div className="text-center text-muted-foreground py-10">
