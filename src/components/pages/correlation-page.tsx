@@ -235,9 +235,8 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
               </CardContent>
           </Card>
       </div>
-    );
-    }
-
+    )
+  }
 
   const heatmapPlotData = results ? JSON.parse(results.heatmap_plot || '{}') : null;
   const pairsPlotData = results ? JSON.parse(results.pairs_plot || '{}') : null;
