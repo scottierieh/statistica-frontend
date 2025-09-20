@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sigma, AlertCircle, Loader2, Bot } from 'lucide-react';
+import { Sigma, AlertCircle, Loader2, Bot, CheckCircle2 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -79,32 +79,29 @@ interface EffectSizeInterpretation {
     eta_squared_interpretation: string;
 }
 
-const InterpretationDisplay = ({ text }: { text: string | null }) => {
-  const formattedInterpretation = useMemo(() => {
-    if (!text) return null;
-    return text
-      .replace(/\n/g, '<br />')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-      .replace(/\*(.*?)\*/g, '<i>$1</i>')
-      .replace(/F\((.*?)\)\s*=\s*(.*?),/g, '<i>F</i>($1) = $2,')
-      .replace(/p\s*=\s*(\.\d+)/g, '<i>p</i> = $1')
-      .replace(/p\s*<\s*(\.\d+)/g, '<i>p</i> < $1')
-      .replace(/M\s*=\s*([\d.]+)/g, '<i>M</i> = $1')
-      .replace(/SD\s*=\s*([\d.]+)/g, '<i>SD</i> = $1');
-  }, [text]);
+const InterpretationDisplay = ({ anovaResult }: { anovaResult: AnovaResults | undefined }) => {
+    const formattedInterpretation = useMemo(() => {
+        if (!anovaResult?.interpretation) return null;
+        return anovaResult.interpretation
+            .replace(/\n/g, '<br />')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<i>$1</i>')
+            .replace(/F\((.*?)\)\s*=\s*(.*?),/g, '<i>F</i>($1) = $2,')
+            .replace(/p\s*=\s*(\.\d+)/g, '<i>p</i> = $1')
+            .replace(/p\s*<\s*(\.\d+)/g, '<i>p</i> < $1')
+            .replace(/M\s*=\s*([\d.]+)/g, '<i>M</i> = $1')
+            .replace(/SD\s*=\s*([\d.]+)/g, '<i>SD</i> = $1');
+    }, [anovaResult]);
 
-  if (!text) return null;
+    if (!anovaResult) return null;
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
-      </CardContent>
-    </Card>
-  );
+    return (
+        <Alert variant={anovaResult.anova.significant ? 'default' : 'destructive'}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>{anovaResult.anova.significant ? "Result is Statistically Significant" : "Result is Not Statistically Significant"}</AlertTitle>
+            <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
+        </Alert>
+    );
 };
 
 
@@ -283,83 +280,18 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                         </CardContent>
                     </Card>
                 )}
+                
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Analysis Summary & Interpretation</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <InterpretationDisplay anovaResult={anovaResult} />
+                    </CardContent>
+                </Card>
+
                 <div className="grid lg:grid-cols-3 gap-4">
                     <div className="lg:col-span-2 flex flex-col gap-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">ANOVA Summary</CardTitle>
-                                <CardDescription>
-                                    F({anovaResult.anova.df_between}, {anovaResult.anova.df_within}) = {anovaResult.anova.f_statistic.toFixed(3)}, p = {anovaResult.anova.p_value < 0.001 ? "< .001" : anovaResult.anova.p_value.toFixed(4)}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <Alert variant={anovaResult.anova.significant ? "default" : "destructive"}>
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertTitle>{anovaResult.anova.significant ? "Result is Statistically Significant" : "Result is Not Statistically Significant"}</AlertTitle>
-                                    <AlertDescription>
-                                        {anovaResult.anova.significant 
-                                            ? `There is a significant difference between the means of the groups (p < 0.05).`
-                                            : `There is no significant difference between the means of the groups (p >= 0.05).`}
-                                    </AlertDescription>
-                                </Alert>
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <div>
-                                        <h3 className="font-semibold mb-2 text-lg">Effect Size</h3>
-                                        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm border p-4 rounded-md">
-                                            <dt className="text-muted-foreground">Eta-squared (η²)</dt>
-                                            <dd className="font-mono text-right">{anovaResult.anova.eta_squared.toFixed(4)}</dd>
-                                             <dt className="text-muted-foreground">Omega-squared (ω²)</dt>
-                                            <dd className="font-mono text-right">{anovaResult.anova.omega_squared.toFixed(4)}</dd>
-                                            <dt className="text-muted-foreground">Interpretation</dt>
-                                            <dd className="text-right"><Badge variant="secondary">{anovaResult.effect_size_interpretation.eta_squared_interpretation}</Badge></dd>
-                                        </dl>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2 text-lg">Assumption Checks</h3>
-                                        <div className="border p-4 rounded-md space-y-3 text-sm">
-                                            <div className="flex justify-between items-center">
-                                                <dt className="text-muted-foreground">Normality</dt>
-                                                <dd>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button variant="link" size="sm" className="h-auto p-0">View Details</Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-80">
-                                                            <div className="grid gap-4">
-                                                                <div className="space-y-2">
-                                                                    <h4 className="font-medium leading-none">Normality (Shapiro-Wilk)</h4>
-                                                                    <p className="text-xs text-muted-foreground">Tests if each group's data is normally distributed. p > 0.05 suggests normality.</p>
-                                                                </div>
-                                                                <div className="grid gap-2 text-xs">
-                                                                    {Object.entries(anovaResult.assumptions.normality).map(([group, result]) => (
-                                                                        <div className="grid grid-cols-3 items-center gap-4" key={group}>
-                                                                            <span className="font-semibold">{group}</span>
-                                                                            <span className="font-mono">p = {result.p_value?.toFixed(3) ?? 'N/A'}</span>
-                                                                            {result.normal === null ? <Badge variant="outline">N/A</Badge> : result.normal ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                </dd>
-                                            </div>
-                                            <div className="flex justify-between items-start">
-                                                <dt className="text-muted-foreground">Equal Variances</dt>
-                                                <dd className="text-right">
-                                                    {anovaResult.assumptions.homogeneity.equal_variances ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}
-                                                    <p className="font-mono text-xs">(p = {anovaResult.assumptions.homogeneity.levene_p_value.toFixed(3)})</p>
-                                                </dd>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                         <InterpretationDisplay text={anovaResult.interpretation} />
-                    </div>
-
-                    <div className="lg:col-span-1 flex flex-col gap-4">
                          <Card>
                             <CardHeader><CardTitle className="font-headline">Group Statistics</CardTitle></CardHeader>
                             <CardContent>
@@ -383,6 +315,64 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
                                         ))}
                                     </TableBody>
                                 </Table>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="lg:col-span-1 flex flex-col gap-4">
+                         <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Effect Size & Assumptions</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 text-sm">
+                                <div>
+                                    <h3 className="font-semibold mb-2">Effect Size</h3>
+                                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1 border p-3 rounded-md">
+                                        <dt className="text-muted-foreground">Eta-squared (η²)</dt>
+                                        <dd className="font-mono text-right">{anovaResult.anova.eta_squared.toFixed(4)}</dd>
+                                        <dt className="text-muted-foreground">Interpretation</dt>
+                                        <dd className="text-right"><Badge variant="secondary">{anovaResult.effect_size_interpretation.eta_squared_interpretation}</Badge></dd>
+                                    </dl>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold mb-2">Assumption Checks</h3>
+                                    <div className="border p-3 rounded-md space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <dt className="text-muted-foreground">Normality (Shapiro-Wilk)</dt>
+                                            <dd>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button variant="link" size="sm" className="h-auto p-0">Details</Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-80">
+                                                        <div className="grid gap-4">
+                                                            <div className="space-y-2">
+                                                                <h4 className="font-medium leading-none">Normality Test</h4>
+                                                                <p className="text-xs text-muted-foreground">Tests if each group's data is normal. p > 0.05 suggests normality.</p>
+                                                            </div>
+                                                            <div className="grid gap-2 text-xs">
+                                                                {Object.entries(anovaResult.assumptions.normality).map(([group, result]) => (
+                                                                    <div className="grid grid-cols-3 items-center gap-4" key={group}>
+                                                                        <span className="font-semibold">{group}</span>
+                                                                        <span className="font-mono">p = {result.p_value?.toFixed(3) ?? 'N/A'}</span>
+                                                                        {result.normal === null ? <Badge variant="outline">N/A</Badge> : result.normal ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </dd>
+                                        </div>
+                                        <div className="flex justify-between items-start">
+                                            <dt className="text-muted-foreground">Equal Variances (Levene's)</dt>
+                                            <dd className="text-right">
+                                                {anovaResult.assumptions.homogeneity.equal_variances ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}
+                                                <p className="font-mono text-xs">(p = {anovaResult.assumptions.homogeneity.levene_p_value.toFixed(3)})</p>
+                                            </dd>
+                                        </div>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -474,4 +464,5 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
 
 
     
+
 
