@@ -12,7 +12,6 @@
  * Imported flows:
  * - generateSummaryReport: Generates a comprehensive summary report from statistical data.
  * - generateDataVisualization: Creates descriptive text for data visualizations.
- * - interpretAnova: Provides expert interpretation of ANOVA test results.
  * - interpretReliability: Interprets reliability analysis metrics like Cronbach's Alpha.
  * - interpretCorrelation: Explains the meaning and strength of correlation matrices.
  * - interpretCrosstab: Analyzes and interprets crosstabulation and Chi-squared test results.
@@ -25,11 +24,9 @@ config();
 
 import '@/ai/flows/generate-summary-report.ts';
 import '@/ai/flows/generate-data-visualization.ts';
-import '@/ai/flows/interpret-anova.ts';
 import '@/ai/flows/interpret-reliability.ts';
 import '@/ai/flows/interpret-correlation.ts';
 import '@/ai/flows/interpret-crosstab.ts';
 import '@/ai/flows/interpret-cfa.ts';
 import '@/ai/flows/interpret-frequency.ts';
 import '@/ai/flows/interpret-clustering.ts';
-import '@/ai/flows/interpret-did.ts';

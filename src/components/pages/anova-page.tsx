@@ -474,3 +474,4 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
 
 
     
+

@@ -3,11 +3,9 @@
 'use server';
 import { generateDataVisualization, GenerateDataVisualizationInput } from "@/ai/flows/generate-data-visualization";
 import { generateSummaryReport, GenerateSummaryReportInput } from "@/ai/flows/generate-summary-report";
-import { interpretAnova, InterpretAnovaInput } from "@/ai/flows/interpret-anova";
 import { interpretCfa, InterpretCfaInput } from "@/ai/flows/interpret-cfa";
 import { interpretFrequency, InterpretFrequencyInput } from "@/ai/flows/interpret-frequency";
 import { interpretClustering, InterpretClusteringInput } from "@/ai/flows/interpret-clustering";
-import { interpretDid, InterpretDidInput } from "@/ai/flows/interpret-did";
 
 export async function getVisualizationDescription(input: GenerateDataVisualizationInput) {
     try {
@@ -26,16 +24,6 @@ export async function getSummaryReport(input: GenerateSummaryReportInput) {
     } catch (error) {
         console.error(error);
         return { success: false, error: "Failed to generate summary report." };
-    }
-}
-
-export async function getAnovaInterpretation(input: InterpretAnovaInput) {
-    try {
-        const result = await interpretAnova(input);
-        return { success: true, interpretation: result.interpretation };
-    } catch (error) {
-        console.error(error);
-        return { success: false, error: "Failed to generate ANOVA interpretation." };
     }
 }
 
@@ -66,15 +54,5 @@ export async function getClusteringInterpretation(input: InterpretClusteringInpu
     } catch (error) {
         console.error(error);
         return { success: false, error: "Failed to generate Clustering interpretation." };
-    }
-}
-
-export async function getDidInterpretation(input: InterpretDidInput) {
-    try {
-        const result = await interpretDid(input);
-        return { success: true, interpretation: result.interpretation };
-    } catch (error) {
-        console.error(error);
-        return { success: false, error: "Failed to generate DiD interpretation." };
     }
 }

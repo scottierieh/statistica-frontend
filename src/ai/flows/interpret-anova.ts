@@ -17,6 +17,8 @@ const InterpretAnovaInputSchema = z.object({
   pValue: z.number().describe('The p-value from the ANOVA test.'),
   groupVar: z.string().describe('The name of the categorical grouping variable.'),
   valueVar: z.string().describe('The name of the numeric value variable.'),
+  groupStats: z.string().describe('A JSON string of descriptive statistics for each group.'),
+  postHocResults: z.string().optional().describe('A JSON string of post-hoc test results (e.g., Tukey HSD).'),
 });
 export type InterpretAnovaInput = z.infer<typeof InterpretAnovaInputSchema>;
 
@@ -41,5 +43,3 @@ const interpretAnovaFlow = ai.defineFlow(
      return { interpretation: "This AI flow is deprecated and should not be called." };
   }
 );
-
-    
