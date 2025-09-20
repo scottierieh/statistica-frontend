@@ -5,6 +5,10 @@ import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 from statsmodels.formula.api import mnlogit
+import matplotlib.pyplot as plt
+import seaborn as sns
+import io
+import base64
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -17,12 +21,34 @@ def _to_native_type(obj):
         return obj.tolist()
     return obj
 
+def generate_sensitivity_plot(sensitivity_results):
+    if not sensitivity_results:
+        return None
+    
+    levels = [item['level'] for item in sensitivity_results]
+    utilities = [item['utility'] for item in sensitivity_results]
+    
+    fig, ax = plt.subplots(figsize=(8, 5))
+    sns.barplot(x=levels, y=utilities, ax=ax, palette='viridis')
+    ax.set_title(f"Sensitivity Analysis for {sensitivity_results[0].get('attribute', 'Attribute')}")
+    ax.set_xlabel('Level')
+    ax.set_ylabel('Calculated Utility')
+    ax.grid(True, axis='y', linestyle='--', alpha=0.6)
+    
+    plt.tight_layout()
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
 def main():
     try:
         payload = json.load(sys.stdin)
         data = payload.get('data')
         attributes_def = payload.get('attributes')
         target_variable = payload.get('targetVariable')
+        sensitivity_analysis_request = payload.get('sensitivityAnalysis')
 
         if not all([data, attributes_def, target_variable]):
             raise ValueError("Missing 'data', 'attributes', or 'targetVariable'")
@@ -106,6 +132,11 @@ def main():
             'importance': importance,
             'targetVariable': target_variable
         }
+        
+        if sensitivity_analysis_request:
+            sensitivity_plot_img = generate_sensitivity_plot(sensitivity_analysis_request)
+            final_results['sensitivity_plot'] = f"data:image/png;base64,{sensitivity_plot_img}" if sensitivity_plot_img else None
+
 
         print(json.dumps(final_results, default=_to_native_type))
 

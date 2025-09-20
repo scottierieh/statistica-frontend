@@ -17,6 +17,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -45,6 +46,7 @@ interface CbcResults {
 
 interface FullAnalysisResponse {
     results: CbcResults;
+    sensitivity_plot?: string;
 }
 
 interface Scenario {
@@ -74,10 +76,10 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     ]);
     const [simulationResult, setSimulationResult] = useState<any>(null);
     const [sensitivityAttribute, setSensitivityAttribute] = useState<string | undefined>();
-    const [sensitivityResult, setSensitivityResult] = useState<any>(null);
+    const [sensitivityPlot, setSensitivityPlot] = useState<string | null>(null);
+    const [isSensitivityLoading, setIsSensitivityLoading] = useState(false);
 
-    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 4, [data, allHeaders]);
-    
+
     const allAttributes = useMemo(() => {
         if (!data || data.length === 0) return {};
         const attributes: any = {};
@@ -200,9 +202,12 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         setScenarios(newScenarios);
     };
 
-    const runSensitivityAnalysis = () => {
-        if (!sensitivityAttribute) return;
+    const runSensitivityAnalysis = async () => {
+        if (!sensitivityAttribute || !analysisResult) return;
         
+        setIsSensitivityLoading(true);
+        setSensitivityPlot(null);
+
         const baseScenario: Scenario = { name: 'base' };
         attributeCols.forEach(attrName => {
             if (attrName !== sensitivityAttribute) {
@@ -210,29 +215,44 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
             }
         });
 
-        const results = allAttributes[sensitivityAttribute].levels.map((level: string) => {
+        const sensitivityData = allAttributes[sensitivityAttribute].levels.map((level: string) => {
             const scenario = { ...baseScenario, [sensitivityAttribute]: level };
             const utility = calculateUtility(scenario);
-            return { level, utility };
+            return { level, utility, attribute: sensitivityAttribute };
         });
-        setSensitivityResult(results);
+
+         try {
+            const response = await fetch('/api/analysis/conjoint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    ...analysisResult.results, // Pass existing results
+                    data, // Pass original data
+                    attributes: allAttributes, // Pass attribute definitions
+                    targetVariable: 'Rating', // This may need adjustment
+                    sensitivityAnalysis: sensitivityData 
+                })
+            });
+
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (result.error) throw new Error(result.error);
+            
+            setSensitivityPlot(result.sensitivity_plot);
+
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Sensitivity Analysis Error', description: e.message });
+        } finally {
+            setIsSensitivityLoading(false);
+        }
     };
     
-    const results = analysisResult?.results;
-
-    const importanceData = useMemo(() => results ? results.attribute_importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [], [results]);
-
-    const partWorthsData = useMemo(() => results ? results.part_worths : [], [results]);
+    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 4, [data, allHeaders]);
     
-    const diagnosticsData = useMemo(() => {
-        if (!results?.regression?.predictions || !results?.regression?.residuals) return [];
-        return results.regression.predictions.map((p, i) => ({
-            prediction: p,
-            residual: results.regression.residuals[i]
-        }));
-    }, [results]);
-    
-
     if (!canRun) {
         const cbcExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('cbc'));
         return (
@@ -256,6 +276,19 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
             </div>
         );
     }
+    
+    const results = analysisResult?.results;
+    const importanceData = results ? results.attribute_importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [];
+    const partWorthsData = results ? results.part_worths : [];
+    
+    const diagnosticsData = useMemo(() => {
+        if (!results?.regression?.predictions || !results?.regression?.residuals) return [];
+        return results.regression.predictions.map((p, i) => ({
+            prediction: p,
+            residual: results.regression.residuals[i]
+        }));
+    }, [results]);
+    
 
     const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"];
     const importanceChartConfig = useMemo(() => {
@@ -265,13 +298,6 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         return acc;
       }, {} as any);
     }, [analysisResult, importanceData]);
-    
-    const sensitivityChartConfig = {
-      utility: {
-        label: 'Utility',
-        color: 'hsl(var(--chart-1))',
-      },
-    };
 
     return (
         <div className="space-y-4">
@@ -408,21 +434,15 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                         <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
                                         <SelectContent>{attributeCols.map((attr) => <SelectItem key={attr} value={attr}>{attr}</SelectItem>)}</SelectContent>
                                     </Select>
-                                    <Button onClick={runSensitivityAnalysis}>Analyze</Button>
+                                    <Button onClick={runSensitivityAnalysis} disabled={isSensitivityLoading}>
+                                        {isSensitivityLoading ? <Loader2 className="animate-spin mr-2" /> : null}
+                                        Analyze
+                                    </Button>
                                 </div>
-                                {sensitivityResult && (
+                                {isSensitivityLoading && <Skeleton className="h-[300px] w-full" />}
+                                {sensitivityPlot && !isSensitivityLoading && (
                                     <div className="h-[300px] w-full">
-                                         <ChartContainer config={sensitivityChartConfig} className="w-full h-[300px]">
-                                            <ResponsiveContainer>
-                                                <BarChart data={sensitivityResult}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="level" />
-                                                    <YAxis />
-                                                    <Tooltip content={<ChartTooltipContent />} />
-                                                    <Bar dataKey="utility" name="Utility" fill="var(--color-utility)" radius={4} />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </ChartContainer>
+                                         <Image src={sensitivityPlot} alt="Sensitivity Analysis Plot" width={800} height={500} className="w-full h-full object-contain rounded-md border"/>
                                     </div>
                                 )}
                             </CardContent>
