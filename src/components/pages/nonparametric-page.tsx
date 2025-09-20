@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -9,12 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, FlaskConical } from 'lucide-react';
+import { Sigma, Loader2, FlaskConical, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 type TestType = 'mann_whitney' | 'wilcoxon' | 'kruskal_wallis' | 'friedman' | 'mcnemar';
 
@@ -39,7 +39,7 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
         return 'mann_whitney';
     }, [activeAnalysis]);
     
-    // State for each test
+    // States for each test
     const [mwGroupCol, setMwGroupCol] = useState(categoricalHeaders.find(h => new Set(data.map(d => d[h]).filter(g => g != null)).size === 2) || categoricalHeaders[0]);
     const [mwValueCol, setMwValueCol] = useState(numericHeaders[0]);
     
@@ -171,6 +171,13 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
     const renderResult = () => {
         if (!analysisResult) return null;
         const { results, plot } = analysisResult;
+        const isSignificant = results.is_significant;
+
+        const formattedInterpretation = results.interpretation
+            .replace(/\n/g, '<br />')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<i>$1</i>');
+
         return (
             <div className="space-y-4">
                  {plot && (
@@ -183,10 +190,14 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
                 )}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="font-headline">{results.test_type} Results</CardTitle>
+                        <CardTitle className="font-headline">Interpretation</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm">{results.interpretation}</p>
+                       <Alert variant={isSignificant ? 'default' : 'destructive'}>
+                            {isSignificant ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                            <AlertTitle>{isSignificant ? "Statistically Significant Result" : "Result Not Statistically Significant"}</AlertTitle>
+                            <AlertDescription dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />
+                        </Alert>
                     </CardContent>
                 </Card>
                  <Card>
