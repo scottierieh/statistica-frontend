@@ -60,6 +60,7 @@ interface CorrelationResults {
   };
   pairs_plot?: string;
   heatmap_plot?: string;
+  correlogram_plot?: string;
 }
 
 const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strongest_correlations'] }) => {
@@ -310,7 +311,7 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                         <CardDescription>A matrix of scatterplots to visualize pairwise relationships.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <Image src={results.pairs_plot} alt="Pairs Plot" width={800} height={800} className="w-full h-auto rounded-md border" />
+                         <Image src={`data:image/png;base64,${results.pairs_plot}`} alt="Pairs Plot" width={800} height={800} className="w-full h-auto rounded-md border" />
                     </CardContent>
                 </Card>
             )}
@@ -328,6 +329,17 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                             useResizeHandler={true}
                             className="w-full h-[600px]"
                          />
+                    </CardContent>
+                </Card>
+            )}
+            {results.correlogram_plot && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Correlogram</CardTitle>
+                        <CardDescription>Visual representation where size and color of circles represent the correlation coefficient.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Image src={`data:image/png;base64,${results.correlogram_plot}`} alt="Correlogram Plot" width={1000} height={800} className="w-full rounded-md border" />
                     </CardContent>
                 </Card>
             )}

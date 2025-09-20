@@ -95,7 +95,6 @@ def generate_pairs_plot(df, method='pearson'):
     g.map_lower(sns.scatterplot, s=30, color='rebeccapurple', alpha=0.6)
     g.map_diag(sns.histplot, kde=True, color='skyblue')
     
-    # Adjust labels to prevent overlap
     for ax in g.axes.flatten():
         ax.set_ylabel(ax.get_ylabel(), rotation=0, horizontalalignment='right')
         ax.set_xlabel(ax.get_xlabel(), rotation=90, horizontalalignment='right')
@@ -126,6 +125,36 @@ def generate_heatmap_plotly(df, title='Correlation Matrix'):
         xaxis_tickangle=-45
     )
     return pio.to_json(fig)
+
+def generate_correlogram(corr_matrix):
+    """Generates a correlogram plot using matplotlib."""
+    fig, ax = plt.subplots(figsize=(10, 8))
+    
+    mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
+    
+    sns.heatmap(corr_matrix, mask=mask, annot=True, fmt=".2f", cmap='coolwarm', 
+                vmax=1, vmin=-1, center=0, square=True, linewidths=.5, cbar_kws={"shrink": .5}, ax=ax)
+    
+    # Draw circles on the lower triangle
+    for i in range(len(corr_matrix.columns)):
+        for j in range(i):
+            r = corr_matrix.iloc[i, j]
+            color = plt.get_cmap('coolwarm')((r + 1) / 2)
+            size = abs(r) * 0.9 # 0.9 scale factor
+            circle = plt.Circle((j + 0.5, i + 0.5), radius=size/2, color=color, alpha=0.8)
+            ax.add_artist(circle)
+
+    ax.set_title('Correlogram', fontsize=16)
+    plt.xticks(rotation=45, ha='right')
+    plt.yticks(rotation=0)
+    plt.tight_layout()
+    
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close()
+    buf.seek(0)
+    
+    return base64.b64encode(buf.read()).decode('utf-8')
 
 
 def main():
@@ -212,6 +241,7 @@ def main():
         # Generate plots
         pairs_plot_img = generate_pairs_plot(df_clean[current_vars], method)
         heatmap_plot_json = generate_heatmap_plotly(corr_matrix, title=f'{method.capitalize()} Correlation Matrix')
+        correlogram_plot_img = generate_correlogram(corr_matrix)
 
         response = {
             "correlation_matrix": corr_matrix.to_dict(),
@@ -221,6 +251,7 @@ def main():
             "interpretation": interpretation,
             "pairs_plot": f"data:image/png;base64,{pairs_plot_img}",
             "heatmap_plot": heatmap_plot_json,
+            "correlogram_plot": f"data:image/png;base64,{correlogram_plot_img}",
         }
 
         print(json.dumps(response, default=_to_native_type, ensure_ascii=False))
