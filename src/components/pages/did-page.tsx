@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, GitCommit } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
+import Image from 'next/image';
 
 interface DidResults {
     model_summary_data: {
@@ -21,11 +23,11 @@ interface DidResults {
     pvalues: { [key: string]: number };
     rsquared: number;
     rsquared_adj: number;
-    interpretation?: string;
 }
 
 interface FullAnalysisResponse {
     results: DidResults;
+    plot: string;
 }
 
 interface DidPageProps {
@@ -45,11 +47,11 @@ export default function DidPage({ data, allHeaders, numericHeaders, categoricalH
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 1 && categoricalHeaders.length >= 2, [data, numericHeaders, categoricalHeaders]);
-    
     const binaryCategoricalHeaders = useMemo(() => {
         return allHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
     }, [data, allHeaders]);
+    
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 1 && binaryCategoricalHeaders.length >= 2, [data, numericHeaders, binaryCategoricalHeaders]);
     
     useEffect(() => {
         setGroupVar(binaryCategoricalHeaders.find(h => h.toLowerCase().includes('group')));
@@ -155,27 +157,37 @@ export default function DidPage({ data, allHeaders, numericHeaders, categoricalH
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
             {results && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Regression Results</CardTitle>
-                        <CardDescription>
-                            The interaction term represents the DiD effect. A significant coefficient suggests the treatment had a measurable effect.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                         {results.model_summary_data?.map((table, tableIndex) => (
-                            <Table key={tableIndex}>
-                                {table.caption && <TableCaption>{table.caption}</TableCaption>}
-                                <TableHeader><TableRow>{table.data[0].map((cell, cellIndex) => <TableHead key={cellIndex}>{cell}</TableHead>)}</TableRow></TableHeader>
-                                <TableBody>
-                                {table.data.slice(1).map((row, rowIndex) => (
-                                    <TableRow key={rowIndex}>{row.map((cell, cellIndex) => <TableCell key={cellIndex} className="font-mono">{cell}</TableCell>)}</TableRow>
-                                ))}
-                                </TableBody>
-                            </Table>
-                        ))}
-                    </CardContent>
-                </Card>
+                <div className="space-y-4">
+                    {analysisResult.plot && (
+                        <Card>
+                            <CardHeader><CardTitle className="font-headline">Interaction Plot</CardTitle></CardHeader>
+                            <CardContent>
+                                <Image src={analysisResult.plot} alt="DiD Interaction Plot" width={800} height={600} className="mx-auto rounded-md border" />
+                            </CardContent>
+                        </Card>
+                    )}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Regression Results</CardTitle>
+                            <CardDescription>
+                                The interaction term represents the DiD effect. A significant coefficient suggests the treatment had a measurable effect.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                             {results.model_summary_data?.map((table, tableIndex) => (
+                                <Table key={tableIndex}>
+                                    {table.caption && <TableCaption>{table.caption}</TableCaption>}
+                                    <TableHeader><TableRow>{table.data[0].map((cell, cellIndex) => <TableHead key={cellIndex}>{cell}</TableHead>)}</TableRow></TableHeader>
+                                    <TableBody>
+                                    {table.data.slice(1).map((row, rowIndex) => (
+                                        <TableRow key={rowIndex}>{row.map((cell, cellIndex) => <TableCell key={cellIndex} className="font-mono">{cell}</TableCell>)}</TableRow>
+                                    ))}
+                                    </TableBody>
+                                </Table>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </div>
             )}
         </div>
     );
