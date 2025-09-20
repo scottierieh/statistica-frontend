@@ -59,6 +59,9 @@ class TwoWayAnovaAnalysis:
     def run_analysis(self):
         anova_table = anova_lm(self.model, typ=2)
         
+        # Explicitly calculate MS (Mean Square)
+        anova_table['MS'] = anova_table['sum_sq'] / anova_table['df']
+
         interaction_source_key = f'C(Q("{self.fa_clean}")):C(Q("{self.fb_clean}"))'
         interaction_p_value = anova_table.loc[interaction_source_key, 'PR(>F)'] if interaction_source_key in anova_table.index else 1.0
         
@@ -76,8 +79,8 @@ class TwoWayAnovaAnalysis:
         }
         anova_table_renamed = anova_table.rename(index=cleaned_index)
         
-        # Ensure NaN values are converted to None for JSON compatibility and rename mean_sq to MS
-        anova_df = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value', 'mean_sq': 'MS'})
+        # Ensure NaN values are converted to None for JSON compatibility
+        anova_df = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'})
         self.results['anova_table'] = anova_df.replace({np.nan: None}).to_dict('records')
         
         self._test_assumptions()
@@ -263,6 +266,7 @@ def main():
 if __name__ == '__main__':
     main()
 
-    
+  
 
   
+
