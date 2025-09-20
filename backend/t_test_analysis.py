@@ -256,16 +256,17 @@ class TTestAnalysis:
         
         return interpretation.strip()
 
-    def plot_results(self, test_type=None, figsize=(10, 8)):
+    def plot_results(self, test_type=None, figsize=(12, 10)):
         if not self.results: return None
         test_type = test_type or list(self.results.keys())[0]
         result = self.results.get(test_type)
         if not result: return None
 
         fig, axes = plt.subplots(2, 2, figsize=figsize)
+        fig.suptitle(f'{result["test_type"].replace("_", " ").title()} Test Analysis', fontsize=16, fontweight='bold')
         
         if test_type == 'one_sample':
-            axes[0, 0].hist(result['data_values'], bins=20, alpha=0.7, color='skyblue', edgecolor='black')
+            sns.histplot(result['data_values'], ax=axes[0, 0], color='skyblue', kde=True)
             axes[0, 0].axvline(result['sample_mean'], color='red', linestyle='--', label=f'Sample Mean ({result["sample_mean"]:.2f})')
             axes[0, 0].axvline(result['test_value'], color='orange', linestyle='--', label=f'Test Value ({result["test_value"]})')
             axes[0, 0].set_title('Data Distribution')
@@ -273,6 +274,9 @@ class TTestAnalysis:
             
             stats.probplot(result['data_values'], dist="norm", plot=axes[0, 1])
             axes[0, 1].set_title('Q-Q Plot')
+
+            sns.boxplot(x=result['data_values'], ax=axes[1, 1], color='lightgreen')
+            axes[1, 1].set_title('Box Plot')
 
         elif test_type == 'independent_samples':
             sns.histplot(result['data1'], ax=axes[0,0], color='skyblue', label=str(result['groups'][0]), kde=True)
@@ -284,19 +288,24 @@ class TTestAnalysis:
             axes[0,1].set_xticklabels(result['groups'])
             axes[0,1].set_title('Group Boxplots')
 
+            residuals1 = result['data1'] - result['mean1']
+            residuals2 = result['data2'] - result['mean2']
+            all_residuals = np.concatenate([residuals1, residuals2])
+            stats.probplot(all_residuals, dist="norm", plot=axes[1, 1])
+            axes[1, 1].set_title('Q-Q Plot of Residuals')
+
+
         elif test_type == 'paired_samples':
-            min_val = min(np.min(result['data1']), np.min(result['data2'])) if len(result['data1']) > 0 and len(result['data2']) > 0 else 0
-            max_val = max(np.max(result['data1']), np.max(result['data2'])) if len(result['data1']) > 0 and len(result['data2']) > 0 else 1
-            
-            axes[0, 0].scatter(result['data1'], result['data2'], alpha=0.6)
-            axes[0, 0].plot([min_val, max_val], [min_val, max_val], 'r--')
-            axes[0, 0].set_xlabel(result['variable1'])
-            axes[0, 0].set_ylabel(result['variable2'])
-            axes[0, 0].set_title('Before vs After')
+            sns.boxplot(data=[result['data1'], result['data2']], ax=axes[0,0], palette=['skyblue', 'lightcoral'])
+            axes[0,0].set_xticklabels([result['variable1'], result['variable2']])
+            axes[0,0].set_title('Paired Variables Distribution')
 
             sns.histplot(result['differences'], ax=axes[0,1], color='lightgreen', kde=True)
             axes[0,1].axvline(0, color='black', linestyle='--')
             axes[0,1].set_title('Distribution of Differences')
+            
+            stats.probplot(result['differences'], dist="norm", plot=axes[1,1])
+            axes[1,1].set_title('Q-Q Plot of Differences')
 
         df = result.get('degrees_of_freedom')
         if df and df > 0 and np.isfinite(df):
@@ -306,13 +315,16 @@ class TTestAnalysis:
             axes[1, 0].axvline(result['t_statistic'], color='red', linestyle='--', label=f"t-stat = {result['t_statistic']:.2f}")
             axes[1, 0].set_title('Test Statistic on t-Distribution')
             axes[1, 0].legend()
+            axes[1,0].fill_between(x, 0, y, where=(x >= abs(result['t_statistic'])) | (x <= -abs(result['t_statistic'])), color='red', alpha=0.3)
         else:
             axes[1, 0].text(0.5, 0.5, "Could not plot t-distribution.", ha='center', va='center')
-
         
-        axes[1,1].axis('off')
+        if test_type in ['one_sample']:
+            axes[1, 1].grid(True, alpha=0.3)
+        else:
+             axes[1,1].grid(True, alpha=0.3)
         
-        plt.tight_layout()
+        plt.tight_layout(rect=[0, 0.03, 1, 0.96])
         buf = io.BytesIO()
         plt.savefig(buf, format='png')
         plt.close(fig)
