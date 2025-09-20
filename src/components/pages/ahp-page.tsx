@@ -113,7 +113,7 @@ export default function AhpPage() {
 
         comparisons.push(
             <Card key={parentPath}>
-                <CardHeader><CardTitle>{`Compare Criteria for '${parentPath === 'goal' ? goal : parentPath.split('.').pop()}'`}</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{parentPath === 'goal' ? `Compare Criteria for '${goal}'` : `Compare Sub-criteria for '${parentPath.split('.').pop()}'`}</CardTitle></CardHeader>
                 <CardContent>
                     <ComparisonMatrix items={currentLevel.nodes.map(n => n.name)} onMatrixChange={(m) => updateMatrix(parentPath, m)} />
                 </CardContent>
@@ -128,8 +128,8 @@ export default function AhpPage() {
         return comparisons;
     };
     
-    const renderAlternativeComparisons = (levels: HierarchyLevel[], parentPath = 'goal'): JSX.Element[] => {
-        if (!hasAlternatives) return [];
+    const renderAlternativeComparisons = () => {
+        if (!hasAlternatives || hierarchy.length === 0) return [];
         let comparisons: JSX.Element[] = [];
         const leafNodes: {path: string, name: string}[] = [];
 
@@ -143,7 +143,7 @@ export default function AhpPage() {
                 }
             });
         }
-        findLeafs(levels[0], 'goal');
+        findLeafs(hierarchy[0], 'goal');
         
         leafNodes.forEach(leaf => {
             comparisons.push(<Card key={leaf.path}><CardHeader><CardTitle>{`Compare Alternatives for '${leaf.name}'`}</CardTitle></CardHeader><CardContent><ComparisonMatrix items={alternatives} onMatrixChange={(m) => updateMatrix(leaf.path, m)} /></CardContent></Card>);
@@ -200,7 +200,7 @@ export default function AhpPage() {
                         <div className="space-y-4 mt-6">
                             <h3 className="text-lg font-semibold">Pairwise Comparisons</h3>
                             {renderHierarchyComparisons(hierarchy)}
-                            {renderAlternativeComparisons(hierarchy)}
+                            {renderAlternativeComparisons()}
                         </div>
 
                     </CardContent>
