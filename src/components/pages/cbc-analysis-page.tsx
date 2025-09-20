@@ -169,7 +169,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     }, [allHeaders, respondentIdCol, altIdCol, choiceCol]);
 
     const calculateUtility = useCallback((scenario: Scenario) => {
-        if (!analysisResult) return 0;
+        if (!analysisResult?.results) return 0;
         let utility = analysisResult.results.regression.intercept || 0;
         
         Object.entries(scenario).forEach(([attrName, value]) => {
@@ -226,10 +226,10 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    ...analysisResult.results, // Pass existing results
-                    data, // Pass original data
-                    attributes: allAttributes, // Pass attribute definitions
-                    targetVariable: 'Rating', // This may need adjustment
+                    ...analysisResult.results,
+                    data,
+                    attributes: allAttributes, 
+                    targetVariable: 'Rating', // This might need adjustment based on data
                     sensitivityAnalysis: sensitivityData 
                 })
             });
@@ -253,6 +253,27 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     
     const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 4, [data, allHeaders]);
     
+    const results = analysisResult?.results;
+    const importanceData = results ? results.attribute_importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [];
+    const partWorthsData = results ? results.part_worths : [];
+    
+    const diagnosticsData = useMemo(() => {
+        if (!results?.regression?.predictions || !results?.regression?.residuals) return [];
+        return results.regression.predictions.map((p, i) => ({
+            prediction: p,
+            residual: results.regression.residuals[i]
+        }));
+    }, [results]);
+
+    const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"];
+    const importanceChartConfig = useMemo(() => {
+      if (!analysisResult) return {};
+      return importanceData.reduce((acc, item, index) => {
+        acc[item.name] = { label: item.name, color: COLORS[index % COLORS.length] };
+        return acc;
+      }, {} as any);
+    }, [analysisResult, importanceData]);
+
     if (!canRun) {
         const cbcExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('cbc'));
         return (
@@ -276,28 +297,6 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
             </div>
         );
     }
-    
-    const results = analysisResult?.results;
-    const importanceData = results ? results.attribute_importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [];
-    const partWorthsData = results ? results.part_worths : [];
-    
-    const diagnosticsData = useMemo(() => {
-        if (!results?.regression?.predictions || !results?.regression?.residuals) return [];
-        return results.regression.predictions.map((p, i) => ({
-            prediction: p,
-            residual: results.regression.residuals[i]
-        }));
-    }, [results]);
-    
-
-    const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"];
-    const importanceChartConfig = useMemo(() => {
-      if (!analysisResult) return {};
-      return importanceData.reduce((acc, item, index) => {
-        acc[item.name] = { label: item.name, color: COLORS[index % COLORS.length] };
-        return acc;
-      }, {} as any);
-    }, [analysisResult, importanceData]);
 
     return (
         <div className="space-y-4">
@@ -442,7 +441,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                 {isSensitivityLoading && <Skeleton className="h-[300px] w-full" />}
                                 {sensitivityPlot && !isSensitivityLoading && (
                                     <div className="h-[300px] w-full">
-                                         <Image src={sensitivityPlot} alt="Sensitivity Analysis Plot" width={800} height={500} className="w-full h-full object-contain rounded-md border"/>
+                                         <Image src={`data:image/png;base64,${sensitivityPlot}`} alt="Sensitivity Analysis Plot" width={800} height={500} className="w-full h-full object-contain rounded-md border"/>
                                     </div>
                                 )}
                             </CardContent>
@@ -485,3 +484,4 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         </div>
     );
 }
+  
