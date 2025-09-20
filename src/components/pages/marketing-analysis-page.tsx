@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
 import { DollarSign, Clock, Eye, BarChart as BarChartIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -98,20 +99,20 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             campaignCol: findColumn(['campaign'], categoricalHeaders),
             costCol: findColumn(['cost'], numericHeaders),
             conversionCol: findColumn(['conversion'], allHeaders),
-            deviceCol: findColumn(['device'], categoricalHeaders),
+            deviceCol: findColumn(['devicecategory', 'device'], categoricalHeaders),
             dateCol: findColumn(['date'], allHeaders),
             ageGroupCol: findColumn(['agegroup', 'age'], categoricalHeaders),
             ltvCol: findColumn(['ltv', 'lifetimevalue'], numericHeaders),
             genderCol: findColumn(['gender'], categoricalHeaders),
             countryCol: findColumn(['country'], categoricalHeaders),
-            membershipCol: findColumn(['membership'], categoricalHeaders),
+            membershipCol: findColumn(['membershiplevel', 'membership'], categoricalHeaders),
             userIdCol: findColumn(['userid', 'user'], allHeaders),
             cohortDateCol: findColumn(['cohortdate', 'cohort'], allHeaders),
             itemCategoryCol: findColumn(['itemcategory', 'category'], categoricalHeaders),
             itemBrandCol: findColumn(['itembrand', 'brand'], categoricalHeaders),
             priceCol: findColumn(['price'], numericHeaders),
             quantityCol: findColumn(['quantity'], numericHeaders),
-            couponUsedCol: findColumn(['coupon', 'couponused'], allHeaders),
+            couponUsedCol: findColumn(['couponused', 'coupon'], allHeaders),
         })
     }, [numericHeaders, categoricalHeaders, allHeaders, data]);
     
@@ -250,40 +251,49 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             </div>
             
             {isGenerating && <div className="text-center p-8"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /> <p className="text-muted-foreground">Generating dashboard...</p></div>}
-
+            
             {plots && !isGenerating && (
-                <>
-                <Card>
-                    <CardHeader><CardTitle className="font-headline">1. Traffic Analysis & ROI</CardTitle></CardHeader>
-                    <CardContent className="grid gap-4 md:grid-cols-2">
-                        <ChartCard title="Conversion Rate by Channel" plotData={plots.channelPerformance} />
-                        <ChartCard title="Campaign ROI (%)" plotData={plots.campaignRoi} />
-                        <ChartCard title="Simplified Conversion Funnel" plotData={plots.funnelAnalysis} />
-                        <ChartCard title="Attributed Revenue (Last Touch)" plotData={plots.attributionModeling} />
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader><CardTitle className="font-headline">2. E-commerce Analysis</CardTitle></CardHeader>
-                    <CardContent className="grid gap-4 md:grid-cols-2">
-                        <ChartCard title="Monthly Cohort Retention" plotData={plots.cohortAnalysis} />
-                        <ChartCard title="Basket Analysis (Category vs. Brand)" plotData={plots.basketAnalysis} />
-                        <ChartCard title="Price Elasticity" plotData={plots.priceElasticity} />
-                        <ChartCard title="Coupon Effectiveness" plotData={plots.couponEffectiveness} />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader><CardTitle className="font-headline">3. Customer Segmentation</CardTitle></CardHeader>
-                    <CardContent className="grid gap-4 md:grid-cols-2">
-                        <ChartCard title="Customer Segments by Age & Gender" plotData={plots.segmentationTreemap} />
-                        <ChartCard title="Geographic Distribution" plotData={plots.geographicDistribution} />
-                        <ChartCard title="LTV by Membership Level" plotData={plots.ltvByMembership} />
-                        <ChartCard title="Sessions by Device" plotData={plots.deviceUsage} />
-                    </CardContent>
-                </Card>
-                </>
+                <Tabs defaultValue="traffic" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="traffic">Traffic Analysis & ROI</TabsTrigger>
+                        <TabsTrigger value="ecommerce">E-commerce Analysis</TabsTrigger>
+                        <TabsTrigger value="segmentation">Customer Segmentation</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="traffic">
+                        <Card className="mt-4">
+                            <CardHeader><CardTitle className="font-headline">1. Traffic Analysis & ROI</CardTitle></CardHeader>
+                            <CardContent className="grid gap-4 md:grid-cols-2">
+                                <ChartCard title="Conversion Rate by Channel" plotData={plots.channelPerformance} />
+                                <ChartCard title="Campaign ROI (%)" plotData={plots.campaignRoi} />
+                                <ChartCard title="Simplified Conversion Funnel" plotData={plots.funnelAnalysis} />
+                                <ChartCard title="Attributed Revenue (Last Touch)" plotData={plots.attributionModeling} />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="ecommerce">
+                        <Card className="mt-4">
+                            <CardHeader><CardTitle className="font-headline">2. E-commerce Analysis</CardTitle></CardHeader>
+                            <CardContent className="grid gap-4 md:grid-cols-2">
+                                <ChartCard title="Monthly Cohort Retention" plotData={plots.cohortAnalysis} />
+                                <ChartCard title="Basket Analysis (Category vs. Brand)" plotData={plots.basketAnalysis} />
+                                <ChartCard title="Price Elasticity" plotData={plots.priceElasticity} />
+                                <ChartCard title="Coupon Effectiveness" plotData={plots.couponEffectiveness} />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="segmentation">
+                         <Card className="mt-4">
+                            <CardHeader><CardTitle className="font-headline">3. Customer Segmentation</CardTitle></CardHeader>
+                            <CardContent className="grid gap-4 md:grid-cols-2">
+                                <ChartCard title="Customer Segments by Age & Gender" plotData={plots.segmentationTreemap} />
+                                <ChartCard title="Geographic Distribution" plotData={plots.geographicDistribution} />
+                                <ChartCard title="LTV by Membership Level" plotData={plots.ltvByMembership} />
+                                <ChartCard title="Sessions by Device" plotData={plots.deviceUsage} />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
             )}
         </div>
     );
 }
-
-    
