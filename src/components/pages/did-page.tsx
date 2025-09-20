@@ -21,6 +21,7 @@ interface DidResults {
     pvalues: { [key: string]: number };
     rsquared: number;
     rsquared_adj: number;
+    interpretation?: string;
 }
 
 interface FullAnalysisResponse {
