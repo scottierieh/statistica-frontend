@@ -25,13 +25,8 @@ const Plot = dynamic(() => import('react-plotly.js'), {
 });
 
 interface CbcResults {
-    part_worths: { attribute: string, level: string, value: number }[];
-    attribute_importance: { attribute: string, importance: number }[];
-    model_fit: {
-        llf: number;
-        llnull: number;
-        pseudo_r2: number;
-    };
+    partWorths: { attribute: string, level: string, value: number }[];
+    importance: { attribute: string, importance: number }[];
     regression: {
         rSquared: number;
         adjustedRSquared: number;
@@ -42,6 +37,8 @@ interface CbcResults {
         intercept: number;
         coefficients: {[key: string]: number};
     };
+    targetVariable: string;
+    sensitivity_plot?: string;
 }
 
 interface FullAnalysisResponse {
@@ -84,9 +81,12 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         if (!data || data.length === 0) return {};
         const attributes: any = {};
         allHeaders.forEach(header => {
+            const values = Array.from(new Set(data.map(row => row[header]))).sort();
+             const isNumeric = values.every(v => typeof v === 'number' || !isNaN(Number(v)));
             attributes[header] = {
                 name: header,
-                levels: Array.from(new Set(data.map(row => row[header]))).sort(),
+                type: isNumeric && new Set(values).size > 5 ? 'numerical' : 'categorical',
+                levels: values,
             };
         });
         return attributes;
@@ -96,8 +96,8 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     useEffect(() => {
         setRespondentIdCol(allHeaders.find(h => h.toLowerCase().includes('resp')));
         setAltIdCol(allHeaders.find(h => h.toLowerCase().includes('alt')));
-        setChoiceCol(allHeaders.find(h => h.toLowerCase().includes('choice')));
-        const initialAttributes = allHeaders.filter(h => !['resp.id', 'alt', 'choice'].includes(h.toLowerCase()));
+        setChoiceCol(allHeaders.find(h => h.toLowerCase().includes('choice') || h.toLowerCase().includes('rating')));
+        const initialAttributes = allHeaders.filter(h => !['resp.id', 'alt', 'choice', 'rating'].some(keyword => h.toLowerCase().includes(keyword)));
         setAttributeCols(initialAttributes);
         setAnalysisResult(null);
     }, [data, allHeaders]);
@@ -124,13 +124,18 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     };
 
     const handleAnalysis = useCallback(async () => {
-        if (!respondentIdCol || !altIdCol || !choiceCol || attributeCols.length === 0) {
-            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select all required columns.' });
+        if (!choiceCol || attributeCols.length === 0) {
+            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select a target/choice variable and at least one attribute.' });
             return;
         }
 
         setIsLoading(true);
         setAnalysisResult(null);
+
+        const attributesForBackend = attributeCols.reduce((acc, attrName) => {
+            acc[attrName] = allAttributes[attrName];
+            return acc;
+        }, {} as any);
 
         try {
             const response = await fetch('/api/analysis/cbc', {
@@ -138,10 +143,8 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     data,
-                    respondent_id: respondentIdCol,
-                    alt_id: altIdCol,
-                    choice_col: choiceCol,
-                    attribute_cols: attributeCols
+                    attributes: attributesForBackend,
+                    targetVariable: choiceCol
                 })
             });
 
@@ -150,7 +153,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                 throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
 
-            const result: FullAnalysisResponse = await response.json();
+            const result: {results: CbcResults} = await response.json();
             if ((result as any).error) throw new Error((result as any).error);
 
             setAnalysisResult(result);
@@ -162,7 +165,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         } finally {
             setIsLoading(false);
         }
-    }, [data, respondentIdCol, altIdCol, choiceCol, attributeCols, toast]);
+    }, [data, choiceCol, attributeCols, allAttributes, toast]);
     
     const availableAttributeCols = useMemo(() => {
         return allHeaders.filter(h => ![respondentIdCol, altIdCol, choiceCol].includes(h));
@@ -175,7 +178,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         Object.entries(scenario).forEach(([attrName, value]) => {
             if (attrName === 'name' || !attributeCols.includes(attrName)) return;
 
-            const worth = analysisResult.results.part_worths.find(pw => pw.attribute === attrName && String(pw.level) === String(value));
+            const worth = analysisResult.results.partWorths.find(pw => pw.attribute === attrName && String(pw.level) === String(value));
             if (worth) {
                 utility += worth.value;
             }
@@ -203,7 +206,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     };
 
     const runSensitivityAnalysis = async () => {
-        if (!sensitivityAttribute || !analysisResult) return;
+        if (!sensitivityAttribute || !analysisResult?.results) return;
         
         setIsSensitivityLoading(true);
         setSensitivityPlot(null);
@@ -222,14 +225,13 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         });
 
          try {
-            const response = await fetch('/api/analysis/conjoint', {
+            const response = await fetch('/api/analysis/cbc', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    ...analysisResult.results,
                     data,
                     attributes: allAttributes, 
-                    targetVariable: 'Rating', // This might need adjustment based on data
+                    targetVariable: choiceCol,
                     sensitivityAnalysis: sensitivityData 
                 })
             });
@@ -254,8 +256,8 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 4, [data, allHeaders]);
     
     const results = analysisResult?.results;
-    const importanceData = results ? results.attribute_importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [];
-    const partWorthsData = results ? results.part_worths : [];
+    const importanceData = results ? results.importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [];
+    const partWorthsData = results ? results.partWorths : [];
     
     const diagnosticsData = useMemo(() => {
         if (!results?.regression?.predictions || !results?.regression?.residuals) return [];
@@ -308,7 +310,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                     <div className="grid md:grid-cols-3 gap-4">
                         <div><Label>Respondent ID</Label><Select value={respondentIdCol} onValueChange={setRespondentIdCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         <div><Label>Alternative ID</Label><Select value={altIdCol} onValueChange={setAltIdCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label>Choice Indicator</Label><Select value={choiceCol} onValueChange={setChoiceCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label>Choice / Rating</Label><Select value={choiceCol} onValueChange={setChoiceCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     </div>
                      <div>
                         <Label>Attribute Columns</Label>
@@ -367,7 +369,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                         <h3 className="font-semibold mb-2">{attr}</h3>
                                          <ChartContainer config={{value: {label: 'Part-Worth'}}} className="w-full h-[200px]">
                                             <ResponsiveContainer>
-                                                <BarChart data={partWorthsData.filter(p => p.attribute === attr)} layout="vertical">
+                                                <BarChart data={partWorthsData.filter(p => p.attribute === attr && p.level !== 'coefficient')} layout="vertical">
                                                     <CartesianGrid strokeDasharray="3 3" />
                                                     <XAxis type="number" />
                                                     <YAxis type="category" dataKey="level" width={80} />
@@ -462,7 +464,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                     <CardHeader><CardTitle>Residuals vs. Fitted</CardTitle></CardHeader>
                                     <CardContent>
                                         <ChartContainer config={{}} className="w-full h-[300px]">
-                                            <ResponsiveContainer>
+                                            <ResponsiveContainer width="100%" height={300}>
                                                 <ScatterChart>
                                                     <CartesianGrid />
                                                     <XAxis type="number" dataKey="prediction" name="Fitted Value" />
@@ -484,4 +486,5 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         </div>
     );
 }
+
   
