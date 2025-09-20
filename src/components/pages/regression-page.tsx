@@ -139,7 +139,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     const modelType = useMemo(() => activeAnalysis.replace('regression-', ''), [activeAnalysis]);
     const [selectionMethod, setSelectionMethod] = useState('none');
 
-    // State for different models
+    // States for different models
     const [simpleFeatureVar, setSimpleFeatureVar] = useState<string | undefined>(numericHeaders[0]);
     const [multipleFeatureVars, setMultipleFeatureVars] = useState<string[]>(numericHeaders.slice(0, numericHeaders.length - 1));
     
@@ -535,30 +535,37 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                             <span className="font-mono">p={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value?.toFixed(3) ?? 'N/A'}</span>
                                         </div>
                                     </div>
-                                    {results.diagnostics.vif && Object.keys(results.diagnostics.vif).length > 0 && (
-                                        <div className="pt-2">
-                                            <h4 className="font-medium mb-2">Multicollinearity (VIF)</h4>
-                                            <ScrollArea className="h-24">
-                                                <Table>
-                                                    <TableHeader><TableRow><TableHead>Feature</TableHead><TableHead className="text-right">VIF</TableHead></TableRow></TableHeader>
-                                                    <TableBody>
-                                                        {Object.entries(results.diagnostics.vif).map(([key, value]) => (
-                                                            <TableRow key={key}>
-                                                                <TableCell>{key}</TableCell>
-                                                                <TableCell className="text-right">
-                                                                    <Badge variant={value > 10 ? 'destructive' : value > 5 ? 'secondary' : 'default'}>{value.toFixed(2)}</Badge>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            </ScrollArea>
-                                        </div>
-                                    )}
                                 </dl>
                             </CardContent>
                         </Card>
                     </div>
+
+                    {results.diagnostics.vif && Object.keys(results.diagnostics.vif).length > 0 && (
+                        <Card>
+                             <CardHeader><CardTitle>Multicollinearity Diagnostics</CardTitle></CardHeader>
+                             <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Feature</TableHead>
+                                            <TableHead className="text-right">VIF</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                     <TableBody>
+                                        {Object.entries(results.diagnostics.vif).map(([key, value]) => (
+                                            <TableRow key={key}>
+                                                <TableCell>{key}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Badge variant={value > 10 ? 'destructive' : value > 5 ? 'secondary' : 'default'}>{value.toFixed(2)}</Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                             </CardContent>
+                        </Card>
+                    )}
+
 
                     {analysisResult.plot && (
                         <Card>
@@ -573,5 +580,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 }
 
     
+
 
 
