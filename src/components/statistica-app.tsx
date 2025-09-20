@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -61,6 +60,7 @@ import {
   GitCommit,
   ClipboardList,
   Search,
+  DollarSign,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -131,9 +131,10 @@ import DidPage from './pages/did-page';
 import DelphiPage from './pages/delphi-page';
 import SurveyApp from './survey-app';
 import VanWestendorpPage from './pages/van-westendorp-page';
+import GaborGrangerPage from './pages/gabor-granger-page';
 
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -201,6 +202,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     delphi: DelphiPage,
     survey: SurveyApp,
     'van-westendorp': VanWestendorpPage,
+    'gabor-granger': GaborGrangerPage,
 };
 
 const analysisMenu = [
@@ -341,6 +343,7 @@ const analysisMenu = [
       { id: 'did', label: 'Difference-in-Differences' },
       { id: 'delphi', label: 'Delphi Method' },
       { id: 'van-westendorp', label: 'Van Westendorp PSM' },
+      { id: 'gabor-granger', label: 'Gabor-Granger Pricing' },
     ]
   },
    {
