@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -61,6 +62,7 @@ import {
   ClipboardList,
   Search,
   DollarSign,
+  ThumbsUp,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -132,9 +134,10 @@ import DelphiPage from './pages/delphi-page';
 import SurveyApp from './survey-app';
 import VanWestendorpPage from './pages/van-westendorp-page';
 import GaborGrangerPage from './pages/gabor-granger-page';
+import MaxDiffPage from './pages/maxdiff-page';
 
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -203,6 +206,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     survey: SurveyApp,
     'van-westendorp': VanWestendorpPage,
     'gabor-granger': GaborGrangerPage,
+    'maxdiff': MaxDiffPage,
 };
 
 const analysisMenu = [
@@ -344,6 +348,7 @@ const analysisMenu = [
       { id: 'delphi', label: 'Delphi Method' },
       { id: 'van-westendorp', label: 'Van Westendorp PSM' },
       { id: 'gabor-granger', label: 'Gabor-Granger Pricing' },
+      { id: 'maxdiff', label: 'MaxDiff Analysis' },
     ]
   },
    {
@@ -442,7 +447,7 @@ export default function StatisticaApp() {
   };
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
-    if (example.id === 'meta-analysis' || example.id === 'ahp' || example.id === 'delphi') {
+    if (example.id === 'meta-analysis' || example.id === 'ahp' || example.id === 'delphi' || example.id === 'maxdiff') {
         setActiveAnalysis(example.id);
         toast({title: example.name, description: 'This analysis requires manual data entry. An example has been pre-filled for you.'});
         return;
@@ -695,7 +700,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && activeAnalysis !== 'ahp' && activeAnalysis !== 'delphi' && activeAnalysis !== 'survey' &&(
+            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && activeAnalysis !== 'ahp' && activeAnalysis !== 'delphi' && activeAnalysis !== 'survey' && activeAnalysis !== 'maxdiff' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
