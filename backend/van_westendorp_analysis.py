@@ -4,6 +4,9 @@ import json
 import pandas as pd
 import numpy as np
 import warnings
+import VanWestendorp_Price_Sensitivity_Meter as vwpsm
+import plotly.graph_objects as go
+import plotly.io as pio
 
 warnings.filterwarnings('ignore')
 
@@ -11,29 +14,46 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, (float, np.floating)):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     return obj
 
-def find_intersection(x1, y1, x2, y2):
-    for i in range(len(x1) - 1):
-        for j in range(len(x2) - 1):
-            p1, p2 = (x1[i], y1[i]), (x1[i+1], y1[i+1])
-            p3, p4 = (x2[j], y2[j]), (x2[j+1], y2[j+1])
+def plot_van_westendorp_plotly(plot_data):
+    fig = go.Figure()
 
-            denominator = (p4[1] - p3[1]) * (p2[0] - p1[0]) - (p4[0] - p3[0]) * (p2[1] - p1[1])
-            if denominator == 0:
-                continue
+    fig.add_trace(go.Scatter(x=plot_data['prices'], y=[100 - y for y in plot_data['too_cheap_pct']], mode='lines', name='Not "Too Cheap"'))
+    fig.add_trace(go.Scatter(x=plot_data['prices'], y=[100 - y for y in plot_data['cheap_pct']], mode='lines', name='Not "Cheap"'))
+    fig.add_trace(go.Scatter(x=plot_data['prices'], y=plot_data['expensive_pct'], mode='lines', name='Expensive'))
+    fig.add_trace(go.Scatter(x=plot_data['prices'], y=plot_data['too_expensive_pct'], mode='lines', name='Too Expensive'))
 
-            ua = ((p4[0] - p3[0]) * (p1[1] - p3[1]) - (p4[1] - p3[1]) * (p1[0] - p3[0])) / denominator
-            ub = ((p2[0] - p1[0]) * (p1[1] - p3[1]) - (p2[1] - p1[1]) * (p1[0] - p3[0])) / denominator
+    intersections = plot_data.get('intersections', {})
+    shapes = []
+    annotations = []
 
-            if 0 <= ua <= 1 and 0 <= ub <= 1:
-                return p1[0] + ua * (p2[0] - p1[0]) # Return intersection X value
-    return None
+    if intersections.get('opp'):
+        shapes.append({'type': 'line', 'x0': intersections['opp'], 'x1': intersections['opp'], 'y0': 0, 'y1': 100, 'line': {'color': 'green', 'dash': 'dot'}})
+        annotations.append({'x': intersections['opp'], 'y': 1.05, 'xref': 'x', 'yref': 'paper', 'text': f"OPP: {intersections['opp']:.2f}", 'showarrow': False})
+    if intersections.get('ipp'):
+        shapes.append({'type': 'line', 'x0': intersections['ipp'], 'x1': intersections['ipp'], 'y0': 0, 'y1': 100, 'line': {'color': 'blue', 'dash': 'dot'}})
+        annotations.append({'x': intersections['ipp'], 'y': 1.0, 'xref': 'x', 'yref': 'paper', 'text': f"IPP: {intersections['ipp']:.2f}", 'showarrow': False})
+    if intersections.get('pme'):
+        shapes.append({'type': 'line', 'x0': intersections['pme'], 'x1': intersections['pme'], 'y0': 0, 'y1': 100, 'line': {'color': 'red', 'dash': 'dot'}})
+    if intersections.get('mdp'):
+        shapes.append({'type': 'line', 'x0': intersections['mdp'], 'x1': intersections['mdp'], 'y0': 0, 'y1': 100, 'line': {'color': 'purple', 'dash': 'dot'}})
+
+    fig.update_layout(
+        title='Van Westendorp Price Sensitivity Meter',
+        xaxis_title='Price',
+        yaxis_title='Cumulative Percentage of Respondents (%)',
+        shapes=shapes,
+        annotations=annotations,
+        legend=dict(x=0.5, y=-0.2, xanchor='center', orientation='h')
+    )
+    return pio.to_json(fig)
+
 
 def main():
     try:
@@ -57,49 +77,24 @@ def main():
         if df.shape[0] < 10:
             raise ValueError("Not enough valid data points for analysis.")
 
-        prices = {
-            'too_cheap': df[too_cheap_col].tolist(),
-            'cheap': df[cheap_col].tolist(),
-            'expensive': df[expensive_col].tolist(),
-            'too_expensive': df[too_expensive_col].tolist(),
-        }
-
-        all_prices = sorted(list(set(p for col in prices.values() for p in col)))
-        n = len(df)
-
-        cumulative_percentages = {
-            'prices': all_prices,
-            'tooCheap': [sum(1 for p in prices['too_cheap'] if p >= price) / n * 100 for price in all_prices],
-            'cheap': [sum(1 for p in prices['cheap'] if p >= price) / n * 100 for price in all_prices],
-            'expensive': [sum(1 for p in prices['expensive'] if p <= price) / n * 100 for price in all_prices],
-            'tooExpensive': [sum(1 for p in prices['too_expensive'] if p <= price) / n * 100 for price in all_prices],
-        }
-
-        not_too_cheap = [100 - val for val in cumulative_percentages['tooCheap']]
-        not_expensive = [100 - val for val in cumulative_percentages['expensive']]
-
-        opp = find_intersection(all_prices, not_too_cheap, all_prices, cumulative_percentages['expensive'])
-        pme = find_intersection(all_prices, cumulative_percentages['tooExpensive'], all_prices, not_expensive)
-        mdp = find_intersection(all_prices, cumulative_percentages['expensive'], all_prices, not_too_cheap)
-        ipp = find_intersection(all_prices, cumulative_percentages['cheap'], all_prices, cumulative_percentages['expensive'])
+        too_cheap_prices = df[too_cheap_col].tolist()
+        cheap_prices = df[cheap_col].tolist()
+        expensive_prices = df[expensive_col].tolist()
+        too_expensive_prices = df[too_expensive_col].tolist()
         
-        response = {
-            'plot_data': {
-                'prices': all_prices,
-                'tooCheap': cumulative_percentages['tooCheap'],
-                'cheap': cumulative_percentages['cheap'],
-                'expensive': cumulative_percentages['expensive'],
-                'tooExpensive': cumulative_percentages['tooExpensive'],
-                'intersections': {
-                    'optimal': opp,
-                    'indifference': ipp,
-                    'too_cheap': mdp,
-                    'expensive': pme
-                }
-            }
+        results = vwpsm.analysis(too_cheap_prices, cheap_prices, expensive_prices, too_expensive_prices)
+        
+        plot_data = vwpsm.get_plot_data(too_cheap_prices, cheap_prices, expensive_prices, too_expensive_prices)
+        plot_data['intersections'] = results
+        
+        plot_json = plot_van_westendorp_plotly(plot_data)
+
+        final_response = {
+            'results': results,
+            'plot_json': plot_json,
         }
 
-        print(json.dumps(response, default=_to_native_type))
+        print(json.dumps(final_response, default=_to_native_type))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)

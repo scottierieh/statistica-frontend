@@ -1,6 +1,6 @@
 'use client';
 
-import { type Plotly } from "plotly.js-dist";
+import type { Plotly } from "plotly.js-dist";
 
 export function plotVanWestendorp(data: {
     prices: number[];
@@ -68,7 +68,7 @@ export function plotVanWestendorp(data: {
             line: { width: 0 }
         });
     }
-
+    
     const layout: Partial<Plotly.Layout> = {
         title: 'Van Westendorp Price Sensitivity Meter',
         xaxis: { title: 'Price' },

@@ -12,7 +12,6 @@ import { Sigma, Loader2, DollarSign, Info, Brain } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { plotVanWestendorp } from '@/lib/plotters';
 import dynamic from 'next/dynamic';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
@@ -20,20 +19,15 @@ const Plot = dynamic(() => import('react-plotly.js'), {
   loading: () => <Skeleton className="w-full h-[500px]" />,
 });
 
+
 interface AnalysisResponse {
-    plot_data: {
-        prices: number[];
-        tooCheap: number[];
-        cheap: number[];
-        expensive: number[];
-        tooExpensive: number[];
-        intersections: {
-            optimal: number | null;
-            indifference: number | null;
-            too_cheap: number | null;
-            expensive: number | null;
-        };
+    results: {
+        opp: number | null;
+        pme: number | null;
+        mdp: number | null;
+        ipp: number | null;
     };
+    plot_json: string;
 }
 
 interface VanWestendorpPageProps {
@@ -133,9 +127,8 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
         );
     }
     
-    const results = analysisResult?.plot_data;
-    const plotJson = results ? plotVanWestendorp(results) : null;
-    const plotData = plotJson ? JSON.parse(plotJson) : null;
+    const results = analysisResult?.results;
+    const plotData = analysisResult ? JSON.parse(analysisResult.plot_json) : null;
 
     return (
         <div className="space-y-4">
@@ -200,10 +193,10 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
                             <CardTitle>Key Price Points</CardTitle>
                         </CardHeader>
                         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                             <StatCard title="Optimal Price (OPP)" value={results.intersections.optimal} />
-                             <StatCard title="Indifference Price (IPP)" value={results.intersections.indifference} />
-                             <StatCard title="Marginal Cheapness (MDP)" value={results.intersections.too_cheap} />
-                             <StatCard title="Marginal Expensiveness (PME)" value={results.intersections.expensive} />
+                             <StatCard title="Optimal Price (OPP)" value={results.opp} />
+                             <StatCard title="Indifference Price (IPP)" value={results.ipp} />
+                             <StatCard title="Marginal Cheapness (MDP)" value={results.mdp} />
+                             <StatCard title="Marginal Expensiveness (PME)" value={results.pme} />
                         </CardContent>
                     </Card>
                 </div>
