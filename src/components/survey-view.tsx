@@ -187,7 +187,7 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: any
                     <div key={index} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 p-2 border rounded-md hover:bg-accent transition-colors">
                         <div>{item}</div>
                         <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })} className="flex items-center justify-center w-20">
-                           <RadioGroupItem value={item} />
+                            <RadioGroupItem value={item} />
                         </RadioGroup>
                          <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })} className="flex items-center justify-center w-20">
                             <RadioGroupItem value={item} />
@@ -220,7 +220,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: any, a
                 </TableHeader>
                 <TableBody>
                      {question.rows.map((row: string, rowIndex: number) => (
-                         <TableRow key={rowIndex}>
+                        <TableRow key={rowIndex}>
                             <TableCell>{row}</TableCell>
                             <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                 <>
@@ -231,7 +231,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: any, a
                                 ))}
                                 </>
                             </RadioGroup>
-                         </TableRow>
+                        </TableRow>
                      ))}
                 </TableBody>
             </Table>

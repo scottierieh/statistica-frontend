@@ -623,36 +623,32 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, isPreview, cardClassName
                     <TableRow>
                         <TableHead className="w-1/3"></TableHead>
                         {question.columns.map((col: string, colIndex: number) => {
-                            if (colIndex === 0 || colIndex === question.columns.length - 1) {
-                                return (
-                                    <TableHead key={colIndex} className="text-center text-xs w-[60px]">
-                                        {question.scale[colIndex]}
-                                    </TableHead>
-                                );
-                            }
-                            return <TableHead key={colIndex} className="text-center w-[60px]"></TableHead>;
+                            const showLabel = colIndex === 0 || colIndex === question.columns.length - 1;
+                            return (
+                                <TableHead key={colIndex} className={cn("text-center text-xs w-[60px]", !showLabel && "hidden sm:table-cell")}>
+                                    {showLabel ? question.scale[colIndex] : col}
+                                </TableHead>
+                            );
                         })}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                      {question.rows.map((row: string, rowIndex: number) => (
-                        <RadioGroup key={rowIndex} asChild>
-                             <TableRow>
-                                <TableCell>
-                                    {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
+                         <TableRow key={rowIndex}>
+                            <TableCell>
+                                {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
+                            </TableCell>
+                            {question.columns.map((col: string, colIndex: number) => (
+                                <TableCell key={colIndex} className="text-center">
+                                    <RadioGroupItem value={`${rowIndex}-${colIndex}`} disabled/>
                                 </TableCell>
-                                {question.columns.map((col: string, colIndex: number) => (
-                                    <TableCell key={colIndex} className="text-center">
-                                        <RadioGroupItem value={`${rowIndex}-${colIndex}`} disabled/>
-                                    </TableCell>
-                                ))}
-                                {!isPreview && (
-                                    <TableCell>
-                                        <Button variant="ghost" size="icon" onClick={() => deleteRow(rowIndex)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
-                                    </TableCell>
-                                )}
-                             </TableRow>
-                        </RadioGroup>
+                            ))}
+                            {!isPreview && (
+                                <TableCell>
+                                    <Button variant="ghost" size="icon" onClick={() => deleteRow(rowIndex)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
+                                </TableCell>
+                            )}
+                         </TableRow>
                      ))}
                 </TableBody>
             </Table>
@@ -2064,9 +2060,21 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                     </div>
                                                 ) : (
                                                     survey.questions.map((q: any) => {
-                                                        const QuestionComponent = Object.values(questionTypeCategories).flat().find(t => t.id === q.type)?.component;
-                                                        if (!QuestionComponent) return null;
-                                                        
+                                                        const questionComponents: { [key: string]: React.ComponentType<any> } = {
+                                                            single: SingleSelectionQuestion,
+                                                            multiple: MultipleSelectionQuestion,
+                                                            text: TextQuestion,
+                                                            rating: RatingQuestion,
+                                                            number: NumberQuestion,
+                                                            phone: PhoneQuestion,
+                                                            email: EmailQuestion,
+                                                            nps: NPSQuestion,
+                                                            description: DescriptionBlock,
+                                                            'best-worst': BestWorstQuestion,
+                                                            matrix: MatrixQuestion
+                                                          };
+                                                          const QuestionComponent = questionComponents[q.type];
+                                                          if (!QuestionComponent) return null;
                                                         return (
                                                             <DraggableQuestion key={q.id} id={q.id}>
                                                                 <QuestionComponent
@@ -2258,6 +2266,17 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     );
                                 }
                                 
+                                const questionComponents: { [key: string]: React.ComponentType<any> } = {
+                                    single: ChoiceAnalysisDisplay,
+                                    multiple: ChoiceAnalysisDisplay,
+                                    text: TextAnalysisDisplay,
+                                    rating: RatingAnalysisDisplay,
+                                    number: NumberAnalysisDisplay,
+                                    nps: NPSAnalysisDisplay,
+                                    'best-worst': BestWorstAnalysisDisplay,
+                                };
+                                const AnalysisComponent = questionComponents[q.type];
+
                                 return (
                                     <Card key={`analysis-${q.id}`}>
                                         <CardHeader>
@@ -2267,25 +2286,11 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent>
-                                            {(() => {
-                                                switch (q.type) {
-                                                    case 'single':
-                                                    case 'multiple':
-                                                        return <ChoiceAnalysisDisplay chartData={chartData} tableData={tableData} insightsData={insights} />;
-                                                    case 'number':
-                                                        return <NumberAnalysisDisplay chartData={chartData} tableData={tableData} insightsData={insights} />;
-                                                    case 'rating':
-                                                        return <RatingAnalysisDisplay chartData={chartData} tableData={tableData} insightsData={insights} />;
-                                                    case 'best-worst':
-                                                        return <BestWorstAnalysisDisplay chartData={chartData} tableData={tableData} insightsData={insights} />;
-                                                     case 'nps':
-                                                        return <NPSAnalysisDisplay chartData={chartData} tableData={tableData} insightsData={insights} />;
-                                                    case 'text':
-                                                        return <TextAnalysisDisplay chartData={chartData} tableData={tableData} insightsData={insights} />;
-                                                    default:
-                                                        return <p className="text-muted-foreground">Analysis for this question type is not yet implemented.</p>;
-                                                }
-                                            })()}
+                                            {AnalysisComponent ? (
+                                                <AnalysisComponent chartData={chartData} tableData={tableData} insightsData={insights} />
+                                            ) : (
+                                                <p className="text-muted-foreground">Analysis for this question type is not yet implemented.</p>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 );
@@ -2338,156 +2343,12 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     );
 }
 
-const IpaAnalyticsDashboard = ({ data }: { data: any }) => {
-    if (!data) return null;
-
-    const { points, meanImportance, meanSatisfaction, quadrants } = data;
-    const quadrantInfo = {
-        'Concentrate Here': { icon: <Zap className="h-5 w-5 text-destructive" />, description: "High importance, low satisfaction. These are your top priorities for improvement.", color: "border-destructive"},
-        'Keep Up the Good Work': { icon: <Star className="h-5 w-5 text-green-500" />, description: "High importance, high satisfaction. Your key strengths.", color: "border-green-500"},
-        'Low Priority': { icon: <ShieldAlert className="h-5 w-5 text-amber-500" />, description: "Low importance, low satisfaction. Don't worry about these for now.", color: "border-amber-500"},
-        'Possible Overkill': { icon: <Lightbulb className="h-5 w-5 text-blue-500" />, description: "Low importance, high satisfaction. You may be over-investing here.", color: "border-blue-500"},
-    };
-
-    return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Importance-Performance Grid</CardTitle>
-                </CardHeader>
-                <CardContent className="h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
-                            <CartesianGrid />
-                            <XAxis type="number" dataKey="satisfaction" name="Satisfaction" label={{ value: "Satisfaction (Performance) →", position: 'insideBottom', offset: -10 }} domain={[1, 5]} />
-                            <YAxis type="number" dataKey="importance" name="Importance" label={{ value: "Derived Importance →", angle: -90, position: 'insideLeft' }} />
-                            <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                            <ReferenceLine y={meanImportance} stroke="hsl(var(--primary))" strokeDasharray="3 3"><RechartsLabel value="Avg. Importance" position="insideTopLeft" /></ReferenceLine>
-                            <ReferenceLine x={meanSatisfaction} stroke="hsl(var(--primary))" strokeDasharray="3 3"><RechartsLabel value="Avg. Satisfaction" position="top" /></ReferenceLine>
-                            <Scatter name="Attributes" data={points} fill="hsl(var(--primary))" />
-                            {points.map((entry: any, index: number) => (
-                                <RechartsLabel key={`label-${index}`} content={({ x, y }: any) => (<text x={x} y={y} dy={-10} fill="hsl(var(--foreground))" fontSize={12} textAnchor="middle">{entry.name}</text>)} />
-                            ))}
-                        </ScatterChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {Object.entries(quadrantInfo).map(([quadrantName, info]) => (
-                    <Card key={quadrantName} className={info.color}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">{info.icon} {quadrantName}</CardTitle>
-                            <CardDescription>{info.description}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className="list-disc pl-5 space-y-1">
-                                {(quadrants[quadrantName] as any[]).length > 0 ?
-                                    (quadrants[quadrantName] as any[]).map(item => <li key={item.name}>{item.name}</li>) :
-                                    <li className="text-muted-foreground">No items in this quadrant.</li>
-                                }
-                            </ul>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const ServqualAnalyticsDashboard = ({ data }: { data: any }) => {
-    if (!data) return null;
-    const { dimensionScores, overallGap } = data;
-    const largestGap = [...dimensionScores].sort((a: any, b: any) => a.gap - b.gap)[0];
-
-    return (
-        <div className="space-y-6">
-             <Alert>
-                <Brain className="h-4 w-4" />
-                <AlertTitle>Interpreting SERVQUAL Results</AlertTitle>
-                <AlertDescription>
-                    The Gap Score (Perception - Expectation) is the key metric. A negative gap indicates a service shortfall where performance does not meet expectations. The larger the negative gap, the higher the priority for improvement.
-                </AlertDescription>
-            </Alert>
-            <Card>
-                <CardHeader><CardTitle>Overall Service Quality Gap</CardTitle></CardHeader>
-                <CardContent className="text-center">
-                    <p className={`text-6xl font-bold ${overallGap < 0 ? 'text-destructive' : 'text-green-600'}`}>{overallGap.toFixed(2)}</p>
-                    <p className="text-muted-foreground mt-2">Average of all dimension gaps</p>
-                </CardContent>
-            </Card>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader><CardTitle>Gap Score by Dimension</CardTitle></CardHeader>
-                    <CardContent className="h-[400px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                           <BarChart data={dimensionScores} layout="vertical" margin={{ top: 5, right: 30, left: 120, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" />
-                                <YAxis type="category" dataKey="name" width={120} />
-                                <Tooltip />
-                                <Legend />
-                                <ReferenceLine x={0} stroke="#666" />
-                                <Bar dataKey="gap" name="Gap Score" fill="hsl(var(--primary))" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader><CardTitle>Priority Action Area</CardTitle></CardHeader>
-                    <CardContent className="flex flex-col items-center justify-center h-[400px]">
-                         <h3 className="text-2xl font-bold text-destructive">{largestGap.name}</h3>
-                         <p className="text-4xl font-bold text-destructive mt-2">{largestGap.gap.toFixed(2)}</p>
-                         <p className="text-center mt-4 text-muted-foreground">This dimension has the largest service gap and should be the top priority for improvement efforts.</p>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-    );
-};
-
-const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
-    if (!data) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <p className="text-muted-foreground">Run analysis to see the retail dashboard.</p>
-            </div>
-        );
-    }
-    
-    const { kpiData, insights } = data;
-
-    const kpiCards = [
-        { title: 'Net Promoter Score', value: kpiData.npsScore.toFixed(1), status: kpiData.npsScore >= 50 ? 'excellent' : kpiData.npsScore >= 0 ? 'good' : 'poor' },
-        { title: 'Customer Satisfaction', value: `${kpiData.avgSatisfaction.toFixed(2)}/5`, status: kpiData.avgSatisfaction >= 4 ? 'excellent' : kpiData.avgSatisfaction >= 3 ? 'good' : 'warning' },
-        { title: 'Avg. Order Value', value: `$${Math.round(kpiData.avgOrderValue)}`, status: 'good' },
-        { title: 'Repurchase Rate', value: `${Math.round(kpiData.repurchaseRate)}%`, status: kpiData.repurchaseRate >= 60 ? 'excellent' : 'warning' },
-    ];
-    
-    return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {kpiCards.map(kpi => <KPICard key={kpi.title} {...kpi} />)}
-            </div>
-             <Tabs defaultValue="insights" className="w-full">
-                <TabsList>
-                    <TabsTrigger value="insights">Business Insights</TabsTrigger>
-                </TabsList>
-                <TabsContent value="insights">
-                    <div className="space-y-4 mt-6">
-                        {insights.map((insight: any, index: number) => <InsightCard key={index} insight={insight} />)}
-                    </div>
-                </TabsContent>
-            </Tabs>
-        </div>
-    );
-}
-
-export default function GeneralSurveyPageWrapper() {
-    return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <GeneralSurveyPageContentFromClient />
-        </Suspense>
-    );
+export default function SurveyApp() {
+  return (
+    <Suspense fallback={<div className="flex-1 p-8 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto"/></div>}>
+        <GeneralSurveyPageContentFromClient />
+    </Suspense>
+  )
 }
 
 function GeneralSurveyPageContentFromClient() {
@@ -2515,3 +2376,4 @@ function GeneralSurveyPageContentFromClient() {
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
+
