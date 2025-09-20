@@ -70,7 +70,7 @@ def main():
             raise ValueError("Not enough valid data points for analysis.")
 
         prices = np.sort(df[price_cols].values.flatten())
-        unique_prices = np.unique(prices)
+        unique_prices = np.unique(prices[~np.isnan(prices)])
         
         # Calculate cumulative frequencies
         too_cheap_freq = [np.mean(df[too_cheap_col] > p) * 100 for p in unique_prices]
@@ -79,17 +79,17 @@ def main():
         too_expensive_freq = [np.mean(df[too_expensive_col] <= p) * 100 for p in unique_prices]
         
         # Find intersection points
-        pmc = find_intersection(unique_prices, too_cheap_freq, unique_prices, expensive_freq) # Intersection of 'Too Cheap' and 'Expensive'
-        pme = find_intersection(unique_prices, cheap_freq, unique_prices, too_expensive_freq) # Intersection of 'Cheap' and 'Too Expensive'
-        ipp = find_intersection(unique_prices, cheap_freq, unique_prices, expensive_freq) # Intersection of 'Cheap' and 'Expensive'
-        opp = find_intersection(unique_prices, too_cheap_freq, unique_prices, too_expensive_freq) # Intersection of 'Too Cheap' and 'Too Expensive'
+        pmc = find_intersection(unique_prices, expensive_freq, unique_prices, [100 - val for val in cheap_freq])
+        pme = find_intersection(unique_prices, cheap_freq, unique_prices, [100 - val for val in expensive_freq])
+        ipp = find_intersection(unique_prices, too_cheap_freq, unique_prices, too_expensive_freq)
+        opp = find_intersection(unique_prices, cheap_freq, unique_prices, too_expensive_freq)
 
         # --- Plotting ---
         plt.style.use('seaborn-v0_8-whitegrid')
         fig, ax = plt.subplots(figsize=(10, 7))
         
-        ax.plot(unique_prices, too_cheap_freq, label='Too Cheap (Cumulative %)', color='red', linestyle='--')
-        ax.plot(unique_prices, cheap_freq, label='Cheap (Cumulative %)', color='orange', linestyle='--')
+        ax.plot(unique_prices, too_cheap_freq, label='Not a Bargain (Cumulative %)', color='red', linestyle='--')
+        ax.plot(unique_prices, [100-val for val in cheap_freq], label='Not Cheap (Cumulative %)', color='orange', linestyle='--')
         ax.plot(unique_prices, expensive_freq, label='Expensive (Cumulative %)', color='skyblue')
         ax.plot(unique_prices, too_expensive_freq, label='Too Expensive (Cumulative %)', color='blue')
         
