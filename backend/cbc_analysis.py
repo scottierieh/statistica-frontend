@@ -66,14 +66,10 @@ def main():
 
         for attr_name in independent_vars:
             props = attributes_def[attr_name]
-            if props['type'] == 'categorical':
-                dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True, dtype=float)
-                X_parts.append(dummies)
-                feature_names_map.update({col: col for col in dummies.columns})
-            elif props['type'] == 'numerical':
-                numeric_series = pd.to_numeric(df[attr_name], errors='coerce').to_frame()
-                X_parts.append(numeric_series)
-                feature_names_map.update({attr_name: attr_name})
+            # Treat all as categorical for CBC
+            dummies = pd.get_dummies(df[attr_name].astype(str), prefix=attr_name, drop_first=True, dtype=float)
+            X_parts.append(dummies)
+            feature_names_map.update({col: col for col in dummies.columns})
         
         X = pd.concat(X_parts, axis=1)
         
@@ -107,25 +103,17 @@ def main():
         
         for attr_name in independent_vars:
             props = attributes_def[attr_name]
-            if props['type'] == 'categorical':
-                base_level = props['levels'][0]
-                part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
-                
-                level_worths = [0]
-                for level in props['levels'][1:]:
-                    param_name = f"{attr_name}_{level}"
-                    worth = regression_results['coefficients'].get(param_name, 0)
-                    part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
-                    level_worths.append(worth)
-                
-                attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
+            base_level = props['levels'][0]
+            part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
             
-            elif props['type'] == 'numerical':
-                coeff = regression_results['coefficients'].get(attr_name, 0)
-                part_worths.append({'attribute': attr_name, 'level': 'coefficient', 'value': coeff})
-                
-                val_range = X_clean[attr_name].max() - X_clean[attr_name].min()
-                attribute_ranges[attr_name] = abs(coeff * val_range)
+            level_worths = [0]
+            for level in props['levels'][1:]:
+                param_name = f"{attr_name}_{level}"
+                worth = regression_results['coefficients'].get(param_name, 0)
+                part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
+                level_worths.append(worth)
+            
+            attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
 
         total_range = sum(attribute_ranges.values())
         importance = []
@@ -160,4 +148,3 @@ def main():
 if __name__ == '__main__':
     main()
   
-

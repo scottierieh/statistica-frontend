@@ -77,10 +77,9 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         const attributes: any = {};
         allHeaders.forEach(header => {
             const values = Array.from(new Set(data.map(row => row[header]))).sort();
-             const isNumeric = values.every(v => typeof v === 'number' || !isNaN(Number(v)));
             attributes[header] = {
                 name: header,
-                type: isNumeric && new Set(values).size > 5 ? 'numerical' : 'categorical',
+                type: 'categorical', // Always treat as categorical for CBC
                 levels: values,
             };
         });
@@ -151,7 +150,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
             }
 
             const result: FullAnalysisResponse = await response.json();
-            if ((result as any).error) throw new Error((result as any).error);
+            if (result.error) throw new Error(result.error);
 
             setAnalysisResult(result);
             toast({ title: 'CBC Analysis Complete', description: 'Part-worths and importance have been calculated.' });

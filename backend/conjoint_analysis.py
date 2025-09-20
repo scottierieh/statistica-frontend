@@ -69,29 +69,28 @@ def main():
             attr_name_clean = sanitized_cols.get(attr_name, attr_name)
             if props.get('includeInAnalysis', True) and attr_name_clean != target_var_clean:
                 all_analysis_vars_set.add(attr_name_clean)
-                if props['type'] == 'categorical':
-                    formula_parts.append(f'C(Q("{attr_name_clean}"))')
-                else: # numerical - treat as is
-                    formula_parts.append(f'Q("{attr_name_clean}")')
+                # Always treat as categorical
+                formula_parts.append(f'C(Q("{attr_name_clean}"))')
         
         all_analysis_vars = list(all_analysis_vars_set)
         
         # --- Data Cleaning and Type Conversion ---
         df_clean = df[all_analysis_vars].copy()
         
-        for col in df.columns:
-            if col in all_analysis_vars:
-                # This will coerce any non-numeric strings to NaN, which are then dropped.
-                df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
-        
-        df_clean.dropna(subset=all_analysis_vars, inplace=True)
+        # Coerce target to numeric, others to string for C()
+        df_clean[target_var_clean] = pd.to_numeric(df_clean[target_var_clean], errors='coerce')
+        for col in df_clean.columns:
+            if col != target_var_clean:
+                df_clean[col] = df_clean[col].astype(str)
+
+        df_clean.dropna(subset=[target_var_clean], inplace=True)
         
         if df_clean.empty:
-            raise ValueError("No valid data left after cleaning. Please check for missing values or non-numeric entries in your target and feature columns.")
+            raise ValueError("No valid data left after cleaning. Please check for missing values or non-numeric entries in your target column.")
 
         formula = f'Q("{target_var_clean}") ~ {" + ".join(formula_parts)}'
         
-        # Fit the OLS model to get coefficients and other stats
+        # Fit the OLS model
         model = ols(formula, data=df_clean).fit()
         
         # --- Regression Results ---
@@ -116,26 +115,18 @@ def main():
             props = attributes_def[attr_name]
             attr_name_clean = sanitized_cols[attr_name]
 
-            if props['type'] == 'categorical':
-                base_level = props['levels'][0]
-                part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
-                
-                level_worths = [0]
-                for level in props['levels'][1:]:
-                    param_name = f"C(Q(\"{attr_name_clean}\"))[T.{level}]"
-                    worth = model.params.get(param_name, 0)
-                    part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
-                    level_worths.append(worth)
-                
-                attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
+            # Always treat as categorical for part-worth calculation
+            base_level = props['levels'][0]
+            part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
             
-            elif props['type'] == 'numerical':
-                clean_name = f'Q("{attr_name_clean}")'
-                coeff = model.params.get(clean_name, 0)
-                part_worths.append({'attribute': attr_name, 'level': 'coefficient', 'value': coeff})
-                
-                val_range = df_clean[attr_name_clean].max() - df_clean[attr_name_clean].min()
-                attribute_ranges[attr_name] = abs(coeff * val_range)
+            level_worths = [0]
+            for level in props['levels'][1:]:
+                param_name = f"C(Q(\"{attr_name_clean}\"))[T.{level}]"
+                worth = model.params.get(param_name, 0)
+                part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
+                level_worths.append(worth)
+            
+            attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
 
         total_range = sum(attribute_ranges.values())
         importance = []
@@ -154,7 +145,6 @@ def main():
             'targetVariable': target_variable
         }
         
-        # --- Create a new response structure that includes results ---
         response = {'results': final_results}
         
         if sensitivity_analysis_request:
@@ -170,4 +160,3 @@ def main():
 if __name__ == '__main__':
     main()
   
-
