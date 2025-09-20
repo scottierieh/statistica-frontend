@@ -68,42 +68,45 @@ def _generate_interpretation(strongest_corr, n, method):
     
     return {"title": title, "body": body}
 
-def generate_pairs_plot_plotly(df, corr_matrix, method='pearson'):
-    """Generates an interactive pairs plot using Plotly."""
-    dimensions = [{'label': col, 'values': df[col]} for col in df.columns]
+def generate_pairs_plot(df, method='pearson'):
+    """Generates a pairs plot (scatter matrix) for the dataframe."""
     
-    fig = go.Figure(data=go.Splom(
-        dimensions=dimensions,
-        diagonal_visible=False,
-        text=df.index,
-        marker=dict(color='blue', size=7, line=dict(color='white', width=0.5)),
-        showupperhalf=False
-    ))
+    def corr_func(x, y, **kwargs):
+        if method == 'pearson':
+            r, p = pearsonr(x, y)
+        elif method == 'spearman':
+            r, p = spearmanr(x, y)
+        elif method == 'kendall':
+            r, p = kendalltau(x, y)
+        else:
+            r, p = np.nan, np.nan
+        
+        ax = plt.gca()
+        ax.annotate(f"{r:.2f}", xy=(.5, .6), xycoords=ax.transAxes, ha='center', va='center', fontsize=14)
+        
+        stars = ''
+        if p < 0.001: stars = '***'
+        elif p < 0.01: stars = '**'
+        elif p < 0.05: stars = '*'
+        ax.annotate(stars, xy=(.5, .4), xycoords=ax.transAxes, ha='center', va='center', fontsize=16, color='red')
+
+    g = sns.PairGrid(df)
+    g.map_upper(corr_func)
+    g.map_lower(sns.scatterplot, s=30, color='rebeccapurple', alpha=0.6)
+    g.map_diag(sns.histplot, kde=True, color='skyblue')
     
-    for i, col1 in enumerate(df.columns):
-        for j, col2 in enumerate(df.columns):
-            if i > j:
-                r = corr_matrix.loc[col1, col2]
-                fig.add_annotation(
-                    x=j + 0.5,
-                    y=i + 0.5,
-                    text=f"{r:.2f}",
-                    showarrow=False,
-                    font=dict(size=14, color="black" if abs(r) < 0.5 else "white"),
-                    xref='x domain',
-                    yref='y domain',
-                )
+    # Adjust labels to prevent overlap
+    for ax in g.axes.flatten():
+        ax.set_ylabel(ax.get_ylabel(), rotation=0, horizontalalignment='right')
+        ax.set_xlabel(ax.get_xlabel(), rotation=90, horizontalalignment='right')
 
-    fig.update_layout(
-        title='Pairs Plot (Scatterplot Matrix)',
-        dragmode='select',
-        width=800,
-        height=800,
-        autosize=False,
-        hovermode='closest',
-    )
-    return pio.to_json(fig)
-
+    plt.tight_layout()
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close()
+    buf.seek(0)
+    
+    return base64.b64encode(buf.read()).decode('utf-8')
 
 def generate_heatmap_plotly(df, title='Correlation Matrix'):
     """Generates an interactive heatmap using Plotly."""
@@ -207,7 +210,7 @@ def main():
         interpretation = _generate_interpretation(strongest_correlations[0] if strongest_correlations else None, len(df_clean), method)
 
         # Generate plots
-        pairs_plot_json = generate_pairs_plot_plotly(df_clean[current_vars], corr_matrix, method)
+        pairs_plot_img = generate_pairs_plot(df_clean[current_vars], method)
         heatmap_plot_json = generate_heatmap_plotly(corr_matrix, title=f'{method.capitalize()} Correlation Matrix')
 
         response = {
@@ -216,7 +219,7 @@ def main():
             "summary_statistics": summary_stats,
             "strongest_correlations": strongest_correlations[:10],
             "interpretation": interpretation,
-            "pairs_plot": pairs_plot_json,
+            "pairs_plot": f"data:image/png;base64,{pairs_plot_img}",
             "heatmap_plot": heatmap_plot_json,
         }
 

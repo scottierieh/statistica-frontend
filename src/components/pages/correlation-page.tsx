@@ -208,7 +208,6 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
   }
 
   const heatmapPlotData = results ? JSON.parse(results.heatmap_plot || '{}') : null;
-  const pairsPlotData = results ? JSON.parse(results.pairs_plot || '{}') : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -304,19 +303,14 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                  <StrongestCorrelationsChart data={results.strongest_correlations} />
             </div>
             
-             {pairsPlotData && (
+             {results.pairs_plot && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Pairs Plot</CardTitle>
-                        <CardDescription>An interactive matrix of scatterplots and correlation coefficients.</CardDescription>
+                        <CardDescription>A matrix of scatterplots to visualize pairwise relationships.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Plot
-                            data={pairsPlotData.data}
-                            layout={pairsPlotData.layout}
-                            useResizeHandler={true}
-                            className="w-full h-[800px]"
-                        />
+                         <Image src={results.pairs_plot} alt="Pairs Plot" width={800} height={800} className="w-full h-auto rounded-md border" />
                     </CardContent>
                 </Card>
             )}
