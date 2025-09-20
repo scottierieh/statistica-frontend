@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -15,6 +16,7 @@ import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { Star, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { produce } from 'immer';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 // Re-defining question components for the view page
 // In a real app, these could be in a shared components directory.
@@ -42,9 +44,11 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { questio
 
 const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { question: any; answer?: string[]; onAnswerChange: (newAnswer: string[]) => void; }) => {
    const handleCheckChange = (checked: boolean, opt: string) => {
+       if (!onAnswerChange) return;
+       const currentAnswers = answer || [];
        const newAnswers = checked
-           ? [...answer, opt]
-           : answer.filter((a: string) => a !== opt);
+           ? [...currentAnswers, opt]
+           : currentAnswers.filter((a: string) => a !== opt);
        onAnswerChange(newAnswers);
    }
    
@@ -201,21 +205,30 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: any, a
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-1/3"></TableHead>
-                        {question.columns.map((col: string, colIndex: number) => (
-                            <TableHead key={colIndex} className="text-center text-xs w-[60px]">{col}</TableHead>
-                        ))}
+                        {question.columns.map((col: string, colIndex: number) => {
+                            if (colIndex === 0 || colIndex === question.columns.length - 1) {
+                                return (
+                                    <TableHead key={colIndex} className="text-center text-xs w-[60px]">
+                                        {question.scale[colIndex]}
+                                    </TableHead>
+                                );
+                            }
+                            return <TableHead key={colIndex} className="text-center w-[60px]"></TableHead>;
+                        })}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                      {question.rows.map((row: string, rowIndex: number) => (
-                         <TableRow key={rowIndex}>
-                            <TableCell>{row}</TableCell>
-                            {question.columns.map((col: string, colIndex: number) => (
-                                <TableCell key={colIndex} className="text-center">
-                                    <RadioGroupItem value={`${rowIndex}-${colIndex}`} checked={answer?.[row] === col} onClick={() => onAnswerChange(produce(answer || {}, (draft: any) => {draft[row] = col}))}/>
-                                </TableCell>
-                            ))}
-                         </TableRow>
+                         <RadioGroup asChild key={rowIndex} value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                             <TableRow>
+                                <TableCell>{row}</TableCell>
+                                {question.columns.map((col: string, colIndex: number) => (
+                                    <TableCell key={colIndex} className="text-center">
+                                        <RadioGroupItem value={col}/>
+                                    </TableCell>
+                                ))}
+                             </TableRow>
+                         </RadioGroup>
                      ))}
                 </TableBody>
             </Table>
