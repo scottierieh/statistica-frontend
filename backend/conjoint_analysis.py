@@ -57,36 +57,39 @@ def main():
         df = pd.DataFrame(data)
 
         # Sanitize column names for the formula
-        sanitized_cols = {col: f'C_{col.replace(" ", "_").replace(".", "_")}' for col in df.columns}
+        sanitized_cols = {col: f'{col.replace(" ", "_").replace(".", "_")}' for col in df.columns}
         df.rename(columns=sanitized_cols, inplace=True)
         
         target_var_clean = sanitized_cols[target_variable]
         
         formula_parts = []
-        all_analysis_vars = [target_var_clean]
+        all_analysis_vars_set = {target_var_clean}
 
         for attr_name, props in attributes_def.items():
-            if props.get('includeInAnalysis', True) and attr_name != target_variable:
-                attr_name_clean = sanitized_cols[attr_name]
-                all_analysis_vars.append(attr_name_clean)
+            attr_name_clean = sanitized_cols.get(attr_name, attr_name)
+            if props.get('includeInAnalysis', True) and attr_name_clean != target_var_clean:
+                all_analysis_vars_set.add(attr_name_clean)
                 if props['type'] == 'categorical':
                     formula_parts.append(f'C(Q("{attr_name_clean}"))')
                 else: # numerical - treat as is
                     formula_parts.append(f'Q("{attr_name_clean}")')
         
+        all_analysis_vars = list(all_analysis_vars_set)
+        
         # --- Data Cleaning and Type Conversion ---
+        df_clean = df.copy()
         for col in all_analysis_vars:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
         
-        df.dropna(subset=all_analysis_vars, inplace=True)
+        df_clean.dropna(subset=all_analysis_vars, inplace=True)
         
-        if df.empty:
+        if df_clean.empty:
             raise ValueError("No valid data left after cleaning. Please check for missing values or non-numeric entries in your target and feature columns.")
 
         formula = f'Q("{target_var_clean}") ~ {" + ".join(formula_parts)}'
         
         # Fit the OLS model to get coefficients and other stats
-        model = ols(formula, data=df).fit()
+        model = ols(formula, data=df_clean).fit()
         
         # --- Regression Results ---
         regression_results = {
@@ -108,13 +111,15 @@ def main():
 
         for attr_name in independent_vars:
             props = attributes_def[attr_name]
+            attr_name_clean = sanitized_cols[attr_name]
+
             if props['type'] == 'categorical':
                 base_level = props['levels'][0]
                 part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
                 
                 level_worths = [0]
                 for level in props['levels'][1:]:
-                    param_name = f'C(Q("{sanitized_cols[attr_name]}"))[T.{level}]'
+                    param_name = f'C(Q("{attr_name_clean}"))[T.{level}]'
                     worth = model.params.get(param_name, 0)
                     part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
                     level_worths.append(worth)
@@ -122,11 +127,11 @@ def main():
                 attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
             
             elif props['type'] == 'numerical':
-                clean_name = f'Q("{sanitized_cols[attr_name]}")'
+                clean_name = f'Q("{attr_name_clean}")'
                 coeff = model.params.get(clean_name, 0)
                 part_worths.append({'attribute': attr_name, 'level': 'coefficient', 'value': coeff})
                 
-                val_range = df[sanitized_cols[attr_name]].max() - df[sanitized_cols[attr_name]].min()
+                val_range = df_clean[attr_name_clean].max() - df_clean[attr_name_clean].min()
                 attribute_ranges[attr_name] = abs(coeff * val_range)
 
         total_range = sum(attribute_ranges.values())
