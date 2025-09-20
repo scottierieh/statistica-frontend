@@ -77,7 +77,7 @@ def main():
         all_analysis_vars = list(all_analysis_vars_set)
         
         # --- Data Cleaning and Type Conversion ---
-        df_clean = df.copy()
+        df_clean = df[all_analysis_vars].copy()
         for col in all_analysis_vars:
             df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
         
