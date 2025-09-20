@@ -10,51 +10,72 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar } from 'recharts';
 import { DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Label } from '../ui/label';
 
 interface MarketingAnalysisPageProps {
     data: DataSet;
     allHeaders: string[];
+    numericHeaders: string[];
+    categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function MarketingAnalysisPage({ data, allHeaders, onLoadExample }: MarketingAnalysisPageProps) {
+export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: MarketingAnalysisPageProps) {
     const [isClient, setIsClient] = useState(false);
+
+    // State for column selections
+    const [revenueCol, setRevenueCol] = useState<string | undefined>();
+    const [sourceCol, setSourceCol] = useState<string | undefined>();
+    const [deviceCol, setDeviceCol] = useState<string | undefined>();
+    const [pageViewsCol, setPageViewsCol] = useState<string | undefined>();
+    const [sessionDurationCol, setSessionDurationCol] = useState<string | undefined>();
+
 
     useEffect(() => {
         setIsClient(true);
     }, []);
 
+    useEffect(() => {
+        // Auto-select columns based on common names
+        setRevenueCol(numericHeaders.find(h => h.toLowerCase().includes('revenue')) || numericHeaders[0]);
+        setSourceCol(categoricalHeaders.find(h => h.toLowerCase().includes('source')) || categoricalHeaders[0]);
+        setDeviceCol(categoricalHeaders.find(h => h.toLowerCase().includes('device')) || categoricalHeaders[1]);
+        setPageViewsCol(numericHeaders.find(h => h.toLowerCase().includes('page')) || numericHeaders[1]);
+        setSessionDurationCol(numericHeaders.find(h => h.toLowerCase().includes('duration')) || numericHeaders[2]);
+    }, [numericHeaders, categoricalHeaders]);
+
     const summaryStats = useMemo(() => {
-        if (!data || data.length === 0) {
+        if (!data || data.length === 0 || !revenueCol || !pageViewsCol) {
             return { totalRevenue: 0, totalSessions: 0, totalPageViews: 0 };
         }
-        const totalRevenue = data.reduce((acc, row) => acc + (Number(row.purchase_revenue) || 0), 0);
+        const totalRevenue = data.reduce((acc, row) => acc + (Number(row[revenueCol]) || 0), 0);
         const totalSessions = data.length;
-        const totalPageViews = data.reduce((acc, row) => acc + (Number(row.page_views) || 0), 0);
+        const totalPageViews = data.reduce((acc, row) => acc + (Number(row[pageViewsCol]) || 0), 0);
         return { totalRevenue, totalSessions, totalPageViews };
-    }, [data]);
+    }, [data, revenueCol, pageViewsCol]);
 
     const revenueBySource = useMemo(() => {
-        if (!data || data.length === 0) return [];
+        if (!data || data.length === 0 || !sourceCol || !revenueCol) return [];
         const sourceMap = new Map<string, number>();
         data.forEach(row => {
-            const source = String(row.source);
-            const revenue = Number(row.purchase_revenue) || 0;
+            const source = String(row[sourceCol!]);
+            const revenue = Number(row[revenueCol!]) || 0;
             sourceMap.set(source, (sourceMap.get(source) || 0) + revenue);
         });
         return Array.from(sourceMap.entries()).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
-    }, [data]);
+    }, [data, sourceCol, revenueCol]);
 
     const revenueByDevice = useMemo(() => {
-        if (!data || data.length === 0) return [];
+        if (!data || data.length === 0 || !deviceCol || !revenueCol) return [];
         const deviceMap = new Map<string, number>();
         data.forEach(row => {
-            const device = String(row.device_category);
-            const revenue = Number(row.purchase_revenue) || 0;
+            const device = String(row[deviceCol!]);
+            const revenue = Number(row[revenueCol!]) || 0;
             deviceMap.set(device, (deviceMap.get(device) || 0) + revenue);
         });
         return Array.from(deviceMap.entries()).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
-    }, [data]);
+    }, [data, deviceCol, revenueCol]);
 
     if (!isClient) {
         return null; // or a loading skeleton
@@ -85,6 +106,35 @@ export default function MarketingAnalysisPage({ data, allHeaders, onLoadExample 
 
     return (
         <div className="space-y-4">
+             <Card>
+                <CardHeader>
+                    <CardTitle>Dashboard Configuration</CardTitle>
+                    <CardDescription>Map your data columns to the dashboard metrics.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <div>
+                        <Label>Revenue Column</Label>
+                        <Select value={revenueCol} onValueChange={setRevenueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div>
+                        <Label>Source Column</Label>
+                        <Select value={sourceCol} onValueChange={setSourceCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div>
+                        <Label>Device Column</Label>
+                        <Select value={deviceCol} onValueChange={setDeviceCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div>
+                        <Label>Page Views Column</Label>
+                        <Select value={pageViewsCol} onValueChange={setPageViewsCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div>
+                        <Label>Session Duration Column</Label>
+                        <Select value={sessionDurationCol} onValueChange={setSessionDurationCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                </CardContent>
+            </Card>
+
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -166,7 +216,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, onLoadExample 
                         <TableBody>
                             {data.slice(0, 5).map((row, i) => (
                                 <TableRow key={i}>
-                                    {allHeaders.map(h => <TableCell key={`${i}-${h}`}>{row[h]}</TableCell>)}
+                                    {allHeaders.map(h => <TableCell key={`${i}-${h}`}>{String(row[h])}</TableCell>)}
                                 </TableRow>
                             ))}
                         </TableBody>
