@@ -5,7 +5,6 @@ import json
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-from statsmodels.formula.api import mnlogit
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -22,82 +21,81 @@ def main():
     try:
         payload = json.load(sys.stdin)
         data = payload.get('data')
-        respondent_id = payload.get('respondent_id')
-        alt_id = payload.get('alt_id')
         choice_col = payload.get('choice_col')
         attribute_cols = payload.get('attribute_cols')
 
-        if not all([data, respondent_id, alt_id, choice_col, attribute_cols]):
+        if not all([data, choice_col, attribute_cols]):
             raise ValueError("Missing required parameters")
 
         df = pd.DataFrame(data)
 
         # Ensure choice column is numeric
-        df[choice_col] = pd.to_numeric(df[choice_col], errors='coerce')
-        df.dropna(subset=[choice_col], inplace=True)
+        y = pd.to_numeric(df[choice_col], errors='coerce').dropna()
         
-        # Sanitize column names for formula
-        sanitized_cols = {col: col.replace(' ', '_').replace('.', '_') for col in df.columns}
-        df.rename(columns=sanitized_cols, inplace=True)
-        
-        choice_col_clean = sanitized_cols[choice_col]
-        attribute_cols_clean = [sanitized_cols[attr] for attr in attribute_cols]
+        # One-hot encode attributes
+        X = pd.get_dummies(df[attribute_cols], drop_first=True)
+        X = sm.add_constant(X)
 
-        # Prepare formula for MNLogit using statsmodels' C() for categorical encoding
-        formula_parts = [f'C(Q("{attr}"))' for attr in attribute_cols_clean]
-        formula = f'Q("{choice_col_clean}") ~ {" + ".join(formula_parts)}'
-        
-        # Fit the multinomial logit model
-        model = mnlogit(formula, data=df, missing='drop').fit(disp=False)
-        
-        params = model.params
-        part_worths = [] # Changed to list
-        original_attribute_map = {v: k for k, v in sanitized_cols.items()}
+        # Align data
+        X = X.loc[y.index]
 
-        for i, attr_clean in enumerate(attribute_cols_clean):
-            original_attr = original_attribute_map[attr_clean]
+        # Fit the OLS model
+        model = sm.OLS(y, X).fit()
+        
+        # --- Regression Results ---
+        regression_results = {
+            'rSquared': model.rsquared,
+            'adjustedRSquared': model.rsquared_adj,
+            'rmse': np.sqrt(model.mse_resid),
+            'mae': np.mean(np.abs(model.resid)),
+            'predictions': model.predict().tolist(),
+            'residuals': model.resid.tolist(),
+            'intercept': model.params.get('const', 0.0),
+            'coefficients': model.params.drop('const').to_dict()
+        }
+
+        # --- Part-Worths and Importance ---
+        part_worths = []
+        attribute_ranges = {}
+        
+        original_levels = {attr: df[attr].unique() for attr in attribute_cols}
+
+        for attr_name in attribute_cols:
+            levels = original_levels[attr_name]
+            base_level = levels[0]
+            part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
             
-            # Get levels directly from original dataframe to ensure correct order
-            levels = pd.Series(payload['data']).apply(lambda x: x[original_attr]).unique()
-
-            # Base level utility is 0 (the first level)
-            base_level = str(levels[0])
-            part_worths.append({'attribute': original_attr, 'level': base_level, 'value': 0})
-            
-            # Extract coefficients for other levels
+            level_worths = [0]
             for level in levels[1:]:
-                # Construct the coefficient name as created by statsmodels C() function
-                col_name = f'C(Q("{attr_clean}"))[T.{str(level)}]'
-                worth = 0.0
-                if col_name in params.index:
-                    worth = params.loc[col_name][0]
-                
-                part_worths.append({'attribute': original_attr, 'level': str(level), 'value': worth})
-
-        # Calculate attribute importance
-        ranges = {}
-        for attr in attribute_cols:
-            worths = [p['value'] for p in part_worths if p['attribute'] == attr]
-            ranges[attr] = max(worths) - min(worths) if worths else 0
+                param_name = f"{attr_name}_{level}"
+                worth = regression_results['coefficients'].get(param_name, 0)
+                part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
+                level_worths.append(worth)
+            
+            attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
         
-        total_range = sum(ranges.values())
+        total_range = sum(attribute_ranges.values())
         importance_list = []
         if total_range > 0:
-            for attr, rng in ranges.items():
+            for attr, rng in attribute_ranges.items():
                 importance_list.append({
                     'attribute': attr,
                     'importance': (rng / total_range) * 100
                 })
         
+        model_fit_summary = {
+            'llf': model.llf,
+            'f_pvalue': model.f_pvalue,
+            'aic': model.aic,
+            'bic': model.bic,
+        }
+
         response = {
             'results': {
+                'regression': regression_results,
                 'part_worths': part_worths,
                 'attribute_importance': importance_list,
-                'model_fit': {
-                    'llf': model.llf,
-                    'llnull': model.llnull,
-                    'pseudo_r2': model.prsquared
-                }
+                'model_fit': model_fit_summary,
             }
         }
         
