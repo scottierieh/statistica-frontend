@@ -64,16 +64,26 @@ interface CorrelationResults {
 
 const InterpretationDisplay = ({ title, body }: { title: string, body: string }) => {
     if (!title || !body) return null;
+
+    const formattedBody = useMemo(() => {
+        return body
+            .replace(/\n/g, '<br />')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<i>$1</i>');
+    }, [body]);
+
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="font-headline">Interpretation</CardTitle>
+                <CardTitle className="font-headline flex items-center gap-2">
+                    <Bot /> AI Interpretation
+                </CardTitle>
             </CardHeader>
             <CardContent>
                 <Alert>
                     <MessageSquareQuote className="h-4 w-4" />
                     <AlertTitle>{title}</AlertTitle>
-                    <AlertDescription className="whitespace-pre-wrap font-sans">{body}</AlertDescription>
+                    <AlertDescription className="whitespace-pre-wrap font-sans" dangerouslySetInnerHTML={{ __html: formattedBody }}/>
                 </Alert>
             </CardContent>
         </Card>
@@ -225,7 +235,7 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
               </CardContent>
           </Card>
       </div>
-    )
+    );
   }
 
   const heatmapPlotData = results ? JSON.parse(results.heatmap_plot || '{}') : null;
