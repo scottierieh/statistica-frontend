@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -8,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Users, Plus, Trash2, HelpCircle } from 'lucide-react';
+import { Sigma, Loader2, Users, Plus, Trash2 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -16,8 +15,6 @@ import { Checkbox } from '../ui/checkbox';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
 
 interface Round {
     name: string;
@@ -33,7 +30,7 @@ interface DelphiItemResult {
     cvr: number;
     consensus: number;
     convergence: number;
-    stability: number; // Represents CV
+    stability: number;
     positive_responses: number;
 }
 
@@ -143,115 +140,110 @@ export default function DelphiPage({ data, numericHeaders, onLoadExample }: Delp
     }
     
     return (
-        <TooltipProvider>
-            <div className="space-y-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Delphi Analysis Setup</CardTitle>
-                        <CardDescription>Configure the rounds and items for your Delphi study.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                                <Label>Likert Scale Maximum</Label>
-                                <Input type="number" value={scaleMax} onChange={e => setScaleMax(Number(e.target.value))} />
-                            </div>
-                            <div>
-                                <Label>CVR "Essential" Threshold</Label>
-                                <Input type="number" value={cvrThreshold} onChange={e => setCvrThreshold(Number(e.target.value))} />
-                            </div>
+        <div className="space-y-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Delphi Analysis Setup</CardTitle>
+                    <CardDescription>Configure the rounds and items for your Delphi study.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Likert Scale Maximum</Label>
+                            <Input type="number" value={scaleMax} onChange={e => setScaleMax(Number(e.target.value))} />
                         </div>
-                        {rounds.map((round, index) => (
-                            <Card key={index}>
-                                <CardHeader><CardTitle>Round {index + 1}</CardTitle></CardHeader>
-                                <CardContent>
-                                    <Label>Items for Round {index + 1}</Label>
-                                    <ScrollArea className="h-40 border rounded-md p-2">
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                            {numericHeaders.map(h => (
-                                                <div key={h} className="flex items-center space-x-2">
-                                                    <Checkbox id={`r${index}-${h}`} checked={round.items.includes(h)} onCheckedChange={c => handleItemSelectionChange(index, h, c as boolean)} />
-                                                    <Label htmlFor={`r${index}-${h}`}>{h}</Label>
-                                                </div>
+                        <div>
+                            <Label>CVR "Essential" Threshold</Label>
+                            <Input type="number" value={cvrThreshold} onChange={e => setCvrThreshold(Number(e.target.value))} />
+                        </div>
+                    </div>
+                    {rounds.map((round, index) => (
+                        <Card key={index}>
+                            <CardHeader><CardTitle>Round {index + 1}</CardTitle></CardHeader>
+                            <CardContent>
+                                <Label>Items for Round {index + 1}</Label>
+                                <ScrollArea className="h-40 border rounded-md p-2">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                        {numericHeaders.map(h => (
+                                            <div key={h} className="flex items-center space-x-2">
+                                                <Checkbox id={`r${index}-${h}`} checked={round.items.includes(h)} onCheckedChange={c => handleItemSelectionChange(index, h, c as boolean)} />
+                                                <Label htmlFor={`r${index}-${h}`}>{h}</Label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    ))}
+                    <Button variant="outline" onClick={handleAddRound}><Plus className="mr-2" /> Add Round</Button>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                    <Button onClick={handleAnalysis} disabled={isLoading}>
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Analyzing...</> : <><Sigma className="mr-2"/>Run Analysis</>}
+                    </Button>
+                </CardFooter>
+            </Card>
+
+            {isLoading && <Skeleton className="h-96 w-full" />}
+            
+            {analysisResult && (
+                <Card>
+                    <CardHeader><CardTitle>Analysis Results</CardTitle></CardHeader>
+                    <CardContent>
+                        <Tabs defaultValue={rounds[0].name}>
+                            <TabsList>
+                                {rounds.map(r => <TabsTrigger key={r.name} value={r.name}>{r.name}</TabsTrigger>)}
+                            </TabsList>
+                            {rounds.map(r => (
+                                <TabsContent key={r.name} value={r.name} className="mt-4">
+                                    <div className="mb-4">
+                                        <Badge>Cronbach's α: {analysisResult.results[r.name]?.cronbach_alpha?.toFixed(3) ?? 'N/A'}</Badge>
+                                    </div>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Item</TableHead>
+                                                <TableHead className="text-right">Mean</TableHead>
+                                                <TableHead className="text-right">SD</TableHead>
+                                                <TableHead className="text-right">Ne</TableHead>
+                                                <TableHead className="text-right">Stability (CV)</TableHead>
+                                                <TableHead className="text-right">Q1</TableHead>
+                                                <TableHead className="text-right">Median</TableHead>
+                                                <TableHead className="text-right">Q3</TableHead>
+                                                <TableHead className="text-right">Consensus</TableHead>
+                                                <TableHead className="text-right">Convergence</TableHead>
+                                                <TableHead className="text-right">CVR</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {Object.entries(analysisResult.results[r.name]?.items || {}).map(([item, stats]) => (
+                                                <TableRow key={item}>
+                                                    <TableCell>{item}</TableCell>
+                                                    <TableCell className="text-right font-mono">{stats.mean.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{stats.std.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{stats.positive_responses}</TableCell>
+                                                    <TableCell className="text-right"><Badge variant={stats.stability <= 0.5 ? 'default' : 'secondary'}>{stats.stability.toFixed(3)}</Badge></TableCell>
+                                                    <TableCell className="text-right font-mono">{stats.q1.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{stats.median.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{stats.q3.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right"><Badge variant={stats.consensus >= 0.75 ? 'default' : 'secondary'}>{stats.consensus.toFixed(3)}</Badge></TableCell>
+                                                    <TableCell className="text-right"><Badge variant={stats.convergence <= 1.0 ? 'default' : 'secondary'}>{stats.convergence.toFixed(3)}</Badge></TableCell>
+                                                    <TableCell className="text-right"><Badge variant={stats.cvr > 0 ? 'default' : 'secondary'}>{stats.cvr.toFixed(3)}</Badge></TableCell>
+                                                </TableRow>
                                             ))}
-                                        </div>
-                                    </ScrollArea>
-                                </CardContent>
-                            </Card>
-                        ))}
-                        <Button variant="outline" onClick={handleAddRound}><Plus className="mr-2" /> Add Round</Button>
+                                        </TableBody>
+                                    </Table>
+                                </TabsContent>
+                            ))}
+                        </Tabs>
                     </CardContent>
-                    <CardFooter className="flex justify-end">
-                        <Button onClick={handleAnalysis} disabled={isLoading}>
-                            {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Analyzing...</> : <><Sigma className="mr-2"/>Run Analysis</>}
-                        </Button>
+                     <CardFooter>
+                        <p className="text-xs text-muted-foreground">
+                            <strong>Criteria:</strong> Stability (CV) ≤ 0.5 | Consensus ≥ 0.75 | Convergence ≤ 1.0 | CVR &gt; 0
+                        </p>
                     </CardFooter>
                 </Card>
-
-                {isLoading && <Skeleton className="h-96 w-full" />}
-                
-                {analysisResult && (
-                    <Card>
-                        <CardHeader><CardTitle>Analysis Results</CardTitle></CardHeader>
-                        <CardContent>
-                            <Tabs defaultValue={rounds[0].name}>
-                                <TabsList>
-                                    {rounds.map(r => <TabsTrigger key={r.name} value={r.name}>{r.name}</TabsTrigger>)}
-                                </TabsList>
-                                {rounds.map(r => (
-                                    <TabsContent key={r.name} value={r.name} className="mt-4">
-                                        <div className="mb-4">
-                                            <Badge>Cronbach's α: {analysisResult.results[r.name]?.cronbach_alpha?.toFixed(3) ?? 'N/A'}</Badge>
-                                        </div>
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Item</TableHead>
-                                                    <TableHead className="text-right">Mean</TableHead>
-                                                    <TableHead className="text-right">SD</TableHead>
-                                                    <TableHead className="text-right">Ne</TableHead>
-                                                    <TableHead className="text-right">
-                                                        <Tooltip><TooltipTrigger>Stability (CV) <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Stability (Coefficient of Variation) ≤ 0.5</TooltipContent></Tooltip>
-                                                    </TableHead>
-                                                    <TableHead className="text-right">Q1</TableHead>
-                                                    <TableHead className="text-right">Median</TableHead>
-                                                    <TableHead className="text-right">Q3</TableHead>
-                                                    <TableHead className="text-right">
-                                                        <Tooltip><TooltipTrigger>Consensus <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Consensus ≥ 0.75</TooltipContent></Tooltip>
-                                                    </TableHead>
-                                                    <TableHead className="text-right">
-                                                        <Tooltip><TooltipTrigger>Convergence <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Convergence (Median - Q1) ≤ 1.0</TooltipContent></Tooltip>
-                                                    </TableHead>
-                                                    <TableHead className="text-right">
-                                                        <Tooltip><TooltipTrigger>CVR <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Content Validity Ratio > 0</TooltipContent></Tooltip>
-                                                    </TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {Object.entries(analysisResult.results[r.name]?.items || {}).map(([item, stats]) => (
-                                                    <TableRow key={item}>
-                                                        <TableCell>{item}</TableCell>
-                                                        <TableCell className="text-right font-mono">{stats.mean.toFixed(2)}</TableCell>
-                                                        <TableCell className="text-right font-mono">{stats.std.toFixed(2)}</TableCell>
-                                                        <TableCell className="text-right font-mono">{stats.positive_responses}</TableCell>
-                                                        <TableCell className="text-right"><Badge variant={stats.stability <= 0.5 ? 'default' : 'secondary'}>{stats.stability.toFixed(3)}</Badge></TableCell>
-                                                        <TableCell className="text-right font-mono">{stats.q1.toFixed(2)}</TableCell>
-                                                        <TableCell className="text-right font-mono">{stats.median.toFixed(2)}</TableCell>
-                                                        <TableCell className="text-right font-mono">{stats.q3.toFixed(2)}</TableCell>
-                                                        <TableCell className="text-right"><Badge variant={stats.consensus >= 0.75 ? 'default' : 'secondary'}>{stats.consensus.toFixed(3)}</Badge></TableCell>
-                                                        <TableCell className="text-right"><Badge variant={stats.convergence <= 1.0 ? 'default' : 'secondary'}>{stats.convergence.toFixed(3)}</Badge></TableCell>
-                                                        <TableCell className="text-right"><Badge variant={stats.cvr > 0 ? 'default' : 'secondary'}>{stats.cvr.toFixed(3)}</Badge></TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </TabsContent>
-                                ))}
-                            </Tabs>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
-        </TooltipProvider>
+            )}
+        </div>
     );
 }
