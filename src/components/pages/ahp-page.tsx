@@ -115,6 +115,8 @@ export default function AhpPage() {
 
     const renderHierarchyComparisons = (levels: HierarchyLevel[], parentPath = 'goal') => {
         let comparisons: JSX.Element[] = [];
+        if (levels.length === 0) return comparisons;
+    
         const currentLevel = levels[0];
         if (!currentLevel || currentLevel.nodes.length < 2) return comparisons;
 
