@@ -130,9 +130,10 @@ import AhpPage from './pages/ahp-page';
 import DidPage from './pages/did-page';
 import DelphiPage from './pages/delphi-page';
 import SurveyApp from './survey-app';
+import VanWestendorpPage from './pages/van-westendorp-page';
 
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -199,6 +200,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     did: DidPage,
     delphi: DelphiPage,
     survey: SurveyApp,
+    'van-westendorp': VanWestendorpPage,
 };
 
 const analysisMenu = [
@@ -338,6 +340,7 @@ const analysisMenu = [
       { id: 'dea', label: 'Data Envelopment Analysis (DEA)' },
       { id: 'did', label: 'Difference-in-Differences' },
       { id: 'delphi', label: 'Delphi Method' },
+      { id: 'van-westendorp', label: 'Van Westendorp PSM' },
     ]
   },
    {
@@ -734,4 +737,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
