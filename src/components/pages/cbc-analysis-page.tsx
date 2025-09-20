@@ -8,26 +8,49 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Network } from 'lucide-react';
+import { Sigma, Loader2, Network, PieChart as PieIcon, BarChart as BarIcon, SlidersHorizontal, Activity, LineChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ScatterChart, Scatter } from 'recharts';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import dynamic from 'next/dynamic';
+
+const Plot = dynamic(() => import('react-plotly.js'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-[300px]" />,
+});
+
 
 interface CbcResults {
-    part_worths: { [key: string]: { [key: string]: number } };
-    attribute_importance: { [key: string]: number };
+    part_worths: { attribute: string, level: string, value: number }[];
+    attribute_importance: { attribute: string, importance: number }[];
     model_fit: {
         llf: number;
         llnull: number;
         pseudo_r2: number;
     };
+    regression: {
+        rSquared: number;
+        adjustedRSquared: number;
+        rmse: number;
+        mae: number;
+        predictions: number[];
+        residuals: number[];
+        intercept: number;
+        coefficients: {[key: string]: number};
+    };
 }
 
 interface FullAnalysisResponse {
     results: CbcResults;
+}
+
+interface Scenario {
+    name: string;
+    [key: string]: string;
 }
 
 interface CbcPageProps {
@@ -45,8 +68,29 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    
+    // Advanced features state
+    const [scenarios, setScenarios] = useState<Scenario[]>([
+        { name: 'Scenario 1' }, { name: 'Scenario 2' }, { name: 'Scenario 3' }
+    ]);
+    const [simulationResult, setSimulationResult] = useState<any>(null);
+    const [sensitivityAttribute, setSensitivityAttribute] = useState<string | undefined>();
+    const [sensitivityResult, setSensitivityResult] = useState<any>(null);
 
     const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 4, [data, allHeaders]);
+    
+    const allAttributes = useMemo(() => {
+        if (!data || data.length === 0) return {};
+        const attributes: any = {};
+        allHeaders.forEach(header => {
+            attributes[header] = {
+                name: header,
+                levels: Array.from(new Set(data.map(row => row[header]))).sort(),
+            };
+        });
+        return attributes;
+    }, [data, allHeaders]);
+
 
     useEffect(() => {
         setRespondentIdCol(allHeaders.find(h => h.toLowerCase().includes('resp')));
@@ -56,6 +100,23 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         setAttributeCols(initialAttributes);
         setAnalysisResult(null);
     }, [data, allHeaders]);
+
+    useEffect(() => {
+        if (analysisResult && attributeCols.length > 0) {
+            setSensitivityAttribute(attributeCols[0]);
+
+            const initialScenarios = [
+                { name: 'Scenario 1' }, { name: 'Scenario 2' }, { name: 'Scenario 3' }
+            ].map(sc => {
+                const newSc: Scenario = { ...sc };
+                attributeCols.forEach(attrName => {
+                     newSc[attrName] = allAttributes[attrName].levels[0];
+                });
+                return newSc;
+            });
+            setScenarios(initialScenarios);
+        }
+    }, [analysisResult, attributeCols, allAttributes]);
 
     const handleAttributeChange = (header: string, checked: boolean) => {
         setAttributeCols(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
@@ -106,6 +167,58 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         return allHeaders.filter(h => ![respondentIdCol, altIdCol, choiceCol].includes(h));
     }, [allHeaders, respondentIdCol, altIdCol, choiceCol]);
 
+    const calculateUtility = useCallback((scenario: Scenario) => {
+        if (!analysisResult) return 0;
+        let utility = analysisResult.results.regression.intercept || 0;
+        
+        Object.entries(scenario).forEach(([attrName, value]) => {
+            if (attrName === 'name' || !attributeCols.includes(attrName)) return;
+
+            const worth = analysisResult.results.part_worths.find(pw => pw.attribute === attrName && String(pw.level) === String(value));
+            if (worth) {
+                utility += worth.value;
+            }
+        });
+        return utility;
+    }, [analysisResult, attributeCols]);
+    
+    const runSimulation = () => {
+        const utilities = scenarios.map(scenario => calculateUtility(scenario));
+        const expUtilities = utilities.map(u => Math.exp(u));
+        const totalExpUtility = expUtilities.reduce((sum, exp) => sum + exp, 0);
+        const marketShares = expUtilities.map(exp => (exp / totalExpUtility * 100));
+        
+        setSimulationResult(scenarios.map((scenario, index) => ({
+            name: scenario.name,
+            utility: utilities[index],
+            marketShare: marketShares[index],
+        })));
+    };
+    
+    const handleScenarioChange = (scenarioIndex: number, attrName: string, value: string) => {
+        const newScenarios = [...scenarios];
+        newScenarios[scenarioIndex][attrName] = value;
+        setScenarios(newScenarios);
+    };
+
+    const runSensitivityAnalysis = () => {
+        if (!sensitivityAttribute) return;
+        
+        const baseScenario: Scenario = { name: 'base' };
+        attributeCols.forEach(attrName => {
+            if (attrName !== sensitivityAttribute) {
+                baseScenario[attrName] = allAttributes[attrName].levels[0];
+            }
+        });
+
+        const results = allAttributes[sensitivityAttribute].levels.map((level: string) => {
+            const scenario = { ...baseScenario, [sensitivityAttribute]: level };
+            const utility = calculateUtility(scenario);
+            return { level, utility };
+        });
+        setSensitivityResult(results);
+    };
+
     if (!canRun) {
         const cbcExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('cbc'));
         return (
@@ -132,7 +245,26 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
 
     const results = analysisResult?.results;
 
-    const importanceData = results ? Object.entries(results.attribute_importance).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value) : [];
+    const importanceData = results ? results.attribute_importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [];
+
+    const partWorthsData = results ? results.part_worths : [];
+    
+    const diagnosticsData = useMemo(() => {
+        if (!results?.regression?.predictions || !results?.regression?.residuals) return [];
+        return results.regression.predictions.map((p, i) => ({
+            prediction: p,
+            residual: results.regression.residuals[i]
+        }));
+    }, [results]);
+
+    const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"];
+    const importanceChartConfig = useMemo(() => {
+      if (!analysisResult) return {};
+      return importanceData.reduce((acc, item, index) => {
+        acc[item.name] = { label: item.name, color: COLORS[index % COLORS.length] };
+        return acc;
+      }, {} as any);
+    }, [analysisResult, importanceData]);
 
     return (
         <div className="space-y-4">
@@ -141,7 +273,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                     <CardTitle className="font-headline">CBC Analysis Setup</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-4 gap-4">
+                    <div className="grid md:grid-cols-3 gap-4">
                         <div><Label>Respondent ID</Label><Select value={respondentIdCol} onValueChange={setRespondentIdCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         <div><Label>Alternative ID</Label><Select value={altIdCol} onValueChange={setAltIdCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         <div><Label>Choice Indicator</Label><Select value={choiceCol} onValueChange={setChoiceCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
@@ -166,59 +298,162 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
             </Card>
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
-
+            
             {results && (
-                <div className="grid lg:grid-cols-2 gap-4">
-                    <Card>
-                        <CardHeader><CardTitle>Attribute Importance</CardTitle></CardHeader>
-                        <CardContent>
-                             <ChartContainer config={{}} className="w-full h-[300px]">
-                                <ResponsiveContainer>
-                                    <BarChart data={importanceData} layout="vertical">
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis type="number" />
-                                        <YAxis type="category" dataKey="name" width={80}/>
-                                        <Tooltip content={<ChartTooltipContent />}/>
-                                        <Bar dataKey="value" name="Importance" fill="hsl(var(--primary))" />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader><CardTitle>Model Fit</CardTitle></CardHeader>
-                        <CardContent className="grid grid-cols-2 gap-4 text-center">
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Log-Likelihood</p><p className="text-2xl font-bold">{results.model_fit.llf.toFixed(2)}</p></div>
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Pseudo R²</p><p className="text-2xl font-bold">{results.model_fit.pseudo_r2.toFixed(4)}</p></div>
-                        </CardContent>
-                    </Card>
-                     <Card className="lg:col-span-2">
-                        <CardHeader><CardTitle>Part-Worth Utilities</CardTitle></CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Attribute</TableHead>
-                                        <TableHead>Level</TableHead>
-                                        <TableHead className="text-right">Part-Worth</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(results.part_worths).flatMap(([attribute, levels]) => 
-                                        Object.entries(levels).map(([level, value], index) => (
-                                            <TableRow key={`${attribute}-${level}`}>
-                                                {index === 0 && <TableCell rowSpan={Object.keys(levels).length} className="font-semibold align-top">{attribute}</TableCell>}
-                                                <TableCell>{level}</TableCell>
-                                                <TableCell className="font-mono text-right">{value.toFixed(4)}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                </div>
+                 <Tabs defaultValue="importance" className="w-full">
+                    <TabsList className="grid w-full grid-cols-5">
+                        <TabsTrigger value="importance"><PieIcon className="mr-2"/>Importance</TabsTrigger>
+                        <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
+                        <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
+                        <TabsTrigger value="sensitivity"><LineChart className="mr-2"/>Sensitivity</TabsTrigger>
+                        <TabsTrigger value="diagnostics"><SlidersHorizontal className="mr-2"/>Diagnostics</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="importance" className="mt-4">
+                        <Card>
+                            <CardHeader><CardTitle className='flex items-center gap-2'><PieIcon/>Relative Importance of Attributes</CardTitle></CardHeader>
+                            <CardContent>
+                                <ChartContainer config={importanceChartConfig} className="w-full h-[300px]">
+                                    <ResponsiveContainer>
+                                        <PieChart>
+                                            <Pie data={importanceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={p => `${p.name} (${p.value.toFixed(1)}%)`}>
+                                                {importanceData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                            </Pie>
+                                            <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="partworths" className="mt-4">
+                        <Card>
+                            <CardHeader><CardTitle className='flex items-center gap-2'><BarIcon/>Part-Worth Utilities</CardTitle></CardHeader>
+                            <CardContent>
+                               <div className="grid md:grid-cols-2 gap-4">
+                                {attributeCols.map(attr => (
+                                    <div key={attr}>
+                                        <h3 className="font-semibold mb-2">{attr}</h3>
+                                         <ChartContainer config={{value: {label: 'Part-Worth'}}} className="w-full h-[200px]">
+                                            <ResponsiveContainer>
+                                                <BarChart data={partWorthsData.filter(p => p.attribute === attr)} layout="vertical">
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis type="number" />
+                                                    <YAxis type="category" dataKey="level" width={80} />
+                                                    <Tooltip content={<ChartTooltipContent />} />
+                                                    <Bar dataKey="value" name="Part-Worth" fill="hsl(var(--primary))" />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </ChartContainer>
+                                    </div>
+                                ))}
+                               </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                     <TabsContent value="simulation" className="mt-4">
+                        <Card>
+                            <CardHeader><CardTitle>Market Share Simulation</CardTitle><CardDescription>Build product scenarios to predict market preference.</CardDescription></CardHeader>
+                            <CardContent>
+                                <div className="grid md:grid-cols-3 gap-4 mb-4">
+                                    {scenarios.map((scenario, index) => (
+                                        <Card key={index}>
+                                            <CardHeader><CardTitle>{scenario.name}</CardTitle></CardHeader>
+                                            <CardContent className="space-y-2">
+                                                {attributeCols.map((attrName) => (
+                                                    <div key={attrName}>
+                                                        <Label>{attrName}</Label>
+                                                        <Select value={scenario[attrName]} onValueChange={(v) => handleScenarioChange(index, attrName, v)}>
+                                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                                            <SelectContent>{allAttributes[attrName].levels.map((l:any) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                ))}
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                                <Button onClick={runSimulation}>Run Simulation</Button>
+                                {simulationResult && (
+                                    <div className="mt-4">
+                                        <ChartContainer config={{marketShare: {label: 'Market Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
+                                            <ResponsiveContainer>
+                                                <BarChart data={simulationResult}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="name" />
+                                                    <YAxis unit="%"/>
+                                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
+                                                    <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </ChartContainer>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="sensitivity" className="mt-4">
+                        <Card>
+                            <CardHeader><CardTitle>Sensitivity Analysis</CardTitle><CardDescription>See how preference changes when one attribute level is varied.</CardDescription></CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-4 mb-4">
+                                    <Label>Attribute to Analyze</Label>
+                                    <Select value={sensitivityAttribute} onValueChange={setSensitivityAttribute}>
+                                        <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                                        <SelectContent>{attributeCols.map((attr) => <SelectItem key={attr} value={attr}>{attr}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <Button onClick={runSensitivityAnalysis}>Analyze</Button>
+                                </div>
+                                {sensitivityResult && (
+                                    <div className="h-[300px] w-full">
+                                         <Plot
+                                            data={[{
+                                                x: sensitivityResult.map((d: any) => d.level),
+                                                y: sensitivityResult.map((d: any) => d.utility),
+                                                type: 'scatter',
+                                                mode: 'lines+markers',
+                                                marker: {color: 'hsl(var(--primary))'},
+                                            }]}
+                                            layout={{ title: `Utility vs. ${sensitivityAttribute}`, xaxis: { title: sensitivityAttribute }, yaxis: { title: 'Calculated Utility'}, autosize: true }}
+                                            useResizeHandler={true} className="w-full h-full"
+                                        />
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="diagnostics" className="mt-4">
+                        <Card>
+                            <CardHeader><CardTitle>Model Diagnostics</CardTitle><CardDescription>Check the quality of the underlying regression model.</CardDescription></CardHeader>
+                            <CardContent>
+                                <h3 className="font-bold text-lg mb-2">Model Performance</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-4">
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">R²</p><p className="text-2xl font-bold">{results.regression.rSquared.toFixed(3)}</p></div>
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Adjusted R²</p><p className="text-2xl font-bold">{results.regression.adjustedRSquared.toFixed(3)}</p></div>
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{results.regression.rmse.toFixed(3)}</p></div>
+                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{results.regression.mae.toFixed(3)}</p></div>
+                                </div>
+                                <Card>
+                                    <CardHeader><CardTitle>Residuals vs. Fitted</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <ChartContainer config={{}} className="w-full h-[300px]">
+                                            <ResponsiveContainer>
+                                                <ScatterChart>
+                                                    <CartesianGrid />
+                                                    <XAxis type="number" dataKey="prediction" name="Fitted Value" />
+                                                    <YAxis type="number" dataKey="residual" name="Residual" />
+                                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
+                                                    {diagnosticsData.length > 0 && <Scatter data={diagnosticsData} fill="hsl(var(--primary))" />}
+                                                </ScatterChart>
+                                            </ResponsiveContainer>
+                                        </ChartContainer>
+                                    </CardContent>
+                                 </Card>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
             )}
         </div>
     );
 }
+
