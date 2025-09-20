@@ -68,7 +68,7 @@ def main():
             # Extract coefficients for other levels
             for level in levels[1:]:
                 # Construct the coefficient name as created by statsmodels C() function
-                col_name = f'C(Q("{attr_clean}"))[T.{level}]'
+                col_name = f'C(Q("{attr_clean}"))[T.{str(level)}]'
                 if col_name in params.index:
                     part_worths[original_attr][str(level)] = params.loc[col_name][0]
                 else:
@@ -81,12 +81,18 @@ def main():
             ranges[attr] = max(worths) - min(worths) if worths else 0
         
         total_range = sum(ranges.values())
-        importance = {attr: (rng / total_range) * 100 for attr, rng in ranges.items()} if total_range > 0 else {}
+        importance_list = []
+        if total_range > 0:
+            for attr, rng in ranges.items():
+                importance_list.append({
+                    'attribute': attr,
+                    'importance': (rng / total_range) * 100
+                })
         
         response = {
             'results': {
                 'part_worths': part_worths,
-                'attribute_importance': importance,
+                'attribute_importance': importance_list,
                 'model_fit': {
                     'llf': model.llf,
                     'llnull': model.llnull,
@@ -103,5 +109,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
