@@ -13,6 +13,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, CartesianGrid, ScatterChart, Scatter, ReferenceLine } from 'recharts';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
+import { jStat } from 'jstat';
 
 interface SimulationResult {
     population_distribution: number[];
@@ -29,8 +30,8 @@ interface SimulationResult {
         p_value: number;
     };
     qq_plot_data: {
-        osm: [number, number][];
-        osr: [number, number][];
+        osm: number[];
+        osr: number[];
     };
 }
 
@@ -80,12 +81,26 @@ export default function CentralLimitTheoremPage() {
 
     const histogramData = (data: number[]) => {
         if (!data || data.length === 0) return [];
-        const min = Math.min(...data);
-        const max = Math.max(...data);
-        const bins = np.histogram_bins(data, bins='auto');
-        const hist = np.histogram(data, bins);
-        return Array.from(hist[0]).map((count, i) => ({
-            range: `${hist[1][i].toFixed(2)}-${hist[1][i+1].toFixed(2)}`,
+        const n = data.length;
+        const iqr = jStat.percentile(data, 0.75) - jStat.percentile(data, 0.25);
+        let binWidth;
+        if (iqr > 0) {
+            binWidth = 2 * iqr * Math.pow(n, -1/3);
+        } else {
+            const range = Math.max(...data) - Math.min(...data);
+            binWidth = range > 0 ? range / 10 : 1;
+        }
+
+        const numBins = binWidth > 0 ? Math.min(50, Math.ceil((Math.max(...data) - Math.min(...data)) / binWidth)) : 10;
+        
+        if (numBins <= 0 || !isFinite(numBins)) {
+            return [];
+        }
+
+        const [counts, bins] = jStat.histogram(data, numBins);
+
+        return counts.map((count, i) => ({
+            range: `${bins[i].toFixed(2)}-${(bins[i] + (bins[1]-bins[0])).toFixed(2)}`,
             count
         }));
     }
@@ -94,7 +109,7 @@ export default function CentralLimitTheoremPage() {
     const sampleMeansHistData = useMemo(() => histogramData(analysisResult?.sample_means_distribution || []), [analysisResult]);
     
     const qqData = useMemo(() => {
-        if (!analysisResult?.qq_plot_data) return [];
+        if (!analysisResult?.qq_plot_data?.osm) return [];
         return analysisResult.qq_plot_data.osm.map((val, i) => ({ x: val, y: analysisResult.qq_plot_data.osr[i] }));
     }, [analysisResult]);
     
@@ -191,7 +206,7 @@ export default function CentralLimitTheoremPage() {
                                             <YAxis type="number" dataKey="y" name="Sample Quantiles" />
                                             <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
                                             <Scatter name="Quantiles" data={qqData} fill="hsl(var(--primary))" />
-                                            <ReferenceLine x={0} y={0} ifOverflow="extendDomain" stroke="hsl(var(--destructive))" strokeDasharray="3 3" />
+                                            {qqData.length > 0 && <ReferenceLine ifOverflow="extendDomain" x={jStat.mean(qqData.map(p => p.x))} y={jStat.mean(qqData.map(p => p.y))} stroke="hsl(var(--destructive))" strokeDasharray="3 3" />}
                                         </ScatterChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
@@ -202,31 +217,4 @@ export default function CentralLimitTheoremPage() {
             )}
         </div>
     );
-}
-
-// Dummy np for type compatibility
-const np = {
-    histogram_bins: (data: number[], bins: string) => {
-        const n = data.length;
-        const iqr = stats.quantile(data, 0.75) - stats.quantile(data, 0.25);
-        if (iqr === 0) return 'auto';
-        const h = 2 * iqr * Math.pow(n, -1/3);
-        return Math.min(50, Math.ceil((Math.max(...data) - Math.min(...data)) / h));
-    },
-    histogram: (data: number[], bins: any) => {
-        const min = Math.min(...data);
-        const max = Math.max(...data);
-        const binCount = typeof bins === 'number' ? bins : 10;
-        const binWidth = (max - min) / binCount;
-        const counts = new Array(binCount).fill(0);
-        const binEdges = Array.from({length: binCount + 1}, (_, i) => min + i * binWidth);
-        data.forEach(val => {
-            let binIndex = Math.floor((val - min) / binWidth);
-            if (val === max) binIndex = binCount - 1; // Handle edge case
-            if (binIndex >= 0 && binIndex < binCount) {
-                counts[binIndex]++;
-            }
-        });
-        return [counts, binEdges];
-    }
 }
