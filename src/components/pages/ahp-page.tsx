@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,13 @@ interface AnalysisBlock {
 const ComparisonMatrix = ({ items, onMatrixChange }: { items: string[], onMatrixChange: (matrix: number[][]) => void }) => {
     const [matrix, setMatrix] = useState<number[][]>(() => Array(items.length).fill(0).map(() => Array(items.length).fill(1)));
 
+    useEffect(() => {
+        // Initialize matrix when items change
+        const newMatrix = Array(items.length).fill(0).map(() => Array(items.length).fill(1));
+        setMatrix(newMatrix);
+        onMatrixChange(newMatrix);
+    }, [items.join(',')]); // Depend on a string representation of items
+
     const handleSliderChange = (value: number, i: number, j: number) => {
         const newMatrix = produce(matrix, draft => {
             if (value > 0) { // Favors item1
@@ -63,7 +70,7 @@ const ComparisonMatrix = ({ items, onMatrixChange }: { items: string[], onMatrix
             {items.map((item1, i) =>
                 items.map((item2, j) => {
                     if (i >= j) return null;
-                    const sliderValue = getSliderValue(matrix[i][j]);
+                    const sliderValue = getSliderValue(matrix[i]?.[j] ?? 1);
                     return (
                         <div key={`${i}-${j}`} className="mb-4">
                             <Label className="flex justify-between text-sm"><span>{item1}</span><span>{item2}</span></Label>
@@ -105,51 +112,53 @@ export default function AhpPage() {
     const updateMatrix = (key: string, matrix: number[][]) => {
         setMatrices((prev: any) => ({ ...prev, [key]: matrix }));
     };
-    
+
     const renderHierarchyComparisons = (levels: HierarchyLevel[], parentPath = 'goal') => {
         let comparisons: JSX.Element[] = [];
         const currentLevel = levels[0];
         if (!currentLevel || currentLevel.nodes.length < 2) return comparisons;
 
-        comparisons.push(
-            <Card key={parentPath}>
-                <CardHeader><CardTitle>{parentPath === 'goal' ? `Compare Criteria for '${goal}'` : `Compare Sub-criteria for '${parentPath.split('.').pop()}'`}</CardTitle></CardHeader>
-                <CardContent>
-                    <ComparisonMatrix items={currentLevel.nodes.map(n => n.name)} onMatrixChange={(m) => updateMatrix(parentPath, m)} />
-                </CardContent>
-            </Card>
-        );
-
         currentLevel.nodes.forEach(node => {
             if (node.children && node.children.nodes.length > 0) {
-                comparisons = comparisons.concat(renderHierarchyComparisons([node.children], `${parentPath}.${node.name}`));
+                const newPath = `${parentPath}.${node.name}`;
+                 comparisons.push(
+                    <Card key={newPath}>
+                        <CardHeader><CardTitle>{`Compare Sub-criteria for '${node.name}'`}</CardTitle></CardHeader>
+                        <CardContent>
+                            <ComparisonMatrix items={node.children.nodes.map(n => n.name)} onMatrixChange={(m) => updateMatrix(newPath, m)} />
+                        </CardContent>
+                    </Card>
+                );
+                comparisons = comparisons.concat(renderHierarchyComparisons([node.children], newPath));
             }
         });
         return comparisons;
     };
     
+     const findLeafNodes = (level: HierarchyLevel, path: string, leafs: {path: string, name: string}[]) => {
+        level.nodes.forEach(node => {
+            const currentPath = `${path}.${node.name}`;
+            if (!node.children || node.children.nodes.length === 0) {
+                leafs.push({path: currentPath, name: node.name});
+            } else {
+                findLeafNodes(node.children, currentPath, leafs);
+            }
+        });
+    };
+
     const renderAlternativeComparisons = () => {
         if (!hasAlternatives || hierarchy.length === 0) return [];
-        let comparisons: JSX.Element[] = [];
         const leafNodes: {path: string, name: string}[] = [];
-
-        function findLeafs(level: HierarchyLevel, path: string) {
-            level.nodes.forEach(node => {
-                const currentPath = `${path}.${node.name}`;
-                if (!node.children || node.children.nodes.length === 0) {
-                    leafNodes.push({path: currentPath, name: node.name});
-                } else {
-                    findLeafs(node.children, currentPath);
-                }
-            });
-        }
-        findLeafs(hierarchy[0], 'goal');
+        findLeafNodes(hierarchy[0], 'goal', leafNodes);
         
-        leafNodes.forEach(leaf => {
-            comparisons.push(<Card key={leaf.path}><CardHeader><CardTitle>{`Compare Alternatives for '${leaf.name}'`}</CardTitle></CardHeader><CardContent><ComparisonMatrix items={alternatives} onMatrixChange={(m) => updateMatrix(leaf.path, m)} /></CardContent></Card>);
-        });
-
-        return comparisons;
+        return leafNodes.map(leaf => (
+            <Card key={leaf.path}>
+                <CardHeader><CardTitle>{`Compare Alternatives for '${leaf.name}'`}</CardTitle></CardHeader>
+                <CardContent>
+                    <ComparisonMatrix items={alternatives} onMatrixChange={(m) => updateMatrix(leaf.path, m)} />
+                </CardContent>
+            </Card>
+        ));
     };
 
 
@@ -199,6 +208,16 @@ export default function AhpPage() {
 
                         <div className="space-y-4 mt-6">
                             <h3 className="text-lg font-semibold">Pairwise Comparisons</h3>
+                             {hierarchy.length > 0 && hierarchy[0].nodes.length > 1 && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Compare Criteria for '{goal}'</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <ComparisonMatrix items={hierarchy[0].nodes.map(n => n.name)} onMatrixChange={(m) => updateMatrix('goal', m)} />
+                                    </CardContent>
+                                </Card>
+                            )}
                             {renderHierarchyComparisons(hierarchy)}
                             {renderAlternativeComparisons()}
                         </div>
@@ -247,7 +266,10 @@ export default function AhpPage() {
                                             <TableCell className={`font-mono ${analysis.is_consistent ? '' : 'text-destructive'}`}>{analysis.consistency_ratio.toFixed(4)}</TableCell>
                                             <TableCell>
                                                 <ul>
-                                                    {analysis.priority_vector.map((weight, i) => <li key={i}>{key === 'goal' ? hierarchy[0].nodes[i].name : '...'} : {weight.toFixed(3)}</li>)}
+                                                    {analysis.priority_vector.map((weight, i) => {
+                                                        const nodeName = key === 'goal' ? hierarchy[0].nodes[i]?.name : key.split('.').pop(); // Simplified logic
+                                                        return <li key={i}>{nodeName} : {weight.toFixed(3)}</li>
+                                                    })}
                                                 </ul>
                                             </TableCell>
                                         </TableRow>
