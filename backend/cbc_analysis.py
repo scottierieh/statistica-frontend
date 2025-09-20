@@ -70,9 +70,8 @@ def main():
                 # Construct the coefficient name as created by statsmodels C() function
                 col_name = f'C(Q("{attr_clean}"))[T.{level}]'
                 if col_name in params.index:
-                    part_worths[original_attr][str(level)] = params[col_name]
+                    part_worths[original_attr][str(level)] = params.loc[col_name][0]
                 else:
-                    # Handle potential mismatches or errors
                     part_worths[original_attr][str(level)] = 0.0
 
         # Calculate attribute importance
@@ -104,4 +103,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
