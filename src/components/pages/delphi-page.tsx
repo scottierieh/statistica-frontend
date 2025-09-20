@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Users, Plus, Trash2 } from 'lucide-react';
+import { Sigma, Loader2, Users, Plus, Trash2, Bot, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -15,6 +15,9 @@ import { Checkbox } from '../ui/checkbox';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { HelpCircle } from 'lucide-react';
 
 interface Round {
     name: string;
@@ -30,19 +33,21 @@ interface DelphiItemResult {
     cvr: number;
     consensus: number;
     convergence: number;
+    cv: number;
     stability: number;
     positive_responses: number;
 }
 
 interface DelphiRoundResult {
-    [itemName: string]: DelphiItemResult;
+    items: {
+        [itemName: string]: DelphiItemResult;
+    };
+    cronbach_alpha: number;
+    interpretation: string;
 }
 
 interface DelphiResults {
-    [roundName: string]: {
-        items: DelphiRoundResult;
-        cronbach_alpha: number;
-    };
+    [roundName: string]: DelphiRoundResult;
 }
 
 
@@ -196,20 +201,25 @@ export default function DelphiPage({ data, numericHeaders, onLoadExample }: Delp
                             </TabsList>
                             {rounds.map(r => (
                                 <TabsContent key={r.name} value={r.name} className="mt-4">
+                                    {analysisResult.results[r.name]?.interpretation && (
+                                        <Alert className="mb-4">
+                                            <Bot className="h-4 w-4" />
+                                            <AlertTitle>AI Interpretation</AlertTitle>
+                                            <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: analysisResult.results[r.name].interpretation.replace(/\n/g, '<br />') }} />
+                                        </Alert>
+                                    )}
                                     <div className="mb-4">
                                         <Badge>Cronbach's α: {analysisResult.results[r.name]?.cronbach_alpha?.toFixed(3) ?? 'N/A'}</Badge>
                                     </div>
                                     <Table>
-                                        <TableHeader>
+                                         <TableHeader>
                                             <TableRow>
                                                 <TableHead>Item</TableHead>
                                                 <TableHead className="text-right">Mean</TableHead>
                                                 <TableHead className="text-right">SD</TableHead>
                                                 <TableHead className="text-right">Ne</TableHead>
-                                                <TableHead className="text-right">Stability (CV)</TableHead>
-                                                <TableHead className="text-right">Q1</TableHead>
+                                                <TableHead className="text-right">CV (Stability)</TableHead>
                                                 <TableHead className="text-right">Median</TableHead>
-                                                <TableHead className="text-right">Q3</TableHead>
                                                 <TableHead className="text-right">Consensus</TableHead>
                                                 <TableHead className="text-right">Convergence</TableHead>
                                                 <TableHead className="text-right">CVR</TableHead>
@@ -223,27 +233,26 @@ export default function DelphiPage({ data, numericHeaders, onLoadExample }: Delp
                                                     <TableCell className="text-right font-mono">{stats.std.toFixed(2)}</TableCell>
                                                     <TableCell className="text-right font-mono">{stats.positive_responses}</TableCell>
                                                     <TableCell className="text-right"><Badge variant={stats.stability <= 0.5 ? 'default' : 'secondary'}>{stats.stability.toFixed(3)}</Badge></TableCell>
-                                                    <TableCell className="text-right font-mono">{stats.q1.toFixed(2)}</TableCell>
                                                     <TableCell className="text-right font-mono">{stats.median.toFixed(2)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{stats.q3.toFixed(2)}</TableCell>
                                                     <TableCell className="text-right"><Badge variant={stats.consensus >= 0.75 ? 'default' : 'secondary'}>{stats.consensus.toFixed(3)}</Badge></TableCell>
-                                                    <TableCell className="text-right"><Badge variant={stats.convergence <= 1.0 ? 'default' : 'secondary'}>{stats.convergence.toFixed(3)}</Badge></TableCell>
+                                                    <TableCell className="text-right"><Badge variant={stats.convergence <= 0.5 ? 'default' : 'secondary'}>{stats.convergence.toFixed(3)}</Badge></TableCell>
                                                     <TableCell className="text-right"><Badge variant={stats.cvr > 0 ? 'default' : 'secondary'}>{stats.cvr.toFixed(3)}</Badge></TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
+                                    <CardFooter className="mt-4">
+                                    <p className="text-xs text-muted-foreground">
+                                        <strong>Criteria:</strong> Stability (CV) ≤ 0.5 | Consensus ≥ 0.75 | Convergence ≤ 0.5 | CVR &gt; 0
+                                    </p>
+                                </CardFooter>
                                 </TabsContent>
                             ))}
                         </Tabs>
                     </CardContent>
-                     <CardFooter>
-                        <p className="text-xs text-muted-foreground">
-                            <strong>Criteria:</strong> Stability (CV) ≤ 0.5 | Consensus ≥ 0.75 | Convergence ≤ 1.0 | CVR &gt; 0
-                        </p>
-                    </CardFooter>
                 </Card>
             )}
         </div>
     );
 }
+

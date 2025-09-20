@@ -49,6 +49,46 @@ def calculate_cv(series):
         return np.inf
     return std / mean
 
+def _generate_interpretation(round_results: dict):
+    interpretation = ""
+    # Cronbach's Alpha Interpretation
+    alpha = round_results.get('cronbach_alpha')
+    if alpha is not None:
+        alpha_level = "매우 높음" if alpha >= 0.9 else "높음" if alpha >= 0.8 else "비교적 높음" if alpha >= 0.7 else "보통" if alpha >= 0.6 else "낮음"
+        interpretation += f"조사의 신뢰도를 나타내는 Cronbach's Alpha 계수는 {alpha:.3f}으로, '{alpha_level}' 수준의 신뢰도를 보입니다.\n\n"
+
+    # Item-level interpretation
+    valid_items = []
+    needs_review_items = []
+    
+    for item, stats in round_results.get('items', {}).items():
+        is_valid = True
+        reasons = []
+        if stats.get('cvr', -1) < 0: # Assuming 0 is a minimum CVR, Lawshe's table is more complex.
+            is_valid = False
+            reasons.append("내용타당도(CVR)가 낮음")
+        if stats.get('consensus', 0) < 0.75:
+            is_valid = False
+            reasons.append("합의도가 낮음")
+        if stats.get('convergence', 1) > 1.0:
+            is_valid = False
+            reasons.append("수렴도가 낮음")
+        if stats.get('stability', 1) > 0.5:
+            is_valid = False
+            reasons.append("안정도가 낮음")
+            
+        if is_valid:
+            valid_items.append(item)
+        else:
+            needs_review_items.append(f"{item} ({', '.join(reasons)})")
+
+    if valid_items:
+        interpretation += f"**타당한 항목:** {len(valid_items)}개의 항목({', '.join(valid_items)})은 내용타당도, 합의도, 수렴도, 안정도 기준을 충족하여 타당성이 확보된 것으로 보입니다.\n"
+    if needs_review_items:
+        interpretation += f"**검토가 필요한 항목:** {len(needs_review_items)}개의 항목({'; '.join(needs_review_items)})은 하나 이상의 기준을 충족하지 못하여 다음 라운드에서 재검토하거나 수정/제거를 고려해야 합니다.\n"
+
+    return interpretation.strip()
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -98,7 +138,7 @@ def main():
                     'cvr': calculate_cvr(series, cvr_threshold),
                     'consensus': calculate_consensus(series),
                     'convergence': median_val - q1,
-                    'stability': calculate_cv(series), # Using CV as stability
+                    'stability': calculate_cv(series),
                     'positive_responses': (series >= cvr_threshold).sum(),
                 }
             
@@ -110,10 +150,15 @@ def main():
                 except Exception:
                     cronbach_alpha = np.nan
             
-            all_results[round_name] = {
+            current_round_data = {
                 "items": round_results,
                 "cronbach_alpha": cronbach_alpha
             }
+            
+            # Generate interpretation for the current round
+            current_round_data["interpretation"] = _generate_interpretation(current_round_data)
+
+            all_results[round_name] = current_round_data
         
         print(json.dumps({'results': all_results}, default=_to_native_type))
 
