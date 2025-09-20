@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -217,4 +217,3 @@ export default function DelphiPage({ data, numericHeaders, onLoadExample }: Delp
         </div>
     );
 }
-
