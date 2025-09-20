@@ -13,6 +13,7 @@ import warnings
 import io
 import base64
 import math
+import re
 
 warnings.filterwarnings('ignore')
 
@@ -49,9 +50,9 @@ class AncovaAnalysis:
         self.clean_data.dropna(inplace=True)
         
         # Sanitize column names for formula
-        self.dv_clean = self.dependent_var.replace(' ', '_').replace('.', '_')
-        self.fv_clean = self.factor_var.replace(' ', '_').replace('.', '_')
-        self.cv_clean = [c.replace(' ', '_').replace('.', '_') for c in self.covariate_vars]
+        self.dv_clean = re.sub(r'[^A-Za-z0-9_]', '_', self.dependent_var)
+        self.fv_clean = re.sub(r'[^A-Za-z0-9_]', '_', self.factor_var)
+        self.cv_clean = [re.sub(r'[^A-Za-z0-9_]', '_', c) for c in self.covariate_vars]
         
         rename_dict = {
             self.dependent_var: self.dv_clean,
@@ -145,7 +146,23 @@ class AncovaAnalysis:
         else:
              anova_table['η²p'] = np.nan
         
-        self.results['model_summary'] = str(model.summary())
+        # Clean the summary object
+        summary_obj = model.summary()
+        summary_data = []
+        for table in summary_obj.tables:
+            table_data = [list(row) for row in table.data]
+            if table_data:
+                 # Clean header of the coefficient table
+                if len(table_data) > 1 and 'coef' in table_data[0]:
+                    for row in table_data[1:]:
+                        if row and row[0]:
+                             row[0] = re.sub(r'Q\("([^"]+)"\)', r'\1', row[0].strip())
+            
+            summary_data.append({
+                'caption': getattr(table, 'title', None),
+                'data': table_data
+            })
+        self.results['model_summary_data'] = summary_data
         
         # Clean up source names for readability
         cleaned_index = {
@@ -256,3 +273,5 @@ if __name__ == '__main__':
     main()
 
     
+
+  

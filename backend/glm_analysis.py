@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import warnings
 import math
+import re
 
 try:
     import statsmodels.api as sm
@@ -53,25 +54,37 @@ def main():
         target_var = payload.get('target_var')
         features = payload.get('features')
         family_name = payload.get('family', 'gaussian').lower()
+        link_function_name = payload.get('link_function')
 
         if not all([data, target_var, features]):
             raise ValueError("Missing 'data', 'target_var', or 'features'")
 
         df = pd.DataFrame(data)
+        
+        # Map original names to sanitized names
+        original_to_sanitized = {col: re.sub(r'[^A-Za-z0-9_]', '_', col) for col in df.columns}
+        sanitized_to_original = {v: k for k, v in original_to_sanitized.items()}
+        
+        df_clean = df.rename(columns=original_to_sanitized)
 
-        # Sanitize column names for the formula
-        sanitized_cols = {col: col.replace(' ', '_').replace('.', '_').replace('[', '_').replace(']', '_') for col in df.columns}
-        df.rename(columns=sanitized_cols, inplace=True)
-        target_var_clean = sanitized_cols.get(target_var, target_var)
-        features_clean = [sanitized_cols.get(f, f) for f in features]
+        target_var_clean = original_to_sanitized.get(target_var, target_var)
+        features_clean = [original_to_sanitized.get(f, f) for f in features]
         
         formula = f'Q("{target_var_clean}") ~ ' + ' + '.join([f'Q("{f}")' for f in features_clean])
 
+        link_map = {
+            'logit': sm.families.links.logit(),
+            'probit': sm.families.links.probit(),
+            'log': sm.families.links.log(),
+            'inverse_power': sm.families.links.inverse_power(),
+        }
+        link = link_map.get(link_function_name) if link_function_name else None
+
         family_map = {
-            'gaussian': sm.families.Gaussian(),
-            'binomial': sm.families.Binomial(),
-            'poisson': sm.families.Poisson(),
-            'gamma': sm.families.Gamma(link=sm.families.links.log()),
+            'gaussian': sm.families.Gaussian(link=link),
+            'binomial': sm.families.Binomial(link=link),
+            'poisson': sm.families.Poisson(link=link),
+            'gamma': sm.families.Gamma(link=link if link else sm.families.links.log()),
         }
 
         if family_name not in family_map:
@@ -79,9 +92,18 @@ def main():
         
         family = family_map[family_name]
 
-        model = smf.glm(formula, data=df, family=family)
+        model = smf.glm(formula, data=df_clean, family=family)
         result = model.fit()
         
+        def clean_sm_name(name):
+            name = name.strip()
+            # Regex for Q("...") or C(Q("..."))
+            match = re.search(r'Q\("([^"]+)"\)', name)
+            if match:
+                sanitized_name = match.group(1)
+                return sanitized_to_original.get(sanitized_name, sanitized_name)
+            return name
+
         summary_obj = result.summary()
         summary_data = []
         for table in summary_obj.tables:
@@ -90,11 +112,13 @@ def main():
                 caption = table.title
             
             table_data = [list(row) for row in table.data]
-            
-            summary_data.append({
-                'caption': caption,
-                'data': table_data
-            })
+            if table_data:
+                 if len(table_data) > 1 and any('coef' in h.lower() for h in table_data[0]):
+                    for row in table_data[1:]:
+                        if row and row[0]:
+                             row[0] = clean_sm_name(row[0])
+
+            summary_data.append({ 'caption': caption, 'data': table_data })
         
         pseudo_r2 = 1 - (result.deviance / result.null_deviance) if result.null_deviance > 0 else 0
 
@@ -104,30 +128,32 @@ def main():
 
         coefficients_data = []
         
-        if family_name in ['binomial', 'poisson', 'gamma']:
-            exp_params = np.exp(params)
-            exp_conf_int = np.exp(conf_int)
+        is_exp = family_name in ['binomial', 'poisson', 'gamma']
+
+        for param_name in params.index:
+            cleaned_name = clean_sm_name(param_name)
             
-            for param in params.index:
-                coefficients_data.append({
-                    'variable': param,
-                    'coefficient': params[param],
-                    'exp_coefficient': exp_params[param],
-                    'p_value': pvalues[param],
-                    'conf_int_lower': conf_int.loc[param, 0],
-                    'conf_int_upper': conf_int.loc[param, 1],
-                    'exp_conf_int_lower': exp_conf_int.loc[param, 0],
-                    'exp_conf_int_upper': exp_conf_int.loc[param, 1],
-                })
-        else: # Gaussian
-            for param in params.index:
-                coefficients_data.append({
-                    'variable': param,
-                    'coefficient': params[param],
-                    'p_value': pvalues[param],
-                    'conf_int_lower': conf_int.loc[param, 0],
-                    'conf_int_upper': conf_int.loc[param, 1],
-                })
+            row = {
+                'variable': cleaned_name,
+                'coefficient': params[param_name],
+                'p_value': pvalues[param_name],
+                'conf_int_lower': conf_int.loc[param_name, 0],
+                'conf_int_upper': conf_int.loc[param_name, 1],
+            }
+
+            if is_exp:
+                try:
+                    exp_coef = np.exp(params[param_name])
+                    exp_ci = np.exp(conf_int.loc[param_name])
+                    row['exp_coefficient'] = exp_coef
+                    row['exp_conf_int_lower'] = exp_ci[0]
+                    row['exp_conf_int_upper'] = exp_ci[1]
+                except (OverflowError, ValueError):
+                    row['exp_coefficient'] = None
+                    row['exp_conf_int_lower'] = None
+                    row['exp_conf_int_upper'] = None
+
+            coefficients_data.append(row)
 
         final_result = {
             'model_summary_data': summary_data,
@@ -140,7 +166,6 @@ def main():
             'family': family_name,
         }
 
-        # Clean the final result of any non-compliant JSON values before dumping
         cleaned_result = clean_json_inf(final_result)
         
         print(json.dumps(cleaned_result))
@@ -151,3 +176,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+  

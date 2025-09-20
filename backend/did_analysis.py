@@ -13,20 +13,27 @@ def _to_native_type(obj):
     return str(obj)
 
 def _generate_interpretation(params, pvalues, group_var, time_var, outcome_var):
-    interaction_term_key = f'{group_var}:{time_var}'
+    interaction_term_key = f'C(Q("{group_var}"))[T.1]:C(Q("{time_var}"))[T.1]'
+    # Fallback for different coding
+    if interaction_term_key not in params:
+        # Find the interaction term dynamically
+        for key in params.keys():
+            if group_var in key and time_var in key and ':' in key:
+                interaction_term_key = key
+                break
     
     did_coefficient = params.get(interaction_term_key)
     did_pvalue = pvalues.get(interaction_term_key)
 
     if did_coefficient is None or did_pvalue is None:
-        return "Could not determine the DiD effect. Please check your variable specifications."
+        return f"Could not determine the DiD effect. Interaction term like '{group_var}:{time_var}' not found in model results."
 
     sig_text = "statistically significant" if did_pvalue < 0.05 else "not statistically significant"
     direction_text = "increase" if did_coefficient > 0 else "decrease"
     
     interpretation = (
         f"A Difference-in-Differences (DiD) analysis was conducted to estimate the causal effect of the intervention ('{group_var}') on the outcome ('{outcome_var}') over time ('{time_var}').\n\n"
-        f"The DiD estimator, represented by the interaction term '{interaction_term_key}', was found to be {sig_text} (β = {did_coefficient:.4f}, p = {did_pvalue:.4f}).\n\n"
+        f"The DiD estimator, represented by the interaction term '{group_var}:{time_var}', was found to be {sig_text} (β = {did_coefficient:.4f}, p = {did_pvalue:.4f}).\n\n"
     )
     
     if did_pvalue < 0.05:
@@ -62,9 +69,9 @@ def main():
              raise ValueError("Group and Time variables must each have exactly two unique values for DiD analysis.")
 
         # Sanitize column names for formula
-        outcome_clean = outcome_var.replace(' ', '_').replace('.', '_')
-        group_clean = group_var.replace(' ', '_').replace('.', '_')
-        time_clean = time_var.replace(' ', '_').replace('.', '_')
+        outcome_clean = re.sub(r'[^A-Za-z0-9_]', '_', outcome_var)
+        group_clean = re.sub(r'[^A-Za-z0-9_]', '_', group_var)
+        time_clean = re.sub(r'[^A-Za-z0-9_]', '_', time_var)
         
         df_clean = df.rename(columns={
             outcome_var: outcome_clean,
@@ -76,17 +83,29 @@ def main():
         model = smf.ols(formula, data=df_clean).fit()
         
         # --- Clean up coefficient names ---
+        # Map cleaned names back to original for interpretation
+        name_map = {
+            group_clean: group_var,
+            time_clean: time_var,
+            outcome_clean: outcome_var
+        }
+
         def clean_name(name):
             name = name.strip()
             # This regex will find C(Q("..."))[T.value] and replace it with the original variable name
-            name = re.sub(f'C\\(Q\\("{group_clean}"\\)\\)\\[T\\.([^]]+)\\]', group_var, name)
-            name = re.sub(f'C\\(Q\\("{time_clean}"\\)\\)\\[T\\.([^]]+)\\]', time_var, name)
+            for clean, orig in name_map.items():
+                name = re.sub(f'C\\(Q\\("{clean}"\\)\\)\\[T\\.([^]]+)\\]', orig, name)
             # This will find any remaining Q("...") and replace it
-            name = re.sub(r'Q\("([^"]+)"\)', r'\1', name)
+            name = re.sub(r'Q\("([^"]+)"\)', lambda m: name_map.get(m.group(1), m.group(1)), name)
             return name
 
         params_cleaned = {clean_name(k): v for k, v in model.params.to_dict().items()}
         pvalues_cleaned = {clean_name(k): v for k, v in model.pvalues.to_dict().items()}
+        
+        # For interpretation, we need the un-cleaned param names that statsmodels produces
+        params_internal = model.params.to_dict()
+        pvalues_internal = model.pvalues.to_dict()
+        interpretation = _generate_interpretation(params_internal, pvalues_internal, group_clean, time_clean, outcome_clean)
 
         summary_obj = model.summary()
         summary_data = []
@@ -104,8 +123,6 @@ def main():
                 'data': table_data
             })
         
-        interpretation = _generate_interpretation(params_cleaned, pvalues_cleaned, group_var, time_var, outcome_var)
-
         response = {
             'results': {
                 'model_summary_data': summary_data,
@@ -126,3 +143,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+  

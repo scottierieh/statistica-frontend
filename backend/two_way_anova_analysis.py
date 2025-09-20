@@ -14,6 +14,7 @@ import seaborn as sns
 import io
 import base64
 import math
+import re
 
 warnings.filterwarnings('ignore')
 
@@ -45,9 +46,9 @@ class TwoWayAnovaAnalysis:
         self.clean_data = self.data[all_vars].dropna().copy()
         
         # Sanitize column names for formula
-        self.dv_clean = self.dependent_var.replace(' ', '_').replace('.', '_')
-        self.fa_clean = self.factor_a.replace(' ', '_').replace('.', '_')
-        self.fb_clean = self.factor_b.replace(' ', '_').replace('.', '_')
+        self.dv_clean = re.sub(r'[^A-Za-z0-9_]', '_', self.dependent_var)
+        self.fa_clean = re.sub(r'[^A-Za-z0-9_]', '_', self.factor_a)
+        self.fb_clean = re.sub(r'[^A-Za-z0-9_]', '_', self.factor_b)
         
         self.clean_data.columns = [self.dv_clean, self.fa_clean, self.fb_clean]
         
@@ -129,6 +130,7 @@ class TwoWayAnovaAnalysis:
         anova_results = {row['Source']: row for row in self.results['anova_table']}
         
         def format_p(p_val):
+            if p_val is None: return "p = n/a"
             return f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
         
         def get_effect_size_interp(eta):
@@ -142,7 +144,7 @@ class TwoWayAnovaAnalysis:
 
         # Main Effect A
         res_a = anova_results.get(self.factor_a)
-        if res_a:
+        if res_a and res_a.get('p-value') is not None:
             sig_text_a = "a statistically significant" if res_a['p-value'] < self.alpha else "no statistically significant"
             p_text_a = format_p(res_a['p-value'])
             effect_size_a = res_a.get('η²p', 0)
@@ -154,7 +156,7 @@ class TwoWayAnovaAnalysis:
 
         # Main Effect B
         res_b = anova_results.get(self.factor_b)
-        if res_b:
+        if res_b and res_b.get('p-value') is not None:
             sig_text_b = "a statistically significant" if res_b['p-value'] < self.alpha else "no statistically significant"
             p_text_b = format_p(res_b['p-value'])
             effect_size_b = res_b.get('η²p', 0)
@@ -167,7 +169,7 @@ class TwoWayAnovaAnalysis:
         # Interaction Effect
         interaction_key = f'{self.factor_a} * {self.factor_b}'
         res_int = anova_results.get(interaction_key)
-        if res_int and res_int['p-value'] is not None:
+        if res_int and res_int.get('p-value') is not None:
             sig_text_int = "a statistically significant" if res_int['p-value'] < self.alpha else "no statistically significant"
             p_text_int = format_p(res_int['p-value'])
             effect_size_int = res_int.get('η²p', 0)
@@ -186,7 +188,7 @@ class TwoWayAnovaAnalysis:
                     details = []
                     for pair in sig_pairs[:3]: # Limit for brevity
                         details.append(f"the difference between '{pair['group1']}' and '{pair['group2']}' was significant (p = {pair['p_adj']:.3f})")
-                    interpretation += ", and ".join(details) + ".\n"
+                    interpretation += ", and ".join(details) + "."
                     if len(sig_pairs) > 3:
                         interpretation += f" along with {len(sig_pairs) - 3} other significant differences."
 
@@ -261,3 +263,5 @@ if __name__ == '__main__':
     main()
 
     
+
+  
