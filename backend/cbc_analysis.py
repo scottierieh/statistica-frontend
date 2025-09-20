@@ -38,8 +38,8 @@ def main():
         feature_cols = [col for col in df_long.columns if col not in [respondent_id, alt_id, choice_col] + attribute_cols]
         formula = f'{choice_col} ~ {" + ".join(feature_cols)}'
 
-        # Fit the multinomial logit model
-        model = mnlogit(formula, data=df_long).fit()
+        # Fit the multinomial logit model, suppressing convergence output
+        model = mnlogit(formula, data=df_long).fit(disp=False)
         
         # Extract part-worths
         params = model.params
@@ -84,4 +84,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
