@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -66,6 +67,10 @@ class RepeatedMeasuresAnova:
                 kwargs['between'] = self.between_col
             
             aov = pg.rm_anova(**kwargs)
+            # Ensure p-GG-corr is float, not object
+            if 'p-GG-corr' in aov.columns:
+                aov['p-GG-corr'] = pd.to_numeric(aov['p-GG-corr'], errors='coerce')
+
 
             self.results['anova_table'] = aov.to_dict('records')
             
@@ -83,8 +88,11 @@ class RepeatedMeasuresAnova:
 
             # Post-hoc tests if significant interaction or main effect
             perform_posthoc = False
-            main_effect_p_col = 'p-GG-corr' if 'p-GG-corr' in aov.columns and not pd.isna(aov[aov['Source'] == self.within_name]['p-GG-corr'].iloc[0]) else 'p-unc'
-            
+            main_effect_row = aov[aov['Source'] == self.within_name]
+            # Use GG-corrected p-value if available and not NaN, otherwise use uncorrected.
+            main_p_val = main_effect_row['p-GG-corr'].iloc[0] if not main_effect_row.empty and 'p-GG-corr' in main_effect_row and not pd.isna(main_effect_row['p-GG-corr'].iloc[0]) else main_effect_row['p-unc'].iloc[0] if not main_effect_row.empty else 1.0
+
+
             if self.between_col:
                 interaction_row = aov[aov['Source'] == f'{self.within_name} * {self.between_col}']
                 if not interaction_row.empty:
@@ -94,8 +102,7 @@ class RepeatedMeasuresAnova:
                         perform_posthoc = True
             
             if not perform_posthoc: # Check main effect if interaction is not significant or doesn't exist
-                within_row = aov[aov['Source'] == self.within_name]
-                if not within_row.empty and within_row[main_effect_p_col].iloc[0] < self.alpha:
+                if main_p_val < self.alpha:
                     perform_posthoc = True
 
             if perform_posthoc:
@@ -130,7 +137,8 @@ class RepeatedMeasuresAnova:
                       hue=hue, 
                       ax=ax,
                       dodge=True,
-                      errorbar='ci')
+                      errorbar='ci',
+                      capsize=.1)
                       
         ax.set_title(f'Interaction Plot: {self.dependent_var} over Time')
         ax.set_xlabel('Time / Condition')
@@ -178,3 +186,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
