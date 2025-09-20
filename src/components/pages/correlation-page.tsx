@@ -235,7 +235,7 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
               </CardContent>
           </Card>
       </div>
-    )
+    );
   }
 
   const heatmapPlotData = results ? JSON.parse(results.heatmap_plot || '{}') : null;
@@ -309,9 +309,10 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
             {results.interpretation && <InterpretationDisplay title={results.interpretation.title} body={results.interpretation.body} />}
 
             <Tabs defaultValue="pairs">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="pairs">Pairs Plot</TabsTrigger>
                     <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
+                    <TabsTrigger value="table">Table</TabsTrigger>
                 </TabsList>
                 <TabsContent value="pairs">
                     {pairsPlotData ? (
@@ -355,6 +356,44 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
                         </Card>
                     )}
                 </TabsContent>
+                 <TabsContent value="table">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Correlation & P-Value Table</CardTitle>
+                            <CardDescription>Correlation coefficients with their corresponding p-values in parentheses.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Variable</TableHead>
+                                        {selectedHeaders.map(header => <TableHead key={header} className="text-right">{header}</TableHead>)}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {selectedHeaders.map(rowHeader => (
+                                        <TableRow key={rowHeader}>
+                                            <TableHead>{rowHeader}</TableHead>
+                                            {selectedHeaders.map(colHeader => {
+                                                const corr = results.correlation_matrix[rowHeader]?.[colHeader];
+                                                const pVal = results.p_value_matrix[rowHeader]?.[colHeader];
+                                                return (
+                                                    <TableCell key={colHeader} className="text-right font-mono">
+                                                        {corr !== undefined ? corr.toFixed(3) : 'N/A'}
+                                                        <br/>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            (p={pVal !== undefined ? pVal.toFixed(3) : 'N/A'})
+                                                        </span>
+                                                    </TableCell>
+                                                )
+                                            })}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
             </Tabs>
             
             <div className="grid gap-4 md:grid-cols-2">
@@ -385,5 +424,5 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
         </div>
       )}
     </div>
-  )
+  );
 }
