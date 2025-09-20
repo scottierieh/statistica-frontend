@@ -12,6 +12,35 @@ def _to_native_type(obj):
         return obj.item()
     return str(obj)
 
+def _generate_interpretation(params, pvalues, group_var, time_var, outcome_var):
+    interaction_term_key = f'{group_var}:{time_var}'
+    
+    did_coefficient = params.get(interaction_term_key)
+    did_pvalue = pvalues.get(interaction_term_key)
+
+    if did_coefficient is None or did_pvalue is None:
+        return "Could not determine the DiD effect. Please check your variable specifications."
+
+    sig_text = "statistically significant" if did_pvalue < 0.05 else "not statistically significant"
+    direction_text = "increase" if did_coefficient > 0 else "decrease"
+    
+    interpretation = (
+        f"A Difference-in-Differences (DiD) analysis was conducted to estimate the causal effect of the intervention ('{group_var}') on the outcome ('{outcome_var}') over time ('{time_var}').\n\n"
+        f"The DiD estimator, represented by the interaction term '{interaction_term_key}', was found to be {sig_text} (β = {did_coefficient:.4f}, p = {did_pvalue:.4f}).\n\n"
+    )
+    
+    if did_pvalue < 0.05:
+        interpretation += (
+            f"This result suggests that the intervention had a significant effect. Specifically, the treatment group experienced an average {direction_text} of approximately "
+            f"{abs(did_coefficient):.4f} units in the '{outcome_var}' after the intervention, compared to the change experienced by the control group."
+        )
+    else:
+        interpretation += (
+            "This result suggests that there is not enough statistical evidence to conclude that the intervention had a different effect on the treatment group compared to the control group."
+        )
+        
+    return interpretation.strip()
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -25,21 +54,20 @@ def main():
 
         df = pd.DataFrame(data)
 
+        # Do not convert group/time vars to numeric, let statsmodels handle them as categories
         df[outcome_var] = pd.to_numeric(df[outcome_var], errors='coerce')
         df.dropna(subset=[outcome_var, group_var, time_var], inplace=True)
 
         # Get unique values for cleaning coefficient names later
-        group_vals = df[group_var].unique()
-        time_vals = df[time_var].unique()
+        # Ensure treatment/post are the non-reference categories
+        group_vals = sorted(df[group_var].astype(str).unique())
+        time_vals = sorted(df[time_var].astype(str).unique())
         
         if len(group_vals) != 2 or len(time_vals) != 2:
              raise ValueError("Group and Time variables must each have exactly two unique values for DiD analysis.")
 
-        # Determine the reference categories (usually the first one alphabetically/numerically)
-        group_ref = sorted(group_vals)[0]
-        time_ref = sorted(time_vals)[0]
-        group_treat = sorted(group_vals)[1]
-        time_post = sorted(time_vals)[1]
+        group_treat = group_vals[1]
+        time_post = time_vals[1]
 
         # Sanitize column names for formula
         outcome_clean = outcome_var.replace(' ', '_').replace('.', '_')
@@ -57,9 +85,9 @@ def main():
         
         # --- Clean up coefficient names ---
         def clean_name(name):
-            name = name.replace(f'C(Q("{group_clean}"))[T.{group_treat}]', group_var)
-            name = name.replace(f'C(Q("{time_clean}"))[T.{time_post}]', time_var)
-            return name.replace(':', f':')
+            name = re.sub(f'C\\(Q\\("{group_clean}"\\)\\)\\[T\\.([^]]+)\\]', group_var, name)
+            name = re.sub(f'C\\(Q\\("{time_clean}"\\)\\)\\[T\\.([^]]+)\\]', time_var, name)
+            return name
 
         params_cleaned = {clean_name(k): v for k, v in model.params.to_dict().items()}
         pvalues_cleaned = {clean_name(k): v for k, v in model.pvalues.to_dict().items()}
@@ -69,7 +97,6 @@ def main():
         for table in summary_obj.tables:
             table_data = [list(row) for row in table.data]
             if table_data:
-                 # Clean names in the first column of the coefficients table
                 if len(table_data) > 1 and 'coef' in table_data[0]:
                     for row in table_data[1:]:
                         if row and row[0]:
@@ -80,13 +107,16 @@ def main():
                 'data': table_data
             })
         
+        interpretation = _generate_interpretation(params_cleaned, pvalues_cleaned, group_var, time_var, outcome_var)
+
         response = {
             'results': {
                 'model_summary_data': summary_data,
                 'params': params_cleaned,
                 'pvalues': pvalues_cleaned,
                 'rsquared': model.rsquared,
-                'rsquared_adj': model.rsquared_adj
+                'rsquared_adj': model.rsquared_adj,
+                'interpretation': interpretation
             }
         }
         
