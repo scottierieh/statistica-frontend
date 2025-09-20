@@ -43,7 +43,6 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     const [sessionDurationCol, setSessionDurationCol] = useState<string | undefined>();
     const [dateCol, setDateCol] = useState<string | undefined>();
     const [ageGroupCol, setAgeGroupCol] = useState<string | undefined>();
-    // New state for segmentation
     const [ltvCol, setLtvCol] = useState<string | undefined>();
     const [genderCol, setGenderCol] = useState<string | undefined>();
     const [countryCol, setCountryCol] = useState<string | undefined>();
@@ -56,7 +55,6 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
         revenueByAge: null,
         pageViewsDist: null,
         durationVsRevenue: null,
-        // New plots
         rfmAnalysis: null,
         revenueByGender: null,
         revenueByCountry: null,
@@ -76,14 +74,13 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
         setSessionDurationCol(numericHeaders.find(h => h.toLowerCase().includes('duration')) || numericHeaders[2]);
         setDateCol(allHeaders.find(h => h.toLowerCase().includes('date')) || allHeaders[0]);
         setAgeGroupCol(categoricalHeaders.find(h => h.toLowerCase().includes('age')) || categoricalHeaders[2]);
-        // New variables
         setLtvCol(numericHeaders.find(h => h.toLowerCase().includes('ltv')) || numericHeaders[3]);
         setGenderCol(categoricalHeaders.find(h => h.toLowerCase().includes('gender')) || categoricalHeaders[3]);
         setCountryCol(categoricalHeaders.find(h => h.toLowerCase().includes('country')) || categoricalHeaders[4]);
         setMembershipCol(categoricalHeaders.find(h => h.toLowerCase().includes('membership')) || categoricalHeaders[5]);
     }, [numericHeaders, categoricalHeaders, allHeaders]);
 
-    const fetchPlot = async (chartType: string, config: any) => {
+    const fetchPlot = useCallback(async (chartType: string, config: any) => {
         try {
             const response = await fetch('/api/analysis/visualization', {
                 method: 'POST',
@@ -97,32 +94,67 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             console.error(`Failed to fetch plot for ${chartType}:`, error);
             return null;
         }
-    };
+    }, [data]);
     
     useEffect(() => {
-        if (data.length > 0 && revenueCol && sourceCol && deviceCol && pageViewsCol && sessionDurationCol && dateCol && ageGroupCol && ltvCol && genderCol && countryCol && membershipCol) {
-            setIsGenerating(true);
-            const generatePlots = async () => {
-                const newPlots: Record<string, string | null> = {};
-                newPlots.revenueBySource = await fetchPlot('bar', { x_col: sourceCol, y_col: revenueCol });
-                newPlots.revenueByDevice = await fetchPlot('bar', { x_col: deviceCol, y_col: revenueCol });
-                newPlots.revenueOverTime = await fetchPlot('line', { x_col: dateCol, y_col: revenueCol });
-                newPlots.revenueByAge = await fetchPlot('bar', { x_col: ageGroupCol, y_col: revenueCol });
-                newPlots.pageViewsDist = await fetchPlot('histogram', { x_col: pageViewsCol });
-                newPlots.durationVsRevenue = await fetchPlot('scatter', { x_col: sessionDurationCol, y_col: revenueCol });
-                // New plots
-                newPlots.rfmAnalysis = await fetchPlot('scatter', { x_col: ltvCol, y_col: revenueCol });
-                newPlots.revenueByGender = await fetchPlot('bar', { x_col: genderCol, y_col: revenueCol });
-                newPlots.revenueByCountry = await fetchPlot('bar', { x_col: countryCol, y_col: revenueCol });
-                newPlots.revenueByMembership = await fetchPlot('bar', { x_col: membershipCol, y_col: revenueCol });
-
-                setPlots(newPlots);
-                setIsGenerating(false);
-            };
-            generatePlots();
+        if (data.length > 0 && revenueCol && sourceCol) {
+            fetchPlot('bar', { x_col: sourceCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueBySource: plot})));
         }
-    }, [data, revenueCol, sourceCol, deviceCol, pageViewsCol, sessionDurationCol, dateCol, ageGroupCol, ltvCol, genderCol, countryCol, membershipCol]);
+    }, [data, revenueCol, sourceCol, fetchPlot]);
 
+    useEffect(() => {
+        if (data.length > 0 && revenueCol && deviceCol) {
+            fetchPlot('bar', { x_col: deviceCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueByDevice: plot})));
+        }
+    }, [data, revenueCol, deviceCol, fetchPlot]);
+
+    useEffect(() => {
+        if (data.length > 0 && dateCol && revenueCol) {
+            fetchPlot('line', { x_col: dateCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueOverTime: plot})));
+        }
+    }, [data, dateCol, revenueCol, fetchPlot]);
+    
+    useEffect(() => {
+        if (data.length > 0 && ageGroupCol && revenueCol) {
+             fetchPlot('bar', { x_col: ageGroupCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueByAge: plot})));
+        }
+    }, [data, ageGroupCol, revenueCol, fetchPlot]);
+
+    useEffect(() => {
+        if (data.length > 0 && pageViewsCol) {
+            fetchPlot('histogram', { x_col: pageViewsCol }).then(plot => setPlots(p => ({...p, pageViewsDist: plot})));
+        }
+    }, [data, pageViewsCol, fetchPlot]);
+    
+    useEffect(() => {
+        if (data.length > 0 && sessionDurationCol && revenueCol) {
+            fetchPlot('scatter', { x_col: sessionDurationCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, durationVsRevenue: plot})));
+        }
+    }, [data, sessionDurationCol, revenueCol, fetchPlot]);
+
+    useEffect(() => {
+        if (data.length > 0 && ltvCol && revenueCol) {
+            fetchPlot('scatter', { x_col: ltvCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, rfmAnalysis: plot})));
+        }
+    }, [data, ltvCol, revenueCol, fetchPlot]);
+    
+    useEffect(() => {
+        if (data.length > 0 && genderCol && revenueCol) {
+            fetchPlot('bar', { x_col: genderCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueByGender: plot})));
+        }
+    }, [data, genderCol, revenueCol, fetchPlot]);
+    
+    useEffect(() => {
+        if (data.length > 0 && countryCol && revenueCol) {
+            fetchPlot('bar', { x_col: countryCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueByCountry: plot})));
+        }
+    }, [data, countryCol, revenueCol, fetchPlot]);
+    
+    useEffect(() => {
+        if (data.length > 0 && membershipCol && revenueCol) {
+            fetchPlot('bar', { x_col: membershipCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueByMembership: plot})));
+        }
+    }, [data, membershipCol, revenueCol, fetchPlot]);
 
     const summaryStats = useMemo(() => {
         if (!data || data.length === 0 || !revenueCol || !pageViewsCol) {
