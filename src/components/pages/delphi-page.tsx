@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -31,9 +32,10 @@ interface DelphiItemResult {
     q3: number;
     cvr: number;
     consensus: number;
-    stability: number;
     convergence: number;
+    cv: number; // Coefficient of Variation
     positive_responses: number;
+    stability: number; // New stability calculation
 }
 
 interface DelphiRoundResult {
@@ -209,17 +211,20 @@ export default function DelphiPage({ data, numericHeaders, onLoadExample }: Delp
                                                     <TableHead className="text-right">Mean</TableHead>
                                                     <TableHead className="text-right">SD</TableHead>
                                                     <TableHead className="text-right">Ne</TableHead>
-                                                    <TableHead className="text-right">
-                                                        <Tooltip><TooltipTrigger>Stability <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Stability (CV) ≤ 0.5</TooltipContent></Tooltip>
+                                                     <TableHead className="text-right">
+                                                        <Tooltip><TooltipTrigger>CV <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Coefficient of Variation ≤ 0.5</TooltipContent></Tooltip>
                                                     </TableHead>
-                                                    <TableHead className="text-right">Q3</TableHead>
                                                     <TableHead className="text-right">Q1</TableHead>
                                                     <TableHead className="text-right">Median</TableHead>
+                                                    <TableHead className="text-right">Q3</TableHead>
                                                     <TableHead className="text-right">
                                                         <Tooltip><TooltipTrigger>Consensus <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Consensus ≥ 0.75</TooltipContent></Tooltip>
                                                     </TableHead>
                                                     <TableHead className="text-right">
-                                                        <Tooltip><TooltipTrigger>Convergence <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Convergence ≤ 0.5</TooltipContent></Tooltip>
+                                                        <Tooltip><TooltipTrigger>Convergence <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Convergence (Median - Q1) ≤ 1.0</TooltipContent></Tooltip>
+                                                    </TableHead>
+                                                     <TableHead className="text-right">
+                                                        <Tooltip><TooltipTrigger>Stability <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Stability between rounds</TooltipContent></Tooltip>
                                                     </TableHead>
                                                     <TableHead className="text-right">
                                                         <Tooltip><TooltipTrigger>CVR <HelpCircle className="inline h-3 w-3" /></TooltipTrigger><TooltipContent>Content Validity Ratio > 0</TooltipContent></Tooltip>
@@ -233,12 +238,13 @@ export default function DelphiPage({ data, numericHeaders, onLoadExample }: Delp
                                                         <TableCell className="text-right font-mono">{stats.mean.toFixed(2)}</TableCell>
                                                         <TableCell className="text-right font-mono">{stats.std.toFixed(2)}</TableCell>
                                                         <TableCell className="text-right font-mono">{stats.positive_responses}</TableCell>
-                                                        <TableCell className="text-right"><Badge variant={stats.stability <= 0.5 ? 'default' : 'secondary'}>{stats.stability.toFixed(3)}</Badge></TableCell>
-                                                        <TableCell className="text-right font-mono">{stats.q3.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right"><Badge variant={stats.cv <= 0.5 ? 'default' : 'secondary'}>{stats.cv.toFixed(3)}</Badge></TableCell>
                                                         <TableCell className="text-right font-mono">{stats.q1.toFixed(2)}</TableCell>
                                                         <TableCell className="text-right font-mono">{stats.median.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right font-mono">{stats.q3.toFixed(2)}</TableCell>
                                                         <TableCell className="text-right"><Badge variant={stats.consensus >= 0.75 ? 'default' : 'secondary'}>{stats.consensus.toFixed(3)}</Badge></TableCell>
-                                                        <TableCell className="text-right"><Badge variant={stats.convergence <= 0.5 ? 'default' : 'secondary'}>{stats.convergence.toFixed(3)}</Badge></TableCell>
+                                                        <TableCell className="text-right"><Badge variant={stats.convergence <= 1.0 ? 'default' : 'secondary'}>{stats.convergence.toFixed(3)}</Badge></TableCell>
+                                                        <TableCell className="text-right"><Badge variant={!isNaN(stats.stability) && stats.stability <= 0.5 ? 'default' : 'secondary'}>{isNaN(stats.stability) ? 'N/A' : stats.stability.toFixed(3)}</Badge></TableCell>
                                                         <TableCell className="text-right"><Badge variant={stats.cvr > 0 ? 'default' : 'secondary'}>{stats.cvr.toFixed(3)}</Badge></TableCell>
                                                     </TableRow>
                                                 ))}
