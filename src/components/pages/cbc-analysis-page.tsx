@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -16,16 +17,10 @@ import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import dynamic from 'next/dynamic';
 import Image from 'next/image';
 
-const Plot = dynamic(() => import('react-plotly.js'), {
-  ssr: false,
-  loading: () => <Skeleton className="w-full h-[300px]" />,
-});
-
 interface CbcResults {
-    partWorths: { attribute: string, level: string, value: number }[];
+    part_worths: { attribute: string, level: string, value: number }[];
     importance: { attribute: string, importance: number }[];
     regression: {
         rSquared: number;
@@ -38,7 +33,6 @@ interface CbcResults {
         coefficients: {[key: string]: number};
     };
     targetVariable: string;
-    sensitivity_plot?: string;
 }
 
 interface FullAnalysisResponse {
@@ -76,9 +70,10 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     const [sensitivityPlot, setSensitivityPlot] = useState<string | null>(null);
     const [isSensitivityLoading, setIsSensitivityLoading] = useState(false);
 
+    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 4, [data, allHeaders]);
 
     const allAttributes = useMemo(() => {
-        if (!data || data.length === 0) return {};
+        if (!canRun) return {};
         const attributes: any = {};
         allHeaders.forEach(header => {
             const values = Array.from(new Set(data.map(row => row[header]))).sort();
@@ -90,7 +85,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
             };
         });
         return attributes;
-    }, [data, allHeaders]);
+    }, [data, allHeaders, canRun]);
 
 
     useEffect(() => {
@@ -133,7 +128,9 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         setAnalysisResult(null);
 
         const attributesForBackend = attributeCols.reduce((acc, attrName) => {
-            acc[attrName] = allAttributes[attrName];
+            if (allAttributes[attrName]) {
+                acc[attrName] = { ...allAttributes[attrName], includeInAnalysis: true };
+            }
             return acc;
         }, {} as any);
 
@@ -153,7 +150,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                 throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
 
-            const result: {results: CbcResults} = await response.json();
+            const result: FullAnalysisResponse = await response.json();
             if ((result as any).error) throw new Error((result as any).error);
 
             setAnalysisResult(result);
@@ -178,7 +175,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         Object.entries(scenario).forEach(([attrName, value]) => {
             if (attrName === 'name' || !attributeCols.includes(attrName)) return;
 
-            const worth = analysisResult.results.partWorths.find(pw => pw.attribute === attrName && String(pw.level) === String(value));
+            const worth = analysisResult.results.part_worths.find(pw => pw.attribute === attrName && String(pw.level) === String(value));
             if (worth) {
                 utility += worth.value;
             }
@@ -253,11 +250,9 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         }
     };
     
-    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 4, [data, allHeaders]);
-    
     const results = analysisResult?.results;
     const importanceData = results ? results.importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [];
-    const partWorthsData = results ? results.partWorths : [];
+    const partWorthsData = results ? results.part_worths : [];
     
     const diagnosticsData = useMemo(() => {
         if (!results?.regression?.predictions || !results?.regression?.residuals) return [];
