@@ -29,14 +29,16 @@ def calculate_cvr(series, threshold):
         return 0
     return (Ne - (N / 2)) / (N / 2)
 
-def calculate_consensus(series, scale_max):
+def calculate_consensus(series):
     """Calculate consensus based on interquartile range."""
     if len(series) < 2:
         return np.nan
-    # The denominator should be the range of the scale
-    # For a 1-5 scale, the range is 4.
-    scale_range = scale_max - 1
-    return 1 - (iqr(series) / scale_range) if scale_range > 0 else 1.0
+    
+    series_range = series.max() - series.min()
+    if series_range == 0:
+        return 1.0 # Perfect consensus if all values are the same
+
+    return 1 - (iqr(series) / series_range)
 
 
 def calculate_cv(series):
@@ -94,7 +96,7 @@ def main():
                     'q1': q1,
                     'q3': series.quantile(0.75),
                     'cvr': calculate_cvr(series, cvr_threshold),
-                    'consensus': calculate_consensus(series, scale_max),
+                    'consensus': calculate_consensus(series),
                     'convergence': median_val - q1,
                     'cv': calculate_cv(series),
                     'positive_responses': (series >= cvr_threshold).sum(),
@@ -143,3 +145,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
