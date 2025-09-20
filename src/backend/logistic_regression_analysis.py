@@ -54,6 +54,7 @@ class LogisticRegressionAnalysis:
         self.X = pd.get_dummies(X_raw, drop_first=True, dtype=float)
         self.feature_names = self.X.columns.tolist()
         
+        # Ensure y is a 1D array
         self.y = self.clean_data[self.dependent_var + '_encoded'].values.ravel()
         
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_size, random_state=self.random_state, stratify=self.y)
@@ -70,20 +71,30 @@ class LogisticRegressionAnalysis:
         if self.X_train.shape[1] < 2:
             return 
         
+        # Create a DataFrame from the scaled training data to calculate VIF
         X_train_df_scaled = pd.DataFrame(self.X_train_scaled, columns=self.feature_names)
         
-        # Add constant for VIF calculation
-        X_with_const = sm.add_constant(X_train_df_scaled)
+        # Add a constant for VIF calculation
+        X_with_const = sm.add_constant(X_train_df_scaled, has_constant='add')
         
         vif_data = pd.DataFrame()
         vif_data["feature"] = X_with_const.columns
-        vif_data["VIF"] = [variance_inflation_factor(X_with_const.values, i) for i in range(X_with_const.shape[1])]
+        # Calculate VIF for each feature
+        try:
+            vif_data["VIF"] = [variance_inflation_factor(X_with_const.values, i) for i in range(X_with_const.shape[1])]
+        except Exception as e:
+            # VIF calculation can fail with perfect multicollinearity, which is what we want to catch.
+            # The original "Singular matrix" error will be caught by the Logit model itself,
+            # but this provides a more user-friendly message beforehand.
+            raise ValueError(f"Multicollinearity check failed, which may indicate perfect correlation between predictors. Original error: {e}")
+
         vif_data = vif_data[vif_data['feature'] != 'const']
 
         high_vif = vif_data[vif_data['VIF'] > 10]
         if not high_vif.empty:
             offending_vars = ", ".join(high_vif['feature'].tolist())
             raise ValueError(f"High multicollinearity detected (VIF > 10) for variables: {offending_vars}. Please remove one or more of these variables to proceed.")
+
 
     def run_analysis(self):
         X_train_const = sm.add_constant(self.X_train_scaled)
@@ -230,6 +241,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
