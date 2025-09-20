@@ -51,33 +51,33 @@ def main():
         model = mnlogit(formula, data=df, missing='drop').fit(disp=False)
         
         params = model.params
-        part_worths = {}
+        part_worths = [] # Changed to list
         original_attribute_map = {v: k for k, v in sanitized_cols.items()}
 
         for i, attr_clean in enumerate(attribute_cols_clean):
             original_attr = original_attribute_map[attr_clean]
-            part_worths[original_attr] = {}
             
             # Get levels directly from original dataframe to ensure correct order
             levels = pd.Series(payload['data']).apply(lambda x: x[original_attr]).unique()
 
             # Base level utility is 0 (the first level)
             base_level = str(levels[0])
-            part_worths[original_attr][base_level] = 0
+            part_worths.append({'attribute': original_attr, 'level': base_level, 'value': 0})
             
             # Extract coefficients for other levels
             for level in levels[1:]:
                 # Construct the coefficient name as created by statsmodels C() function
                 col_name = f'C(Q("{attr_clean}"))[T.{str(level)}]'
+                worth = 0.0
                 if col_name in params.index:
-                    part_worths[original_attr][str(level)] = params.loc[col_name][0]
-                else:
-                    part_worths[original_attr][str(level)] = 0.0
+                    worth = params.loc[col_name][0]
+                
+                part_worths.append({'attribute': original_attr, 'level': str(level), 'value': worth})
 
         # Calculate attribute importance
         ranges = {}
-        for attr, levels in part_worths.items():
-            worths = list(levels.values())
+        for attr in attribute_cols:
+            worths = [p['value'] for p in part_worths if p['attribute'] == attr]
             ranges[attr] = max(worths) - min(worths) if worths else 0
         
         total_range = sum(ranges.values())
@@ -109,6 +109,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
