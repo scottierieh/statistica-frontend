@@ -118,8 +118,10 @@ export default function AhpPage() {
         reader.onload = (e) => {
             try {
                 const content = e.target?.result as string;
+                if (!content) {
+                    throw new Error("File is empty or could not be read.");
+                }
                 const parsedData = JSON.parse(content);
-
                 loadAHPData(parsedData, file.name);
             } catch (error: any) {
                  toast({ variant: 'destructive', title: 'File Load Error', description: error.message });
@@ -146,7 +148,7 @@ export default function AhpPage() {
 
     const handleLoadSample = () => {
         const ahpExample = exampleDatasets.find(d => d.id === 'ahp');
-        if (ahpExample) {
+        if (ahpExample && ahpExample.data) {
             try {
                 const parsedData = JSON.parse(ahpExample.data);
                 loadAHPData(parsedData, ahpExample.name);
@@ -160,15 +162,12 @@ export default function AhpPage() {
         setMatrices((prev: any) => ({ ...prev, [key]: matrix }));
     };
 
-    const renderHierarchyComparisons = (levels: HierarchyLevel[], parentPath = 'goal') => {
+    const renderHierarchyComparisons = (level: HierarchyLevel, parentPath: string) => {
         let comparisons: JSX.Element[] = [];
-        if (levels.length === 0) return comparisons;
-    
-        const currentLevel = levels[0];
-        if (!currentLevel || currentLevel.nodes.length < 2) return comparisons;
+        if (!level || level.nodes.length === 0) return comparisons;
 
-        currentLevel.nodes.forEach(node => {
-            if (node.children && node.children.nodes.length > 0) {
+        level.nodes.forEach(node => {
+            if (node.children && node.children.nodes.length > 1) {
                 const newPath = `${parentPath}.${node.name}`;
                  comparisons.push(
                     <Card key={newPath}>
@@ -178,38 +177,35 @@ export default function AhpPage() {
                         </CardContent>
                     </Card>
                 );
-                comparisons = comparisons.concat(renderHierarchyComparisons([node.children], newPath));
+                comparisons = comparisons.concat(renderHierarchyComparisons(node.children, newPath));
             }
         });
         return comparisons;
     };
     
-    const renderAlternativeComparisons = () => {
-        if (!hasAlternatives || hierarchy.length === 0) return [];
-        
-        const leafNodes: {path: string, name: string}[] = [];
-        const findLeafs = (level: HierarchyLevel, path: string) => {
-            level.nodes.forEach(node => {
-                const currentPath = `${path}.${node.name}`;
-                if (!node.children || node.children.nodes.length === 0) {
-                    leafNodes.push({ path: currentPath, name: node.name });
-                } else {
-                    findLeafs(node.children, currentPath);
-                }
-            });
-        }
-        findLeafs(hierarchy[0], 'goal');
-        
-        return leafNodes.map(leaf => (
-            <Card key={leaf.path}>
-                <CardHeader><CardTitle>{`Compare Alternatives for '${leaf.name}'`}</CardTitle></CardHeader>
-                <CardContent>
-                    <ComparisonMatrix items={alternatives} matrix={matrices[leaf.path]} onMatrixChange={(m) => updateMatrix(leaf.path, m)} />
-                </CardContent>
-            </Card>
-        ));
-    };
+    const renderAlternativeComparisons = (level: HierarchyLevel, parentPath: string) => {
+        if (!hasAlternatives || !level) return [];
 
+        let comparisons: JSX.Element[] = [];
+
+        level.nodes.forEach(node => {
+            const currentPath = `${parentPath}.${node.name}`;
+            if (!node.children || node.children.nodes.length === 0) { // It's a leaf node
+                comparisons.push(
+                    <Card key={currentPath}>
+                        <CardHeader><CardTitle>{`Compare Alternatives for '${node.name}'`}</CardTitle></CardHeader>
+                        <CardContent>
+                            <ComparisonMatrix items={alternatives} matrix={matrices[currentPath]} onMatrixChange={(m) => updateMatrix(currentPath, m)} />
+                        </CardContent>
+                    </Card>
+                );
+            } else {
+                comparisons = comparisons.concat(renderAlternativeComparisons(node.children, currentPath));
+            }
+        });
+        
+        return comparisons;
+    };
 
     const handleRunAnalysis = async () => {
         setIsLoading(true);
@@ -272,8 +268,8 @@ export default function AhpPage() {
                                     </CardContent>
                                 </Card>
                             )}
-                            {renderHierarchyComparisons(hierarchy)}
-                            {renderAlternativeComparisons()}
+                            {hierarchy.length > 0 && renderHierarchyComparisons(hierarchy[0], 'goal')}
+                            {hierarchy.length > 0 && renderAlternativeComparisons(hierarchy[0], 'goal')}
                         </div>
 
                     </CardContent>
