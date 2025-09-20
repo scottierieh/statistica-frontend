@@ -207,7 +207,8 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
     )
   }
 
-  const plotData = results ? JSON.parse(results.heatmap_plot || '{}') : null;
+  const heatmapPlotData = results ? JSON.parse(results.heatmap_plot || '{}') : null;
+  const pairsPlotData = results ? JSON.parse(results.pairs_plot || '{}') : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -303,19 +304,24 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                  <StrongestCorrelationsChart data={results.strongest_correlations} />
             </div>
             
-             {results.pairs_plot && (
+             {pairsPlotData && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Pairs Plot</CardTitle>
-                        <CardDescription>A matrix of scatterplots for each variable pair, distributions for each variable, and correlation coefficients.</CardDescription>
+                        <CardDescription>An interactive matrix of scatterplots and correlation coefficients.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <Image src={`data:image/png;base64,${results.pairs_plot}`} alt="Pairs Plot" width={800} height={800} className="w-full rounded-md border" />
+                        <Plot
+                            data={pairsPlotData.data}
+                            layout={pairsPlotData.layout}
+                            useResizeHandler={true}
+                            className="w-full h-[800px]"
+                        />
                     </CardContent>
                 </Card>
             )}
 
-            {plotData && (
+            {heatmapPlotData && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Correlation Matrix Heatmap</CardTitle>
@@ -323,8 +329,8 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     </CardHeader>
                     <CardContent>
                          <Plot
-                            data={plotData.data}
-                            layout={plotData.layout}
+                            data={heatmapPlotData.data}
+                            layout={heatmapPlotData.layout}
                             useResizeHandler={true}
                             className="w-full h-[600px]"
                          />
