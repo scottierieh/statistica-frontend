@@ -78,8 +78,11 @@ def main():
         
         # --- Data Cleaning and Type Conversion ---
         df_clean = df[all_analysis_vars].copy()
-        for col in all_analysis_vars:
-            df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
+        
+        for col in df.columns:
+            if col in all_analysis_vars:
+                # This will coerce any non-numeric strings to NaN, which are then dropped.
+                df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
         
         df_clean.dropna(subset=all_analysis_vars, inplace=True)
         
@@ -119,7 +122,7 @@ def main():
                 
                 level_worths = [0]
                 for level in props['levels'][1:]:
-                    param_name = f'C(Q("{attr_name_clean}"))[T.{level}]'
+                    param_name = f"C(Q(\"{attr_name_clean}\"))[T.{level}]"
                     worth = model.params.get(param_name, 0)
                     part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
                     level_worths.append(worth)
@@ -151,12 +154,14 @@ def main():
             'targetVariable': target_variable
         }
         
+        # --- Create a new response structure that includes results ---
+        response = {'results': final_results}
+        
         if sensitivity_analysis_request:
             sensitivity_plot_img = generate_sensitivity_plot(sensitivity_analysis_request)
-            final_results['sensitivity_plot'] = f"data:image/png;base64,{sensitivity_plot_img}" if sensitivity_plot_img else None
+            response['sensitivity_plot'] = f"data:image/png;base64,{sensitivity_plot_img}" if sensitivity_plot_img else None
 
-
-        print(json.dumps(final_results, default=_to_native_type))
+        print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
@@ -165,3 +170,4 @@ def main():
 if __name__ == '__main__':
     main()
   
+
