@@ -17,7 +17,7 @@ import { produce } from 'immer';
 
 interface AHPResult {
     goal: string;
-    analysis_results: { [key: string]: AnalysisBlock };
+    analysis_results: { [key: string]: AnalysisBlock | null };
     synthesis: {
         final_weights: { [key: string]: number };
         ranking: [string, number][];
@@ -137,7 +137,7 @@ export default function AhpPage() {
         return comparisons;
     };
     
-     const findLeafNodes = (level: HierarchyLevel, path: string, leafs: {path: string, name: string}[]) => {
+    const findLeafNodes = (level: HierarchyLevel, path: string, leafs: {path: string, name: string}[]) => {
         level.nodes.forEach(node => {
             const currentPath = `${path}.${node.name}`;
             if (!node.children || node.children.nodes.length === 0) {
@@ -150,8 +150,19 @@ export default function AhpPage() {
 
     const renderAlternativeComparisons = () => {
         if (!hasAlternatives || hierarchy.length === 0) return [];
+        
         const leafNodes: {path: string, name: string}[] = [];
-        findLeafNodes(hierarchy[0], 'goal', leafNodes);
+        const calculateLeafs = (level: HierarchyLevel, parentPath: string) => {
+             level.nodes.forEach(node => {
+                const currentPath = `${parentPath}.${node.name}`;
+                if (!node.children || node.children.nodes.length === 0) {
+                    leafNodes.push({ path: currentPath, name: node.name });
+                } else {
+                    calculateLeafs(node.children, currentPath);
+                }
+            });
+        }
+        calculateLeafs(hierarchy[0], 'goal');
         
         return leafNodes.map(leaf => (
             <Card key={leaf.path}>
@@ -187,7 +198,7 @@ export default function AhpPage() {
     };
     
     const results = analysisResult;
-    const isConsistent = results ? Object.values(results.analysis_results).every(a => a.is_consistent) : true;
+    const isConsistent = results ? Object.values(results.analysis_results).every(a => a && a.is_consistent) : true;
     
     return (
         <div className="space-y-4">
@@ -262,20 +273,24 @@ export default function AhpPage() {
                             <Table>
                                 <TableHeader><TableRow><TableHead>Comparison</TableHead><TableHead>CR</TableHead><TableHead>Weights</TableHead></TableRow></TableHeader>
                                 <TableBody>
-                                    {Object.entries(results.analysis_results).map(([key, analysis]) => (
+                                    {Object.entries(results.analysis_results).map(([key, analysis]) => {
+                                      if (!analysis) return null;
+                                      const items = key === 'goal'
+                                        ? hierarchy[0].nodes.map(n => n.name)
+                                        : key.split('.').slice(1);
+                                      return (
                                         <TableRow key={key}>
                                             <TableCell>{key.replace('goal.', '')}</TableCell>
                                             <TableCell className={`font-mono ${analysis.is_consistent ? '' : 'text-destructive'}`}>{analysis.consistency_ratio.toFixed(4)}</TableCell>
                                             <TableCell>
                                                 <ul>
-                                                    {analysis.priority_vector.map((weight, i) => {
-                                                        const nodeName = key === 'goal' ? hierarchy[0].nodes[i]?.name : key.split('.').pop(); // Simplified logic
-                                                        return <li key={i}>{nodeName} : {weight.toFixed(3)}</li>
-                                                    })}
+                                                    {analysis.priority_vector.map((weight, i) => (
+                                                        <li key={i}>{items[i]} : {weight.toFixed(3)}</li>
+                                                    ))}
                                                 </ul>
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                    )})}
                                 </TableBody>
                             </Table>
                         </CardContent>
