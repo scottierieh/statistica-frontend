@@ -57,17 +57,9 @@ def main():
         # Do not convert group/time vars to numeric, let statsmodels handle them as categories
         df[outcome_var] = pd.to_numeric(df[outcome_var], errors='coerce')
         df.dropna(subset=[outcome_var, group_var, time_var], inplace=True)
-
-        # Get unique values for cleaning coefficient names later
-        # Ensure treatment/post are the non-reference categories
-        group_vals = sorted(df[group_var].astype(str).unique())
-        time_vals = sorted(df[time_var].astype(str).unique())
         
-        if len(group_vals) != 2 or len(time_vals) != 2:
+        if len(df[group_var].unique()) != 2 or len(df[time_var].unique()) != 2:
              raise ValueError("Group and Time variables must each have exactly two unique values for DiD analysis.")
-
-        group_treat = group_vals[1]
-        time_post = time_vals[1]
 
         # Sanitize column names for formula
         outcome_clean = outcome_var.replace(' ', '_').replace('.', '_')
@@ -85,8 +77,12 @@ def main():
         
         # --- Clean up coefficient names ---
         def clean_name(name):
+            name = name.strip()
+            # Handle interaction terms C(Q("..."))[...]:C(Q("..."))[...]
             name = re.sub(f'C\\(Q\\("{group_clean}"\\)\\)\\[T\\.([^]]+)\\]', group_var, name)
             name = re.sub(f'C\\(Q\\("{time_clean}"\\)\\)\\[T\\.([^]]+)\\]', time_var, name)
+            # Handle simple quoted names Q("...")
+            name = re.sub(r'Q\("([^"]+)"\)', r'\1', name)
             return name
 
         params_cleaned = {clean_name(k): v for k, v in model.params.to_dict().items()}
@@ -97,10 +93,11 @@ def main():
         for table in summary_obj.tables:
             table_data = [list(row) for row in table.data]
             if table_data:
+                # Clean header of the coefficient table
                 if len(table_data) > 1 and 'coef' in table_data[0]:
                     for row in table_data[1:]:
                         if row and row[0]:
-                             row[0] = clean_name(row[0].strip())
+                             row[0] = clean_name(row[0])
             
             summary_data.append({
                 'caption': getattr(table, 'title', None),
