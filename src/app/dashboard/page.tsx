@@ -49,22 +49,6 @@ export default function DashboardHubPage() {
                         </Button>
                     </CardContent>
                 </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2">
-                            <ClipboardList className="h-5 w-5"/>
-                            Survey
-                        </CardTitle>
-                        <CardDescription>
-                           Create, distribute, and analyze surveys with powerful built-in statistical tools.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/survey" target="_blank" rel="noopener noreferrer">Launch Survey</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2">

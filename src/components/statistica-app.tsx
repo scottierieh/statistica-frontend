@@ -334,7 +334,6 @@ const analysisMenu = [
       { id: 'sna', label: 'Social Network Analysis' },
       { id: 'dea', label: 'Data Envelopment Analysis (DEA)' },
       { id: 'did', label: 'Difference-in-Differences' },
-      { id: 'delphi', label: 'Delphi Analysis' },
       { id: 'decision-tree', label: 'Decision Tree', implemented: false },
     ]
   },
