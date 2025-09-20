@@ -2,15 +2,16 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { BarChart as BarChartIcon, DollarSign, Eye, Clock, LineChart, ScatterChart as ScatterIcon, Loader2, Users, MapPin, Award } from 'lucide-react';
+import { BarChart as BarChartIcon, DollarSign, Eye, Clock, LineChart, ScatterChart as ScatterIcon, Loader2, Users, MapPin, Award, Sigma } from 'lucide-react';
 import { DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
 import { Skeleton } from '../ui/skeleton';
 import Image from 'next/image';
+import { useToast } from '@/hooks/use-toast';
 
 interface MarketingAnalysisPageProps {
     data: DataSet;
@@ -34,6 +35,7 @@ const ChartCard = ({ title, plotData }: { title: string, plotData: string | null
 );
 
 export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: MarketingAnalysisPageProps) {
+    const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
 
     const [revenueCol, setRevenueCol] = useState<string | undefined>();
@@ -48,18 +50,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     const [countryCol, setCountryCol] = useState<string | undefined>();
     const [membershipCol, setMembershipCol] = useState<string | undefined>();
 
-    const [plots, setPlots] = useState<Record<string, string | null>>({
-        revenueBySource: null,
-        revenueByDevice: null,
-        revenueOverTime: null,
-        revenueByAge: null,
-        pageViewsDist: null,
-        durationVsRevenue: null,
-        rfmAnalysis: null,
-        revenueByGender: null,
-        revenueByCountry: null,
-        revenueByMembership: null,
-    });
+    const [plots, setPlots] = useState<Record<string, string | null> | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
@@ -78,83 +69,54 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
         setGenderCol(categoricalHeaders.find(h => h.toLowerCase().includes('gender')) || categoricalHeaders[3]);
         setCountryCol(categoricalHeaders.find(h => h.toLowerCase().includes('country')) || categoricalHeaders[4]);
         setMembershipCol(categoricalHeaders.find(h => h.toLowerCase().includes('membership')) || categoricalHeaders[5]);
+        setPlots(null);
     }, [numericHeaders, categoricalHeaders, allHeaders]);
+    
+    const handleGenerateDashboard = useCallback(async () => {
+        const requiredCols = {
+            revenueCol, sourceCol, deviceCol, pageViewsCol, sessionDurationCol,
+            dateCol, ageGroupCol, ltvCol, genderCol, countryCol, membershipCol
+        };
 
-    const fetchPlot = useCallback(async (chartType: string, config: any) => {
+        for (const [key, value] of Object.entries(requiredCols)) {
+            if (!value) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Configuration Incomplete',
+                    description: `Please select a column for "${key.replace('Col', '')}".`
+                });
+                return;
+            }
+        }
+        
+        setIsGenerating(true);
+        setPlots(null);
+
         try {
-            const response = await fetch('/api/analysis/visualization', {
+             const response = await fetch('/api/analysis/marketing-dashboard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, chartType, config })
+                body: JSON.stringify({ data, config: requiredCols })
             });
-            if (!response.ok) return null;
+            if (!response.ok) {
+                 const errorResult = await response.json();
+                 throw new Error(errorResult.error || 'Failed to generate dashboard');
+            }
             const result = await response.json();
-            return result.plot;
-        } catch (error) {
-            console.error(`Failed to fetch plot for ${chartType}:`, error);
-            return null;
-        }
-    }, [data]);
-    
-    useEffect(() => {
-        if (data.length > 0 && revenueCol && sourceCol) {
-            fetchPlot('bar', { x_col: sourceCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueBySource: plot})));
-        }
-    }, [data, revenueCol, sourceCol, fetchPlot]);
+            setPlots(result.plots);
 
-    useEffect(() => {
-        if (data.length > 0 && revenueCol && deviceCol) {
-            fetchPlot('bar', { x_col: deviceCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueByDevice: plot})));
+        } catch(error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Dashboard Generation Failed',
+                description: error.message
+            });
+        } finally {
+            setIsGenerating(false);
         }
-    }, [data, revenueCol, deviceCol, fetchPlot]);
 
-    useEffect(() => {
-        if (data.length > 0 && dateCol && revenueCol) {
-            fetchPlot('line', { x_col: dateCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueOverTime: plot})));
-        }
-    }, [data, dateCol, revenueCol, fetchPlot]);
-    
-    useEffect(() => {
-        if (data.length > 0 && ageGroupCol && revenueCol) {
-             fetchPlot('bar', { x_col: ageGroupCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueByAge: plot})));
-        }
-    }, [data, ageGroupCol, revenueCol, fetchPlot]);
+    }, [data, revenueCol, sourceCol, deviceCol, pageViewsCol, sessionDurationCol, dateCol, ageGroupCol, ltvCol, genderCol, countryCol, membershipCol, toast]);
 
-    useEffect(() => {
-        if (data.length > 0 && pageViewsCol) {
-            fetchPlot('histogram', { x_col: pageViewsCol }).then(plot => setPlots(p => ({...p, pageViewsDist: plot})));
-        }
-    }, [data, pageViewsCol, fetchPlot]);
-    
-    useEffect(() => {
-        if (data.length > 0 && sessionDurationCol && revenueCol) {
-            fetchPlot('scatter', { x_col: sessionDurationCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, durationVsRevenue: plot})));
-        }
-    }, [data, sessionDurationCol, revenueCol, fetchPlot]);
-
-    useEffect(() => {
-        if (data.length > 0 && ltvCol && revenueCol) {
-            fetchPlot('scatter', { x_col: ltvCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, rfmAnalysis: plot})));
-        }
-    }, [data, ltvCol, revenueCol, fetchPlot]);
-    
-    useEffect(() => {
-        if (data.length > 0 && genderCol && revenueCol) {
-            fetchPlot('bar', { x_col: genderCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueByGender: plot})));
-        }
-    }, [data, genderCol, revenueCol, fetchPlot]);
-    
-    useEffect(() => {
-        if (data.length > 0 && countryCol && revenueCol) {
-            fetchPlot('bar', { x_col: countryCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueByCountry: plot})));
-        }
-    }, [data, countryCol, revenueCol, fetchPlot]);
-    
-    useEffect(() => {
-        if (data.length > 0 && membershipCol && revenueCol) {
-            fetchPlot('bar', { x_col: membershipCol, y_col: revenueCol }).then(plot => setPlots(p => ({...p, revenueByMembership: plot})));
-        }
-    }, [data, membershipCol, revenueCol, fetchPlot]);
 
     const summaryStats = useMemo(() => {
         if (!data || data.length === 0 || !revenueCol || !pageViewsCol) {
@@ -214,6 +176,11 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                     <div><Label>Country</Label><Select value={countryCol} onValueChange={setCountryCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                     <div><Label>Membership Level</Label><Select value={membershipCol} onValueChange={setMembershipCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                 </CardContent>
+                <CardFooter className='flex justify-end'>
+                    <Button onClick={handleGenerateDashboard} disabled={isGenerating}>
+                        {isGenerating ? <><Loader2 className="animate-spin mr-2" />Generating...</> : <><Sigma className="mr-2" />Generate Dashboard</>}
+                    </Button>
+                </CardFooter>
             </Card>
 
             <div className="grid gap-4 md:grid-cols-3">
@@ -248,7 +215,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             
             {isGenerating && <div className="text-center p-8"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /> <p className="text-muted-foreground">Generating dashboard...</p></div>}
 
-            {!isGenerating && (
+            {plots && !isGenerating && (
                 <>
                 <Card>
                     <CardHeader><CardTitle className="font-headline">1. General Performance</CardTitle></CardHeader>
