@@ -10,12 +10,16 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
 import { Skeleton } from '../ui/skeleton';
-import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
 import { DollarSign, Clock, Eye, BarChart as BarChartIcon } from 'lucide-react';
+import dynamic from 'next/dynamic';
 
+const Plot = dynamic(() => import('react-plotly.js'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-[300px]" />,
+});
 
 interface MarketingAnalysisPageProps {
     data: DataSet;
@@ -25,18 +29,39 @@ interface MarketingAnalysisPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-const ChartCard = ({ title, plotData }: { title: string, plotData: string | null | undefined }) => (
-    <Card>
-        <CardHeader><CardTitle className="text-base font-headline">{title}</CardTitle></CardHeader>
-        <CardContent>
-            {plotData ? (
-                <Image src={plotData} alt={title} width={600} height={400} className="w-full h-auto rounded-md border" />
-            ) : (
-                <Skeleton className="h-[300px] w-full" />
-            )}
-        </CardContent>
-    </Card>
-);
+const ChartCard = ({ title, plotData }: { title: string, plotData: string | null | undefined }) => {
+    let layout = {};
+    let data = [];
+    if (plotData) {
+        try {
+            const parsed = JSON.parse(plotData);
+            layout = parsed.layout;
+            data = parsed.data;
+        } catch (e) {
+            console.error("Failed to parse plot data", e);
+            return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent><p>Error rendering chart.</p></CardContent></Card>
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader><CardTitle className="text-base font-headline">{title}</CardTitle></CardHeader>
+            <CardContent>
+                {plotData ? (
+                     <Plot
+                        data={data}
+                        layout={layout}
+                        useResizeHandler={true}
+                        className="w-full h-[300px]"
+                    />
+                ) : (
+                    <Skeleton className="h-[300px] w-full" />
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
 
 export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: MarketingAnalysisPageProps) {
     const { toast } = useToast();
@@ -44,7 +69,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     
     const [columnConfig, setColumnConfig] = useState({
         revenueCol: '', sourceCol: '', mediumCol: '', campaignCol: '', costCol: '', conversionCol: '', deviceCol: '',
-        pageViewsCol: '', sessionDurationCol: '', dateCol: '', ageGroupCol: '', ltvCol: '', genderCol: '',
+        dateCol: '', ageGroupCol: '', ltvCol: '', genderCol: '',
         countryCol: '', membershipCol: '', userIdCol: '', cohortDateCol: '', itemCategoryCol: '',
         itemBrandCol: '', priceCol: '', quantityCol: '', couponUsedCol: ''
     });
@@ -58,10 +83,10 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
         
         const findColumn = (keywords: string[], headers: string[]) => {
             for (const keyword of keywords) {
-                const found = headers.find(h => h.toLowerCase().replace(/_/g, '').includes(keyword));
+                const found = headers.find(h => h.toLowerCase().replace(/[-_\s]/g, '').includes(keyword));
                 if (found) return found;
             }
-            return headers[0] || '';
+            return '';
         };
 
         setColumnConfig({
@@ -72,8 +97,6 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             costCol: findColumn(['cost'], numericHeaders),
             conversionCol: findColumn(['conversion'], allHeaders),
             deviceCol: findColumn(['device'], categoricalHeaders),
-            pageViewsCol: findColumn(['pageviews', 'views'], numericHeaders),
-            sessionDurationCol: findColumn(['duration'], numericHeaders),
             dateCol: findColumn(['date'], allHeaders),
             ageGroupCol: findColumn(['age'], categoricalHeaders),
             ltvCol: findColumn(['ltv'], numericHeaders),
@@ -125,14 +148,13 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
 
 
     const summaryStats = useMemo(() => {
-        if (!data || data.length === 0 || !columnConfig.revenueCol || !columnConfig.pageViewsCol) {
-            return { totalRevenue: 0, totalSessions: 0, totalPageViews: 0 };
+        if (!data || data.length === 0 || !columnConfig.revenueCol) {
+            return { totalRevenue: 0, totalSessions: 0 };
         }
         const totalRevenue = data.reduce((acc, row) => acc + (Number(row[columnConfig.revenueCol!]) || 0), 0);
         const totalSessions = data.length;
-        const totalPageViews = data.reduce((acc, row) => acc + (Number(row[columnConfig.pageViewsCol!]) || 0), 0);
-        return { totalRevenue, totalSessions, totalPageViews };
-    }, [data, columnConfig.revenueCol, columnConfig.pageViewsCol]);
+        return { totalRevenue, totalSessions };
+    }, [data, columnConfig.revenueCol]);
 
 
     if (!isClient) {
@@ -204,7 +226,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                 </CardFooter>
             </Card>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -221,15 +243,6 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{summaryStats.totalSessions.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Page Views</CardTitle>
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{summaryStats.totalPageViews.toLocaleString()}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -256,32 +269,10 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                         <ChartCard title="Coupon Effectiveness" plotData={plots.couponEffectiveness} />
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader><CardTitle className="font-headline">3. General Performance</CardTitle></CardHeader>
-                    <CardContent className="grid gap-4 md:grid-cols-2">
-                        <ChartCard title="Revenue Over Time" plotData={plots.revenueOverTime} />
-                        <ChartCard title="Revenue by Traffic Source" plotData={plots.revenueBySource} />
-                        <ChartCard title="Revenue by Device" plotData={plots.revenueByDevice} />
-                        <ChartCard title="Page Views per Session" plotData={plots.pageViewsDist} />
-                        <div className="md:col-span-2">
-                            <ChartCard title="Session Duration vs. Revenue" plotData={plots.durationVsRevenue} />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader><CardTitle className="font-headline">4. Customer Segmentation</CardTitle></CardHeader>
-                    <CardContent className="grid gap-4 md:grid-cols-2">
-                         <ChartCard title="User LTV vs. Purchase Revenue" plotData={plots.ltvVsRevenue} />
-                         <ChartCard title="Revenue by Age Group" plotData={plots.revenueByAge} />
-                         <ChartCard title="Revenue by Gender" plotData={plots.revenueByGender} />
-                         <ChartCard title="Revenue by Country" plotData={plots.revenueByCountry} />
-                         <div className="md:col-span-2">
-                            <ChartCard title="Revenue by Membership Level" plotData={plots.revenueByMembership} />
-                         </div>
-                    </CardContent>
-                </Card>
                 </>
             )}
         </div>
     );
 }
+
+    
