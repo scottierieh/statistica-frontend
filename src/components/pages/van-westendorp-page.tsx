@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -21,6 +22,7 @@ interface AnalysisResponse {
             expensive: number | null;
             too_expensive: number | null;
             optimal: number | null;
+            indifference: number | null;
         };
         acceptable_range: (number | null)[];
     };
@@ -126,22 +128,31 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
                     <CardTitle className="font-headline">Van Westendorp Analysis Setup</CardTitle>
                     <CardDescription>Map the four price perception columns from your data.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                        <Label>Too Cheap Column</Label>
-                        <Select value={tooCheapCol} onValueChange={setTooCheapCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                     <div>
-                        <Label>Cheap Column</Label>
-                        <Select value={cheapCol} onValueChange={setCheapCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                     <div>
-                        <Label>Expensive Column</Label>
-                        <Select value={expensiveCol} onValueChange={setExpensiveCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                    <div>
-                        <Label>Too Expensive Column</Label>
-                        <Select value={tooExpensiveCol} onValueChange={setTooExpensiveCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                <CardContent>
+                     <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>How to Set Up Your Data</AlertTitle>
+                        <AlertDescription>
+                            Each row should represent a single respondent. The four selected columns should contain the price points they indicated for each category: 'Too Cheap', 'Cheap', 'Expensive', and 'Too Expensive'.
+                        </AlertDescription>
+                    </Alert>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                        <div>
+                            <Label>Too Cheap Column</Label>
+                            <Select value={tooCheapCol} onValueChange={setTooCheapCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                         <div>
+                            <Label>Cheap Column</Label>
+                            <Select value={cheapCol} onValueChange={setCheapCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                         <div>
+                            <Label>Expensive Column</Label>
+                            <Select value={expensiveCol} onValueChange={setExpensiveCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                        <div>
+                            <Label>Too Expensive Column</Label>
+                            <Select value={tooExpensiveCol} onValueChange={setTooExpensiveCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
@@ -175,22 +186,22 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
                                 </div>
                                  <div className="p-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg">
                                     <dt className="text-sm font-medium">Indifference Price</dt>
-                                    <dd className="text-3xl font-bold">${results.prices.too_cheap?.toFixed(2) ?? 'N/A'}</dd>
+                                    <dd className="text-3xl font-bold">${results.prices.indifference?.toFixed(2) ?? 'N/A'}</dd>
                                 </div>
                                 <div className="p-4 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg">
                                     <dt className="text-sm font-medium">Marginal Cheapness</dt>
-                                    <dd className="text-3xl font-bold">${results.prices.cheap?.toFixed(2) ?? 'N/A'}</dd>
+                                    <dd className="text-3xl font-bold">${results.prices.too_cheap?.toFixed(2) ?? 'N/A'}</dd>
                                 </div>
                                 <div className="p-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg">
                                     <dt className="text-sm font-medium">Marginal Expensiveness</dt>
                                     <dd className="text-3xl font-bold">${results.prices.expensive?.toFixed(2) ?? 'N/A'}</dd>
                                 </div>
                             </dl>
-                            {results.prices.cheap && results.prices.expensive && (
+                            {results.acceptable_range && results.acceptable_range[0] != null && results.acceptable_range[1] != null && (
                                  <Alert className="mt-4">
                                     <AlertTitle>Acceptable Price Range</AlertTitle>
                                     <AlertDescription>
-                                        The data suggests an acceptable price range for your product is between <strong>${results.prices.cheap.toFixed(2)}</strong> and <strong>${results.prices.expensive.toFixed(2)}</strong>.
+                                        The data suggests an acceptable price range for your product is between <strong>${results.acceptable_range[0].toFixed(2)}</strong> and <strong>${results.acceptable_range[1].toFixed(2)}</strong>.
                                     </AlertDescription>
                                 </Alert>
                             )}
