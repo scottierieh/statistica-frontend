@@ -54,7 +54,6 @@ class LogisticRegressionAnalysis:
         self.X = pd.get_dummies(X_raw, drop_first=True, dtype=float)
         self.feature_names = self.X.columns.tolist()
         
-        # Ensure y is a 1D array
         self.y = self.clean_data[self.dependent_var + '_encoded'].values
         
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_size, random_state=self.random_state, stratify=self.y)
@@ -63,7 +62,6 @@ class LogisticRegressionAnalysis:
         self.X_train_scaled = self.scaler.fit_transform(self.X_train)
         self.X_test_scaled = self.scaler.transform(self.X_test)
         
-        # Add VIF check here
         self._check_multicollinearity()
 
 
@@ -71,14 +69,11 @@ class LogisticRegressionAnalysis:
         if self.X_train.shape[1] < 2:
             return 
         
-        # Create a DataFrame from the scaled training data to calculate VIF
         X_train_df_scaled = pd.DataFrame(self.X_train_scaled, columns=self.feature_names)
         
-        # Add a constant for VIF calculation
         X_with_const = sm.add_constant(X_train_df_scaled, has_constant='add')
         
         vif_data = pd.DataFrame()
-        # VIF calculation needs to be done on the exog part of the dataframe (without const)
         vif_data["feature"] = X_train_df_scaled.columns
         try:
             vif_data["VIF"] = [variance_inflation_factor(X_with_const.values, i + 1) for i in range(X_train_df_scaled.shape[1])]
@@ -129,7 +124,6 @@ class LogisticRegressionAnalysis:
         self.results['roc_data'] = {'fpr': fpr.tolist(), 'tpr': tpr.tolist(), 'auc': roc_auc}
         self.results['dependent_classes'] = self.dependent_classes
         
-        # Add model summary stats
         self.results['model_summary'] = {
             'llf': self.model_fit.llf,
             'llnull': self.model_fit.llnull,
@@ -150,20 +144,16 @@ class LogisticRegressionAnalysis:
         pseudo_r2 = summary['prsquared']
         accuracy = res['metrics']['accuracy']
         
-        # Sentence 1: Purpose
         interpretation = f"A logistic regression was performed to ascertain the effects of {len(self.independent_vars)} predictors on the likelihood that respondents would be classified as one group or another in '{self.dependent_var}'.\n\n"
 
-        # Sentence 2: Model Significance
         model_sig_text = "statistically significant" if p_val < 0.05 else "not statistically significant"
         p_val_text = f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
         interpretation += f"The logistic regression model was {model_sig_text}, χ²({df:.0f}, N = {len(self.clean_data)}) = {chi2:.3f}, {p_val_text}. "
         
-        # Sentence 3: Model Fit
         interpretation += f"The model explained {pseudo_r2*100:.1f}% (Pseudo R²) of the variance in {self.dependent_var} and correctly classified {accuracy*100:.1f}% of cases.\n\n"
         
-        # Sentence 4: Individual Predictors
         odds_ratios = res['odds_ratios']
-        p_values = self.model_fit.pvalues[1:] # Exclude const
+        p_values = self.model_fit.pvalues[1:] 
         
         sig_preds = []
         for var, p in p_values.items():
@@ -181,7 +171,6 @@ class LogisticRegressionAnalysis:
     def plot_results(self):
         fig, axes = plt.subplots(1, 2, figsize=(14, 6))
         
-        # ROC Curve
         roc = self.results['roc_data']
         axes[0].plot(roc['fpr'], roc['tpr'], color='darkorange', lw=2, label=f'ROC curve (area = {roc["auc"]:.2f})')
         axes[0].plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
@@ -193,7 +182,6 @@ class LogisticRegressionAnalysis:
         axes[0].legend(loc="lower right")
         axes[0].grid(True, alpha=0.3)
 
-        # Confusion Matrix Heatmap
         cm = np.array(self.results['metrics']['confusion_matrix'])
         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=axes[1], 
                     xticklabels=self.dependent_classes, yticklabels=self.dependent_classes)
@@ -236,10 +224,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
 
