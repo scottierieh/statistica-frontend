@@ -1,10 +1,12 @@
 
+
 import sys
 import json
 import pandas as pd
 import numpy as np
 import math
 from scipy.stats import iqr
+import pingouin as pg
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -31,9 +33,8 @@ def calculate_consensus(series):
     """Calculate consensus based on interquartile range."""
     if len(series) < 2:
         return np.nan
-    q1 = series.quantile(0.25)
-    q3 = series.quantile(0.75)
-    return q3 - q1
+    series_range = series.max() - series.min()
+    return 1 - (iqr(series) / series_range) if series_range > 0 else 1
 
 def calculate_stability(series):
     """Calculate stability using the coefficient of variation (CV)."""
@@ -64,11 +65,18 @@ def main():
             items = round_config['items']
             
             round_results = {}
+            if not items:
+                continue
+
+            # Convert all relevant columns to numeric and then drop rows with any NaN in those columns
+            round_df_numeric = df[items].apply(pd.to_numeric, errors='coerce')
+            round_df_clean = round_df_numeric.dropna()
+            
             for item_col in items:
-                if item_col not in df.columns:
+                if item_col not in round_df_clean.columns:
                     continue
                     
-                series = pd.to_numeric(df[item_col], errors='coerce').dropna()
+                series = round_df_clean[item_col]
                 
                 if series.empty:
                     continue
@@ -86,8 +94,18 @@ def main():
                     'consensus': calculate_consensus(series),
                     'stability': calculate_stability(series),
                     'convergence': median_val - q1,
+                    'positive_responses': (series >= cvr_threshold).sum(),
                 }
-            results[round_name] = round_results
+            
+            # Calculate Cronbach's Alpha for the round, using the cleaned dataframe
+            cronbach_alpha = np.nan
+            if not round_df_clean.empty and len(round_df_clean.columns) > 1:
+                cronbach_alpha = pg.cronbach_alpha(data=round_df_clean)[0]
+            
+            results[round_name] = {
+                "items": round_results,
+                "cronbach_alpha": cronbach_alpha
+            }
         
         print(json.dumps({'results': results}, default=_to_native_type))
 
