@@ -32,7 +32,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { questio
             )}
             <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-2">
                 {question.options.map((option: string, index: number) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors">
+                    <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
                         <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
                         <Label htmlFor={`q${question.id}-o${index}`} className="flex-1 cursor-pointer">{option}</Label>
                     </div>
@@ -62,7 +62,7 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { 
             )}
            <div className="space-y-2">
                 {question.options.map((option: string, index: number) => (
-                   <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors">
+                   <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
                        <Checkbox
                            id={`q${question.id}-o${index}`}
                            checked={answer?.includes(option)}
@@ -150,7 +150,7 @@ const NPSQuestion = ({ question, answer, onAnswerChange }: { question: any; answ
         )}
       <div className="flex items-center justify-between gap-1 flex-wrap">
         {[...Array(11)].map((_, i) => (
-            <Button key={i} variant={answer === i ? 'default' : 'outline'} size="icon" className="h-10 w-8 text-xs" onClick={() => onAnswerChange(i)}>
+            <Button key={i} variant={answer === i ? 'default' : 'outline'} size="icon" className="h-10 w-8 text-xs transition-transform hover:scale-110 active:scale-95" onClick={() => onAnswerChange(i)}>
                 {i}
             </Button>
         ))}
@@ -177,20 +177,22 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: any
                     <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
                 </div>
             )}
-            <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
-                <div className="font-semibold text-muted-foreground">Item</div>
-                <div className="font-semibold text-center">Best</div>
-                <div className="font-semibold text-center">Worst</div>
+            <div className="space-y-2">
+                <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
+                    <div className="font-semibold text-muted-foreground">Item</div>
+                    <div className="font-semibold text-center w-20">Best</div>
+                    <div className="font-semibold text-center w-20">Worst</div>
+                </div>
                 {question.items.map((item: string, index: number) => (
-                    <React.Fragment key={index}>
-                        <div className="p-3 border rounded-md bg-muted/20 flex items-center">{item}</div>
-                        <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })} className="flex items-center justify-center p-3 border rounded-md">
+                    <div key={index} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 p-2 border rounded-md hover:bg-accent transition-colors">
+                        <div>{item}</div>
+                        <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })} className="flex items-center justify-center w-20">
+                           <RadioGroupItem value={item} />
+                        </RadioGroup>
+                         <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })} className="flex items-center justify-center w-20">
                             <RadioGroupItem value={item} />
                         </RadioGroup>
-                        <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })} className="flex items-center justify-center p-3 border rounded-md">
-                            <RadioGroupItem value={item} />
-                        </RadioGroup>
-                    </React.Fragment>
+                    </div>
                 ))}
             </div>
         </div>
@@ -207,14 +209,12 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: any, a
                     <TableRow>
                         <TableHead className="w-1/3"></TableHead>
                         {question.columns.map((col: string, colIndex: number) => {
-                            if (colIndex === 0 || colIndex === question.columns.length - 1) {
-                                return (
-                                    <TableHead key={colIndex} className="text-center text-xs w-[60px]">
-                                        {question.scale[colIndex]}
-                                    </TableHead>
-                                );
-                            }
-                            return <TableHead key={colIndex} className="text-center w-[60px]"></TableHead>;
+                            const showLabel = colIndex === 0 || colIndex === question.columns.length - 1;
+                            return (
+                                <TableHead key={colIndex} className={cn("text-center text-xs w-[60px]", !showLabel && "hidden sm:table-cell")}>
+                                    {showLabel ? question.scale[colIndex] : col}
+                                </TableHead>
+                            );
                         })}
                     </TableRow>
                 </TableHeader>
@@ -262,6 +262,7 @@ export default function SurveyView() {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [animationClass, setAnimationClass] = useState('animate-in fade-in slide-in-from-right-10');
 
     useEffect(() => {
         if (surveyId) {
@@ -291,11 +292,19 @@ export default function SurveyView() {
     };
 
     const handleNext = () => {
-        setCurrentQuestionIndex(prev => prev + 1);
+        setAnimationClass('animate-out fade-out slide-out-to-left-10');
+        setTimeout(() => {
+            setCurrentQuestionIndex(prev => prev + 1);
+            setAnimationClass('animate-in fade-in slide-in-from-right-10');
+        }, 150);
     };
 
     const handlePrev = () => {
-        setCurrentQuestionIndex(prev => prev - 1);
+        setAnimationClass('animate-out fade-out slide-out-to-right-10');
+        setTimeout(() => {
+            setCurrentQuestionIndex(prev => prev - 1);
+            setAnimationClass('animate-in fade-in slide-in-from-left-10');
+        }, 150);
     };
 
     const handleSubmit = () => {
@@ -323,10 +332,10 @@ export default function SurveyView() {
 
     if (submitted) {
         return (
-             <div className="flex items-center justify-center min-h-screen bg-muted">
-                <Card className="w-full max-w-lg text-center p-8">
+             <div className="flex items-center justify-center min-h-screen bg-muted/40">
+                <Card className="w-full max-w-lg text-center p-8 animate-in fade-in zoom-in-95">
                     <CardHeader>
-                        <CardTitle>Thank You!</CardTitle>
+                        <CardTitle className="text-2xl">Thank You!</CardTitle>
                         <CardDescription>Your response has been submitted successfully.</CardDescription>
                     </CardHeader>
                 </Card>
@@ -335,37 +344,38 @@ export default function SurveyView() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
-             <Card className="w-full max-w-2xl">
+        <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4 transition-all">
+             <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-sm">
                 <CardHeader className="text-center">
                     <CardTitle className="font-headline text-3xl">{survey.title}</CardTitle>
                     <CardDescription>{survey.description}</CardDescription>
                      <Progress value={((currentQuestionIndex + 1) / survey.questions.length) * 100} className="mt-4" />
                 </CardHeader>
-                <CardContent className="min-h-[300px]">
+                <CardContent className="min-h-[300px] overflow-hidden">
                     {QuestionComponent && (
-                        <QuestionComponent
-                            question={currentQuestion}
-                            answer={answers[currentQuestion.id]}
-                            onAnswerChange={(value: any) => handleAnswerChange(currentQuestion.id, value)}
-                            isPreview={true}
-                        />
+                        <div key={currentQuestion.id} className={animationClass}>
+                            <QuestionComponent
+                                question={currentQuestion}
+                                answer={answers[currentQuestion.id]}
+                                onAnswerChange={(value: any) => handleAnswerChange(currentQuestion.id, value)}
+                                isPreview={true}
+                            />
+                        </div>
                     )}
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                    <Button onClick={handlePrev} disabled={currentQuestionIndex === 0}>
+                    <Button onClick={handlePrev} disabled={currentQuestionIndex === 0} variant="outline" className="transition-transform active:scale-95">
                         Previous
                     </Button>
                     {currentQuestionIndex < survey.questions.length - 1 ? (
-                        <Button onClick={handleNext}>Next</Button>
+                        <Button onClick={handleNext} className="transition-transform active:scale-95">Next</Button>
                     ) : (
-                        <Button onClick={handleSubmit}>Submit</Button>
+                        <Button onClick={handleSubmit} className="transition-transform active:scale-95">Submit</Button>
                     )}
                 </CardFooter>
             </Card>
         </div>
     );
 }
-
 
     
