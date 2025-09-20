@@ -17,6 +17,9 @@ def main():
         data = payload.get('data')
         config = payload.get('config', {})
 
+        if not data:
+            raise ValueError("No data provided.")
+
         df = pd.DataFrame(data)
 
         plots = {}
@@ -32,7 +35,6 @@ def main():
         date_col_name = config.get(date_col_key)
         if date_col_name and date_col_name in df.columns:
             df[date_col_name] = pd.to_datetime(df[date_col_name], errors='coerce')
-
 
         # --- Base Plot Configs ---
         base_plot_configs = [
@@ -61,7 +63,8 @@ def main():
                 plot_df = df.dropna(subset=[col for col in [x_col, y_col] if col])
 
                 if plot_type == 'bar':
-                    sns.barplot(data=plot_df, x=x_col, y=y_col, errorbar=None, palette='viridis')
+                    grouped_data = plot_df.groupby(x_col)[y_col].sum().sort_values(ascending=False)
+                    sns.barplot(x=grouped_data.index, y=grouped_data.values, palette='viridis')
                     plt.xticks(rotation=45, ha='right')
                 elif plot_type == 'line':
                     df_sorted = plot_df.sort_values(by=x_col)
@@ -85,8 +88,8 @@ def main():
         
         # 1. Channel Performance (Conversion Rate)
         try:
-            if all(k in config for k in ['sourceCol', 'mediumCol', 'conversionCol']):
-                source_col, medium_col, conversion_col = config['sourceCol'], config['mediumCol'], config['conversionCol']
+            source_col, medium_col, conversion_col = config.get('sourceCol'), config.get('mediumCol'), config.get('conversionCol')
+            if all([source_col, medium_col, conversion_col]) and all(c in df.columns for c in [source_col, medium_col, conversion_col]):
                 df['channel'] = df[source_col].astype(str) + ' / ' + df[medium_col].astype(str)
                 conversion_rate = df.groupby('channel')[conversion_col].mean().sort_values(ascending=False) * 100
                 
@@ -100,13 +103,15 @@ def main():
                 plt.savefig(buf, format='png')
                 plt.close()
                 plots['channelPerformance'] = f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+            else:
+                 plots['channelPerformance'] = None
         except Exception:
             plots['channelPerformance'] = None
         
         # 2. Campaign ROI
         try:
-            if all(k in config for k in ['campaignCol', 'costCol', 'revenueCol']):
-                campaign_col, cost_col, revenue_col = config['campaignCol'], config['costCol'], config['revenueCol']
+            campaign_col, cost_col, revenue_col = config.get('campaignCol'), config.get('costCol'), config.get('revenueCol')
+            if all([campaign_col, cost_col, revenue_col]) and all(c in df.columns for c in [campaign_col, cost_col, revenue_col]):
                 campaign_stats = df.groupby(campaign_col).agg(
                     total_cost=(cost_col, 'sum'),
                     total_revenue=(revenue_col, 'sum')
@@ -124,15 +129,18 @@ def main():
                 plt.savefig(buf, format='png')
                 plt.close()
                 plots['campaignRoi'] = f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+            else:
+                plots['campaignRoi'] = None
         except Exception:
             plots['campaignRoi'] = None
 
         # 3. Funnel Analysis
         try:
-            if all(k in config for k in ['pageViewsCol', 'conversionCol']):
+            page_views_col, conversion_col = config.get('pageViewsCol'), config.get('conversionCol')
+            if all([page_views_col, conversion_col]) and all(c in df.columns for c in [page_views_col, conversion_col]):
                 total_sessions = len(df)
-                viewed_product_sessions = len(df[df[config['pageViewsCol']] > 1])
-                converted_sessions = len(df[df[config['conversionCol']] == 1])
+                viewed_product_sessions = len(df[df[page_views_col] > 1])
+                converted_sessions = len(df[df[conversion_col] == 1])
                 
                 funnel_data = {
                     'Stage': ['Total Sessions', 'Viewed Product', 'Converted'],
@@ -150,28 +158,27 @@ def main():
                 plt.savefig(buf, format='png')
                 plt.close()
                 plots['funnelAnalysis'] = f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+            else:
+                plots['funnelAnalysis'] = None
         except Exception:
             plots['funnelAnalysis'] = None
 
         # 4. Attribution Modeling
         try:
-            if all(k in config for k in ['sourceCol', 'conversionCol', 'revenueCol']):
-                source_col, conversion_col, revenue_col = config['sourceCol'], config['conversionCol'], config['revenueCol']
+            source_col, conversion_col, revenue_col = config.get('sourceCol'), config.get('conversionCol'), config.get('revenueCol')
+            if all([source_col, conversion_col, revenue_col]) and all(c in df.columns for c in [source_col, conversion_col, revenue_col]):
                 converted_df = df[df[conversion_col] == 1].copy()
 
                 if not converted_df.empty:
-                    # For simplicity, this example assumes the source in the row is both first and last touch.
-                    # A real implementation would need sessionization and touchpoint tracking.
+                    # Simplified: assumes source is both first and last touch
                     attribution = converted_df.groupby(source_col)[revenue_col].sum().reset_index()
                     attribution.rename(columns={revenue_col: 'Revenue'}, inplace=True)
                     
                     # Create a dummy first/last touch for demonstration
-                    attribution_melted = pd.melt(attribution, id_vars=[source_col], value_vars=['Revenue'], var_name='Model', value_name='Revenue_val')
-                    attribution_melted['Model'] = np.random.choice(['First Touch', 'Last Touch'], size=len(attribution_melted))
-
+                    attribution['Model'] = np.random.choice(['First Touch', 'Last Touch'], size=len(attribution))
 
                     plt.figure(figsize=(12, 7))
-                    sns.barplot(data=attribution_melted, x=source_col, y='Revenue_val', hue='Model', palette='rocket')
+                    sns.barplot(data=attribution, x=source_col, y='Revenue', hue='Model', palette='rocket')
                     plt.title('Attribution Model Comparison (Simplified)')
                     plt.xlabel('Source')
                     plt.ylabel('Attributed Revenue')
@@ -183,8 +190,9 @@ def main():
                     plots['attributionModeling'] = f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
                 else:
                     plots['attributionModeling'] = None
-
-        except Exception as e:
+            else:
+                plots['attributionModeling'] = None
+        except Exception:
             plots['attributionModeling'] = None
 
         response = {'plots': plots}
@@ -196,3 +204,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
