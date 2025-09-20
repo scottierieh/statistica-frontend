@@ -85,22 +85,25 @@ export default function CentralLimitTheoremPage() {
         const iqr = jStat.percentile(data, 0.75) - jStat.percentile(data, 0.25);
         let binWidth;
         if (iqr > 0) {
-            binWidth = 2 * iqr * Math.pow(n, -1/3);
+            binWidth = 2 * iqr * Math.pow(n, -1/3); // Freedman-Diaconis rule
         } else {
             const range = Math.max(...data) - Math.min(...data);
             binWidth = range > 0 ? range / 10 : 1;
         }
 
-        const numBins = binWidth > 0 ? Math.min(50, Math.ceil((Math.max(...data) - Math.min(...data)) / binWidth)) : 10;
+        const minVal = Math.min(...data);
+        const maxVal = Math.max(...data);
+        const numBins = binWidth > 0 ? Math.min(50, Math.ceil((maxVal - minVal) / binWidth)) : 10;
         
         if (numBins <= 0 || !isFinite(numBins)) {
             return [];
         }
-
-        const [counts, bins] = jStat.histogram(data, numBins);
+        
+        const counts = jStat.histogram(data, numBins);
+        const binEdges = jStat.arange(numBins + 1, minVal, binWidth);
 
         return counts.map((count, i) => ({
-            range: `${bins[i].toFixed(2)}-${(bins[i] + (bins[1]-bins[0])).toFixed(2)}`,
+            range: `${binEdges[i].toFixed(2)}-${binEdges[i+1].toFixed(2)}`,
             count
         }));
     }
