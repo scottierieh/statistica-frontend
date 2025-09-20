@@ -446,6 +446,8 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         )
     }
 
+    const isRegularized = ['ridge', 'lasso', 'elasticnet'].includes(modelType);
+
     return (
         <div className="flex flex-col gap-4">
             <Card>
@@ -476,7 +478,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                             <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">R-squared</p><p className="text-2xl font-bold">{results.metrics?.r2.toFixed(4)}</p></div>
                             <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">Adj. R-squared</p><p className="text-2xl font-bold">{results.metrics?.adj_r2.toFixed(4)}</p></div>
                             <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{results.metrics?.rmse.toFixed(3)}</p></div>
-                            <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">F-statistic p-value</p><p className="text-2xl font-bold">{results.diagnostics.f_pvalue != null ? (results.diagnostics.f_pvalue < 0.001 ? '< 0.001' : results.diagnostics.f_pvalue.toFixed(4)) : 'N/A'}</p></div>
+                            {!isRegularized && <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">F-statistic p-value</p><p className="text-2xl font-bold">{results.diagnostics.f_pvalue != null ? (results.diagnostics.f_pvalue < 0.001 ? '< 0.001' : results.diagnostics.f_pvalue.toFixed(4)) : 'N/A'}</p></div>}
                         </CardContent>
                     </Card>
 
@@ -492,7 +494,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                         <TableRow>
                                             <TableHead>Variable</TableHead>
                                             <TableHead className="text-right">Coefficient</TableHead>
-                                            {modelType !== 'ridge' && modelType !== 'lasso' && modelType !== 'elasticnet' && (
+                                            {!isRegularized && (
                                             <>
                                             <TableHead className="text-right">Std. Error</TableHead>
                                             <TableHead className="text-right">p-value</TableHead>
@@ -505,7 +507,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                             <TableRow key={row.key}>
                                                 <TableCell>{row.key === 'const' ? 'Intercept' : row.key}</TableCell>
                                                 <TableCell className="text-right font-mono">{row.coefficient?.toFixed(4) ?? 'N/A'}</TableCell>
-                                                {modelType !== 'ridge' && modelType !== 'lasso' && modelType !== 'elasticnet' && (
+                                                {!isRegularized && (
                                                 <>
                                                 <TableCell className="text-right font-mono">{row.stdError?.toFixed(4) ?? 'N/A'}</TableCell>
                                                 <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4) ?? 'N/A'} {getSignificanceStars(row.pValue)}</TableCell>
@@ -522,9 +524,22 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                             <CardHeader><CardTitle className="font-headline">Residual Diagnostics</CardTitle></CardHeader>
                              <CardContent>
                                 <dl className="space-y-3 text-sm">
-                                    <div className="flex justify-between items-center">
-                                        <span>Durbin-Watson:</span><span className="font-mono">{results.diagnostics.durbin_watson?.toFixed(3) || 'N/A'}</span>
-                                    </div>
+                                    {!isRegularized && (
+                                    <>
+                                        <div className="flex justify-between items-center">
+                                            <span>Durbin-Watson:</span><span className="font-mono">{results.diagnostics.durbin_watson?.toFixed(3) || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span>Homoscedasticity (Breusch-Pagan):</span>
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null && results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'secondary' : 'destructive'}>
+                                                    {results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null ? (results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'Met' : 'Violated') : 'N/A'}
+                                                </Badge>
+                                                <span className="font-mono">p={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value?.toFixed(3) ?? 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </>
+                                    )}
                                     <div className="flex justify-between items-center">
                                         <span>Normality (Shapiro-Wilk):</span>
                                         <div className="flex items-center gap-2">
@@ -534,21 +549,13 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                             <span className="font-mono">p={results.diagnostics.normality_tests?.shapiro_wilk?.p_value?.toFixed(3) ?? 'N/A'}</span>
                                         </div>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                        <span>Homoscedasticity (Breusch-Pagan):</span>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null && results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'secondary' : 'destructive'}>
-                                                {results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null ? (results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'Met' : 'Violated') : 'N/A'}
-                                            </Badge>
-                                            <span className="font-mono">p={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value?.toFixed(3) ?? 'N/A'}</span>
-                                        </div>
-                                    </div>
+                                    
                                 </dl>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {results.diagnostics.vif && Object.keys(results.diagnostics.vif).length > 0 && (
+                    {!isRegularized && results.diagnostics.vif && Object.keys(results.diagnostics.vif).length > 0 && (
                         <Card>
                              <CardHeader><CardTitle>Multicollinearity Diagnostics</CardTitle></CardHeader>
                              <CardContent>
@@ -586,10 +593,4 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     );
 }
-
-    
-
-
-
-
 
