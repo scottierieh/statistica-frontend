@@ -24,7 +24,7 @@ def main():
         # --- Convert types ---
         for col, type_info in config.items():
             if not type_info: continue
-            is_numeric = any(keyword in col.lower() for keyword in ['revenue', 'views', 'duration', 'ltv', 'cost', 'conversion'])
+            is_numeric = any(keyword in col.lower() for keyword in ['revenue', 'views', 'duration', 'ltv', 'cost', 'conversion', 'page_views', 'session_duration', 'purchase_revenue'])
             if is_numeric:
                 df[type_info] = pd.to_numeric(df[type_info], errors='coerce')
             elif 'date' in col.lower():
@@ -47,7 +47,6 @@ def main():
         for key, plot_type, plot_config in base_plot_configs:
             try:
                 plt.figure(figsize=(10, 6))
-                plt.title(plot_config['title'])
                 
                 required_cols = [c for c in ['x_col', 'y_col'] if c in plot_config]
                 if not all(plot_config.get(c) and plot_config.get(c) in df.columns for c in required_cols):
@@ -66,6 +65,7 @@ def main():
                 elif plot_type == 'scatter':
                     sns.scatterplot(data=df, x=x_col, y=y_col, alpha=0.7)
                 
+                plt.title(plot_config['title'])
                 plt.tight_layout()
                 buf = io.BytesIO()
                 plt.savefig(buf, format='png')
@@ -78,8 +78,8 @@ def main():
         # --- Advanced Traffic Analysis Plots ---
         
         # 1. Channel Performance (Conversion Rate)
-        if all(k in config for k in ['sourceCol', 'mediumCol', 'conversionCol']):
-            try:
+        try:
+            if all(k in config for k in ['sourceCol', 'mediumCol', 'conversionCol']):
                 source_col, medium_col, conversion_col = config['sourceCol'], config['mediumCol'], config['conversionCol']
                 df['channel'] = df[source_col].astype(str) + ' / ' + df[medium_col].astype(str)
                 conversion_rate = df.groupby('channel')[conversion_col].mean().sort_values(ascending=False) * 100
@@ -94,12 +94,12 @@ def main():
                 plt.savefig(buf, format='png')
                 plt.close()
                 plots['channelPerformance'] = f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
-            except Exception:
-                plots['channelPerformance'] = None
+        except Exception:
+            plots['channelPerformance'] = None
         
         # 2. Campaign ROI
-        if all(k in config for k in ['campaignCol', 'costCol', 'revenueCol']):
-            try:
+        try:
+            if all(k in config for k in ['campaignCol', 'costCol', 'revenueCol']):
                 campaign_col, cost_col, revenue_col = config['campaignCol'], config['costCol'], config['revenueCol']
                 campaign_stats = df.groupby(campaign_col).agg({
                     cost_col: 'sum',
@@ -117,12 +117,12 @@ def main():
                 plt.savefig(buf, format='png')
                 plt.close()
                 plots['campaignRoi'] = f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
-            except Exception:
-                plots['campaignRoi'] = None
+        except Exception:
+            plots['campaignRoi'] = None
 
         # 3. Funnel Analysis
-        if all(k in config for k in ['pageViewsCol', 'conversionCol']):
-            try:
+        try:
+            if all(k in config for k in ['pageViewsCol', 'conversionCol']):
                 total_sessions = len(df)
                 viewed_product_sessions = len(df[df[config['pageViewsCol']] > 1])
                 converted_sessions = len(df[df[config['conversionCol']] == 1])
@@ -143,21 +143,24 @@ def main():
                 plt.savefig(buf, format='png')
                 plt.close()
                 plots['funnelAnalysis'] = f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
-            except Exception:
-                plots['funnelAnalysis'] = None
+        except Exception:
+            plots['funnelAnalysis'] = None
 
         # 4. Attribution Modeling
-        if all(k in config for k in ['sourceCol', 'conversionCol', 'revenueCol']):
-            try:
-                converted_df = df[df[config['conversionCol']] == 1]
-                first_touch = converted_df.groupby('source')[config['revenueCol']].sum().rename('First Touch Revenue')
-                last_touch = converted_df.groupby('source')[config['revenueCol']].sum().rename('Last Touch Revenue')
+        try:
+            if all(k in config for k in ['sourceCol', 'conversionCol', 'revenueCol']):
+                source_col, conversion_col, revenue_col = config['sourceCol'], config['conversionCol'], config['revenueCol']
+                converted_df = df[df[conversion_col] == 1]
+                
+                # Using the correct column name from config
+                first_touch = converted_df.groupby(source_col)[revenue_col].sum().rename('First Touch Revenue')
+                last_touch = converted_df.groupby(source_col)[revenue_col].sum().rename('Last Touch Revenue')
                 
                 attribution_df = pd.concat([first_touch, last_touch], axis=1).fillna(0)
-                attribution_df_melted = attribution_df.reset_index().melt(id_vars='source', var_name='Model', value_name='Revenue')
+                attribution_df_melted = attribution_df.reset_index().melt(id_vars=source_col, var_name='Model', value_name='Revenue')
                 
                 plt.figure(figsize=(10, 6))
-                sns.barplot(data=attribution_df_melted, x='source', y='Revenue', hue='Model', palette='rocket')
+                sns.barplot(data=attribution_df_melted, x=source_col, y='Revenue', hue='Model', palette='rocket')
                 plt.title('Attribution Model Comparison')
                 plt.xlabel('Source')
                 plt.ylabel('Attributed Revenue')
@@ -167,8 +170,8 @@ def main():
                 plt.savefig(buf, format='png')
                 plt.close()
                 plots['attributionModeling'] = f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
-            except Exception:
-                plots['attributionModeling'] = None
+        except Exception:
+            plots['attributionModeling'] = None
 
         response = {'plots': plots}
         print(json.dumps(response))
@@ -179,3 +182,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
