@@ -8,21 +8,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Network, PieChart as PieIcon, BarChart as BarIcon, SlidersHorizontal, Activity, LineChart } from 'lucide-react';
-import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Label } from '../ui/label';
-import { ScrollArea } from '../ui/scroll-area';
-import { Checkbox } from '../ui/checkbox';
+import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, SlidersHorizontal } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ScatterChart, Scatter } from 'recharts';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter } from 'recharts';
+import { Label } from '../ui/label';
+import { Checkbox } from '../ui/checkbox';
+import { ScrollArea } from '../ui/scroll-area';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
   loading: () => <Skeleton className="w-full h-[300px]" />,
 });
-
 
 interface CbcResults {
     part_worths: { attribute: string, level: string, value: number }[];
@@ -56,7 +55,7 @@ interface Scenario {
 interface CbcPageProps {
     data: DataSet;
     allHeaders: string[];
-    onLoadExample: (example: ExampleDataSet) => void;
+    onLoadExample: (example: any) => void;
 }
 
 export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: CbcPageProps) {
@@ -218,6 +217,21 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         });
         setSensitivityResult(results);
     };
+    
+    const results = analysisResult?.results;
+
+    const importanceData = useMemo(() => results ? results.attribute_importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [], [results]);
+
+    const partWorthsData = useMemo(() => results ? results.part_worths : [], [results]);
+    
+    const diagnosticsData = useMemo(() => {
+        if (!results?.regression?.predictions || !results?.regression?.residuals) return [];
+        return results.regression.predictions.map((p, i) => ({
+            prediction: p,
+            residual: results.regression.residuals[i]
+        }));
+    }, [results]);
+    
 
     if (!canRun) {
         const cbcExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('cbc'));
@@ -243,20 +257,6 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         );
     }
 
-    const results = analysisResult?.results;
-
-    const importanceData = results ? results.attribute_importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [];
-
-    const partWorthsData = results ? results.part_worths : [];
-    
-    const diagnosticsData = useMemo(() => {
-        if (!results?.regression?.predictions || !results?.regression?.residuals) return [];
-        return results.regression.predictions.map((p, i) => ({
-            prediction: p,
-            residual: results.regression.residuals[i]
-        }));
-    }, [results]);
-
     const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"];
     const importanceChartConfig = useMemo(() => {
       if (!analysisResult) return {};
@@ -265,6 +265,13 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         return acc;
       }, {} as any);
     }, [analysisResult, importanceData]);
+    
+    const sensitivityChartConfig = {
+      utility: {
+        label: 'Utility',
+        color: 'hsl(var(--chart-1))',
+      },
+    };
 
     return (
         <div className="space-y-4">
@@ -376,15 +383,15 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                 {simulationResult && (
                                     <div className="mt-4">
                                         <ChartContainer config={{marketShare: {label: 'Market Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
-                                            <ResponsiveContainer>
-                                                <BarChart data={simulationResult}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="name" />
-                                                    <YAxis unit="%"/>
-                                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
-                                                    <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
-                                                </BarChart>
-                                            </ResponsiveContainer>
+                                                      <ResponsiveContainer width="100%" height={300}>
+                                                          <BarChart data={simulationResult}>
+                                                              <CartesianGrid strokeDasharray="3 3" />
+                                                              <XAxis dataKey="name" />
+                                                              <YAxis unit="%"/>
+                                                              <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
+                                                              <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
+                                                          </BarChart>
+                                                      </ResponsiveContainer>
                                         </ChartContainer>
                                     </div>
                                 )}
@@ -405,17 +412,17 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                 </div>
                                 {sensitivityResult && (
                                     <div className="h-[300px] w-full">
-                                         <Plot
-                                            data={[{
-                                                x: sensitivityResult.map((d: any) => d.level),
-                                                y: sensitivityResult.map((d: any) => d.utility),
-                                                type: 'scatter',
-                                                mode: 'lines+markers',
-                                                marker: {color: 'hsl(var(--primary))'},
-                                            }]}
-                                            layout={{ title: `Utility vs. ${sensitivityAttribute}`, xaxis: { title: sensitivityAttribute }, yaxis: { title: 'Calculated Utility'}, autosize: true }}
-                                            useResizeHandler={true} className="w-full h-full"
-                                        />
+                                         <ChartContainer config={sensitivityChartConfig} className="w-full h-[300px]">
+                                            <ResponsiveContainer>
+                                                <BarChart data={sensitivityResult}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="level" />
+                                                    <YAxis />
+                                                    <Tooltip content={<ChartTooltipContent />} />
+                                                    <Bar dataKey="utility" name="Utility" fill="var(--color-utility)" radius={4} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </ChartContainer>
                                     </div>
                                 )}
                             </CardContent>
@@ -442,7 +449,9 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                                     <XAxis type="number" dataKey="prediction" name="Fitted Value" />
                                                     <YAxis type="number" dataKey="residual" name="Residual" />
                                                     <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
-                                                    {diagnosticsData.length > 0 && <Scatter data={diagnosticsData} fill="hsl(var(--primary))" />}
+                                                    {diagnosticsData.length > 0 &&
+                                                        <Scatter data={diagnosticsData} fill="hsl(var(--primary))" />
+                                                    }
                                                 </ScatterChart>
                                             </ResponsiveContainer>
                                         </ChartContainer>
@@ -456,4 +465,3 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         </div>
     );
 }
-
