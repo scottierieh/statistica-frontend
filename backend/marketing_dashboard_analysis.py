@@ -28,8 +28,8 @@ def main():
         
         # --- Convert types ---
         numeric_cols_keys = [
-            'revenueCol', 'costCol', 'pageViewsCol', 'sessionDurationCol', 
-            'ltvCol', 'conversionCol', 'priceCol', 'quantityCol'
+            'revenueCol', 'costCol', 'ltvCol', 'conversionCol', 
+            'priceCol', 'quantityCol'
         ]
         for key in numeric_cols_keys:
             col_name = config.get(key)
@@ -49,8 +49,6 @@ def main():
             ('revenueByDevice', 'bar', {'x_col': config.get('deviceCol'), 'y_col': config.get('revenueCol'), 'title': 'Revenue by Device'}),
             ('revenueOverTime', 'line', {'x_col': config.get('dateCol'), 'y_col': config.get('revenueCol'), 'title': 'Revenue Over Time'}),
             ('revenueByAge', 'bar', {'x_col': config.get('ageGroupCol'), 'y_col': config.get('revenueCol'), 'title': 'Revenue by Age Group'}),
-            ('pageViewsDist', 'hist', {'x_col': config.get('pageViewsCol'), 'title': 'Page Views per Session'}),
-            ('durationVsRevenue', 'scatter', {'x_col': config.get('sessionDurationCol'), 'y_col': config.get('revenueCol'), 'title': 'Session Duration vs. Revenue'}),
             ('ltvVsRevenue', 'scatter', {'x_col': config.get('ltvCol'), 'y_col': config.get('revenueCol'), 'title': 'User LTV vs. Purchase Revenue'}),
             ('revenueByGender', 'bar', {'x_col': config.get('genderCol'), 'y_col': config.get('revenueCol'), 'title': 'Revenue by Gender'}),
             ('revenueByCountry', 'bar', {'x_col': config.get('countryCol'), 'y_col': config.get('revenueCol'), 'title': 'Revenue by Country'}),
@@ -75,8 +73,6 @@ def main():
                 elif plot_type == 'line':
                     df_sorted = plot_df.sort_values(by=x_col)
                     sns.lineplot(data=df_sorted, x=x_col, y=y_col, marker='o')
-                elif plot_type == 'hist':
-                    sns.histplot(data=plot_df, x=x_col, kde=True)
                 elif plot_type == 'scatter':
                     sns.scatterplot(data=plot_df, x=x_col, y=y_col, alpha=0.7)
                 
@@ -140,14 +136,15 @@ def main():
 
         try:
             page_views_col, conversion_col = config.get('pageViewsCol'), config.get('conversionCol')
-            if all(c and c in df.columns for c in [page_views_col, conversion_col]):
+            if conversion_col and conversion_col in df.columns:
                 total_sessions = len(df)
-                viewed_product_sessions = len(df[df[page_views_col] > 1])
+                # Funnel logic needs to be adapted based on available columns
+                # Simplified funnel: Total Sessions -> Converted Sessions
                 converted_sessions = len(df[df[conversion_col] == 1])
                 
                 funnel_data = {
-                    'Stage': ['Total Sessions', 'Viewed Product', 'Converted'],
-                    'Count': [total_sessions, viewed_product_sessions, converted_sessions]
+                    'Stage': ['Total Sessions', 'Converted'],
+                    'Count': [total_sessions, converted_sessions]
                 }
                 funnel_df = pd.DataFrame(funnel_data)
                 
@@ -261,7 +258,7 @@ def main():
             if all(c and c in df.columns for c in [coupon_col, conversion_col]):
                 coupon_effect = df.groupby(coupon_col)[conversion_col].mean().sort_values() * 100
                 plt.figure(figsize=(8, 5))
-                sns.barplot(x=coupon_effect.index, y=coupon_effect.values, palette='pastel')
+                sns.barplot(x=coupon_effect.index.astype(str), y=coupon_effect.values, palette='pastel')
                 plt.title('Coupon Usage vs. Conversion Rate')
                 plt.xlabel('Coupon Used')
                 plt.ylabel('Conversion Rate (%)')
@@ -285,4 +282,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
