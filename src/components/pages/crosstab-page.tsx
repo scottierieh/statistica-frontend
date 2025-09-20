@@ -106,6 +106,18 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
     const availableColVars = useMemo(() => categoricalHeaders.filter(h => h !== rowVar), [categoricalHeaders, rowVar]);
 
+    const results = analysisResult?.results;
+
+    const formattedInterpretation = useMemo(() => {
+        if (!results?.interpretation) return null;
+        return results.interpretation
+            .replace(/\n/g, '<br />')
+            .replace(/χ²\((.*?)\)\s*=\s*(.*?),/g, '<i>χ</i>²($1) = $2,')
+            .replace(/p\s*=\s*(\.\d+)/g, '<i>p</i> = $1')
+            .replace(/p\s*<\s*(\.\d+)/g, '<i>p</i> < $1')
+            .replace(/z\s*=\s*(-?[\d.]+)/g, '<i>z</i> = $1');
+    }, [results]);
+
     if (!canRun) {
         const crosstabExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('crosstab'));
         return (
@@ -124,17 +136,13 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                                     const Icon = ex.icon;
                                     return (
                                     <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <Icon className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
+                                        <CardHeader>
+                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
+                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
                                         </CardHeader>
                                         <CardFooter>
                                             <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
+                                                <Icon className="mr-2 h-4 w-4" />
                                                 Load this data
                                             </Button>
                                         </CardFooter>
@@ -199,18 +207,6 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
             </Table>
         );
     }
-    
-    const results = analysisResult?.results;
-
-    const formattedInterpretation = useMemo(() => {
-        if (!results?.interpretation) return null;
-        return results.interpretation
-            .replace(/\n/g, '<br />')
-            .replace(/χ²\((.*?)\)\s*=\s*(.*?),/g, '<i>χ</i>²($1) = $2,')
-            .replace(/p\s*=\s*(\.\d+)/g, '<i>p</i> = $1')
-            .replace(/p\s*<\s*(\.\d+)/g, '<i>p</i> < $1')
-            .replace(/z\s*=\s*(-?[\d.]+)/g, '<i>z</i> = $1');
-    }, [results]);
 
     return (
         <div className="flex flex-col gap-4">
