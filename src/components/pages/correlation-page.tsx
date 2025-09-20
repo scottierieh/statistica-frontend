@@ -54,7 +54,7 @@ interface CorrelationResults {
     p_value: number;
     significant: boolean;
   }[];
-  strongest_finding: {
+  interpretation: {
     title: string;
     body: string;
   };
@@ -236,7 +236,8 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
           </Card>
       </div>
     );
-  }
+    }
+
 
   const heatmapPlotData = results ? JSON.parse(results.heatmap_plot || '{}') : null;
   const pairsPlotData = results ? JSON.parse(results.pairs_plot || '{}') : null;
@@ -306,7 +307,7 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
 
       {results && !isLoading && (
         <div className="space-y-4">
-            {results.strongest_finding && <InterpretationDisplay title={results.strongest_finding.title} body={results.strongest_finding.body} />}
+            {results.interpretation && <InterpretationDisplay title={results.interpretation.title} body={results.interpretation.body} />}
 
             <Tabs defaultValue="pairs">
                 <TabsList className="grid w-full grid-cols-2">
@@ -387,5 +388,3 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
     </div>
   )
 }
-
-    
