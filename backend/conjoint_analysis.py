@@ -63,15 +63,26 @@ def main():
         target_var_clean = sanitized_cols[target_variable]
         
         formula_parts = []
-        feature_names = []
+        all_analysis_vars = [target_var_clean]
+
         for attr_name, props in attributes_def.items():
             if props.get('includeInAnalysis', True) and attr_name != target_variable:
                 attr_name_clean = sanitized_cols[attr_name]
+                all_analysis_vars.append(attr_name_clean)
                 if props['type'] == 'categorical':
                     formula_parts.append(f'C(Q("{attr_name_clean}"))')
                 else: # numerical - treat as is
                     formula_parts.append(f'Q("{attr_name_clean}")')
         
+        # --- Data Cleaning and Type Conversion ---
+        for col in all_analysis_vars:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        df.dropna(subset=all_analysis_vars, inplace=True)
+        
+        if df.empty:
+            raise ValueError("No valid data left after cleaning. Please check for missing values or non-numeric entries in your target and feature columns.")
+
         formula = f'Q("{target_var_clean}") ~ {" + ".join(formula_parts)}'
         
         # Fit the OLS model to get coefficients and other stats
@@ -92,30 +103,31 @@ def main():
         # --- Part-Worths and Importance ---
         part_worths = []
         attribute_ranges = {}
+        
+        independent_vars = [attr for attr, props in attributes_def.items() if props.get('includeInAnalysis', True) and attr != target_variable]
 
-        for attr_name, props in attributes_def.items():
-            if props.get('includeInAnalysis', True) and attr_name != target_variable:
-                if props['type'] == 'categorical':
-                    base_level = props['levels'][0]
-                    part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
-                    
-                    level_worths = [0]
-                    for level in props['levels'][1:]:
-                        param_name = f'C(Q("{sanitized_cols[attr_name]}"))[T.{level}]'
-                        worth = model.params.get(param_name, 0)
-                        part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
-                        level_worths.append(worth)
-                    
-                    attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
+        for attr_name in independent_vars:
+            props = attributes_def[attr_name]
+            if props['type'] == 'categorical':
+                base_level = props['levels'][0]
+                part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
                 
-                elif props['type'] == 'numerical':
-                    clean_name = f'Q("{sanitized_cols[attr_name]}")'
-                    coeff = model.params.get(clean_name, 0)
-                    part_worths.append({'attribute': attr_name, 'level': 'coefficient', 'value': coeff})
-                    
-                    # Approximate range for numerical by multiplying coeff with range of values
-                    val_range = df[sanitized_cols[attr_name]].max() - df[sanitized_cols[attr_name]].min()
-                    attribute_ranges[attr_name] = abs(coeff * val_range)
+                level_worths = [0]
+                for level in props['levels'][1:]:
+                    param_name = f'C(Q("{sanitized_cols[attr_name]}"))[T.{level}]'
+                    worth = model.params.get(param_name, 0)
+                    part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
+                    level_worths.append(worth)
+                
+                attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
+            
+            elif props['type'] == 'numerical':
+                clean_name = f'Q("{sanitized_cols[attr_name]}")'
+                coeff = model.params.get(clean_name, 0)
+                part_worths.append({'attribute': attr_name, 'level': 'coefficient', 'value': coeff})
+                
+                val_range = df[sanitized_cols[attr_name]].max() - df[sanitized_cols[attr_name]].min()
+                attribute_ranges[attr_name] = abs(coeff * val_range)
 
         total_range = sum(attribute_ranges.values())
         importance = []
