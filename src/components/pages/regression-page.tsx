@@ -492,7 +492,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                         <TableRow>
                                             <TableHead>Variable</TableHead>
                                             <TableHead className="text-right">Coefficient</TableHead>
-                                            {modelType !== 'ridge' && modelType !== 'lasso' && (
+                                            {modelType !== 'ridge' && modelType !== 'lasso' && modelType !== 'elasticnet' && (
                                             <>
                                             <TableHead className="text-right">Std. Error</TableHead>
                                             <TableHead className="text-right">p-value</TableHead>
@@ -505,7 +505,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                             <TableRow key={row.key}>
                                                 <TableCell>{row.key === 'const' ? 'Intercept' : row.key}</TableCell>
                                                 <TableCell className="text-right font-mono">{row.coefficient?.toFixed(4) ?? 'N/A'}</TableCell>
-                                                {modelType !== 'ridge' && modelType !== 'lasso' && (
+                                                {modelType !== 'ridge' && modelType !== 'lasso' && modelType !== 'elasticnet' && (
                                                 <>
                                                 <TableCell className="text-right font-mono">{row.stdError?.toFixed(4) ?? 'N/A'}</TableCell>
                                                 <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4) ?? 'N/A'} {getSignificanceStars(row.pValue)}</TableCell>
@@ -588,6 +588,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 }
 
     
+
 
 
 
