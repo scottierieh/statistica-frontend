@@ -55,7 +55,9 @@ const ChartCard = ({ title, plotData }: { title: string, plotData: string | null
                         className="w-full h-[300px]"
                     />
                 ) : (
-                    <Skeleton className="h-[300px] w-full" />
+                    <div className="h-[300px] flex items-center justify-center bg-muted rounded-md">
+                        <p className="text-muted-foreground text-sm">Data not available for this chart.</p>
+                    </div>
                 )}
             </CardContent>
         </Card>
@@ -98,18 +100,18 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             conversionCol: findColumn(['conversion'], allHeaders),
             deviceCol: findColumn(['device'], categoricalHeaders),
             dateCol: findColumn(['date'], allHeaders),
-            ageGroupCol: findColumn(['age'], categoricalHeaders),
-            ltvCol: findColumn(['ltv'], numericHeaders),
+            ageGroupCol: findColumn(['agegroup', 'age'], categoricalHeaders),
+            ltvCol: findColumn(['ltv', 'lifetimevalue'], numericHeaders),
             genderCol: findColumn(['gender'], categoricalHeaders),
             countryCol: findColumn(['country'], categoricalHeaders),
             membershipCol: findColumn(['membership'], categoricalHeaders),
             userIdCol: findColumn(['userid', 'user'], allHeaders),
             cohortDateCol: findColumn(['cohortdate', 'cohort'], allHeaders),
             itemCategoryCol: findColumn(['itemcategory', 'category'], categoricalHeaders),
-            itemBrandCol: findColumn(['brand'], categoricalHeaders),
+            itemBrandCol: findColumn(['itembrand', 'brand'], categoricalHeaders),
             priceCol: findColumn(['price'], numericHeaders),
             quantityCol: findColumn(['quantity'], numericHeaders),
-            couponUsedCol: findColumn(['coupon'], allHeaders),
+            couponUsedCol: findColumn(['coupon', 'couponused'], allHeaders),
         })
     }, [numericHeaders, categoricalHeaders, allHeaders, data]);
     
@@ -267,6 +269,15 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                         <ChartCard title="Basket Analysis (Category vs. Brand)" plotData={plots.basketAnalysis} />
                         <ChartCard title="Price Elasticity" plotData={plots.priceElasticity} />
                         <ChartCard title="Coupon Effectiveness" plotData={plots.couponEffectiveness} />
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader><CardTitle className="font-headline">3. Customer Segmentation</CardTitle></CardHeader>
+                    <CardContent className="grid gap-4 md:grid-cols-2">
+                        <ChartCard title="Customer Segments by Age & Gender" plotData={plots.segmentationTreemap} />
+                        <ChartCard title="Geographic Distribution" plotData={plots.geographicDistribution} />
+                        <ChartCard title="LTV by Membership Level" plotData={plots.ltvByMembership} />
+                        <ChartCard title="Sessions by Device" plotData={plots.deviceUsage} />
                     </CardContent>
                 </Card>
                 </>
