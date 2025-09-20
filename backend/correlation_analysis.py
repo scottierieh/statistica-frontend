@@ -39,55 +39,68 @@ def _interpret_correlation_magnitude(r):
     if abs_r >= 0.1: return 'weak'
     return 'negligible'
 
-def _generate_interpretation(strongest_corr, n, method):
-    if not strongest_corr:
-        return { "title": "No Significant Correlations", "body": "No significant correlations were found among the selected variables."}
-        
-    r = strongest_corr['correlation']
-    p = strongest_corr['p_value']
-    var1 = strongest_corr['variable_1']
-    var2 = strongest_corr['variable_2']
+def _generate_interpretation(all_correlations, n, method):
+    """Generates a detailed interpretation for all variable pairs."""
+    if not all_correlations:
+        return { "title": "No Correlations Found", "body": "No correlations could be calculated among the selected variables."}
+    
+    variables = sorted(list(set([c['variable_1'] for c in all_correlations] + [c['variable_2'] for c in all_correlations])))
     
     method_map = {
-        'pearson': "A Pearson product-moment correlation",
-        'spearman': "A Spearman rank-order correlation",
-        'kendall': "A Kendall's tau correlation"
+        'pearson': "Pearson product-moment correlation",
+        'spearman': "Spearman rank-order correlation",
+        'kendall': "Kendall's tau correlation"
     }
     
-    direction = "positive" if r > 0 else "negative"
-    strength = _interpret_correlation_magnitude(r)
-    significance = "significant" if p < 0.05 else "not significant"
-    df = n - 2 # for pearson and spearman
+    # Introduction
+    intro = f"A {method_map.get(method, 'correlation')} analysis was conducted to examine the relationships between the variables: {', '.join(variables)}.\n\n"
     
-    title = f"Strongest Finding: {var1} & {var2}"
-    body = (
-        f"{method_map.get(method, 'A correlation')} was run to assess the relationship between '{var1}' and '{var2}'.\n"
-        f"A {strength}, {direction} correlation was found, which was statistically {significance} "
-        f"(r({df}) = {r:.3f}, p = {p:.3f})."
-    )
+    # Detailed report for each pair
+    details = []
+    for corr in all_correlations:
+        r = corr['correlation']
+        p = corr['p_value']
+        var1 = corr['variable_1']
+        var2 = corr['variable_2']
+        
+        strength = _interpret_correlation_magnitude(r)
+        direction = "positive" if r > 0 else "negative"
+        significance = "significant" if p < 0.05 else "not significant"
+        
+        detail = (
+            f"- **{var1} & {var2}**: A {strength}, {direction} correlation was found, which was statistically {significance} "
+            f"(r = {r:.3f}, p = {p:.3f})."
+        )
+        details.append(detail)
     
-    return {"title": title, "body": body}
+    # Summary of strongest and weakest
+    strongest_corr = sorted(all_correlations, key=lambda x: abs(x.get('correlation', 0)), reverse=True)[0]
+    
+    summary_title = f"Overall Finding: Strongest relationship between '{strongest_corr['variable_1']}' and '{strongest_corr['variable_2']}'"
+    summary_body = intro + "\n".join(details)
+    
+    return {"title": summary_title, "body": summary_body}
 
 def generate_pairs_plot_plotly(df, group_var=None):
     """Generates an interactive pairs plot (scatter matrix) using Plotly."""
-    dimensions = [dict(label=col, values=df[col]) for col in df.columns if col != group_var]
-    
-    fig = go.Figure(data=go.Splom(
-        dimensions=dimensions,
-        diagonal_visible=True,
-        diagonal=dict(visible=True),
-        marker=dict(
-            color='rgba(0,0,0,0.1)' if not group_var else df[group_var].astype('category').cat.codes,
-            colorscale='viridis' if group_var else None,
-            showscale=False,
-            line_color='white',
-            line_width=0.5
-        ),
-        text=df[group_var] if group_var else None,
-    ))
-    
-    fig.update_layout(
+    import plotly.express as px
+
+    fig = px.scatter_matrix(
+        df,
+        dimensions=[col for col in df.columns if col != group_var],
+        color=group_var,
+        symbol=group_var,
         title='Pairs Plot (Scatter Matrix)',
+        labels={col: col.replace('_', ' ').title() for col in df.columns}
+    )
+    
+    fig.update_traces(diagonal_visible=False, showupperhalf=False)
+
+    for i in range(len(fig.data)):
+        # You can customize traces here if needed
+        pass
+
+    fig.update_layout(
         dragmode='select',
         width=800,
         height=800,
@@ -201,9 +214,9 @@ def main():
         else:
             summary_stats = { 'mean_correlation': 0,'median_correlation': 0,'std_dev': 0,'range': [0, 0],'significant_correlations': 0,'total_pairs': 0}
         
-        strongest_correlations = sorted(all_correlations, key=lambda x: abs(x['correlation']), reverse=True)
+        strongest_correlations = sorted(all_correlations, key=lambda x: abs(x.get('correlation', 0)), reverse=True)
         
-        interpretation = _generate_interpretation(strongest_correlations[0] if strongest_correlations else None, len(df_clean), method)
+        interpretation = _generate_interpretation(all_correlations, len(df_clean), method)
 
         # Generate plots
         pairs_plot_json = generate_pairs_plot_plotly(df_clean[variables + ([group_var] if group_var else [])], group_var=group_var)
@@ -228,6 +241,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
