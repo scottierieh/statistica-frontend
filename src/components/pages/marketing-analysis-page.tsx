@@ -86,13 +86,13 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     };
 
     const handleGenerateDashboard = useCallback(async () => {
-        const requiredCols = ['revenueCol', 'sourceCol', 'deviceCol', 'pageViewsCol', 'sessionDurationCol', 'dateCol', 'ageGroupCol', 'ltvCol', 'genderCol', 'countryCol', 'membershipCol', 'mediumCol', 'campaignCol', 'costCol', 'conversionCol', 'userIdCol', 'cohortDateCol', 'itemCategoryCol', 'itemBrandCol', 'priceCol', 'quantityCol', 'couponUsedCol'];
+        const requiredCols = ['revenueCol', 'sourceCol', 'deviceCol', 'pageViewsCol', 'sessionDurationCol', 'dateCol'];
         for (const key of requiredCols) {
             if (!columnConfig[key as keyof typeof columnConfig]) {
                 toast({
                     variant: 'destructive',
                     title: 'Configuration Incomplete',
-                    description: `Please select a column for "${key.replace('Col', '')}". Some columns may have been added to your data; please verify the configuration.`
+                    description: `Please ensure all essential columns like "${key.replace('Col', '')}" are mapped.`
                 });
                 return;
             }
