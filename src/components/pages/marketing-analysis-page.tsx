@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Loader2, Sigma, Filter } from 'lucide-react';
+import { Loader2, Sigma, Filter, Bot } from 'lucide-react';
 import { DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -13,9 +13,10 @@ import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
-import { DollarSign, Clock, Eye, BarChart as BarChartIcon } from 'lucide-react';
+import { BarChart as BarChartIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -78,11 +79,13 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     });
 
     const [plots, setPlots] = useState<Record<string, string | null> | null>(null);
+    const [interpretations, setInterpretations] = useState<Record<string, string> | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
         setPlots(null);
+        setInterpretations(null);
         
         const findColumn = (keywords: string[], headers: string[]) => {
             for (const keyword of keywords) {
@@ -123,6 +126,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     const handleGenerateDashboard = useCallback(async () => {
         setIsGenerating(true);
         setPlots(null);
+        setInterpretations(null);
 
         try {
              const response = await fetch('/api/analysis/marketing-dashboard', {
@@ -136,6 +140,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             }
             const result = await response.json();
             setPlots(result.plots);
+            setInterpretations(result.interpretations);
 
         } catch(error: any) {
             toast({
@@ -228,27 +233,6 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                     </Button>
                 </CardFooter>
             </Card>
-
-            <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">${summaryStats.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{summaryStats.totalSessions.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-            </div>
             
             {isGenerating && <div className="text-center p-8"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /> <p className="text-muted-foreground">Generating dashboard...</p></div>}
             
@@ -259,36 +243,63 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                         <TabsTrigger value="ecommerce">E-commerce Analysis</TabsTrigger>
                         <TabsTrigger value="segmentation">Customer Segmentation</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="traffic">
-                        <Card className="mt-4">
+                    <TabsContent value="traffic" className="mt-4">
+                        <Card>
                             <CardHeader><CardTitle className="font-headline">1. Traffic Analysis & ROI</CardTitle></CardHeader>
-                            <CardContent className="grid gap-4 md:grid-cols-2">
-                                <ChartCard title="Conversion Rate by Channel" plotData={plots.channelPerformance} />
-                                <ChartCard title="Campaign ROI (%)" plotData={plots.campaignRoi} />
-                                <ChartCard title="Simplified Conversion Funnel" plotData={plots.funnelAnalysis} />
-                                <ChartCard title="Attributed Revenue (Last Touch)" plotData={plots.attributionModeling} />
+                            <CardContent className="space-y-4">
+                                {interpretations?.traffic && (
+                                    <Alert>
+                                        <Bot className="h-4 w-4" />
+                                        <AlertTitle>AI Insights</AlertTitle>
+                                        <AlertDescription dangerouslySetInnerHTML={{ __html: interpretations.traffic.replace(/\n/g, '<br/>')}}/>
+                                    </Alert>
+                                )}
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <ChartCard title="Conversion Rate by Channel" plotData={plots.channelPerformance} />
+                                    <ChartCard title="Campaign ROI (%)" plotData={plots.campaignRoi} />
+                                    <ChartCard title="Simplified Conversion Funnel" plotData={plots.funnelAnalysis} />
+                                    <ChartCard title="Attributed Revenue (Last Touch)" plotData={plots.attributionModeling} />
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
-                    <TabsContent value="ecommerce">
-                        <Card className="mt-4">
+                    <TabsContent value="ecommerce" className="mt-4">
+                        <Card>
                             <CardHeader><CardTitle className="font-headline">2. E-commerce Analysis</CardTitle></CardHeader>
-                            <CardContent className="grid gap-4 md:grid-cols-2">
-                                <ChartCard title="Monthly Cohort Retention" plotData={plots.cohortAnalysis} />
-                                <ChartCard title="Basket Analysis (Category vs. Brand)" plotData={plots.basketAnalysis} />
-                                <ChartCard title="Price Elasticity" plotData={plots.priceElasticity} />
-                                <ChartCard title="Coupon Effectiveness" plotData={plots.couponEffectiveness} />
+                            <CardContent className="space-y-4">
+                                {interpretations?.ecommerce && (
+                                    <Alert>
+                                        <Bot className="h-4 w-4" />
+                                        <AlertTitle>AI Insights</AlertTitle>
+                                        <AlertDescription dangerouslySetInnerHTML={{ __html: interpretations.ecommerce.replace(/\n/g, '<br/>')}}/>
+                                    </Alert>
+                                )}
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <ChartCard title="Monthly Cohort Retention" plotData={plots.cohortAnalysis} />
+                                    <ChartCard title="Basket Analysis (Category vs. Brand)" plotData={plots.basketAnalysis} />
+                                    <ChartCard title="Price Elasticity" plotData={plots.priceElasticity} />
+                                    <ChartCard title="Coupon Effectiveness" plotData={plots.couponEffectiveness} />
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
-                    <TabsContent value="segmentation">
-                         <Card className="mt-4">
+                    <TabsContent value="segmentation" className="mt-4">
+                         <Card>
                             <CardHeader><CardTitle className="font-headline">3. Customer Segmentation</CardTitle></CardHeader>
-                            <CardContent className="grid gap-4 md:grid-cols-2">
-                                <ChartCard title="Customer Segments by Age & Gender" plotData={plots.segmentationTreemap} />
-                                <ChartCard title="Geographic Distribution" plotData={plots.geographicDistribution} />
-                                <ChartCard title="LTV by Membership Level" plotData={plots.ltvByMembership} />
-                                <ChartCard title="Sessions by Device" plotData={plots.deviceUsage} />
+                            <CardContent className="space-y-4">
+                                {interpretations?.segmentation && (
+                                    <Alert>
+                                        <Bot className="h-4 w-4" />
+                                        <AlertTitle>AI Insights</AlertTitle>
+                                        <AlertDescription dangerouslySetInnerHTML={{ __html: interpretations.segmentation.replace(/\n/g, '<br/>')}}/>
+                                    </Alert>
+                                )}
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <ChartCard title="Customer Segments by Age & Gender" plotData={plots.segmentationTreemap} />
+                                    <ChartCard title="Geographic Distribution" plotData={plots.geographicDistribution} />
+                                    <ChartCard title="LTV by Membership Level" plotData={plots.ltvByMembership} />
+                                    <ChartCard title="Sessions by Device" plotData={plots.deviceUsage} />
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
