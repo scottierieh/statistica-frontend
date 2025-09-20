@@ -38,6 +38,7 @@ interface CbcResults {
 interface FullAnalysisResponse {
     results: CbcResults;
     sensitivity_plot?: string;
+    error?: string;
 }
 
 interface Scenario {
@@ -221,12 +222,19 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         });
 
          try {
+            const attributesForBackend = attributeCols.reduce((acc, attrName) => {
+                if (allAttributes[attrName]) {
+                    acc[attrName] = { ...allAttributes[attrName], includeInAnalysis: true };
+                }
+                return acc;
+            }, {} as any);
+
             const response = await fetch('/api/analysis/cbc', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     data,
-                    attributes: allAttributes, 
+                    attributes: attributesForBackend, 
                     targetVariable: choiceCol,
                     sensitivityAnalysis: sensitivityData 
                 })
@@ -237,10 +245,10 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                 throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
 
-            const result = await response.json();
+            const result: FullAnalysisResponse = await response.json();
             if (result.error) throw new Error(result.error);
             
-            setSensitivityPlot(result.sensitivity_plot);
+            setSensitivityPlot(result.sensitivity_plot || null);
 
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Sensitivity Analysis Error', description: e.message });
@@ -363,7 +371,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                         <h3 className="font-semibold mb-2">{attr}</h3>
                                          <ChartContainer config={{value: {label: 'Part-Worth'}}} className="w-full h-[200px]">
                                             <ResponsiveContainer>
-                                                <BarChart data={partWorthsData.filter(p => p.attribute === attr && p.level !== 'coefficient')} layout="vertical">
+                                                <BarChart data={partWorthsData.filter(p => p.attribute === attr)} layout="vertical">
                                                     <CartesianGrid strokeDasharray="3 3" />
                                                     <XAxis type="number" />
                                                     <YAxis type="category" dataKey="level" width={80} />
@@ -437,7 +445,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                 {isSensitivityLoading && <Skeleton className="h-[300px] w-full" />}
                                 {sensitivityPlot && !isSensitivityLoading && (
                                     <div className="h-[300px] w-full">
-                                         <Image src={`data:image/png;base64,${sensitivityPlot}`} alt="Sensitivity Analysis Plot" width={800} height={500} className="w-full h-full object-contain rounded-md border"/>
+                                         <Image src={sensitivityPlot} alt="Sensitivity Analysis Plot" width={800} height={500} className="w-full h-full object-contain rounded-md border"/>
                                     </div>
                                 )}
                             </CardContent>
@@ -481,4 +489,3 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     );
 }
 
-  
