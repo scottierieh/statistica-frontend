@@ -14,6 +14,7 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { BarChart as BarChartIcon } from 'lucide-react';
+import { ScrollArea } from '../ui/scroll-area';
 
 
 interface MarketingAnalysisPageProps {
