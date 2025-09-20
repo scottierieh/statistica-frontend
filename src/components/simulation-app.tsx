@@ -15,18 +15,46 @@ import {
 } from '@/components/ui/sidebar';
 import GradientDescentPage from "./pages/gradient-descent-page";
 import CentralLimitTheoremPage from './pages/central-limit-theorem-page';
-import { FastForward, PlayCircle, TrendingUp } from 'lucide-react';
+import MarketingAnalysisPage from './pages/marketing-analysis-page';
+import { FastForward, PlayCircle, TrendingUp, BarChart } from 'lucide-react';
+import type { ExampleDataSet } from '@/lib/example-datasets';
+import { DataSet } from '@/lib/stats';
 
-type SimulationType = 'gradient-descent' | 'central-limit-theorem';
+
+type SimulationType = 'gradient-descent' | 'central-limit-theorem' | 'marketing-analysis';
 
 const simulationPages: Record<string, React.ComponentType<any>> = {
   'gradient-descent': GradientDescentPage,
   'central-limit-theorem': CentralLimitTheoremPage,
+  'marketing-analysis': MarketingAnalysisPage,
 };
 
 export default function SimulationApp() {
   const [activeSimulation, setActiveSimulation] = useState<SimulationType>('gradient-descent');
+  const [data, setData] = useState<DataSet>([]);
+  const [allHeaders, setAllHeaders] = useState<string[]>([]);
   
+  const handleLoadExampleData = (example: ExampleDataSet) => {
+    // This is a simplified loader for the marketing dashboard example
+    // A more robust implementation would handle parsing like in statistica-app
+    const lines = example.data.trim().split('\n');
+    const headers = lines[0].split(',');
+    const dataRows = lines.slice(1).map(line => {
+        const values = line.split(',');
+        const row: Record<string, string | number> = {};
+        headers.forEach((header, i) => {
+            const num = parseFloat(values[i]);
+            row[header] = isNaN(num) ? values[i] : num;
+        });
+        return row;
+    });
+    setData(dataRows);
+    setAllHeaders(headers);
+    if(example.recommendedAnalysis) {
+        setActiveSimulation(example.recommendedAnalysis as SimulationType);
+    }
+  }
+
   const ActivePageComponent = simulationPages[activeSimulation] || GradientDescentPage;
 
   return (
@@ -61,6 +89,15 @@ export default function SimulationApp() {
                   <span>Central Limit Theorem</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setActiveSimulation('marketing-analysis')}
+                  isActive={activeSimulation === 'marketing-analysis'}
+                >
+                  <BarChart />
+                  <span>Marketing Analysis</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
         </Sidebar>
@@ -73,7 +110,7 @@ export default function SimulationApp() {
                 <div />
             </header>
             
-            <ActivePageComponent />
+            <ActivePageComponent data={data} allHeaders={allHeaders} onLoadExample={handleLoadExampleData} />
           </div>
         </SidebarInset>
       </div>
