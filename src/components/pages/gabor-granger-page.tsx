@@ -8,17 +8,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, DollarSign, Info } from 'lucide-react';
+import { Sigma, Loader2, DollarSign, Info, Brain, LineChart, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Input } from '../ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface AnalysisResponse {
     results: {
         demand_curve: { price: number; likelihood: number; revenue: number }[];
-        optimal_price: number;
+        optimal_revenue_price: number;
         max_revenue: number;
+        optimal_profit_price?: number;
+        max_profit?: number;
+        cliff_price?: number;
+        acceptable_range?: [number, number];
+        interpretation: string;
     };
     plot: string;
 }
@@ -29,10 +36,18 @@ interface GaborGrangerPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
+const StatCard = ({ title, value, unit = '$' }: { title: string, value: number | undefined, unit?: string }) => (
+    <div className="p-4 bg-muted rounded-lg text-center">
+        <p className="text-sm text-muted-foreground">{title}</p>
+        <p className="text-2xl font-bold">{value !== undefined ? `${unit}${value.toFixed(2)}` : 'N/A'}</p>
+    </div>
+);
+
 export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }: GaborGrangerPageProps) {
     const { toast } = useToast();
     const [priceCol, setPriceCol] = useState<string | undefined>();
     const [purchaseIntentCol, setPurchaseIntentCol] = useState<string | undefined>();
+    const [unitCost, setUnitCost] = useState<number | undefined>();
     
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -42,6 +57,7 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
     useEffect(() => {
         setPriceCol(numericHeaders.find(h => h.toLowerCase().includes('price')));
         setPurchaseIntentCol(numericHeaders.find(h => h.toLowerCase().includes('intent') || h.toLowerCase().includes('purchase')));
+        setUnitCost(undefined);
         setAnalysisResult(null);
     }, [data, numericHeaders]);
 
@@ -61,7 +77,8 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
                 body: JSON.stringify({ 
                     data, 
                     price_col: priceCol,
-                    purchase_intent_col: purchaseIntentCol
+                    purchase_intent_col: purchaseIntentCol,
+                    unit_cost: unitCost
                 })
             });
 
@@ -82,7 +99,7 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
         } finally {
             setIsLoading(false);
         }
-    }, [data, priceCol, purchaseIntentCol, toast]);
+    }, [data, priceCol, purchaseIntentCol, unitCost, toast]);
 
     if (!canRun) {
         const psmExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('gabor-granger'));
@@ -128,7 +145,7 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
                             </ul>
                         </AlertDescription>
                     </Alert>
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid md:grid-cols-3 gap-4">
                         <div>
                             <Label>Price Column</Label>
                             <Select value={priceCol} onValueChange={setPriceCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
@@ -136,6 +153,10 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
                         <div>
                             <Label>Purchase Intent Column</Label>
                             <Select value={purchaseIntentCol} onValueChange={setPurchaseIntentCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                        <div>
+                             <Label>Unit Cost (Optional)</Label>
+                            <Input type="number" value={unitCost ?? ''} onChange={e => setUnitCost(e.target.value ? parseFloat(e.target.value) : undefined)} placeholder="Enter cost for profit analysis"/>
                         </div>
                     </div>
                 </CardContent>
@@ -149,35 +170,52 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
             {results && analysisResult?.plot && (
-                <div className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Demand and Revenue Curves</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Image src={analysisResult.plot} alt="Gabor-Granger Plot" width={1000} height={600} className="w-full rounded-md border" />
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Key Price Points</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <dl className="grid grid-cols-2 gap-4">
-                                <div className="p-4 bg-muted rounded-lg">
-                                    <dt className="text-sm font-medium text-muted-foreground">Optimal Price (Max Revenue)</dt>
-                                    <dd className="text-3xl font-bold">${results.optimal_price.toFixed(2)}</dd>
-                                </div>
-                                <div className="p-4 bg-muted rounded-lg">
-                                    <dt className="text-sm font-medium text-muted-foreground">Maximum Potential Revenue</dt>
-                                    <dd className="text-3xl font-bold">${results.max_revenue.toFixed(2)}</dd>
-                                </div>
-                            </dl>
-                        </CardContent>
-                    </Card>
-                </div>
+                <Tabs defaultValue="visuals" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="visuals"><LineChart className="mr-2 h-4 w-4"/>Visualizations</TabsTrigger>
+                        <TabsTrigger value="summary"><DollarSign className="mr-2 h-4 w-4"/>Key Metrics</TabsTrigger>
+                        <TabsTrigger value="interpretation"><Brain className="mr-2 h-4 w-4"/>AI Interpretation</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="visuals" className="mt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Demand and Revenue/Profit Curves</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Image src={analysisResult.plot} alt="Gabor-Granger Plot" width={1000} height={600} className="w-full rounded-md border" />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="summary" className="mt-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Key Price Points</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <StatCard title="Revenue-Max Price" value={results.optimal_revenue_price} />
+                                {results.optimal_profit_price && <StatCard title="Profit-Max Price" value={results.optimal_profit_price} />}
+                                {results.cliff_price && <StatCard title="Price Cliff" value={results.cliff_price} />}
+                                {results.acceptable_range && <StatCard title="Acceptable Range (Min)" value={results.acceptable_range[0]} />}
+                                {results.acceptable_range && <StatCard title="Acceptable Range (Max)" value={results.acceptable_range[1]} />}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                     <TabsContent value="interpretation" className="mt-4">
+                        <Card>
+                            <CardHeader><CardTitle className="flex items-center gap-2"><Brain/> Analysis Interpretation</CardTitle></CardHeader>
+                            <CardContent>
+                                <Alert>
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Summary of Findings</AlertTitle>
+                                    <AlertDescription className="whitespace-pre-wrap">
+                                        {results.interpretation}
+                                    </AlertDescription>
+                                </Alert>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
             )}
         </div>
     );
 }
-

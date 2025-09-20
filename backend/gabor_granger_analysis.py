@@ -19,12 +19,39 @@ def _to_native_type(obj):
         return obj.tolist()
     return obj
 
+def generate_interpretation(results):
+    optimal_price = results.get('optimal_revenue_price', 0)
+    max_revenue = results.get('max_revenue', 0)
+    optimal_profit_price = results.get('optimal_profit_price')
+    cliff_price = results.get('cliff_price')
+    
+    interp = f"The analysis identifies several key pricing metrics based on customer purchase intent.\n\n"
+    
+    interp += f"**Revenue-Maximizing Price**: The price point that maximizes potential revenue is **${optimal_price:.2f}**, generating an estimated revenue of ${max_revenue:.2f} per respondent.\n"
+    
+    if optimal_profit_price is not None:
+        interp += f"**Profit-Maximizing Price**: When accounting for a unit cost, the price that maximizes profit is **${optimal_profit_price:.2f}**.\n"
+        
+    if cliff_price is not None:
+        interp += f"**Price Threshold**: A significant drop-off in purchase intent occurs around **${cliff_price:.2f}**. Pricing above this point may lead to a sharp decrease in demand.\n"
+        
+    if 'acceptable_range' in results and results['acceptable_range']:
+        interp += f"**Optimal Price Range**: The range of prices where revenue is maintained within 90% of its maximum is between **${results['acceptable_range'][0]:.2f}** and **${results['acceptable_range'][1]:.2f}**. This can be considered a stable pricing corridor.\n\n"
+        
+    interp += "These points provide a data-driven foundation for balancing market penetration, revenue, and profitability."
+    
+    return interp.strip()
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
         data = payload.get('data')
         price_col = payload.get('price_col')
         purchase_intent_col = payload.get('purchase_intent_col')
+        unit_cost = payload.get('unit_cost')
+        if unit_cost is not None:
+            unit_cost = float(unit_cost)
 
         if not all([data, price_col, purchase_intent_col]):
             raise ValueError("Missing required parameters: data, price_col, or purchase_intent_col.")
@@ -46,8 +73,38 @@ def main():
         
         # Find optimal price point (that maximizes revenue)
         optimal_price_row = demand_curve.loc[demand_curve['revenue'].idxmax()]
-        optimal_price = optimal_price_row[price_col]
+        optimal_revenue_price = optimal_price_row[price_col]
         max_revenue = optimal_price_row['revenue']
+        
+        results_dict = {
+            'demand_curve': demand_curve.to_dict('records'),
+            'optimal_revenue_price': optimal_revenue_price,
+            'max_revenue': max_revenue,
+        }
+
+        # Calculate profit if cost is provided
+        if unit_cost is not None:
+            demand_curve['profit_margin'] = demand_curve[price_col] - unit_cost
+            demand_curve['profit'] = demand_curve['profit_margin'] * demand_curve['likelihood']
+            optimal_profit_row = demand_curve.loc[demand_curve['profit'].idxmax()]
+            results_dict['optimal_profit_price'] = optimal_profit_row[price_col]
+            results_dict['max_profit'] = optimal_profit_row['profit']
+
+        # Find "cliff" price where demand drops most sharply
+        demand_curve['demand_drop'] = -demand_curve['likelihood'].diff()
+        cliff_price_row = demand_curve.sort_values('demand_drop', ascending=False).iloc[0]
+        results_dict['cliff_price'] = cliff_price_row[price_col]
+        
+        # Find acceptable price range (e.g., where revenue is >= 90% of max)
+        acceptable_range_df = demand_curve[demand_curve['revenue'] >= 0.9 * max_revenue]
+        if not acceptable_range_df.empty:
+            results_dict['acceptable_range'] = [acceptable_range_df[price_col].min(), acceptable_range_df[price_col].max()]
+        else:
+            results_dict['acceptable_range'] = None
+
+        # Generate interpretation
+        results_dict['interpretation'] = generate_interpretation(results_dict)
+
 
         # --- Plotting ---
         plt.style.use('seaborn-v0_8-whitegrid')
@@ -59,17 +116,26 @@ def main():
         ax1.set_ylabel('Purchase Likelihood', color=color1)
         ax1.plot(demand_curve[price_col], demand_curve['likelihood'], color=color1, marker='o', label='Demand Curve')
         ax1.tick_params(axis='y', labelcolor=color1)
-        ax1.axvline(x=optimal_price, color='green', linestyle='--', label=f'Optimal Price: ${optimal_price:.2f}')
-
+        ax1.axvline(x=optimal_revenue_price, color='green', linestyle=':', label=f'Optimal Revenue Price: ${optimal_revenue_price:.2f}')
+        
         # Revenue Curve
         ax2 = ax1.twinx()
         color2 = 'tab:red'
-        ax2.set_ylabel('Potential Revenue', color=color2)
+        ax2.set_ylabel('Potential Revenue / Profit', color=color2)
         ax2.plot(demand_curve[price_col], demand_curve['revenue'], color=color2, marker='x', linestyle='--', label='Revenue Curve')
         ax2.tick_params(axis='y', labelcolor=color2)
+
+        # Plot profit if available
+        if 'profit' in demand_curve.columns:
+            ax2.plot(demand_curve[price_col], demand_curve['profit'], color='purple', marker='+', linestyle='--', label='Profit Curve')
+            ax2.axvline(x=results_dict['optimal_profit_price'], color='purple', linestyle=':', label=f'Optimal Profit Price: ${results_dict["optimal_profit_price"]:.2f}')
+
         
         fig.suptitle('Gabor-Granger Price Analysis', fontsize=16, fontweight='bold')
-        fig.legend(loc="upper right", bbox_to_anchor=(0.9, 0.9))
+        lines, labels = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax2.legend(lines + lines2, labels + labels2, loc='upper right')
+
         plt.tight_layout(rect=[0, 0, 1, 0.96])
 
         buf = io.BytesIO()
@@ -79,11 +145,7 @@ def main():
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
 
         response = {
-            'results': {
-                'demand_curve': demand_curve.to_dict('records'),
-                'optimal_price': optimal_price,
-                'max_revenue': max_revenue,
-            },
+            'results': results_dict,
             'plot': f"data:image/png;base64,{plot_image}",
         }
 
