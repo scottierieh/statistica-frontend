@@ -14,6 +14,7 @@ import { ChartContainer, ChartTooltipContent } from '../ui/chart';
 import { ResponsiveContainer, BarChart as RechartsBarChart, XAxis, YAxis, Tooltip, Legend, Bar, CartesianGrid } from 'recharts';
 import { Switch } from '../ui/switch';
 import { produce } from 'immer';
+import DataUploader from '../data-uploader';
 
 interface AHPResult {
     goal: string;
@@ -33,15 +34,13 @@ interface AnalysisBlock {
     is_consistent: boolean;
 }
 
-const ComparisonMatrix = ({ items, onMatrixChange }: { items: string[], onMatrixChange: (matrix: number[][]) => void }) => {
-    const [matrix, setMatrix] = useState<number[][]>(() => Array(items.length).fill(0).map(() => Array(items.length).fill(1)));
+const ComparisonMatrix = ({ items, matrix: initialMatrix, onMatrixChange }: { items: string[], matrix?: number[][], onMatrixChange: (matrix: number[][]) => void }) => {
+    const [matrix, setMatrix] = useState<number[][]>(() => initialMatrix || Array(items.length).fill(0).map(() => Array(items.length).fill(1)));
 
     useEffect(() => {
-        // Initialize matrix when items change
-        const newMatrix = Array(items.length).fill(0).map(() => Array(items.length).fill(1));
+        const newMatrix = initialMatrix || Array(items.length).fill(0).map(() => Array(items.length).fill(1));
         setMatrix(newMatrix);
-        onMatrixChange(newMatrix);
-    }, [items.join(',')]); // Depend on a string representation of items
+    }, [items.join(','), initialMatrix]);
 
     const handleSliderChange = (value: number, i: number, j: number) => {
         const newMatrix = produce(matrix, draft => {
@@ -64,6 +63,8 @@ const ComparisonMatrix = ({ items, onMatrixChange }: { items: string[], onMatrix
         if (val >= 1) return val - 1;
         return -(1 / val - 1);
     };
+
+    if (items.length < 2) return null;
 
     return (
         <div className="space-y-4">
@@ -107,7 +108,36 @@ export default function AhpPage() {
     const [matrices, setMatrices] = useState<any>({});
     const [analysisResult, setAnalysisResult] = useState<AHPResult | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
+
+    const handleFileSelected = (file: File) => {
+        setIsUploading(true);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target?.result as string;
+                const parsedData = JSON.parse(content);
+
+                if (!parsedData.goal || !parsedData.hierarchy) {
+                    throw new Error("Invalid AHP file format. Missing 'goal' or 'hierarchy'.");
+                }
+                
+                setGoal(parsedData.goal);
+                setHierarchy(parsedData.hierarchy);
+                setHasAlternatives(parsedData.hasAlternatives ?? false);
+                if (parsedData.alternatives) setAlternatives(parsedData.alternatives);
+                if (parsedData.matrices) setMatrices(parsedData.matrices);
+                
+                toast({ title: 'Success', description: `Loaded AHP structure from "${file.name}".`});
+            } catch (error: any) {
+                 toast({ variant: 'destructive', title: 'File Load Error', description: error.message });
+            } finally {
+                setIsUploading(false);
+            }
+        };
+        reader.readAsText(file);
+    };
 
     const updateMatrix = (key: string, matrix: number[][]) => {
         setMatrices((prev: any) => ({ ...prev, [key]: matrix }));
@@ -127,7 +157,7 @@ export default function AhpPage() {
                     <Card key={newPath}>
                         <CardHeader><CardTitle>{`Compare Sub-criteria for '${node.name}'`}</CardTitle></CardHeader>
                         <CardContent>
-                            <ComparisonMatrix items={node.children.nodes.map(n => n.name)} onMatrixChange={(m) => updateMatrix(newPath, m)} />
+                            <ComparisonMatrix items={node.children.nodes.map(n => n.name)} matrix={matrices[newPath]} onMatrixChange={(m) => updateMatrix(newPath, m)} />
                         </CardContent>
                     </Card>
                 );
@@ -137,17 +167,6 @@ export default function AhpPage() {
         return comparisons;
     };
     
-    const findLeafNodes = (level: HierarchyLevel, path: string, leafs: {path: string, name: string}[]) => {
-        level.nodes.forEach(node => {
-            const currentPath = `${path}.${node.name}`;
-            if (!node.children || node.children.nodes.length === 0) {
-                leafs.push({path: currentPath, name: node.name});
-            } else {
-                findLeafNodes(node.children, currentPath, leafs);
-            }
-        });
-    };
-
     const renderAlternativeComparisons = () => {
         if (!hasAlternatives || hierarchy.length === 0) return [];
         
@@ -168,7 +187,7 @@ export default function AhpPage() {
             <Card key={leaf.path}>
                 <CardHeader><CardTitle>{`Compare Alternatives for '${leaf.name}'`}</CardTitle></CardHeader>
                 <CardContent>
-                    <ComparisonMatrix items={alternatives} onMatrixChange={(m) => updateMatrix(leaf.path, m)} />
+                    <ComparisonMatrix items={alternatives} matrix={matrices[leaf.path]} onMatrixChange={(m) => updateMatrix(leaf.path, m)} />
                 </CardContent>
             </Card>
         ));
@@ -198,7 +217,7 @@ export default function AhpPage() {
     };
     
     const results = analysisResult;
-    const isConsistent = results ? Object.values(results.analysis_results).every(a => a && a.is_consistent) : true;
+    const isConsistent = results ? Object.values(results.analysis_results).every(a => a === null || a.is_consistent) : true;
     
     return (
         <div className="space-y-4">
@@ -206,9 +225,11 @@ export default function AhpPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2"><Share2 /> Analytic Hierarchy Process (AHP)</CardTitle>
-                        <CardDescription>Structure your decision, make pairwise comparisons, and find the optimal choice.</CardDescription>
+                        <CardDescription>Structure your decision, make pairwise comparisons, and find the optimal choice. You can manually input your structure or upload a JSON configuration file.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
+                        <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
+
                         <div className="space-y-2"><Label>Goal</Label><Input value={goal} onChange={e => setGoal(e.target.value)} /></div>
                         <div className="flex items-center space-x-2"><Switch id="has-alt" checked={hasAlternatives} onCheckedChange={setHasAlternatives} /><Label htmlFor="has-alt">Include Alternatives</Label></div>
                         {hasAlternatives && <div><Label>Alternatives (comma-separated)</Label><Input value={alternatives.join(', ')} onChange={e => setAlternatives(e.target.value.split(',').map(s => s.trim()))} /></div>}
@@ -227,7 +248,7 @@ export default function AhpPage() {
                                         <CardTitle>Compare Criteria for '{goal}'</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <ComparisonMatrix items={hierarchy[0].nodes.map(n => n.name)} onMatrixChange={(m) => updateMatrix('goal', m)} />
+                                        <ComparisonMatrix items={hierarchy[0].nodes.map(n => n.name)} matrix={matrices['goal']} onMatrixChange={(m) => updateMatrix('goal', m)} />
                                     </CardContent>
                                 </Card>
                             )}
@@ -277,7 +298,17 @@ export default function AhpPage() {
                                       if (!analysis) return null;
                                       const items = key === 'goal'
                                         ? hierarchy[0].nodes.map(n => n.name)
-                                        : key.split('.').slice(1);
+                                        : alternatives; // Simplified for now
+                                      
+                                      const getItemsForKey = (key: string) => {
+                                        if (key === 'goal') return hierarchy[0].nodes.map(n=>n.name);
+                                        // This is a simplification; a full solution would traverse the hierarchy
+                                        if (key.startsWith('goal.')) return alternatives;
+                                        return [];
+                                      }
+
+                                      const displayItems = getItemsForKey(key);
+
                                       return (
                                         <TableRow key={key}>
                                             <TableCell>{key.replace('goal.', '')}</TableCell>
@@ -285,7 +316,7 @@ export default function AhpPage() {
                                             <TableCell>
                                                 <ul>
                                                     {analysis.priority_vector.map((weight, i) => (
-                                                        <li key={i}>{items[i]} : {weight.toFixed(3)}</li>
+                                                        <li key={i}>{displayItems[i] ?? `Item ${i+1}`} : {weight.toFixed(3)}</li>
                                                     ))}
                                                 </ul>
                                             </TableCell>
