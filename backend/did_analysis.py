@@ -57,6 +57,7 @@ def main():
         if len(df_clean[group_var].unique()) != 2 or len(df_clean[time_var].unique()) != 2:
              raise ValueError("Group and Time variables must each have exactly two unique values for DiD analysis.")
 
+        # Use Q() to handle special characters in column names for the formula
         formula = f'Q("{outcome_var}") ~ C(Q("{group_var}")) * C(Q("{time_var}"))'
         model = smf.ols(formula, data=df_clean).fit()
         
@@ -120,6 +121,7 @@ if __name__ == '__main__':
     main()
 
   
+
 
 
 
