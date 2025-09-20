@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
@@ -1464,16 +1463,16 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
     
     const handleDragEnd = (event: DragEndEvent) => {
-      const {active, over} = event;
-  
-      if (active.id !== over?.id) {
-        setSurvey((prev: any) => {
-          const oldIndex = prev.questions.findIndex((item: any) => item.id === active.id);
-          const newIndex = prev.questions.findIndex((item: any) => item.id === over!.id);
-          return { ...prev, questions: arrayMove(prev.questions, oldIndex, newIndex) };
-        });
+        const {active, over} = event;
+    
+        if (over && active.id !== over.id) {
+          setSurvey((prev: any) => {
+            const oldIndex = prev.questions.findIndex((item: any) => item.id === active.id);
+            const newIndex = prev.questions.findIndex((item: any) => item.id === over!.id);
+            return { ...prev, questions: arrayMove(prev.questions, oldIndex, newIndex) };
+          });
+        }
       }
-    }
 
     const saveAndTest = () => {
         if(saveDraft()) {
