@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Columns, AlertTriangle, HelpCircle } from 'lucide-react';
+import { Sigma, Loader2, Columns, AlertTriangle, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -238,28 +238,51 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
             {results && (
                 <div className="space-y-4">
-                    <div className="grid lg:grid-cols-2 gap-4">
-                         <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Analysis Summary</CardTitle>
-                            </CardHeader>
-                            <CardContent>
+                    <Card>
+                         <CardHeader>
+                            <CardTitle className="font-headline">Results for: {results.row_var} by {results.col_var}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid lg:grid-cols-2 gap-6">
+                            <div className="space-y-4">
                                 <Alert variant={results.chi_squared.p_value < 0.05 ? 'default' : 'destructive'}>
-                                  <AlertTriangle className="h-4 w-4" />
-                                  <AlertTitle>{results.chi_squared.p_value < 0.05 ? "Result is Statistically Significant" : "Result is Not Statistically Significant"}</AlertTitle>
-                                  <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }}/>
+                                    {results.chi_squared.p_value < 0.05 ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <AlertTriangle className="h-4 w-4" />}
+                                    <AlertTitle>
+                                        {results.chi_squared.p_value < 0.05 ? 'Statistically Significant Association' : 'No Significant Association'}
+                                    </AlertTitle>
+                                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }}/>
                                 </Alert>
-                            </CardContent>
-                        </Card>
-                        {analysisResult.plot && (
-                            <Card>
-                                <CardHeader><CardTitle className="font-headline">Visualization</CardTitle></CardHeader>
-                                <CardContent>
-                                    <Image src={analysisResult.plot} alt="Crosstabulation bar chart" width={1000} height={600} className="w-full rounded-md border" />
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Test</TableHead>
+                                            <TableHead className="text-right">Value</TableHead>
+                                            <TableHead className="text-right">p-value</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow>
+                                            <TableCell>Chi-Squared (χ²)</TableCell>
+                                            <TableCell className="font-mono text-right">{results.chi_squared.statistic.toFixed(3)}</TableCell>
+                                            <TableCell className="font-mono text-right">{results.chi_squared.p_value < 0.001 ? "<.001" : results.chi_squared.p_value.toFixed(4)} {getSignificanceStars(results.chi_squared.p_value)}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>Cramer's V</TableCell>
+                                            <TableCell className="font-mono text-right">{results.cramers_v.toFixed(3)}</TableCell>
+                                            <TableCell></TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>Phi (φ) Coefficient</TableCell>
+                                            <TableCell className="font-mono text-right">{results.phi_coefficient.toFixed(3)}</TableCell>
+                                            <TableCell></TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <div className="flex items-center justify-center">
+                                <Image src={analysisResult.plot} alt="Crosstabulation bar chart" width={1000} height={600} className="w-full rounded-md border" />
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     <Card>
                          <CardHeader>
@@ -274,50 +297,6 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                             </Tabs>
                         </CardHeader>
                         <CardContent>{renderContingencyTable()}</CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Chi-Squared Test & Measures of Association</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                           <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Test</TableHead>
-                                        <TableHead className="text-right">Value</TableHead>
-                                        <TableHead className="text-right">df</TableHead>
-                                        <TableHead className="text-right">p-value</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell>Chi-Squared (χ²)</TableCell>
-                                        <TableCell className="font-mono text-right">{results.chi_squared.statistic.toFixed(3)}</TableCell>
-                                        <TableCell className="font-mono text-right">{results.chi_squared.degrees_of_freedom}</TableCell>
-                                        <TableCell className="font-mono text-right">{results.chi_squared.p_value < 0.001 ? "<.001" : results.chi_squared.p_value.toFixed(4)} {getSignificanceStars(results.chi_squared.p_value)}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Cramer's V</TableCell>
-                                        <TableCell className="font-mono text-right">{results.cramers_v.toFixed(3)}</TableCell>
-                                        <TableCell></TableCell>
-                                        <TableCell></TableCell>
-                                    </TableRow>
-                                     <TableRow>
-                                        <TableCell>Phi (φ) Coefficient</TableCell>
-                                        <TableCell className="font-mono text-right">{results.phi_coefficient.toFixed(3)}</TableCell>
-                                        <TableCell></TableCell>
-                                        <TableCell></TableCell>
-                                    </TableRow>
-                                     <TableRow>
-                                        <TableCell>Contingency Coefficient</TableCell>
-                                        <TableCell className="font-mono text-right">{results.contingency_coefficient.toFixed(3)}</TableCell>
-                                        <TableCell></TableCell>
-                                        <TableCell></TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </CardContent>
                     </Card>
                 </div>
             )}
