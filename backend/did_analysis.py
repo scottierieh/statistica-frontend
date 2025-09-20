@@ -3,6 +3,7 @@ import sys
 import json
 import pandas as pd
 import statsmodels.formula.api as smf
+import re
 
 def _to_native_type(obj):
     if isinstance(obj, (int, float, str, bool)) or obj is None:
@@ -24,31 +25,56 @@ def main():
 
         df = pd.DataFrame(data)
 
-        # Ensure correct data types
         df[outcome_var] = pd.to_numeric(df[outcome_var], errors='coerce')
-        # Do not convert group and time vars to numeric, let statsmodels handle them as categorical
-        
         df.dropna(subset=[outcome_var, group_var, time_var], inplace=True)
+
+        # Get unique values for cleaning coefficient names later
+        group_vals = df[group_var].unique()
+        time_vals = df[time_var].unique()
+        
+        if len(group_vals) != 2 or len(time_vals) != 2:
+             raise ValueError("Group and Time variables must each have exactly two unique values for DiD analysis.")
+
+        # Determine the reference categories (usually the first one alphabetically/numerically)
+        group_ref = sorted(group_vals)[0]
+        time_ref = sorted(time_vals)[0]
+        group_treat = sorted(group_vals)[1]
+        time_post = sorted(time_vals)[1]
 
         # Sanitize column names for formula
         outcome_clean = outcome_var.replace(' ', '_').replace('.', '_')
         group_clean = group_var.replace(' ', '_').replace('.', '_')
         time_clean = time_var.replace(' ', '_').replace('.', '_')
         
-        df.rename(columns={
+        df_clean = df.rename(columns={
             outcome_var: outcome_clean,
             group_var: group_clean,
             time_var: time_clean
-        }, inplace=True)
+        })
 
-        # Run OLS regression - statsmodels will auto-dummy code the categorical vars
         formula = f'Q("{outcome_clean}") ~ C(Q("{group_clean}")) * C(Q("{time_clean}"))'
-        model = smf.ols(formula, data=df).fit()
+        model = smf.ols(formula, data=df_clean).fit()
         
+        # --- Clean up coefficient names ---
+        def clean_name(name):
+            name = name.replace(f'C(Q("{group_clean}"))[T.{group_treat}]', group_var)
+            name = name.replace(f'C(Q("{time_clean}"))[T.{time_post}]', time_var)
+            return name.replace(':', f':')
+
+        params_cleaned = {clean_name(k): v for k, v in model.params.to_dict().items()}
+        pvalues_cleaned = {clean_name(k): v for k, v in model.pvalues.to_dict().items()}
+
         summary_obj = model.summary()
         summary_data = []
         for table in summary_obj.tables:
             table_data = [list(row) for row in table.data]
+            if table_data:
+                 # Clean names in the first column of the coefficients table
+                if len(table_data) > 1 and 'coef' in table_data[0]:
+                    for row in table_data[1:]:
+                        if row and row[0]:
+                             row[0] = clean_name(row[0].strip())
+            
             summary_data.append({
                 'caption': getattr(table, 'title', None),
                 'data': table_data
@@ -57,8 +83,8 @@ def main():
         response = {
             'results': {
                 'model_summary_data': summary_data,
-                'params': model.params.to_dict(),
-                'pvalues': model.pvalues.to_dict(),
+                'params': params_cleaned,
+                'pvalues': pvalues_cleaned,
                 'rsquared': model.rsquared,
                 'rsquared_adj': model.rsquared_adj
             }
