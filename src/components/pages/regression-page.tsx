@@ -248,9 +248,9 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     const coefficientTableData = coeffs ? Object.keys(coeffs.params).map(key => ({
         key: key,
         coefficient: coeffs.params[key],
-        stdError: coeffs.bse[key],
-        tValue: coeffs.tvalues[key],
-        pValue: coeffs.pvalues[key]
+        stdError: coeffs.bse ? coeffs.bse[key] : undefined,
+        tValue: coeffs.tvalues ? coeffs.tvalues[key] : undefined,
+        pValue: coeffs.pvalues ? coeffs.pvalues[key] : undefined,
     })) : [];
 
     const getAnalysisButtonDisabled = () => {
@@ -492,8 +492,12 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                         <TableRow>
                                             <TableHead>Variable</TableHead>
                                             <TableHead className="text-right">Coefficient</TableHead>
+                                            {modelType !== 'ridge' && modelType !== 'lasso' && (
+                                            <>
                                             <TableHead className="text-right">Std. Error</TableHead>
                                             <TableHead className="text-right">p-value</TableHead>
+                                            </>
+                                            )}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -501,8 +505,12 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                             <TableRow key={row.key}>
                                                 <TableCell>{row.key === 'const' ? 'Intercept' : row.key}</TableCell>
                                                 <TableCell className="text-right font-mono">{row.coefficient?.toFixed(4) ?? 'N/A'}</TableCell>
+                                                {modelType !== 'ridge' && modelType !== 'lasso' && (
+                                                <>
                                                 <TableCell className="text-right font-mono">{row.stdError?.toFixed(4) ?? 'N/A'}</TableCell>
                                                 <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4) ?? 'N/A'} {getSignificanceStars(row.pValue)}</TableCell>
+                                                </>
+                                                )}
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -580,6 +588,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 }
 
     
+
 
 
 
