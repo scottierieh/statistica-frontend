@@ -273,6 +273,7 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Source</TableHead>
+                                        <TableHead className="text-right">df</TableHead>
                                         <TableHead className="text-right">F-value</TableHead>
                                         <TableHead className="text-right">p-value</TableHead>
                                         <TableHead className="text-right">p-GG-corr</TableHead>
@@ -283,6 +284,7 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                                     {results.anova_table.map((row, index) => (
                                         <TableRow key={index} className={row.Source.includes('Error') ? 'bg-muted/50' : ''}>
                                             <TableCell className="font-medium">{row.Source}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.ddof1}</TableCell>
                                             <TableCell className="text-right font-mono">{row.F?.toFixed(3)}</TableCell>
                                             <TableCell className="text-right font-mono">{row['p-unc']?.toFixed(4)} {getSignificanceStars(row['p-unc'])}</TableCell>
                                             <TableCell className="text-right font-mono">{row['p-GG-corr']?.toFixed(4) || 'N/A'}</TableCell>
@@ -318,9 +320,9 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                                     <TableHeader><TableRow>
                                         <TableHead>Contrast</TableHead>
                                         {results.posthoc_results[0]?.A && <TableHead>{betweenCol || 'Factor A'}</TableHead>}
-                                        <TableHead>{results.posthoc_results[0]?.A ? 'A' : 'Group 1'}</TableHead>
-                                        <TableHead>{results.posthoc_results[0]?.B ? 'B' : 'Group 2'}</TableHead>
-                                        <TableHead className="text-right">p-value (corrected)</TableHead>
+                                        <TableHead>A</TableHead>
+                                        <TableHead>B</TableHead>
+                                        <TableHead className="text-right">p-corr</TableHead>
                                     </TableRow></TableHeader>
                                     <TableBody>
                                         {results.posthoc_results.map((row, i) => (
