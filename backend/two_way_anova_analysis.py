@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -75,8 +76,8 @@ class TwoWayAnovaAnalysis:
         }
         anova_table_renamed = anova_table.rename(index=cleaned_index)
         
-        # Ensure NaN values are converted to None for JSON compatibility
-        anova_df = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value'})
+        # Ensure NaN values are converted to None for JSON compatibility and rename mean_sq to MS
+        anova_df = anova_table_renamed.reset_index().rename(columns={'index': 'Source', 'PR(>F)': 'p-value', 'mean_sq': 'MS'})
         self.results['anova_table'] = anova_df.replace({np.nan: None}).to_dict('records')
         
         self._test_assumptions()
