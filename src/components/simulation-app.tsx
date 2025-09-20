@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -18,7 +18,11 @@ import CentralLimitTheoremPage from './pages/central-limit-theorem-page';
 import MarketingAnalysisPage from './pages/marketing-analysis-page';
 import { FastForward, PlayCircle, TrendingUp, BarChart } from 'lucide-react';
 import type { ExampleDataSet } from '@/lib/example-datasets';
-import { DataSet } from '@/lib/stats';
+import { DataSet, parseData, unparseData } from '@/lib/stats';
+import DataUploader from './data-uploader';
+import DataPreview from './data-preview';
+import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 
 type SimulationType = 'gradient-descent' | 'central-limit-theorem' | 'marketing-analysis';
@@ -33,29 +37,112 @@ export default function SimulationApp() {
   const [activeSimulation, setActiveSimulation] = useState<SimulationType>('gradient-descent');
   const [data, setData] = useState<DataSet>([]);
   const [allHeaders, setAllHeaders] = useState<string[]>([]);
+  const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
+  const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
+  const [fileName, setFileName] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
+
+  const processData = useCallback((content: string, name: string) => {
+    setIsUploading(true);
+    try {
+        const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
+        
+        if (newData.length === 0 || newHeaders.length === 0) {
+          throw new Error("No valid data found in the file.");
+        }
+        setData(newData);
+        setAllHeaders(newHeaders);
+        setNumericHeaders(newNumericHeaders);
+        setCategoricalHeaders(newCategoricalHeaders);
+        setFileName(name);
+        toast({ title: 'Success', description: `Loaded "${name}" and found ${newData.length} rows.`});
+
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'File Processing Error',
+          description: error.message || 'Could not parse file. Please check the format.',
+        });
+        handleClearData();
+      } finally {
+        setIsUploading(false);
+      }
+  }, [toast]);
+
+  const handleFileSelected = useCallback((file: File) => {
+    setIsUploading(true);
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+        const content = e.target?.result as string;
+        if (!content) {
+            toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not read file content.' });
+            setIsUploading(false);
+            return;
+        }
+        processData(content, file.name);
+    };
+
+    reader.onerror = (e) => {
+        toast({ variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.' });
+        setIsUploading(false);
+    }
+    
+    if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+        reader.readAsArrayBuffer(file);
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const csv = XLSX.utils.sheet_to_csv(worksheet);
+            processData(csv, file.name);
+        }
+    } else {
+        reader.readAsText(file);
+    }
+  }, [processData, toast]);
+
+  const handleClearData = () => {
+    setData([]);
+    setAllHeaders([]);
+    setNumericHeaders([]);
+    setCategoricalHeaders([]);
+    setFileName('');
+  };
   
   const handleLoadExampleData = (example: ExampleDataSet) => {
-    // This is a simplified loader for the marketing dashboard example
-    // A more robust implementation would handle parsing like in statistica-app
-    const lines = example.data.trim().split('\n');
-    const headers = lines[0].split(',');
-    const dataRows = lines.slice(1).map(line => {
-        const values = line.split(',');
-        const row: Record<string, string | number> = {};
-        headers.forEach((header, i) => {
-            const num = parseFloat(values[i]);
-            row[header] = isNaN(num) ? values[i] : num;
-        });
-        return row;
-    });
-    setData(dataRows);
-    setAllHeaders(headers);
+    processData(example.data, example.name);
     if(example.recommendedAnalysis) {
-        setActiveSimulation(example.recommendedAnalysis as SimulationType);
+      setActiveSimulation(example.recommendedAnalysis as SimulationType);
     }
-  }
+  };
+
+  const handleDownloadData = () => {
+    if (data.length === 0) {
+      toast({ title: 'No Data to Download', description: 'There is no data currently loaded.' });
+      return;
+    }
+    try {
+      const csvContent = unparseData({ headers: allHeaders, data });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName.replace(/\.[^/.]+$/, "") + ".csv" || 'simulation_data.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download data:', error);
+      toast({ variant: 'destructive', title: 'Download Error', description: 'Could not prepare data for download.' });
+    }
+  };
 
   const ActivePageComponent = simulationPages[activeSimulation] || GradientDescentPage;
+  const hasData = data.length > 0;
 
   return (
     <SidebarProvider>
@@ -70,6 +157,12 @@ export default function SimulationApp() {
             </div>
           </SidebarHeader>
           <SidebarContent className="flex flex-col gap-2 p-2">
+             <div className='p-2'>
+              <DataUploader 
+                onFileSelected={handleFileSelected}
+                loading={isUploading}
+              />
+            </div>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -110,7 +203,23 @@ export default function SimulationApp() {
                 <div />
             </header>
             
-            <ActivePageComponent data={data} allHeaders={allHeaders} onLoadExample={handleLoadExampleData} />
+            {hasData && (
+              <DataPreview 
+                fileName={fileName}
+                data={data}
+                headers={allHeaders}
+                onDownload={handleDownloadData}
+                onClearData={handleClearData}
+              />
+            )}
+
+            <ActivePageComponent 
+              data={data} 
+              allHeaders={allHeaders} 
+              numericHeaders={numericHeaders}
+              categoricalHeaders={categoricalHeaders}
+              onLoadExample={handleLoadExampleData} 
+            />
           </div>
         </SidebarInset>
       </div>
