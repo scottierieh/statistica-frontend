@@ -3,22 +3,37 @@ import sys
 import json
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import io
-import base64
-import VanWestendorp_PriceSensitivityMeter as VWPSM
+import warnings
+
+warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
+    elif isinstance(obj, (float, np.floating)):
         if np.isnan(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     return obj
+
+def find_intersection(x1, y1, x2, y2):
+    for i in range(len(x1) - 1):
+        for j in range(len(x2) - 1):
+            p1, p2 = (x1[i], y1[i]), (x1[i+1], y1[i+1])
+            p3, p4 = (x2[j], y2[j]), (x2[j+1], y2[j+1])
+
+            denominator = (p4[1] - p3[1]) * (p2[0] - p1[0]) - (p4[0] - p3[0]) * (p2[1] - p1[1])
+            if denominator == 0:
+                continue
+
+            ua = ((p4[0] - p3[0]) * (p1[1] - p3[1]) - (p4[1] - p3[1]) * (p1[0] - p3[0])) / denominator
+            ub = ((p2[0] - p1[0]) * (p1[1] - p3[1]) - (p2[1] - p1[1]) * (p1[0] - p3[0])) / denominator
+
+            if 0 <= ua <= 1 and 0 <= ub <= 1:
+                return p1[0] + ua * (p2[0] - p1[0]) # Return intersection X value
+    return None
 
 def main():
     try:
@@ -34,7 +49,6 @@ def main():
 
         df = pd.DataFrame(data)
         
-        # Ensure all columns are numeric
         price_cols = [too_cheap_col, cheap_col, expensive_col, too_expensive_col]
         for col in price_cols:
             df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -43,43 +57,46 @@ def main():
         if df.shape[0] < 10:
             raise ValueError("Not enough valid data points for analysis.")
 
-        # --- Analysis using the library ---
-        results_vw = VWPSM.analyse(
-            df[too_cheap_col].tolist(),
-            df[cheap_col].tolist(),
-            df[expensive_col].tolist(),
-            df[too_expensive_col].tolist()
-        )
+        prices = {
+            'too_cheap': df[too_cheap_col].tolist(),
+            'cheap': df[cheap_col].tolist(),
+            'expensive': df[expensive_col].tolist(),
+            'too_expensive': df[too_expensive_col].tolist(),
+        }
 
-        # --- Plotting ---
-        fig, ax = plt.subplots(figsize=(10, 7))
-        VWPSM.plot(results_vw, ax)
-        ax.set_title('Van Westendorp Price Sensitivity Meter', fontsize=16, fontweight='bold')
-        ax.set_xlabel('Price', fontsize=12)
-        ax.set_ylabel('Percentage of Respondents (%)', fontsize=12)
-        ax.grid(True, linestyle='--')
+        all_prices = sorted(list(set(p for col in prices.values() for p in col)))
+        n = len(df)
+
+        cumulative_percentages = {
+            'prices': all_prices,
+            'tooCheap': [sum(1 for p in prices['too_cheap'] if p >= price) / n * 100 for price in all_prices],
+            'cheap': [sum(1 for p in prices['cheap'] if p >= price) / n * 100 for price in all_prices],
+            'expensive': [sum(1 for p in prices['expensive'] if p <= price) / n * 100 for price in all_prices],
+            'tooExpensive': [sum(1 for p in prices['too_expensive'] if p <= price) / n * 100 for price in all_prices],
+        }
+
+        not_too_cheap = [100 - val for val in cumulative_percentages['tooCheap']]
+        not_expensive = [100 - val for val in cumulative_percentages['expensive']]
+
+        opp = find_intersection(all_prices, not_too_cheap, all_prices, cumulative_percentages['expensive'])
+        pme = find_intersection(all_prices, cumulative_percentages['tooExpensive'], all_prices, not_expensive)
+        mdp = find_intersection(all_prices, cumulative_percentages['expensive'], all_prices, not_too_cheap)
+        ipp = find_intersection(all_prices, cumulative_percentages['cheap'], all_prices, cumulative_percentages['expensive'])
         
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight')
-        plt.close(fig)
-        buf.seek(0)
-        plot_image = base64.b64encode(buf.read()).decode('utf-8')
-
-        # --- Format results for frontend ---
-        # The library returns a nested dictionary. We'll flatten it for easier use.
         response = {
-            'results': {
-                'prices': {
-                    'too_cheap': results_vw.get('mdp'), # Marginal Cheapness Point
-                    'cheap': None, # Library does not provide this directly
-                    'expensive': results_vw.get('pme'), # Marginal Expensiveness Point
-                    'too_expensive': None, # Library does not provide this directly
-                    'optimal': results_vw.get('opp'), # Optimal Price Point
-                    'indifference': results_vw.get('ipp'), # Indifference Price Point
-                },
-                'acceptable_range': [results_vw.get('mdp'), results_vw.get('pme')]
-            },
-            'plot': f"data:image/png;base64,{plot_image}",
+            'plot_data': {
+                'prices': all_prices,
+                'tooCheap': cumulative_percentages['tooCheap'],
+                'cheap': cumulative_percentages['cheap'],
+                'expensive': cumulative_percentages['expensive'],
+                'tooExpensive': cumulative_percentages['tooExpensive'],
+                'intersections': {
+                    'optimal': opp,
+                    'indifference': ipp,
+                    'too_cheap': mdp,
+                    'expensive': pme
+                }
+            }
         }
 
         print(json.dumps(response, default=_to_native_type))

@@ -8,25 +8,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, DollarSign, Info } from 'lucide-react';
+import { Sigma, Loader2, DollarSign, Info, Brain } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { plotVanWestendorp } from '@/lib/plotters';
+import dynamic from 'next/dynamic';
+
+const Plot = dynamic(() => import('react-plotly.js'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-[500px]" />,
+});
 
 interface AnalysisResponse {
-    results: {
-        prices: {
-            too_cheap: number | null;
-            cheap: number | null;
-            expensive: number | null;
-            too_expensive: number | null;
+    plot_data: {
+        prices: number[];
+        tooCheap: number[];
+        cheap: number[];
+        expensive: number[];
+        tooExpensive: number[];
+        intersections: {
             optimal: number | null;
             indifference: number | null;
+            too_cheap: number | null;
+            expensive: number | null;
         };
-        acceptable_range: (number | null)[];
     };
-    plot: string;
 }
 
 interface VanWestendorpPageProps {
@@ -34,6 +41,13 @@ interface VanWestendorpPageProps {
     numericHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
+
+const StatCard = ({ title, value, unit = '$' }: { title: string, value: number | undefined | null, unit?: string }) => (
+    <div className="p-4 bg-muted rounded-lg text-center">
+        <p className="text-sm text-muted-foreground">{title}</p>
+        <p className="text-2xl font-bold">{value !== undefined && value !== null ? `${unit}${value.toFixed(2)}` : 'N/A'}</p>
+    </div>
+);
 
 export default function VanWestendorpPage({ data, numericHeaders, onLoadExample }: VanWestendorpPageProps) {
     const { toast } = useToast();
@@ -119,7 +133,9 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
         );
     }
     
-    const results = analysisResult?.results;
+    const results = analysisResult?.plot_data;
+    const plotJson = results ? plotVanWestendorp(results) : null;
+    const plotData = plotJson ? JSON.parse(plotJson) : null;
 
     return (
         <div className="space-y-4">
@@ -164,47 +180,30 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {results && analysisResult?.plot && (
+            {results && plotData && (
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">Price Sensitivity Meter</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Image src={analysisResult.plot} alt="Van Westendorp Plot" width={1000} height={700} className="w-full rounded-md border" />
+                            <Plot
+                                data={plotData.data}
+                                layout={plotData.layout}
+                                useResizeHandler={true}
+                                className="w-full h-[500px]"
+                            />
                         </CardContent>
                     </Card>
                      <Card>
                         <CardHeader>
                             <CardTitle>Key Price Points</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <dl className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="p-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg">
-                                    <dt className="text-sm font-medium">Optimal Price</dt>
-                                    <dd className="text-3xl font-bold">${results.prices.optimal?.toFixed(2) ?? 'N/A'}</dd>
-                                </div>
-                                 <div className="p-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg">
-                                    <dt className="text-sm font-medium">Indifference Price</dt>
-                                    <dd className="text-3xl font-bold">${results.prices.indifference?.toFixed(2) ?? 'N/A'}</dd>
-                                </div>
-                                <div className="p-4 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-lg">
-                                    <dt className="text-sm font-medium">Marginal Cheapness</dt>
-                                    <dd className="text-3xl font-bold">${results.prices.too_cheap?.toFixed(2) ?? 'N/A'}</dd>
-                                </div>
-                                <div className="p-4 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg">
-                                    <dt className="text-sm font-medium">Marginal Expensiveness</dt>
-                                    <dd className="text-3xl font-bold">${results.prices.expensive?.toFixed(2) ?? 'N/A'}</dd>
-                                </div>
-                            </dl>
-                            {results.acceptable_range && results.acceptable_range[0] != null && results.acceptable_range[1] != null && (
-                                 <Alert className="mt-4">
-                                    <AlertTitle>Acceptable Price Range</AlertTitle>
-                                    <AlertDescription>
-                                        The data suggests an acceptable price range for your product is between <strong>${results.acceptable_range[0].toFixed(2)}</strong> and <strong>${results.acceptable_range[1].toFixed(2)}</strong>.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
+                        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                             <StatCard title="Optimal Price (OPP)" value={results.intersections.optimal} />
+                             <StatCard title="Indifference Price (IPP)" value={results.intersections.indifference} />
+                             <StatCard title="Marginal Cheapness (MDP)" value={results.intersections.too_cheap} />
+                             <StatCard title="Marginal Expensiveness (PME)" value={results.intersections.expensive} />
                         </CardContent>
                     </Card>
                 </div>

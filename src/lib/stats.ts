@@ -163,6 +163,28 @@ const kurtosis = (arr: number[]): number => {
     return term1 * term2 - term3; // Excess kurtosis
 };
 
+export const findIntersection = (x1: number[], y1: number[], x2: number[], y2: number[]): number | null => {
+    for (let i = 0; i < x1.length - 1; i++) {
+        for (let j = 0; j < x2.length - 1; j++) {
+            const p1 = { x: x1[i], y: y1[i] };
+            const p2 = { x: x1[i+1], y: y1[i+1] };
+            const p3 = { x: x2[j], y: y2[j] };
+            const p4 = { x: x2[j+1], y: y2[j+1] };
+
+            const denominator = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+            if (denominator === 0) continue;
+
+            const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denominator;
+            const ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denominator;
+
+            if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
+                return p1.x + ua * (p2.x - p1.x); // Return intersection X value
+            }
+        }
+    }
+    return null;
+};
+
 
 export const calculateDescriptiveStats = (data: DataSet, headers: string[]) => {
     const stats: Record<string, any> = {};
