@@ -1,49 +1,42 @@
+
+import Papa from 'papaparse';
+
 export type DataPoint = Record<string, number | string>;
 export type DataSet = DataPoint[];
 
 export const parseData = (
   fileContent: string
 ): { headers: string[]; data: DataSet; numericHeaders: string[]; categoricalHeaders: string[] } => {
-  const lines = fileContent.trim().split('\n').filter(line => line.trim() !== '');
-  if (lines.length < 2) {
-      throw new Error("The file must contain a header and at least one row of data.");
+  const result = Papa.parse(fileContent, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: true,
+  });
+
+  if (result.errors.length > 0) {
+    console.error("Parsing errors:", result.errors);
+    // Optionally throw an error for the first critical error
+    const firstError = result.errors[0];
+    if (firstError.code !== 'UndetectableDelimiter') {
+       throw new Error(`CSV Parsing Error: ${firstError.message} on row ${firstError.row}`);
+    }
+  }
+
+  if (!result.data || result.data.length === 0) {
+    throw new Error("No parsable data rows found in the file.");
   }
   
-  const rawHeaders = lines[0].split(/[\t,]/).map(h => h.trim().replace(/"/g, '')).filter(Boolean);
-
-  const data: DataSet = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    // Handles CSVs that might have commas inside quoted strings.
-    // This is a basic parser; for very complex CSVs, a more robust library would be better.
-    const values = lines[i].match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g)?.map(v => v.trim().replace(/"/g, '')) || lines[i].split(/[\t,]/);
-
-    if (values.length < rawHeaders.length) continue;
-
-    const dataPoint: DataPoint = {};
-    rawHeaders.forEach((header, index) => {
-      const trimmedValue = values[index]?.trim().replace(/"/g, '');
-      const numValue = parseFloat(trimmedValue);
-      dataPoint[header] = isNaN(numValue) || trimmedValue === '' ? trimmedValue : numValue;
-    });
-    data.push(dataPoint);
-  }
-
-  if (data.length === 0) {
-      throw new Error("No parsable data rows found in the file.");
-  }
+  const rawHeaders = result.meta.fields || [];
+  const data: DataSet = result.data as DataSet;
 
   const numericHeaders: string[] = [];
   const categoricalHeaders: string[] = [];
 
   rawHeaders.forEach(header => {
     const values = data.map(row => row[header]).filter(val => val !== null && val !== undefined && val !== '');
-    const uniqueValues = new Set(values);
     
     // Check if every non-empty value is a number
-    const isNumericColumn = values.every(val => {
-        return typeof val === 'number' || (typeof val === 'string' && val.trim() !== '' && !isNaN(Number(val)));
-    });
+    const isNumericColumn = values.every(val => typeof val === 'number' && isFinite(val));
 
     if (isNumericColumn) {
         numericHeaders.push(header);
@@ -51,13 +44,14 @@ export const parseData = (
         categoricalHeaders.push(header);
     }
   });
-  
+
+  // Ensure types are correct, PapaParse does a good job but we can enforce it.
   const sanitizedData = data.map(row => {
     const newRow: DataPoint = {};
     rawHeaders.forEach(header => {
       const value = row[header];
       if (numericHeaders.includes(header)) {
-        if (typeof value === 'number') {
+        if (typeof value === 'number' && isFinite(value)) {
             newRow[header] = value;
         } else if (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value))) {
             newRow[header] = parseFloat(value);
@@ -65,7 +59,7 @@ export const parseData = (
             newRow[header] = NaN; // Use NaN for non-numeric values in numeric columns
         }
       } else { // Categorical
-        newRow[header] = String(value);
+        newRow[header] = String(value ?? '');
       }
     });
     return newRow;
@@ -77,17 +71,10 @@ export const parseData = (
 export const unparseData = (
     { headers, data }: { headers: string[]; data: DataSet }
 ): string => {
-    const headerRow = headers.map(h => `"${h.replace(/"/g, '""')}"`).join(',');
-    const dataRows = data.map(row => {
-        return headers.map(header => {
-            const value = row[header];
-            if (typeof value === 'string') {
-                return `"${value.replace(/"/g, '""')}"`;
-            }
-            return value;
-        }).join(',');
+    return Papa.unparse(data, {
+        columns: headers,
+        header: true,
     });
-    return [headerRow, ...dataRows].join('\n');
 };
 
 
