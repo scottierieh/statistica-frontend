@@ -81,17 +81,17 @@ def main():
         # Find intersection points
         pmc = find_intersection(unique_prices, expensive_freq, unique_prices, [100 - val for val in cheap_freq])
         pme = find_intersection(unique_prices, cheap_freq, unique_prices, [100 - val for val in expensive_freq])
-        ipp = find_intersection(unique_prices, too_cheap_freq, unique_prices, too_expensive_freq)
+        ipp = find_intersection(unique_prices, too_cheap_freq, unique_prices, expensive_freq)
         opp = find_intersection(unique_prices, cheap_freq, unique_prices, too_expensive_freq)
 
         # --- Plotting ---
         plt.style.use('seaborn-v0_8-whitegrid')
         fig, ax = plt.subplots(figsize=(10, 7))
         
-        ax.plot(unique_prices, too_cheap_freq, label='Not a Bargain (Cumulative %)', color='red', linestyle='--')
-        ax.plot(unique_prices, [100-val for val in cheap_freq], label='Not Cheap (Cumulative %)', color='orange', linestyle='--')
-        ax.plot(unique_prices, expensive_freq, label='Expensive (Cumulative %)', color='skyblue')
-        ax.plot(unique_prices, too_expensive_freq, label='Too Expensive (Cumulative %)', color='blue')
+        ax.plot(unique_prices, [100 - val for val in too_cheap_freq], label='Not Too Cheap (Cumulative %)', color='skyblue', linestyle='-')
+        ax.plot(unique_prices, [100 - val for val in cheap_freq], label='Not Cheap (Cumulative %)', color='blue', linestyle='--')
+        ax.plot(unique_prices, expensive_freq, label='Expensive (Cumulative %)', color='orange', linestyle='--')
+        ax.plot(unique_prices, too_expensive_freq, label='Too Expensive (Cumulative %)', color='red', linestyle='-')
         
         # Annotate intersection points
         if not np.isnan(opp): ax.axvline(x=opp, color='green', linestyle=':', label=f'Optimal Price (OPP): ${opp:.2f}')
@@ -117,7 +117,7 @@ def main():
                     'too_cheap': ipp, 
                     'cheap': pmc, 
                     'expensive': pme, 
-                    'too_expensive': np.nan, 
+                    'too_expensive': np.nan, # This point is not standardly calculated by intersections
                     'optimal': opp,
                 },
                 'acceptable_range': [pmc, pme]
