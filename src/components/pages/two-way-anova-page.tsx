@@ -14,6 +14,7 @@ import { Sigma, AlertCircle, Loader2, Copy } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 interface AnovaRow {
     Source: string;
@@ -31,6 +32,12 @@ interface MarginalMeansRow {
     std: number;
     sem: number;
     count: number;
+}
+
+interface NormalityResult {
+    statistic: number | null;
+    p_value: number | null;
+    normal: boolean | null;
 }
 
 interface AssumptionResult {
@@ -58,7 +65,7 @@ interface TwoWayAnovaResults {
         factor_b: MarginalMeansRow[];
     };
     assumptions: {
-        normality: AssumptionResult;
+        normality: { [key: string]: NormalityResult };
         homogeneity: AssumptionResult;
     };
     posthoc_results?: PostHocResult[];
@@ -313,12 +320,38 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
                             <CardHeader><CardTitle className="font-headline">Assumption Checks</CardTitle></CardHeader>
                             <CardContent className="space-y-3 text-sm">
                                 <div className="flex justify-between items-center">
-                                    <dt className="text-muted-foreground">Normality of Residuals ({results.assumptions.normality.test})</dt>
-                                    <dd>{results.assumptions.normality.assumption_met ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>} <span className='font-mono text-xs'>(p={results.assumptions.normality.p_value.toFixed(3)})</span></dd>
+                                    <dt className="text-muted-foreground">Normality of Residuals ({results.assumptions.normality ? 'Shapiro-Wilk per group' : 'N/A'})</dt>
+                                    <dd>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="link" size="sm" className="h-auto p-0">Details</Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-80">
+                                                 <div className="grid gap-4">
+                                                    <div className="space-y-2">
+                                                        <h4 className="font-medium leading-none">Normality Test (Shapiro-Wilk)</h4>
+                                                        <p className="text-xs text-muted-foreground">Tests if each group's data is normal. p > 0.05 suggests normality.</p>
+                                                    </div>
+                                                    <div className="grid gap-2 text-xs">
+                                                        {Object.entries(results.assumptions.normality).map(([group, result]) => (
+                                                            <div className="grid grid-cols-3 items-center gap-4" key={group}>
+                                                                <span className="font-semibold truncate" title={group}>{group}</span>
+                                                                <span className="font-mono">p = {result.p_value?.toFixed(3) ?? 'N/A'}</span>
+                                                                {result.normal === null ? <Badge variant="outline">N/A</Badge> : result.normal ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </dd>
                                 </div>
-                                <div className="flex justify-between items-center">
+                                <div className="flex justify-between items-start">
                                     <dt className="text-muted-foreground">Homogeneity of Variances ({results.assumptions.homogeneity.test})</dt>
-                                    <dd>{results.assumptions.homogeneity.assumption_met ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>} <span className='font-mono text-xs'>(p={results.assumptions.homogeneity.p_value.toFixed(3)})</span></dd>
+                                    <dd className="text-right">
+                                        {results.assumptions.homogeneity.assumption_met ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>}
+                                        <p className="font-mono text-xs">(p = {results.assumptions.homogeneity.p_value.toFixed(3)})</p>
+                                    </dd>
                                 </div>
                             </CardContent>
                         </Card>
