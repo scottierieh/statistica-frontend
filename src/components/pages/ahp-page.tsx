@@ -15,6 +15,7 @@ import { ResponsiveContainer, BarChart as RechartsBarChart, XAxis, YAxis, Toolti
 import { Switch } from '../ui/switch';
 import { produce } from 'immer';
 import DataUploader from '../data-uploader';
+import { exampleDatasets } from '@/lib/example-datasets';
 
 interface AHPResult {
     goal: string;
@@ -110,7 +111,7 @@ export default function AhpPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
-
+    
     const handleFileSelected = (file: File) => {
         setIsUploading(true);
         const reader = new FileReader();
@@ -119,17 +120,7 @@ export default function AhpPage() {
                 const content = e.target?.result as string;
                 const parsedData = JSON.parse(content);
 
-                if (!parsedData.goal || !parsedData.hierarchy) {
-                    throw new Error("Invalid AHP file format. Missing 'goal' or 'hierarchy'.");
-                }
-                
-                setGoal(parsedData.goal);
-                setHierarchy(parsedData.hierarchy);
-                setHasAlternatives(parsedData.hasAlternatives ?? false);
-                if (parsedData.alternatives) setAlternatives(parsedData.alternatives);
-                if (parsedData.matrices) setMatrices(parsedData.matrices);
-                
-                toast({ title: 'Success', description: `Loaded AHP structure from "${file.name}".`});
+                loadAHPData(parsedData, file.name);
             } catch (error: any) {
                  toast({ variant: 'destructive', title: 'File Load Error', description: error.message });
             } finally {
@@ -137,6 +128,32 @@ export default function AhpPage() {
             }
         };
         reader.readAsText(file);
+    };
+
+    const loadAHPData = (parsedData: any, fileName: string) => {
+        if (!parsedData.goal || !parsedData.hierarchy) {
+            throw new Error("Invalid AHP file format. Missing 'goal' or 'hierarchy'.");
+        }
+        
+        setGoal(parsedData.goal);
+        setHierarchy(parsedData.hierarchy);
+        setHasAlternatives(parsedData.hasAlternatives ?? false);
+        if (parsedData.alternatives) setAlternatives(parsedData.alternatives);
+        if (parsedData.matrices) setMatrices(parsedData.matrices);
+        
+        toast({ title: 'Success', description: `Loaded AHP structure from "${fileName}".`});
+    }
+
+    const handleLoadSample = () => {
+        const ahpExample = exampleDatasets.find(d => d.id === 'ahp');
+        if (ahpExample) {
+            try {
+                const parsedData = JSON.parse(ahpExample.data);
+                loadAHPData(parsedData, ahpExample.name);
+            } catch (error: any) {
+                 toast({ variant: 'destructive', title: 'Sample Load Error', description: error.message });
+            }
+        }
     };
 
     const updateMatrix = (key: string, matrix: number[][]) => {
@@ -171,17 +188,17 @@ export default function AhpPage() {
         if (!hasAlternatives || hierarchy.length === 0) return [];
         
         const leafNodes: {path: string, name: string}[] = [];
-        const calculateLeafs = (level: HierarchyLevel, parentPath: string) => {
-             level.nodes.forEach(node => {
-                const currentPath = `${parentPath}.${node.name}`;
+        const findLeafs = (level: HierarchyLevel, path: string) => {
+            level.nodes.forEach(node => {
+                const currentPath = `${path}.${node.name}`;
                 if (!node.children || node.children.nodes.length === 0) {
                     leafNodes.push({ path: currentPath, name: node.name });
                 } else {
-                    calculateLeafs(node.children, currentPath);
+                    findLeafs(node.children, currentPath);
                 }
             });
         }
-        calculateLeafs(hierarchy[0], 'goal');
+        findLeafs(hierarchy[0], 'goal');
         
         return leafNodes.map(leaf => (
             <Card key={leaf.path}>
@@ -228,7 +245,10 @@ export default function AhpPage() {
                         <CardDescription>Structure your decision, make pairwise comparisons, and find the optimal choice. You can manually input your structure or upload a JSON configuration file.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
+                        <div className="grid md:grid-cols-2 gap-4">
+                           <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
+                           <Button variant="outline" onClick={handleLoadSample}>Load Sample Data</Button>
+                        </div>
 
                         <div className="space-y-2"><Label>Goal</Label><Input value={goal} onChange={e => setGoal(e.target.value)} /></div>
                         <div className="flex items-center space-x-2"><Switch id="has-alt" checked={hasAlternatives} onCheckedChange={setHasAlternatives} /><Label htmlFor="has-alt">Include Alternatives</Label></div>
@@ -296,15 +316,23 @@ export default function AhpPage() {
                                 <TableBody>
                                     {Object.entries(results.analysis_results).map(([key, analysis]) => {
                                       if (!analysis) return null;
-                                      const items = key === 'goal'
-                                        ? hierarchy[0].nodes.map(n => n.name)
-                                        : alternatives; // Simplified for now
                                       
-                                      const getItemsForKey = (key: string) => {
-                                        if (key === 'goal') return hierarchy[0].nodes.map(n=>n.name);
-                                        // This is a simplification; a full solution would traverse the hierarchy
-                                        if (key.startsWith('goal.')) return alternatives;
-                                        return [];
+                                      const getItemsForKey = (key: string): string[] => {
+                                        if (key === 'goal') return hierarchy[0]?.nodes.map(n=>n.name) || [];
+
+                                        const pathParts = key.split('.').slice(1);
+                                        let currentLevel: HierarchyLevel | undefined = hierarchy[0];
+                                        let currentNode: HierarchyNode | undefined;
+                                        for(const part of pathParts) {
+                                            if (!currentLevel) return alternatives; // Default to alternatives if path is deep
+                                            currentNode = currentLevel.nodes.find(n => n.name === part);
+                                            currentLevel = currentNode?.children;
+                                        }
+
+                                        if (currentLevel) {
+                                            return currentLevel.nodes.map(n => n.name);
+                                        }
+                                        return alternatives; // It's a leaf node, comparing alternatives
                                       }
 
                                       const displayItems = getItemsForKey(key);
@@ -314,7 +342,7 @@ export default function AhpPage() {
                                             <TableCell>{key.replace('goal.', '')}</TableCell>
                                             <TableCell className={`font-mono ${analysis.is_consistent ? '' : 'text-destructive'}`}>{analysis.consistency_ratio.toFixed(4)}</TableCell>
                                             <TableCell>
-                                                <ul>
+                                                <ul className='text-xs'>
                                                     {analysis.priority_vector.map((weight, i) => (
                                                         <li key={i}>{displayItems[i] ?? `Item ${i+1}`} : {weight.toFixed(3)}</li>
                                                     ))}
