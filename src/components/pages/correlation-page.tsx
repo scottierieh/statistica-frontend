@@ -332,17 +332,6 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
                     </CardContent>
                 </Card>
             )}
-            {results.correlogram_plot && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Correlogram</CardTitle>
-                        <CardDescription>Visual representation where size and color of circles represent the correlation coefficient.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Image src={`data:image/png;base64,${results.correlogram_plot}`} alt="Correlogram Plot" width={1000} height={800} className="w-full rounded-md border" />
-                    </CardContent>
-                </Card>
-            )}
         </>
       )}
       {!results && !isLoading && (
