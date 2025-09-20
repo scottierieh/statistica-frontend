@@ -181,22 +181,26 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: any
                 <div className="font-semibold hidden md:block">Item</div>
                 <div className="font-semibold text-center">Best</div>
                 <div className="font-semibold text-center">Worst</div>
-                <RadioGroup asChild value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })}>
-                    {question.items.map((item: string, index: number) => (
-                        <React.Fragment key={index}>
-                            <div className="p-2 border rounded-md bg-muted/20 flex items-center">{item}</div>
-                            <div className="flex items-center justify-center p-2 border rounded-md">
-                                <RadioGroupItem value={item}/>
-                            </div>
-                        </React.Fragment>
-                    ))}
+                <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })}>
+                    <React.Fragment>
+                        {question.items.map((item: string, index: number) => (
+                            <React.Fragment key={index}>
+                                <div className="p-2 border rounded-md bg-muted/20 flex items-center">{item}</div>
+                                <div className="flex items-center justify-center p-2 border rounded-md">
+                                    <RadioGroupItem value={item}/>
+                                </div>
+                            </React.Fragment>
+                        ))}
+                    </React.Fragment>
                 </RadioGroup>
-                 <RadioGroup asChild value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })}>
-                    {question.items.map((item: string, index: number) => (
-                        <div key={index} className="flex items-center justify-center p-2 border rounded-md">
-                            <RadioGroupItem value={item} />
-                        </div>
-                    ))}
+                 <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })}>
+                    <React.Fragment>
+                        {question.items.map((item: string, index: number) => (
+                            <div key={index} className="flex items-center justify-center p-2 border rounded-md">
+                                <RadioGroupItem value={item} />
+                            </div>
+                        ))}
+                    </React.Fragment>
                 </RadioGroup>
             </div>
         </div>
