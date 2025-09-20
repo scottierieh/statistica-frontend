@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import GradientDescentPage from "./pages/gradient-descent-page";
 import CentralLimitTheoremPage from './pages/central-limit-theorem-page';
-import { FastForward, PlayCircle } from 'lucide-react';
+import { FastForward, PlayCircle, TrendingUp } from 'lucide-react';
 
 type SimulationType = 'gradient-descent' | 'central-limit-theorem';
 
@@ -57,7 +57,7 @@ export default function SimulationApp() {
                   onClick={() => setActiveSimulation('central-limit-theorem')}
                   isActive={activeSimulation === 'central-limit-theorem'}
                 >
-                  <PlayCircle />
+                  <TrendingUp />
                   <span>Central Limit Theorem</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
