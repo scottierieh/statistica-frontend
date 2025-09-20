@@ -27,12 +27,11 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import Image from 'next/image';
 import dynamic from 'next/dynamic';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
-  loading: () => <Skeleton className="w-full h-[400px]" />,
+  loading: () => <Skeleton className="w-full h-[600px]" />,
 });
 
 
@@ -213,6 +212,8 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
   }
 
   const heatmapPlotData = results ? JSON.parse(results.heatmap_plot || '{}') : null;
+  const pairsPlotData = results ? JSON.parse(results.pairs_plot || '{}') : null;
+
 
   return (
     <div className="flex flex-col gap-4">
@@ -320,14 +321,19 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
                  <StrongestCorrelationsChart data={results.strongest_correlations} />
             </div>
             
-             {results.pairs_plot && (
+             {pairsPlotData && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Pairs Plot</CardTitle>
                         <CardDescription>A matrix of scatterplots to visualize pairwise relationships.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <Image src={`data:image/png;base64,${results.pairs_plot}`} alt="Pairs Plot" width={800} height={800} className="w-full h-auto rounded-md border" />
+                         <Plot
+                            data={pairsPlotData.data}
+                            layout={pairsPlotData.layout}
+                            useResizeHandler={true}
+                            className="w-full h-[800px]"
+                         />
                     </CardContent>
                 </Card>
             )}

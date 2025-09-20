@@ -68,22 +68,34 @@ def _generate_interpretation(strongest_corr, n, method):
     
     return {"title": title, "body": body}
 
-def generate_pairs_plot(df, group_var=None):
-    """Generates a pairs plot (scatter matrix) for the dataframe."""
+def generate_pairs_plot_plotly(df, group_var=None):
+    """Generates an interactive pairs plot (scatter matrix) using Plotly."""
+    dimensions = [dict(label=col, values=df[col]) for col in df.columns if col != group_var]
     
-    plot_kwargs = {}
-    if group_var and group_var in df.columns:
-        plot_kwargs['hue'] = group_var
+    fig = go.Figure(data=go.Splom(
+        dimensions=dimensions,
+        diagonal_visible=True,
+        diagonal=dict(visible=True),
+        marker=dict(
+            color='rgba(0,0,0,0.1)' if not group_var else df[group_var].astype('category').cat.codes,
+            colorscale='viridis' if group_var else None,
+            showscale=False,
+            line_color='white',
+            line_width=0.5
+        ),
+        text=df[group_var] if group_var else None,
+    ))
     
-    g = sns.pairplot(df, kind='reg', markers='+', **plot_kwargs)
+    fig.update_layout(
+        title='Pairs Plot (Scatter Matrix)',
+        dragmode='select',
+        width=800,
+        height=800,
+        autosize=False,
+        hovermode='closest',
+    )
     
-    plt.tight_layout()
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    plt.close()
-    buf.seek(0)
-    
-    return base64.b64encode(buf.read()).decode('utf-8')
+    return pio.to_json(fig)
 
 
 def generate_heatmap_plotly(df, title='Correlation Matrix'):
@@ -194,7 +206,7 @@ def main():
         interpretation = _generate_interpretation(strongest_correlations[0] if strongest_correlations else None, len(df_clean), method)
 
         # Generate plots
-        pairs_plot_img = generate_pairs_plot(df_clean[variables + ([group_var] if group_var else [])], group_var=group_var)
+        pairs_plot_json = generate_pairs_plot_plotly(df_clean[variables + ([group_var] if group_var else [])], group_var=group_var)
         heatmap_plot_json = generate_heatmap_plotly(corr_matrix, title=f'{method.capitalize()} Correlation Matrix')
 
         response = {
@@ -203,7 +215,7 @@ def main():
             "summary_statistics": summary_stats,
             "strongest_correlations": strongest_correlations[:10],
             "interpretation": interpretation,
-            "pairs_plot": f"data:image/png;base64,{pairs_plot_img}",
+            "pairs_plot": pairs_plot_json,
             "heatmap_plot": heatmap_plot_json,
         }
 
@@ -216,6 +228,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
