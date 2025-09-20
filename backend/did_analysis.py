@@ -78,10 +78,10 @@ def main():
         # --- Clean up coefficient names ---
         def clean_name(name):
             name = name.strip()
-            # Handle interaction terms C(Q("..."))[...]:C(Q("..."))[...]
+            # This regex will find C(Q("..."))[T.value] and replace it with the original variable name
             name = re.sub(f'C\\(Q\\("{group_clean}"\\)\\)\\[T\\.([^]]+)\\]', group_var, name)
             name = re.sub(f'C\\(Q\\("{time_clean}"\\)\\)\\[T\\.([^]]+)\\]', time_var, name)
-            # Handle simple quoted names Q("...")
+            # This will find any remaining Q("...") and replace it
             name = re.sub(r'Q\("([^"]+)"\)', r'\1', name)
             return name
 
