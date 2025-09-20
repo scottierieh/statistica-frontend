@@ -177,35 +177,26 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: any
                     <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
                 </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-4">
-                <div className="font-semibold hidden md:block">Item</div>
+            <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
+                <div className="font-semibold text-muted-foreground">Item</div>
                 <div className="font-semibold text-center">Best</div>
                 <div className="font-semibold text-center">Worst</div>
-                <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })}>
-                    <React.Fragment>
-                        {question.items.map((item: string, index: number) => (
-                            <React.Fragment key={index}>
-                                <div className="p-2 border rounded-md bg-muted/20 flex items-center">{item}</div>
-                                <div className="flex items-center justify-center p-2 border rounded-md">
-                                    <RadioGroupItem value={item}/>
-                                </div>
-                            </React.Fragment>
-                        ))}
+                {question.items.map((item: string, index: number) => (
+                    <React.Fragment key={index}>
+                        <div className="p-3 border rounded-md bg-muted/20 flex items-center">{item}</div>
+                        <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })} className="flex items-center justify-center p-3 border rounded-md">
+                            <RadioGroupItem value={item} />
+                        </RadioGroup>
+                        <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })} className="flex items-center justify-center p-3 border rounded-md">
+                            <RadioGroupItem value={item} />
+                        </RadioGroup>
                     </React.Fragment>
-                </RadioGroup>
-                 <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })}>
-                    <React.Fragment>
-                        {question.items.map((item: string, index: number) => (
-                            <div key={index} className="flex items-center justify-center p-2 border rounded-md">
-                                <RadioGroupItem value={item} />
-                            </div>
-                        ))}
-                    </React.Fragment>
-                </RadioGroup>
+                ))}
             </div>
         </div>
     );
 };
+
 
 const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: any, answer: any, onAnswerChange: (value: any) => void }) => {
     return (
@@ -376,3 +367,5 @@ export default function SurveyView() {
     );
 }
 
+
+    
