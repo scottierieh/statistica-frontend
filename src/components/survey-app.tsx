@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
@@ -638,11 +637,15 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, isPreview, cardClassName
                             <TableCell>
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
                             </TableCell>
-                            {question.columns.map((col: string, colIndex: number) => (
-                                <TableCell key={colIndex} className="text-center">
-                                    <RadioGroupItem value={`${rowIndex}-${colIndex}`} disabled/>
-                                </TableCell>
-                            ))}
+                            <RadioGroup asChild>
+                                <React.Fragment>
+                                    {question.columns.map((col: string, colIndex: number) => (
+                                        <TableCell key={colIndex} className="text-center">
+                                             <RadioGroupItem value={`${rowIndex}-${colIndex}`} id={`q${question.id}-r${rowIndex}-c${colIndex}`} disabled/>
+                                        </TableCell>
+                                    ))}
+                                </React.Fragment>
+                            </RadioGroup>
                             {!isPreview && (
                                 <TableCell>
                                     <Button variant="ghost" size="icon" onClick={() => deleteRow(rowIndex)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
@@ -1424,9 +1427,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         }
          if ('columns' in questionConfig) {
             newQuestion.columns = [...(questionConfig as any).columns];
-        }
-        if ('rows' in questionConfig) {
-            newQuestion.rows = [...(questionConfig as any).rows];
         }
          if ('scale' in questionConfig) {
             newQuestion.scale = [...(questionConfig as any).scale];
@@ -2376,4 +2376,3 @@ function GeneralSurveyPageContentFromClient() {
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
-
