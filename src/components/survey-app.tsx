@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
@@ -1164,18 +1165,27 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         }
     }, [template, loadedTemplate, toast]);
 
-    const questionTypes = [
-        { id: 'single', icon: CircleDot, label: 'Single Selection', component: SingleSelectionQuestion, options: ["Option 1", "Option 2"], color: 'text-blue-500' },
-        { id: 'multiple', icon: CheckSquare, label: 'Multiple Selection', component: MultipleSelectionQuestion, options: ["Option 1", "Option 2"], color: 'text-green-500' },
-        { id: 'best-worst', icon: ThumbsUp, label: 'Best/Worst Choice', component: BestWorstQuestion, items: ["Item 1", "Item 2", "Item 3", "Item 4"], color: 'text-amber-500' },
-        { id: 'text', icon: CaseSensitive, label: 'Text Input', component: TextQuestion, color: 'text-slate-500' },
-        { id: 'number', icon: Sigma, label: 'Number Input', component: NumberQuestion, color: 'text-fuchsia-500' },
-        { id: 'phone', icon: Phone, label: 'Phone Input', component: PhoneQuestion, color: 'text-indigo-500' },
-        { id: 'email', icon: Mail, label: 'Email Input', component: EmailQuestion, color: 'text-rose-500' },
-        { id: 'rating', icon: Star, label: 'Rating', component: RatingQuestion, options: ["1", "2", "3", "4", "5"], color: 'text-yellow-500' },
-        { id: 'nps', icon: Share2, label: 'Net Promoter Score', component: NPSQuestion, color: 'text-sky-500' },
-        { id: 'description', icon: FileText, label: 'Description Block', component: DescriptionBlock, color: 'text-gray-400' },
-    ];
+    const questionTypeCategories = {
+        'Choice': [
+            { id: 'single', icon: CircleDot, label: 'Single Selection', options: ["Option 1", "Option 2"], color: 'text-blue-500' },
+            { id: 'multiple', icon: CheckSquare, label: 'Multiple Selection', options: ["Option 1", "Option 2"], color: 'text-green-500' },
+            { id: 'best-worst', icon: ThumbsUp, label: 'Best/Worst Choice', items: ["Item 1", "Item 2", "Item 3", "Item 4"], color: 'text-amber-500' },
+        ],
+        'Input': [
+            { id: 'text', icon: CaseSensitive, label: 'Text Input', color: 'text-slate-500' },
+            { id: 'number', icon: Sigma, label: 'Number Input', color: 'text-fuchsia-500' },
+            { id: 'phone', icon: Phone, label: 'Phone Input', color: 'text-indigo-500' },
+            { id: 'email', icon: Mail, label: 'Email Input', color: 'text-rose-500' },
+        ],
+        'Scale': [
+            { id: 'rating', icon: Star, label: 'Rating', options: ["1", "2", "3", "4", "5"], color: 'text-yellow-500' },
+            { id: 'nps', icon: Share2, label: 'Net Promoter Score', color: 'text-sky-500' },
+        ],
+        'Structure': [
+             { id: 'description', icon: FileText, label: 'Description Block', color: 'text-gray-400' },
+             { id: 'matrix', icon: Grid3x3, label: 'Matrix', rows: ['Row 1', 'Row 2'], columns: ['Col 1', 'Col 2'], scale: ['Low', 'High'], color: 'text-purple-500' },
+        ]
+    };
 
     const downloadResponsesCSV = () => {
         if (responses.length === 0) {
@@ -1397,20 +1407,33 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
     
     const addQuestion = (type: string) => {
-        const questionType = questionTypes.find(t => t.id === type);
-        if (!questionType) return;
+        let questionConfig;
+        Object.values(questionTypeCategories).forEach(category => {
+            const found = category.find(t => t.id === type);
+            if (found) questionConfig = found;
+        });
+        if (!questionConfig) return;
         
         const newQuestion:any = {
             id: Date.now(),
             type: type,
-            title: `New ${questionType.label} Question`,
+            title: `New ${questionConfig.label} Question`,
             content: type === 'description' ? 'Enter your description or instructions here...' : '',
         };
-        if ('options' in questionType) {
-            newQuestion.options = [...questionType.options];
+        if ('options' in questionConfig) {
+            newQuestion.options = [...questionConfig.options];
         }
-        if ('items' in questionType) {
-            newQuestion.items = [...(questionType as any).items];
+        if ('items' in questionConfig) {
+            newQuestion.items = [...(questionConfig as any).items];
+        }
+         if ('columns' in questionConfig) {
+            newQuestion.columns = [...(questionConfig as any).columns];
+        }
+        if ('rows' in questionConfig) {
+            newQuestion.rows = [...(questionConfig as any).rows];
+        }
+         if ('scale' in questionConfig) {
+            newQuestion.scale = [...(questionConfig as any).scale];
         }
         if (type === 'nps') {
             newQuestion.title = 'How likely are you to recommend our product to a friend or colleague?';
@@ -1854,17 +1877,21 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     <CardTitle className="text-lg">Toolbox</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
-                                    <h3 className="text-sm font-semibold text-muted-foreground px-2">QUESTION TYPES</h3>
-                                    {questionTypes.map((type) => (
-                                        <div key={type.id} className="group relative">
-                                            <Button
-                                                variant="ghost"
-                                                className="w-full justify-start h-12 text-base"
-                                                onClick={() => addQuestion(type.id)}
-                                            >
-                                                <type.icon className={cn("w-6 h-6 mr-3", type.color)} /> 
-                                                <span className="flex-1 text-left">{type.label}</span>
-                                            </Button>
+                                     {Object.entries(questionTypeCategories).map(([category, types]) => (
+                                        <div key={category}>
+                                            <h3 className="text-sm font-semibold text-muted-foreground px-2 my-2">{category}</h3>
+                                            {types.map((type) => (
+                                                <div key={type.id} className="group relative">
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="w-full justify-start h-12 text-base"
+                                                        onClick={() => addQuestion(type.id)}
+                                                    >
+                                                        <type.icon className={cn("w-6 h-6 mr-3", type.color)} /> 
+                                                        <span className="flex-1 text-left">{type.label}</span>
+                                                    </Button>
+                                                </div>
+                                            ))}
                                         </div>
                                     ))}
                                     <Separator className="my-4" />
@@ -2037,7 +2064,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                     </div>
                                                 ) : (
                                                     survey.questions.map((q: any) => {
-                                                        const QuestionComponent = questionTypes.find(t => t.id === q.type)?.component || (q.type === 'matrix' ? MatrixQuestion : null);
+                                                        const QuestionComponent = Object.values(questionTypeCategories).flat().find(t => t.id === q.type)?.component;
                                                         if (!QuestionComponent) return null;
                                                         
                                                         return (
