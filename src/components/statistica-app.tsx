@@ -203,13 +203,6 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
 
 const analysisMenu = [
   {
-    field: 'Survey Tool',
-    icon: ClipboardList,
-    methods: [
-        { id: 'survey', label: 'General Survey' },
-    ]
-  },
-  {
     field: 'Exploratory Data Analysis (EDA)',
     icon: BarChart,
     methods: [
@@ -595,6 +588,17 @@ export default function StatisticaApp() {
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton
+                        onClick={() => {
+                            window.open('/dashboard/survey?id=1', '_blank');
+                        }}
+                        isActive={activeAnalysis === 'survey'}
+                    >
+                        <ClipboardList />
+                        <span>Survey Tool</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton
                     onClick={() => setActiveAnalysis('visuals')}
                     isActive={activeAnalysis === 'visuals'}
                     >
@@ -624,11 +628,7 @@ export default function StatisticaApp() {
                           <SidebarMenuItem key={method.id}>
                               <SidebarMenuButton
                                   onClick={() => {
-                                      if (method.id === 'survey') {
-                                        setActiveAnalysis(method.id as AnalysisType);
-                                      } else {
-                                        setActiveAnalysis(method.id as AnalysisType)
-                                      }
+                                      setActiveAnalysis(method.id as AnalysisType)
                                   }}
                                   isActive={activeAnalysis === method.id}
                                   disabled={(method as any).implemented === false}
@@ -734,3 +734,4 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
