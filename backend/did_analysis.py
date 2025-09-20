@@ -7,6 +7,10 @@ import statsmodels.formula.api as smf
 import statsmodels.api as sm
 import re
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import io
+import base64
 
 def _to_native_type(obj):
     if isinstance(obj, (int, float, str, bool)) or obj is None:
@@ -19,18 +23,33 @@ def main():
     try:
         payload = json.load(sys.stdin)
         data = payload.get('data')
-        group_var = payload.get('group_var')
-        time_var = payload.get('time_var')
-        outcome_var = payload.get('outcome_var')
+        group_var_orig = payload.get('group_var')
+        time_var_orig = payload.get('time_var')
+        outcome_var_orig = payload.get('outcome_var')
         
-        if not all([data, group_var, time_var, outcome_var]):
+        if not all([data, group_var_orig, time_var_orig, outcome_var_orig]):
             raise ValueError("Missing required parameters: data, group_var, time_var, or outcome_var")
 
         df = pd.DataFrame(data)
 
         # Convert group/time vars to numeric categories (0/1) for easier interpretation
-        df[group_var] = pd.Categorical(df[group_var]).codes
-        df[time_var] = pd.Categorical(df[time_var]).codes
+        # Store original labels for plotting
+        group_labels = df[group_var_orig].unique()
+        time_labels = df[time_var_orig].unique()
+        
+        df[group_var_orig] = pd.Categorical(df[group_var_orig])
+        df[time_var_orig] = pd.Categorical(df[time_var_orig])
+
+        group_map = {code: label for code, label in enumerate(df[group_var_orig].cat.categories)}
+        time_map = {code: label for code, label in enumerate(df[time_var_orig].cat.categories)}
+
+        df['group_encoded'] = df[group_var_orig].cat.codes
+        df['time_encoded'] = df[time_var_orig].cat.codes
+        
+        group_var = 'group_encoded'
+        time_var = 'time_encoded'
+        outcome_var = outcome_var_orig
+
 
         df[outcome_var] = pd.to_numeric(df[outcome_var], errors='coerce')
         df_clean = df.dropna(subset=[outcome_var, group_var, time_var]).copy()
@@ -38,48 +57,41 @@ def main():
         if len(df_clean[group_var].unique()) != 2 or len(df_clean[time_var].unique()) != 2:
              raise ValueError("Group and Time variables must each have exactly two unique values for DiD analysis.")
 
-        # --- Sanitize column names for formula ---
-        outcome_clean = re.sub(r'[^A-Za-z0-9_]', '_', outcome_var)
-        group_clean = re.sub(r'[^A-Za-z0-9_]', '_', group_var)
-        time_clean = re.sub(r'[^A-Za-z0-9_]', '_', time_var)
+        formula = f'Q("{outcome_var}") ~ C(Q("{group_var}")) * C(Q("{time_var}"))'
+        model = smf.ols(formula, data=df_clean).fit()
         
-        df_clean_renamed = df_clean.rename(columns={
-            outcome_var: outcome_clean,
-            group_var: group_clean,
-            time_var: time_clean
-        })
+        # --- Plotting ---
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.pointplot(data=df_clean, x=time_var, y=outcome_var, hue=group_var, ax=ax, dodge=True, errorbar='ci', capsize=.1)
+        
+        ax.set_title(f'Difference-in-Differences Plot')
+        ax.set_xlabel('Time')
+        ax.set_ylabel(f'Mean of {outcome_var_orig}')
+        
+        # Customize ticks and legend
+        ax.set_xticks([0, 1])
+        ax.set_xticklabels([time_map.get(0, 'Pre'), time_map.get(1, 'Post')])
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, [group_map.get(int(l), l) for l in labels], title=group_var_orig)
 
-        formula = f'Q("{outcome_clean}") ~ C(Q("{group_clean}")) * C(Q("{time_clean}"))'
-        model = smf.ols(formula, data=df_clean_renamed).fit()
+        plt.grid(True, linestyle='--', alpha=0.6)
+        plt.tight_layout()
         
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        plot_image = base64.b64encode(buf.read()).decode('utf-8')
+
+
         # --- Clean up coefficient names for display ---
-        name_map = {
-            group_clean: group_var,
-            time_clean: time_var,
-            outcome_clean: outcome_var
-        }
-
-        def clean_name(name):
-            name = name.strip()
-            # This regex will find C(Q("..."))[T.value] and replace it with the original variable name
-            for clean, orig in name_map.items():
-                name = re.sub(f'C\\(Q\\("{clean}"\\)\\)\\[T\\.([^]]+)\\]', orig + '_[T.\\1]', name)
-            # This will find any remaining Q("...") and replace it
-            name = re.sub(r'Q\("([^"]+)"\)', lambda m: name_map.get(m.group(1), m.group(1)), name)
-            return name
-
-        params_cleaned = {clean_name(k): v for k, v in model.params.to_dict().items()}
-        pvalues_cleaned = {clean_name(k): v for k, v in model.pvalues.to_dict().items()}
+        params_cleaned = {str(k): v for k, v in model.params.to_dict().items()}
+        pvalues_cleaned = {str(k): v for k, v in model.pvalues.to_dict().items()}
         
         summary_obj = model.summary()
         summary_data = []
         for table in summary_obj.tables:
             table_data = [list(row) for row in table.data]
-            if table_data:
-                if len(table_data) > 1 and 'coef' in table_data[0]:
-                    for row in table_data[1:]:
-                        if row and row[0]:
-                             row[0] = clean_name(row[0])
             
             summary_data.append({
                 'caption': getattr(table, 'title', None),
@@ -93,7 +105,8 @@ def main():
                 'pvalues': pvalues_cleaned,
                 'rsquared': model.rsquared,
                 'rsquared_adj': model.rsquared_adj
-            }
+            },
+            'plot': f"data:image/png;base64,{plot_image}"
         }
         
         print(json.dumps(response, default=_to_native_type))
@@ -107,5 +120,6 @@ if __name__ == '__main__':
     main()
 
   
+
 
 
