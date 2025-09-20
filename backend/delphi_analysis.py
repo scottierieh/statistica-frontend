@@ -98,45 +98,23 @@ def main():
                     'cvr': calculate_cvr(series, cvr_threshold),
                     'consensus': calculate_consensus(series),
                     'convergence': median_val - q1,
-                    'cv': calculate_cv(series),
+                    'stability': calculate_cv(series), # Using CV as stability
                     'positive_responses': (series >= cvr_threshold).sum(),
-                    'stability': np.nan, # Initialize stability
                 }
             
             # Calculate Cronbach's Alpha for the round, using the cleaned dataframe
             cronbach_alpha = np.nan
             if not round_df_clean.empty and len(round_df_clean.columns) > 1:
-                cronbach_alpha = pg.cronbach_alpha(data=round_df_clean)[0]
+                try:
+                    cronbach_alpha = pg.cronbach_alpha(data=round_df_clean)[0]
+                except Exception:
+                    cronbach_alpha = np.nan
             
             all_results[round_name] = {
                 "items": round_results,
                 "cronbach_alpha": cronbach_alpha
             }
         
-        # Calculate Stability between rounds if more than one round exists
-        if len(rounds) > 1:
-            for i in range(1, len(rounds)):
-                prev_round_name = rounds[i-1]['name']
-                curr_round_name = rounds[i]['name']
-                
-                prev_results = all_results.get(prev_round_name, {}).get('items', {})
-                curr_results = all_results.get(curr_round_name, {}).get('items', {})
-
-                # Assuming items are named consistently (e.g., 'item1_r1', 'item1_r2')
-                # We need a mapping between items across rounds. Let's assume the base name is the same.
-                for item_base_name in set(key.split('_')[0] for key in prev_results.keys()) & set(key.split('_')[0] for key in curr_results.keys()):
-                    prev_item_key = next((k for k in prev_results if k.startswith(item_base_name)), None)
-                    curr_item_key = next((k for k in curr_results if k.startswith(item_base_name)), None)
-
-                    if prev_item_key and curr_item_key:
-                        prev_mean = prev_results[prev_item_key]['mean']
-                        curr_mean = curr_results[curr_item_key]['mean']
-                        
-                        if prev_mean != 0:
-                            stability = abs(curr_mean - prev_mean) / prev_mean
-                            all_results[curr_round_name]['items'][curr_item_key]['stability'] = stability
-
-
         print(json.dumps({'results': all_results}, default=_to_native_type))
 
     except Exception as e:
@@ -145,4 +123,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
