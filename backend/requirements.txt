@@ -8,7 +8,6 @@ statsmodels
 lifelines
 wordcloud
 nltk
-konlpy
 networkx
 plotly
 scikit-learn-extra
