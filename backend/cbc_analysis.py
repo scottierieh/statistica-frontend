@@ -31,6 +31,10 @@ def main():
 
         df = pd.DataFrame(data)
 
+        # Ensure choice column is numeric
+        df[choice_col] = pd.to_numeric(df[choice_col], errors='coerce')
+        df.dropna(subset=[choice_col], inplace=True)
+        
         # Prepare data for MNLogit
         df_long = pd.get_dummies(df, columns=attribute_cols, drop_first=True)
         
@@ -47,9 +51,10 @@ def main():
         for attr in attribute_cols:
             part_worths[attr] = {}
             # Base level utility is 0
-            base_level = df[attr].unique()[0]
-            part_worths[attr][str(base_level)] = 0
+            base_level = str(df[attr].unique()[0])
+            part_worths[attr][base_level] = 0
             
+            # Extract coefficients for other levels
             for level in df[attr].unique()[1:]:
                 col_name = f"{attr}_{level}"
                 if col_name in params.index:
@@ -84,5 +89,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
