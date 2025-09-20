@@ -41,7 +41,7 @@ import { cbcData } from "./example-datasets/cbc-data";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | string;
 
 
 export interface ExampleDataSet {
@@ -82,14 +82,6 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 export const exampleDatasets: ExampleDataSet[] = [
     {
-        id: 'ahp',
-        name: 'AHP',
-        description: 'No data needed. Input criteria directly. Ideal for decision making.',
-        icon: GitCommit,
-        analysisTypes: ['ahp'],
-        data: '',
-    },
-    {
         id: 'dea-bank-data',
         name: 'Bank Branch Efficiency',
         description: 'Inputs and outputs for multiple bank branches. Ideal for Data Envelopment Analysis.',
@@ -107,11 +99,10 @@ export const exampleDatasets: ExampleDataSet[] = [
     },
     {
         id: 'cbc-data',
-        name: 'Laptop Choice Data (CBC)',
-        description: 'Simulated choice data for a Choice-Based Conjoint (CBC) analysis on laptops.',
-        icon: Target,
-        analysisTypes: ['cbc'],
-        recommendedAnalysis: 'cbc',
+        name: 'CBC data',
+        description: 'A list of emails sent between individuals in a small organization.',
+        icon: Network,
+        analysisTypes: ['cbcData'],
         data: cbcData,
     },
     {
