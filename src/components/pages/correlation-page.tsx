@@ -105,18 +105,21 @@ const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strong
 interface CorrelationPageProps {
     data: DataSet;
     numericHeaders: string[];
+    categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function CorrelationPage({ data, numericHeaders, onLoadExample }: CorrelationPageProps) {
+export default function CorrelationPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: CorrelationPageProps) {
   const { toast } = useToast();
   const [selectedHeaders, setSelectedHeaders] = useState<string[]>(numericHeaders.slice(0, 8));
+  const [groupVar, setGroupVar] = useState<string | undefined>();
   const [results, setResults] = useState<CorrelationResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [correlationMethod, setCorrelationMethod] = useState<'pearson' | 'spearman' | 'kendall'>('pearson');
 
   useEffect(() => {
     setSelectedHeaders(numericHeaders.slice(0, 8));
+    setGroupVar(undefined);
     setResults(null);
   }, [numericHeaders, data]);
 
@@ -142,6 +145,7 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
             body: JSON.stringify({
                 data: data,
                 variables: selectedHeaders,
+                groupVar: groupVar,
                 method: correlationMethod, 
             })
         });
@@ -161,7 +165,7 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
     } finally {
         setIsLoading(false);
     }
-  }, [data, selectedHeaders, toast, correlationMethod]);
+  }, [data, selectedHeaders, groupVar, toast, correlationMethod]);
   
   const canRun = useMemo(() => {
     return data.length > 0 && numericHeaders.length >= 2;
@@ -218,24 +222,36 @@ export default function CorrelationPage({ data, numericHeaders, onLoadExample }:
           <CardDescription>Select variables and choose a correlation method.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-            <div>
-                <Label>Variables for Correlation</Label>
-                <ScrollArea className="h-40 border rounded-md p-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {numericHeaders.map(header => (
-                    <div key={header} className="flex items-center space-x-2">
-                        <Checkbox
-                        id={`corr-${header}`}
-                        checked={selectedHeaders.includes(header)}
-                        onCheckedChange={(checked) => handleSelectionChange(header, checked as boolean)}
-                        />
-                        <label htmlFor={`corr-${header}`} className="text-sm font-medium leading-none">
-                        {header}
-                        </label>
+            <div className="grid md:grid-cols-2 gap-4">
+                 <div>
+                    <Label>Variables for Correlation</Label>
+                    <ScrollArea className="h-40 border rounded-md p-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        {numericHeaders.map(header => (
+                        <div key={header} className="flex items-center space-x-2">
+                            <Checkbox
+                            id={`corr-${header}`}
+                            checked={selectedHeaders.includes(header)}
+                            onCheckedChange={(checked) => handleSelectionChange(header, checked as boolean)}
+                            />
+                            <label htmlFor={`corr-${header}`} className="text-sm font-medium leading-none">
+                            {header}
+                            </label>
+                        </div>
+                        ))}
                     </div>
-                    ))}
+                    </ScrollArea>
                 </div>
-                </ScrollArea>
+                 <div>
+                    <Label>Group By (for coloring)</Label>
+                    <Select value={groupVar} onValueChange={(v) => setGroupVar(v === 'none' ? undefined : v)}>
+                        <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                 </div>
             </div>
            <div className="flex flex-wrap items-center justify-end gap-4">
                 <div className="flex items-center gap-2">

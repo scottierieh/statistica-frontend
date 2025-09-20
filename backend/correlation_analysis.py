@@ -68,41 +68,34 @@ def _generate_interpretation(strongest_corr, n, method):
     
     return {"title": title, "body": body}
 
-def generate_pairs_plot(df, method='pearson'):
+def generate_pairs_plot(df, hue_var=None):
     """Generates a pairs plot (scatter matrix) for the dataframe using seaborn."""
     
+    plt.figure()
+    g = sns.pairplot(df, hue=hue_var, diag_kind="hist")
+    
+    # Add correlation coefficients to the upper triangle
     def corr_func(x, y, **kwargs):
-        if method == 'pearson':
-            r, p = pearsonr(x, y)
-        elif method == 'spearman':
-            r, p = spearmanr(x, y)
-        elif method == 'kendall':
-            r, p = kendalltau(x, y)
-        else:
-            r, p = np.nan, np.nan
-        
+        r, p = pearsonr(x, y)
         ax = plt.gca()
         ax.annotate(f"r = {r:.2f}", xy=(.5, .6), xycoords=ax.transAxes, ha='center', va='center', fontsize=12)
-        
         stars = ''
         if p < 0.001: stars = '***'
         elif p < 0.01: stars = '**'
         elif p < 0.05: stars = '*'
         ax.annotate(stars, xy=(.5, .4), xycoords=ax.transAxes, ha='center', va='center', fontsize=16, color='red')
 
-    g = sns.PairGrid(df)
-    g.map_upper(corr_func)
-    g.map_lower(sns.scatterplot, s=30, color='rebeccapurple', alpha=0.6)
-    g.map_diag(sns.histplot, kde=True, color='skyblue')
-    
-    for ax in g.axes.flatten():
-        ax.set_ylabel(ax.get_ylabel(), rotation=0, horizontalalignment='right')
-        ax.set_xlabel(ax.get_xlabel(), rotation=90, horizontalalignment='right')
+    if hue_var:
+        g.map_upper(sns.scatterplot)
+    else:
+        g.map_upper(corr_func)
 
+    g.fig.suptitle("Pairs Plot", y=1.02)
     plt.tight_layout()
+    
     buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    plt.close()
+    g.fig.savefig(buf, format='png')
+    plt.close(g.fig)
     buf.seek(0)
     
     return base64.b64encode(buf.read()).decode('utf-8')
@@ -133,6 +126,7 @@ def main():
         
         data = payload.get('data')
         variables = payload.get('variables')
+        group_var = payload.get('groupVar') # New parameter for hue
         method = payload.get('method', 'pearson')
         alpha = payload.get('alpha', 0.05)
 
@@ -141,17 +135,22 @@ def main():
 
         df = pd.DataFrame(data)
         
-        df_clean = df[variables].copy()
-        for col in df_clean.columns:
+        # Prepare columns for analysis
+        analysis_cols = variables + ([group_var] if group_var else [])
+        df_clean = df[list(set(analysis_cols))].copy()
+
+        for col in variables: # Only convert main variables to numeric
             df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
         
-        df_clean.dropna(inplace=True)
+        df_clean.dropna(subset=variables, inplace=True)
         
         if df_clean.shape[0] < 2:
             raise ValueError("Not enough valid data points for analysis.")
 
-        n_vars = len(df_clean.columns)
-        current_vars = df_clean.columns.tolist()
+        # Correlation matrix on numeric variables only
+        numeric_df = df_clean[variables]
+        n_vars = len(numeric_df.columns)
+        current_vars = numeric_df.columns.tolist()
 
         corr_matrix = pd.DataFrame(np.eye(n_vars), index=current_vars, columns=current_vars)
         p_value_matrix = pd.DataFrame(np.zeros((n_vars, n_vars)), index=current_vars, columns=current_vars)
@@ -166,8 +165,8 @@ def main():
                 corr, p_value = np.nan, np.nan
 
                 try:
-                    col1 = df_clean[var1]
-                    col2 = df_clean[var2]
+                    col1 = numeric_df[var1]
+                    col2 = numeric_df[var2]
                     if method == 'pearson':
                         corr, p_value = pearsonr(col1, col2)
                     elif method == 'spearman':
@@ -209,7 +208,7 @@ def main():
         interpretation = _generate_interpretation(strongest_correlations[0] if strongest_correlations else None, len(df_clean), method)
 
         # Generate plots
-        pairs_plot_img = generate_pairs_plot(df_clean[current_vars], method)
+        pairs_plot_img = generate_pairs_plot(df_clean, hue_var=group_var)
         heatmap_plot_json = generate_heatmap_plotly(corr_matrix, title=f'{method.capitalize()} Correlation Matrix')
 
         response = {
@@ -231,6 +230,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
