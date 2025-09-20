@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { BarChart as BarChartIcon, DollarSign, Eye, Clock, LineChart, ScatterChart as ScatterIcon, Loader2, Users, MapPin, Award, Sigma } from 'lucide-react';
+import { BarChart as BarChartIcon, DollarSign, Eye, Clock, LineChart, ScatterChart as ScatterIcon, Loader2, Users, MapPin, Award, Sigma, Filter } from 'lucide-react';
 import { DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -12,6 +12,7 @@ import { Label } from '../ui/label';
 import { Skeleton } from '../ui/skeleton';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 interface MarketingAnalysisPageProps {
     data: DataSet;
@@ -21,7 +22,7 @@ interface MarketingAnalysisPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-const ChartCard = ({ title, plotData }: { title: string, plotData: string | null }) => (
+const ChartCard = ({ title, plotData }: { title: string, plotData: string | null | undefined }) => (
     <Card>
         <CardHeader><CardTitle className="text-base font-headline">{title}</CardTitle></CardHeader>
         <CardContent>
@@ -37,49 +38,59 @@ const ChartCard = ({ title, plotData }: { title: string, plotData: string | null
 export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: MarketingAnalysisPageProps) {
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
-
-    const [revenueCol, setRevenueCol] = useState<string | undefined>();
-    const [sourceCol, setSourceCol] = useState<string | undefined>();
-    const [deviceCol, setDeviceCol] = useState<string | undefined>();
-    const [pageViewsCol, setPageViewsCol] = useState<string | undefined>();
-    const [sessionDurationCol, setSessionDurationCol] = useState<string | undefined>();
-    const [dateCol, setDateCol] = useState<string | undefined>();
-    const [ageGroupCol, setAgeGroupCol] = useState<string | undefined>();
-    const [ltvCol, setLtvCol] = useState<string | undefined>();
-    const [genderCol, setGenderCol] = useState<string | undefined>();
-    const [countryCol, setCountryCol] = useState<string | undefined>();
-    const [membershipCol, setMembershipCol] = useState<string | undefined>();
+    
+    const [columnConfig, setColumnConfig] = useState({
+        revenueCol: undefined as string | undefined,
+        sourceCol: undefined as string | undefined,
+        mediumCol: undefined as string | undefined,
+        campaignCol: undefined as string | undefined,
+        costCol: undefined as string | undefined,
+        conversionCol: undefined as string | undefined,
+        deviceCol: undefined as string | undefined,
+        pageViewsCol: undefined as string | undefined,
+        sessionDurationCol: undefined as string | undefined,
+        dateCol: undefined as string | undefined,
+        ageGroupCol: undefined as string | undefined,
+        ltvCol: undefined as string | undefined,
+        genderCol: undefined as string | undefined,
+        countryCol: undefined as string | undefined,
+        membershipCol: undefined as string | undefined,
+    });
 
     const [plots, setPlots] = useState<Record<string, string | null> | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
-    }, []);
-
-    useEffect(() => {
-        setRevenueCol(numericHeaders.find(h => h.toLowerCase().includes('revenue')) || numericHeaders[0]);
-        setSourceCol(categoricalHeaders.find(h => h.toLowerCase().includes('source')) || categoricalHeaders[0]);
-        setDeviceCol(categoricalHeaders.find(h => h.toLowerCase().includes('device')) || categoricalHeaders[1]);
-        setPageViewsCol(numericHeaders.find(h => h.toLowerCase().includes('page')) || numericHeaders[1]);
-        setSessionDurationCol(numericHeaders.find(h => h.toLowerCase().includes('duration')) || numericHeaders[2]);
-        setDateCol(allHeaders.find(h => h.toLowerCase().includes('date')) || allHeaders[0]);
-        setAgeGroupCol(categoricalHeaders.find(h => h.toLowerCase().includes('age')) || categoricalHeaders[2]);
-        setLtvCol(numericHeaders.find(h => h.toLowerCase().includes('ltv')) || numericHeaders[3]);
-        setGenderCol(categoricalHeaders.find(h => h.toLowerCase().includes('gender')) || categoricalHeaders[3]);
-        setCountryCol(categoricalHeaders.find(h => h.toLowerCase().includes('country')) || categoricalHeaders[4]);
-        setMembershipCol(categoricalHeaders.find(h => h.toLowerCase().includes('membership')) || categoricalHeaders[5]);
+        // Reset and auto-detect columns when data changes
         setPlots(null);
-    }, [numericHeaders, categoricalHeaders, allHeaders]);
+        setColumnConfig({
+            revenueCol: numericHeaders.find(h => h.toLowerCase().includes('revenue')) || numericHeaders[0],
+            sourceCol: categoricalHeaders.find(h => h.toLowerCase().includes('source')) || categoricalHeaders[0],
+            mediumCol: categoricalHeaders.find(h => h.toLowerCase().includes('medium')) || categoricalHeaders[1],
+            campaignCol: categoricalHeaders.find(h => h.toLowerCase().includes('campaign')) || categoricalHeaders[2],
+            costCol: numericHeaders.find(h => h.toLowerCase().includes('cost')) || numericHeaders[1],
+            conversionCol: allHeaders.find(h => h.toLowerCase().includes('conversion')) || allHeaders[2],
+            deviceCol: categoricalHeaders.find(h => h.toLowerCase().includes('device')) || categoricalHeaders[3],
+            pageViewsCol: numericHeaders.find(h => h.toLowerCase().includes('views')) || numericHeaders[2],
+            sessionDurationCol: numericHeaders.find(h => h.toLowerCase().includes('duration')) || numericHeaders[3],
+            dateCol: allHeaders.find(h => h.toLowerCase().includes('date')) || allHeaders[1],
+            ageGroupCol: categoricalHeaders.find(h => h.toLowerCase().includes('age')) || categoricalHeaders[4],
+            ltvCol: numericHeaders.find(h => h.toLowerCase().includes('ltv')) || numericHeaders[4],
+            genderCol: categoricalHeaders.find(h => h.toLowerCase().includes('gender')) || categoricalHeaders[5],
+            countryCol: categoricalHeaders.find(h => h.toLowerCase().includes('country')) || categoricalHeaders[6],
+            membershipCol: categoricalHeaders.find(h => h.toLowerCase().includes('membership')) || categoricalHeaders[7],
+        })
+    }, [numericHeaders, categoricalHeaders, allHeaders, data]);
     
-    const handleGenerateDashboard = useCallback(async () => {
-        const requiredCols = {
-            revenueCol, sourceCol, deviceCol, pageViewsCol, sessionDurationCol,
-            dateCol, ageGroupCol, ltvCol, genderCol, countryCol, membershipCol
-        };
+    const handleColumnConfigChange = (key: keyof typeof columnConfig, value: string) => {
+        setColumnConfig(prev => ({...prev, [key]: value}));
+    };
 
-        for (const [key, value] of Object.entries(requiredCols)) {
-            if (!value) {
+    const handleGenerateDashboard = useCallback(async () => {
+        const requiredCols = ['revenueCol', 'sourceCol', 'deviceCol', 'pageViewsCol', 'sessionDurationCol', 'dateCol', 'ageGroupCol', 'ltvCol', 'genderCol', 'countryCol', 'membershipCol', 'mediumCol', 'campaignCol', 'costCol', 'conversionCol'];
+        for (const key of requiredCols) {
+            if (!columnConfig[key as keyof typeof columnConfig]) {
                 toast({
                     variant: 'destructive',
                     title: 'Configuration Incomplete',
@@ -96,7 +107,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
              const response = await fetch('/api/analysis/marketing-dashboard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, config: requiredCols })
+                body: JSON.stringify({ data, config: columnConfig })
             });
             if (!response.ok) {
                  const errorResult = await response.json();
@@ -115,18 +126,18 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             setIsGenerating(false);
         }
 
-    }, [data, revenueCol, sourceCol, deviceCol, pageViewsCol, sessionDurationCol, dateCol, ageGroupCol, ltvCol, genderCol, countryCol, membershipCol, toast]);
+    }, [data, columnConfig, toast]);
 
 
     const summaryStats = useMemo(() => {
-        if (!data || data.length === 0 || !revenueCol || !pageViewsCol) {
+        if (!data || data.length === 0 || !columnConfig.revenueCol || !columnConfig.pageViewsCol) {
             return { totalRevenue: 0, totalSessions: 0, totalPageViews: 0 };
         }
-        const totalRevenue = data.reduce((acc, row) => acc + (Number(row[revenueCol]) || 0), 0);
+        const totalRevenue = data.reduce((acc, row) => acc + (Number(row[columnConfig.revenueCol!]) || 0), 0);
         const totalSessions = data.length;
-        const totalPageViews = data.reduce((acc, row) => acc + (Number(row[pageViewsCol]) || 0), 0);
+        const totalPageViews = data.reduce((acc, row) => acc + (Number(row[columnConfig.pageViewsCol!]) || 0), 0);
         return { totalRevenue, totalSessions, totalPageViews };
-    }, [data, revenueCol, pageViewsCol]);
+    }, [data, columnConfig.revenueCol, columnConfig.pageViewsCol]);
 
 
     if (!isClient) {
@@ -155,27 +166,40 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             </div>
         );
     }
+    
+    const configEntries = Object.entries(columnConfig);
 
     return (
         <div className="space-y-4">
              <Card>
-                <CardHeader>
-                    <CardTitle>Dashboard Configuration</CardTitle>
-                    <CardDescription>Map your data columns to the dashboard metrics.</CardDescription>
+                <CardHeader className="flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Dashboard Configuration</CardTitle>
+                        <CardDescription>Map your data columns to the dashboard metrics.</CardDescription>
+                    </div>
+                     <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline"><Filter className="mr-2" /> Configure Columns</Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[600px]">
+                            <div className="grid grid-cols-2 gap-4">
+                                {configEntries.map(([key, value]) => {
+                                    const label = key.replace('Col', '').replace(/([A-Z])/g, ' $1').trim();
+                                    const options = allHeaders;
+                                    return (
+                                        <div key={key}>
+                                            <Label>{label}</Label>
+                                            <Select value={value} onValueChange={(v) => handleColumnConfigChange(key as keyof typeof columnConfig, v)}>
+                                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                                <SelectContent>{options.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div><Label>Revenue</Label><Select value={revenueCol} onValueChange={setRevenueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                    <div><Label>Source</Label><Select value={sourceCol} onValueChange={setSourceCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                    <div><Label>Device</Label><Select value={deviceCol} onValueChange={setDeviceCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                    <div><Label>Age Group</Label><Select value={ageGroupCol} onValueChange={setAgeGroupCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                    <div><Label>Page Views</Label><Select value={pageViewsCol} onValueChange={setPageViewsCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                    <div><Label>Session Duration</Label><Select value={sessionDurationCol} onValueChange={setSessionDurationCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                    <div><Label>Date</Label><Select value={dateCol} onValueChange={setDateCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                    <div><Label>User LTV</Label><Select value={ltvCol} onValueChange={setLtvCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                    <div><Label>Gender</Label><Select value={genderCol} onValueChange={setGenderCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                    <div><Label>Country</Label><Select value={countryCol} onValueChange={setCountryCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                    <div><Label>Membership Level</Label><Select value={membershipCol} onValueChange={setMembershipCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
-                </CardContent>
                 <CardFooter className='flex justify-end'>
                     <Button onClick={handleGenerateDashboard} disabled={isGenerating}>
                         {isGenerating ? <><Loader2 className="animate-spin mr-2" />Generating...</> : <><Sigma className="mr-2" />Generate Dashboard</>}
@@ -218,7 +242,16 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             {plots && !isGenerating && (
                 <>
                 <Card>
-                    <CardHeader><CardTitle className="font-headline">1. General Performance</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="font-headline">1. Traffic Analysis & ROI</CardTitle></CardHeader>
+                    <CardContent className="grid gap-4 md:grid-cols-2">
+                        <ChartCard title="Conversion Rate by Channel" plotData={plots.channelPerformance} />
+                        <ChartCard title="Campaign ROI (%)" plotData={plots.campaignRoi} />
+                        <ChartCard title="Simplified Conversion Funnel" plotData={plots.funnelAnalysis} />
+                        <ChartCard title="Attribution Model Comparison" plotData={plots.attributionModeling} />
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader><CardTitle className="font-headline">2. General Performance</CardTitle></CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2">
                         <ChartCard title="Revenue Over Time" plotData={plots.revenueOverTime} />
                         <ChartCard title="Revenue by Traffic Source" plotData={plots.revenueBySource} />
@@ -230,9 +263,9 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader><CardTitle className="font-headline">2. Customer Segmentation</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="font-headline">3. Customer Segmentation</CardTitle></CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2">
-                         <ChartCard title="User LTV vs. Purchase Revenue" plotData={plots.rfmAnalysis} />
+                         <ChartCard title="User LTV vs. Purchase Revenue" plotData={plots.ltvVsRevenue} />
                          <ChartCard title="Revenue by Age Group" plotData={plots.revenueByAge} />
                          <ChartCard title="Revenue by Gender" plotData={plots.revenueByGender} />
                          <ChartCard title="Revenue by Country" plotData={plots.revenueByCountry} />
