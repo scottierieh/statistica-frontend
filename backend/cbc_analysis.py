@@ -21,26 +21,47 @@ def main():
     try:
         payload = json.load(sys.stdin)
         data = payload.get('data')
-        choice_col = payload.get('choice_col')
-        attribute_cols = payload.get('attribute_cols')
+        attributes_def = payload.get('attributes')
+        target_variable = payload.get('targetVariable')
 
-        if not all([data, choice_col, attribute_cols]):
-            raise ValueError("Missing required parameters")
+        if not all([data, attributes_def, target_variable]):
+            raise ValueError("Missing 'data', 'attributes', or 'targetVariable'")
 
         df = pd.DataFrame(data)
 
-        # Ensure choice column is numeric
-        y = pd.to_numeric(df[choice_col], errors='coerce').dropna()
-        
-        # One-hot encode attributes
-        X = pd.get_dummies(df[attribute_cols], drop_first=True)
-        X = sm.add_constant(X)
+        # --- Data Cleaning and Preparation ---
+        y = pd.to_numeric(df[target_variable], errors='coerce')
 
-        # Align data
-        X = X.loc[y.index]
+        X_parts = []
+        feature_names_map = {}
+        
+        independent_vars = [attr for attr, props in attributes_def.items() if props.get('includeInAnalysis', True) and attr != target_variable]
+
+        for attr_name in independent_vars:
+            props = attributes_def[attr_name]
+            if props['type'] == 'categorical':
+                dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True, dtype=float)
+                X_parts.append(dummies)
+                feature_names_map.update({col: col for col in dummies.columns})
+            elif props['type'] == 'numerical':
+                numeric_series = pd.to_numeric(df[attr_name], errors='coerce').to_frame()
+                X_parts.append(numeric_series)
+                feature_names_map.update({attr_name: attr_name})
+        
+        X = pd.concat(X_parts, axis=1)
+        
+        # Align y and X, and drop any rows with NaN in the selected variables
+        full_df = pd.concat([y, X], axis=1).dropna()
+        y_clean = full_df[target_variable]
+        X_clean = full_df.drop(columns=[target_variable])
+        
+        if y_clean.empty or X_clean.empty:
+            raise ValueError("Not enough valid data after cleaning. Check for non-numeric values.")
+
+        X_with_const = sm.add_constant(X_clean)
 
         # Fit the OLS model
-        model = sm.OLS(y, X).fit()
+        model = sm.OLS(y_clean, X_with_const).fit()
         
         # --- Regression Results ---
         regression_results = {
@@ -58,48 +79,73 @@ def main():
         part_worths = []
         attribute_ranges = {}
         
-        original_levels = {attr: df[attr].unique() for attr in attribute_cols}
+        for attr_name in independent_vars:
+            props = attributes_def[attr_name]
+            if props['type'] == 'categorical':
+                base_level = props['levels'][0]
+                part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
+                
+                level_worths = [0]
+                for level in props['levels'][1:]:
+                    param_name = f"{attr_name}_{level}"
+                    worth = regression_results['coefficients'].get(param_name, 0)
+                    part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
+                    level_worths.append(worth)
+                
+                attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
+            
+            elif props['type'] == 'numerical':
+                coeff = regression_results['coefficients'].get(attr_name, 0)
+                part_worths.append({'attribute': attr_name, 'level': 'coefficient', 'value': coeff})
+                
+                val_range = X_clean[attr_name].max() - X_clean[attr_name].min()
+                attribute_ranges[attr_name] = abs(coeff * val_range)
 
-        for attr_name in attribute_cols:
-            levels = original_levels[attr_name]
-            base_level = levels[0]
-            part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
-            
-            level_worths = [0]
-            for level in levels[1:]:
-                param_name = f"{attr_name}_{level}"
-                worth = regression_results['coefficients'].get(param_name, 0)
-                part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
-                level_worths.append(worth)
-            
-            attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
-        
         total_range = sum(attribute_ranges.values())
-        importance_list = []
+        importance = []
         if total_range > 0:
-            for attr, rng in attribute_ranges.items():
-                importance_list.append({
-                    'attribute': attr,
-                    'importance': (rng / total_range) * 100
+            for attr_name, range_val in attribute_ranges.items():
+                importance.append({
+                    'attribute': attr_name,
+                    'importance': (range_val / total_range) * 100
                 })
-        
-        model_fit_summary = {
-            'llf': model.llf,
-            'f_pvalue': model.f_pvalue,
-            'aic': model.aic,
-            'bic': model.bic,
-        }
+        importance.sort(key=lambda x: x['importance'], reverse=True)
 
-        response = {
-            'results': {
-                'regression': regression_results,
-                'part_worths': part_worths,
-                'attribute_importance': importance_list,
-                'model_fit': model_fit_summary,
-            }
+        final_results = {
+            'regression': regression_results,
+            'partWorths': part_worths,
+            'importance': importance,
+            'targetVariable': target_variable
         }
         
-        print(json.dumps(response, default=_to_native_type))
+        # Sensitivity Analysis Plot (if requested)
+        sensitivity_analysis_request = payload.get('sensitivityAnalysis')
+        if sensitivity_analysis_request:
+            import matplotlib.pyplot as plt
+            import seaborn as sns
+            import io
+            import base64
+            
+            levels = [item['level'] for item in sensitivity_analysis_request]
+            utilities = [item['utility'] for item in sensitivity_analysis_request]
+            
+            fig, ax = plt.subplots(figsize=(8, 5))
+            sns.barplot(x=levels, y=utilities, ax=ax, palette='viridis')
+            ax.set_title(f"Sensitivity Analysis for {sensitivity_analysis_request[0].get('attribute', 'Attribute')}")
+            ax.set_xlabel('Level')
+            ax.set_ylabel('Calculated Utility')
+            ax.grid(True, axis='y', linestyle='--', alpha=0.6)
+            
+            plt.tight_layout()
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png')
+            plt.close(fig)
+            buf.seek(0)
+            plot_image = base64.b64encode(buf.read()).decode('utf-8')
+            final_results['sensitivity_plot'] = f"data:image/png;base64,{plot_image}"
+
+
+        print(json.dumps(final_results, default=_to_native_type))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
@@ -107,3 +153,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+  
