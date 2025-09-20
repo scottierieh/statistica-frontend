@@ -68,38 +68,6 @@ def _generate_interpretation(strongest_corr, n, method):
     
     return {"title": title, "body": body}
 
-def generate_pairs_plot(df, hue_var=None):
-    """Generates a pairs plot (scatter matrix) for the dataframe using seaborn."""
-    
-    plt.figure()
-    g = sns.pairplot(df, hue=hue_var, diag_kind="hist")
-    
-    # Add correlation coefficients to the upper triangle
-    def corr_func(x, y, **kwargs):
-        r, p = pearsonr(x, y)
-        ax = plt.gca()
-        ax.annotate(f"r = {r:.2f}", xy=(.5, .6), xycoords=ax.transAxes, ha='center', va='center', fontsize=12)
-        stars = ''
-        if p < 0.001: stars = '***'
-        elif p < 0.01: stars = '**'
-        elif p < 0.05: stars = '*'
-        ax.annotate(stars, xy=(.5, .4), xycoords=ax.transAxes, ha='center', va='center', fontsize=16, color='red')
-
-    if hue_var:
-        g.map_upper(sns.scatterplot)
-    else:
-        g.map_upper(corr_func)
-
-    g.fig.suptitle("Pairs Plot", y=1.02)
-    plt.tight_layout()
-    
-    buf = io.BytesIO()
-    g.fig.savefig(buf, format='png')
-    plt.close(g.fig)
-    buf.seek(0)
-    
-    return base64.b64encode(buf.read()).decode('utf-8')
-
 def generate_heatmap_plotly(df, title='Correlation Matrix'):
     """Generates an interactive heatmap using Plotly."""
     fig = go.Figure(data=go.Heatmap(
@@ -208,7 +176,6 @@ def main():
         interpretation = _generate_interpretation(strongest_correlations[0] if strongest_correlations else None, len(df_clean), method)
 
         # Generate plots
-        pairs_plot_img = generate_pairs_plot(df_clean, hue_var=group_var)
         heatmap_plot_json = generate_heatmap_plotly(corr_matrix, title=f'{method.capitalize()} Correlation Matrix')
 
         response = {
@@ -217,7 +184,6 @@ def main():
             "summary_statistics": summary_stats,
             "strongest_correlations": strongest_correlations[:10],
             "interpretation": interpretation,
-            "pairs_plot": f"data:image/png;base64,{pairs_plot_img}",
             "heatmap_plot": heatmap_plot_json,
         }
 
@@ -230,6 +196,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
