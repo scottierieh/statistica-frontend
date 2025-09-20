@@ -54,7 +54,7 @@ class LogisticRegressionAnalysis:
         self.X = pd.get_dummies(X_raw, drop_first=True, dtype=float)
         self.feature_names = self.X.columns.tolist()
         
-        self.y = self.clean_data[self.dependent_var + '_encoded'].values
+        self.y = self.clean_data[self.dependent_var + '_encoded'].values.ravel()
         
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_size, random_state=self.random_state, stratify=self.y)
 
@@ -74,15 +74,24 @@ class LogisticRegressionAnalysis:
         X_with_const = sm.add_constant(X_train_df_scaled, has_constant='add')
         
         vif_data = pd.DataFrame()
-        vif_data["feature"] = X_train_df_scaled.columns
+        vif_data["feature"] = X_with_const.columns
         try:
-            vif_data["VIF"] = [variance_inflation_factor(X_with_const.values, i + 1) for i in range(X_train_df_scaled.shape[1])]
+            vif_data["VIF"] = [variance_inflation_factor(X_with_const.values, i) for i in range(X_with_const.shape[1])]
         except Exception as e:
+            # Fallback for perfect multicollinearity which can cause errors in VIF calculation
+            if "Singular matrix" in str(e):
+                 # Find the perfectly collinear columns
+                 corr_matrix = X_with_const.corr()
+                 # Get the upper triangle of the correlation matrix
+                 upper_tri = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+                 # Find index of columns with correlation greater than 0.999
+                 to_drop = [column for column in upper_tri.columns if any(upper_tri[column].abs() > 0.999)]
+                 raise ValueError(f"Perfect multicollinearity detected. Please remove one of these highly correlated variables: {', '.join(to_drop)}")
             raise ValueError(f"Multicollinearity check failed. Original error: {e}")
 
         high_vif = vif_data[vif_data['VIF'] > 10]
         if not high_vif.empty:
-            offending_vars = ", ".join(high_vif['feature'].tolist())
+            offending_vars = ", ".join(high_vif[high_vif['feature'] != 'const']['feature'].tolist())
             raise ValueError(f"High multicollinearity detected (VIF > 10) for variables: {offending_vars}. Please remove one or more of these variables to proceed.")
 
 
@@ -153,11 +162,12 @@ class LogisticRegressionAnalysis:
         interpretation += f"The model explained {pseudo_r2*100:.1f}% (Pseudo R²) of the variance in {self.dependent_var} and correctly classified {accuracy*100:.1f}% of cases.\n\n"
         
         odds_ratios = res['odds_ratios']
-        p_values = self.model_fit.pvalues[1:] 
+        p_values = self.model_fit.pvalues
         
         sig_preds = []
-        for var, p in p_values.items():
-            if p < 0.05:
+        for var in self.feature_names:
+            p = p_values.get(var)
+            if p is not None and p < 0.05:
                 odds = odds_ratios.get(var)
                 if odds is not None:
                      change_text = f"{odds:.2f} times as likely" if odds > 1 else f"{(1-odds)*100:.1f}% less likely"
@@ -224,4 +234,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
