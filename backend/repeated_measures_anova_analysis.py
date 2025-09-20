@@ -1,5 +1,4 @@
 
-
 import sys
 import json
 import numpy as np
@@ -84,17 +83,19 @@ class RepeatedMeasuresAnova:
 
             # Post-hoc tests if significant interaction or main effect
             perform_posthoc = False
-            main_effect_p = 'p-GG-corr' if 'p-GG-corr' in aov.columns and not pd.isna(aov[aov['Source'] == self.within_name]['p-GG-corr'].iloc[0]) else 'p-unc'
+            main_effect_p_col = 'p-GG-corr' if 'p-GG-corr' in aov.columns and not pd.isna(aov[aov['Source'] == self.within_name]['p-GG-corr'].iloc[0]) else 'p-unc'
             
             if self.between_col:
                 interaction_row = aov[aov['Source'] == f'{self.within_name} * {self.between_col}']
                 if not interaction_row.empty:
-                    interaction_p = interaction_row['p-GG-corr'].iloc[0] if 'p-GG-corr' in interaction_row.columns and not pd.isna(interaction_row['p-GG-corr'].iloc[0]) else interaction_row['p-unc'].iloc[0]
+                    interaction_p_col = 'p-GG-corr' if 'p-GG-corr' in interaction_row.columns and not pd.isna(interaction_row['p-GG-corr'].iloc[0]) else 'p-unc'
+                    interaction_p = interaction_row[interaction_p_col].iloc[0]
                     if interaction_p < self.alpha:
                         perform_posthoc = True
-            else: # No between-subject factor, check main within-subject effect
+            
+            if not perform_posthoc: # Check main effect if interaction is not significant or doesn't exist
                 within_row = aov[aov['Source'] == self.within_name]
-                if not within_row.empty and within_row[main_effect_p].iloc[0] < self.alpha:
+                if not within_row.empty and within_row[main_effect_p_col].iloc[0] < self.alpha:
                     perform_posthoc = True
 
             if perform_posthoc:
@@ -102,7 +103,8 @@ class RepeatedMeasuresAnova:
                     'data': self.long_data,
                     'dv': self.dependent_var,
                     'within': self.within_name,
-                    'subject': self.subject_col
+                    'subject': self.subject_col,
+                    'padjust': 'bonf'
                 }
                 if self.between_col:
                     posthoc_args['between'] = self.between_col
