@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Sigma, AlertCircle, Loader2, Copy } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface AnovaRow {
     Source: string;
@@ -193,6 +194,7 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
     }
 
     const results = analysisResponse?.results;
+    const interactionPValue = results?.anova_table.find(row => row.Source.includes('*'))?.['p-value'];
 
     return (
         <div className="flex flex-col gap-4">
@@ -252,10 +254,21 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
                     )}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Interpretation</CardTitle>
+                            <CardTitle className="font-headline">Analysis Summary & Interpretation</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{results.interpretation}</p>
+                            <Alert variant={interactionPValue !== undefined && interactionPValue < 0.05 ? 'default' : 'secondary'}>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>
+                                    {interactionPValue !== undefined && interactionPValue < 0.05
+                                        ? 'Significant Interaction Effect Found'
+                                        : 'No Significant Interaction Effect'
+                                    }
+                                </AlertTitle>
+                                <AlertDescription className="whitespace-pre-wrap">
+                                    {results.interpretation}
+                                </AlertDescription>
+                            </Alert>
                         </CardContent>
                     </Card>
                     <Card>
@@ -354,3 +367,4 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
         </div>
     );
 }
+
