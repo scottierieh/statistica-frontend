@@ -26,15 +26,10 @@ def main():
 
         # Ensure correct data types
         df[outcome_var] = pd.to_numeric(df[outcome_var], errors='coerce')
-        # Assuming group and time vars are coded 0/1 for treatment/post
-        df[group_var] = pd.to_numeric(df[group_var], errors='coerce')
-        df[time_var] = pd.to_numeric(df[time_var], errors='coerce')
+        # Do not convert group and time vars to numeric, let statsmodels handle them as categorical
         
         df.dropna(subset=[outcome_var, group_var, time_var], inplace=True)
 
-        # Interaction term
-        interaction_term = f'Q("{group_var}") * Q("{time_var}")'
-        
         # Sanitize column names for formula
         outcome_clean = outcome_var.replace(' ', '_').replace('.', '_')
         group_clean = group_var.replace(' ', '_').replace('.', '_')
@@ -46,8 +41,8 @@ def main():
             time_var: time_clean
         }, inplace=True)
 
-        # Run OLS regression
-        formula = f'Q("{outcome_clean}") ~ Q("{group_clean}") * Q("{time_clean}")'
+        # Run OLS regression - statsmodels will auto-dummy code the categorical vars
+        formula = f'Q("{outcome_clean}") ~ C(Q("{group_clean}")) * C(Q("{time_clean}"))'
         model = smf.ols(formula, data=df).fit()
         
         summary_obj = model.summary()
