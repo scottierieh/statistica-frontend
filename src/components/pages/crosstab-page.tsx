@@ -17,11 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
-interface Interpretation {
-    title: string;
-    description: string;
-}
-
 interface CrosstabResults {
     contingency_table: { [key: string]: { [key: string]: number } };
     chi_squared: {
@@ -32,14 +27,7 @@ interface CrosstabResults {
     cramers_v: number;
     phi_coefficient: number;
     contingency_coefficient: number;
-    interpretations: {
-        chi_squared: Interpretation;
-        p_value: Interpretation;
-        df: Interpretation;
-        cramers_v: Interpretation;
-        phi: Interpretation;
-        contingency_coeff: Interpretation;
-    };
+    interpretation: string;
     row_var: string;
     col_var: string;
     row_levels: string[];
@@ -214,39 +202,15 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
     
     const results = analysisResult?.results;
 
-    const renderInterpretations = () => {
-        if (!results) return null;
-        const interpData = results.interpretations;
-
-        return (
-             <Card>
-                <CardHeader>
-                    <CardTitle>Understanding the Statistics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <Tabs defaultValue="chi_squared">
-                        <TabsList>
-                            <TabsTrigger value="chi_squared">χ² Test</TabsTrigger>
-                            <TabsTrigger value="cramers_v">Cramér's V</TabsTrigger>
-                            <TabsTrigger value="phi">Phi (φ)</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="chi_squared" className="pt-2">
-                            <h4 className="font-semibold">{interpData.chi_squared.title} & p-value</h4>
-                            <p className="text-sm text-muted-foreground">{interpData.chi_squared.description} {interpData.p_value.description}</p>
-                        </TabsContent>
-                         <TabsContent value="cramers_v" className="pt-2">
-                             <h4 className="font-semibold">{interpData.cramers_v.title}</h4>
-                            <p className="text-sm text-muted-foreground">{interpData.cramers_v.description}</p>
-                        </TabsContent>
-                         <TabsContent value="phi" className="pt-2">
-                             <h4 className="font-semibold">{interpData.phi.title}</h4>
-                            <p className="text-sm text-muted-foreground">{interpData.phi.description}</p>
-                        </TabsContent>
-                    </Tabs>
-                </CardContent>
-             </Card>
-        )
-    }
+    const formattedInterpretation = useMemo(() => {
+        if (!results?.interpretation) return null;
+        return results.interpretation
+            .replace(/\n/g, '<br />')
+            .replace(/χ²\((.*?)\)\s*=\s*(.*?),/g, '<i>χ</i>²($1) = $2,')
+            .replace(/p\s*=\s*(\.\d+)/g, '<i>p</i> = $1')
+            .replace(/p\s*<\s*(\.\d+)/g, '<i>p</i> < $1')
+            .replace(/z\s*=\s*(-?[\d.]+)/g, '<i>z</i> = $1');
+    }, [results]);
 
     return (
         <div className="flex flex-col gap-4">
@@ -279,41 +243,16 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
             {results && (
                 <div className="space-y-4">
                     <div className="grid lg:grid-cols-2 gap-4">
-                        <Card>
+                         <Card>
                             <CardHeader>
-                                <CardTitle className="font-headline">Chi-Squared Test & Measures of Association</CardTitle>
-                                <CardDescription>Tests whether there is a significant association between {rowVar} and {colVar}.</CardDescription>
+                                <CardTitle className="font-headline">Analysis Summary</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent>
                                 <Alert variant={results.chi_squared.p_value < 0.05 ? 'default' : 'destructive'}>
                                   <AlertTriangle className="h-4 w-4" />
                                   <AlertTitle>{results.chi_squared.p_value < 0.05 ? "Result is Statistically Significant" : "Result is Not Statistically Significant"}</AlertTitle>
-                                  <AlertDescription>
-                                        {results.chi_squared.p_value < 0.05
-                                            ? `There IS a statistically significant association between the variables (p < 0.05).`
-                                            : `There is NO statistically significant association between the variables (p >= 0.05).`}
-                                  </AlertDescription>
+                                  <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }}/>
                                 </Alert>
-                                <Table>
-                                    <TableBody>
-                                        <TableRow>
-                                            <TableCell className="font-medium">Chi-Squared (χ²)</TableCell>
-                                            <TableCell className="font-mono text-right">{results.chi_squared.statistic.toFixed(3)}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableCell className="font-medium">p-value</TableCell>
-                                            <TableCell className="font-mono text-right">{results.chi_squared.p_value < 0.001 ? "<.001" : results.chi_squared.p_value.toFixed(4)} {getSignificanceStars(results.chi_squared.p_value)}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableCell className="font-medium">Degrees of Freedom</TableCell>
-                                            <TableCell className="font-mono text-right">{results.chi_squared.degrees_of_freedom}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableCell className="font-medium">Cramer's V</TableCell>
-                                            <TableCell className="font-mono text-right">{results.cramers_v.toFixed(3)}</TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
                             </CardContent>
                         </Card>
                         {analysisResult.plot && (
@@ -340,7 +279,50 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                         </CardHeader>
                         <CardContent>{renderContingencyTable()}</CardContent>
                     </Card>
-                    {renderInterpretations()}
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Chi-Squared Test & Measures of Association</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                           <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Test</TableHead>
+                                        <TableHead className="text-right">Value</TableHead>
+                                        <TableHead className="text-right">df</TableHead>
+                                        <TableHead className="text-right">p-value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>Chi-Squared (χ²)</TableCell>
+                                        <TableCell className="font-mono text-right">{results.chi_squared.statistic.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{results.chi_squared.degrees_of_freedom}</TableCell>
+                                        <TableCell className="font-mono text-right">{results.chi_squared.p_value < 0.001 ? "<.001" : results.chi_squared.p_value.toFixed(4)} {getSignificanceStars(results.chi_squared.p_value)}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Cramer's V</TableCell>
+                                        <TableCell className="font-mono text-right">{results.cramers_v.toFixed(3)}</TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell></TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell>Phi (φ) Coefficient</TableCell>
+                                        <TableCell className="font-mono text-right">{results.phi_coefficient.toFixed(3)}</TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell></TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell>Contingency Coefficient</TableCell>
+                                        <TableCell className="font-mono text-right">{results.contingency_coefficient.toFixed(3)}</TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell></TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
                 </div>
             )}
 

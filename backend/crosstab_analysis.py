@@ -3,7 +3,7 @@ import sys
 import json
 import pandas as pd
 import numpy as np
-from scipy.stats import chi2_contingency
+from scipy.stats import chi2_contingency, norm
 import matplotlib.pyplot as plt
 import seaborn as sns
 import io
@@ -22,46 +22,43 @@ def _to_native_type(obj):
         return bool(obj)
     return obj
 
-def get_interpretations(chi2_stat, p_val, df, cramers_v, phi, contingency_coeff, n_rows, n_cols):
-    """
-    Generates detailed interpretations for each crosstab statistic.
-    """
-    interpretations = {
-        'chi_squared': {
-            "title": "Chi-Squared (χ²)",
-            "description": f"The Chi-squared statistic ({chi2_stat:.3f}) measures the discrepancy between the observed frequencies in your data and the frequencies that would be expected if there were no association between the variables. A larger value indicates a greater difference."
-        },
-        'p_value': {
-            "title": "p-value",
-            "description": f"The p-value ({p_val:.4f}) indicates the probability of observing a relationship as strong as (or stronger than) the one in your data if the variables were actually independent. A p-value less than 0.05 is typically considered statistically significant, suggesting the association is not due to random chance."
-        },
-        'df': {
-            "title": "Degrees of Freedom (df)",
-            "description": f"The degrees of freedom ({df}) are calculated as (rows - 1) * (columns - 1). It represents the number of independent values that can vary in the analysis without breaking any constraints."
-        },
-        'cramers_v': {
-            "title": "Cramér's V",
-            "description": f"Cramér's V ({cramers_v:.3f}) is a measure of the strength of association, ranging from 0 (no association) to 1 (perfect association). It is useful for tables of any size. A value around 0.1 suggests a weak association, 0.3 a moderate one, and 0.5 or higher a strong one."
-        },
-    }
-    
-    if n_rows == 2 and n_cols == 2:
-        interpretations['phi'] = {
-            "title": "Phi (φ) Coefficient",
-            "description": f"For a 2x2 table, the Phi coefficient ({phi:.3f}) is equivalent to Cramér's V and measures the strength of association. It ranges from -1 to 1 for 2x2 tables, but is often presented as its absolute value (0 to 1)."
-        }
-    else:
-        interpretations['phi'] = {
-            "title": "Phi (φ) Coefficient",
-            "description": "This metric is primarily interpreted for 2x2 tables. For larger tables, Cramér's V is the preferred measure of association strength."
-        }
+def get_cramers_v_interpretation(v):
+    if v < 0.1: return "negligible"
+    if v < 0.3: return "small"
+    if v < 0.5: return "medium"
+    return "large"
 
-    interpretations['contingency_coeff'] = {
-        "title": "Contingency Coefficient",
-        "description": f"The Contingency Coefficient ({contingency_coeff:.3f}) is another measure of association. Its upper limit depends on the table size, making it harder to compare across different tables. Cramér's V is generally preferred."
-    }
-    
-    return interpretations
+def get_full_interpretation(chi2_stat, p_val, df, cramers_v, n_total, row_var, col_var, standardized_residuals):
+    """
+    Generates a full APA-style interpretation of the crosstab analysis.
+    """
+    p_text = "p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
+    sig_text = "significant" if p_val < 0.05 else "not significant"
+    effect_size_text = get_cramers_v_interpretation(cramers_v)
+
+    interpretation = (
+        f"A chi-square test of independence was performed to examine the relation between {row_var} and {col_var}. "
+        f"The relation between these variables was {sig_text}, χ²({df}, N = {n_total}) = {chi2_stat:.2f}, {p_text}. "
+        f"Cramer's V = {cramers_v:.2f}, indicating a {effect_size_text} effect size."
+    )
+
+    if p_val < 0.05:
+        residual_interp_parts = []
+        for r_idx, r_name in enumerate(standardized_residuals.index):
+            for c_idx, c_name in enumerate(standardized_residuals.columns):
+                z = standardized_residuals.iat[r_idx, c_idx]
+                if abs(z) > 1.96: # Corresponds to p < 0.05
+                    p_z = 2 * (1 - norm.cdf(abs(z)))
+                    direction = "significantly more likely" if z > 0 else "significantly less likely"
+                    residual_interp_parts.append(
+                        f"respondents in the '{r_name}' group were {direction} to be in the '{c_name}' group (z = {z:.2f}, p < {p_z:.3f if p_z > 0.001 else '.001'})"
+                    )
+        
+        if residual_interp_parts:
+            interpretation += "\nExamination of the standardized residuals revealed that " + ", and ".join(residual_interp_parts) + "."
+
+    return interpretation
+
 
 def main():
     try:
@@ -81,6 +78,10 @@ def main():
         # --- Chi-squared test ---
         chi2_stat, p_val, dof, expected = chi2_contingency(contingency_table)
         
+        # Standardized residuals
+        residuals = contingency_table - expected
+        standardized_residuals = residuals / np.sqrt(expected)
+
         total = contingency_table.sum().sum()
 
         phi2 = chi2_stat / total if total > 0 else 0
@@ -92,7 +93,7 @@ def main():
         min_dim = min(n_rows - 1, n_cols - 1)
         cramers_v = np.sqrt(phi2 / min_dim) if min_dim > 0 else 0
         
-        interpretations = get_interpretations(chi2_stat, p_val, dof, cramers_v, phi, contingency_coeff, n_rows, n_cols)
+        interpretation = get_full_interpretation(chi2_stat, p_val, dof, cramers_v, total, row_var, col_var, standardized_residuals)
 
         # --- Plotting ---
         plt.figure(figsize=(10, 6))
@@ -120,7 +121,7 @@ def main():
                 'phi_coefficient': phi,
                 'contingency_coefficient': contingency_coeff,
                 'cramers_v': cramers_v,
-                'interpretations': interpretations,
+                'interpretation': interpretation,
                 'row_var': row_var,
                 'col_var': col_var,
                 'row_levels': contingency_table.index.tolist(),
