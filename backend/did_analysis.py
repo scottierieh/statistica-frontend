@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -22,8 +23,10 @@ def _generate_interpretation(model, df_clean, group_var, time_var, outcome_var):
     
     # --- Find interaction term dynamically ---
     interaction_term_key = None
+    pattern = re.compile(f'.*{re.escape(group_var)}.*:.*{re.escape(time_var)}.*|.*{re.escape(time_var)}.*:.*{re.escape(group_var)}.*')
+    
     for key in params.keys():
-        if group_var in key and time_var in key and ':' in key:
+        if pattern.search(key):
             interaction_term_key = key
             break
     
@@ -126,7 +129,8 @@ def main():
         pvalues_cleaned = {clean_name(k): v for k, v in model.pvalues.to_dict().items()}
         
         # --- Generate Interpretation ---
-        interpretation = _generate_interpretation(model, df_clean, group_var, time_var, outcome_var)
+        # Pass original (unsanitized) names to the interpreter
+        interpretation = _generate_interpretation(model, df_clean, group_clean, time_clean, outcome_var)
 
         summary_obj = model.summary()
         summary_data = []
@@ -165,3 +169,4 @@ if __name__ == '__main__':
     main()
 
   
+
