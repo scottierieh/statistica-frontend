@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -94,6 +95,9 @@ def check_assumptions(data, condition_col, value_col):
     results = {}
     for condition in data[condition_col].unique():
         condition_data = data[data[condition_col] == condition][value_col]
+        if len(condition_data) < 3: # Shapiro test requires at least 3 samples
+            results[condition] = {'statistic': None, 'p_value': None, 'error': 'Not enough data for normality test'}
+            continue
         stat, p_val = stats.shapiro(condition_data)
         results[condition] = {'statistic': stat, 'p_value': p_val}
     return results
@@ -125,10 +129,12 @@ def main():
         assumption_results = check_assumptions(long_df, 'condition', dependent_var)
         sm_results = repeated_measures_anova_statsmodels(long_df, subject_col, 'condition', dependent_var)
         
-        # Extract p-value to decide on post-hoc
+        # Safely extract p-value to decide on post-hoc
         anova_summary = sm_results.summary().tables[0]
-        p_value_str = anova_summary.iloc[1, 3] # Assuming the p-value is in this cell
-        main_effect_p_value = float(p_value_str)
+        try:
+            main_effect_p_value = float(sm_results.anova_table['Pr(>F)'][0])
+        except (KeyError, IndexError):
+            main_effect_p_value = 1.0 # Default to non-significant if p-value can't be found
 
         posthoc_res = None
         if main_effect_p_value < 0.05:
@@ -139,7 +145,6 @@ def main():
         plot_image = visualize_data(long_df, subject_col, 'condition', dependent_var)
 
         # --- Response Preparation ---
-        # Convert statsmodels table to a more JSON-friendly format
         sm_table_html = sm_results.summary().tables[0].as_html()
         sm_df = pd.read_html(sm_table_html, header=0, index_col=0)[0]
 
