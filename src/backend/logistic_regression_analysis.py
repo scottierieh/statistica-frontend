@@ -54,7 +54,6 @@ class LogisticRegressionAnalysis:
         self.X = pd.get_dummies(X_raw, drop_first=True, dtype=float)
         self.feature_names = self.X.columns.tolist()
         
-        # Ensure y is a 1D array
         self.y = self.clean_data[self.dependent_var + '_encoded'].values.ravel()
         
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_size, random_state=self.random_state, stratify=self.y)
@@ -69,18 +68,21 @@ class LogisticRegressionAnalysis:
 
     def _check_multicollinearity(self):
         if self.X_train.shape[1] < 2:
-            return # VIF not applicable for single feature
+            return 
         
-        # Create a dataframe from scaled training data to calculate VIF
         X_train_df_scaled = pd.DataFrame(self.X_train_scaled, columns=self.feature_names)
-        X_train_df_scaled_const = sm.add_constant(X_train_df_scaled, prepend=False)
         
-        vif_data = [variance_inflation_factor(X_train_df_scaled_const.values, i) for i in range(X_train_df_scaled_const.shape[1] - 1)]
-        vif_df = pd.DataFrame({'vif': vif_data}, index=self.feature_names)
+        # Add constant for VIF calculation
+        X_with_const = sm.add_constant(X_train_df_scaled)
         
-        high_vif = vif_df[vif_df['vif'] > 10]
+        vif_data = pd.DataFrame()
+        vif_data["feature"] = X_with_const.columns
+        vif_data["VIF"] = [variance_inflation_factor(X_with_const.values, i) for i in range(X_with_const.shape[1])]
+        vif_data = vif_data[vif_data['feature'] != 'const']
+
+        high_vif = vif_data[vif_data['VIF'] > 10]
         if not high_vif.empty:
-            offending_vars = ", ".join(high_vif.index.tolist())
+            offending_vars = ", ".join(high_vif['feature'].tolist())
             raise ValueError(f"High multicollinearity detected (VIF > 10) for variables: {offending_vars}. Please remove one or more of these variables to proceed.")
 
     def run_analysis(self):
@@ -228,6 +230,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
