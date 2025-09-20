@@ -21,11 +21,11 @@ def _to_native_type(obj):
 
 def calculate_cvr(series, threshold):
     """Calculate Content Validity Ratio."""
-    n_e = (series >= threshold).sum()
-    n_total = len(series)
-    if n_total == 0:
+    Ne = (series >= threshold).sum()
+    N = len(series)
+    if N == 0:
         return 0
-    return (n_e - (n_total / 2)) / (n_total / 2)
+    return (Ne - (N / 2)) / (N / 2)
 
 def calculate_consensus(series):
     """Calculate consensus based on interquartile range."""
