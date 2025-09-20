@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -32,10 +33,16 @@ def calculate_consensus(series):
     """Calculate consensus based on interquartile range."""
     if len(series) < 2:
         return np.nan
-    return 1 - (iqr(series) / (series.max() - series.min())) if (series.max() - series.min()) > 0 else 1
+    
+    series_range = series.max() - series.min()
+    if series_range == 0:
+        return 1.0 # Perfect consensus if all values are the same
 
-def calculate_stability(series):
-    """Calculate stability using the coefficient of variation (CV)."""
+    return 1 - (iqr(series) / series_range)
+
+
+def calculate_cv(series):
+    """Calculate Coefficient of Variation."""
     mean = series.mean()
     std = series.std()
     if mean == 0:
@@ -55,7 +62,7 @@ def main():
 
         df = pd.DataFrame(data)
         
-        results = {}
+        all_results = {}
         
         # Calculate stats for each round
         for round_config in rounds:
@@ -66,14 +73,15 @@ def main():
             if not items:
                 continue
 
-            round_df = df[items]
-            round_df = round_df.apply(pd.to_numeric, errors='coerce').dropna()
+            # Convert all relevant columns to numeric and then drop rows with any NaN in those columns
+            round_df_numeric = df[items].apply(pd.to_numeric, errors='coerce')
+            round_df_clean = round_df_numeric.dropna()
             
             for item_col in items:
-                if item_col not in round_df.columns:
+                if item_col not in round_df_clean.columns:
                     continue
                     
-                series = round_df[item_col].dropna()
+                series = round_df_clean[item_col]
                 
                 if series.empty:
                     continue
@@ -89,20 +97,51 @@ def main():
                     'q3': series.quantile(0.75),
                     'cvr': calculate_cvr(series, cvr_threshold),
                     'consensus': calculate_consensus(series),
-                    'stability': calculate_stability(series),
                     'convergence': median_val - q1,
+                    'cv': calculate_cv(series),
                     'positive_responses': (series >= cvr_threshold).sum(),
+                    'stability': np.nan, # Initialize stability
                 }
             
-            # Calculate Cronbach's Alpha for the round
-            cronbach_alpha = pg.cronbach_alpha(data=round_df)[0] if len(items) > 1 else np.nan
+            # Calculate Cronbach's Alpha for the round, using the cleaned dataframe
+            cronbach_alpha = np.nan
+            if not round_df_clean.empty and len(round_df_clean.columns) > 1:
+                cronbach_alpha = pg.cronbach_alpha(data=round_df_clean)[0]
             
-            results[round_name] = {
+            all_results[round_name] = {
                 "items": round_results,
                 "cronbach_alpha": cronbach_alpha
             }
         
-        print(json.dumps({'results': results}, default=_to_native_type))
+        # Calculate Stability between rounds if more than one round exists
+        if len(rounds) > 1:
+            for i in range(1, len(rounds)):
+                prev_round_config = rounds[i-1]
+                curr_round_config = rounds[i]
+                
+                prev_items = prev_round_config['items']
+                curr_items = curr_round_config['items']
+                
+                # Create item mapping based on base name (e.g., 'item1_r1' -> 'item1')
+                item_map = {}
+                for prev_item in prev_items:
+                    base_name = prev_item.split('_r')[0]
+                    for curr_item in curr_items:
+                        if curr_item.split('_r')[0] == base_name:
+                            item_map[curr_item] = prev_item
+                            break
+                            
+                for curr_item, prev_item in item_map.items():
+                    if curr_item in all_results[curr_round_config['name']]['items'] and prev_item in all_results[prev_round_config['name']]['items']:
+                        curr_mean = all_results[curr_round_config['name']]['items'][curr_item]['mean']
+                        prev_mean = all_results[prev_round_config['name']]['items'][prev_item]['mean']
+                        
+                        if prev_mean != 0:
+                            stability = abs(curr_mean - prev_mean) / prev_mean
+                            all_results[curr_round_config['name']]['items'][curr_item]['stability'] = stability
+
+
+        print(json.dumps({'results': all_results}, default=_to_native_type))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
