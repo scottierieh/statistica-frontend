@@ -105,13 +105,20 @@ export default function AhpPage() {
     const updateMatrix = (key: string, matrix: number[][]) => {
         setMatrices((prev: any) => ({ ...prev, [key]: matrix }));
     };
-
+    
     const renderHierarchyComparisons = (levels: HierarchyLevel[], parentPath = 'goal') => {
         let comparisons: JSX.Element[] = [];
         const currentLevel = levels[0];
         if (!currentLevel || currentLevel.nodes.length < 2) return comparisons;
 
-        comparisons.push(<Card key={parentPath}><CardHeader><CardTitle>{`Compare '${currentLevel.name}' under '${parentPath}'`}</CardTitle></CardHeader><CardContent><ComparisonMatrix items={currentLevel.nodes.map(n => n.name)} onMatrixChange={(m) => updateMatrix(parentPath, m)} /></CardContent></Card>);
+        comparisons.push(
+            <Card key={parentPath}>
+                <CardHeader><CardTitle>{`Compare Criteria for '${parentPath === 'goal' ? goal : parentPath.split('.').pop()}'`}</CardTitle></CardHeader>
+                <CardContent>
+                    <ComparisonMatrix items={currentLevel.nodes.map(n => n.name)} onMatrixChange={(m) => updateMatrix(parentPath, m)} />
+                </CardContent>
+            </Card>
+        );
 
         currentLevel.nodes.forEach(node => {
             if (node.children && node.children.nodes.length > 0) {
