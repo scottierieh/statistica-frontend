@@ -5,7 +5,7 @@ import json
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-from statsmodels.formula.api import mnlogit
+from statsmodels.formula.api import ols
 import matplotlib.pyplot as plt
 import seaborn as sns
 import io
@@ -75,7 +75,7 @@ def main():
         formula = f'Q("{target_var_clean}") ~ {" + ".join(formula_parts)}'
         
         # Fit the OLS model to get coefficients and other stats
-        model = sm.OLS.from_formula(formula, data=df).fit()
+        model = ols(formula, data=df).fit()
         
         # --- Regression Results ---
         regression_results = {
