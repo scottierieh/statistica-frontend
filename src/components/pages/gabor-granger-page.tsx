@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, DollarSign } from 'lucide-react';
+import { Sigma, Loader2, DollarSign, Info } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 interface AnalysisResponse {
     results: {
@@ -115,14 +116,27 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
                     <CardTitle className="font-headline">Gabor-Granger Setup</CardTitle>
                     <CardDescription>Map the price and purchase intent columns from your data.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <Label>Price Column</Label>
-                        <Select value={priceCol} onValueChange={setPriceCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                    <div>
-                        <Label>Purchase Intent Column</Label>
-                        <Select value={purchaseIntentCol} onValueChange={setPurchaseIntentCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                <CardContent className="space-y-6">
+                    <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>How to Set Up Your Data</AlertTitle>
+                        <AlertDescription>
+                            <ul className="list-disc pl-5 mt-2 text-xs">
+                                <li><strong>Price Column:</strong> Should contain the different price points presented to respondents (e.g., $10, $15, $20).</li>
+                                <li><strong>Purchase Intent Column:</strong> Should contain the respondent's likelihood to purchase at a given price, typically on a scale (e.g., a 1-5 Likert scale where 5 is 'Definitely would buy').</li>
+                                <li><strong>Data Format:</strong> Each row should represent one respondent's answer to one price point. If a respondent sees 5 price points, they will have 5 rows in the data.</li>
+                            </ul>
+                        </AlertDescription>
+                    </Alert>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Price Column</Label>
+                            <Select value={priceCol} onValueChange={setPriceCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
+                        <div>
+                            <Label>Purchase Intent Column</Label>
+                            <Select value={purchaseIntentCol} onValueChange={setPurchaseIntentCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                        </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
@@ -166,3 +180,4 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
         </div>
     );
 }
+
