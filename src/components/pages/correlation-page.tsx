@@ -5,16 +5,15 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, BarChart, TrendingUp, Zap, Lightbulb, Bot, AlertTriangle, MessageSquareQuote } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '../ui/scroll-area';
 import {
   ResponsiveContainer,
   BarChart as RechartsBarChart,
@@ -28,6 +27,9 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import dynamic from 'next/dynamic';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -59,7 +61,24 @@ interface CorrelationResults {
   };
   pairs_plot?: string;
   heatmap_plot?: string;
-  correlogram_plot?: string;
+}
+
+const InterpretationDisplay = ({ title, body }: { title: string, body: string }) => {
+    if (!title || !body) return null;
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline">Interpretation</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Alert>
+                    <MessageSquareQuote className="h-4 w-4" />
+                    <AlertTitle>{title}</AlertTitle>
+                    <AlertDescription className="whitespace-pre-wrap font-sans">{body}</AlertDescription>
+                </Alert>
+            </CardContent>
+        </Card>
+    )
 }
 
 const StrongestCorrelationsChart = ({ data }: { data: CorrelationResults['strongest_correlations'] }) => {
@@ -121,7 +140,6 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
     setGroupVar(undefined);
     setResults(null);
   }, [numericHeaders, data]);
-
 
   const handleSelectionChange = (header: string, checked: boolean) => {
     setSelectedHeaders(prev => 
@@ -278,82 +296,78 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
       {isLoading && <Card><CardHeader><CardTitle>Loading...</CardTitle></CardHeader><CardContent><Skeleton className="h-96 w-full" /></CardContent></Card>}
 
       {results && !isLoading && (
-        <>
-            <div className="grid lg:grid-cols-2 gap-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">{results.interpretation?.title || 'Key Finding'}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm whitespace-pre-wrap font-sans">{results.interpretation?.body}</p>
-                    </CardContent>
-                </Card>
-                <div className="grid grid-cols-2 gap-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Mean Correlation</CardTitle>
-                            <BarChart className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{results.summary_statistics.mean_correlation.toFixed(3)}</div>
-                            <p className="text-xs text-muted-foreground">across all pairs</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Significant Pairs</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">
-                                {results.summary_statistics.significant_correlations} / {results.summary_statistics.total_pairs}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                ({((results.summary_statistics.significant_correlations / results.summary_statistics.total_pairs) * 100 || 0).toFixed(1)}%)
-                                at p &lt; 0.05
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-            
-            <div className="grid gap-4 md:grid-cols-1">
-                 <StrongestCorrelationsChart data={results.strongest_correlations} />
-            </div>
-            
-             {pairsPlotData && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Pairs Plot</CardTitle>
-                        <CardDescription>A matrix of scatterplots to visualize pairwise relationships.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <Plot
-                            data={pairsPlotData.data}
-                            layout={pairsPlotData.layout}
-                            useResizeHandler={true}
-                            className="w-full h-[800px]"
-                         />
-                    </CardContent>
-                </Card>
-            )}
+        <div className="space-y-4">
+            {results.interpretation && <InterpretationDisplay title={results.interpretation.title} body={results.interpretation.body} />}
 
-            {heatmapPlotData && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Correlation Matrix Heatmap</CardTitle>
-                        <CardDescription>Visual representation of the correlation matrix. Warmer colors indicate positive correlation, cooler colors indicate negative.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <Plot
-                            data={heatmapPlotData.data}
-                            layout={heatmapPlotData.layout}
-                            useResizeHandler={true}
-                            className="w-full h-[600px]"
-                         />
-                    </CardContent>
-                </Card>
-            )}
+            <Tabs defaultValue="pairs">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="pairs">Pairs Plot</TabsTrigger>
+                    <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
+                </TabsList>
+                <TabsContent value="pairs">
+                    {pairsPlotData ? (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Pairs Plot</CardTitle>
+                                <CardDescription>A matrix of scatterplots to visualize pairwise relationships, colored by group if specified.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Plot
+                                    data={pairsPlotData.data}
+                                    layout={pairsPlotData.layout}
+                                    useResizeHandler={true}
+                                    className="w-full h-[800px]"
+                                />
+                            </CardContent>
+                        </Card>
+                    ): (
+                         <Card>
+                            <CardContent className="p-6 text-center text-muted-foreground">
+                                Pairs plot could not be generated. This can happen with a large number of variables.
+                            </CardContent>
+                        </Card>
+                    )}
+                </TabsContent>
+                <TabsContent value="heatmap">
+                    {heatmapPlotData && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Correlation Matrix Heatmap</CardTitle>
+                                <CardDescription>Visual representation of the correlation matrix. Warmer colors indicate positive correlation, cooler colors indicate negative.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Plot
+                                    data={heatmapPlotData.data}
+                                    layout={heatmapPlotData.layout}
+                                    useResizeHandler={true}
+                                    className="w-full h-[600px]"
+                                />
+                            </CardContent>
+                        </Card>
+                    )}
+                </TabsContent>
+            </Tabs>
+            
+            <div className="grid gap-4 md:grid-cols-2">
+                 <StrongestCorrelationsChart data={results.strongest_correlations} />
+                  <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Summary Statistics</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-2 gap-4 text-center">
+                            <div className="p-4 bg-muted rounded-lg">
+                                <p className="text-sm font-medium text-muted-foreground">Mean Correlation</p>
+                                <p className="text-2xl font-bold">{results.summary_statistics.mean_correlation.toFixed(3)}</p>
+                            </div>
+                            <div className="p-4 bg-muted rounded-lg">
+                                <p className="text-sm font-medium text-muted-foreground">Significant Pairs</p>
+                                <p className="text-2xl font-bold">
+                                    {results.summary_statistics.significant_correlations} / {results.summary_statistics.total_pairs}
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+            </div>
         </>
       )}
       {!results && !isLoading && (
