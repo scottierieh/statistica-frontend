@@ -69,7 +69,7 @@ def _generate_interpretation(strongest_corr, n, method):
     return {"title": title, "body": body}
 
 def generate_pairs_plot(df, method='pearson'):
-    """Generates a pairs plot (scatter matrix) for the dataframe."""
+    """Generates a pairs plot (scatter matrix) for the dataframe using seaborn."""
     
     def corr_func(x, y, **kwargs):
         if method == 'pearson':
@@ -82,7 +82,7 @@ def generate_pairs_plot(df, method='pearson'):
             r, p = np.nan, np.nan
         
         ax = plt.gca()
-        ax.annotate(f"{r:.2f}", xy=(.5, .6), xycoords=ax.transAxes, ha='center', va='center', fontsize=14)
+        ax.annotate(f"r = {r:.2f}", xy=(.5, .6), xycoords=ax.transAxes, ha='center', va='center', fontsize=12)
         
         stars = ''
         if p < 0.001: stars = '***'
@@ -231,6 +231,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
