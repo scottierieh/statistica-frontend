@@ -3,21 +3,23 @@ import sys
 import json
 import numpy as np
 import pandas as pd
-import warnings
+from scipy import stats
+import statsmodels.api as sm
+from statsmodels.stats.anova import AnovaRM
 import matplotlib.pyplot as plt
 import seaborn as sns
 import io
 import base64
-import pingouin as pg
-import math
+from itertools import combinations
+import warnings
 
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, (np.floating, float)):
-        if math.isnan(obj) or math.isinf(obj):
+    elif isinstance(obj, (float, np.floating)):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -26,156 +28,136 @@ def _to_native_type(obj):
         return bool(obj)
     return obj
 
-class RepeatedMeasuresAnova:
-    def __init__(self, data, subject_col, within_cols, dependent_var_template, between_col=None, alpha=0.05):
-        self.data = pd.DataFrame(data).copy()
-        self.subject_col = subject_col
-        self.within_cols = within_cols
-        self.within_name = 'time' 
-        self.dependent_var = dependent_var_template
-        self.between_col = between_col
-        self.alpha = alpha
-        self.results = {}
-        self._prepare_data()
+def repeated_measures_anova_statsmodels(data, subject_col, condition_col, value_col):
+    """
+    Statsmodels를 사용한 repeated measures ANOVA
+    """
+    aovrm = AnovaRM(data=data, depvar=value_col, subject=subject_col, within=[condition_col])
+    res = aovrm.fit()
+    return res
 
-    def _prepare_data(self):
-        id_vars = [self.subject_col]
-        if self.between_col and self.between_col in self.data.columns:
-            id_vars.append(self.between_col)
+def post_hoc_pairwise_tests(data, subject_col, condition_col, value_col):
+    """
+    사후 검정 (Pairwise t-tests with Bonferroni correction)
+    """
+    from scipy.stats import ttest_rel
+    
+    conditions = data[condition_col].unique()
+    pairs = list(combinations(conditions, 2))
+    
+    results = []
+    
+    for pair in pairs:
+        cond1_data = data[data[condition_col] == pair[0]].sort_values(subject_col)[value_col].values
+        cond2_data = data[data[condition_col] == pair[1]].sort_values(subject_col)[value_col].values
         
-        self.long_data = pd.melt(self.data, 
-                                 id_vars=id_vars, 
-                                 value_vars=self.within_cols,
-                                 var_name=self.within_name, 
-                                 value_name=self.dependent_var)
-        self.long_data.dropna(inplace=True)
-
-
-    def run_analysis(self):
-        try:
-            kwargs = {
-                'data': self.long_data,
-                'dv': self.dependent_var,
-                'within': self.within_name,
-                'subject': self.subject_col,
-                'detailed': True,
-                'effsize': "np2"
-            }
-            if self.between_col:
-                aov = pg.mixed_anova(between=self.between_col, **kwargs)
-            else:
-                aov = pg.rm_anova(**kwargs)
-            
-            self.results['anova_table'] = aov.to_dict('records')
-            
-            if len(self.within_cols) > 2:
-                sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within=self.within_name, subject=self.subject_col)
-                if isinstance(sphericity_test, tuple): 
-                    spher_dict = {'spher': sphericity_test[0], 'p-value': sphericity_test[1], 'sphericity': sphericity_test[2]}
-                else: 
-                    spher_dict = sphericity_test.to_dict('records')[0]
-                self.results['mauchly_test'] = spher_dict
-            else:
-                self.results['mauchly_test'] = None
-
-
-            perform_posthoc = False
-            main_effect_row = aov[aov['Source'] == self.within_name]
-            
-            if not main_effect_row.empty:
-                main_effect_p = main_effect_row['p-GG-corr'].iloc[0] if 'p-GG-corr' in main_effect_row.columns and not pd.isna(main_effect_row['p-GG-corr'].iloc[0]) else main_effect_row['p-unc'].iloc[0]
-                if main_effect_p < self.alpha:
-                    perform_posthoc = True
-
-            if self.between_col:
-                interaction_source_name = f'{self.within_name} * {self.between_col}'
-                interaction_row = aov[aov['Source'] == interaction_source_name]
-                if not interaction_row.empty and interaction_row['p-unc'].iloc[0] < self.alpha:
-                    perform_posthoc = True
-
-            if perform_posthoc:
-                posthoc_args = {
-                    'data': self.long_data,
-                    'dv': self.dependent_var,
-                    'within': self.within_name,
-                    'subject': self.subject_col,
-                    'padjust': 'bonf'
-                }
-                if self.between_col:
-                    posthoc_args['between'] = self.between_col
-                
-                posthoc = pg.pairwise_tests(**posthoc_args)
-                self.results['posthoc_results'] = posthoc.to_dict('records')
-
-            # Calculate descriptive statistics
-            desc_stats = self.long_data.groupby([self.between_col, self.within_name] if self.between_col else [self.within_name])[self.dependent_var].agg(['mean', 'std', 'count']).reset_index()
-            self.results['descriptive_stats'] = desc_stats.to_dict('records')
-
-
-        except Exception as e:
-            self.results['error'] = str(e)
-
-
-    def plot_results(self):
-        if 'error' in self.results or not hasattr(self, 'long_data') or self.long_data.empty:
-            return None
+        t_stat, p_val = ttest_rel(cond1_data, cond2_data)
         
-        fig, ax = plt.subplots(figsize=(8, 6))
-        
-        hue = self.between_col if self.between_col else None
-        
-        sns.pointplot(data=self.long_data, 
-                      x=self.within_name, 
-                      y=self.dependent_var, 
-                      hue=hue, 
-                      ax=ax,
-                      dodge=True,
-                      errorbar='ci')
-                      
-        ax.set_title(f'Interaction Plot: {self.dependent_var} over Time')
-        ax.set_xlabel('Time / Condition')
-        ax.set_ylabel(f'Mean of {self.dependent_var}')
-        if hue:
-            ax.legend(title=hue)
-        ax.grid(True, linestyle='--', alpha=0.6)
-        
-        plt.tight_layout()
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        plt.close(fig)
-        buf.seek(0)
-        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+        results.append({
+            'Comparison': f"{pair[0]} vs {pair[1]}",
+            't-statistic': t_stat,
+            'p-value': p_val,
+            'p-value (Bonferroni)': p_val * len(pairs)
+        })
+    
+    return pd.DataFrame(results)
 
+def visualize_data(data, subject_col, condition_col, value_col):
+    """
+    데이터 시각화
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    
+    sns.boxplot(data=data, x=condition_col, y=value_col, ax=axes[0])
+    axes[0].set_title('Boxplot by Condition')
+    
+    for subject in data[subject_col].unique():
+        subject_data = data[data[subject_col] == subject]
+        axes[1].plot(subject_data[condition_col], subject_data[value_col], 'o-', alpha=0.3, color='gray')
+    
+    mean_data = data.groupby(condition_col)[value_col].mean()
+    axes[1].plot(mean_data.index, mean_data.values, 'ro-', linewidth=3, markersize=8)
+    axes[1].set_title('Individual Trajectories + Mean')
+    axes[1].set_ylabel(value_col)
+    
+    plt.tight_layout()
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+def check_assumptions(data, condition_col, value_col):
+    """
+    가정 검사
+    """
+    results = {}
+    for condition in data[condition_col].unique():
+        condition_data = data[data[condition_col] == condition][value_col]
+        stat, p_val = stats.shapiro(condition_data)
+        results[condition] = {'statistic': stat, 'p_value': p_val}
+    return results
 
 def main():
     try:
         payload = json.load(sys.stdin)
-        data = payload.get('data')
+        data_json = payload.get('data')
         subject_col = payload.get('subjectCol')
         within_cols = payload.get('withinCols')
         dependent_var = payload.get('dependentVar', 'measurement')
-        between_col = payload.get('betweenCol')
+        between_col = payload.get('betweenCol') # Not used in this version, but kept for compatibility
 
-        if not all([data, subject_col, within_cols]):
-            raise ValueError("Missing required parameters: data, subjectCol, withinCols")
+        df = pd.DataFrame(data_json)
 
-        analysis = RepeatedMeasuresAnova(data, subject_col, within_cols, dependent_var, between_col)
-        analysis.run_analysis()
+        # Reshape data from wide to long format
+        id_vars = [subject_col]
+        if between_col and between_col in df.columns:
+            id_vars.append(between_col)
+
+        long_df = pd.melt(df, 
+                          id_vars=id_vars, 
+                          value_vars=within_cols,
+                          var_name='condition', 
+                          value_name=dependent_var)
+
+        # --- Analysis ---
+        descriptives = long_df.groupby('condition')[dependent_var].describe().to_dict()
+        assumption_results = check_assumptions(long_df, 'condition', dependent_var)
+        sm_results = repeated_measures_anova_statsmodels(long_df, subject_col, 'condition', dependent_var)
         
-        plot_image = analysis.plot_results()
+        # Extract p-value to decide on post-hoc
+        anova_summary = sm_results.summary().tables[0]
+        p_value_str = anova_summary.iloc[1, 3] # Assuming the p-value is in this cell
+        main_effect_p_value = float(p_value_str)
+
+        posthoc_res = None
+        if main_effect_p_value < 0.05:
+            posthoc_res_df = post_hoc_pairwise_tests(long_df, subject_col, 'condition', dependent_var)
+            posthoc_res = posthoc_res_df.to_dict('records')
+
+        # --- Visualization ---
+        plot_image = visualize_data(long_df, subject_col, 'condition', dependent_var)
+
+        # --- Response Preparation ---
+        # Convert statsmodels table to a more JSON-friendly format
+        sm_table_html = sm_results.summary().tables[0].as_html()
+        sm_df = pd.read_html(sm_table_html, header=0, index_col=0)[0]
 
         response = {
-            'results': analysis.results,
-            'plot': plot_image
+            'results': {
+                'descriptives': descriptives,
+                'assumptions': assumption_results,
+                'anova_table': sm_df.reset_index().to_dict('records'),
+                'posthoc_results': posthoc_res
+            },
+            'plot': plot_image,
         }
-        
+
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
-        error_response = {"error": str(e)}
-        sys.stderr.write(json.dumps(error_response))
+        print(json.dumps({"error": str(e)}), file=sys.stderr)
         sys.exit(1)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-
