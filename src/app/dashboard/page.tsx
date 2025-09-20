@@ -1,7 +1,7 @@
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign } from "lucide-react";
+import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardHubPage() {
@@ -17,10 +17,10 @@ export default function DashboardHubPage() {
         <div className="container">
             <h2 className="text-2xl font-bold tracking-tight mb-4">Available Tools</h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                <Card>
+                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2">
-                            <Calculator className="h-5 w-5"/>
+                            <Calculator className="h-5 w-5 text-primary"/>
                             Statistica
                         </CardTitle>
                         <CardDescription>
@@ -33,10 +33,10 @@ export default function DashboardHubPage() {
                         </Button>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2">
-                            <BrainCircuit className="h-5 w-5"/>
+                            <BrainCircuit className="h-5 w-5 text-primary"/>
                             Deep Learning
                         </CardTitle>
                         <CardDescription>
@@ -49,10 +49,10 @@ export default function DashboardHubPage() {
                         </Button>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2">
-                            <FastForward className="h-5 w-5"/>
+                            <FastForward className="h-5 w-5 text-primary"/>
                             Simulation
                         </CardTitle>
                         <CardDescription>
@@ -65,10 +65,10 @@ export default function DashboardHubPage() {
                         </Button>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2">
-                            <ClipboardList className="h-5 w-5"/>
+                            <ClipboardList className="h-5 w-5 text-primary"/>
                             Survey Tool
                         </CardTitle>
                         <CardDescription>
@@ -78,6 +78,22 @@ export default function DashboardHubPage() {
                     <CardContent>
                         <Button asChild className="w-full">
                             <Link href="/dashboard/survey?id=1" target="_blank" rel="noopener noreferrer">Launch Survey Tool</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+                 <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2">
+                            <DollarSign className="h-5 w-5 text-primary"/>
+                            Financial Modeling
+                        </CardTitle>
+                        <CardDescription>
+                           Conduct portfolio analysis, company valuation, and financial forecasting.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild className="w-full">
+                            <Link href="/dashboard/financial-modeling" target="_blank" rel="noopener noreferrer">Launch Financial Modeling</Link>
                         </Button>
                     </CardContent>
                 </Card>
