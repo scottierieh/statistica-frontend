@@ -27,79 +27,137 @@ def analyze_matrix(matrix):
     Analyzes a single pairwise comparison matrix.
     Calculates priority vector, lambda_max, CI, and CR.
     """
+    matrix = np.array(matrix)
     n = matrix.shape[0]
     if n == 0:
-        return None
+        return None, None
 
     # Priority Vector (Geometric Mean Method)
-    priority_vector = gmean(matrix, axis=1)
-    normalized_weights = priority_vector / np.sum(priority_vector)
+    try:
+        # Handle potential zero values in the matrix gracefully
+        with np.errstate(divide='ignore'):
+            priority_vector = gmean(matrix, axis=1)
+        
+        # Check for NaN or Inf which can result from gmean on rows with zeros
+        if not np.all(np.isfinite(priority_vector)):
+             # Fallback to a simple mean if gmean fails
+             priority_vector = np.mean(matrix, axis=1)
 
+        sum_priority_vector = np.sum(priority_vector)
+        if sum_priority_vector == 0:
+            # If all are zero, assign equal weights
+            normalized_weights = np.ones(n) / n
+        else:
+            normalized_weights = priority_vector / sum_priority_vector
+
+    except (ValueError, RuntimeWarning) as e:
+        # Fallback for invalid values in matrix
+        normalized_weights = np.ones(n) / n
+    
     # Consistency Check
     weighted_sum_vector = np.dot(matrix, normalized_weights)
-    lambda_max = np.mean(weighted_sum_vector / normalized_weights)
+    
+    # Avoid division by zero if normalized_weights contains zeros
+    with np.errstate(divide='ignore', invalid='ignore'):
+        lambda_max_per_item = weighted_sum_vector / normalized_weights
+    
+    lambda_max_per_item = np.nan_to_num(lambda_max_per_item, nan=0.0, posinf=0.0, neginf=0.0)
+    lambda_max = np.mean(lambda_max_per_item)
     
     ci = (lambda_max - n) / (n - 1) if n > 1 else 0
     ri = RI_TABLE.get(n, 1.59) # Default to 1.59 for n > 15
     cr = (ci / ri) if ri > 0 else 0
 
-    return {
+    analysis = {
         'priority_vector': normalized_weights.tolist(),
         'lambda_max': lambda_max,
         'consistency_index': ci,
         'consistency_ratio': cr,
         'is_consistent': cr < 0.1
     }
+    return normalized_weights, analysis
+
 
 def main():
     try:
         payload = json.load(sys.stdin)
-        goal = payload.get('goal')
-        criteria = payload.get('criteria')
-        alternatives = payload.get('alternatives')
-        comparison_matrices = payload.get('comparison_matrices')
+        goal = payload.get('goal', 'AHP Analysis')
+        hierarchy = payload.get('hierarchy', [])
+        has_alternatives = payload.get('hasAlternatives', False)
+        alternatives = payload.get('alternatives', [])
+        comparison_matrices = payload.get('matrices', {})
 
-        if not all([goal, criteria, alternatives, comparison_matrices]):
-            raise ValueError("Missing required fields: goal, criteria, alternatives, or comparison_matrices")
+        if not hierarchy:
+            raise ValueError("Hierarchy is not defined.")
 
-        # 1. Analyze criteria matrix
-        criteria_matrix = np.array(comparison_matrices['criteria'])
-        criteria_analysis = analyze_matrix(criteria_matrix)
-        criteria_weights = np.array(criteria_analysis['priority_vector'])
-
-        # 2. Analyze alternative matrices for each criterion
-        alternatives_analysis = {}
-        alternative_weights_matrix = []
-        for criterion in criteria:
-            alt_matrix = np.array(comparison_matrices['alternatives'][criterion])
-            analysis = analyze_matrix(alt_matrix)
-            alternatives_analysis[criterion] = analysis
-            alternative_weights_matrix.append(analysis['priority_vector'])
-            
-        alternative_weights_matrix = np.array(alternative_weights_matrix).T
-
-        # 3. Synthesize global weights
-        global_weights = np.dot(alternative_weights_matrix, criteria_weights)
+        # --- Recursive Weight Calculation ---
+        global_weights = {}
+        analysis_results = {}
         
-        # Ensure global weights sum to 1
-        if np.sum(global_weights) > 0:
-            global_weights = global_weights / np.sum(global_weights)
+        def calculate_weights(level, parent_global_weight, parent_node_path):
+            level_nodes = [node['name'] for node in level['nodes']]
+            matrix_key = parent_node_path
+            
+            matrix = comparison_matrices.get(matrix_key)
+            if not matrix:
+                raise ValueError(f"Comparison matrix for '{matrix_key}' not found.")
 
-        # 4. Rank alternatives
-        ranked_alternatives = sorted(
-            zip(alternatives, global_weights),
-            key=lambda x: x[1],
-            reverse=True
-        )
+            local_weights_vec, analysis = analyze_matrix(matrix)
+            analysis_results[matrix_key] = analysis
+            
+            local_weights = dict(zip(level_nodes, local_weights_vec))
+
+            for node in level['nodes']:
+                current_node_path = f"{parent_node_path}.{node['name']}"
+                current_global_weight = parent_global_weight * local_weights.get(node['name'], 0)
+                global_weights[current_node_path] = current_global_weight
+
+                # If this node has sub-criteria, recurse
+                if 'children' in node and node['children']:
+                    calculate_weights(node['children'], current_global_weight, current_node_path)
+        
+        # Start recursion from the top level
+        top_level = hierarchy[0]
+        calculate_weights(top_level, 1.0, 'goal')
+        
+        # --- Synthesize Final Weights ---
+        synthesis = {}
+        if has_alternatives and alternatives:
+            # Get the lowest level criteria weights
+            lowest_criteria_paths = [path for path, weight in global_weights.items() if not any(p.startswith(f"{path}.") for p in global_weights)]
+            
+            alternative_weights_matrix = []
+            for criterion_path in lowest_criteria_paths:
+                matrix = comparison_matrices.get(criterion_path)
+                if not matrix:
+                    raise ValueError(f"Alternatives comparison matrix for '{criterion_path}' not found.")
+                
+                alt_weights, alt_analysis = analyze_matrix(matrix)
+                analysis_results[criterion_path] = alt_analysis
+                alternative_weights_matrix.append(alt_weights)
+            
+            alternative_weights_matrix = np.array(alternative_weights_matrix).T
+            
+            criteria_global_weights = np.array([global_weights[path] for path in lowest_criteria_paths])
+            
+            final_scores = np.dot(alternative_weights_matrix, criteria_global_weights)
+
+            synthesis['final_weights'] = dict(zip(alternatives, final_scores))
+            synthesis['ranking'] = sorted(synthesis['final_weights'].items(), key=lambda x: x[1], reverse=True)
+            synthesis['type'] = 'alternatives'
+
+        else:
+            # If no alternatives, the final weights are the global weights of the leaf criteria
+            leaf_criteria_paths = [path for path, weight in global_weights.items() if not any(p.startswith(f"{path}.") for p in global_weights)]
+            final_weights = {path.split('.')[-1]: global_weights[path] for path in leaf_criteria_paths}
+            synthesis['final_weights'] = final_weights
+            synthesis['ranking'] = sorted(final_weights.items(), key=lambda x: x[1], reverse=True)
+            synthesis['type'] = 'criteria'
 
         response = {
             'goal': goal,
-            'criteria_analysis': criteria_analysis,
-            'alternatives_analysis': alternatives_analysis,
-            'synthesis': {
-                'global_weights': dict(zip(alternatives, global_weights)),
-                'ranking': ranked_alternatives
-            }
+            'analysis_results': analysis_results,
+            'synthesis': synthesis
         }
 
         print(json.dumps(response, default=_to_native_type))
@@ -110,3 +168,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
