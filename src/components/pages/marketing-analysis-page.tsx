@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Loader2, Sigma, Filter } from 'lucide-react';
+import { Loader2, Sigma, Filter, DollarSign, Clock, Eye } from 'lucide-react';
 import { DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -13,6 +13,8 @@ import { Skeleton } from '../ui/skeleton';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { BarChart as BarChartIcon } from 'lucide-react';
+
 
 interface MarketingAnalysisPageProps {
     data: DataSet;
@@ -40,21 +42,10 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     const [isClient, setIsClient] = useState(false);
     
     const [columnConfig, setColumnConfig] = useState({
-        revenueCol: '',
-        sourceCol: '',
-        mediumCol: '',
-        campaignCol: '',
-        costCol: '',
-        conversionCol: '',
-        deviceCol: '',
-        pageViewsCol: '',
-        sessionDurationCol: '',
-        dateCol: '',
-        ageGroupCol: '',
-        ltvCol: '',
-        genderCol: '',
-        countryCol: '',
-        membershipCol: '',
+        revenueCol: '', sourceCol: '', mediumCol: '', campaignCol: '', costCol: '', conversionCol: '', deviceCol: '',
+        pageViewsCol: '', sessionDurationCol: '', dateCol: '', ageGroupCol: '', ltvCol: '', genderCol: '',
+        countryCol: '', membershipCol: '', userIdCol: '', cohortDateCol: '', itemCategoryCol: '',
+        itemBrandCol: '', priceCol: '', quantityCol: '', couponUsedCol: ''
     });
 
     const [plots, setPlots] = useState<Record<string, string | null> | null>(null);
@@ -62,7 +53,6 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
 
     useEffect(() => {
         setIsClient(true);
-        // Reset and auto-detect columns when data changes
         setPlots(null);
         setColumnConfig({
             revenueCol: numericHeaders.find(h => h.toLowerCase().includes('revenue')) || numericHeaders[0] || '',
@@ -80,6 +70,13 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             genderCol: categoricalHeaders.find(h => h.toLowerCase().includes('gender')) || categoricalHeaders[5] || '',
             countryCol: categoricalHeaders.find(h => h.toLowerCase().includes('country')) || categoricalHeaders[6] || '',
             membershipCol: categoricalHeaders.find(h => h.toLowerCase().includes('membership')) || categoricalHeaders[7] || '',
+            userIdCol: allHeaders.find(h => h.toLowerCase().includes('user_id')) || '',
+            cohortDateCol: allHeaders.find(h => h.toLowerCase().includes('cohort_date')) || '',
+            itemCategoryCol: categoricalHeaders.find(h => h.toLowerCase().includes('category')) || '',
+            itemBrandCol: categoricalHeaders.find(h => h.toLowerCase().includes('brand')) || '',
+            priceCol: numericHeaders.find(h => h.toLowerCase().includes('price')) || '',
+            quantityCol: numericHeaders.find(h => h.toLowerCase().includes('quantity')) || '',
+            couponUsedCol: allHeaders.find(h => h.toLowerCase().includes('coupon')) || '',
         })
     }, [numericHeaders, categoricalHeaders, allHeaders, data]);
     
@@ -88,13 +85,13 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     };
 
     const handleGenerateDashboard = useCallback(async () => {
-        const requiredCols = ['revenueCol', 'sourceCol', 'deviceCol', 'pageViewsCol', 'sessionDurationCol', 'dateCol', 'ageGroupCol', 'ltvCol', 'genderCol', 'countryCol', 'membershipCol', 'mediumCol', 'campaignCol', 'costCol', 'conversionCol'];
+        const requiredCols = ['revenueCol', 'sourceCol', 'deviceCol', 'pageViewsCol', 'sessionDurationCol', 'dateCol', 'ageGroupCol', 'ltvCol', 'genderCol', 'countryCol', 'membershipCol', 'mediumCol', 'campaignCol', 'costCol', 'conversionCol', 'userIdCol', 'cohortDateCol', 'itemCategoryCol', 'itemBrandCol', 'priceCol', 'quantityCol', 'couponUsedCol'];
         for (const key of requiredCols) {
             if (!columnConfig[key as keyof typeof columnConfig]) {
                 toast({
                     variant: 'destructive',
                     title: 'Configuration Incomplete',
-                    description: `Please select a column for "${key.replace('Col', '')}".`
+                    description: `Please select a column for "${key.replace('Col', '')}". Some columns may have been added to your data; please verify the configuration.`
                 });
                 return;
             }
@@ -182,6 +179,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                             <Button variant="outline"><Filter className="mr-2" /> Configure Columns</Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[600px]">
+                            <ScrollArea className="h-[400px]">
                             <div className="grid grid-cols-2 gap-4">
                                 {configEntries.map(([key, value]) => {
                                     const label = key.replace('Col', '').replace(/([A-Z])/g, ' $1').trim();
@@ -197,6 +195,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                                     )
                                 })}
                             </div>
+                            </ScrollArea>
                         </PopoverContent>
                     </Popover>
                 </CardHeader>
@@ -247,11 +246,20 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                         <ChartCard title="Conversion Rate by Channel" plotData={plots.channelPerformance} />
                         <ChartCard title="Campaign ROI (%)" plotData={plots.campaignRoi} />
                         <ChartCard title="Simplified Conversion Funnel" plotData={plots.funnelAnalysis} />
-                        <ChartCard title="Attribution Model Comparison" plotData={plots.attributionModeling} />
+                        <ChartCard title="Attributed Revenue (Last Touch)" plotData={plots.attributionModeling} />
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader><CardTitle className="font-headline">2. General Performance</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="font-headline">2. E-commerce Analysis</CardTitle></CardHeader>
+                    <CardContent className="grid gap-4 md:grid-cols-2">
+                        <ChartCard title="Monthly Cohort Retention" plotData={plots.cohortAnalysis} />
+                        <ChartCard title="Basket Analysis (Category vs. Brand)" plotData={plots.basketAnalysis} />
+                        <ChartCard title="Price Elasticity" plotData={plots.priceElasticity} />
+                        <ChartCard title="Coupon Effectiveness" plotData={plots.couponEffectiveness} />
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader><CardTitle className="font-headline">3. General Performance</CardTitle></CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2">
                         <ChartCard title="Revenue Over Time" plotData={plots.revenueOverTime} />
                         <ChartCard title="Revenue by Traffic Source" plotData={plots.revenueBySource} />
@@ -263,7 +271,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader><CardTitle className="font-headline">3. Customer Segmentation</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="font-headline">4. Customer Segmentation</CardTitle></CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2">
                          <ChartCard title="User LTV vs. Purchase Revenue" plotData={plots.ltvVsRevenue} />
                          <ChartCard title="Revenue by Age Group" plotData={plots.revenueByAge} />
