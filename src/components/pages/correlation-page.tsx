@@ -54,7 +54,7 @@ interface CorrelationResults {
     p_value: number;
     significant: boolean;
   }[];
-  interpretation: {
+  strongest_finding: {
     title: string;
     body: string;
   };
@@ -306,7 +306,7 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
 
       {results && !isLoading && (
         <div className="space-y-4">
-            {results.interpretation && <InterpretationDisplay title={results.interpretation.title} body={results.interpretation.body} />}
+            {results.strongest_finding && <InterpretationDisplay title={results.strongest_finding.title} body={results.strongest_finding.body} />}
 
             <Tabs defaultValue="pairs">
                 <TabsList className="grid w-full grid-cols-2">
@@ -387,3 +387,5 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
     </div>
   )
 }
+
+    
