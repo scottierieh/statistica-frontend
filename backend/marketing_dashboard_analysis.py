@@ -10,6 +10,9 @@ import warnings
 import numpy as np
 
 warnings.filterwarnings('ignore')
+plt.rcParams['font.family'] = 'DejaVu Sans'
+plt.rcParams['axes.unicode_minus'] = False
+
 
 def main():
     try:
