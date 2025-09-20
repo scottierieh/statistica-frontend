@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Loader2, Sigma, Filter, DollarSign, Clock, Eye } from 'lucide-react';
+import { Loader2, Sigma, Filter, DollarSign, Clock, Eye, BarChart as BarChartIcon } from 'lucide-react';
 import { DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -13,7 +14,6 @@ import { Skeleton } from '../ui/skeleton';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { BarChart as BarChartIcon } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 
 
@@ -55,29 +55,38 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     useEffect(() => {
         setIsClient(true);
         setPlots(null);
+        // A more robust way to find default columns
+        const findColumn = (keywords: string[], headers: string[]) => {
+            for (const keyword of keywords) {
+                const found = headers.find(h => h.toLowerCase().includes(keyword));
+                if (found) return found;
+            }
+            return headers[0] || '';
+        };
+
         setColumnConfig({
-            revenueCol: numericHeaders.find(h => h.toLowerCase().includes('revenue')) || numericHeaders[0] || '',
-            sourceCol: categoricalHeaders.find(h => h.toLowerCase().includes('source')) || categoricalHeaders[0] || '',
-            mediumCol: categoricalHeaders.find(h => h.toLowerCase().includes('medium')) || categoricalHeaders[1] || '',
-            campaignCol: categoricalHeaders.find(h => h.toLowerCase().includes('campaign')) || categoricalHeaders[2] || '',
-            costCol: numericHeaders.find(h => h.toLowerCase().includes('cost')) || numericHeaders[1] || '',
-            conversionCol: allHeaders.find(h => h.toLowerCase().includes('conversion')) || allHeaders[2] || '',
-            deviceCol: categoricalHeaders.find(h => h.toLowerCase().includes('device')) || categoricalHeaders[3] || '',
-            pageViewsCol: numericHeaders.find(h => h.toLowerCase().includes('views')) || numericHeaders[2] || '',
-            sessionDurationCol: numericHeaders.find(h => h.toLowerCase().includes('duration')) || numericHeaders[3] || '',
-            dateCol: allHeaders.find(h => h.toLowerCase().includes('date')) || allHeaders[1] || '',
-            ageGroupCol: categoricalHeaders.find(h => h.toLowerCase().includes('age')) || categoricalHeaders[4] || '',
-            ltvCol: numericHeaders.find(h => h.toLowerCase().includes('ltv')) || numericHeaders[4] || '',
-            genderCol: categoricalHeaders.find(h => h.toLowerCase().includes('gender')) || categoricalHeaders[5] || '',
-            countryCol: categoricalHeaders.find(h => h.toLowerCase().includes('country')) || categoricalHeaders[6] || '',
-            membershipCol: categoricalHeaders.find(h => h.toLowerCase().includes('membership')) || categoricalHeaders[7] || '',
-            userIdCol: allHeaders.find(h => h.toLowerCase().includes('user_id')) || '',
-            cohortDateCol: allHeaders.find(h => h.toLowerCase().includes('cohort_date')) || '',
-            itemCategoryCol: categoricalHeaders.find(h => h.toLowerCase().includes('category')) || '',
-            itemBrandCol: categoricalHeaders.find(h => h.toLowerCase().includes('brand')) || '',
-            priceCol: numericHeaders.find(h => h.toLowerCase().includes('price')) || '',
-            quantityCol: numericHeaders.find(h => h.toLowerCase().includes('quantity')) || '',
-            couponUsedCol: allHeaders.find(h => h.toLowerCase().includes('coupon')) || '',
+            revenueCol: findColumn(['revenue'], numericHeaders),
+            sourceCol: findColumn(['source'], categoricalHeaders),
+            mediumCol: findColumn(['medium'], categoricalHeaders),
+            campaignCol: findColumn(['campaign'], categoricalHeaders),
+            costCol: findColumn(['cost'], numericHeaders),
+            conversionCol: findColumn(['conversion'], allHeaders),
+            deviceCol: findColumn(['device'], categoricalHeaders),
+            pageViewsCol: findColumn(['page_views', 'views'], numericHeaders),
+            sessionDurationCol: findColumn(['duration'], numericHeaders),
+            dateCol: findColumn(['date'], allHeaders),
+            ageGroupCol: findColumn(['age'], categoricalHeaders),
+            ltvCol: findColumn(['ltv'], numericHeaders),
+            genderCol: findColumn(['gender'], categoricalHeaders),
+            countryCol: findColumn(['country'], categoricalHeaders),
+            membershipCol: findColumn(['membership'], categoricalHeaders),
+            userIdCol: findColumn(['user_id', 'user'], allHeaders),
+            cohortDateCol: findColumn(['cohort_date'], allHeaders),
+            itemCategoryCol: findColumn(['category'], categoricalHeaders),
+            itemBrandCol: findColumn(['brand'], categoricalHeaders),
+            priceCol: findColumn(['price'], numericHeaders),
+            quantityCol: findColumn(['quantity'], numericHeaders),
+            couponUsedCol: findColumn(['coupon'], allHeaders),
         })
     }, [numericHeaders, categoricalHeaders, allHeaders, data]);
     
@@ -143,7 +152,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     }
 
     if (data.length === 0) {
-        const marketingExample = exampleDatasets.find(ex => ex.id === 'marketing-analysis');
+        const marketingExample = exampleDatasets.find(ex => ex.id === 'comprehensive-marketing');
         return (
             <div className="flex flex-1 items-center justify-center h-full">
                 <Card className="w-full max-w-2xl text-center">
@@ -181,7 +190,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
                         </PopoverTrigger>
                         <PopoverContent className="w-[600px]">
                             <ScrollArea className="h-[400px]">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-4 p-1">
                                 {configEntries.map(([key, value]) => {
                                     const label = key.replace('Col', '').replace(/([A-Z])/g, ' $1').trim();
                                     const options = allHeaders;
