@@ -81,7 +81,7 @@ class LogisticRegressionAnalysis:
         # VIF calculation needs to be done on the exog part of the dataframe (without const)
         vif_data["feature"] = X_train_df_scaled.columns
         try:
-            vif_data["VIF"] = [variance_inflation_factor(X_train_df_scaled.values, i) for i in range(X_train_df_scaled.shape[1])]
+            vif_data["VIF"] = [variance_inflation_factor(X_with_const.values, i + 1) for i in range(X_train_df_scaled.shape[1])]
         except Exception as e:
             raise ValueError(f"Multicollinearity check failed. Original error: {e}")
 
@@ -236,6 +236,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
