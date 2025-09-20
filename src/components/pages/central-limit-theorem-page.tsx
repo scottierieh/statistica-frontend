@@ -102,8 +102,8 @@ export default function CentralLimitTheoremPage() {
         const counts = jStat.histogram(data, numBins);
         const binEdges = jStat.arange(numBins + 1, minVal, binWidth);
 
-        return counts.map((count, i) => ({
-            range: `${binEdges[i].toFixed(2)}-${binEdges[i+1].toFixed(2)}`,
+        return counts.map((count: number, i: number) => ({
+            range: `${binEdges[i].toFixed(2)}-${binEdges[i+1]?.toFixed(2)}`,
             count
         }));
     }
