@@ -31,7 +31,7 @@ class RepeatedMeasuresAnova:
         self.data = pd.DataFrame(data).copy()
         self.subject_col = subject_col
         self.within_cols = within_cols
-        self.within_name = 'time' # Standard name for within-subject factor
+        self.within_name = 'time' 
         self.dependent_var = dependent_var_template
         self.between_col = between_col
         self.alpha = alpha
@@ -53,51 +53,44 @@ class RepeatedMeasuresAnova:
 
     def run_analysis(self):
         try:
+            kwargs = {
+                'data': self.long_data,
+                'dv': self.dependent_var,
+                'within': self.within_name,
+                'subject': self.subject_col,
+                'detailed': True,
+                'effsize': "np2"
+            }
             if self.between_col:
-                # Use mixed_anova for designs with a between-subject factor
-                aov = pg.mixed_anova(
-                    data=self.long_data,
-                    dv=self.dependent_var,
-                    within=self.within_name,
-                    subject=self.subject_col,
-                    between=self.between_col,
-                    effsize="np2"
-                )
+                aov = pg.mixed_anova(between=self.between_col, **kwargs)
             else:
-                # Use rm_anova for designs with only within-subject factors
-                aov = pg.rm_anova(
-                    data=self.long_data,
-                    dv=self.dependent_var,
-                    within=self.within_name,
-                    subject=self.subject_col,
-                    detailed=True,
-                    effsize="np2"
-                )
+                aov = pg.rm_anova(**kwargs)
             
             self.results['anova_table'] = aov.to_dict('records')
             
-            # Sphericity test is only relevant for within-subject effects with > 2 levels
             if len(self.within_cols) > 2:
                 sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within=self.within_name, subject=self.subject_col)
-                spher_dict = sphericity_test.to_dict('records')[0] if isinstance(sphericity_test, pd.DataFrame) else {'spher': sphericity_test[0], 'p-value': sphericity_test[1], 'sphericity': sphericity_test[2]}
+                if isinstance(sphericity_test, tuple): 
+                    spher_dict = {'spher': sphericity_test[0], 'p-value': sphericity_test[1], 'sphericity': sphericity_test[2]}
+                else: 
+                    spher_dict = sphericity_test.to_dict('records')[0]
                 self.results['mauchly_test'] = spher_dict
             else:
                 self.results['mauchly_test'] = None
 
 
-            # Post-hoc tests if significant interaction or main effect
             perform_posthoc = False
+            main_effect_row = aov[aov['Source'] == self.within_name]
             
-            # Check for significant interaction (if applicable) or main within-subject effect
+            if not main_effect_row.empty:
+                main_effect_p = main_effect_row['p-GG-corr'].iloc[0] if 'p-GG-corr' in main_effect_row.columns and not pd.isna(main_effect_row['p-GG-corr'].iloc[0]) else main_effect_row['p-unc'].iloc[0]
+                if main_effect_p < self.alpha:
+                    perform_posthoc = True
+
             if self.between_col:
                 interaction_source_name = f'{self.within_name} * {self.between_col}'
                 interaction_row = aov[aov['Source'] == interaction_source_name]
                 if not interaction_row.empty and interaction_row['p-unc'].iloc[0] < self.alpha:
-                    perform_posthoc = True
-            else:
-                within_row = aov[aov['Source'] == self.within_name]
-                p_col = 'p-GG-corr' if 'p-GG-corr' in within_row.columns and not pd.isna(within_row['p-GG-corr'].iloc[0]) else 'p-unc'
-                if not within_row.empty and within_row[p_col].iloc[0] < self.alpha:
                     perform_posthoc = True
 
             if perform_posthoc:
@@ -105,13 +98,19 @@ class RepeatedMeasuresAnova:
                     'data': self.long_data,
                     'dv': self.dependent_var,
                     'within': self.within_name,
-                    'subject': self.subject_col
+                    'subject': self.subject_col,
+                    'padjust': 'bonf'
                 }
                 if self.between_col:
                     posthoc_args['between'] = self.between_col
                 
                 posthoc = pg.pairwise_tests(**posthoc_args)
                 self.results['posthoc_results'] = posthoc.to_dict('records')
+
+            # Calculate descriptive statistics
+            desc_stats = self.long_data.groupby([self.between_col, self.within_name] if self.between_col else [self.within_name])[self.dependent_var].agg(['mean', 'std', 'count']).reset_index()
+            self.results['descriptive_stats'] = desc_stats.to_dict('records')
+
 
         except Exception as e:
             self.results['error'] = str(e)
@@ -179,3 +178,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

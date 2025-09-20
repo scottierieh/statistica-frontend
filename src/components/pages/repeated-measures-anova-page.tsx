@@ -29,8 +29,8 @@ interface AnovaRow {
 }
 
 interface MauchlyResult {
-    W?: number; // from old sphericity
-    spher?: number; // from new sphericity
+    W?: number;
+    spher?: number; 
     'p-value'?: number;
     sphericity?: boolean;
 }
@@ -50,6 +50,7 @@ interface RmAnovaResults {
     anova_table: AnovaRow[];
     mauchly_test: MauchlyResult | null;
     posthoc_results?: PostHocResult[];
+    descriptive_stats?: any;
     error?: string;
 }
 
@@ -238,6 +239,31 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                             <CardContent><Image src={analysisResult.plot} alt="Interaction Plot" width={800} height={600} className="w-full rounded-md border" /></CardContent>
                         </Card>
                     )}
+                    {results.descriptive_stats && (
+                         <Card>
+                            <CardHeader><CardTitle>Descriptive Statistics</CardTitle></CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            {Object.keys(results.descriptive_stats[0]).map(key => <TableHead key={key}>{key}</TableHead>)}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {results.descriptive_stats.map((row: any, index: number) => (
+                                            <TableRow key={index}>
+                                                {Object.entries(row).map(([key, value]) => (
+                                                    <TableCell key={key} className={typeof value === 'number' ? 'font-mono' : ''}>
+                                                        {typeof value === 'number' ? value.toFixed(3) : value}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                         </Card>
+                    )}
                     <Card>
                         <CardHeader>
                             <CardTitle>ANOVA Table</CardTitle>
@@ -292,7 +318,7 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                                     <TableHeader><TableRow>
                                         <TableHead>Contrast</TableHead>
                                         {results.posthoc_results[0]?.A && <TableHead>{betweenCol || 'Factor A'}</TableHead>}
-                                        <TableHead>{results.posthoc_results[0]?.B ? 'A' : 'Group 1'}</TableHead>
+                                        <TableHead>{results.posthoc_results[0]?.A ? 'A' : 'Group 1'}</TableHead>
                                         <TableHead>{results.posthoc_results[0]?.B ? 'B' : 'Group 2'}</TableHead>
                                         <TableHead className="text-right">p-value (corrected)</TableHead>
                                     </TableRow></TableHeader>
