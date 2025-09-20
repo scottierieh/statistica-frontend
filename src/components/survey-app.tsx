@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
@@ -169,6 +170,34 @@ const servqualTemplate = {
         }
     ],
     isServqualTemplate: true
+};
+
+const psmTemplate = {
+  title: 'Product Price Sensitivity Survey',
+  description: 'Help us understand the right price for our new product.',
+  questions: [
+    {
+      id: 1,
+      type: 'number',
+      title: 'At what price would you consider the product to be SO CHEAP that you would doubt its quality?'
+    },
+    {
+      id: 2,
+      type: 'number',
+      title: 'At what price would you consider the product to be a BARGAIN — a great buy for the money?'
+    },
+    {
+      id: 3,
+      type: 'number',
+      title: 'At what price would you consider the product to be EXPENSIVE, but you would still consider buying it?'
+    },
+    {
+      id: 4,
+      type: 'number',
+      title: 'At what price would you consider the product to be SO EXPENSIVE that you would not consider buying it?'
+    }
+  ],
+  isPsmTemplate: true
 };
 
 
@@ -1162,6 +1191,17 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             setLoadedTemplate(true);
             toast({ title: "Template Loaded", description: "IPA Survey template has been applied." });
         }
+         if (template === 'psm' && !loadedTemplate) {
+            setSurvey(prev => ({
+                ...prev,
+                title: psmTemplate.title,
+                description: psmTemplate.description,
+                questions: psmTemplate.questions.map(q => ({...q, id: Date.now() + Math.random()})),
+                isPsmTemplate: true
+            }));
+            setLoadedTemplate(true);
+            toast({ title: "Template Loaded", description: "Van Westendorp PSM Survey template has been applied." });
+        }
     }, [template, loadedTemplate, toast]);
 
     const questionTypeCategories = {
@@ -1857,13 +1897,14 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList className={cn("grid w-full", survey.isRetailTemplate || survey.isServqualTemplate || survey.isIpaTemplate ? "grid-cols-4" : "grid-cols-3")}>
+                <TabsList className={cn("grid w-full", survey.isRetailTemplate || survey.isServqualTemplate || survey.isIpaTemplate || survey.isPsmTemplate ? "grid-cols-4" : "grid-cols-3")}>
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                     <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
                     {survey.isRetailTemplate && <TabsTrigger value="retail-dashboard"><ShoppingCart className="mr-2" />Retail Dashboard</TabsTrigger>}
                     {survey.isServqualTemplate && <TabsTrigger value="servqual-dashboard"><ShieldCheck className="mr-2" />SERVQUAL Dashboard</TabsTrigger>}
                     {survey.isIpaTemplate && <TabsTrigger value="ipa-dashboard"><Target className="mr-2" />IPA Dashboard</TabsTrigger>}
+                    {survey.isPsmTemplate && <TabsTrigger value="psm-dashboard"><DollarSign className="mr-2" />PSM Dashboard</TabsTrigger>}
                 </TabsList>
                 <TabsContent value="design">
                     <div className="grid md:grid-cols-12 gap-6 mt-4">
@@ -2099,8 +2140,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                 <TabsContent value="dashboard">
                 <Card className="mt-4">
                     <CardHeader>
-                    <CardTitle>Survey Dashboard</CardTitle>
-                    <CardDescription>An overview of your survey's performance and sharing options.</CardDescription>
+                      <CardTitle>Survey Dashboard</CardTitle>
+                      <CardDescription>An overview of your survey's performance and sharing options.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-8">
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -2336,6 +2377,11 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 {ipaAnalysisData ? <IpaAnalyticsDashboard data={ipaAnalysisData} /> : <Button onClick={performIpaAnalysis} disabled={responses.length < 2}>Run IPA Analysis</Button>}
                             </CardContent>
                         </Card>
+                    </TabsContent>
+                )}
+                 {survey.isPsmTemplate && (
+                    <TabsContent value="psm-dashboard">
+                       <VanWestendorpPage data={responses.map(r => r.answers)} numericHeaders={Object.keys(responses[0]?.answers || {})} onLoadExample={() => {}} />
                     </TabsContent>
                 )}
             </Tabs>
