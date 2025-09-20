@@ -21,7 +21,6 @@ def main():
             raise ValueError("No data provided.")
 
         df = pd.DataFrame(data)
-
         plots = {}
         
         # --- Convert types ---
@@ -52,12 +51,11 @@ def main():
         
         for key, plot_type, plot_config in base_plot_configs:
             try:
-                plt.figure(figsize=(10, 6))
-                
                 required_cols = [c for c in ['x_col', 'y_col'] if c in plot_config]
                 if not all(plot_config.get(c) and plot_config.get(c) in df.columns for c in required_cols):
                     raise ValueError(f"Missing columns for {key}")
 
+                plt.figure(figsize=(10, 6))
                 x_col, y_col = plot_config.get('x_col'), plot_config.get('y_col')
                 
                 plot_df = df.dropna(subset=[col for col in [x_col, y_col] if col])
@@ -89,7 +87,7 @@ def main():
         # 1. Channel Performance (Conversion Rate)
         try:
             source_col, medium_col, conversion_col = config.get('sourceCol'), config.get('mediumCol'), config.get('conversionCol')
-            if all([source_col, medium_col, conversion_col]) and all(c in df.columns for c in [source_col, medium_col, conversion_col]):
+            if all([c in df.columns for c in [source_col, medium_col, conversion_col]]):
                 df['channel'] = df[source_col].astype(str) + ' / ' + df[medium_col].astype(str)
                 conversion_rate = df.groupby('channel')[conversion_col].mean().sort_values(ascending=False) * 100
                 
@@ -111,7 +109,7 @@ def main():
         # 2. Campaign ROI
         try:
             campaign_col, cost_col, revenue_col = config.get('campaignCol'), config.get('costCol'), config.get('revenueCol')
-            if all([campaign_col, cost_col, revenue_col]) and all(c in df.columns for c in [campaign_col, cost_col, revenue_col]):
+            if all([c in df.columns for c in [campaign_col, cost_col, revenue_col]]):
                 campaign_stats = df.groupby(campaign_col).agg(
                     total_cost=(cost_col, 'sum'),
                     total_revenue=(revenue_col, 'sum')
@@ -137,7 +135,7 @@ def main():
         # 3. Funnel Analysis
         try:
             page_views_col, conversion_col = config.get('pageViewsCol'), config.get('conversionCol')
-            if all([page_views_col, conversion_col]) and all(c in df.columns for c in [page_views_col, conversion_col]):
+            if all([c in df.columns for c in [page_views_col, conversion_col]]):
                 total_sessions = len(df)
                 viewed_product_sessions = len(df[df[page_views_col] > 1])
                 converted_sessions = len(df[df[conversion_col] == 1])
@@ -166,23 +164,18 @@ def main():
         # 4. Attribution Modeling
         try:
             source_col, conversion_col, revenue_col = config.get('sourceCol'), config.get('conversionCol'), config.get('revenueCol')
-            if all([source_col, conversion_col, revenue_col]) and all(c in df.columns for c in [source_col, conversion_col, revenue_col]):
+            if all([c in df.columns for c in [source_col, conversion_col, revenue_col]]):
                 converted_df = df[df[conversion_col] == 1].copy()
 
                 if not converted_df.empty:
-                    # Simplified: assumes source is both first and last touch
-                    attribution = converted_df.groupby(source_col)[revenue_col].sum().reset_index()
-                    attribution.rename(columns={revenue_col: 'Revenue'}, inplace=True)
+                    attribution = converted_df.groupby(source_col)[revenue_col].agg(['sum', 'count']).reset_index()
+                    attribution.rename(columns={'sum': 'TotalRevenue', 'count': 'Conversions'}, inplace=True)
                     
-                    # Create a dummy first/last touch for demonstration
-                    attribution['Model'] = np.random.choice(['First Touch', 'Last Touch'], size=len(attribution))
-
                     plt.figure(figsize=(12, 7))
-                    sns.barplot(data=attribution, x=source_col, y='Revenue', hue='Model', palette='rocket')
-                    plt.title('Attribution Model Comparison (Simplified)')
-                    plt.xlabel('Source')
-                    plt.ylabel('Attributed Revenue')
-                    plt.xticks(rotation=45, ha='right')
+                    sns.barplot(data=attribution.sort_values('TotalRevenue', ascending=False), x='TotalRevenue', y=source_col, palette='rocket')
+                    plt.title('Attributed Revenue (Last Touch)')
+                    plt.xlabel('Attributed Revenue')
+                    plt.ylabel('Source')
                     plt.tight_layout()
                     buf = io.BytesIO()
                     plt.savefig(buf, format='png')
@@ -204,5 +197,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    

@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { BarChart as BarChartIcon, DollarSign, Eye, Clock, LineChart, ScatterChart as ScatterIcon, Loader2, Users, MapPin, Award, Sigma, Filter } from 'lucide-react';
+import { Loader2, Sigma, Filter } from 'lucide-react';
 import { DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -40,21 +40,21 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     const [isClient, setIsClient] = useState(false);
     
     const [columnConfig, setColumnConfig] = useState({
-        revenueCol: undefined as string | undefined,
-        sourceCol: undefined as string | undefined,
-        mediumCol: undefined as string | undefined,
-        campaignCol: undefined as string | undefined,
-        costCol: undefined as string | undefined,
-        conversionCol: undefined as string | undefined,
-        deviceCol: undefined as string | undefined,
-        pageViewsCol: undefined as string | undefined,
-        sessionDurationCol: undefined as string | undefined,
-        dateCol: undefined as string | undefined,
-        ageGroupCol: undefined as string | undefined,
-        ltvCol: undefined as string | undefined,
-        genderCol: undefined as string | undefined,
-        countryCol: undefined as string | undefined,
-        membershipCol: undefined as string | undefined,
+        revenueCol: '',
+        sourceCol: '',
+        mediumCol: '',
+        campaignCol: '',
+        costCol: '',
+        conversionCol: '',
+        deviceCol: '',
+        pageViewsCol: '',
+        sessionDurationCol: '',
+        dateCol: '',
+        ageGroupCol: '',
+        ltvCol: '',
+        genderCol: '',
+        countryCol: '',
+        membershipCol: '',
     });
 
     const [plots, setPlots] = useState<Record<string, string | null> | null>(null);
@@ -65,21 +65,21 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
         // Reset and auto-detect columns when data changes
         setPlots(null);
         setColumnConfig({
-            revenueCol: numericHeaders.find(h => h.toLowerCase().includes('revenue')) || numericHeaders[0],
-            sourceCol: categoricalHeaders.find(h => h.toLowerCase().includes('source')) || categoricalHeaders[0],
-            mediumCol: categoricalHeaders.find(h => h.toLowerCase().includes('medium')) || categoricalHeaders[1],
-            campaignCol: categoricalHeaders.find(h => h.toLowerCase().includes('campaign')) || categoricalHeaders[2],
-            costCol: numericHeaders.find(h => h.toLowerCase().includes('cost')) || numericHeaders[1],
-            conversionCol: allHeaders.find(h => h.toLowerCase().includes('conversion')) || allHeaders[2],
-            deviceCol: categoricalHeaders.find(h => h.toLowerCase().includes('device')) || categoricalHeaders[3],
-            pageViewsCol: numericHeaders.find(h => h.toLowerCase().includes('views')) || numericHeaders[2],
-            sessionDurationCol: numericHeaders.find(h => h.toLowerCase().includes('duration')) || numericHeaders[3],
-            dateCol: allHeaders.find(h => h.toLowerCase().includes('date')) || allHeaders[1],
-            ageGroupCol: categoricalHeaders.find(h => h.toLowerCase().includes('age')) || categoricalHeaders[4],
-            ltvCol: numericHeaders.find(h => h.toLowerCase().includes('ltv')) || numericHeaders[4],
-            genderCol: categoricalHeaders.find(h => h.toLowerCase().includes('gender')) || categoricalHeaders[5],
-            countryCol: categoricalHeaders.find(h => h.toLowerCase().includes('country')) || categoricalHeaders[6],
-            membershipCol: categoricalHeaders.find(h => h.toLowerCase().includes('membership')) || categoricalHeaders[7],
+            revenueCol: numericHeaders.find(h => h.toLowerCase().includes('revenue')) || numericHeaders[0] || '',
+            sourceCol: categoricalHeaders.find(h => h.toLowerCase().includes('source')) || categoricalHeaders[0] || '',
+            mediumCol: categoricalHeaders.find(h => h.toLowerCase().includes('medium')) || categoricalHeaders[1] || '',
+            campaignCol: categoricalHeaders.find(h => h.toLowerCase().includes('campaign')) || categoricalHeaders[2] || '',
+            costCol: numericHeaders.find(h => h.toLowerCase().includes('cost')) || numericHeaders[1] || '',
+            conversionCol: allHeaders.find(h => h.toLowerCase().includes('conversion')) || allHeaders[2] || '',
+            deviceCol: categoricalHeaders.find(h => h.toLowerCase().includes('device')) || categoricalHeaders[3] || '',
+            pageViewsCol: numericHeaders.find(h => h.toLowerCase().includes('views')) || numericHeaders[2] || '',
+            sessionDurationCol: numericHeaders.find(h => h.toLowerCase().includes('duration')) || numericHeaders[3] || '',
+            dateCol: allHeaders.find(h => h.toLowerCase().includes('date')) || allHeaders[1] || '',
+            ageGroupCol: categoricalHeaders.find(h => h.toLowerCase().includes('age')) || categoricalHeaders[4] || '',
+            ltvCol: numericHeaders.find(h => h.toLowerCase().includes('ltv')) || numericHeaders[4] || '',
+            genderCol: categoricalHeaders.find(h => h.toLowerCase().includes('gender')) || categoricalHeaders[5] || '',
+            countryCol: categoricalHeaders.find(h => h.toLowerCase().includes('country')) || categoricalHeaders[6] || '',
+            membershipCol: categoricalHeaders.find(h => h.toLowerCase().includes('membership')) || categoricalHeaders[7] || '',
         })
     }, [numericHeaders, categoricalHeaders, allHeaders, data]);
     
