@@ -86,7 +86,7 @@ const tipsData = `total_bill,tip,sex,smoker,day,time,size
 
 export const exampleDatasets: ExampleDataSet[] = [
      {
-        id: 'comprehensive-marketing',
+        id: 'marketing-analysis',
         name: 'Comprehensive Marketing Data',
         description: 'A full dataset with all variables for the Marketing Analysis dashboard.',
         icon: BarChart,

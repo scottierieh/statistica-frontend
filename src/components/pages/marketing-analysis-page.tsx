@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { Loader2, Sigma, Filter, DollarSign, Clock, Eye, BarChart as BarChartIcon } from 'lucide-react';
+import { Loader2, Sigma, Filter } from 'lucide-react';
 import { DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -15,6 +14,7 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
+import { DollarSign, Clock, Eye, BarChart as BarChartIcon } from 'lucide-react';
 
 
 interface MarketingAnalysisPageProps {
@@ -55,24 +55,24 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     useEffect(() => {
         setIsClient(true);
         setPlots(null);
-        // A more robust way to find default columns
+        
         const findColumn = (keywords: string[], headers: string[]) => {
             for (const keyword of keywords) {
-                const found = headers.find(h => h.toLowerCase().includes(keyword));
+                const found = headers.find(h => h.toLowerCase().replace(/_/g, '').includes(keyword));
                 if (found) return found;
             }
             return headers[0] || '';
         };
 
         setColumnConfig({
-            revenueCol: findColumn(['revenue'], numericHeaders),
+            revenueCol: findColumn(['revenue', 'purchase'], numericHeaders),
             sourceCol: findColumn(['source'], categoricalHeaders),
             mediumCol: findColumn(['medium'], categoricalHeaders),
             campaignCol: findColumn(['campaign'], categoricalHeaders),
             costCol: findColumn(['cost'], numericHeaders),
             conversionCol: findColumn(['conversion'], allHeaders),
             deviceCol: findColumn(['device'], categoricalHeaders),
-            pageViewsCol: findColumn(['page_views', 'views'], numericHeaders),
+            pageViewsCol: findColumn(['pageviews', 'views'], numericHeaders),
             sessionDurationCol: findColumn(['duration'], numericHeaders),
             dateCol: findColumn(['date'], allHeaders),
             ageGroupCol: findColumn(['age'], categoricalHeaders),
@@ -80,9 +80,9 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
             genderCol: findColumn(['gender'], categoricalHeaders),
             countryCol: findColumn(['country'], categoricalHeaders),
             membershipCol: findColumn(['membership'], categoricalHeaders),
-            userIdCol: findColumn(['user_id', 'user'], allHeaders),
-            cohortDateCol: findColumn(['cohort_date'], allHeaders),
-            itemCategoryCol: findColumn(['category'], categoricalHeaders),
+            userIdCol: findColumn(['userid', 'user'], allHeaders),
+            cohortDateCol: findColumn(['cohortdate', 'cohort'], allHeaders),
+            itemCategoryCol: findColumn(['itemcategory', 'category'], categoricalHeaders),
             itemBrandCol: findColumn(['brand'], categoricalHeaders),
             priceCol: findColumn(['price'], numericHeaders),
             quantityCol: findColumn(['quantity'], numericHeaders),
@@ -95,18 +95,6 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     };
 
     const handleGenerateDashboard = useCallback(async () => {
-        const requiredCols = ['revenueCol', 'sourceCol', 'deviceCol', 'pageViewsCol', 'sessionDurationCol', 'dateCol'];
-        for (const key of requiredCols) {
-            if (!columnConfig[key as keyof typeof columnConfig]) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Configuration Incomplete',
-                    description: `Please ensure all essential columns like "${key.replace('Col', '')}" are mapped.`
-                });
-                return;
-            }
-        }
-        
         setIsGenerating(true);
         setPlots(null);
 
@@ -152,7 +140,7 @@ export default function MarketingAnalysisPage({ data, allHeaders, numericHeaders
     }
 
     if (data.length === 0) {
-        const marketingExample = exampleDatasets.find(ex => ex.id === 'comprehensive-marketing');
+        const marketingExample = exampleDatasets.find(ex => ex.id === 'marketing-analysis');
         return (
             <div className="flex flex-1 items-center justify-center h-full">
                 <Card className="w-full max-w-2xl text-center">
