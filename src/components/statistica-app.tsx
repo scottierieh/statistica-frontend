@@ -57,9 +57,8 @@ import {
   ScanSearch,
   Atom,
   MessagesSquare,
-  Search,
-  GitCommit,
   Share2,
+  GitCommit,
   ClipboardList,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -624,13 +623,13 @@ export default function StatisticaApp() {
                               <SidebarMenuButton
                                   onClick={() => {
                                       if (method.id === 'survey') {
-                                        window.open('/dashboard/survey', '_blank');
+                                        window.open('/dashboard/survey?id=1', '_blank');
                                       } else {
                                         setActiveAnalysis(method.id as AnalysisType)
                                       }
                                   }}
                                   isActive={activeAnalysis === method.id}
-                                  disabled={method.implemented === false}
+                                  disabled={(method as any).implemented === false}
                                   className="justify-start w-full h-8 text-xs"
                               >
                                   <span>{method.label}</span>
@@ -653,7 +652,7 @@ export default function StatisticaApp() {
                                       <SidebarMenuButton
                                           onClick={() => setActiveAnalysis(method.id as AnalysisType)}
                                           isActive={activeAnalysis === method.id}
-                                          disabled={method.implemented === false}
+                                          disabled={(method as any).implemented === false}
                                           className="justify-start w-full h-8 text-xs"
                                       >
                                           <span>{method.label}</span>
