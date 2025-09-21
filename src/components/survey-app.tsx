@@ -1993,7 +1993,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList className={cn("grid w-full", survey.isRetailTemplate || survey.isServqualTemplate || survey.isIpaTemplate || survey.isPsmTemplate ? "grid-cols-5" : "grid-cols-3")}>
+                <TabsList>
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                     <TabsTrigger value="analysis-detail">Detailed Analysis</TabsTrigger>
