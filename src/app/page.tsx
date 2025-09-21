@@ -10,7 +10,7 @@ export default function LandingPage() {
           <Calculator className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-headline font-bold">Skarii</h1>
         </div>
-        <nav className="ml-auto flex gap-4 sm:gap-6">
+        <nav className="flex-1 flex justify-center items-center gap-4 sm:gap-6">
           <Link
             className="text-sm font-medium hover:underline underline-offset-4"
             href="/dashboard"
@@ -30,9 +30,14 @@ export default function LandingPage() {
             About
           </Link>
         </nav>
+        <div className="ml-auto">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard">Login</Link>
+          </Button>
+        </div>
       </header>
-      <main className="flex-1 flex flex-col">
-        <section className="w-full flex-1 flex items-center justify-center py-12 md:py-24 lg:py-32 xl:py-48 bg-background">
+      <main className="flex-1 flex flex-col items-center justify-center">
+        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-background">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="space-y-2">
