@@ -36,10 +36,10 @@ interface GaborGrangerPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-const StatCard = ({ title, value, unit = '$' }: { title: string, value: number | undefined, unit?: string }) => (
+const StatCard = ({ title, value, unit = '$' }: { title: string, value: number | undefined | null, unit?: string }) => (
     <div className="p-4 bg-muted rounded-lg text-center">
         <p className="text-sm text-muted-foreground">{title}</p>
-        <p className="text-2xl font-bold">{value !== undefined ? `${unit}${value.toFixed(2)}` : 'N/A'}</p>
+        <p className="text-2xl font-bold">{value !== undefined && value !== null ? `${unit}${value.toFixed(2)}` : 'N/A'}</p>
     </div>
 );
 
@@ -100,6 +100,13 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
             setIsLoading(false);
         }
     }, [data, priceCol, purchaseIntentCol, unitCost, toast]);
+    
+    const results = analysisResult?.results;
+
+    const formattedInterpretation = useMemo(() => {
+        if (!results?.interpretation) return [];
+        return results.interpretation.split('\n').filter(line => line.trim() !== '');
+    }, [results]);
 
     if (!canRun) {
         const psmExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('gabor-granger'));
@@ -123,13 +130,6 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
             </div>
         );
     }
-    
-    const results = analysisResult?.results;
-
-    const formattedInterpretation = useMemo(() => {
-        if (!results?.interpretation) return [];
-        return results.interpretation.split('\n').filter(line => line.trim() !== '');
-    }, [results]);
 
     return (
         <div className="space-y-4">
