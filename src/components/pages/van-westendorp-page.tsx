@@ -13,7 +13,6 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import dynamic from 'next/dynamic';
-import { plotVanWestendorp } from '@/lib/plotters';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -28,13 +27,7 @@ interface AnalysisResponse {
         mdp: number | null;
         ipp: number | null;
     };
-    plotData: {
-        prices: number[];
-        too_cheap: number[];
-        cheap: number[];
-        expensive: number[];
-        too_expensive: number[];
-    };
+    plotData: any; // Keep this flexible for plotly data structure
 }
 
 interface VanWestendorpPageProps {
@@ -135,19 +128,64 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
     }
     
     const results = analysisResult?.results;
-    const plotJson = useMemo(() => {
-        if (!analysisResult) return null;
-        const { plotData, results } = analysisResult;
-        const chartData = {
-            prices: plotData.prices,
-            tooCheap: plotData.too_cheap,
-            cheap: plotData.cheap,
-            expensive: plotData.expensive,
-            tooExpensive: plotData.too_expensive,
-            intersections: results
-        };
-        return JSON.parse(plotVanWestendorp(chartData));
+    
+    const plotData = useMemo(() => {
+        if (!analysisResult?.plotData) return null;
+        try {
+            const { prices, too_cheap, cheap, expensive, too_expensive } = analysisResult.plotData;
+            
+            const traces = [
+                { x: prices, y: too_expensive, mode: 'lines', name: 'Too Expensive', line: { color: 'red'} },
+                { x: prices, y: expensive, mode: 'lines', name: 'Expensive', line: { color: 'orange'} },
+                { x: prices, y: cheap.map((v: number) => 100 - v), mode: 'lines', name: 'Not Cheap', line: { color: 'blue'} },
+                { x: prices, y: too_cheap.map((v: number) => 100 - v), mode: 'lines', name: 'Not Too Cheap', line: { color: 'skyblue'} }
+            ];
+
+            return { data: traces };
+        } catch(e) {
+            console.error("Failed to parse plot data", e);
+            return null;
+        }
     }, [analysisResult]);
+
+
+    const layout = useMemo(() => {
+      if (!results) return {};
+      
+      const shapes: any[] = [];
+      const annotations: any[] = [];
+      const addAnnotation = (x: number | null, y: number, text: string) => {
+        if(x === null) return;
+        annotations.push({ x: x, y: y, text: text, showarrow: true, arrowhead: 4, ax: 0, ay: -40, bgcolor: 'rgba(255, 255, 255, 0.7)' });
+      };
+
+      if (results.pme) {
+          shapes.push({ type: 'line', x0: results.pme, x1: results.pme, y0: 0, y1: 100, line: { color: 'grey', width: 1, dash: 'dot' } });
+          addAnnotation(results.pme, 95, 'PME');
+      }
+      if (results.ipp) {
+          shapes.push({ type: 'line', x0: results.ipp, x1: results.ipp, y0: 0, y1: 100, line: { color: 'grey', width: 1, dash: 'dot' } });
+          addAnnotation(results.ipp, 85, 'IPP');
+      }
+       if (results.mdp) {
+          shapes.push({ type: 'line', x0: results.mdp, x1: results.mdp, y0: 0, y1: 100, line: { color: 'purple', width: 2, dash: 'dash' } });
+           addAnnotation(results.mdp, 75, 'Point of Marginal<br>Cheapness');
+      }
+      if (results.opp) {
+          shapes.push({ type: 'line', x0: results.opp, x1: results.opp, y0: 0, y1: 100, line: { color: 'green', width: 2, dash: 'dash' } });
+           addAnnotation(results.opp, 65, 'Optimal Price Point');
+      }
+      
+      return {
+        title: 'Van Westendorp Price Sensitivity Meter',
+        xaxis: { title: 'Price' },
+        yaxis: { title: '% Respondents', range: [0, 100] },
+        shapes: shapes,
+        annotations: annotations,
+        legend: { x: 0.01, y: 0.99 },
+        autosize: true
+      };
+    }, [results]);
 
 
     return (
@@ -193,7 +231,7 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {results && plotJson && (
+            {results && plotData && (
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
@@ -201,8 +239,8 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
                         </CardHeader>
                         <CardContent>
                             <Plot
-                                data={plotJson.data}
-                                layout={plotJson.layout}
+                                data={plotData.data}
+                                layout={layout}
                                 useResizeHandler={true}
                                 className="w-full h-[500px]"
                             />
@@ -215,7 +253,7 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
                         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
                              <StatCard title="Optimal Price (OPP)" value={results.opp} />
                              <StatCard title="Indifference Price (IPP)" value={results.ipp} />
-                             <StatCard title="Marginal Cheapness (MDP)" value={results.mdp} />
+                             <StatCard title="Marginal Cheapness (PMC)" value={results.mdp} />
                              <StatCard title="Marginal Expensiveness (PME)" value={results.pme} />
                         </CardContent>
                     </Card>
