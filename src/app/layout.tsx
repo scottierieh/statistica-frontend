@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Statistica',
+  title: 'Skarii',
   description: 'An intelligent statistical analysis tool.',
 };
 

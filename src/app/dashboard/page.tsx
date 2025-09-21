@@ -1,4 +1,3 @@
-
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart } from "lucide-react";
@@ -10,7 +9,7 @@ export default function DashboardHubPage() {
       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-background">
         <div className="flex items-center gap-2">
           <Calculator className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-headline font-bold">Statistica Dashboard</h1>
+          <h1 className="text-xl font-headline font-bold">Skarii Dashboard</h1>
         </div>
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
