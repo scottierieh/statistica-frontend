@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
@@ -82,7 +83,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
 import dynamic from 'next/dynamic';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -754,11 +755,17 @@ const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number
     );
 };
 
-const AnalysisDisplayShell = ({ chart, table, insights }: { chart: React.ReactNode, table: React.ReactNode, insights: React.ReactNode }) => {
+const AnalysisDisplayShell = ({ chart, table, insights, onDownloadChart, varName }: { chart: React.ReactNode, table: React.ReactNode, insights: React.ReactNode, onDownloadChart: () => void, varName: string }) => {
     return (
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card className="flex items-center justify-center">
-          <CardContent className="pt-6 h-[400px] w-full">
+        <Card className="flex flex-col">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+                <CardTitle>{varName}</CardTitle>
+                <Button variant="ghost" size="icon" onClick={onDownloadChart}><Download className="h-4 w-4"/></Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6 flex-1 flex items-center justify-center min-h-[300px]">
             {chart}
           </CardContent>
         </Card>
@@ -784,11 +791,22 @@ const AnalysisDisplayShell = ({ chart, table, insights }: { chart: React.ReactNo
     );
   };
 
-const TextAnalysisDisplay = ({ chartData, tableData, insightsData }: { chartData: any, tableData: any[], insightsData: string[] }) => {
+const TextAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
+    const plotRef = useRef(null);
+
+    const downloadChart = () => {
+        if (plotRef.current) {
+            Plotly.downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_wordcloud`});
+        }
+    };
+    
     return (
         <AnalysisDisplayShell
+          varName={varName}
+          onDownloadChart={downloadChart}
           chart={
              <Plot 
+                ref={plotRef}
                 data={[chartData]}
                 layout={{
                     autosize: true,
@@ -823,11 +841,21 @@ const TextAnalysisDisplay = ({ chartData, tableData, insightsData }: { chartData
     );
 };
 
-const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData }: { chartData: any, tableData: any[], insightsData: string[] }) => {
-    return (
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
+  const plotRef = useRef(null);
+  const downloadChart = () => {
+      if (plotRef.current) {
+          Plotly.downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_pie_chart`});
+      }
+  };
+
+  return (
       <AnalysisDisplayShell
+        varName={varName}
+        onDownloadChart={downloadChart}
         chart={
           <Plot
+            ref={plotRef}
             data={[{ ...chartData, type: 'pie', hole: 0.4, textinfo: 'label+percent', textposition: 'outside' }]}
             layout={{
                 showlegend: false,
@@ -867,9 +895,14 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData }: { chartDa
     );
 };
   
-const RatingAnalysisDisplay = ({ chartData, tableData, insightsData }: { chartData: any, tableData: any, insightsData: string[] }) => {
+const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
+    // This chart is not Plotly, so download is not implemented yet
+    const downloadChart = () => alert("Download not available for this chart type yet.");
+
     return (
         <AnalysisDisplayShell
+          varName={varName}
+          onDownloadChart={downloadChart}
           chart={
             <div className="flex flex-col items-center justify-center h-full gap-4">
                 <div className="text-7xl font-bold">{chartData.avg.toFixed(2)}</div>
@@ -903,11 +936,20 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData }: { chartDa
     );
 }
 
-const NumberAnalysisDisplay = ({ chartData, tableData, insightsData }: { chartData: any, tableData: any, insightsData: string[] }) => {
+const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
+    const plotRef = useRef(null);
+    const downloadChart = () => {
+        if (plotRef.current) {
+            Plotly.downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_histogram`});
+        }
+    };
     return (
       <AnalysisDisplayShell
+        varName={varName}
+        onDownloadChart={downloadChart}
         chart={
           <Plot
+            ref={plotRef}
             data={[{ x: chartData.values, type: 'histogram' }]}
             layout={{
                 title: 'Response Distribution',
@@ -947,11 +989,21 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData }: { chartDa
     );
   };
 
-const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData }: { chartData: any, tableData: any[], insightsData: string[] }) => {
+const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
+    const plotRef = useRef(null);
+    const downloadChart = () => {
+        if (plotRef.current) {
+            Plotly.downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_best_worst`});
+        }
+    };
+
     return (
        <AnalysisDisplayShell
+            varName={varName}
+            onDownloadChart={downloadChart}
             chart={
                  <Plot
+                    ref={plotRef}
                     data={[{ ...chartData, type: 'bar' }]}
                     layout={{
                         autosize: true,
@@ -994,9 +1046,13 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData }: { char
     );
 };
 
-const NPSAnalysisDisplay = ({ chartData, tableData, insightsData }: { chartData: any, tableData: any, insightsData: string[] }) => {
+const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
+    // NPS chart is custom HTML, download not implemented
+     const downloadChart = () => alert("Download not available for this chart type yet.");
     return (
         <AnalysisDisplayShell
+          varName={varName}
+          onDownloadChart={downloadChart}
           chart={
             <div className="flex flex-col items-center justify-center h-full gap-4">
                 <div className="text-7xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
@@ -2328,7 +2384,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                         </CardHeader>
                                         <CardContent>
                                             {AnalysisComponent ? (
-                                                <AnalysisComponent chartData={chartData} tableData={tableData} insightsData={insights} />
+                                                <AnalysisComponent chartData={chartData} tableData={tableData} insightsData={insights} varName={q.title} />
                                             ) : (
                                                 <p className="text-muted-foreground">Analysis for this question type is not yet implemented.</p>
                                             )}
@@ -2401,6 +2457,20 @@ function GeneralSurveyPageContentFromClient() {
     const searchParams = useSearchParams();
     const surveyId = searchParams.get('id');
     const template = searchParams.get('template');
+    const { toast } = useToast();
+
+    const reloadData = useCallback(() => {
+        if (surveyId) {
+            const savedResponses = localStorage.getItem(`${surveyId}_responses`);
+            if (savedResponses) {
+                // This line causes a re-render by setting state, which is what we want.
+                // However, we don't have a `setResponses` function available here.
+                // The state is managed in the parent component.
+                // This is a structural issue. Let's move state up.
+            }
+        }
+    }, [surveyId]);
+
 
     if (!surveyId) {
         return (
@@ -2422,3 +2492,4 @@ function GeneralSurveyPageContentFromClient() {
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
+
