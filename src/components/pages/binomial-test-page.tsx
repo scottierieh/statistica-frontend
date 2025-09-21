@@ -80,16 +80,16 @@ export default function BinomialTestPage() {
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-3 gap-4">
                         <div>
-                            <Label>Number of Successes (k)</Label>
-                            <Input type="number" value={successes} onChange={e => setSuccesses(Number(e.target.value))} min="0" />
+                            <Label htmlFor="successes">Number of Successes (k)</Label>
+                            <Input id="successes" type="number" value={successes} onChange={e => setSuccesses(Number(e.target.value))} min="0" />
                         </div>
                         <div>
-                            <Label>Number of Trials (n)</Label>
-                            <Input type="number" value={trials} onChange={e => setTrials(Number(e.target.value))} min="1" />
+                            <Label htmlFor="trials">Number of Trials (n)</Label>
+                            <Input id="trials" type="number" value={trials} onChange={e => setTrials(Number(e.target.value))} min="1" />
                         </div>
                         <div>
-                            <Label>Expected Probability (p)</Label>
-                            <Input type="number" value={probability} onChange={e => setProbability(Number(e.target.value))} min="0" max="1" step="0.01" />
+                            <Label htmlFor="probability">Expected Probability (p)</Label>
+                            <Input id="probability" type="number" value={probability} onChange={e => setProbability(Number(e.target.value))} min="0" max="1" step="0.01" />
                         </div>
                     </div>
                      <div>
@@ -98,8 +98,8 @@ export default function BinomialTestPage() {
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="two-sided">Two-sided (p ≠ {probability})</SelectItem>
-                                <SelectItem value="greater">Greater (p > {probability})</SelectItem>
-                                <SelectItem value="less">Less (p < {probability})</SelectItem>
+                                <SelectItem value="greater">Greater (p &gt; {probability})</SelectItem>
+                                <SelectItem value="less">Less (p &lt; {probability})</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -113,7 +113,7 @@ export default function BinomialTestPage() {
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full" /></CardContent></Card>}
 
-            {results && (
+            {results && analysisResult?.plot && (
                 <div className="space-y-4">
                     <Card>
                          <CardHeader>
@@ -134,7 +134,7 @@ export default function BinomialTestPage() {
                          <Card>
                             <CardHeader><CardTitle>Binomial Distribution</CardTitle></CardHeader>
                             <CardContent>
-                                {analysisResult.plot && <Image src={analysisResult.plot} alt="Binomial Distribution Plot" width={800} height={500} className="rounded-md border" />}
+                                <Image src={analysisResult.plot} alt="Binomial Distribution Plot" width={800} height={500} className="rounded-md border" />
                             </CardContent>
                         </Card>
                         <Card>
@@ -155,4 +155,3 @@ export default function BinomialTestPage() {
         </div>
     );
 }
-
