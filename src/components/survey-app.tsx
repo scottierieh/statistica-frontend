@@ -833,66 +833,30 @@ const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number
 };
 
 const AnalysisDisplayShell = ({ chart, table, insights, onDownloadChart, varName }: { chart: React.ReactNode, table: React.ReactNode, insights: React.ReactNode, onDownloadChart: () => void, varName: string }) => {
-    const [chartType, setChartType] = useState('bar');
-    const [sortOrder, setSortOrder] = useState('default');
-    
-    return (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <Card className="flex flex-col">
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle>{varName}</CardTitle>
-                        <div className="flex items-center gap-2">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm">Chart: {chartType}</Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    <DropdownMenuItem onSelect={() => setChartType('bar')}>Bar</DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={() => setChartType('pie')}>Pie</DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm">Sort: {sortOrder}</Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    <DropdownMenuItem onSelect={() => setSortOrder('default')}>Default</DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={() => setSortOrder('asc')}>Ascending</DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={() => setSortOrder('desc')}>Descending</DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                            <Button variant="ghost" size="sm">Hide</Button>
-                            <Button variant="ghost" size="icon" className="cursor-move"><Move className="w-4 h-4"/></Button>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="pt-6 flex-1 flex items-center justify-center min-h-[300px]">
-                    {chart}
-                </CardContent>
-            </Card>
-            <Card>
-                <Tabs defaultValue="table" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="table">Data Table</TabsTrigger>
-                        <TabsTrigger value="insights">AI Insights</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="table">
-                        <CardContent className="pt-4 h-[350px] overflow-y-auto">
-                            {table}
-                        </CardContent>
-                    </TabsContent>
-                    <TabsContent value="insights">
-                        <CardContent className="pt-4 h-[350px] overflow-y-auto">
-                            {insights}
-                        </CardContent>
-                    </TabsContent>
-                </Tabs>
-            </Card>
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{varName}</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="flex items-center justify-center min-h-[300px] border rounded-lg p-4">
+          {chart}
         </div>
-    );
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+            <CardContent className="max-h-[200px] overflow-y-auto">{table}</CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+            <CardContent>{insights}</CardContent>
+          </Card>
+        </div>
+      </CardContent>
+    </Card>
+  );
 };
-
+  
 const TextAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
     const plotRef = useRef(null);
 
@@ -1981,6 +1945,20 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         setIpaAnalysisData({ points: ipaData, meanImportance, meanSatisfaction, quadrants });
         setActiveTab('ipa-dashboard');
     };
+    
+    const [analysisItems, setAnalysisItems] = useState(survey.questions);
+    
+    const handleDashboardDragEnd = (event: DragEndEvent) => {
+        const {active, over} = event;
+        if (over && active.id !== over.id) {
+            setAnalysisItems((items) => {
+                const oldIndex = items.findIndex((item: any) => item.id === active.id);
+                const newIndex = items.findIndex((item: any) => item.id === over.id);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+        }
+    };
+
 
     return (
         <div className="flex-1 p-8 bg-gradient-to-br from-background to-slate-50">
@@ -2055,10 +2033,11 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList className={cn("grid w-full", survey.isRetailTemplate || survey.isServqualTemplate || survey.isIpaTemplate || survey.isPsmTemplate ? "grid-cols-4" : "grid-cols-3")}>
+                <TabsList className={cn("grid w-full", survey.isRetailTemplate || survey.isServqualTemplate || survey.isIpaTemplate || survey.isPsmTemplate ? "grid-cols-5" : "grid-cols-3")}>
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
-                    <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
+                    <TabsTrigger value="analysis-detail">Detailed Analysis</TabsTrigger>
+                    <TabsTrigger value="analysis-dashboard">Analysis Dashboard</TabsTrigger>
                     {survey.isRetailTemplate && <TabsTrigger value="retail-dashboard"><ShoppingCart className="mr-2" />Retail Dashboard</TabsTrigger>}
                     {survey.isServqualTemplate && <TabsTrigger value="servqual-dashboard"><ShieldCheck className="mr-2" />SERVQUAL Dashboard</TabsTrigger>}
                     {survey.isIpaTemplate && <TabsTrigger value="ipa-dashboard"><Target className="mr-2" />IPA Dashboard</TabsTrigger>}
@@ -2433,64 +2412,100 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     </CardContent>
                 </Card>
                 </TabsContent>
-                <TabsContent value="analysis">
-                <Card className="mt-4">
-                    <CardHeader>
-                        <CardTitle>Response Analysis</CardTitle>
-                        <CardDescription>
-                            A detailed breakdown of responses for each question in your survey.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-8">
-                        {responses.length === 0 ? (
-                            <div className="flex justify-center items-center h-64 border-2 border-dashed rounded-lg">
-                                <p className="text-muted-foreground">No responses yet. Share your survey to collect data!</p>
-                            </div>
-                        ) : (
-                            survey.questions.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, qIndex: number) => {
-                                const { noData, chartData, tableData, insights } = getAnalysisDataForQuestion(q.id);
-                                if (noData) {
-                                    return (
-                                        <Card key={`analysis-${q.id}`} className="bg-muted/30">
-                                            <CardHeader>
-                                                <CardTitle className="flex items-center gap-4">
-                                                    {qIndex + 1}. {q.title}
-                                                    <Badge variant="outline">{q.type.toUpperCase()}</Badge>
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <p className="text-muted-foreground">No responses for this question yet.</p>
-                                            </CardContent>
-                                        </Card>
-                                    );
-                                }
-                                
-                                const questionComponents: { [key: string]: React.ComponentType<any> } = {
-                                    single: ChoiceAnalysisDisplay,
-                                    multiple: ChoiceAnalysisDisplay,
-                                    text: TextAnalysisDisplay,
-                                    rating: RatingAnalysisDisplay,
-                                    number: NumberAnalysisDisplay,
-                                    nps: NPSAnalysisDisplay,
-                                    'best-worst': BestWorstAnalysisDisplay,
-                                };
-                                const AnalysisComponent = questionComponents[q.type];
+                <TabsContent value="analysis-detail">
+                    <Card className="mt-4">
+                        <CardHeader>
+                            <CardTitle>Detailed Analysis</CardTitle>
+                            <CardDescription>
+                                A question-by-question breakdown of survey responses.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-8">
+                            {responses.length === 0 ? (
+                                <div className="flex justify-center items-center h-64 border-2 border-dashed rounded-lg">
+                                    <p className="text-muted-foreground">No responses yet. Share your survey to collect data!</p>
+                                </div>
+                            ) : (
+                                survey.questions.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, qIndex: number) => {
+                                    const { noData, chartData, tableData, insights } = getAnalysisDataForQuestion(q.id);
+                                    if (noData) return null;
+                                    
+                                    const questionComponents: { [key: string]: React.ComponentType<any> } = {
+                                        single: ChoiceAnalysisDisplay,
+                                        multiple: ChoiceAnalysisDisplay,
+                                        text: TextAnalysisDisplay,
+                                        rating: RatingAnalysisDisplay,
+                                        number: NumberAnalysisDisplay,
+                                        nps: NPSAnalysisDisplay,
+                                        'best-worst': BestWorstAnalysisDisplay,
+                                    };
+                                    const AnalysisComponent = questionComponents[q.type];
 
-                                return (
-                                    <Card key={`analysis-${q.id}`}>
-                                        <CardContent className="p-6">
+                                    return (
+                                        <div key={`analysis-${q.id}`}>
                                             {AnalysisComponent ? (
-                                                <AnalysisComponent chartData={chartData} tableData={tableData} insightsData={insights} varName={q.title} />
+                                                <AnalysisComponent chartData={chartData} tableData={tableData} insightsData={insights} varName={`${qIndex + 1}. ${q.title}`} />
                                             ) : (
                                                 <p className="text-muted-foreground">Analysis for this question type is not yet implemented.</p>
                                             )}
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })
-                        )}
-                    </CardContent>
-                </Card>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="analysis-dashboard">
+                    <Card className="mt-4">
+                         <CardHeader>
+                            <CardTitle>Analysis Dashboard</CardTitle>
+                            <CardDescription>Drag and drop to rearrange your analysis dashboard.</CardDescription>
+                         </CardHeader>
+                         <CardContent>
+                            {responses.length === 0 ? (
+                                <div className="flex justify-center items-center h-64 border-2 border-dashed rounded-lg">
+                                    <p className="text-muted-foreground">No responses yet to build a dashboard.</p>
+                                </div>
+                            ) : (
+                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDashboardDragEnd}>
+                                    <SortableContext items={analysisItems.map((q: any) => q.id)} strategy={verticalListSortingStrategy}>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                            {analysisItems.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any) => {
+                                                const { noData, chartData } = getAnalysisDataForQuestion(q.id);
+                                                if (noData) return null;
+                                                
+                                                 const ChartComponent = () => {
+                                                    switch (q.type) {
+                                                        case 'single':
+                                                        case 'multiple':
+                                                            return <ResponsiveContainer width="100%" height={300}><PieChart><Pie data={chartData.labels.map((l:any, i:any) => ({name: l, value: chartData.values[i]}))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>{chartData.labels.map((_:any, i:any) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>;
+                                                        case 'number':
+                                                            return <ResponsiveContainer width="100%" height={300}><BarChart data={[{name: 'Value', ...chartData}]}><CartesianGrid /><YAxis/><Tooltip/><Bar dataKey="mean" fill="#8884d8"/></BarChart></ResponsiveContainer>;
+                                                        case 'rating':
+                                                            return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} /><p>{chartData.avg.toFixed(2)} / 5</p></div>;
+                                                        case 'nps':
+                                                            return <div className="text-5xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
+                                                        default: return <p>Chart not available.</p>;
+                                                    }
+                                                };
+                                                
+                                                return (
+                                                     <SortableCard key={q.id} id={q.id}>
+                                                        <CardHeader>
+                                                            <CardTitle className="truncate">{q.title}</CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent className="flex items-center justify-center">
+                                                            <ChartComponent />
+                                                        </CardContent>
+                                                    </SortableCard>
+                                                )
+                                            })}
+                                        </div>
+                                    </SortableContext>
+                                </DndContext>
+                            )}
+                         </CardContent>
+                    </Card>
                 </TabsContent>
                  {survey.isRetailTemplate && (
                     <TabsContent value="retail-dashboard">
@@ -2541,6 +2556,123 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     );
 }
 
+const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+    return (
+        <div ref={setNodeRef} style={style} className="relative">
+            <Card>
+                {children}
+            </Card>
+            <div {...attributes} {...listeners} className="absolute top-2 right-2 p-1 cursor-grab">
+                <Move className="w-5 h-5 text-muted-foreground"/>
+            </div>
+        </div>
+    );
+};
+
+const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
+    if (!data) return null;
+    const { kpiData, insights } = data;
+    const kpiStatus = {
+        npsScore: kpiData.npsScore > 50 ? 'excellent' : kpiData.npsScore > 0 ? 'good' : 'poor',
+        avgSatisfaction: kpiData.avgSatisfaction > 4 ? 'excellent' : kpiData.avgSatisfaction > 3 ? 'good' : 'poor',
+        avgOrderValue: 'good',
+        repurchaseRate: kpiData.repurchaseRate > 50 ? 'excellent' : kpiData.repurchaseRate > 30 ? 'good' : 'warning',
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <KPICard title="NPS Score" value={kpiData.npsScore.toFixed(1)} status={kpiStatus.npsScore} />
+                <KPICard title="Avg Satisfaction" value={`${kpiData.avgSatisfaction.toFixed(2)} / 5`} status={kpiStatus.avgSatisfaction} />
+                <KPICard title="Avg Order Value" value={`$${kpiData.avgOrderValue.toFixed(2)}`} status={kpiStatus.avgOrderValue} />
+                <KPICard title="Repurchase Rate" value={`${kpiData.repurchaseRate.toFixed(1)}%`} status={kpiStatus.repurchaseRate} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {insights.map((insight: any, i: number) => <InsightCard key={i} insight={insight} />)}
+            </div>
+        </div>
+    )
+}
+
+const ServqualAnalyticsDashboard = ({ data }: { data: any }) => {
+    if (!data) return null;
+
+    const servqualChartConfig = {
+        expectation: { label: "Expectation", color: "hsl(var(--chart-1))" },
+        perception: { label: "Perception", color: "hsl(var(--chart-2))" },
+        gap: { label: "Gap", color: "hsl(var(--chart-5))" },
+    };
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>SERVQUAL Gap Scores by Dimension</CardTitle>
+                    <CardDescription>Negative gaps indicate perceptions fall short of expectations.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={servqualChartConfig} className="w-full h-96">
+                        <ResponsiveContainer>
+                            <BarChart data={data.dimensionScores}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" angle={-30} textAnchor="end" height={80} />
+                                <YAxis />
+                                <Tooltip content={<ChartTooltipContent />} />
+                                <Legend />
+                                <Bar dataKey="expectation" fill="var(--color-expectation)" radius={4}/>
+                                <Bar dataKey="perception" fill="var(--color-perception)" radius={4} />
+                                <Bar dataKey="gap" fill="var(--color-gap)" radius={4} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
+    if (!ipaData) return null;
+    const { points, meanImportance, meanSatisfaction, quadrants } = ipaData;
+
+    const chartConfig = {
+        satisfaction: { label: 'Satisfaction' },
+        importance: { label: 'Importance' },
+    };
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Importance-Performance Matrix</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={chartConfig} className="w-full h-[450px]">
+                        <ResponsiveContainer>
+                            <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 40 }}>
+                                <CartesianGrid />
+                                <XAxis type="number" dataKey="importance" name="Importance" label={{ value: "Derived Importance", position: "insideBottom", offset: -20 }} />
+                                <YAxis type="number" dataKey="satisfaction" name="Satisfaction" label={{ value: "Stated Satisfaction", angle: -90, position: "insideLeft" }} />
+                                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
+                                <ReferenceLine x={meanImportance} stroke="hsl(var(--primary))" strokeDasharray="3 3"><RechartsLabel value="Avg Importance" position="insideTopRight" fill="hsl(var(--primary))"/></ReferenceLine>
+                                <ReferenceLine y={meanSatisfaction} stroke="hsl(var(--primary))" strokeDasharray="3 3"><RechartsLabel value="Avg Satisfaction" position="insideTopRight" fill="hsl(var(--primary))"/></ReferenceLine>
+                                <Scatter name="Attributes" data={points}>
+                                    {points.map((p: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                </Scatter>
+                            </ScatterChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
 export default function SurveyApp() {
   return (
     <Suspense fallback={<div className="flex-1 p-8 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto"/></div>}>
@@ -2587,10 +2719,3 @@ function GeneralSurveyPageContentFromClient() {
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
-
-
-
-
-
-
-
