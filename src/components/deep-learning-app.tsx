@@ -12,7 +12,8 @@ import { DataSet, parseData, unparseData } from '@/lib/stats';
 import * as XLSX from 'xlsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import DnnClassificationPage from './pages/dnn-classification-page';
-import { exampleDatasets } from '@/lib/example-datasets';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { cn } from '@/lib/utils';
 
 
 type AnalysisStep = 'select-type' | 'configure';
