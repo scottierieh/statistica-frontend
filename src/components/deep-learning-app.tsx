@@ -581,6 +581,23 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, onLoa
     );
 }
 
+function DnnClusteringPage() {
+    return (
+        <div className="flex flex-1 items-center justify-center h-full">
+            <Card className="w-full max-w-2xl text-center">
+                <CardHeader>
+                    <CardTitle className="font-headline">DNN Clustering</CardTitle>
+                    <CardDescription>
+                        This section is under construction. Advanced unsupervised learning tools are coming soon!
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">Stay tuned for updates on autoencoders, SOMs, and more.</p>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
 
 interface AnalysisCardProps {
     title: string;
@@ -761,7 +778,7 @@ export default function DeepLearningApp() {
                                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                     <AnalysisSelectionCard title="Classification" description="Predict a category (e.g., churn, fraud)." icon={BrainCircuit} type="classification" onSelect={handleAnalysisSelect} />
                                     <AnalysisSelectionCard title="Regression" description="Predict a continuous value (e.g., price, sales)." icon={TrendingUp} type="regression" onSelect={handleAnalysisSelect} />
-                                    <AnalysisSelectionCard title="Clustering" description="Group similar data points together (e.g., customer segments)." icon={Users} type="clustering" onSelect={() => {}} disabled />
+                                    <AnalysisSelectionCard title="Clustering" description="Group similar data points together." icon={Users} type="clustering" onSelect={handleAnalysisSelect} />
                                     <AnalysisSelectionCard title="Natural Language (NLP)" description="Analyze and understand text data." icon={BrainCircuit} type="nlp" onSelect={() => {}} disabled />
                                     <AnalysisSelectionCard title="Computer Vision (CV)" description="Analyze and understand image data." icon={BrainCircuit} type="computer-vision" onSelect={() => {}} disabled />
                                 </div>
@@ -792,6 +809,8 @@ export default function DeepLearningApp() {
                     return <DnnClassificationPage {...commonProps} />
                 case 'regression':
                     return <DnnRegressionPage {...commonProps} />
+                case 'clustering':
+                    return <DnnClusteringPage />;
                 default:
                     return (
                         <Card>
