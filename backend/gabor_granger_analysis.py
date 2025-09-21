@@ -128,13 +128,14 @@ def main():
         # Plot profit if available
         if 'profit' in demand_curve.columns:
             ax2.plot(demand_curve[price_col], demand_curve['profit'], color='purple', marker='+', linestyle='--', label='Profit Curve')
-            ax2.axvline(x=results_dict['optimal_profit_price'], color='purple', linestyle=':', label=f'Optimal Profit Price: ${results_dict["optimal_profit_price"]:.2f}')
+            if 'optimal_profit_price' in results_dict:
+                ax2.axvline(x=results_dict['optimal_profit_price'], color='purple', linestyle=':', label=f'Optimal Profit Price: ${results_dict["optimal_profit_price"]:.2f}')
 
         
         fig.suptitle('Gabor-Granger Price Analysis', fontsize=16, fontweight='bold')
         lines, labels = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
-        ax2.legend(lines + lines2, loc='upper right')
+        ax2.legend(lines + lines2, labels + labels2, loc='upper right')
 
         plt.tight_layout(rect=[0, 0, 1, 0.96])
 
