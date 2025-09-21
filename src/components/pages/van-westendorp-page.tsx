@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -54,14 +53,6 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
     const [isLoading, setIsLoading] = useState(false);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 4, [data, numericHeaders]);
-    
-    useEffect(() => {
-        setTooCheapCol(numericHeaders.find(h => h.toLowerCase().includes('toocheap')));
-        setCheapCol(numericHeaders.find(h => h.toLowerCase().includes('cheap')));
-        setExpensiveCol(numericHeaders.find(h => h.toLowerCase().includes('expensive')));
-        setTooExpensiveCol(numericHeaders.find(h => h.toLowerCase().includes('tooexpensive')));
-        setAnalysisResult(null);
-    }, [data, numericHeaders]);
 
     const handleAnalysis = useCallback(async () => {
         if (!tooCheapCol || !cheapCol || !expensiveCol || !tooExpensiveCol) {
@@ -103,29 +94,6 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
             setIsLoading(false);
         }
     }, [data, tooCheapCol, cheapCol, expensiveCol, tooExpensiveCol, toast]);
-
-    if (!canRun) {
-        const psmExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('van-westendorp'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Van Westendorp Price Sensitivity Meter</CardTitle>
-                        <CardDescription>
-                           To perform this analysis, you need data with four price perception columns (Too Cheap, Cheap, Expensive, Too Expensive).
-                        </CardDescription>
-                    </CardHeader>
-                    {psmExamples.length > 0 && (
-                        <CardContent>
-                             <Button onClick={() => onLoadExample(psmExamples[0])} className="w-full" size="sm">
-                                Load {psmExamples[0].name}
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
-    }
     
     const results = analysisResult?.results;
     
@@ -138,7 +106,7 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
                 { x: prices, y: too_expensive, mode: 'lines', name: 'Too Expensive', line: { color: 'red'} },
                 { x: prices, y: expensive, mode: 'lines', name: 'Expensive', line: { color: 'orange'} },
                 { x: prices, y: cheap.map((v: number) => 100 - v), mode: 'lines', name: 'Not Cheap', line: { color: 'blue'} },
-                { x: prices, y: too_cheap.map((v: number) => 100 - v), mode: 'lines', name: 'Not Too Cheap', line: { color: 'skyblue'} }
+                { x: prices, y: too_cheap.map((v: number) => 100 - v), mode: 'lines', name: 'Not Too Cheap', line: { color: 'skyblue', dash: 'dash' } }
             ];
 
             return { data: traces };
@@ -179,7 +147,7 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
       return {
         title: 'Van Westendorp Price Sensitivity Meter',
         xaxis: { title: 'Price' },
-        yaxis: { title: '% Respondents', range: [0, 100] },
+        yaxis: { title: 'Percentage of Respondents (%)', range: [0, 100] },
         shapes: shapes,
         annotations: annotations,
         legend: { x: 0.01, y: 0.99 },
@@ -187,6 +155,36 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
       };
     }, [results]);
 
+    useEffect(() => {
+        setTooCheapCol(numericHeaders.find(h => h.toLowerCase().includes('toocheap')));
+        setCheapCol(numericHeaders.find(h => h.toLowerCase().includes('cheap')));
+        setExpensiveCol(numericHeaders.find(h => h.toLowerCase().includes('expensive')));
+        setTooExpensiveCol(numericHeaders.find(h => h.toLowerCase().includes('tooexpensive')));
+        setAnalysisResult(null);
+    }, [data, numericHeaders]);
+
+    if (!canRun) {
+        const psmExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('van-westendorp'));
+        return (
+            <div className="flex flex-1 items-center justify-center">
+                <Card className="w-full max-w-2xl text-center">
+                    <CardHeader>
+                        <CardTitle className="font-headline">Van Westendorp Price Sensitivity Meter</CardTitle>
+                        <CardDescription>
+                           To perform this analysis, you need data with four price perception columns (Too Cheap, Cheap, Expensive, Too Expensive).
+                        </CardDescription>
+                    </CardHeader>
+                    {psmExamples.length > 0 && (
+                        <CardContent>
+                             <Button onClick={() => onLoadExample(psmExamples[0])} className="w-full" size="sm">
+                                Load {psmExamples[0].name}
+                            </Button>
+                        </CardContent>
+                    )}
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4">
