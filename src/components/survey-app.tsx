@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -61,6 +60,8 @@ import {
   BeakerIcon,
   ShieldAlert,
   Move,
+  BarChart,
+  PieChart as PieChartIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -91,7 +92,7 @@ import { Slider } from '@/components/ui/slider';
 import Papa from 'papaparse';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell, PieChart, Pie } from 'recharts';
+import { ResponsiveContainer, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell, PieChart, Pie } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 
@@ -832,142 +833,89 @@ const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number
     );
 };
 
-const AnalysisDisplayShell = ({ chart, table, insights, onDownloadChart, varName }: { chart: React.ReactNode, table: React.ReactNode, insights: React.ReactNode, onDownloadChart: () => void, varName: string }) => {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{varName}</CardTitle>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="flex items-center justify-center min-h-[300px] border rounded-lg p-4">
-          {chart}
-        </div>
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
-            <CardContent className="max-h-[200px] overflow-y-auto">{table}</CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
-            <CardContent>{insights}</CardContent>
-          </Card>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-  
-const TextAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
-    const plotRef = useRef(null);
-
-    const downloadChart = () => {
-        if (plotRef.current) {
-            (Plotly as any).downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_wordcloud`});
-        }
-    };
-    
+const AnalysisDisplayShell = ({ children, varName, onChartTypeChange, currentChartType, availableChartTypes }: { children: React.ReactNode, varName: string, onChartTypeChange?: (type: string) => void, currentChartType?: string, availableChartTypes?: string[] }) => {
     return (
-        <AnalysisDisplayShell
-          varName={varName}
-          onDownloadChart={downloadChart}
-          chart={
-             <Plot 
-                ref={plotRef}
-                data={[chartData]}
-                layout={{
-                    autosize: true,
-                    margin: { t: 0, b: 0, l: 0, r: 0 },
-                    xaxis: { showgrid: false, zeroline: false, showticklabels: false, visible: false },
-                    yaxis: { showgrid: false, zeroline: false, showticklabels: false, visible: false },
-                }}
-                style={{ width: '100%', height: '100%' }}
-                config={{ displayModeBar: false }}
-            />
-          }
-          table={
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Response Text</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {tableData.slice(0, 100).map((res, i) => (
-                        <TableRow key={i}><TableCell>{res}</TableCell></TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-          }
-          insights={
-            <ul className="space-y-2 text-sm list-disc pl-4">
-                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
-            </ul>
-          }
-        />
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>{varName}</CardTitle>
+                {onChartTypeChange && availableChartTypes && (
+                    <Select value={currentChartType} onValueChange={onChartTypeChange}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {availableChartTypes.map(type => (
+                                <SelectItem key={type} value={type}>{type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            </CardHeader>
+            <CardContent>
+                {children}
+            </CardContent>
+        </Card>
     );
 };
 
-const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any; tableData: any[]; insightsData: string[]; varName: string }) => {
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
     const highestValue = tableData.length > 0 ? Math.max(...tableData.map(d => parseFloat(d.percentage))) : 0;
   
     return (
-        <AnalysisDisplayShell
-          varName={varName}
-          onDownloadChart={() => { /* Implement download */ }}
-          chart={
-            <ChartContainer config={{ percentage: { label: "Percentage" } }} className="w-full h-[300px]">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={tableData} layout="vertical" margin={{ left: 100 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" domain={[0, highestValue > 0 ? Math.ceil(highestValue / 10) * 10 : 10]} unit="%" />
-                  <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
-                  <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} cursor={{fill: 'hsl(var(--muted))'}} />
-                  <Bar dataKey="percentage" radius={[0, 4, 4, 0]}>
-                    {tableData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          }
-          table={
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Option</TableHead>
-                  <TableHead className="text-right">Count</TableHead>
-                  <TableHead className="text-right">Percentage</TableHead>
+      <AnalysisDisplayShell
+        varName={varName}
+        onChartTypeChange={() => {}}
+        chart={
+          <ChartContainer config={{ percentage: { label: "Percentage" } }} className="w-full h-[300px]">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={tableData} layout="vertical" margin={{ left: 100 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" domain={[0, highestValue > 0 ? Math.ceil(highestValue / 10) * 10 : 10]} unit="%" />
+                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} cursor={{fill: 'hsl(var(--muted))'}} />
+                <Bar dataKey="percentage" radius={[0, 4, 4, 0]}>
+                  {tableData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        }
+        table={
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Option</TableHead>
+                <TableHead className="text-right">Count</TableHead>
+                <TableHead className="text-right">Percentage</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tableData.map((item) => (
+                <TableRow key={item.name}>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell className="text-right">{item.count}</TableCell>
+                  <TableCell className="text-right">{item.percentage}%</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tableData.map((item) => (
-                  <TableRow key={item.name}>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell className="text-right">{item.count}</TableCell>
-                    <TableCell className="text-right">{item.percentage}%</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          }
-          insights={
-            <ul className="space-y-2 text-sm list-disc pl-4">
-                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
-            </ul>
-          }
-        />
-      );
-  };
+              ))}
+            </TableBody>
+          </Table>
+        }
+        insights={
+          <ul className="space-y-2 text-sm list-disc pl-4">
+              {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
+          </ul>
+        }
+      />
+    );
+};
   
 const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
-    // This chart is custom HTML, download not implemented yet
-     const downloadChart = () => alert("Download not available for this chart type yet.");
-
     return (
         <AnalysisDisplayShell
           varName={varName}
-          onDownloadChart={downloadChart}
+          onChartTypeChange={() => {}}
           chart={
             <div className="flex flex-col items-center justify-center h-full gap-4">
                 <div className="text-7xl font-bold">{chartData.avg.toFixed(2)}</div>
@@ -1002,19 +950,12 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
 }
 
 const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
-    const plotRef = useRef(null);
-    const downloadChart = () => {
-        if (plotRef.current) {
-            (Plotly as any).downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_histogram`});
-        }
-    };
     return (
       <AnalysisDisplayShell
         varName={varName}
-        onDownloadChart={downloadChart}
+        onChartTypeChange={() => {}}
         chart={
           <Plot
-            ref={plotRef}
             data={[{ x: chartData.values, type: 'histogram' }]}
             layout={{
                 title: 'Response Distribution',
@@ -1024,6 +965,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
             }}
             style={{ width: '100%', height: '100%' }}
             config={{ displayModeBar: false }}
+            useResizeHandler
           />
         }
         table={
@@ -1055,20 +997,12 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
   };
 
 const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
-    const plotRef = useRef(null);
-    const downloadChart = () => {
-        if (plotRef.current) {
-            (Plotly as any).downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_best_worst`});
-        }
-    };
-
     return (
        <AnalysisDisplayShell
             varName={varName}
-            onDownloadChart={downloadChart}
+            onChartTypeChange={() => {}}
             chart={
                  <Plot
-                    ref={plotRef}
                     data={[{ ...chartData, type: 'bar' }]}
                     layout={{
                         autosize: true,
@@ -1112,12 +1046,10 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
 };
 
 const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
-    // NPS chart is custom HTML, download not implemented
-     const downloadChart = () => alert("Download not available for this chart type yet.");
     return (
         <AnalysisDisplayShell
           varName={varName}
-          onDownloadChart={downloadChart}
+          onChartTypeChange={() => {}}
           chart={
             <div className="flex flex-col items-center justify-center h-full gap-4">
                 <div className="text-7xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
@@ -1438,7 +1370,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     `A total of <strong>${responses.length}</strong> responses were collected for this question.`
                 ];
 
-                chartData = { labels: Object.keys(counts), values: Object.values(counts) };
+                chartData = tableData;
                 break;
             }
             case 'phone':
@@ -1947,6 +1879,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
     
     const [analysisItems, setAnalysisItems] = useState(survey.questions);
+    
+    useEffect(() => {
+        setAnalysisItems(survey.questions);
+    }, [survey.questions]);
     
     const handleDashboardDragEnd = (event: DragEndEvent) => {
         const {active, over} = event;
@@ -2478,7 +2414,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                     switch (q.type) {
                                                         case 'single':
                                                         case 'multiple':
-                                                            return <ResponsiveContainer width="100%" height={300}><PieChart><Pie data={chartData.labels.map((l:any, i:any) => ({name: l, value: chartData.values[i]}))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>{chartData.labels.map((_:any, i:any) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>;
+                                                            return <ResponsiveContainer width="100%" height={300}><PieChart><Pie data={chartData} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>{chartData.map((_:any, i:any) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>;
                                                         case 'number':
                                                             return <ResponsiveContainer width="100%" height={300}><BarChart data={[{name: 'Value', ...chartData}]}><CartesianGrid /><YAxis/><Tooltip/><Bar dataKey="mean" fill="#8884d8"/></BarChart></ResponsiveContainer>;
                                                         case 'rating':
