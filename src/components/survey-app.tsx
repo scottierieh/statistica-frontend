@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -252,9 +253,16 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
     return (
         <div className={cn("p-4", cardClassName)}>
             <div className="flex justify-between items-start mb-4">
-                <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+                <div className="flex-1">
+                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+                     {question.required && <span className="text-destructive text-xs">* Required</span>}
+                </div>
                 {!isPreview && (
                     <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                          <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                          <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
                         <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
                             <ImageIcon className="w-5 h-5 text-muted-foreground" />
                         </Button>
@@ -329,9 +337,16 @@ const MultipleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete,
    return (
        <div className={cn("p-4", cardClassName)}>
            <div className="flex justify-between items-start mb-4">
-               <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+                <div className="flex-1">
+                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+                     {question.required && <span className="text-destructive text-xs">* Required</span>}
+                </div>
                {!isPreview && (
                     <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                          <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                          <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
                         <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
                             <ImageIcon className="w-5 h-5 text-muted-foreground" />
                         </Button>
@@ -385,9 +400,16 @@ const MultipleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete,
 const TextQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
   <div className={cn("p-4", cardClassName)}>
     <div className="flex justify-between items-start mb-4">
-      <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
+       <div className="flex-1">
+          <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
+          {question.required && <span className="text-destructive text-xs">* Required</span>}
+      </div>
       {!isPreview && onDelete && (
         <div className="flex items-center">
+            <div className="flex items-center space-x-2 mr-2">
+              <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+              <Label htmlFor={`required-${question.id}`}>Required</Label>
+            </div>
             <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
                 <ImageIcon className="w-5 h-5 text-muted-foreground" />
             </Button>
@@ -408,9 +430,16 @@ const TextQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, 
 const NumberQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
     <div className={cn("p-4", cardClassName)}>
       <div className="flex justify-between items-start mb-4">
-        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
+        <div className="flex-1">
+            <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
+            {question.required && <span className="text-destructive text-xs">* Required</span>}
+        </div>
         {!isPreview && (
             <div className="flex items-center">
+                 <div className="flex items-center space-x-2 mr-2">
+                    <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                    <Label htmlFor={`required-${question.id}`}>Required</Label>
+                 </div>
                  <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
                     <ImageIcon className="w-5 h-5 text-muted-foreground" />
                 </Button>
@@ -431,9 +460,16 @@ const NumberQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload
 const PhoneQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
     <div className={cn("p-4", cardClassName)}>
       <div className="flex justify-between items-start mb-4">
-        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
+        <div className="flex-1">
+            <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
+            {question.required && <span className="text-destructive text-xs">* Required</span>}
+        </div>
         {!isPreview && (
             <div className="flex items-center">
+                 <div className="flex items-center space-x-2 mr-2">
+                    <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                    <Label htmlFor={`required-${question.id}`}>Required</Label>
+                 </div>
                  <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
                     <ImageIcon className="w-5 h-5 text-muted-foreground" />
                 </Button>
@@ -454,9 +490,16 @@ const PhoneQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload,
 const EmailQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
     <div className={cn("p-4", cardClassName)}>
       <div className="flex justify-between items-start mb-4">
-        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
+        <div className="flex-1">
+            <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
+            {question.required && <span className="text-destructive text-xs">* Required</span>}
+        </div>
         {!isPreview && (
             <div className="flex items-center">
+                 <div className="flex items-center space-x-2 mr-2">
+                    <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                    <Label htmlFor={`required-${question.id}`}>Required</Label>
+                 </div>
                  <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
                     <ImageIcon className="w-5 h-5 text-muted-foreground" />
                 </Button>
@@ -477,8 +520,17 @@ const EmailQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload,
 const RatingQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
   <div className={cn("p-4", cardClassName)}>
      <div className="flex justify-between items-start mb-4">
-      <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+        <div className="flex-1">
+            <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+            {question.required && <span className="text-destructive text-xs">* Required</span>}
+        </div>
         <div className="flex items-center">
+            {!isPreview && (
+                <div className="flex items-center space-x-2 mr-2">
+                    <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                    <Label htmlFor={`required-${question.id}`}>Required</Label>
+                </div>
+            )}
             {!isPreview && (
                  <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
                     <ImageIcon className="w-5 h-5 text-muted-foreground" />
@@ -548,9 +600,16 @@ const BestWorstQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpl
     return (
         <div className={cn("p-4", cardClassName)}>
             <div className="flex justify-between items-start mb-4">
-                <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+                 <div className="flex-1">
+                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+                    {question.required && <span className="text-destructive text-xs">* Required</span>}
+                </div>
                 {!isPreview && (
                     <div className="flex items-center">
+                         <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                            <Label htmlFor={`required-${question.id}`}>Required</Label>
+                         </div>
                          <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
                             <ImageIcon className="w-5 h-5 text-muted-foreground" />
                         </Button>
@@ -583,8 +642,17 @@ const BestWorstQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpl
 const NPSQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
     <div className={cn("p-4", cardClassName)}>
        <div className="flex justify-between items-start mb-4">
-        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+        <div className="flex-1">
+            <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+            {question.required && <span className="text-destructive text-xs">* Required</span>}
+        </div>
           <div className="flex items-center">
+              {!isPreview && (
+                <div className="flex items-center space-x-2 mr-2">
+                    <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                    <Label htmlFor={`required-${question.id}`}>Required</Label>
+                </div>
+              )}
               {!isPreview && (
                    <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
                       <ImageIcon className="w-5 h-5 text-muted-foreground" />
@@ -639,11 +707,20 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, isPreview, cardClassName
     return (
         <div className={cn("p-4", cardClassName)}>
             <div className="flex justify-between items-start mb-4">
-                <Input placeholder="Enter matrix title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0" readOnly={isPreview} />
+                 <div className="flex-1">
+                    <Input placeholder="Enter matrix title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0" readOnly={isPreview} />
+                    {question.required && <span className="text-destructive text-xs">* Required</span>}
+                </div>
                 {!isPreview && (
-                    <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}>
-                        <Trash2 className="w-5 h-5 text-destructive" />
-                    </Button>
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                          <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                          <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}>
+                            <Trash2 className="w-5 h-5 text-destructive" />
+                        </Button>
+                    </div>
                 )}
             </div>
              <Table>
@@ -1509,6 +1586,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             id: Date.now(),
             type: type,
             title: `New ${questionConfig.label} Question`,
+            required: false,
             content: type === 'description' ? 'Enter your description or instructions here...' : '',
         };
         if ('options' in questionConfig) {
@@ -2455,7 +2533,7 @@ function GeneralSurveyPageContentFromClient() {
     const template = searchParams.get('template');
     const { toast } = useToast();
 
-    const reloadData = () => {
+    const reloadData = useCallback(() => {
         if (surveyId) {
             const savedResponses = localStorage.getItem(`${surveyId}_responses`);
             if (savedResponses) {
@@ -2464,7 +2542,7 @@ function GeneralSurveyPageContentFromClient() {
                 // This is a structural issue. Let's move state up.
             }
         }
-    };
+    }, [surveyId]);
 
 
     if (!surveyId) {
@@ -2487,6 +2565,7 @@ function GeneralSurveyPageContentFromClient() {
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
+
 
 
 
