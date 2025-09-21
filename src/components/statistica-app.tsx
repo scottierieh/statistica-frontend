@@ -59,8 +59,6 @@ import {
   MessagesSquare,
   Share2,
   GitCommit,
-  ClipboardList,
-  Search,
   DollarSign,
   ThumbsUp,
 } from 'lucide-react';
@@ -136,9 +134,10 @@ import VanWestendorpPage from './pages/van-westendorp-page';
 import GaborGrangerPage from './pages/gabor-granger-page';
 import MaxDiffPage from './pages/maxdiff-page';
 import BinomialTestPage from './pages/binomial-test-page';
+import MixedModelPage from './pages/mixed-model-page';
 
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -170,6 +169,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'regression-elasticnet': RegressionPage,
     'logistic-regression': LogisticRegressionPage,
     glm: GlmPage,
+    'mixed-model': MixedModelPage,
     kmeans: KMeansPage,
     kmedoids: KMedoidsPage,
     hdbscan: HdbscanPage,
@@ -282,6 +282,7 @@ const analysisMenu = [
             { id: 'regression-multiple', label: 'Multiple Linear Regression' },
             { id: 'regression-polynomial', label: 'Polynomial Regression' },
             { id: 'nonlinear-regression', label: 'Nonlinear Regression' },
+            { id: 'mixed-model', label: 'Mixed Effects Model'},
         ]
       },
        {
