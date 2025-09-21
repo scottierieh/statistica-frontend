@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ChartContainer, ChartTooltipContent } from './ui/chart';
 import { LineChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line, ResponsiveContainer, ScatterChart, Scatter, ReferenceLine } from "recharts"
 import { Switch } from './ui/switch';
+import { Checkbox } from './ui/checkbox';
 
 
 type AnalysisStep = 'select-type' | 'configure';
@@ -119,12 +120,20 @@ function DnnRegressionPage({ data, numericHeaders, categoricalHeaders, onLoadExa
             const actuals = Array.from({ length: 50 }, () => 150000 + Math.random() * 600000);
             const predictions = actuals.map(a => a + (Math.random() - 0.5) * 100000);
             const residuals = actuals.map((a, i) => a - predictions[i]);
+            const predictionExamples = Array.from({length: 10}, (_, i) => {
+                const actual = actuals[i];
+                const predicted = predictions[i];
+                const error = actual - predicted;
+                const error_percent = (error / actual) * 100;
+                return { actual, predicted, error, error_percent };
+            });
             
             setTrainingResults({
                 metrics: { r2: 0.88, rmse: 50000, mae: 35000 },
                 actuals,
                 predictions,
-                residuals
+                residuals,
+                predictionExamples,
             });
             setIsLoading(false);
         }, 3000);
@@ -231,7 +240,12 @@ function DnnRegressionPage({ data, numericHeaders, categoricalHeaders, onLoadExa
             </Card>
 
             {isLoading && <Card><CardHeader><CardTitle>Training in Progress...</CardTitle></CardHeader><CardContent className="flex justify-center p-8"><Loader2 className="h-12 w-12 text-primary animate-spin" /></CardContent></Card>}
-            {trainingResults && <RegressionResultDisplay results={trainingResults} />}
+            {trainingResults && (
+                <>
+                    <RegressionResultDisplay results={trainingResults} />
+                    <PredictionExamplesTable examples={trainingResults.predictionExamples} problemType="regression" />
+                </>
+            )}
         </div>
     );
 }
@@ -619,33 +633,56 @@ export default function DeepLearningApp() {
         setIsUploading(true);
         try {
             const { headers: newHeaders, data: newData, numericHeaders: newNumericHeaders, categoricalHeaders: newCategoricalHeaders } = parseData(content);
+            
             if (newData.length === 0 || newHeaders.length === 0) {
-                throw new Error("No valid data found in the file.");
+              throw new Error("No valid data found in the file.");
             }
             setData(newData);
             setAllHeaders(newHeaders);
             setNumericHeaders(newNumericHeaders);
             setCategoricalHeaders(newCategoricalHeaders);
             setFileName(name);
-            toast({ title: 'Success', description: `Loaded "${name}" with ${newData.length} rows.` });
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'File Processing Error', description: error.message });
-            setData([]); setAllHeaders([]); setFileName('');
-        } finally {
+            toast({ title: 'Success', description: `Loaded "${name}" with ${newData.length} rows.`});
+
+          } catch (error: any) {
+            toast({
+              variant: 'destructive',
+              title: 'File Processing Error',
+              description: error.message || 'Could not parse file. Please check the format.',
+            });
+            handleClearData();
+          } finally {
             setIsUploading(false);
-        }
+          }
     }, [toast]);
 
     const handleFileSelected = useCallback((file: File) => {
+        setIsUploading(true);
         const reader = new FileReader();
-        reader.onload = (e) => processData(e.target?.result as string, file.name);
-        reader.onerror = () => toast({ variant: 'destructive', title: 'File Read Error' });
+
+        reader.onload = (e) => {
+            const content = e.target?.result as string;
+            if (!content) {
+                toast({ variant: 'destructive', title: 'File Read Error', description: 'Could not read file content.' });
+                setIsUploading(false);
+                return;
+            }
+            processData(content, file.name);
+        };
+
+        reader.onerror = (e) => {
+            toast({ variant: 'destructive', title: 'File Read Error', description: 'An error occurred while reading the file.' });
+            setIsUploading(false);
+        }
+        
         if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
             reader.readAsArrayBuffer(file);
             reader.onload = (e) => {
                 const data = new Uint8Array(e.target?.result as ArrayBuffer);
                 const workbook = XLSX.read(data, {type: 'array'});
-                const csv = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const csv = XLSX.utils.sheet_to_csv(worksheet);
                 processData(csv, file.name);
             }
         } else {
@@ -654,7 +691,11 @@ export default function DeepLearningApp() {
     }, [processData, toast]);
 
     const handleClearData = () => {
-        setData([]); setAllHeaders([]); setFileName('');
+        setData([]);
+        setAllHeaders([]);
+        setNumericHeaders([]);
+        setCategoricalHeaders([]);
+        setFileName('');
     };
 
     const hasData = data.length > 0;
