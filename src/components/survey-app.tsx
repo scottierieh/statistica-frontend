@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Tabs,
@@ -83,7 +82,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '../ui/badge';
+import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -91,7 +90,7 @@ import { Slider } from '@/components/ui/slider';
 import Papa from 'papaparse';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip, Legend, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
@@ -841,62 +840,59 @@ const TextAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { 
     );
 };
 
-const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
-  const plotRef = useRef(null);
-  const downloadChart = () => {
-      if (plotRef.current) {
-          Plotly.downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_pie_chart`});
-      }
-  };
-
-  return (
-      <AnalysisDisplayShell
-        varName={varName}
-        onDownloadChart={downloadChart}
-        chart={
-          <Plot
-            ref={plotRef}
-            data={[{ ...chartData, type: 'pie', hole: 0.4, textinfo: 'label+percent', textposition: 'outside' }]}
-            layout={{
-                showlegend: false,
-                autosize: true,
-                margin: { t: 20, b: 20, l: 20, r: 20 },
-            }}
-            style={{ width: '100%', height: '100%' }}
-            config={{ displayModeBar: false }}
-          />
-        }
-        table={
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Option</TableHead>
-                <TableHead className="text-right">Count</TableHead>
-                <TableHead className="text-right">Percentage</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tableData.map((item) => (
-                <TableRow key={item.name}>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell className="text-right">{item.count}</TableCell>
-                  <TableCell className="text-right">{item.percentage}%</TableCell>
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any; tableData: any[]; insightsData: string[]; varName: string }) => {
+    const highestValue = tableData.length > 0 ? Math.max(...tableData.map(d => parseFloat(d.percentage))) : 0;
+  
+    return (
+        <AnalysisDisplayShell
+          varName={varName}
+          onDownloadChart={() => { /* Implement download */ }}
+          chart={
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={tableData} layout="vertical" margin={{ left: 100 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" domain={[0, highestValue > 0 ? Math.ceil(highestValue / 10) * 10 : 10]} unit="%" />
+                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} cursor={{fill: 'hsl(var(--muted))'}} />
+                <Bar dataKey="percentage" radius={[0, 4, 4, 0]}>
+                  {tableData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          }
+          table={
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Option</TableHead>
+                  <TableHead className="text-right">Count</TableHead>
+                  <TableHead className="text-right">Percentage</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        }
-        insights={
-          <ul className="space-y-2 text-sm list-disc pl-4">
-              {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
-          </ul>
-        }
-      />
-    );
-};
+              </TableHeader>
+              <TableBody>
+                {tableData.map((item) => (
+                  <TableRow key={item.name}>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell className="text-right">{item.count}</TableCell>
+                    <TableCell className="text-right">{item.percentage}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          }
+          insights={
+            <ul className="space-y-2 text-sm list-disc pl-4">
+                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
+            </ul>
+          }
+        />
+      );
+  };
   
 const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
-    // This chart is not Plotly, so download is not implemented yet
+    // This chart is custom HTML, download not implemented yet
     const downloadChart = () => alert("Download not available for this chart type yet.");
 
     return (
@@ -2459,17 +2455,16 @@ function GeneralSurveyPageContentFromClient() {
     const template = searchParams.get('template');
     const { toast } = useToast();
 
-    const reloadData = useCallback(() => {
+    const reloadData = () => {
         if (surveyId) {
             const savedResponses = localStorage.getItem(`${surveyId}_responses`);
             if (savedResponses) {
                 // This line causes a re-render by setting state, which is what we want.
                 // However, we don't have a `setResponses` function available here.
-                // The state is managed in the parent component.
                 // This is a structural issue. Let's move state up.
             }
         }
-    }, [surveyId]);
+    };
 
 
     if (!surveyId) {
@@ -2492,4 +2487,6 @@ function GeneralSurveyPageContentFromClient() {
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
+
+
 
