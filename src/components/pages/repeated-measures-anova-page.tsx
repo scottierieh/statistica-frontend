@@ -69,14 +69,14 @@ const getSignificanceStars = (p: number | undefined) => {
 };
 
 
-interface RmAnovaPageProps {
+interface PingouinRmAnovaPageProps {
     data: DataSet;
     numericHeaders: string[];
     categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: RmAnovaPageProps) {
+export default function PingouinRmAnovaPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: PingouinRmAnovaPageProps) {
     const { toast } = useToast();
     const [subjectCol, setSubjectCol] = useState<string | undefined>(categoricalHeaders[0]);
     const [withinCols, setWithinCols] = useState<string[]>(numericHeaders.slice(0,3));

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -120,7 +121,7 @@ import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
 import ArimaPage from './pages/arima-page';
 import AcfPacfPage from './pages/acf-pacf-page';
 import MdsPage from './pages/mds-page';
-import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
+import PingouinRmAnovaPage from './pages/repeated-measures-anova-page';
 import DbscanPage from './pages/dbscan-page';
 import NonlinearRegressionPage from './pages/nonlinear-regression-page';
 import SnaPage from './pages/sna-page';
@@ -147,6 +148,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'one-way-anova': AnovaPage,
     'two-way-anova': TwoWayAnovaPage,
     ancova: AncovaPage,
+    manova: ManovaPage,
     mancova: MancovaPage,
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
@@ -161,7 +163,8 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'mcnemar': NonParametricPage,
     hca: HcaPage,
     manova: ManovaPage,
-    'rm-anova': RepeatedMeasuresAnovaPage,
+    'rm-anova': PingouinRmAnovaPage,
+    'rm-anova-pingouin': PingouinRmAnovaPage,
     'regression-simple': RegressionPage,
     'regression-multiple': RegressionPage,
     'regression-polynomial': RegressionPage,
@@ -248,6 +251,7 @@ const analysisMenu = [
             { id: 'one-way-anova', label: 'One-Way ANOVA' },
             { id: 'two-way-anova', label: 'Two-Way ANOVA' },
             { id: 'rm-anova', label: 'Repeated Measures ANOVA' },
+            { id: 'rm-anova-pingouin', label: 'RM ANOVA (Pingouin)' },
             { id: 'ancova', label: 'ANCOVA' },
             { id: 'manova', label: 'MANOVA' },
             { id: 'mancova', label: 'MANCOVA' },
