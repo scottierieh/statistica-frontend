@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -14,27 +13,40 @@ import {
   SidebarMenuButton,
   SidebarMenu
 } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  FileText,
+  Loader2,
+  TrendingUp,
+  Landmark,
+  Building,
+  FastForward,
+  PlayCircle,
+  BarChart,
+} from 'lucide-react';
+import * as XLSX from 'xlsx';
+import {
+  type DataSet,
+  parseData,
+  unparseData,
+} from '@/lib/stats';
+import { useToast } from '@/hooks/use-toast';
+import { getSummaryReport } from '@/app/actions';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import DataUploader from './data-uploader';
+import DataPreview from './data-preview';
 import GradientDescentPage from "./pages/gradient-descent-page";
 import CentralLimitTheoremPage from './pages/central-limit-theorem-page';
 import MarketingAnalysisPage from './pages/marketing-analysis-page';
-import PingouinRmAnovaPage from './pages/repeated-measures-anova-page';
-import { FastForward, PlayCircle, TrendingUp, BarChart, Repeat } from 'lucide-react';
-import type { ExampleDataSet } from '@/lib/example-datasets';
-import { DataSet, parseData, unparseData } from '@/lib/stats';
-import DataUploader from './data-uploader';
-import DataPreview from './data-preview';
-import { useToast } from '@/hooks/use-toast';
-import * as XLSX from 'xlsx';
-import { Button } from './ui/button';
 
 
-type SimulationType = 'gradient-descent' | 'central-limit-theorem' | 'marketing-analysis' | 'repeated-measures-anova';
+type SimulationType = 'gradient-descent' | 'central-limit-theorem' | 'marketing-analysis';
 
 const simulationPages: Record<string, React.ComponentType<any>> = {
   'gradient-descent': GradientDescentPage,
   'central-limit-theorem': CentralLimitTheoremPage,
   'marketing-analysis': MarketingAnalysisPage,
-  'repeated-measures-anova': PingouinRmAnovaPage,
 };
 
 export default function SimulationApp() {
@@ -193,15 +205,6 @@ export default function SimulationApp() {
                 >
                   <BarChart />
                   <span>Marketing Analysis</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveSimulation('repeated-measures-anova')}
-                  isActive={activeSimulation === 'repeated-measures-anova'}
-                >
-                  <Repeat />
-                  <span>Repeated Measures ANOVA</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
