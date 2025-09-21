@@ -53,6 +53,7 @@ import {
   LineChart,
   Layers,
   Map,
+  Repeat,
   ScanSearch,
   Atom,
   MessagesSquare,
@@ -76,9 +77,9 @@ import CorrelationPage from './pages/correlation-page';
 import PartialCorrelationPage from './pages/partial-correlation-page';
 import AnovaPage from './pages/anova-page';
 import AncovaPage from './pages/ancova-page';
-import MancovaPage from './pages/mancova-page';
-import VisualizationPage from './pages/visualization-page';
+import ManovaPage from './pages/manova-page';
 import ReliabilityPage from './pages/reliability-page';
+import VisualizationPage from './pages/visualization-page';
 import DiscriminantPage from './pages/discriminant-page';
 import EfaPage from './pages/efa-page';
 import CfaPage from './pages/cfa-page';
@@ -86,10 +87,10 @@ import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
 import NonParametricPage from './pages/nonparametric-page';
 import HcaPage from './pages/hca-page';
-import ManovaPage from './pages/manova-page';
 import RegressionPage from './pages/regression-page';
 import LogisticRegressionPage from './pages/logistic-regression-page';
 import GlmPage from './pages/glm-page';
+import MixedModelPage from './pages/mixed-model-page';
 import KMeansPage from './pages/kmeans-page';
 import KMedoidsPage from './pages/kmedoids-page';
 import HdbscanPage from './pages/hdbscan-page';
@@ -134,10 +135,10 @@ import VanWestendorpPage from './pages/van-westendorp-page';
 import GaborGrangerPage from './pages/gabor-granger-page';
 import MaxDiffPage from './pages/maxdiff-page';
 import BinomialTestPage from './pages/binomial-test-page';
-import MixedModelPage from './pages/mixed-model-page';
+import PingouinRmAnovaPage from './pages/repeated-measures-anova-page';
 
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -147,7 +148,6 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'two-way-anova': TwoWayAnovaPage,
     ancova: AncovaPage,
     manova: ManovaPage,
-    mancova: MancovaPage,
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
     efa: EfaPage,
@@ -208,6 +208,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'gabor-granger': GaborGrangerPage,
     'maxdiff': MaxDiffPage,
     'binomial-test': BinomialTestPage,
+    'rm-anova-pingouin': PingouinRmAnovaPage,
 };
 
 const analysisMenu = [
@@ -247,7 +248,7 @@ const analysisMenu = [
             { id: 'two-way-anova', label: 'Two-Way ANOVA' },
             { id: 'ancova', label: 'ANCOVA' },
             { id: 'manova', label: 'MANOVA' },
-            { id: 'mancova', label: 'MANCOVA' },
+            { id: 'rm-anova-pingouin', label: 'RM ANOVA (Pingouin)'},
         ]
       },
       {
@@ -690,7 +691,7 @@ export default function StatisticaApp() {
               })}
             </div>
 
-          </SidebarContent>
+          </SidebarFooter>
           <SidebarFooter>
             <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="w-full">
               {isGeneratingReport ? <Loader2 className="animate-spin" /> : <FileText />}

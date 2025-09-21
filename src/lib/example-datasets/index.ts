@@ -48,7 +48,7 @@ import { vanWestendorpData } from "./example-datasets/van-westendorp-data";
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'marketing-analysis' | 'maxdiff' | 'van-westendorp' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'marketing-analysis' | 'maxdiff' | 'van-westendorp' | 'rm-anova-pingouin' | string;
 
 
 export interface ExampleDataSet {
@@ -188,6 +188,22 @@ export const exampleDatasets: ExampleDataSet[] = [
         icon: Share2,
         analysisTypes: ['ahp'],
         data: ahpData,
+    },
+    {
+        id: 'did-data',
+        name: 'Program Efficacy Study',
+        description: 'Outcome data before and after an intervention for treatment and control groups.',
+        icon: GitCommit,
+        analysisTypes: ['did'],
+        data: didData,
+    },
+    {
+        id: 'delphi-data',
+        name: 'Expert Consensus (Delphi)',
+        description: 'Results from multiple rounds of an expert panel survey.',
+        icon: Users,
+        analysisTypes: ['delphi'],
+        data: delphiData,
     },
     {
         id: 'crosstab',
