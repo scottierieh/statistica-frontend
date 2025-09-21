@@ -111,13 +111,18 @@ class RepeatedMeasuresAnova:
                     'dv': self.dependent_var,
                     'within': self.within_name,
                     'subject': self.subject_col,
-                    'padjust': 'bonf'
+                    'padjust': 'fdr_bh',
+                    'parametric': True,
+                    'effsize': 'hedges'
                 }
                 if self.between_col:
                     posthoc_args['between'] = self.between_col
                 
-                posthoc = pg.pairwise_tests(**posthoc_args)
+                posthoc = pg.pairwise_ttests(**posthoc_args)
                 self.results['posthoc_results'] = posthoc.to_dict('records')
+            
+            self.results['descriptive_stats'] = self.long_data.groupby([self.between_col, self.within_name] if self.between_col else [self.within_name])[self.dependent_var].agg(['mean', 'std', 'sem', 'count']).reset_index().to_dict('records')
+
 
         except Exception as e:
             self.results['error'] = str(e)
@@ -186,4 +191,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

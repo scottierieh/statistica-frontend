@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -50,7 +51,7 @@ interface RmAnovaResults {
     anova_table: AnovaRow[];
     mauchly_test: MauchlyResult | null;
     posthoc_results?: PostHocResult[];
-    descriptive_stats?: any;
+    descriptive_stats?: any[];
     error?: string;
 }
 
@@ -314,24 +315,26 @@ export default function RepeatedMeasuresAnovaPage({ data, numericHeaders, catego
                     )}
                     {results.posthoc_results && (
                         <Card>
-                             <CardHeader><CardTitle>Post-Hoc Pairwise Comparisons</CardTitle></CardHeader>
+                             <CardHeader><CardTitle>Post-Hoc Pairwise Comparisons (Tukey HSD)</CardTitle></CardHeader>
                              <CardContent>
                                 <Table>
                                     <TableHeader><TableRow>
-                                        <TableHead>Contrast</TableHead>
+                                        {results.posthoc_results[0]?.Contrast && <TableHead>Contrast</TableHead>}
                                         {results.posthoc_results[0]?.A && <TableHead>{betweenCol || 'Factor A'}</TableHead>}
                                         <TableHead>A</TableHead>
                                         <TableHead>B</TableHead>
                                         <TableHead className="text-right">p-corr</TableHead>
+                                        <TableHead className="text-right">Hedges' g</TableHead>
                                     </TableRow></TableHeader>
                                     <TableBody>
                                         {results.posthoc_results.map((row, i) => (
                                             <TableRow key={i}>
-                                                <TableCell>{row.Contrast}</TableCell>
+                                                {row.Contrast && <TableCell>{row.Contrast}</TableCell>}
                                                 {row.A && <TableCell>{row.A === -1 ? 'Overall' : row.A}</TableCell>}
                                                 <TableCell>{row.A}</TableCell>
                                                 <TableCell>{row.B || ''}</TableCell>
                                                 <TableCell className="text-right font-mono">{(row['p-corr'] ?? row['p-unc'])?.toFixed(4)} {getSignificanceStars(row['p-corr'] ?? row['p-unc'])}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.hedges?.toFixed(3)}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
