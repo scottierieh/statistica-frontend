@@ -16,4 +16,3 @@ pingouin
 factor-analyzer
 qrcode
 Pillow
-vanwestendorp

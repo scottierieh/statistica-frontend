@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, DollarSign, Info, Brain } from 'lucide-react';
+import { Sigma, Loader2, DollarSign, Info } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import dynamic from 'next/dynamic';
+import { plotVanWestendorp } from '@/lib/plotters';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -27,7 +28,13 @@ interface AnalysisResponse {
         mdp: number | null;
         ipp: number | null;
     };
-    plot_json: string;
+    plotData: {
+        prices: number[];
+        too_cheap: number[];
+        cheap: number[];
+        expensive: number[];
+        too_expensive: number[];
+    };
 }
 
 interface VanWestendorpPageProps {
@@ -128,7 +135,20 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
     }
     
     const results = analysisResult?.results;
-    const plotData = analysisResult ? JSON.parse(analysisResult.plot_json) : null;
+    const plotJson = useMemo(() => {
+        if (!analysisResult) return null;
+        const { plotData, results } = analysisResult;
+        const chartData = {
+            prices: plotData.prices,
+            tooCheap: plotData.too_cheap,
+            cheap: plotData.cheap,
+            expensive: plotData.expensive,
+            tooExpensive: plotData.too_expensive,
+            intersections: results
+        };
+        return JSON.parse(plotVanWestendorp(chartData));
+    }, [analysisResult]);
+
 
     return (
         <div className="space-y-4">
@@ -173,7 +193,7 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {results && plotData && (
+            {results && plotJson && (
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
@@ -181,8 +201,8 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
                         </CardHeader>
                         <CardContent>
                             <Plot
-                                data={plotData.data}
-                                layout={plotData.layout}
+                                data={plotJson.data}
+                                layout={plotJson.layout}
                                 useResizeHandler={true}
                                 className="w-full h-[500px]"
                             />
