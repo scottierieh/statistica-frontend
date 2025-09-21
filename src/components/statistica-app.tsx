@@ -135,7 +135,6 @@ import VanWestendorpPage from './pages/van-westendorp-page';
 import GaborGrangerPage from './pages/gabor-granger-page';
 import MaxDiffPage from './pages/maxdiff-page';
 import BinomialTestPage from './pages/binomial-test-page';
-import PingouinRmAnovaPage from './pages/repeated-measures-anova-page';
 
 
 type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | string;
@@ -208,7 +207,6 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'gabor-granger': GaborGrangerPage,
     'maxdiff': MaxDiffPage,
     'binomial-test': BinomialTestPage,
-    'rm-anova-pingouin': PingouinRmAnovaPage,
 };
 
 const analysisMenu = [
@@ -248,7 +246,6 @@ const analysisMenu = [
             { id: 'two-way-anova', label: 'Two-Way ANOVA' },
             { id: 'ancova', label: 'ANCOVA' },
             { id: 'manova', label: 'MANOVA' },
-            { id: 'rm-anova-pingouin', label: 'RM ANOVA (Pingouin)'},
         ]
       },
       {
@@ -690,8 +687,7 @@ export default function StatisticaApp() {
                 )
               })}
             </div>
-
-          </SidebarFooter>
+          </SidebarContent>
           <SidebarFooter>
             <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="w-full">
               {isGeneratingReport ? <Loader2 className="animate-spin" /> : <FileText />}
@@ -753,4 +749,6 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
+
 
