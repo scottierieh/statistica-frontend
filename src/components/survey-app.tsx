@@ -63,6 +63,7 @@ import {
   Move,
   BarChart,
   PieChart as PieChartIcon,
+  DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -96,9 +97,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ResponsiveContainer, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell, PieChart, Pie } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+const VanWestendorpPage = dynamic(() => import('@/components/analysis/psm-analysis'), { ssr: false });
 
 // Template Definition
 const ipaTemplate = {
@@ -681,7 +683,7 @@ const NPSQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, c
       )}
       <div className="flex items-center justify-between gap-1 flex-wrap">
         {[...Array(11)].map((_, i) => (
-            <Button key={i} variant="outline" size="icon" className="h-10 w-8 text-xs" disabled>
+            <Button key={i} variant="outline" size="icon" className="h-10 w-8 text-xs transition-transform hover:scale-110 active:scale-95" disabled>
                 {i}
             </Button>
         ))}
@@ -1119,20 +1121,46 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
 };
 
 const TextAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any; tableData: any[]; insightsData: string[]; varName: string; }) => {
+    const [isLoading, setIsLoading] = useState(true);
+    const [wordCloudImage, setWordCloudImage] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isMounted = true;
+        const generateCloud = async () => {
+            setIsLoading(true);
+            try {
+                const response = await fetch('/api/analysis/wordcloud', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: tableData.join('\n') })
+                });
+                if (!response.ok) throw new Error('Failed to generate word cloud');
+                const result = await response.json();
+                if (isMounted) {
+                    setWordCloudImage(result.plots.wordcloud);
+                }
+            } catch (error) {
+                console.error("Word cloud generation failed", error);
+                if (isMounted) setWordCloudImage(null);
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        if (tableData.length > 0) {
+            generateCloud();
+        } else {
+            setIsLoading(false);
+        }
+
+        return () => { isMounted = false };
+    }, [tableData]);
+
     return (
       <AnalysisDisplayShell varName={varName}>
            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <div className="flex items-center justify-center min-h-[300px]">
-                    <Plot
-                        data={[chartData]}
-                        layout={{
-                        autosize: true,
-                        margin: { t: 0, b: 0, l: 0, r: 0 },
-                        }}
-                        style={{ width: '100%', height: '100%' }}
-                        config={{ displayModeBar: false }}
-                        useResizeHandler
-                    />
+                    {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={wordCloudImage} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
                 </div>
                  <div className="space-y-4">
                     <Card>
@@ -1140,7 +1168,7 @@ const TextAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { 
                          <CardContent>
                             <ScrollArea className="h-64">
                                 <ul className="space-y-2">
-                                    {tableData.map((text, i) => <li key={i} className="text-sm border-b pb-1">"{text}"</li>)}
+                                    {tableData.slice(0, 10).map((text, i) => <li key={i} className="text-sm border-b pb-1">"{text}"</li>)}
                                 </ul>
                             </ScrollArea>
                         </CardContent>
@@ -1226,6 +1254,149 @@ function pearsonCorrelation(arr1: (number | undefined)[], arr2: (number | undefi
     return covariance / (stdDevX * stdDevY);
 }
 
+const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
+    if (!data) return null;
+    const { kpiData, insights } = data;
+    const kpiStatus = {
+        npsScore: kpiData.npsScore > 50 ? 'excellent' : kpiData.npsScore > 0 ? 'good' : 'poor',
+        avgSatisfaction: kpiData.avgSatisfaction > 4 ? 'excellent' : kpiData.avgSatisfaction > 3 ? 'good' : 'poor',
+        avgOrderValue: 'good',
+        repurchaseRate: kpiData.repurchaseRate > 50 ? 'excellent' : kpiData.repurchaseRate > 30 ? 'good' : 'warning',
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <KPICard title="NPS Score" value={kpiData.npsScore.toFixed(1)} status={kpiStatus.npsScore} />
+                <KPICard title="Avg Satisfaction" value={`${kpiData.avgSatisfaction.toFixed(2)} / 5`} status={kpiStatus.avgSatisfaction} />
+                <KPICard title="Avg Order Value" value={`$${kpiData.avgOrderValue.toFixed(2)}`} status={kpiStatus.avgOrderValue} />
+                <KPICard title="Repurchase Rate" value={`${kpiData.repurchaseRate.toFixed(1)}%`} status={kpiStatus.repurchaseRate} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {insights.map((insight: any, i: number) => <InsightCard key={i} insight={insight} />)}
+            </div>
+        </div>
+    )
+}
+
+
+const ServqualAnalyticsDashboard = ({ data }: { data: any }) => {
+    if (!data) return null;
+
+    const servqualChartConfig = {
+        expectation: { label: "Expectation", color: "hsl(var(--chart-1))" },
+        perception: { label: "Perception", color: "hsl(var(--chart-2))" },
+        gap: { label: "Gap", color: "hsl(var(--chart-5))" },
+    };
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>SERVQUAL Gap Scores by Dimension</CardTitle>
+                    <CardDescription>Negative gaps indicate perceptions fall short of expectations.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={servqualChartConfig} className="w-full h-96">
+                        <ResponsiveContainer>
+                            <RechartsBarChart data={data.dimensionScores}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" angle={-30} textAnchor="end" height={80} />
+                                <YAxis />
+                                <Tooltip content={<ChartTooltipContent />} />
+                                <Legend />
+                                <Bar dataKey="expectation" fill="var(--color-expectation)" radius={4}/>
+                                <Bar dataKey="perception" fill="var(--color-perception)" radius={4} />
+                                <Bar dataKey="gap" fill="var(--color-gap)" radius={4} />
+                            </RechartsBarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
+    if (!ipaData) return null;
+    const { points, meanImportance, meanSatisfaction, quadrants } = ipaData;
+
+    const chartConfig = {
+        satisfaction: { label: 'Satisfaction' },
+        importance: { label: 'Importance' },
+    };
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Importance-Performance Matrix</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={chartConfig} className="w-full h-[450px]">
+                        <ResponsiveContainer>
+                            <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 40 }}>
+                                <CartesianGrid />
+                                <XAxis type="number" dataKey="importance" name="Importance" label={{ value: "Derived Importance", position: "insideBottom", offset: -20 }} />
+                                <YAxis type="number" dataKey="satisfaction" name="Satisfaction" label={{ value: "Stated Satisfaction", angle: -90, position: "insideLeft" }} />
+                                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
+                                <ReferenceLine x={meanImportance} stroke="hsl(var(--primary))" strokeDasharray="3 3"><RechartsLabel value="Avg Importance" position="insideTopRight" fill="hsl(var(--primary))"/></ReferenceLine>
+                                <ReferenceLine y={meanSatisfaction} stroke="hsl(var(--primary))" strokeDasharray="3 3"><RechartsLabel value="Avg Satisfaction" position="insideTopRight" fill="hsl(var(--primary))"/></ReferenceLine>
+                                <Scatter name="Attributes" data={points}>
+                                    {points.map((p: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                </Scatter>
+                            </ScatterChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+export default function SurveyApp() {
+  return (
+    <Suspense fallback={<div className="flex-1 p-8 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto"/></div>}>
+        <GeneralSurveyPageContentFromClient />
+    </Suspense>
+  )
+}
+
+function GeneralSurveyPageContentFromClient() {
+    const searchParams = useSearchParams();
+    const surveyId = searchParams.get('id');
+    const template = searchParams.get('template');
+    const { toast } = useToast();
+
+    const reloadData = useCallback(() => {
+        if (surveyId) {
+            const savedResponses = localStorage.getItem(`${surveyId}_responses`);
+            if (savedResponses) {
+                // This line causes a re-render by setting state, which is what we want.
+                // However, we don't have a `setResponses` function available here.
+                // This is a structural issue. Let's move state up.
+            }
+        }
+    }, [surveyId]);
+
+
+    if (!surveyId) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Card className="p-8 text-center">
+                    <CardTitle className="text-2xl text-destructive">Survey ID Missing</CardTitle>
+                    <CardDescription className="mt-2">
+                        No survey ID was provided in the URL. Please go back to the dashboard and create a new survey.
+                    </CardDescription>
+                    <Button asChild className="mt-6">
+                        <Link href="/dashboard">Go to Dashboard</Link>
+                    </Button>
+                </Card>
+            </div>
+        );
+    }
+    return <GeneralSurveyPageContent surveyId={surveyId as string} template={template} />;
+}
 
 function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; template?: string | null }) {
     const [survey, setSurvey] = useState<any>({
@@ -1438,8 +1609,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                 chartData = tableData;
                 break;
             }
-            case 'phone':
-            case 'email':
             case 'text': {
                 const textResponses = allAnswers.filter(a => typeof a === 'string' && a.trim() !== '');
                 const words: { [key: string]: number } = {};
@@ -1458,20 +1627,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     insights.push(`The most common term is <strong>"${sortedWords[0].text}"</strong>, appearing ${sortedWords[0].value} times.`);
                 }
 
-                const maxFreq = sortedWords.length > 0 ? sortedWords[0].value : 1;
-                const minFreq = sortedWords.length > 0 ? sortedWords[sortedWords.length - 1].value : 1;
-                
-                chartData = {
-                    x: sortedWords.map(() => 0.5 + (Math.random() - 0.5) * 1.8 * Math.cos(Math.random() * Math.PI * 2)),
-                    y: sortedWords.map(() => 0.5 + (Math.random() - 0.5) * 1.8 * Math.sin(Math.random() * Math.PI * 2)),
-                    text: sortedWords.map(w => w.text),
-                    mode: 'text',
-                    textfont: {
-                        size: sortedWords.map(w => 10 + (w.value - minFreq) / (maxFreq - minFreq + 1e-9) * 40),
-                        color: sortedWords.map((_, i) => COLORS[i % COLORS.length])
-                    }
-                };
-
+                chartData = sortedWords; // Pass structured data
                 tableData = textResponses;
                 break;
             }
@@ -2034,7 +2190,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList>
+                <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                     <TabsTrigger value="analysis-detail">Detailed Analysis</TabsTrigger>
@@ -2557,6 +2713,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     );
 }
 
+type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
+type QuestionLogic = { questionId: number; paths: LogicPath[] };
 const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
     const style = {
@@ -2575,151 +2733,5 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
     );
 };
 
-const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
-    if (!data) return null;
-    const { kpiData, insights } = data;
-    const kpiStatus = {
-        npsScore: kpiData.npsScore > 50 ? 'excellent' : kpiData.npsScore > 0 ? 'good' : 'poor',
-        avgSatisfaction: kpiData.avgSatisfaction > 4 ? 'excellent' : kpiData.avgSatisfaction > 3 ? 'good' : 'poor',
-        avgOrderValue: 'good',
-        repurchaseRate: kpiData.repurchaseRate > 50 ? 'excellent' : kpiData.repurchaseRate > 30 ? 'good' : 'warning',
-    };
-
-    return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <KPICard title="NPS Score" value={kpiData.npsScore.toFixed(1)} status={kpiStatus.npsScore} />
-                <KPICard title="Avg Satisfaction" value={`${kpiData.avgSatisfaction.toFixed(2)} / 5`} status={kpiStatus.avgSatisfaction} />
-                <KPICard title="Avg Order Value" value={`$${kpiData.avgOrderValue.toFixed(2)}`} status={kpiStatus.avgOrderValue} />
-                <KPICard title="Repurchase Rate" value={`${kpiData.repurchaseRate.toFixed(1)}%`} status={kpiStatus.repurchaseRate} />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {insights.map((insight: any, i: number) => <InsightCard key={i} insight={insight} />)}
-            </div>
-        </div>
-    )
-}
-
-const ServqualAnalyticsDashboard = ({ data }: { data: any }) => {
-    if (!data) return null;
-
-    const servqualChartConfig = {
-        expectation: { label: "Expectation", color: "hsl(var(--chart-1))" },
-        perception: { label: "Perception", color: "hsl(var(--chart-2))" },
-        gap: { label: "Gap", color: "hsl(var(--chart-5))" },
-    };
-
-    return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>SERVQUAL Gap Scores by Dimension</CardTitle>
-                    <CardDescription>Negative gaps indicate perceptions fall short of expectations.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ChartContainer config={servqualChartConfig} className="w-full h-96">
-                        <ResponsiveContainer>
-                            <RechartsBarChart data={data.dimensionScores}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" angle={-30} textAnchor="end" height={80} />
-                                <YAxis />
-                                <Tooltip content={<ChartTooltipContent />} />
-                                <Legend />
-                                <Bar dataKey="expectation" fill="var(--color-expectation)" radius={4}/>
-                                <Bar dataKey="perception" fill="var(--color-perception)" radius={4} />
-                                <Bar dataKey="gap" fill="var(--color-gap)" radius={4} />
-                            </RechartsBarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                </CardContent>
-            </Card>
-        </div>
-    );
-};
-
-const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
-    if (!ipaData) return null;
-    const { points, meanImportance, meanSatisfaction, quadrants } = ipaData;
-
-    const chartConfig = {
-        satisfaction: { label: 'Satisfaction' },
-        importance: { label: 'Importance' },
-    };
-
-    return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Importance-Performance Matrix</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ChartContainer config={chartConfig} className="w-full h-[450px]">
-                        <ResponsiveContainer>
-                            <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 40 }}>
-                                <CartesianGrid />
-                                <XAxis type="number" dataKey="importance" name="Importance" label={{ value: "Derived Importance", position: "insideBottom", offset: -20 }} />
-                                <YAxis type="number" dataKey="satisfaction" name="Satisfaction" label={{ value: "Stated Satisfaction", angle: -90, position: "insideLeft" }} />
-                                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
-                                <ReferenceLine x={meanImportance} stroke="hsl(var(--primary))" strokeDasharray="3 3"><RechartsLabel value="Avg Importance" position="insideTopRight" fill="hsl(var(--primary))"/></ReferenceLine>
-                                <ReferenceLine y={meanSatisfaction} stroke="hsl(var(--primary))" strokeDasharray="3 3"><RechartsLabel value="Avg Satisfaction" position="insideTopRight" fill="hsl(var(--primary))"/></ReferenceLine>
-                                <Scatter name="Attributes" data={points}>
-                                    {points.map((p: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                                </Scatter>
-                            </ScatterChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                </CardContent>
-            </Card>
-        </div>
-    );
-};
-
-export default function SurveyApp() {
-  return (
-    <Suspense fallback={<div className="flex-1 p-8 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto"/></div>}>
-        <GeneralSurveyPageContentFromClient />
-    </Suspense>
-  )
-}
-
-function GeneralSurveyPageContentFromClient() {
-    const searchParams = useSearchParams();
-    const surveyId = searchParams.get('id');
-    const template = searchParams.get('template');
-    const { toast } = useToast();
-
-    const reloadData = useCallback(() => {
-        if (surveyId) {
-            const savedResponses = localStorage.getItem(`${surveyId}_responses`);
-            if (savedResponses) {
-                // This line causes a re-render by setting state, which is what we want.
-                // However, we don't have a `setResponses` function available here.
-                // This is a structural issue. Let's move state up.
-            }
-        }
-    }, [surveyId]);
-
-
-    if (!surveyId) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Card className="p-8 text-center">
-                    <CardTitle className="text-2xl text-destructive">Survey ID Missing</CardTitle>
-                    <CardDescription className="mt-2">
-                        No survey ID was provided in the URL. Please go back to the dashboard and create a new survey.
-                    </CardDescription>
-                    <Button asChild className="mt-6">
-                        <Link href="/dashboard">Go to Dashboard</Link>
-                    </Button>
-                </Card>
-            </div>
-        );
-    }
-    return <GeneralSurveyPageContent surveyId={surveyId as string} template={template} />;
-}
-
-type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
-type QuestionLogic = { questionId: number; paths: LogicPath[] };
 
     
-
