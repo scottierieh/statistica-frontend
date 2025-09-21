@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -93,7 +92,7 @@ import Papa from 'papaparse';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell, PieChart, Pie } from 'recharts';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
@@ -952,19 +951,21 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
           varName={varName}
           onDownloadChart={() => { /* Implement download */ }}
           chart={
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={tableData} layout="vertical" margin={{ left: 100 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" domain={[0, highestValue > 0 ? Math.ceil(highestValue / 10) * 10 : 10]} unit="%" />
-                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
-                <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} cursor={{fill: 'hsl(var(--muted))'}} />
-                <Bar dataKey="percentage" radius={[0, 4, 4, 0]}>
-                  {tableData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <ChartContainer config={{ percentage: { label: "Percentage" } }} className="w-full h-[300px]">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={tableData} layout="vertical" margin={{ left: 100 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" domain={[0, highestValue > 0 ? Math.ceil(highestValue / 10) * 10 : 10]} unit="%" />
+                  <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                  <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} cursor={{fill: 'hsl(var(--muted))'}} />
+                  <Bar dataKey="percentage" radius={[0, 4, 4, 0]}>
+                    {tableData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           }
           table={
             <Table>
@@ -2030,7 +2031,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                         ) : (
                                             <p className="text-muted-foreground">Could not load QR code.</p>
                                         )}
-                                        <Button variant="outline" onClick={downloadQrCode} disabled={!qrCodeUrl}>
+                                        <Button variant="outline" disabled={!qrCodeUrl || isLoadingQr} onClick={downloadQrCode}>
                                             <Download className="mr-2" /> Download
                                         </Button>
                                     </div>
@@ -2586,6 +2587,7 @@ function GeneralSurveyPageContentFromClient() {
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
+
 
 
 
