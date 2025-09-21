@@ -174,7 +174,7 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
                     <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="visuals"><LineChart className="mr-2 h-4 w-4"/>Visualizations</TabsTrigger>
                         <TabsTrigger value="summary"><DollarSign className="mr-2 h-4 w-4"/>Key Metrics</TabsTrigger>
-                        <TabsTrigger value="interpretation"><Brain className="mr-2 h-4 w-4"/>AI Interpretation</TabsTrigger>
+                        <TabsTrigger value="interpretation"><Brain className="mr-2 h-4 w-4"/>Interpretation</TabsTrigger>
                     </TabsList>
                     <TabsContent value="visuals" className="mt-4">
                         <Card>
