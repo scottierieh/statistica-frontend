@@ -191,7 +191,7 @@ class AncovaAnalysis:
         shapiro_stat, shapiro_p = stats.shapiro(residuals)
         
         # 2. Homogeneity of variances (Levene's test on the groups)
-        groups = [group[self.dv_clean].values for name, group in self.clean_data.groupby(self.fv_clean)]
+        groups = [group[self.dv_clean] for name, group in self.clean_data.groupby(self.fv_clean)]
         if len(groups) > 1:
             levene_stat, levene_p = stats.levene(*groups)
         else:
@@ -278,3 +278,4 @@ if __name__ == '__main__':
     
 
   
+
