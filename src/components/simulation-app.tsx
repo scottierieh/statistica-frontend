@@ -16,7 +16,8 @@ import {
 import GradientDescentPage from "./pages/gradient-descent-page";
 import CentralLimitTheoremPage from './pages/central-limit-theorem-page';
 import MarketingAnalysisPage from './pages/marketing-analysis-page';
-import { FastForward, PlayCircle, TrendingUp, BarChart } from 'lucide-react';
+import RmAnovaSimulationPage from './pages/rm-anova-simulation-page';
+import { FastForward, PlayCircle, TrendingUp, BarChart, Repeat } from 'lucide-react';
 import type { ExampleDataSet } from '@/lib/example-datasets';
 import { DataSet, parseData, unparseData } from '@/lib/stats';
 import DataUploader from './data-uploader';
@@ -26,12 +27,13 @@ import * as XLSX from 'xlsx';
 import { Button } from './ui/button';
 
 
-type SimulationType = 'gradient-descent' | 'central-limit-theorem' | 'marketing-analysis';
+type SimulationType = 'gradient-descent' | 'central-limit-theorem' | 'marketing-analysis' | 'repeated-measures-anova';
 
 const simulationPages: Record<string, React.ComponentType<any>> = {
   'gradient-descent': GradientDescentPage,
   'central-limit-theorem': CentralLimitTheoremPage,
   'marketing-analysis': MarketingAnalysisPage,
+  'repeated-measures-anova': RmAnovaSimulationPage,
 };
 
 export default function SimulationApp() {
@@ -190,6 +192,15 @@ export default function SimulationApp() {
                 >
                   <BarChart />
                   <span>Marketing Analysis</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setActiveSimulation('repeated-measures-anova')}
+                  isActive={activeSimulation === 'repeated-measures-anova'}
+                >
+                  <Repeat />
+                  <span>RM ANOVA</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
