@@ -47,6 +47,9 @@ class AncovaAnalysis:
         for var in [self.dependent_var] + self.covariate_vars:
             self.clean_data[var] = pd.to_numeric(self.clean_data[var], errors='coerce')
         
+        # Ensure factor variable is treated as a category
+        self.clean_data[self.factor_var] = self.clean_data[self.factor_var].astype('category')
+        
         self.clean_data.dropna(inplace=True)
         
         # Sanitize column names for formula
