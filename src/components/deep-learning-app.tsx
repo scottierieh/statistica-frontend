@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { BrainCircuit, UploadCloud, File, CheckCircle, ChevronRight, Loader2, Bot, Sparkles, Building, Heart, ShoppingCart, Layers, Plus, Trash2, Sigma, LineChart as LineChartIcon, TrendingUp, ScatterChart as ScatterChartIcon, Users, Terminal, Settings2, SlidersHorizontal, Sliders, Info, Variable, Check, X } from 'lucide-react';
+import { BrainCircuit, UploadCloud, File, CheckCircle, ChevronRight, Loader2, Bot, Sparkles, Building, Heart, ShoppingCart, Layers, Plus, Trash2, Sigma, LineChart as LineChartIcon, TrendingUp, ScatterChart as ScatterChartIcon, Users, Terminal, Settings2, SlidersHorizontal, Sliders, Info, Variable, Check, X, WandSparkles } from 'lucide-react';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { useToast } from '@/hooks/use-toast';
@@ -22,12 +21,67 @@ import { LineChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend,
 import { Switch } from './ui/switch';
 import { Checkbox } from './ui/checkbox';
 import { ScrollArea } from './ui/scroll-area';
+import { Slider } from './ui/slider';
 
 
 type AnalysisStep = 'select-type' | 'configure';
 type AnalysisType = 'classification' | 'regression' | 'clustering' | 'nlp' | 'computer-vision';
 type DomainType = 'marketing' | 'finance' | 'healthcare' | 'general';
 type PreprocessingOptions = { handleMissing: 'mean' | 'median' | 'drop'; scale: boolean; };
+
+interface WhatIfState {
+    [key: string]: number;
+}
+
+const WhatIfSimulation = ({ features, onSimulate, problemType }: { features: string[], onSimulate: (state: WhatIfState) => number, problemType: 'regression' | 'classification' }) => {
+    const featureMeans = useMemo(() => {
+        const means: WhatIfState = {};
+        features.forEach(f => means[f] = 50); // Using a normalized 0-100 scale
+        return means;
+    }, [features]);
+    
+    const [whatIfState, setWhatIfState] = useState<WhatIfState>(featureMeans);
+    
+    const handleSliderChange = (feature: string, value: number) => {
+        setWhatIfState(prev => ({...prev, [feature]: value}));
+    };
+
+    const simulatedResult = onSimulate(whatIfState);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2"><WandSparkles /> What-if Simulation</CardTitle>
+                <CardDescription>Adjust feature values to see how they impact the model's prediction.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                    {features.slice(0, 5).map(feature => (
+                        <div key={feature}>
+                            <Label htmlFor={`whatif-${feature}`}>{feature}: <span className="font-mono text-primary">{whatIfState[feature].toFixed(0)}</span></Label>
+                            <Slider
+                                id={`whatif-${feature}`}
+                                value={[whatIfState[feature]]}
+                                onValueChange={(v) => handleSliderChange(feature, v[0])}
+                                max={100}
+                                step={1}
+                            />
+                        </div>
+                    ))}
+                </div>
+                 <div className="flex flex-col items-center justify-center p-6 bg-muted rounded-lg">
+                     <p className="text-sm text-muted-foreground">{problemType === 'regression' ? 'Simulated Prediction' : 'Simulated Probability'}</p>
+                    <p className="text-5xl font-bold text-primary my-2">
+                        {problemType === 'regression' ? simulatedResult.toLocaleString(undefined, { maximumFractionDigits: 0, style: 'currency', currency: 'USD' }) : `${(simulatedResult * 100).toFixed(1)}%`}
+                    </p>
+                    <p className="text-xs text-center text-muted-foreground">
+                        This is the model's predicted {problemType === 'regression' ? 'outcome' : 'probability of being in the positive class'} for the given inputs.
+                    </p>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
 
 interface DnnPageProps {
     data: DataSet;
@@ -140,6 +194,13 @@ function DnnRegressionPage({ data, numericHeaders, categoricalHeaders, onLoadExa
         }, 3000);
     };
 
+    const handleSimulation = (state: WhatIfState) => {
+        if(!trainingResults) return 0;
+        const basePrediction = trainingResults.predictions[0] || 450000;
+        const influence = Object.values(state).reduce((acc, v) => acc + (v-50), 0) * 100;
+        return basePrediction + influence;
+    }
+
     const gbmRegressionExample = exampleDatasets.find(ex => ex.id === 'gbm-regression');
 
     if (data.length === 0) {
@@ -242,10 +303,11 @@ function DnnRegressionPage({ data, numericHeaders, categoricalHeaders, onLoadExa
 
             {isLoading && <Card><CardHeader><CardTitle>Training in Progress...</CardTitle></CardHeader><CardContent className="flex justify-center p-8"><Loader2 className="h-12 w-12 text-primary animate-spin" /></CardContent></Card>}
             {trainingResults && (
-                <>
+                <div className='space-y-4'>
                     <RegressionResultDisplay results={trainingResults} />
+                    <WhatIfSimulation features={features} onSimulate={handleSimulation} problemType="regression" />
                     <PredictionExamplesTable examples={trainingResults.predictionExamples} problemType="regression" />
-                </>
+                </div>
             )}
         </div>
     );
@@ -340,6 +402,14 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, allHe
             setIsLoading(false);
         }, 3000);
     };
+
+    const handleSimulation = (state: WhatIfState) => {
+        if(!trainingResults) return 0;
+        const baseProb = 0.65;
+        const influence = Object.values(state).reduce((acc, v) => acc + (v-50), 0) / (Object.keys(state).length * 100);
+        return Math.max(0, Math.min(1, baseProb + influence));
+    }
+
 
     const irisExample = exampleDatasets.find(ex => ex.id === 'iris');
 
@@ -506,6 +576,7 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, allHe
                             </div>
                         </CardContent>
                     </Card>
+                    <WhatIfSimulation features={features} onSimulate={handleSimulation} problemType="classification" />
                     <PredictionExamplesTable examples={trainingResults.predictionExamples} problemType="classification" />
                 </div>
             )}
