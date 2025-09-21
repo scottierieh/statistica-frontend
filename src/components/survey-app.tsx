@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -61,6 +60,7 @@ import {
   ShieldCheck,
   BeakerIcon,
   ShieldAlert,
+  Move,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -91,7 +91,7 @@ import { Slider } from '@/components/ui/slider';
 import Papa from 'papaparse';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell } from 'recharts';
 
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
@@ -739,11 +739,11 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, isPreview, cardClassName
                 </TableHeader>
                 <TableBody>
                      {question.rows.map((row: string, rowIndex: number) => (
-                         <TableRow key={rowIndex}>
+                        <TableRow key={rowIndex}>
                             <TableCell>
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
                             </TableCell>
-                            <RadioGroup asChild>
+                            <RadioGroup asChild value={undefined}>
                                 <React.Fragment>
                                     {question.columns.map((col: string, colIndex: number) => (
                                         <TableCell key={colIndex} className="text-center">
@@ -832,40 +832,65 @@ const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number
 };
 
 const AnalysisDisplayShell = ({ chart, table, insights, onDownloadChart, varName }: { chart: React.ReactNode, table: React.ReactNode, insights: React.ReactNode, onDownloadChart: () => void, varName: string }) => {
+    const [chartType, setChartType] = useState('bar');
+    const [sortOrder, setSortOrder] = useState('default');
+    
     return (
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card className="flex flex-col">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-                <CardTitle>{varName}</CardTitle>
-                <Button variant="ghost" size="icon" onClick={onDownloadChart}><Download className="h-4 w-4"/></Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6 flex-1 flex items-center justify-center min-h-[300px]">
-            {chart}
-          </CardContent>
-        </Card>
-        <Card>
-           <Tabs defaultValue="table" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="table">Data Table</TabsTrigger>
-                <TabsTrigger value="insights">AI Insights</TabsTrigger>
-            </TabsList>
-            <TabsContent value="table">
-               <CardContent className="pt-4 h-[350px] overflow-y-auto">
-                    {table}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <Card className="flex flex-col">
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle>{varName}</CardTitle>
+                        <div className="flex items-center gap-2">
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm">Chart: {chartType}</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onSelect={() => setChartType('bar')}>Bar</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => setChartType('pie')}>Pie</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm">Sort: {sortOrder}</Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onSelect={() => setSortOrder('default')}>Default</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => setSortOrder('asc')}>Ascending</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => setSortOrder('desc')}>Descending</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button variant="ghost" size="sm">Hide</Button>
+                            <Button variant="ghost" size="icon" className="cursor-move"><Move className="w-4 h-4"/></Button>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-6 flex-1 flex items-center justify-center min-h-[300px]">
+                    {chart}
                 </CardContent>
-            </TabsContent>
-            <TabsContent value="insights">
-                <CardContent className="pt-4 h-[350px] overflow-y-auto">
-                    {insights}
-                </CardContent>
-            </TabsContent>
-            </Tabs>
-        </Card>
-      </div>
+            </Card>
+            <Card>
+                <Tabs defaultValue="table" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="table">Data Table</TabsTrigger>
+                        <TabsTrigger value="insights">AI Insights</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="table">
+                        <CardContent className="pt-4 h-[350px] overflow-y-auto">
+                            {table}
+                        </CardContent>
+                    </TabsContent>
+                    <TabsContent value="insights">
+                        <CardContent className="pt-4 h-[350px] overflow-y-auto">
+                            {insights}
+                        </CardContent>
+                    </TabsContent>
+                </Tabs>
+            </Card>
+        </div>
     );
-  };
+};
 
 const TextAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
     const plotRef = useRef(null);
@@ -970,7 +995,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
   
 const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
     // This chart is custom HTML, download not implemented yet
-    const downloadChart = () => alert("Download not available for this chart type yet.");
+     const downloadChart = () => alert("Download not available for this chart type yet.");
 
     return (
         <AnalysisDisplayShell
@@ -2450,13 +2475,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
 
                                 return (
                                     <Card key={`analysis-${q.id}`}>
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-4">
-                                                {qIndex + 1}. {q.title}
-                                                <Badge variant="outline">{q.type.toUpperCase()}</Badge>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
+                                        <CardContent className="p-6">
                                             {AnalysisComponent ? (
                                                 <AnalysisComponent chartData={chartData} tableData={tableData} insightsData={insights} varName={q.title} />
                                             ) : (
@@ -2565,6 +2584,7 @@ function GeneralSurveyPageContentFromClient() {
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
+
 
 
 
