@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -864,11 +865,10 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     return (
       <AnalysisDisplayShell
         varName={varName}
-        onChartTypeChange={() => {}}
         chart={
           <ChartContainer config={{ percentage: { label: "Percentage" } }} className="w-full h-[300px]">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={tableData} layout="vertical" margin={{ left: 100 }}>
+              <RechartsBarChart data={tableData} layout="vertical" margin={{ left: 100 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" domain={[0, highestValue > 0 ? Math.ceil(highestValue / 10) * 10 : 10]} unit="%" />
                 <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
@@ -878,7 +878,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
-              </BarChart>
+              </RechartsBarChart>
             </ResponsiveContainer>
           </ChartContainer>
         }
@@ -902,11 +902,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
             </TableBody>
           </Table>
         }
-        insights={
-          <ul className="space-y-2 text-sm list-disc pl-4">
-              {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
-          </ul>
-        }
+        insights={ <ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }
       />
     );
 };
@@ -915,7 +911,6 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     return (
         <AnalysisDisplayShell
           varName={varName}
-          onChartTypeChange={() => {}}
           chart={
             <div className="flex flex-col items-center justify-center h-full gap-4">
                 <div className="text-7xl font-bold">{chartData.avg.toFixed(2)}</div>
@@ -953,7 +948,6 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     return (
       <AnalysisDisplayShell
         varName={varName}
-        onChartTypeChange={() => {}}
         chart={
           <Plot
             data={[{ x: chartData.values, type: 'histogram' }]}
@@ -1000,7 +994,6 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
     return (
        <AnalysisDisplayShell
             varName={varName}
-            onChartTypeChange={() => {}}
             chart={
                  <Plot
                     data={[{ ...chartData, type: 'bar' }]}
@@ -1049,7 +1042,6 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
     return (
         <AnalysisDisplayShell
           varName={varName}
-          onChartTypeChange={() => {}}
           chart={
             <div className="flex flex-col items-center justify-center h-full gap-4">
                 <div className="text-7xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
@@ -1091,6 +1083,38 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
             </ul>
           }
         />
+    );
+};
+
+const TextAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any; tableData: any[]; insightsData: string[]; varName: string; }) => {
+    return (
+      <AnalysisDisplayShell
+        varName={varName}
+        chart={
+          <Plot
+            data={[chartData]}
+            layout={{
+              autosize: true,
+              margin: { t: 0, b: 0, l: 0, r: 0 },
+            }}
+            style={{ width: '100%', height: '100%' }}
+            config={{ displayModeBar: false }}
+            useResizeHandler
+          />
+        }
+        table={
+          <ScrollArea className="h-64">
+              <ul className="space-y-2">
+                  {tableData.map((text, i) => <li key={i} className="text-sm border-b pb-1">"{text}"</li>)}
+              </ul>
+          </ScrollArea>
+        }
+        insights={
+            <ul className="space-y-2 text-sm list-disc pl-4">
+                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
+            </ul>
+        }
+      />
     );
 };
 
@@ -2416,7 +2440,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                         case 'multiple':
                                                             return <ResponsiveContainer width="100%" height={300}><PieChart><Pie data={chartData} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>{chartData.map((_:any, i:any) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>;
                                                         case 'number':
-                                                            return <ResponsiveContainer width="100%" height={300}><BarChart data={[{name: 'Value', ...chartData}]}><CartesianGrid /><YAxis/><Tooltip/><Bar dataKey="mean" fill="#8884d8"/></BarChart></ResponsiveContainer>;
+                                                            return <ResponsiveContainer width="100%" height={300}><RechartsBarChart data={[{name: 'Value', ...chartData}]}><CartesianGrid /><YAxis/><Tooltip/><Bar dataKey="mean" fill="#8884d8"/></RechartsBarChart></ResponsiveContainer>;
                                                         case 'rating':
                                                             return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} /><p>{chartData.avg.toFixed(2)} / 5</p></div>;
                                                         case 'nps':
@@ -2554,7 +2578,7 @@ const ServqualAnalyticsDashboard = ({ data }: { data: any }) => {
                 <CardContent>
                     <ChartContainer config={servqualChartConfig} className="w-full h-96">
                         <ResponsiveContainer>
-                            <BarChart data={data.dimensionScores}>
+                            <RechartsBarChart data={data.dimensionScores}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="name" angle={-30} textAnchor="end" height={80} />
                                 <YAxis />
@@ -2563,7 +2587,7 @@ const ServqualAnalyticsDashboard = ({ data }: { data: any }) => {
                                 <Bar dataKey="expectation" fill="var(--color-expectation)" radius={4}/>
                                 <Bar dataKey="perception" fill="var(--color-perception)" radius={4} />
                                 <Bar dataKey="gap" fill="var(--color-gap)" radius={4} />
-                            </BarChart>
+                            </RechartsBarChart>
                         </ResponsiveContainer>
                     </ChartContainer>
                 </CardContent>
@@ -2655,3 +2679,5 @@ function GeneralSurveyPageContentFromClient() {
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
+
+    
