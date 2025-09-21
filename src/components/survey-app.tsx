@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -91,7 +92,8 @@ import { Slider } from '@/components/ui/slider';
 import Papa from 'papaparse';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell, PieChart, Pie } from 'recharts';
+import { ChartTooltipContent } from '@/components/ui/chart';
 
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
@@ -897,7 +899,7 @@ const TextAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { 
 
     const downloadChart = () => {
         if (plotRef.current) {
-            Plotly.downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_wordcloud`});
+            (Plotly as any).downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_wordcloud`});
         }
     };
     
@@ -1038,7 +1040,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     const plotRef = useRef(null);
     const downloadChart = () => {
         if (plotRef.current) {
-            Plotly.downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_histogram`});
+            (Plotly as any).downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_histogram`});
         }
     };
     return (
@@ -1091,7 +1093,7 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
     const plotRef = useRef(null);
     const downloadChart = () => {
         if (plotRef.current) {
-            Plotly.downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_best_worst`});
+            (Plotly as any).downloadImage(plotRef.current, {format: 'png', width: 800, height: 600, filename: `${varName}_best_worst`});
         }
     };
 
@@ -2584,6 +2586,7 @@ function GeneralSurveyPageContentFromClient() {
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
+
 
 
 
