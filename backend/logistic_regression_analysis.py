@@ -57,7 +57,7 @@ class LogisticRegressionAnalysis:
         self.X = pd.get_dummies(X_raw, drop_first=True, dtype=float)
         self.feature_names = self.X.columns.tolist()
         
-        self.y = self.clean_data[self.dependent_var + '_encoded'].values.ravel()
+        self.y = self.clean_data[self.dependent_var + '_encoded']
         
         if len(self.X) != len(self.y):
              raise ValueError("X and y have inconsistent numbers of samples after processing.")
@@ -103,16 +103,20 @@ class LogisticRegressionAnalysis:
 
 
     def run_analysis(self):
-        X_train_const = sm.add_constant(self.X_train_scaled)
-        X_test_const = sm.add_constant(self.X_test_scaled)
+        # Create DataFrames with matching indices for statsmodels
+        X_train_df_scaled = pd.DataFrame(self.X_train_scaled, index=self.y_train.index, columns=self.feature_names)
+        X_test_df_scaled = pd.DataFrame(self.X_test_scaled, index=self.y_test.index, columns=self.feature_names)
+
+        X_train_const = sm.add_constant(X_train_df_scaled)
+        X_test_const = sm.add_constant(X_test_df_scaled)
         
-        logit_model = sm.Logit(self.y_train.ravel(), X_train_const)
+        logit_model = sm.Logit(self.y_train, X_train_const)
         self.model_fit = logit_model.fit(disp=0)
 
         y_prob = self.model_fit.predict(X_test_const)
         y_pred = (y_prob > 0.5).astype(int)
         
-        self._calculate_metrics(self.y_test, y_pred, y_prob)
+        self._calculate_metrics(self.y_test.values, y_pred, y_prob)
         self._generate_interpretation()
 
     def _calculate_metrics(self, y_true, y_pred, y_prob):
@@ -241,6 +245,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
