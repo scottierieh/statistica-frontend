@@ -13,6 +13,8 @@ import io
 import base64
 import warnings
 import statsmodels.api as sm
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 
 warnings.filterwarnings('ignore')
 
@@ -40,6 +42,9 @@ class LogisticRegressionAnalysis:
         all_vars = [self.dependent_var] + self.independent_vars
         self.clean_data = self.data[all_vars].dropna()
         
+        if self.clean_data.empty:
+            raise ValueError("No valid data remaining after removing rows with missing values.")
+
         self.le = LabelEncoder()
         y_encoded = self.le.fit_transform(self.clean_data[self.dependent_var])
         self.dependent_classes = self.le.classes_.tolist()
@@ -52,14 +57,50 @@ class LogisticRegressionAnalysis:
         self.X = pd.get_dummies(X_raw, drop_first=True, dtype=float)
         self.feature_names = self.X.columns.tolist()
         
-        # Ensure y is a 1D array
         self.y = self.clean_data[self.dependent_var + '_encoded'].values.ravel()
         
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_size, random_state=self.random_state, stratify=self.y)
+        if len(self.X) != len(self.y):
+             raise ValueError("X and y have inconsistent numbers of samples after processing.")
+
+        try:
+             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_size, random_state=self.random_state, stratify=self.y)
+        except ValueError:
+             # Fallback if stratification fails (e.g., very small class sizes)
+             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=self.test_size, random_state=self.random_state)
+
 
         self.scaler = StandardScaler()
         self.X_train_scaled = self.scaler.fit_transform(self.X_train)
         self.X_test_scaled = self.scaler.transform(self.X_test)
+        
+        self._check_multicollinearity()
+
+
+    def _check_multicollinearity(self):
+        if self.X_train.shape[1] < 2:
+            return 
+        
+        X_train_df_scaled = pd.DataFrame(self.X_train_scaled, columns=self.feature_names)
+        
+        X_with_const = sm.add_constant(X_train_df_scaled, has_constant='add')
+        
+        vif_data = pd.DataFrame()
+        vif_data["feature"] = X_with_const.columns
+        try:
+            vif_data["VIF"] = [variance_inflation_factor(X_with_const.values, i) for i in range(X_with_const.shape[1])]
+        except Exception as e:
+            if "Singular matrix" in str(e):
+                 corr_matrix = X_with_const.corr()
+                 upper_tri = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+                 to_drop = [column for column in upper_tri.columns if any(upper_tri[column].abs() > 0.999)]
+                 raise ValueError(f"Perfect multicollinearity detected. Please remove one of these highly correlated variables: {', '.join(to_drop)}")
+            raise ValueError(f"Multicollinearity check failed. Original error: {e}")
+
+        high_vif = vif_data[vif_data['VIF'] > 10]
+        if not high_vif.empty:
+            offending_vars = ", ".join(high_vif[high_vif['feature'] != 'const']['feature'].tolist())
+            raise ValueError(f"High multicollinearity detected (VIF > 10) for variables: {offending_vars}. Please remove one or more of these variables to proceed.")
+
 
     def run_analysis(self):
         X_train_const = sm.add_constant(self.X_train_scaled)
@@ -99,7 +140,6 @@ class LogisticRegressionAnalysis:
         self.results['roc_data'] = {'fpr': fpr.tolist(), 'tpr': tpr.tolist(), 'auc': roc_auc}
         self.results['dependent_classes'] = self.dependent_classes
         
-        # Add model summary stats
         self.results['model_summary'] = {
             'llf': self.model_fit.llf,
             'llnull': self.model_fit.llnull,
@@ -120,24 +160,21 @@ class LogisticRegressionAnalysis:
         pseudo_r2 = summary['prsquared']
         accuracy = res['metrics']['accuracy']
         
-        # Sentence 1: Purpose
         interpretation = f"A logistic regression was performed to ascertain the effects of {len(self.independent_vars)} predictors on the likelihood that respondents would be classified as one group or another in '{self.dependent_var}'.\n\n"
 
-        # Sentence 2: Model Significance
         model_sig_text = "statistically significant" if p_val < 0.05 else "not statistically significant"
         p_val_text = f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
         interpretation += f"The logistic regression model was {model_sig_text}, χ²({df:.0f}, N = {len(self.clean_data)}) = {chi2:.3f}, {p_val_text}. "
         
-        # Sentence 3: Model Fit
         interpretation += f"The model explained {pseudo_r2*100:.1f}% (Pseudo R²) of the variance in {self.dependent_var} and correctly classified {accuracy*100:.1f}% of cases.\n\n"
         
-        # Sentence 4: Individual Predictors
         odds_ratios = res['odds_ratios']
-        p_values = self.model_fit.pvalues[1:] # Exclude const
+        p_values = self.model_fit.pvalues
         
         sig_preds = []
-        for var, p in p_values.items():
-            if p < 0.05:
+        for var in self.feature_names:
+            p = p_values.get(var)
+            if p is not None and p < 0.05:
                 odds = odds_ratios.get(var)
                 if odds is not None:
                      change_text = f"{odds:.2f} times as likely" if odds > 1 else f"{(1-odds)*100:.1f}% less likely"
@@ -151,7 +188,6 @@ class LogisticRegressionAnalysis:
     def plot_results(self):
         fig, axes = plt.subplots(1, 2, figsize=(14, 6))
         
-        # ROC Curve
         roc = self.results['roc_data']
         axes[0].plot(roc['fpr'], roc['tpr'], color='darkorange', lw=2, label=f'ROC curve (area = {roc["auc"]:.2f})')
         axes[0].plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
@@ -163,7 +199,6 @@ class LogisticRegressionAnalysis:
         axes[0].legend(loc="lower right")
         axes[0].grid(True, alpha=0.3)
 
-        # Confusion Matrix Heatmap
         cm = np.array(self.results['metrics']['confusion_matrix'])
         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=axes[1], 
                     xticklabels=self.dependent_classes, yticklabels=self.dependent_classes)
@@ -206,5 +241,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
