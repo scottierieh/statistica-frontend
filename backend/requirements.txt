@@ -16,4 +16,4 @@ pingouin
 factor-analyzer
 qrcode
 Pillow
-VanWestendorp-Price-Sensitivity-Meter
+vanwestendorp

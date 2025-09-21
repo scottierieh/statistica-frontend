@@ -3,12 +3,9 @@ import sys
 import json
 import pandas as pd
 import numpy as np
-import warnings
-import VanWestendorp_Price_Sensitivity_Meter as vwpsm
 import plotly.graph_objects as go
 import plotly.io as pio
-
-warnings.filterwarnings('ignore')
+from vanwestendorp import vanwestendorp
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -20,40 +17,6 @@ def _to_native_type(obj):
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     return obj
-
-def plot_van_westendorp_plotly(plot_data):
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(x=plot_data['prices'], y=[100 - y for y in plot_data['too_cheap_pct']], mode='lines', name='Not "Too Cheap"'))
-    fig.add_trace(go.Scatter(x=plot_data['prices'], y=[100 - y for y in plot_data['cheap_pct']], mode='lines', name='Not "Cheap"'))
-    fig.add_trace(go.Scatter(x=plot_data['prices'], y=plot_data['expensive_pct'], mode='lines', name='Expensive'))
-    fig.add_trace(go.Scatter(x=plot_data['prices'], y=plot_data['too_expensive_pct'], mode='lines', name='Too Expensive'))
-
-    intersections = plot_data.get('intersections', {})
-    shapes = []
-    annotations = []
-
-    if intersections.get('opp'):
-        shapes.append({'type': 'line', 'x0': intersections['opp'], 'x1': intersections['opp'], 'y0': 0, 'y1': 100, 'line': {'color': 'green', 'dash': 'dot'}})
-        annotations.append({'x': intersections['opp'], 'y': 1.05, 'xref': 'x', 'yref': 'paper', 'text': f"OPP: {intersections['opp']:.2f}", 'showarrow': False})
-    if intersections.get('ipp'):
-        shapes.append({'type': 'line', 'x0': intersections['ipp'], 'x1': intersections['ipp'], 'y0': 0, 'y1': 100, 'line': {'color': 'blue', 'dash': 'dot'}})
-        annotations.append({'x': intersections['ipp'], 'y': 1.0, 'xref': 'x', 'yref': 'paper', 'text': f"IPP: {intersections['ipp']:.2f}", 'showarrow': False})
-    if intersections.get('pme'):
-        shapes.append({'type': 'line', 'x0': intersections['pme'], 'x1': intersections['pme'], 'y0': 0, 'y1': 100, 'line': {'color': 'red', 'dash': 'dot'}})
-    if intersections.get('mdp'):
-        shapes.append({'type': 'line', 'x0': intersections['mdp'], 'x1': intersections['mdp'], 'y0': 0, 'y1': 100, 'line': {'color': 'purple', 'dash': 'dot'}})
-
-    fig.update_layout(
-        title='Van Westendorp Price Sensitivity Meter',
-        xaxis_title='Price',
-        yaxis_title='Cumulative Percentage of Respondents (%)',
-        shapes=shapes,
-        annotations=annotations,
-        legend=dict(x=0.5, y=-0.2, xanchor='center', orientation='h')
-    )
-    return pio.to_json(fig)
-
 
 def main():
     try:
@@ -69,32 +32,64 @@ def main():
 
         df = pd.DataFrame(data)
         
+        # Ensure correct columns are selected and that they are numeric
         price_cols = [too_cheap_col, cheap_col, expensive_col, too_expensive_col]
         for col in price_cols:
             df[col] = pd.to_numeric(df[col], errors='coerce')
-        df = df.dropna(subset=price_cols)
-
-        if df.shape[0] < 10:
-            raise ValueError("Not enough valid data points for analysis.")
-
-        too_cheap_prices = df[too_cheap_col].tolist()
-        cheap_prices = df[cheap_col].tolist()
-        expensive_prices = df[expensive_col].tolist()
-        too_expensive_prices = df[too_expensive_col].tolist()
         
-        results = vwpsm.analysis(too_cheap_prices, cheap_prices, expensive_prices, too_expensive_prices)
-        
-        plot_data = vwpsm.get_plot_data(too_cheap_prices, cheap_prices, expensive_prices, too_expensive_prices)
-        plot_data['intersections'] = results
-        
-        plot_json = plot_van_westendorp_plotly(plot_data)
+        df_clean = df[price_cols].dropna()
 
-        final_response = {
-            'results': results,
-            'plot_json': plot_json,
+        if len(df_clean) < 1:
+            raise ValueError("Not enough valid data for analysis.")
+
+        # Perform Van Westendorp analysis
+        vw = vanwestendorp.VanWestendorp(
+            df_clean, 
+            too_cheap_col, 
+            cheap_col, 
+            expensive_col, 
+            too_expensive_col
+        )
+        
+        # Get intersection points
+        opp, pme, mdp, ipp = vw.get_price_points()
+
+        # Get data for plotting
+        plot_data = vw.get_plot_data()
+
+        # Create Plotly figure
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=plot_data['prices'], y=plot_data['too_cheap'], mode='lines', name='Too Cheap'))
+        fig.add_trace(go.Scatter(x=plot_data['prices'], y=plot_data['cheap'], mode='lines', name='Cheap'))
+        fig.add_trace(go.Scatter(x=plot_data['prices'], y=plot_data['expensive'], mode='lines', name='Expensive'))
+        fig.add_trace(go.Scatter(x=plot_data['prices'], y=plot_data['too_expensive'], mode='lines', name='Too Expensive'))
+
+        fig.update_layout(
+            title='Van Westendorp Price Sensitivity Meter',
+            xaxis_title='Price',
+            yaxis_title='Percentage of Respondents',
+            legend_title='Price Perception'
+        )
+
+        # Add annotations for price points
+        if opp: fig.add_vline(x=opp, line_dash="dash", line_color="green", annotation_text="OPP", annotation_position="top left")
+        if pme: fig.add_vline(x=pme, line_dash="dash", line_color="red", annotation_text="PME", annotation_position="top left")
+        if mdp: fig.add_vline(x=mdp, line_dash="dash", line_color="purple", annotation_text="MDP", annotation_position="bottom left")
+        if ipp: fig.add_vline(x=ipp, line_dash="dash", line_color="blue", annotation_text="IPP", annotation_position="bottom left")
+
+        plot_json = pio.to_json(fig)
+
+        response = {
+            'results': {
+                'opp': opp,
+                'pme': pme,
+                'mdp': mdp,
+                'ipp': ipp,
+            },
+            'plot_json': plot_json
         }
 
-        print(json.dumps(final_response, default=_to_native_type))
+        print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
