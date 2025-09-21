@@ -207,9 +207,7 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
                                 <Alert>
                                     <AlertTriangle className="h-4 w-4" />
                                     <AlertTitle>Summary of Findings</AlertTitle>
-                                    <AlertDescription className="whitespace-pre-wrap">
-                                        {results.interpretation}
-                                    </AlertDescription>
+                                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }} />
                                 </Alert>
                             </CardContent>
                         </Card>

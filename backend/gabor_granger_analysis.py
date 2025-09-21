@@ -134,7 +134,7 @@ def main():
         fig.suptitle('Gabor-Granger Price Analysis', fontsize=16, fontweight='bold')
         lines, labels = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
-        ax2.legend(lines + lines2, labels + labels2, loc='upper right')
+        ax2.legend(lines + lines2, loc='upper right')
 
         plt.tight_layout(rect=[0, 0, 1, 0.96])
 
