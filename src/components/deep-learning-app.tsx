@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { BrainCircuit, UploadCloud, File, CheckCircle, ChevronRight, Loader2, Bot, Sparkles, Building, Heart, ShoppingCart, Layers, Plus, Trash2, Sigma, LineChart as LineChartIcon, TrendingUp, ScatterChart as ScatterChartIcon, Users, Terminal } from 'lucide-react';
+import { BrainCircuit, UploadCloud, File, CheckCircle, ChevronRight, Loader2, Bot, Sparkles, Building, Heart, ShoppingCart, Layers, Plus, Trash2, Sigma, LineChart as LineChartIcon, TrendingUp, ScatterChart as ScatterChartIcon, Users, Terminal, Settings2, SlidersHorizontal, Sliders, Info, Variable, Check, X } from 'lucide-react';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { useToast } from '@/hooks/use-toast';
@@ -18,28 +18,223 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChartContainer, ChartTooltipContent } from './ui/chart';
-import { LineChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line, ResponsiveContainer, ScatterChart, Scatter } from "recharts"
+import { LineChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line, ResponsiveContainer, ScatterChart, Scatter, ReferenceLine } from "recharts"
+import { Switch } from './ui/switch';
 
 
 type AnalysisStep = 'select-type' | 'configure';
 type AnalysisType = 'classification' | 'regression' | 'clustering' | 'nlp' | 'computer-vision';
 type DomainType = 'marketing' | 'finance' | 'healthcare' | 'general';
-
-interface Layer {
-    id: number;
-    neurons: number;
-    activation: 'relu' | 'sigmoid' | 'tanh' | 'softmax';
-}
+type PreprocessingOptions = { handleMissing: 'mean' | 'median' | 'drop'; scale: boolean; };
 
 interface DnnPageProps {
     data: DataSet;
     numericHeaders: string[];
     categoricalHeaders: string[];
+    allHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
     onFileSelected: (file: File) => void;
     isUploading: boolean;
 }
 
+function RegressionResultDisplay({ results }: { results: any }) {
+    if (!results) return null;
+    const residualChartData = results.predictions.map((p: number, i: number) => ({ prediction: p, residual: results.residuals[i]}));
+
+    return (
+         <div className="space-y-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Training Results</CardTitle>
+                    <CardDescription>Performance metrics for the trained regression model.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">R-squared</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.metrics.r2.toFixed(3)}</p></CardContent></Card>
+                        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">RMSE</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.metrics.rmse.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p></CardContent></Card>
+                        <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">MAE</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.metrics.mae.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p></CardContent></Card>
+                    </div>
+
+                     <div className="grid md:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader><CardTitle className="text-base">Actual vs. Predicted</CardTitle></CardHeader>
+                            <CardContent>
+                                <ChartContainer config={{}} className="h-[250px] w-full">
+                                    <ResponsiveContainer>
+                                        <ScatterChart>
+                                            <CartesianGrid strokeDasharray="3 3"/>
+                                            <XAxis type="number" dataKey="actual" name="Actual" label={{ value: 'Actual Values', position: 'insideBottom', offset: -5 }}/>
+                                            <YAxis type="number" dataKey="predicted" name="Predicted" label={{ value: 'Predicted Values', angle: -90, position: 'insideLeft' }}/>
+                                            <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
+                                            <Scatter name="Predictions" data={results.predictions.map((p:number, i:number) => ({actual: results.actuals[i], predicted: p}))} fill="hsl(var(--chart-1))" />
+                                            <ReferenceLine ifOverflow="extendDomain" x={0} y={0} stroke="#666" strokeDasharray="5 5" />
+                                        </ScatterChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader><CardTitle className="text-base">Residual Analysis</CardTitle></CardHeader>
+                            <CardContent>
+                                <ChartContainer config={{}} className="h-[250px] w-full">
+                                     <ResponsiveContainer>
+                                        <ScatterChart>
+                                            <CartesianGrid strokeDasharray="3 3"/>
+                                            <XAxis type="number" dataKey="prediction" name="Predicted" label={{ value: 'Predicted Values', position: 'insideBottom', offset: -5 }}/>
+                                            <YAxis type="number" dataKey="residual" name="Residual" label={{ value: 'Residuals', angle: -90, position: 'insideLeft' }}/>
+                                            <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
+                                            <Scatter name="Residuals" data={residualChartData} fill="hsl(var(--chart-2))" />
+                                             <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
+                                        </ScatterChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
+function DnnRegressionPage({ data, numericHeaders, categoricalHeaders, onLoadExample, onFileSelected, isUploading, allHeaders }: DnnPageProps) {
+    const [target, setTarget] = useState<string | undefined>(numericHeaders[0]);
+    const [features, setFeatures] = useState<string[]>(allHeaders.filter(h => h !== numericHeaders[0]));
+    const [model, setModel] = useState<'linear' | 'random_forest' | 'gbm'>('linear');
+    
+    const [preprocessing, setPreprocessing] = useState<PreprocessingOptions>({ handleMissing: 'mean', scale: true });
+    
+    const [isLoading, setIsLoading] = useState(false);
+    const [trainingResults, setTrainingResults] = useState<any>(null);
+
+     const handleFeatureChange = (header: string, checked: boolean) => {
+        setFeatures(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+    };
+
+    const handleTrainModel = () => {
+        setIsLoading(true);
+        setTrainingResults(null);
+        console.log("Training regression model:", { target, features, model, preprocessing });
+        setTimeout(() => {
+            const actuals = Array.from({ length: 50 }, () => 150000 + Math.random() * 600000);
+            const predictions = actuals.map(a => a + (Math.random() - 0.5) * 100000);
+            const residuals = actuals.map((a, i) => a - predictions[i]);
+            
+            setTrainingResults({
+                metrics: { r2: 0.88, rmse: 50000, mae: 35000 },
+                actuals,
+                predictions,
+                residuals
+            });
+            setIsLoading(false);
+        }, 3000);
+    };
+
+    const gbmRegressionExample = exampleDatasets.find(ex => ex.id === 'gbm-regression');
+
+    if (data.length === 0) {
+        return (
+             <div className="flex flex-1 items-center justify-center h-full">
+                <Card className="w-full max-w-2xl text-center">
+                    <CardHeader>
+                        <CardTitle className="font-headline">Regression Analysis</CardTitle>
+                        <CardDescription>
+                            Upload a dataset with numeric features and a numeric target, or try our example.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <DataUploader onFileSelected={onFileSelected} loading={isUploading} />
+                        {gbmRegressionExample && (
+                            <>
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or</span></div>
+                                </div>
+                                 <Button variant="secondary" className="w-full" onClick={() => onLoadExample(gbmRegressionExample)}>
+                                    <gbmRegressionExample.icon className="mr-2"/>
+                                    Load House Price Dataset
+                                </Button>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Variable /> 1. Select Variables</CardTitle>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-4">
+                     <div>
+                        <Label>Target Variable (Numeric)</Label>
+                        <Select value={target} onValueChange={setTarget}><SelectTrigger><SelectValue placeholder="Select target..." /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                     <div>
+                        <Label>Feature Variables</Label>
+                        <div className="p-2 border rounded-md h-24 overflow-y-auto">
+                            {allHeaders.filter(h => h !== target).map(h => (
+                                <div key={h} className="flex items-center space-x-2">
+                                     <Checkbox id={`feat-${h}`} checked={features.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
+                                    <Label htmlFor={`feat-${h}`}>{h}</Label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Settings2 /> 2. Configure Analysis</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label>Model Selection</Label>
+                            <Select value={model} onValueChange={(v) => setModel(v as any)}><SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="linear">Linear Regression</SelectItem>
+                                    <SelectItem value="random_forest">Random Forest</SelectItem>
+                                    <SelectItem value="gbm">Gradient Boosting</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div className="space-y-2">
+                            <Label>Preprocessing Options</Label>
+                            <div className="p-4 border rounded-lg space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="handle-missing">Handle Missing Values</Label>
+                                    <Select value={preprocessing.handleMissing} onValueChange={(v) => setPreprocessing(p => ({...p, handleMissing: v as any}))}><SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="mean">Mean</SelectItem>
+                                            <SelectItem value="median">Median</SelectItem>
+                                            <SelectItem value="drop">Drop Row</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="scale-data">Standardize Data (Scaling)</Label>
+                                    <Switch id="scale-data" checked={preprocessing.scale} onCheckedChange={(c) => setPreprocessing(p => ({...p, scale: c}))} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                    <Button onClick={handleTrainModel} disabled={isLoading}>
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Training...</> : <><Sigma className="mr-2" />Train Model</>}
+                    </Button>
+                </CardFooter>
+            </Card>
+
+            {isLoading && <Card><CardHeader><CardTitle>Training in Progress...</CardTitle></CardHeader><CardContent className="flex justify-center p-8"><Loader2 className="h-12 w-12 text-primary animate-spin" /></CardContent></Card>}
+            {trainingResults && <RegressionResultDisplay results={trainingResults} />}
+        </div>
+    );
+}
 
 const PredictionExamplesTable = ({ examples, problemType }: { examples: any[], problemType: 'regression' | 'classification' }) => {
     if (!examples || examples.length === 0) return null;
@@ -98,290 +293,34 @@ const PredictionExamplesTable = ({ examples, problemType }: { examples: any[], p
     );
 }
 
-function DnnRegressionPage({ data, numericHeaders, onLoadExample, onFileSelected, isUploading }: DnnPageProps) {
-    const [layers, setLayers] = useState<Layer[]>([
-        { id: 1, neurons: 128, activation: 'relu' },
-        { id: 2, neurons: 64, activation: 'relu' },
-    ]);
+function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, allHeaders, onLoadExample, onFileSelected, isUploading }: DnnPageProps) {
+    const [target, setTarget] = useState<string | undefined>(categoricalHeaders[0]);
+    const [features, setFeatures] = useState<string[]>(allHeaders.filter(h => h !== categoricalHeaders[0]));
+    const [model, setModel] = useState<'logistic' | 'random_forest' | 'gbm'>('logistic');
+    const [preprocessing, setPreprocessing] = useState<PreprocessingOptions>({ handleMissing: 'mean', scale: true });
+    
     const [isLoading, setIsLoading] = useState(false);
     const [trainingResults, setTrainingResults] = useState<any>(null);
 
-    const addLayer = () => {
-        const newId = (layers.at(-1)?.id || 0) + 1;
-        setLayers([...layers, { id: newId, neurons: 32, activation: 'relu' }]);
-    };
-    
-    const removeLayer = (id: number) => {
-        if (layers.length > 1) {
-            setLayers(layers.filter(layer => layer.id !== id));
-        }
-    };
-
-    const updateLayer = (id: number, field: keyof Omit<Layer, 'id'>, value: any) => {
-        setLayers(layers.map(layer => layer.id === id ? { ...layer, [field]: value } : layer));
+    const handleFeatureChange = (header: string, checked: boolean) => {
+        setFeatures(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
     };
     
     const handleTrainModel = () => {
         setIsLoading(true);
         setTrainingResults(null);
-        console.log("Training regression model with layers:", layers);
-        setTimeout(() => {
-            const mockHistory = Array.from({ length: 20 }, (_, i) => ({
-                epoch: i + 1,
-                loss: 15000 - (i * 600) + (Math.random() * 1000),
-                val_loss: 16000 - (i * 550) + (Math.random() * 1200),
-            }));
-
-            const mockPredictions = Array.from({length: 20}, () => ({
-                actual: 300000 + Math.random() * 400000,
-                predicted: 300000 + Math.random() * 400000,
-            }));
-            
-            const predictionExamples = mockPredictions.slice(0, 10).map(p => {
-                const error = p.actual - p.predicted;
-                return {
-                    actual: p.actual,
-                    predicted: p.predicted,
-                    error: Math.abs(error),
-                    error_percent: p.actual !== 0 ? (Math.abs(error) / p.actual) * 100 : 0
-                }
-            });
-
-
-            setTrainingResults({
-                history: mockHistory,
-                metrics: { r2: 0.88, mse: 12345.67, rmse: 111.11 },
-                predictions: mockPredictions,
-                predictionExamples: predictionExamples,
-            });
-            setIsLoading(false);
-        }, 3000);
-    };
-
-    const gbmRegressionExample = exampleDatasets.find(ex => ex.id === 'gbm-regression');
-
-    if (data.length === 0) {
-        return (
-             <div className="flex flex-1 items-center justify-center h-full">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">DNN Regression</CardTitle>
-                        <CardDescription>
-                            Upload a dataset with numeric features and a numeric target, or try our example.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <DataUploader onFileSelected={onFileSelected} loading={isUploading} />
-                        {gbmRegressionExample && (
-                            <>
-                                <div className="relative">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <span className="w-full border-t" />
-                                    </div>
-                                    <div className="relative flex justify-center text-xs uppercase">
-                                        <span className="bg-background px-2 text-muted-foreground">
-                                        Or
-                                        </span>
-                                    </div>
-                                </div>
-                                 <Button variant="secondary" className="w-full" onClick={() => onLoadExample(gbmRegressionExample)}>
-                                    <gbmRegressionExample.icon className="mr-2"/>
-                                    Load House Price Dataset
-                                </Button>
-                            </>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-        )
-    }
-
-    return (
-        <div className="space-y-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">1. Data & Variables</CardTitle>
-                    <CardDescription>Select your target (what to predict) and feature (predictor) variables.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-4">
-                     <div>
-                        <Label>Target Variable (Numeric)</Label>
-                        <Select>
-                            <SelectTrigger><SelectValue placeholder="Select target..." /></SelectTrigger>
-                            <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                        </Select>
-                    </div>
-                     <div>
-                        <Label>Feature Variables</Label>
-                        <div className="p-2 border rounded-md h-24 overflow-y-auto">
-                            {numericHeaders.slice(0,-1).map(h => <div key={h} className="text-sm">{h}</div>)}
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2"><Layers /> 2. Model Architecture</CardTitle>
-                    <CardDescription>Define the layers of your Deep Neural Network for regression.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {layers.map((layer, index) => (
-                        <div key={layer.id} className="flex items-center gap-4 p-3 border rounded-lg">
-                            <Label className="font-semibold">Layer {index + 1}</Label>
-                            <div className="flex-1 grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor={`neurons-${layer.id}`}>Neurons</Label>
-                                    <Input id={`neurons-${layer.id}`} type="number" value={layer.neurons} onChange={(e) => updateLayer(layer.id, 'neurons', parseInt(e.target.value) || 0)} min="1"/>
-                                </div>
-                                <div>
-                                    <Label htmlFor={`activation-${layer.id}`}>Activation</Label>
-                                    <Select value={layer.activation} onValueChange={(value) => updateLayer(layer.id, 'activation', value)}>
-                                        <SelectTrigger id={`activation-${layer.id}`}><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="relu">ReLU</SelectItem>
-                                            <SelectItem value="sigmoid">Sigmoid</SelectItem>
-                                            <SelectItem value="tanh">Tanh</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={() => removeLayer(layer.id)} disabled={layers.length <= 1}>
-                                <Trash2 className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                        </div>
-                    ))}
-                     <Button variant="outline" onClick={addLayer}><Plus className="mr-2" /> Add Layer</Button>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                    <Button onClick={handleTrainModel} disabled={isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Training...</> : <><Sigma className="mr-2" />Train Model</>}
-                    </Button>
-                </CardFooter>
-            </Card>
-
-            {isLoading && (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">3. Training in Progress...</CardTitle>
-                        <CardDescription>The regression model is being trained.</CardDescription>
-                    </CardHeader>
-                     <CardContent className="flex flex-col items-center gap-4 p-8">
-                        <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                        <p className="text-muted-foreground">Epoch 7/20 - Loss: 9876.54</p>
-                    </CardContent>
-                </Card>
-            )}
-
-            {trainingResults && (
-                <div className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">3. Training Results</CardTitle>
-                            <CardDescription>Performance metrics and visualizations for the trained regression model.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">R-squared</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.r2.toFixed(2)}</p></CardContent></Card>
-                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">MSE</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.mse.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p></CardContent></Card>
-                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">RMSE</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.rmse.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p></CardContent></Card>
-                            </div>
-
-                             <div className="grid md:grid-cols-2 gap-4">
-                                <Card>
-                                    <CardHeader><CardTitle className="text-base">Training History (Loss)</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <ChartContainer config={{loss: {label: 'Loss', color: 'hsl(var(--chart-1))'}, val_loss: {label: 'Validation Loss', color: 'hsl(var(--chart-2))'}}} className="h-[250px] w-full">
-                                            <LineChart data={trainingResults.history}>
-                                                <CartesianGrid strokeDasharray="3 3"/>
-                                                <XAxis dataKey="epoch" label={{ value: 'Epoch', position: 'insideBottom', offset: -5 }}/>
-                                                <YAxis label={{ value: 'Loss', angle: -90, position: 'insideLeft' }}/>
-                                                <Tooltip content={<ChartTooltipContent />} />
-                                                <Legend verticalAlign="top"/>
-                                                <Line type="monotone" dataKey="loss" stroke="var(--color-loss)" dot={false} />
-                                                <Line type="monotone" dataKey="val_loss" stroke="var(--color-val_loss)" dot={false} strokeDasharray="5 5"/>
-                                            </LineChart>
-                                        </ChartContainer>
-                                    </CardContent>
-                                </Card>
-                                 <Card>
-                                    <CardHeader><CardTitle className="text-base">Actual vs. Predicted</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <ChartContainer config={{}} className="h-[250px] w-full">
-                                            <ResponsiveContainer>
-                                                <ScatterChart>
-                                                    <CartesianGrid strokeDasharray="3 3"/>
-                                                    <XAxis type="number" dataKey="actual" name="Actual" label={{ value: 'Actual Values', position: 'insideBottom', offset: -5 }}/>
-                                                    <YAxis type="number" dataKey="predicted" name="Predicted" label={{ value: 'Predicted Values', angle: -90, position: 'insideLeft' }}/>
-                                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
-                                                    <Scatter name="Predictions" data={trainingResults.predictions} fill="hsl(var(--chart-1))" />
-                                                </ScatterChart>
-                                            </ResponsiveContainer>
-                                        </ChartContainer>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <PredictionExamplesTable examples={trainingResults.predictionExamples} problemType="regression" />
-                </div>
-            )}
-        </div>
-    );
-}
-
-function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, onLoadExample, onFileSelected, isUploading }: DnnPageProps) {
-    const [layers, setLayers] = useState<Layer[]>([
-        { id: 1, neurons: 128, activation: 'relu' },
-        { id: 2, neurons: 64, activation: 'relu' },
-    ]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [trainingResults, setTrainingResults] = useState<any>(null);
-
-    const addLayer = () => {
-        const newId = (layers.at(-1)?.id || 0) + 1;
-        setLayers([...layers, { id: newId, neurons: 32, activation: 'relu' }]);
-    };
-    
-    const removeLayer = (id: number) => {
-        if (layers.length > 1) {
-            setLayers(layers.filter(layer => layer.id !== id));
-        }
-    };
-
-    const updateLayer = (id: number, field: keyof Omit<Layer, 'id'>, value: any) => {
-        setLayers(layers.map(layer => layer.id === id ? { ...layer, [field]: value } : layer));
-    };
-    
-    const handleTrainModel = () => {
-        setIsLoading(true);
-        setTrainingResults(null);
-        console.log("Training model with layers:", layers);
+        console.log("Training classification model:", { target, features, model, preprocessing });
         setTimeout(() => {
             // Mock training results
-            const mockHistory = Array.from({ length: 20 }, (_, i) => ({
-                epoch: i + 1,
-                loss: 0.8 - (i * 0.035) + (Math.random() * 0.1),
-                accuracy: 0.6 + (i * 0.018) + (Math.random() * 0.05),
-                val_loss: 0.75 - (i * 0.025) + (Math.random() * 0.12),
-                val_accuracy: 0.65 + (i * 0.015) + (Math.random() * 0.06),
-            }));
-
-            const predictionExamples = Array.from({length: 10}, () => {
-                const actual = Math.random() > 0.5 ? 'Yes' : 'No';
-                const predicted = Math.random() > 0.3 ? actual : (actual === 'Yes' ? 'No' : 'Yes');
-                return {
-                    actual,
-                    predicted,
-                    status: actual === predicted ? '✅' : '❌',
-                    confidence: 0.7 + Math.random() * 0.3
-                }
-            })
-
             setTrainingResults({
-                history: mockHistory,
-                metrics: { accuracy: 0.92, precision: 0.91, recall: 0.93, f1_score: 0.92 },
+                metrics: { accuracy: 0.92, precision: 0.91, recall: 0.93, f1: 0.92, auc: 0.97 },
                 confusion_matrix: [[102, 8], [5, 115]], // Example confusion matrix
-                predictionExamples: predictionExamples,
+                feature_importance: Object.fromEntries(features.slice(0, 10).map(f => [f, Math.random()]).sort((a,b) => b[1] - a[1])),
+                predictionExamples: Array.from({length: 10}, () => {
+                    const actual = Math.random() > 0.5 ? 'Yes' : 'No';
+                    const predicted = Math.random() > 0.3 ? actual : (actual === 'Yes' ? 'No' : 'Yes');
+                    return { actual, predicted, status: actual === predicted ? <Check className="text-green-500" /> : <X className="text-destructive" />, confidence: 0.7 + Math.random() * 0.3 }
+                })
             });
             setIsLoading(false);
         }, 3000);
@@ -394,7 +333,7 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, onLoa
              <div className="flex flex-1 items-center justify-center h-full">
                 <Card className="w-full max-w-2xl text-center">
                     <CardHeader>
-                        <CardTitle className="font-headline">DNN Classification</CardTitle>
+                        <CardTitle className="font-headline">Classification Analysis</CardTitle>
                         <CardDescription>
                             Upload a dataset with numeric features and a categorical target, or try our example.
                         </CardDescription>
@@ -404,14 +343,8 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, onLoa
                         {irisExample && (
                             <>
                                 <div className="relative">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <span className="w-full border-t" />
-                                    </div>
-                                    <div className="relative flex justify-center text-xs uppercase">
-                                        <span className="bg-background px-2 text-muted-foreground">
-                                        Or
-                                        </span>
-                                    </div>
+                                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or</span></div>
                                 </div>
                                  <Button variant="secondary" className="w-full" onClick={() => onLoadExample(irisExample)}>
                                     <irisExample.icon className="mr-2"/>
@@ -428,22 +361,23 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, onLoa
     return (
         <div className="space-y-4">
             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">1. Data & Variables</CardTitle>
-                    <CardDescription>Select your target (what to predict) and feature (predictor) variables.</CardDescription>
+                 <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2"><Variable /> 1. Select Variables</CardTitle>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-4">
                      <div>
                         <Label>Target Variable (Categorical)</Label>
-                        <Select>
-                            <SelectTrigger><SelectValue placeholder="Select target..." /></SelectTrigger>
-                            <SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                        </Select>
+                        <Select value={target} onValueChange={setTarget}><SelectTrigger><SelectValue placeholder="Select target..." /></SelectTrigger><SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
                     </div>
                      <div>
-                        <Label>Feature Variables (Numeric)</Label>
+                        <Label>Feature Variables</Label>
                         <div className="p-2 border rounded-md h-24 overflow-y-auto">
-                            {numericHeaders.map(h => <div key={h} className="text-sm">{h}</div>)}
+                            {allHeaders.filter(h => h !== target).map(h => (
+                                <div key={h} className="flex items-center space-x-2">
+                                     <Checkbox id={`feat-clf-${h}`} checked={features.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
+                                    <Label htmlFor={`feat-clf-${h}`}>{h}</Label>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </CardContent>
@@ -451,46 +385,40 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, onLoa
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2"><Layers /> 2. Model Architecture</CardTitle>
-                    <CardDescription>Define the layers of your Deep Neural Network.</CardDescription>
+                    <CardTitle className="font-headline flex items-center gap-2"><Settings2 /> 2. Configure Analysis</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {layers.map((layer, index) => (
-                        <div key={layer.id} className="flex items-center gap-4 p-3 border rounded-lg">
-                            <Label className="font-semibold">Layer {index + 1}</Label>
-                            <div className="flex-1 grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor={`neurons-${layer.id}`}>Neurons</Label>
-                                    <Input
-                                        id={`neurons-${layer.id}`}
-                                        type="number"
-                                        value={layer.neurons}
-                                        onChange={(e) => updateLayer(layer.id, 'neurons', parseInt(e.target.value) || 0)}
-                                        min="1"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor={`activation-${layer.id}`}>Activation</Label>
-                                    <Select
-                                        value={layer.activation}
-                                        onValueChange={(value) => updateLayer(layer.id, 'activation', value)}
-                                    >
-                                        <SelectTrigger id={`activation-${layer.id}`}><SelectValue /></SelectTrigger>
+                     <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label>Model Selection</Label>
+                            <Select value={model} onValueChange={(v) => setModel(v as any)}><SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="logistic">Logistic Regression</SelectItem>
+                                    <SelectItem value="random_forest">Random Forest</SelectItem>
+                                    <SelectItem value="gbm">Gradient Boosting</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div className="space-y-2">
+                            <Label>Preprocessing Options</Label>
+                            <div className="p-4 border rounded-lg space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="handle-missing-clf">Handle Missing Values</Label>
+                                    <Select value={preprocessing.handleMissing} onValueChange={(v) => setPreprocessing(p => ({...p, handleMissing: v as any}))}><SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="relu">ReLU</SelectItem>
-                                            <SelectItem value="sigmoid">Sigmoid</SelectItem>
-                                            <SelectItem value="tanh">Tanh</SelectItem>
-                                            <SelectItem value="softmax">Softmax</SelectItem>
+                                            <SelectItem value="mean">Mean</SelectItem>
+                                            <SelectItem value="median">Median</SelectItem>
+                                            <SelectItem value="drop">Drop Row</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="scale-data-clf">Standardize Data (Scaling)</Label>
+                                    <Switch id="scale-data-clf" checked={preprocessing.scale} onCheckedChange={(c) => setPreprocessing(p => ({...p, scale: c}))} />
+                                </div>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={() => removeLayer(layer.id)} disabled={layers.length <= 1}>
-                                <Trash2 className="h-4 w-4 text-muted-foreground" />
-                            </Button>
                         </div>
-                    ))}
-                     <Button variant="outline" onClick={addLayer}><Plus className="mr-2" /> Add Layer</Button>
+                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleTrainModel} disabled={isLoading}>
@@ -500,48 +428,37 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, onLoa
             </Card>
             
             {isLoading && (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">3. Training in Progress...</CardTitle>
-                        <CardDescription>The model is being trained. This may take a moment.</CardDescription>
-                    </CardHeader>
-                     <CardContent className="flex flex-col items-center gap-4 p-8">
-                        <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                        <p className="text-muted-foreground">Epoch 5/20 - Loss: 0.45, Accuracy: 0.78</p>
-                    </CardContent>
-                </Card>
+                 <Card><CardHeader><CardTitle>Training in Progress...</CardTitle></CardHeader><CardContent className="flex justify-center p-8"><Loader2 className="h-12 w-12 text-primary animate-spin" /></CardContent></Card>
             )}
 
             {trainingResults && (
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">3. Training Results</CardTitle>
-                            <CardDescription>Performance metrics and visualizations for the trained model.</CardDescription>
+                            <CardTitle className="font-headline">Training Results</CardTitle>
+                            <CardDescription>Performance metrics for the trained classification model.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                                 <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Accuracy</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{(trainingResults.metrics.accuracy * 100).toFixed(1)}%</p></CardContent></Card>
-                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Precision</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.precision.toFixed(2)}</p></CardContent></Card>
-                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Recall</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.recall.toFixed(2)}</p></CardContent></Card>
-                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">F1-Score</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.f1_score.toFixed(2)}</p></CardContent></Card>
+                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">F1-Score</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.f1.toFixed(3)}</p></CardContent></Card>
+                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">AUC</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.auc.toFixed(3)}</p></CardContent></Card>
+                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Precision</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.precision.toFixed(3)}</p></CardContent></Card>
                             </div>
-
                              <div className="grid md:grid-cols-2 gap-4">
                                 <Card>
-                                    <CardHeader><CardTitle className="text-base">Training History</CardTitle></CardHeader>
+                                    <CardHeader><CardTitle className="text-base">Feature Importance (XAI)</CardTitle></CardHeader>
                                     <CardContent>
-                                        <ChartContainer config={{loss: {label: 'Loss', color: 'hsl(var(--chart-1))'}, accuracy: {label: 'Accuracy', color: 'hsl(var(--chart-2))'}}} className="h-[250px] w-full">
-                                            <LineChart data={trainingResults.history}>
-                                                <CartesianGrid strokeDasharray="3 3"/>
-                                                <XAxis dataKey="epoch" label={{ value: 'Epoch', position: 'insideBottom', offset: -5 }}/>
-                                                <YAxis yAxisId="left" label={{ value: 'Loss', angle: -90, position: 'insideLeft' }}/>
-                                                <YAxis yAxisId="right" orientation="right" label={{ value: 'Accuracy', angle: -90, position: 'insideRight' }}/>
-                                                <Tooltip content={<ChartTooltipContent />} />
-                                                <Legend verticalAlign="top"/>
-                                                <Line yAxisId="left" type="monotone" dataKey="loss" stroke="var(--color-loss)" dot={false} />
-                                                <Line yAxisId="right" type="monotone" dataKey="accuracy" stroke="var(--color-accuracy)" dot={false} />
-                                            </LineChart>
+                                        <ChartContainer config={{}} className="h-[250px] w-full">
+                                            <ResponsiveContainer>
+                                                <BarChart data={Object.entries(trainingResults.feature_importance).map(([name, value]) => ({name, value})).sort((a,b) => a.value - b.value)} layout="vertical" margin={{left: 100}}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis type="number" />
+                                                    <YAxis dataKey="name" type="category" tick={{fontSize: 10}}/>
+                                                    <Tooltip content={<ChartTooltipContent />} />
+                                                    <Bar dataKey="value" name="Importance" fill="hsl(var(--chart-1))" radius={4} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
                                         </ChartContainer>
                                     </CardContent>
                                 </Card>
@@ -800,6 +717,7 @@ export default function DeepLearningApp() {
                 data,
                 numericHeaders,
                 categoricalHeaders,
+                allHeaders,
                 onLoadExample: handleLoadExampleData,
                 onFileSelected: handleFileSelected,
                 isUploading,
