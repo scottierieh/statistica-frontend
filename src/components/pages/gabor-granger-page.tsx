@@ -126,6 +126,11 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
     
     const results = analysisResult?.results;
 
+    const formattedInterpretation = useMemo(() => {
+        if (!results?.interpretation) return [];
+        return results.interpretation.split('\n').filter(line => line.trim() !== '');
+    }, [results]);
+
     return (
         <div className="space-y-4">
             <Card>
@@ -207,7 +212,11 @@ export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }
                                 <Alert>
                                     <AlertTriangle className="h-4 w-4" />
                                     <AlertTitle>Summary of Findings</AlertTitle>
-                                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }} />
+                                    <AlertDescription className="space-y-2">
+                                        {formattedInterpretation.map((line, index) => (
+                                          <p key={index} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                                        ))}
+                                    </AlertDescription>
                                 </Alert>
                             </CardContent>
                         </Card>
