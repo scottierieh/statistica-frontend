@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -61,6 +60,7 @@ import {
   GitCommit,
   DollarSign,
   ThumbsUp,
+  Search,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
