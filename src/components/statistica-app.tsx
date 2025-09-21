@@ -135,9 +135,10 @@ import SurveyApp from './survey-app';
 import VanWestendorpPage from './pages/van-westendorp-page';
 import GaborGrangerPage from './pages/gabor-granger-page';
 import MaxDiffPage from './pages/maxdiff-page';
+import BinomialTestPage from './pages/binomial-test-page';
 
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -207,6 +208,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'van-westendorp': VanWestendorpPage,
     'gabor-granger': GaborGrangerPage,
     'maxdiff': MaxDiffPage,
+    'binomial-test': BinomialTestPage,
 };
 
 const analysisMenu = [
@@ -225,6 +227,12 @@ const analysisMenu = [
     field: 'Hypothesis Testing',
     icon: Sigma,
     subCategories: [
+      {
+        name: 'Proportion Tests',
+        methods: [
+           { id: 'binomial-test', label: 'Binomial Test' },
+        ]
+      },
       {
         name: 'T-Test',
         methods: [
