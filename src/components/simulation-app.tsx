@@ -16,7 +16,7 @@ import {
 import GradientDescentPage from "./pages/gradient-descent-page";
 import CentralLimitTheoremPage from './pages/central-limit-theorem-page';
 import MarketingAnalysisPage from './pages/marketing-analysis-page';
-import RmAnovaSimulationPage from './pages/rm-anova-simulation-page';
+import PingouinRmAnovaPage from './pages/repeated-measures-anova-page';
 import { FastForward, PlayCircle, TrendingUp, BarChart, Repeat } from 'lucide-react';
 import type { ExampleDataSet } from '@/lib/example-datasets';
 import { DataSet, parseData, unparseData } from '@/lib/stats';
@@ -33,7 +33,7 @@ const simulationPages: Record<string, React.ComponentType<any>> = {
   'gradient-descent': GradientDescentPage,
   'central-limit-theorem': CentralLimitTheoremPage,
   'marketing-analysis': MarketingAnalysisPage,
-  'repeated-measures-anova': RmAnovaSimulationPage,
+  'repeated-measures-anova': PingouinRmAnovaPage,
 };
 
 export default function SimulationApp() {
@@ -200,7 +200,7 @@ export default function SimulationApp() {
                   isActive={activeSimulation === 'repeated-measures-anova'}
                 >
                   <Repeat />
-                  <span>RM ANOVA</span>
+                  <span>Repeated Measures ANOVA</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
