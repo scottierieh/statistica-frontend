@@ -162,8 +162,6 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'friedman': NonParametricPage,
     'mcnemar': NonParametricPage,
     hca: HcaPage,
-    manova: ManovaPage,
-    'rm-anova': PingouinRmAnovaPage,
     'rm-anova-pingouin': PingouinRmAnovaPage,
     'regression-simple': RegressionPage,
     'regression-multiple': RegressionPage,
@@ -250,8 +248,7 @@ const analysisMenu = [
         methods: [
             { id: 'one-way-anova', label: 'One-Way ANOVA' },
             { id: 'two-way-anova', label: 'Two-Way ANOVA' },
-            { id: 'rm-anova', label: 'Repeated Measures ANOVA' },
-            { id: 'rm-anova-pingouin', label: 'RM ANOVA (Pingouin)' },
+            { id: 'rm-anova-pingouin', label: 'Repeated Measures ANOVA' },
             { id: 'ancova', label: 'ANCOVA' },
             { id: 'manova', label: 'MANOVA' },
             { id: 'mancova', label: 'MANCOVA' },
