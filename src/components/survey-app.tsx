@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -647,7 +648,7 @@ const BestWorstQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpl
     );
 };
 
-const NPSQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
+const NPSQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: number; onAnswerChange?: (value: number) => void; onDelete?: (id: number) => void; onUpdate?: (q: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
     <div className={cn("p-4", cardClassName)}>
        <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
@@ -685,7 +686,7 @@ const NPSQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, c
       )}
       <div className="flex items-center justify-between gap-1 flex-wrap">
         {[...Array(11)].map((_, i) => (
-            <Button key={i} variant={answer === i ? 'default' : 'outline'} size="icon" className="h-10 w-8 text-xs transition-transform hover:scale-110 active:scale-95" onClick={() => onAnswerChange(i)}>
+            <Button key={i} variant={answer === i ? 'default' : 'outline'} size="icon" className="h-10 w-8 text-xs transition-transform hover:scale-110 active:scale-95" onClick={() => onAnswerChange?.(i)}>
                 {i}
             </Button>
         ))}
@@ -842,21 +843,11 @@ const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number
 const AnalysisDisplayShell = ({ children, varName, onChartTypeChange, currentChartType, availableChartTypes }: { children: React.ReactNode, varName: string, onChartTypeChange?: (type: string) => void, currentChartType?: string, availableChartTypes?: string[] }) => {
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-start justify-between">
                 <CardTitle>{varName}</CardTitle>
-                 <div className="flex items-center gap-2">
-                    {onChartTypeChange && availableChartTypes && (
-                        <Select value={currentChartType} onValueChange={onChartTypeChange}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableChartTypes.map(type => (
-                                    <SelectItem key={type} value={type}>{type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon"><ZoomIn className="w-4 h-4"/></Button>
+                    <Button variant="ghost" size="icon"><Download className="w-4 h-4"/></Button>
                 </div>
             </CardHeader>
             <CardContent>
@@ -873,12 +864,8 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
       <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader>
                        <CardTitle className="text-base">Distribution</CardTitle>
-                       <div className="flex items-center gap-2">
-                         <Button variant="ghost" size="icon"><ZoomIn className="w-4 h-4"/></Button>
-                         <Button variant="ghost" size="icon"><Download className="w-4 h-4"/></Button>
-                       </div>
                     </CardHeader>
                     <CardContent>
                          <ChartContainer config={{ percentage: { label: "Percentage" } }} className="w-full h-[300px]">
@@ -2190,7 +2177,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList className="flex flex-wrap h-auto justify-start">
+                <TabsList className="grid w-full grid-cols-3 md:flex md:flex-wrap md:h-auto md:justify-start">
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                     <TabsTrigger value="analysis-detail">Detailed Analysis</TabsTrigger>
@@ -2642,6 +2629,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                             return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} /><p>{chartData.avg.toFixed(2)} / 5</p></div>;
                                                         case 'nps':
                                                             return <div className="text-5xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
+                                                        case 'text':
+                                                            return <p className="text-sm text-muted-foreground p-4">Text analysis visual coming soon.</p>;
                                                         default: return <p>Chart not available.</p>;
                                                     }
                                                 };
@@ -2732,4 +2721,5 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
+
 
