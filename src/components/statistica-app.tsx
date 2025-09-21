@@ -53,7 +53,6 @@ import {
   LineChart,
   Layers,
   Map,
-  Repeat,
   ScanSearch,
   Atom,
   MessagesSquare,
@@ -121,7 +120,6 @@ import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
 import ArimaPage from './pages/arima-page';
 import AcfPacfPage from './pages/acf-pacf-page';
 import MdsPage from './pages/mds-page';
-import PingouinRmAnovaPage from './pages/repeated-measures-anova-page';
 import DbscanPage from './pages/dbscan-page';
 import NonlinearRegressionPage from './pages/nonlinear-regression-page';
 import SnaPage from './pages/sna-page';
@@ -139,7 +137,7 @@ import BinomialTestPage from './pages/binomial-test-page';
 import MixedModelPage from './pages/mixed-model-page';
 
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'rm-anova-pingouin' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'mancova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -162,7 +160,6 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'friedman': NonParametricPage,
     'mcnemar': NonParametricPage,
     hca: HcaPage,
-    'rm-anova-pingouin': PingouinRmAnovaPage,
     'regression-simple': RegressionPage,
     'regression-multiple': RegressionPage,
     'regression-polynomial': RegressionPage,
@@ -248,7 +245,6 @@ const analysisMenu = [
         methods: [
             { id: 'one-way-anova', label: 'One-Way ANOVA' },
             { id: 'two-way-anova', label: 'Two-Way ANOVA' },
-            { id: 'rm-anova-pingouin', label: 'Repeated Measures ANOVA' },
             { id: 'ancova', label: 'ANCOVA' },
             { id: 'manova', label: 'MANOVA' },
             { id: 'mancova', label: 'MANCOVA' },
@@ -756,3 +752,4 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
