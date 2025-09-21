@@ -685,7 +685,7 @@ const NPSQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, c
       )}
       <div className="flex items-center justify-between gap-1 flex-wrap">
         {[...Array(11)].map((_, i) => (
-            <Button key={i} variant="outline" size="icon" className="h-10 w-8 text-xs transition-transform hover:scale-110 active:scale-95" disabled>
+            <Button key={i} variant={answer === i ? 'default' : 'outline'} size="icon" className="h-10 w-8 text-xs transition-transform hover:scale-110 active:scale-95" onClick={() => onAnswerChange(i)}>
                 {i}
             </Button>
         ))}
@@ -752,13 +752,13 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, isPreview, cardClassName
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
                             </TableCell>
                             <RadioGroup asChild value={undefined}>
-                                <React.Fragment>
-                                    {question.columns.map((col: string, colIndex: number) => (
-                                        <TableCell key={colIndex} className="text-center">
-                                             <RadioGroupItem value={`${rowIndex}-${colIndex}`} id={`q${question.id}-r${rowIndex}-c${colIndex}`} disabled/>
-                                        </TableCell>
-                                    ))}
-                                </React.Fragment>
+                                <>
+                                {question.columns.map((col: string, colIndex: number) => (
+                                    <TableCell key={colIndex} className="text-center">
+                                         <RadioGroupItem value={`${rowIndex}-${colIndex}`} id={`q${question.id}-r${rowIndex}-c${colIndex}`} disabled/>
+                                    </TableCell>
+                                ))}
+                                </>
                             </RadioGroup>
                             {!isPreview && (
                                 <TableCell>
@@ -844,7 +844,7 @@ const AnalysisDisplayShell = ({ children, varName, onChartTypeChange, currentCha
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{varName}</CardTitle>
-                <div className="flex items-center gap-2">
+                 <div className="flex items-center gap-2">
                     {onChartTypeChange && availableChartTypes && (
                         <Select value={currentChartType} onValueChange={onChartTypeChange}>
                             <SelectTrigger className="w-[180px]">
@@ -857,8 +857,6 @@ const AnalysisDisplayShell = ({ children, varName, onChartTypeChange, currentCha
                             </SelectContent>
                         </Select>
                     )}
-                    <Button variant="ghost" size="icon"><ZoomIn className="w-5 h-5"/></Button>
-                    <Button variant="ghost" size="icon"><Download className="w-5 h-5"/></Button>
                 </div>
             </CardHeader>
             <CardContent>
@@ -874,23 +872,32 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     return (
       <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="flex items-center justify-center min-h-[300px]">
-                    <ChartContainer config={{ percentage: { label: "Percentage" } }} className="w-full h-[300px]">
-                        <ResponsiveContainer width="100%" height={300}>
-                          <RechartsBarChart data={tableData} layout="vertical" margin={{ left: 100 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                            <XAxis type="number" domain={[0, highestValue > 0 ? Math.ceil(highestValue / 10) * 10 : 10]} unit="%" />
-                            <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
-                            <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} cursor={{fill: 'hsl(var(--muted))'}} />
-                            <Bar dataKey="percentage" radius={[0, 4, 4, 0]}>
-                              {tableData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Bar>
-                          </RechartsBarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                </div>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                       <CardTitle className="text-base">Distribution</CardTitle>
+                       <div className="flex items-center gap-2">
+                         <Button variant="ghost" size="icon"><ZoomIn className="w-4 h-4"/></Button>
+                         <Button variant="ghost" size="icon"><Download className="w-4 h-4"/></Button>
+                       </div>
+                    </CardHeader>
+                    <CardContent>
+                         <ChartContainer config={{ percentage: { label: "Percentage" } }} className="w-full h-[300px]">
+                            <ResponsiveContainer width="100%" height={300}>
+                              <RechartsBarChart data={tableData} layout="vertical" margin={{ left: 100 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                <XAxis type="number" domain={[0, highestValue > 0 ? Math.ceil(highestValue / 10) * 10 : 10]} unit="%" />
+                                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                                <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} cursor={{fill: 'hsl(var(--muted))'}} />
+                                <Bar dataKey="percentage" radius={[0, 4, 4, 0]}>
+                                  {tableData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                  ))}
+                                </Bar>
+                              </RechartsBarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
                 <div className="space-y-4">
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
@@ -915,13 +922,18 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     return (
         <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="flex items-center justify-center min-h-[300px]">
-                    <div className="flex flex-col items-center justify-center h-full gap-4">
-                        <div className="text-7xl font-bold">{chartData.avg.toFixed(2)}</div>
-                        <StarDisplay rating={chartData.avg} />
-                        <p className="text-muted-foreground">{chartData.count} responses</p>
-                    </div>
-                </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Average Rating</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        <div className="flex flex-col items-center justify-center h-full gap-4">
+                            <div className="text-7xl font-bold">{chartData.avg.toFixed(2)}</div>
+                            <StarDisplay rating={chartData.avg} />
+                            <p className="text-muted-foreground">{chartData.count} responses</p>
+                        </div>
+                    </CardContent>
+                </Card>
                  <div className="space-y-4">
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
@@ -961,20 +973,24 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     return (
       <AnalysisDisplayShell varName={varName}>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="flex items-center justify-center min-h-[300px]">
-                    <Plot
-                        data={[{ x: chartData.values, type: 'histogram' }]}
-                        layout={{
-                            title: 'Response Distribution',
-                            autosize: true,
-                            margin: { t: 40, b: 40, l: 40, r: 20 },
-                            bargap: 0.1,
-                        }}
-                        style={{ width: '100%', height: '100%' }}
-                        config={{ displayModeBar: false }}
-                        useResizeHandler
-                    />
-                </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Response Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        <Plot
+                            data={[{ x: chartData.values, type: 'histogram' }]}
+                            layout={{
+                                autosize: true,
+                                margin: { t: 40, b: 40, l: 40, r: 20 },
+                                bargap: 0.1,
+                            }}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            useResizeHandler
+                        />
+                    </CardContent>
+                </Card>
                  <div className="space-y-4">
                     <Card>
                          <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
@@ -1016,19 +1032,24 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
     return (
        <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="flex items-center justify-center min-h-[300px]">
-                    <Plot
-                        data={[{ ...chartData, type: 'bar' }]}
-                        layout={{
-                            autosize: true,
-                            margin: { t: 20, b: 40, l: 100, r: 20 },
-                            xaxis: { title: 'Best-Worst Score (Best count - Worst count)' },
-                        }}
-                        style={{ width: '100%', height: '100%' }}
-                        config={{ displayModeBar: false }}
-                        useResizeHandler
-                    />
-                </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Best-Worst Score</CardTitle>
+                    </CardHeader>
+                     <CardContent className="flex items-center justify-center min-h-[300px]">
+                        <Plot
+                            data={[{ ...chartData, type: 'bar' }]}
+                            layout={{
+                                autosize: true,
+                                margin: { t: 20, b: 40, l: 100, r: 20 },
+                                xaxis: { title: 'Best-Worst Score (Best count - Worst count)' },
+                            }}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            useResizeHandler
+                        />
+                    </CardContent>
+                </Card>
                  <div className="space-y-4">
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
@@ -1073,24 +1094,29 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
     return (
         <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="flex items-center justify-center min-h-[300px]">
-                    <div className="flex flex-col items-center justify-center h-full gap-4">
-                        <div className="text-7xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
-                        <p className="text-muted-foreground">Net Promoter Score</p>
-                        <div className="w-full pt-4">
-                            <div className="flex w-full h-8 rounded-full overflow-hidden">
-                                <div className="bg-red-500" style={{ width: `${chartData.detractorsP}%` }} />
-                                <div className="bg-yellow-400" style={{ width: `${chartData.passivesP}%` }} />
-                                <div className="bg-green-500" style={{ width: `${chartData.promotersP}%` }} />
-                            </div>
-                            <div className="flex justify-between text-xs mt-1">
-                                <span>Detractors</span>
-                                <span>Passives</span>
-                                <span>Promoters</span>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Net Promoter Score</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        <div className="flex flex-col items-center justify-center h-full gap-4">
+                            <div className="text-7xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
+                            <p className="text-muted-foreground">Net Promoter Score</p>
+                            <div className="w-full pt-4">
+                                <div className="flex w-full h-8 rounded-full overflow-hidden">
+                                    <div className="bg-red-500" style={{ width: `${chartData.detractorsP}%` }} />
+                                    <div className="bg-yellow-400" style={{ width: `${chartData.passivesP}%` }} />
+                                    <div className="bg-green-500" style={{ width: `${chartData.promotersP}%` }} />
+                                </div>
+                                <div className="flex justify-between text-xs mt-1">
+                                    <span>Detractors</span>
+                                    <span>Passives</span>
+                                    <span>Promoters</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
                  <div className="space-y-4">
                     <Card>
                          <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
@@ -1165,9 +1191,14 @@ const TextAnalysisDisplay = ({ tableData, insightsData, varName }: { tableData: 
     return (
       <AnalysisDisplayShell varName={varName}>
            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="flex items-center justify-center min-h-[300px]">
-                    {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={`data:image/png;base64,${wordCloudImage}`} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
-                </div>
+                 <Card>
+                    <CardHeader>
+                       <CardTitle className="text-base">Word Cloud</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={`data:image/png;base64,${wordCloudImage}`} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
+                    </CardContent>
+                </Card>
                  <div className="space-y-4">
                     <Card>
                          <CardHeader className="pb-2"><CardTitle className="text-base">Sample Responses</CardTitle></CardHeader>
@@ -1372,35 +1403,8 @@ function GeneralSurveyPageContentFromClient() {
     const searchParams = useSearchParams();
     const surveyId = searchParams.get('id');
     const template = searchParams.get('template');
-    const { toast } = useToast();
-
-    const reloadData = useCallback(() => {
-        if (surveyId) {
-            const savedResponses = localStorage.getItem(`${surveyId}_responses`);
-            if (savedResponses) {
-                // This line causes a re-render by setting state, which is what we want.
-                // However, we don't have a `setResponses` function available here.
-                // This is a structural issue. Let's move state up.
-            }
-        }
-    }, [surveyId]);
-
-
-    if (!surveyId) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Card className="p-8 text-center">
-                    <CardTitle className="text-2xl text-destructive">Survey ID Missing</CardTitle>
-                    <CardDescription className="mt-2">
-                        No survey ID was provided in the URL. Please go back to the dashboard and create a new survey.
-                    </CardDescription>
-                    <Button asChild className="mt-6">
-                        <Link href="/dashboard">Go to Dashboard</Link>
-                    </Button>
-                </Card>
-            </div>
-        );
-    }
+    
+    // We move state management into the child component that depends on the router.
     return <GeneralSurveyPageContent surveyId={surveyId as string} template={template} />;
 }
 
