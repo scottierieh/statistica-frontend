@@ -86,7 +86,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
 import dynamic from 'next/dynamic';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -100,7 +100,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
-const VanWestendorpPage = dynamic(() => import('@/components/analysis/psm-analysis'), { ssr: false });
+const VanWestendorpPage = dynamic(() => import('@/components/pages/van-westendorp-page'), { ssr: false });
 
 // Template Definition
 const ipaTemplate = {
@@ -866,7 +866,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     const highestValue = tableData.length > 0 ? Math.max(...tableData.map(d => parseFloat(d.percentage))) : 0;
   
     return (
-        <AnalysisDisplayShell varName={varName}>
+      <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <div className="flex items-center justify-center min-h-[300px]">
                     <ChartContainer config={{ percentage: { label: "Percentage" } }} className="w-full h-[300px]">
@@ -1160,7 +1160,7 @@ const TextAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { 
       <AnalysisDisplayShell varName={varName}>
            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <div className="flex items-center justify-center min-h-[300px]">
-                    {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={wordCloudImage} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
+                    {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={`data:image/png;base64,${wordCloudImage}`} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
                 </div>
                  <div className="space-y-4">
                     <Card>
@@ -2732,6 +2732,3 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
-
-
-    
