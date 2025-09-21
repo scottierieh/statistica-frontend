@@ -21,6 +21,7 @@ import { ChartContainer, ChartTooltipContent } from './ui/chart';
 import { LineChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line, ResponsiveContainer, ScatterChart, Scatter, ReferenceLine } from "recharts"
 import { Switch } from './ui/switch';
 import { Checkbox } from './ui/checkbox';
+import { ScrollArea } from './ui/scroll-area';
 
 
 type AnalysisStep = 'select-type' | 'configure';
@@ -184,14 +185,14 @@ function DnnRegressionPage({ data, numericHeaders, categoricalHeaders, onLoadExa
                     </div>
                      <div>
                         <Label>Feature Variables</Label>
-                        <div className="p-2 border rounded-md h-24 overflow-y-auto">
+                         <ScrollArea className="h-24 border rounded-md p-2">
                             {allHeaders.filter(h => h !== target).map(h => (
                                 <div key={h} className="flex items-center space-x-2">
                                      <Checkbox id={`feat-${h}`} checked={features.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
                                     <Label htmlFor={`feat-${h}`}>{h}</Label>
                                 </div>
                             ))}
-                        </div>
+                        </ScrollArea>
                     </div>
                 </CardContent>
             </Card>
@@ -385,14 +386,14 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, allHe
                     </div>
                      <div>
                         <Label>Feature Variables</Label>
-                        <div className="p-2 border rounded-md h-24 overflow-y-auto">
+                        <ScrollArea className="h-24 border rounded-md p-2">
                             {allHeaders.filter(h => h !== target).map(h => (
                                 <div key={h} className="flex items-center space-x-2">
                                      <Checkbox id={`feat-clf-${h}`} checked={features.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
                                     <Label htmlFor={`feat-clf-${h}`}>{h}</Label>
                                 </div>
                             ))}
-                        </div>
+                        </ScrollArea>
                     </div>
                 </CardContent>
             </Card>
@@ -512,20 +513,163 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, allHe
     );
 }
 
-function DnnClusteringPage() {
+function DnnClusteringPage({ data, numericHeaders, onLoadExample, onFileSelected, isUploading, allHeaders }: DnnPageProps) {
+    const [features, setFeatures] = useState<string[]>(numericHeaders);
+    const [model, setModel] = useState<'kmeans' | 'dbscan' | 'hierarchical'>('kmeans');
+    const [preprocessing, setPreprocessing] = useState({ scale: true, pca: false });
+    const [k, setK] = useState(3);
+    const [isLoading, setIsLoading] = useState(false);
+    const [trainingResults, setTrainingResults] = useState<any>(null);
+
+    const handleFeatureChange = (header: string, checked: boolean) => {
+        setFeatures(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+    };
+
+    const handleTrainModel = () => {
+        setIsLoading(true);
+        setTrainingResults(null);
+        console.log("Training clustering model:", { features, model, k, preprocessing });
+        setTimeout(() => {
+            const clusterData = Array.from({ length: 150 }, () => ({
+                x: Math.random() * 10,
+                y: Math.random() * 10,
+                cluster: Math.floor(Math.random() * k)
+            }));
+            
+            const clusterProfiles = Array.from({length: k}, (_, i) => {
+                const profile: any = { Cluster: `Cluster ${i+1}`, Size: Math.floor(150/k) };
+                features.forEach(f => profile[f] = (Math.random() * 100).toFixed(2));
+                return profile;
+            })
+
+            setTrainingResults({
+                metrics: { silhouette: 0.55 + Math.random() * 0.2 },
+                plotData: clusterData,
+                clusterProfiles: clusterProfiles
+            });
+            setIsLoading(false);
+        }, 3000);
+    };
+
+    const customerSegmentsExample = exampleDatasets.find(ex => ex.id === 'customer-segments');
+
+    if (data.length === 0) {
+        return (
+             <div className="flex flex-1 items-center justify-center h-full">
+                <Card className="w-full max-w-2xl text-center">
+                    <CardHeader>
+                        <CardTitle className="font-headline">Clustering Analysis</CardTitle>
+                        <CardDescription>Upload a dataset with numeric features to group similar data points, or try our example.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <DataUploader onFileSelected={onFileSelected} loading={isUploading} />
+                        {customerSegmentsExample && (
+                            <>
+                                <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or</span></div></div>
+                                <Button variant="secondary" className="w-full" onClick={() => onLoadExample(customerSegmentsExample)}>
+                                    <customerSegmentsExample.icon className="mr-2"/>Load Customer Segments Dataset
+                                </Button>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
     return (
-        <div className="flex flex-1 items-center justify-center h-full">
-            <Card className="w-full max-w-2xl text-center">
-                <CardHeader>
-                    <CardTitle className="font-headline">DNN Clustering</CardTitle>
-                    <CardDescription>
-                        This section is under construction. Advanced unsupervised learning tools are coming soon!
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground">Stay tuned for updates on autoencoders, SOMs, and more.</p>
-                </CardContent>
+        <div className="space-y-4">
+            <Card>
+                 <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Variable /> 1. Select Variables</CardTitle></CardHeader>
+                 <CardContent>
+                     <Label>Feature Variables (Numeric)</Label>
+                     <ScrollArea className="h-24 border rounded-md p-2">
+                        {numericHeaders.map(h => (
+                            <div key={h} className="flex items-center space-x-2">
+                                 <Checkbox id={`feat-clu-${h}`} checked={features.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
+                                <Label htmlFor={`feat-clu-${h}`}>{h}</Label>
+                            </div>
+                        ))}
+                    </ScrollArea>
+                 </CardContent>
             </Card>
+            <Card>
+                <CardHeader><CardTitle className="font-headline flex items-center gap-2"><Settings2 /> 2. Configure Analysis</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label>Model Selection</Label>
+                            <Select value={model} onValueChange={(v) => setModel(v as any)}><SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="kmeans">K-Means</SelectItem>
+                                    <SelectItem value="dbscan">DBSCAN</SelectItem>
+                                    <SelectItem value="hierarchical">Hierarchical</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {model === 'kmeans' && (
+                                <div className="mt-4 space-y-2">
+                                    <Label>Number of Clusters (K)</Label>
+                                    <Input type="number" value={k} onChange={(e) => setK(parseInt(e.target.value))} min="2" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Preprocessing Options</Label>
+                            <div className="p-4 border rounded-lg space-y-4">
+                                <div className="flex items-center justify-between"><Label>Standardize Data (Scaling)</Label><Switch checked={preprocessing.scale} onCheckedChange={(c) => setPreprocessing(p => ({...p, scale: c}))} /></div>
+                                <div className="flex items-center justify-between"><Label>Reduce Dimensions (PCA)</Label><Switch checked={preprocessing.pca} onCheckedChange={(c) => setPreprocessing(p => ({...p, pca: c}))} /></div>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                    <Button onClick={handleTrainModel} disabled={isLoading}>{isLoading ? <><Loader2 className="mr-2 animate-spin" /> Clustering...</> : <><Sigma className="mr-2" />Run Analysis</>}</Button>
+                </CardFooter>
+            </Card>
+            
+            {isLoading && <Card><CardHeader><CardTitle>Running Clustering...</CardTitle></CardHeader><CardContent className="flex justify-center p-8"><Loader2 className="h-12 w-12 text-primary animate-spin" /></CardContent></Card>}
+            
+            {trainingResults && (
+                <div className="space-y-4">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Clustering Results</CardTitle>
+                             <CardDescription>Model performance and cluster visualization.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-4">
+                             <div className="flex flex-col items-center justify-center p-6 bg-muted rounded-lg">
+                                <p className="text-sm text-muted-foreground">Silhouette Score</p>
+                                <p className="text-4xl font-bold">{trainingResults.metrics.silhouette.toFixed(3)}</p>
+                                <p className="text-xs text-muted-foreground">(Closer to 1 is better)</p>
+                            </div>
+                            <ChartContainer config={{}} className="h-[250px] w-full">
+                                <ResponsiveContainer>
+                                    <ScatterChart>
+                                        <CartesianGrid />
+                                        <XAxis type="number" dataKey="x" name="Component 1"/>
+                                        <YAxis type="number" dataKey="y" name="Component 2"/>
+                                        <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
+                                        <Scatter name="Clusters" data={trainingResults.plotData} fill="hsl(var(--primary))">
+                                            {trainingResults.plotData.map((entry: any, index: any) => (
+                                                <X key={`cell-${index}`} fill={`hsl(var(--chart-${entry.cluster + 1}))`} />
+                                            ))}
+                                        </Scatter>
+                                    </ScatterChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader><CardTitle>Cluster Profiles</CardTitle></CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader><TableRow>{Object.keys(trainingResults.clusterProfiles[0]).map(k => <TableHead key={k}>{k}</TableHead>)}</TableRow></TableHeader>
+                                <TableBody>{trainingResults.clusterProfiles.map((p: any, i: number) => (<TableRow key={i}>{Object.values(p).map((v: any, j: number) => <TableCell key={j}>{v}</TableCell>)}</TableRow>))}</TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }
@@ -769,7 +913,7 @@ export default function DeepLearningApp() {
                 case 'regression':
                     return <DnnRegressionPage {...commonProps} />
                 case 'clustering':
-                    return <DnnClusteringPage />;
+                    return <DnnClusteringPage {...commonProps} />;
                 default:
                     return (
                         <Card>
