@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { BrainCircuit, UploadCloud, File, CheckCircle, ChevronRight, Loader2, Bot, Sparkles, Building, Heart, ShoppingCart, Layers, Plus, Trash2, Sigma, LineChart as LineChartIcon, TrendingUp, ScatterChart as ScatterChartIcon, Users } from 'lucide-react';
+import { BrainCircuit, UploadCloud, File, CheckCircle, ChevronRight, Loader2, Bot, Sparkles, Building, Heart, ShoppingCart, Layers, Plus, Trash2, Sigma, LineChart as LineChartIcon, TrendingUp, ScatterChart as ScatterChartIcon, Users, Terminal } from 'lucide-react';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +38,64 @@ interface DnnPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
     onFileSelected: (file: File) => void;
     isUploading: boolean;
+}
+
+
+const PredictionExamplesTable = ({ examples, problemType }: { examples: any[], problemType: 'regression' | 'classification' }) => {
+    if (!examples || examples.length === 0) return null;
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Terminal/> Prediction Examples</CardTitle>
+                <CardDescription>A random sample of predictions from the test set.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            {problemType === 'regression' ? (
+                                <>
+                                    <TableHead>Actual</TableHead>
+                                    <TableHead>Predicted</TableHead>
+                                    <TableHead>Error</TableHead>
+                                    <TableHead>Error %</TableHead>
+                                </>
+                            ) : (
+                                <>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Actual</TableHead>
+                                    <TableHead>Predicted</TableHead>
+                                    <TableHead>Confidence</TableHead>
+                                </>
+                            )}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {examples.map((ex, i) => (
+                            <TableRow key={i}>
+                                {problemType === 'regression' ? (
+                                    <>
+                                        <TableCell>{ex.actual.toFixed(2)}</TableCell>
+                                        <TableCell>{ex.predicted.toFixed(2)}</TableCell>
+                                        <TableCell>{ex.error.toFixed(2)}</TableCell>
+                                        <TableCell>{ex.error_percent.toFixed(2)}%</TableCell>
+                                    </>
+                                ) : (
+                                    <>
+                                        <TableCell>{ex.status}</TableCell>
+                                        <TableCell>{ex.actual}</TableCell>
+                                        <TableCell>{ex.predicted}</TableCell>
+                                        <TableCell>{(ex.confidence * 100).toFixed(1)}%</TableCell>
+                                    </>
+                                )}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
 }
 
 function DnnRegressionPage({ data, numericHeaders, onLoadExample, onFileSelected, isUploading }: DnnPageProps) {
@@ -78,12 +136,23 @@ function DnnRegressionPage({ data, numericHeaders, onLoadExample, onFileSelected
                 actual: 300000 + Math.random() * 400000,
                 predicted: 300000 + Math.random() * 400000,
             }));
-            mockPredictions.forEach(p => { p.residual = p.actual - p.predicted; });
+            
+            const predictionExamples = mockPredictions.slice(0, 10).map(p => {
+                const error = p.actual - p.predicted;
+                return {
+                    actual: p.actual,
+                    predicted: p.predicted,
+                    error: Math.abs(error),
+                    error_percent: p.actual !== 0 ? (Math.abs(error) / p.actual) * 100 : 0
+                }
+            });
+
 
             setTrainingResults({
                 history: mockHistory,
                 metrics: { r2: 0.88, mse: 12345.67, rmse: 111.11 },
                 predictions: mockPredictions,
+                predictionExamples: predictionExamples,
             });
             setIsLoading(false);
         }, 3000);
@@ -204,54 +273,57 @@ function DnnRegressionPage({ data, numericHeaders, onLoadExample, onFileSelected
             )}
 
             {trainingResults && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">3. Training Results</CardTitle>
-                        <CardDescription>Performance metrics and visualizations for the trained regression model.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">R-squared</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.r2.toFixed(2)}</p></CardContent></Card>
-                            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">MSE</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.mse.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p></CardContent></Card>
-                            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">RMSE</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.rmse.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p></CardContent></Card>
-                        </div>
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">3. Training Results</CardTitle>
+                            <CardDescription>Performance metrics and visualizations for the trained regression model.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">R-squared</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.r2.toFixed(2)}</p></CardContent></Card>
+                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">MSE</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.mse.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p></CardContent></Card>
+                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">RMSE</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.rmse.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p></CardContent></Card>
+                            </div>
 
-                         <div className="grid md:grid-cols-2 gap-4">
-                            <Card>
-                                <CardHeader><CardTitle className="text-base">Training History (Loss)</CardTitle></CardHeader>
-                                <CardContent>
-                                    <ChartContainer config={{loss: {label: 'Loss', color: 'hsl(var(--chart-1))'}, val_loss: {label: 'Validation Loss', color: 'hsl(var(--chart-2))'}}} className="h-[250px] w-full">
-                                        <LineChart data={trainingResults.history}>
-                                            <CartesianGrid strokeDasharray="3 3"/>
-                                            <XAxis dataKey="epoch" label={{ value: 'Epoch', position: 'insideBottom', offset: -5 }}/>
-                                            <YAxis label={{ value: 'Loss', angle: -90, position: 'insideLeft' }}/>
-                                            <Tooltip content={<ChartTooltipContent />} />
-                                            <Legend verticalAlign="top"/>
-                                            <Line type="monotone" dataKey="loss" stroke="var(--color-loss)" dot={false} />
-                                            <Line type="monotone" dataKey="val_loss" stroke="var(--color-val_loss)" dot={false} strokeDasharray="5 5"/>
-                                        </LineChart>
-                                    </ChartContainer>
-                                </CardContent>
-                            </Card>
-                             <Card>
-                                <CardHeader><CardTitle className="text-base">Actual vs. Predicted</CardTitle></CardHeader>
-                                <CardContent>
-                                    <ChartContainer config={{}} className="h-[250px] w-full">
-                                        <ResponsiveContainer>
-                                            <ScatterChart>
+                             <div className="grid md:grid-cols-2 gap-4">
+                                <Card>
+                                    <CardHeader><CardTitle className="text-base">Training History (Loss)</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <ChartContainer config={{loss: {label: 'Loss', color: 'hsl(var(--chart-1))'}, val_loss: {label: 'Validation Loss', color: 'hsl(var(--chart-2))'}}} className="h-[250px] w-full">
+                                            <LineChart data={trainingResults.history}>
                                                 <CartesianGrid strokeDasharray="3 3"/>
-                                                <XAxis type="number" dataKey="actual" name="Actual" label={{ value: 'Actual Values', position: 'insideBottom', offset: -5 }}/>
-                                                <YAxis type="number" dataKey="predicted" name="Predicted" label={{ value: 'Predicted Values', angle: -90, position: 'insideLeft' }}/>
-                                                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
-                                                <Scatter name="Predictions" data={trainingResults.predictions} fill="hsl(var(--chart-1))" />
-                                            </ScatterChart>
-                                        </ResponsiveContainer>
-                                    </ChartContainer>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </CardContent>
-                </Card>
+                                                <XAxis dataKey="epoch" label={{ value: 'Epoch', position: 'insideBottom', offset: -5 }}/>
+                                                <YAxis label={{ value: 'Loss', angle: -90, position: 'insideLeft' }}/>
+                                                <Tooltip content={<ChartTooltipContent />} />
+                                                <Legend verticalAlign="top"/>
+                                                <Line type="monotone" dataKey="loss" stroke="var(--color-loss)" dot={false} />
+                                                <Line type="monotone" dataKey="val_loss" stroke="var(--color-val_loss)" dot={false} strokeDasharray="5 5"/>
+                                            </LineChart>
+                                        </ChartContainer>
+                                    </CardContent>
+                                </Card>
+                                 <Card>
+                                    <CardHeader><CardTitle className="text-base">Actual vs. Predicted</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <ChartContainer config={{}} className="h-[250px] w-full">
+                                            <ResponsiveContainer>
+                                                <ScatterChart>
+                                                    <CartesianGrid strokeDasharray="3 3"/>
+                                                    <XAxis type="number" dataKey="actual" name="Actual" label={{ value: 'Actual Values', position: 'insideBottom', offset: -5 }}/>
+                                                    <YAxis type="number" dataKey="predicted" name="Predicted" label={{ value: 'Predicted Values', angle: -90, position: 'insideLeft' }}/>
+                                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
+                                                    <Scatter name="Predictions" data={trainingResults.predictions} fill="hsl(var(--chart-1))" />
+                                                </ScatterChart>
+                                            </ResponsiveContainer>
+                                        </ChartContainer>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <PredictionExamplesTable examples={trainingResults.predictionExamples} problemType="regression" />
+                </div>
             )}
         </div>
     );
@@ -294,10 +366,22 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, onLoa
                 val_accuracy: 0.65 + (i * 0.015) + (Math.random() * 0.06),
             }));
 
+            const predictionExamples = Array.from({length: 10}, () => {
+                const actual = Math.random() > 0.5 ? 'Yes' : 'No';
+                const predicted = Math.random() > 0.3 ? actual : (actual === 'Yes' ? 'No' : 'Yes');
+                return {
+                    actual,
+                    predicted,
+                    status: actual === predicted ? '✅' : '❌',
+                    confidence: 0.7 + Math.random() * 0.3
+                }
+            })
+
             setTrainingResults({
                 history: mockHistory,
                 metrics: { accuracy: 0.92, precision: 0.91, recall: 0.93, f1_score: 0.92 },
                 confusion_matrix: [[102, 8], [5, 115]], // Example confusion matrix
+                predictionExamples: predictionExamples,
             });
             setIsLoading(false);
         }, 3000);
@@ -429,66 +513,69 @@ function DnnClassificationPage({ data, numericHeaders, categoricalHeaders, onLoa
             )}
 
             {trainingResults && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">3. Training Results</CardTitle>
-                        <CardDescription>Performance metrics and visualizations for the trained model.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Accuracy</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{(trainingResults.metrics.accuracy * 100).toFixed(1)}%</p></CardContent></Card>
-                            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Precision</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.precision.toFixed(2)}</p></CardContent></Card>
-                            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Recall</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.recall.toFixed(2)}</p></CardContent></Card>
-                            <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">F1-Score</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.f1_score.toFixed(2)}</p></CardContent></Card>
-                        </div>
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">3. Training Results</CardTitle>
+                            <CardDescription>Performance metrics and visualizations for the trained model.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Accuracy</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{(trainingResults.metrics.accuracy * 100).toFixed(1)}%</p></CardContent></Card>
+                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Precision</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.precision.toFixed(2)}</p></CardContent></Card>
+                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Recall</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.recall.toFixed(2)}</p></CardContent></Card>
+                                <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium">F1-Score</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{trainingResults.metrics.f1_score.toFixed(2)}</p></CardContent></Card>
+                            </div>
 
-                         <div className="grid md:grid-cols-2 gap-4">
-                            <Card>
-                                <CardHeader><CardTitle className="text-base">Training History</CardTitle></CardHeader>
-                                <CardContent>
-                                    <ChartContainer config={{loss: {label: 'Loss', color: 'hsl(var(--chart-1))'}, accuracy: {label: 'Accuracy', color: 'hsl(var(--chart-2))'}}} className="h-[250px] w-full">
-                                        <LineChart data={trainingResults.history}>
-                                            <CartesianGrid strokeDasharray="3 3"/>
-                                            <XAxis dataKey="epoch" label={{ value: 'Epoch', position: 'insideBottom', offset: -5 }}/>
-                                            <YAxis yAxisId="left" label={{ value: 'Loss', angle: -90, position: 'insideLeft' }}/>
-                                            <YAxis yAxisId="right" orientation="right" label={{ value: 'Accuracy', angle: -90, position: 'insideRight' }}/>
-                                            <Tooltip content={<ChartTooltipContent />} />
-                                            <Legend verticalAlign="top"/>
-                                            <Line yAxisId="left" type="monotone" dataKey="loss" stroke="var(--color-loss)" dot={false} />
-                                            <Line yAxisId="right" type="monotone" dataKey="accuracy" stroke="var(--color-accuracy)" dot={false} />
-                                        </LineChart>
-                                    </ChartContainer>
-                                </CardContent>
-                            </Card>
-                             <Card>
-                                <CardHeader><CardTitle className="text-base">Confusion Matrix</CardTitle></CardHeader>
-                                <CardContent>
-                                     <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead></TableHead>
-                                                <TableHead className="text-center">Predicted Class 0</TableHead>
-                                                <TableHead className="text-center">Predicted Class 1</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            <TableRow>
-                                                <TableHead>Actual Class 0</TableHead>
-                                                <TableCell className="text-center font-mono text-lg">{trainingResults.confusion_matrix[0][0]}</TableCell>
-                                                <TableCell className="text-center font-mono text-lg">{trainingResults.confusion_matrix[0][1]}</TableCell>
-                                            </TableRow>
-                                             <TableRow>
-                                                <TableHead>Actual Class 1</TableHead>
-                                                <TableCell className="text-center font-mono text-lg">{trainingResults.confusion_matrix[1][0]}</TableCell>
-                                                <TableCell className="text-center font-mono text-lg">{trainingResults.confusion_matrix[1][1]}</TableCell>
-                                            </TableRow>
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </CardContent>
-                </Card>
+                             <div className="grid md:grid-cols-2 gap-4">
+                                <Card>
+                                    <CardHeader><CardTitle className="text-base">Training History</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <ChartContainer config={{loss: {label: 'Loss', color: 'hsl(var(--chart-1))'}, accuracy: {label: 'Accuracy', color: 'hsl(var(--chart-2))'}}} className="h-[250px] w-full">
+                                            <LineChart data={trainingResults.history}>
+                                                <CartesianGrid strokeDasharray="3 3"/>
+                                                <XAxis dataKey="epoch" label={{ value: 'Epoch', position: 'insideBottom', offset: -5 }}/>
+                                                <YAxis yAxisId="left" label={{ value: 'Loss', angle: -90, position: 'insideLeft' }}/>
+                                                <YAxis yAxisId="right" orientation="right" label={{ value: 'Accuracy', angle: -90, position: 'insideRight' }}/>
+                                                <Tooltip content={<ChartTooltipContent />} />
+                                                <Legend verticalAlign="top"/>
+                                                <Line yAxisId="left" type="monotone" dataKey="loss" stroke="var(--color-loss)" dot={false} />
+                                                <Line yAxisId="right" type="monotone" dataKey="accuracy" stroke="var(--color-accuracy)" dot={false} />
+                                            </LineChart>
+                                        </ChartContainer>
+                                    </CardContent>
+                                </Card>
+                                 <Card>
+                                    <CardHeader><CardTitle className="text-base">Confusion Matrix</CardTitle></CardHeader>
+                                    <CardContent>
+                                         <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead></TableHead>
+                                                    <TableHead className="text-center">Predicted Class 0</TableHead>
+                                                    <TableHead className="text-center">Predicted Class 1</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                <TableRow>
+                                                    <TableHead>Actual Class 0</TableHead>
+                                                    <TableCell className="text-center font-mono text-lg">{trainingResults.confusion_matrix[0][0]}</TableCell>
+                                                    <TableCell className="text-center font-mono text-lg">{trainingResults.confusion_matrix[0][1]}</TableCell>
+                                                </TableRow>
+                                                 <TableRow>
+                                                    <TableHead>Actual Class 1</TableHead>
+                                                    <TableCell className="text-center font-mono text-lg">{trainingResults.confusion_matrix[1][0]}</TableCell>
+                                                    <TableCell className="text-center font-mono text-lg">{trainingResults.confusion_matrix[1][1]}</TableCell>
+                                                </TableRow>
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <PredictionExamplesTable examples={trainingResults.predictionExamples} problemType="classification" />
+                </div>
             )}
         </div>
     );
