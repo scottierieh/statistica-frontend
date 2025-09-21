@@ -63,7 +63,9 @@ import {
   Move,
   BarChart,
   PieChart as PieChartIcon,
-  DollarSign
+  DollarSign,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -842,18 +844,22 @@ const AnalysisDisplayShell = ({ children, varName, onChartTypeChange, currentCha
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{varName}</CardTitle>
-                {onChartTypeChange && availableChartTypes && (
-                    <Select value={currentChartType} onValueChange={onChartTypeChange}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {availableChartTypes.map(type => (
-                                <SelectItem key={type} value={type}>{type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )}
+                <div className="flex items-center gap-2">
+                    {onChartTypeChange && availableChartTypes && (
+                        <Select value={currentChartType} onValueChange={onChartTypeChange}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableChartTypes.map(type => (
+                                    <SelectItem key={type} value={type}>{type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                    <Button variant="ghost" size="icon"><ZoomIn className="w-5 h-5"/></Button>
+                    <Button variant="ghost" size="icon"><Download className="w-5 h-5"/></Button>
+                </div>
             </CardHeader>
             <CardContent>
                 {children}
@@ -1120,7 +1126,7 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
     );
 };
 
-const TextAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any; tableData: any[]; insightsData: string[]; varName: string; }) => {
+const TextAnalysisDisplay = ({ tableData, insightsData, varName }: { tableData: any[]; insightsData: string[]; varName: string; }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [wordCloudImage, setWordCloudImage] = useState<string | null>(null);
 
@@ -1611,23 +1617,13 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             }
             case 'text': {
                 const textResponses = allAnswers.filter(a => typeof a === 'string' && a.trim() !== '');
-                const words: { [key: string]: number } = {};
-                textResponses.forEach(res => {
-                    const tokens = res.toLowerCase().split(/\s+/).filter(word => word.length > 3 && isNaN(Number(word)));
-                    tokens.forEach(token => { words[token] = (words[token] || 0) + 1; });
-                });
 
-                const sortedWords = Object.entries(words)
-                    .map(([text, value]) => ({ text, value }))
-                    .sort((a, b) => b.value - a.value)
-                    .slice(0, 50);
-
-                insights = [`The word cloud highlights the most frequently used words.`];
-                if (sortedWords.length > 0) {
-                    insights.push(`The most common term is <strong>"${sortedWords[0].text}"</strong>, appearing ${sortedWords[0].value} times.`);
+                insights = [`Qualitative data collected.`];
+                if (textResponses.length > 0) {
+                    insights.push(`First response: <strong>"${textResponses[0]}"</strong>.`);
                 }
 
-                chartData = sortedWords; // Pass structured data
+                chartData = {}; 
                 tableData = textResponses;
                 break;
             }
@@ -2190,7 +2186,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList className="flex flex-wrap h-auto">
+                <TabsList className="flex flex-wrap h-auto justify-start">
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                     <TabsTrigger value="analysis-detail">Detailed Analysis</TabsTrigger>
@@ -2732,3 +2728,4 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
+
