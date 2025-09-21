@@ -108,7 +108,6 @@ def main():
 
 
         # --- Plotting ---
-        plt.style.use('seaborn-v0_8-whitegrid')
         fig, ax1 = plt.subplots(figsize=(10, 6))
 
         # Demand Curve
