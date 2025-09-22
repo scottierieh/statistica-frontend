@@ -237,7 +237,7 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
                          {analysisResult.path_plot && (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Alpha vs. Model Performance</CardTitle>
+                                     <CardTitle>Alpha vs. Model Performance</CardTitle>
                                     <CardDescription>Shows how R² and coefficients change as alpha increases.</CardDescription>
                                 </CardHeader>
                                 <CardContent>

@@ -157,19 +157,35 @@ def main():
         # --- Alpha vs Coefficients Path Plot ---
         alpha_list = np.logspace(-4, 4, 200)
         coefs = []
+        train_scores, test_scores = [], []
+
         for a in alpha_list:
             ridge_iter = Ridge(alpha=a, random_state=42)
             ridge_iter.fit(X_train_scaled, y_train)
             coefs.append(ridge_iter.coef_)
+            train_scores.append(ridge_iter.score(X_train_scaled, y_train))
+            test_scores.append(ridge_iter.score(X_test_scaled, y_test))
         
-        fig_path, ax_path = plt.subplots(figsize=(8, 6))
-        ax_path.plot(alpha_list, coefs)
-        ax_path.set_xscale('log')
-        ax_path.set_xlabel('Alpha (Regularization Strength)')
-        ax_path.set_ylabel('Coefficient Value')
-        ax_path.set_title('Ridge Coefficients Path')
-        ax_path.legend(final_features, bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
-        ax_path.grid(True)
+        fig_path, axes_path = plt.subplots(2, 1, figsize=(8, 12))
+        fig_path.suptitle('Ridge Model Behavior vs. Alpha', fontsize=16)
+
+        axes_path[0].plot(alpha_list, train_scores, label='Train R²')
+        axes_path[0].plot(alpha_list, test_scores, label='Test R²')
+        axes_path[0].set_xlabel('Alpha')
+        axes_path[0].set_ylabel('R-squared')
+        axes_path[0].set_xscale('log')
+        axes_path[0].set_title('R-squared vs. Regularization Strength (alpha)')
+        axes_path[0].legend()
+        axes_path[0].grid(True)
+
+        axes_path[1].plot(alpha_list, coefs)
+        axes_path[1].set_xscale('log')
+        axes_path[1].set_xlabel('Alpha')
+        axes_path[1].set_ylabel('Coefficients')
+        axes_path[1].set_title('Ridge Coefficients Path')
+        axes_path[1].grid(True)
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         path_plot_image = fig_to_base64(fig_path)
 
         response = {

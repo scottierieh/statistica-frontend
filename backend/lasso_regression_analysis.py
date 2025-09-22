@@ -152,18 +152,34 @@ def main():
         # --- Alpha vs Coefficients Path Plot ---
         alpha_list = np.logspace(-3, 2, 100)
         coefs = []
+        train_scores, test_scores = [], []
         for a in alpha_list:
             lasso_iter = Lasso(alpha=a, random_state=42, max_iter=1000)
             lasso_iter.fit(X_train_scaled, y_train)
             coefs.append(lasso_iter.coef_)
+            train_scores.append(lasso_iter.score(X_train_scaled, y_train))
+            test_scores.append(lasso_iter.score(X_test_scaled, y_test))
         
-        fig_path, ax_path = plt.subplots(figsize=(8, 6))
-        ax_path.plot(np.log10(alpha_list), coefs)
-        ax_path.set_xlabel('log10(alpha)')
-        ax_path.set_ylabel('Coefficients')
-        ax_path.set_title('Lasso Coefficients Path')
-        ax_path.legend(final_features, bbox_to_anchor=(1.05, 1), loc='upper left')
-        ax_path.grid(True)
+        fig_path, axes_path = plt.subplots(2, 1, figsize=(8, 12))
+        fig_path.suptitle('Lasso Model Behavior vs. Alpha', fontsize=16)
+
+        axes_path[0].plot(alpha_list, train_scores, label='Train R²')
+        axes_path[0].plot(alpha_list, test_scores, label='Test R²')
+        axes_path[0].set_xlabel('Alpha')
+        axes_path[0].set_ylabel('R-squared')
+        axes_path[0].set_xscale('log')
+        axes_path[0].set_title('R-squared vs. Regularization Strength (alpha)')
+        axes_path[0].legend()
+        axes_path[0].grid(True)
+
+        axes_path[1].plot(alpha_list, coefs)
+        axes_path[1].set_xscale('log')
+        axes_path[1].set_xlabel('Alpha')
+        axes_path[1].set_ylabel('Coefficients')
+        axes_path[1].set_title('Lasso Coefficients Path')
+        axes_path[1].grid(True)
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         path_plot_image = fig_to_base64(fig_path)
         
         response = {

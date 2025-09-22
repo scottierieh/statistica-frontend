@@ -178,7 +178,7 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
 
             {analysisResult && results && (
                 <div className="space-y-4">
-                    <Card>
+                     <Card>
                         <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
                         <CardContent>
                            <Alert variant={results.interpretation.includes('Warning') || results.interpretation.includes('Possible') ? 'destructive' : 'default'}>
@@ -245,10 +245,10 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
                             </Card>
                         )}
                         <Card>
-                             <CardHeader>
+                            <CardHeader>
                                 <CardTitle>Coefficients</CardTitle>
                             </CardHeader>
-                            <CardContent>
+                             <CardContent>
                                 <ScrollArea className="h-80">
                                     <Table>
                                         <TableHeader><TableRow><TableHead>Feature</TableHead><TableHead className="text-right">Coefficient</TableHead></TableRow></TableHeader>
