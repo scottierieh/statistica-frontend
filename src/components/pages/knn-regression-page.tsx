@@ -91,7 +91,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
 
         try {
             // Filter data to only include selected columns to prevent serialization issues
-            const analysisData = data.map(row => {
+             const analysisData = data.map(row => {
                 const newRow: { [key: string]: any } = {};
                 if (target) newRow[target] = row[target];
                 features.forEach(f => {
@@ -233,7 +233,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {analysisResult && analysisResult.plot && (
+            {analysisResult && (
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
@@ -245,7 +245,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                              <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{analysisResult.results.metrics.mae.toFixed(3)}</p></div>
                         </CardContent>
                     </Card>
-                    {mode !== 'simple' && (
+                    {mode !== 'simple' && analysisResult.plot && (
                         <Card>
                             <CardHeader>
                                 <CardTitle>Actual vs. Predicted</CardTitle>
