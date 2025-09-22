@@ -36,8 +36,9 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import * as XLSX from 'xlsx';
 import RidgeRegressionPage from './pages/ridge-regression-page';
 import LassoRegressionPage from './pages/lasso-regression-page';
+import FruitClusteringPage from './pages/fruit-clustering-page';
 
-type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression';
+type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering';
 
 const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExample, allHeaders, categoricalHeaders }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], onLoadExample: (e: ExampleDataSet) => void, allHeaders: string[], categoricalHeaders: string[] }) => {
     switch (activeTask) {
@@ -51,6 +52,8 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExampl
             return <RidgeRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} />;
         case 'lasso-regression':
             return <LassoRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} />;
+        case 'fruit-clustering':
+            return <FruitClusteringPage />;
         case 'regression':
         case 'classification':
         case 'tree':
@@ -267,12 +270,22 @@ export default function MachineLearningApp() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => setActiveTask('unsupervised')}
-                  isActive={activeTask === 'unsupervised'}
+                  onClick={() => {}}
+                  isActive={activeTask.includes('unsupervised') || activeTask.includes('fruit-clustering')}
                 >
                   <Users />
                   <span>비지도 학습</span>
                 </SidebarMenuButton>
+                 <SidebarMenuSub>
+                    <SidebarMenuItem>
+                        <SidebarMenuSubButton
+                          onClick={() => setActiveTask('fruit-clustering')}
+                          isActive={activeTask === 'fruit-clustering'}
+                        >
+                          과일 이미지 군집 분석
+                        </SidebarMenuSubButton>
+                    </SidebarMenuItem>
+                </SidebarMenuSub>
               </SidebarMenuItem>
                <SidebarMenuItem>
                 <SidebarMenuButton
@@ -319,3 +332,4 @@ export default function MachineLearningApp() {
     </SidebarProvider>
   );
 }
+
