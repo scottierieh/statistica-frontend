@@ -70,20 +70,55 @@ def main():
         }
         
         prediction_result = None
-        plot_image = None
+        prediction_plot_image = None
         
+        # --- Main Plot ---
         fig, ax = plt.subplots(figsize=(8, 6))
+        
+        # --- Prediction Simulation Plot (only for simple regression) ---
+        if len(features) == 1 and predict_x is not None:
+            predict_x_scaled = scaler.transform([[predict_x]])
+            predicted_y = model.predict(predict_x_scaled)[0]
+            
+            distances, indices = model.kneighbors(predict_x_scaled)
+            neighbor_X_scaled = X_train_scaled[indices[0]]
+            neighbor_X = scaler.inverse_transform(neighbor_X_scaled)
+            neighbor_y = y_train.iloc[indices[0]]
 
+            prediction_result = {
+                'x_value': predict_x,
+                'y_value': predicted_y,
+            }
+            
+            # Create a separate figure for the prediction plot
+            fig_pred, ax_pred = plt.subplots(figsize=(8, 6))
+            ax_pred.scatter(X_train.values.flatten(), y_train, alpha=0.6, label='Training Data')
+            ax_pred.scatter(neighbor_X.flatten(), neighbor_y, color='orange', s=100, marker='D', label='Neighbors', zorder=5)
+            ax_pred.scatter([predict_x], [predicted_y], color='magenta', s=200, marker='^', label=f'Prediction for X={predict_x}', zorder=6, edgecolors='black')
+            ax_pred.set_xlabel(features[0])
+            ax_pred.set_ylabel(target)
+            ax_pred.set_title(f'KNN Prediction (k={k})')
+            ax_pred.legend()
+            ax_pred.grid(True)
+            plt.tight_layout()
+            
+            pred_buf = io.BytesIO()
+            fig_pred.savefig(pred_buf, format='png')
+            plt.close(fig_pred)
+            pred_buf.seek(0)
+            prediction_plot_image = base64.b64encode(pred_buf.read()).decode('utf-8')
+
+
+        # --- Main Diagnostic Plot ---
         if len(features) == 1:
             # Simple Regression: Scatter plot of training data
             ax.scatter(X_train.values.flatten(), y_train, alpha=0.6, label='Training Data')
             ax.set_xlabel(features[0])
             ax.set_ylabel(target)
-            ax.set_title(f'{target} vs. {features[0]}')
-            ax.legend()
+            ax.set_title(f'{target} vs. {features[0]} (Training Data)')
         else: # Multiple regression
             # Multi-regression: Actual vs. Predicted plot
-            ax.scatter(y_test, y_pred_test, alpha=0.6)
+            sns.scatterplot(x=y_test, y=y_pred_test, ax=ax, alpha=0.6)
             ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
             ax.set_xlabel('Actual Values')
             ax.set_ylabel('Predicted Values')
@@ -93,32 +128,17 @@ def main():
         plt.tight_layout()
             
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        fig.savefig(buf, format='png')
         plt.close(fig)
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
-        
-        # Prediction logic for simple regression
-        if predict_x is not None and len(features) == 1:
-            predict_x_scaled = scaler.transform([[predict_x]])
-            predicted_y = model.predict(predict_x_scaled)[0]
-            
-            distances, indices = model.kneighbors(predict_x_scaled)
-            neighbor_X = scaler.inverse_transform(X_train_scaled[indices[0]])
-            neighbor_y = y_train.iloc[indices[0]]
-
-            prediction_result = {
-                'x_value': predict_x,
-                'y_value': predicted_y,
-                'neighbors_X': neighbor_X.flatten().tolist(),
-                'neighbors_y': neighbor_y.tolist()
-            }
         
         results['prediction'] = prediction_result
         
         response = {
             'results': results,
-            'plot': plot_image
+            'plot': plot_image,
+            'prediction_plot': prediction_plot_image
         }
         
         print(json.dumps(response, default=_to_native_type))

@@ -34,6 +34,7 @@ interface KnnRegressionResults {
 interface FullAnalysisResponse {
     results: KnnRegressionResults;
     plot: string;
+    prediction_plot?: string;
 }
 
 interface KnnRegressionPageProps {
@@ -85,7 +86,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         }
 
         setIsLoading(true);
-        if (predictValue === undefined) { // Only clear results if it's not just a prediction update
+        if (predictValue === undefined) {
             setAnalysisResult(null);
         }
         
@@ -234,6 +235,16 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
 
             {analysisResult && (
                 <div className="space-y-4">
+                     {analysisResult.prediction_plot && (
+                        <Card>
+                             <CardHeader>
+                                <CardTitle>Prediction Simulation Plot</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Image src={analysisResult.prediction_plot} alt="KNN Prediction Plot" width={800} height={600} className="w-full rounded-md border"/>
+                            </CardContent>
+                        </Card>
+                    )}
                     <Card>
                         <CardHeader>
                             <CardTitle>Model Performance</CardTitle>
@@ -247,10 +258,13 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                     {analysisResult.plot && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Actual vs. Predicted</CardTitle>
+                                <CardTitle>Model Fit</CardTitle>
+                                 <CardDescription>
+                                    {mode === 'simple' ? "Training data and model predictions" : "Model performance on the test set"}
+                                </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="KNN Regression Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                <Image src={analysisResult.plot} alt="KNN Regression Plot" width={800} height={600} className="w-full rounded-md border"/>
                             </CardContent>
                         </Card>
                     )}
