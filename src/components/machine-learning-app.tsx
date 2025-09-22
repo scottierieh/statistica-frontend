@@ -35,8 +35,9 @@ import { DataSet, parseData, unparseData } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import * as XLSX from 'xlsx';
 import RidgeRegressionPage from './pages/ridge-regression-page';
+import LassoRegressionPage from './pages/lasso-regression-page';
 
-type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression';
+type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression';
 
 const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExample, allHeaders, categoricalHeaders }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], onLoadExample: (e: ExampleDataSet) => void, allHeaders: string[], categoricalHeaders: string[] }) => {
     switch (activeTask) {
@@ -48,6 +49,8 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExampl
              return <KnnRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} mode="multiple" />;
         case 'ridge-regression':
             return <RidgeRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} />;
+        case 'lasso-regression':
+            return <LassoRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} />;
         case 'regression':
         case 'classification':
         case 'tree':
@@ -232,6 +235,14 @@ export default function MachineLearningApp() {
                           isActive={activeTask === 'ridge-regression'}
                         >
                           Ridge Regression
+                        </SidebarMenuSubButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuSubButton
+                          onClick={() => setActiveTask('lasso-regression')}
+                          isActive={activeTask === 'lasso-regression'}
+                        >
+                          Lasso Regression
                         </SidebarMenuSubButton>
                     </SidebarMenuItem>
                 </SidebarMenuSub>
