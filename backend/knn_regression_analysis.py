@@ -71,49 +71,30 @@ def main():
         }
         
         prediction_result = None
+        if predict_x is not None and len(features) == 1:
+            predict_x_df = pd.DataFrame([[predict_x]], columns=features)
+            predict_x_scaled = scaler.transform(predict_x_df)
+            predicted_y = model.predict(predict_x_scaled)[0]
+            prediction_result = { 'x_value': predict_x, 'y_value': predicted_y }
+        
+        results['prediction'] = prediction_result
+        
+        # --- Plotting ---
         fig, ax = plt.subplots(figsize=(10, 6))
 
         if len(features) == 1:
             feature_name = features[0]
-            
-            sort_axis = np.argsort(X_test_scaled[:, 0])
-            
-            ax.scatter(X_test[feature_name], y_test, alpha=0.6, label='Test Data')
-            ax.plot(X_test[feature_name].iloc[sort_axis], y_pred[sort_axis], color='red', linestyle='--', label='KNN Prediction Line')
-            
-            if predict_x is not None:
-                predict_x_df = pd.DataFrame([[predict_x]], columns=features)
-                predict_x_scaled = scaler.transform(predict_x_df)
-                predicted_y = model.predict(predict_x_scaled)[0]
-                
-                distances, indices = model.kneighbors(predict_x_scaled)
-                
-                neighbors_X_scaled = X_train_scaled[indices[0]]
-                neighbors_X_orig = scaler.inverse_transform(neighbors_X_scaled)
-                
-                neighbors_y = y_train.iloc[indices[0]]
-
-                prediction_result = {
-                    'x_value': predict_x,
-                    'y_value': predicted_y,
-                    'neighbors_X': neighbors_X_orig[:, 0].tolist(),
-                    'neighbors_y': neighbors_y.tolist()
-                }
-                
-                ax.scatter(prediction_result['neighbors_X'], prediction_result['neighbors_y'], color='orange', s=100, marker='D', label='Neighbors', zorder=5)
-                ax.scatter([prediction_result['x_value']], [prediction_result['y_value']], color='magenta', s=200, marker='^', label=f'Prediction for X={predict_x}', zorder=6, edgecolors='black')
-
-
+            ax.scatter(X[feature_name], y, alpha=0.6, label='Data')
             ax.set_xlabel(feature_name)
             ax.set_ylabel(target)
-            ax.set_title(f'KNN Simple Regression (k={k})')
-
+            ax.set_title(f'Scatter Plot of {target} vs {feature_name}')
         else: # Multiple regression
-             sns.scatterplot(x=y_test, y=y_pred, alpha=0.6, ax=ax, label='Test Data')
-             ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='Ideal Line')
-             ax.set_xlabel('Actual Values')
-             ax.set_ylabel('Predicted Values')
-             ax.set_title(f'KNN Multiple Regression: Actual vs. Predicted (k={k})')
+            # For multiple regression, we show actual vs predicted
+            ax.scatter(y_test, y_pred, alpha=0.6)
+            ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+            ax.set_xlabel('Actual Values')
+            ax.set_ylabel('Predicted Values')
+            ax.set_title(f'Actual vs. Predicted Values (k={k})')
 
         ax.grid(True)
         ax.legend()
@@ -124,8 +105,6 @@ def main():
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
         plt.close(fig)
-        
-        results['prediction'] = prediction_result
         
         response = {
             'results': results,
