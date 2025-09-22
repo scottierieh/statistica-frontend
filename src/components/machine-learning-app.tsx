@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -24,17 +25,19 @@ import {
   GitBranch,
   Users,
   Layers,
+  Container,
 } from 'lucide-react';
-import DeepLearningApp from './deep-learning-app'; // Assuming this will be one of the pages.
+import DeepLearningApp from './deep-learning-app';
+import KnnRegressionPage from './pages/knn-regression-page';
 
-type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning';
+type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression';
 
 const MachineLearningContent = ({ activeTask }: { activeTask: MLTaskType }) => {
     switch (activeTask) {
         case 'deep-learning':
-            // The existing DeepLearningApp can be rendered here.
-            // You might need to adapt it to accept data as props instead of managing its own state.
             return <DeepLearningApp />;
+        case 'knn-regression':
+            return <KnnRegressionPage />;
         case 'regression':
         case 'classification':
         case 'tree':
@@ -59,7 +62,7 @@ const MachineLearningContent = ({ activeTask }: { activeTask: MLTaskType }) => {
 };
 
 export default function MachineLearningApp() {
-  const [activeTask, setActiveTask] = useState<MLTaskType>('regression');
+  const [activeTask, setActiveTask] = useState<MLTaskType>('knn-regression');
   
   return (
     <SidebarProvider>
@@ -83,6 +86,15 @@ export default function MachineLearningApp() {
                   <TrendingUp />
                   <span>회귀 알고리즘</span>
                 </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                  <SidebarMenuButton
+                      onClick={() => setActiveTask('knn-regression')}
+                      isActive={activeTask === 'knn-regression'}
+                      >
+                      <Container />
+                      <span>KNN 회귀</span>
+                  </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
