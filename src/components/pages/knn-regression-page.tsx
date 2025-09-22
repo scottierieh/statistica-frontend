@@ -85,13 +85,12 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         }
 
         setIsLoading(true);
-        if (predictValue === undefined) {
+        if (predictValue === undefined) { // Only clear results if it's not just a prediction update
             setAnalysisResult(null);
         }
-
+        
         try {
-            // Filter data to only include selected columns to prevent serialization issues
-             const analysisData = data.map(row => {
+            const analysisData = data.map(row => {
                 const newRow: { [key: string]: any } = {};
                 if (target) newRow[target] = row[target];
                 features.forEach(f => {
@@ -245,7 +244,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                              <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{analysisResult.results.metrics.mae.toFixed(3)}</p></div>
                         </CardContent>
                     </Card>
-                    {mode !== 'simple' && analysisResult.plot && (
+                    {analysisResult.plot && (
                         <Card>
                             <CardHeader>
                                 <CardTitle>Actual vs. Predicted</CardTitle>
