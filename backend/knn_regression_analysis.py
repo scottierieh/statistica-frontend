@@ -80,8 +80,9 @@ def main():
         }
         
         prediction_result = None
-        prediction_plot_image = None
+        plot_image = None
         relationship_plot_image = None
+        prediction_plot_image = None
 
         # --- Plot 1: Actual vs. Predicted (always generated) ---
         fig_actual_vs_pred, ax_actual_vs_pred = plt.subplots(figsize=(8, 6))
@@ -100,7 +101,6 @@ def main():
             # --- Plot 2: X vs Y Relationship plot ---
             fig_relationship, ax_relationship = plt.subplots(figsize=(8, 6))
             ax_relationship.scatter(X_train[feature_name], y_train, alpha=0.6, label='Training Data')
-            ax_relationship.scatter(X_test[feature_name], y_test, alpha=0.6, label='Test Data', marker='x')
             ax_relationship.set_xlabel(feature_name)
             ax_relationship.set_ylabel(target)
             ax_relationship.set_title(f'Relationship between {feature_name} and {target}')
