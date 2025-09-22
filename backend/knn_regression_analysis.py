@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -54,8 +55,17 @@ def main():
         X = df[features]
         y = df[target]
         
-        X = pd.get_dummies(X, drop_first=True)
-        processed_features = X.columns.tolist()
+        # Ensure all feature columns are numeric, handle potential errors
+        for col in features:
+            X[col] = pd.to_numeric(X[col], errors='coerce')
+        y = pd.to_numeric(y, errors='coerce')
+        
+        combined = pd.concat([X, y], axis=1).dropna()
+        X = combined[features]
+        y = combined[target]
+        
+        if X.empty or y.empty:
+            raise ValueError("Not enough valid data after cleaning.")
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
         
@@ -80,11 +90,11 @@ def main():
         }
         
         prediction_result = None
-        plot_image = None
         relationship_plot_image = None
         prediction_plot_image = None
 
-        # --- Plot 1: Actual vs. Predicted (always generated) ---
+        # --- Generate plots ---
+        # Plot 1: Actual vs. Predicted (always generated)
         fig_actual_vs_pred, ax_actual_vs_pred = plt.subplots(figsize=(8, 6))
         sns.scatterplot(x=y_test, y=y_pred_test, ax=ax_actual_vs_pred, alpha=0.6)
         ax_actual_vs_pred.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
@@ -94,11 +104,11 @@ def main():
         ax_actual_vs_pred.grid(True)
         plot_image = fig_to_base64(fig_actual_vs_pred)
 
-        # --- Plots for simple regression ---
+        # Generate relationship and prediction plots only for simple regression
         if len(features) == 1:
             feature_name = features[0]
             
-            # --- Plot 2: X vs Y Relationship plot ---
+            # Plot 2: X vs Y Relationship plot
             fig_relationship, ax_relationship = plt.subplots(figsize=(8, 6))
             ax_relationship.scatter(X_train[feature_name], y_train, alpha=0.6, label='Training Data')
             ax_relationship.set_xlabel(feature_name)
@@ -108,7 +118,7 @@ def main():
             ax_relationship.grid(True)
             relationship_plot_image = fig_to_base64(fig_relationship)
 
-            # --- Plot 3: Prediction Simulation plot (if predict_x is provided) ---
+            # Plot 3: Prediction Simulation plot (if predict_x is provided)
             if predict_x is not None:
                 predict_x_df = pd.DataFrame([[predict_x]], columns=features)
                 predict_x_scaled = scaler.transform(predict_x_df)
