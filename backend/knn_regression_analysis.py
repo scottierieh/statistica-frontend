@@ -19,7 +19,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj) or np.isinf(obj):
+        if np.isnan(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -72,52 +72,48 @@ def main():
         
         prediction_result = None
         if predict_x is not None and len(features) == 1:
-            # Create a DataFrame for the prediction input to ensure column name matches
             predict_x_df = pd.DataFrame([[predict_x]], columns=features)
             predict_x_scaled = scaler.transform(predict_x_df)
             predicted_y = model.predict(predict_x_scaled)[0]
             
-            # Find neighbors
             distances, indices = model.kneighbors(predict_x_scaled)
             
-            # Get original values of neighbors
-            neighbors_X = X_train.iloc[indices[0]].values
-            neighbors_y = y_train.iloc[indices[0]].values
-            
+            # Use original (unscaled) training data for reporting neighbors
+            neighbors_X_df = X_train.iloc[indices[0]]
+            neighbors_y_series = y_train.iloc[indices[0]]
+
             prediction_result = {
                 'x_value': predict_x,
                 'y_value': predicted_y,
-                'neighbors_X': neighbors_X.tolist(),
-                'neighbors_y': neighbors_y.tolist()
+                'neighbors_X': neighbors_X_df[features[0]].tolist(), # Get the single feature values
+                'neighbors_y': neighbors_y_series.tolist()
             }
         results['prediction'] = prediction_result
-
 
         # Plotting
         plt.figure(figsize=(10, 6))
 
-        # Simple regression plot
         if len(features) == 1:
             feature_name = features[0]
             plt.scatter(X_test[feature_name], y_test, alpha=0.6, label='Test Data')
             
-            # Plot the prediction line (sorting is important for a clean line)
-            X_range = np.linspace(X_train[feature_name].min(), X_train[feature_name].max(), 100).reshape(-1, 1)
+            X_range = np.linspace(X[feature_name].min(), X[feature_name].max(), 100).reshape(-1, 1)
             X_range_scaled = scaler.transform(X_range)
             y_range_pred = model.predict(X_range_scaled)
-            plt.plot(X_range, y_range_pred, color='red', linestyle='--', label='KNN Prediction Line')
+            
+            sorted_range_indices = np.argsort(X_range.flatten())
+            plt.plot(X_range[sorted_range_indices], y_range_pred[sorted_range_indices], color='red', linestyle='--', label='KNN Prediction Line')
             
             if prediction_result:
                 # Highlight the neighbors
                 plt.scatter(prediction_result['neighbors_X'], prediction_result['neighbors_y'], color='orange', s=100, marker='D', label='Neighbors', zorder=5)
                 # Highlight the predicted point
-                plt.scatter(prediction_result['x_value'], prediction_result['y_value'], color='magenta', s=200, marker='^', label=f'Prediction for X={predict_x}', zorder=6)
+                plt.scatter([prediction_result['x_value']], [prediction_result['y_value']], color='magenta', s=200, marker='^', label=f'Prediction for X={predict_x}', zorder=6, edgecolors='black')
 
             plt.xlabel(feature_name)
             plt.ylabel(target)
             plt.title(f'KNN Simple Regression (k={k})')
 
-        # Multi-regression plot (Actual vs Predicted)
         else:
              sns.scatterplot(x=y_test, y=y_pred, alpha=0.6, label='Test Data')
              plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='Ideal Line')
