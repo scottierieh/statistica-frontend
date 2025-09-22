@@ -32,7 +32,11 @@ export async function POST(req: NextRequest) {
           console.error(error);
           try {
             const errorJson = JSON.parse(error);
-            resolve(NextResponse.json({ error: errorJson.error || 'Unknown error occurred in Python script.' }, { status: 500 }));
+             if (errorJson.error.includes("fruits_300.zip")) {
+                resolve(NextResponse.json({ error: "The required fruit dataset is not available on the server. This is a sample analysis and requires the fruits_300.zip file." }, { status: 500 }));
+             } else {
+                resolve(NextResponse.json({ error: errorJson.error || 'Unknown error occurred in Python script.' }, { status: 500 }));
+             }
           } catch {
              resolve(NextResponse.json({ error: `Script failed with non-JSON error: ${error}` }, { status: 500 }));
           }
