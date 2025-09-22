@@ -14,6 +14,7 @@ import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
+import { Input } from '../ui/input';
 import { Slider } from '../ui/slider';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -217,7 +218,7 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
                                     <CardDescription>Performance for alpha = {results.alpha}</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Image src={analysisResult.plot} alt="Lasso Actual vs Predicted Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                    <Image src={analysisResult.plot} alt="Lasso Actual vs Predicted Plot" width={800} height={1200} className="w-full rounded-md border"/>
                                 </CardContent>
                             </Card>
                         )}

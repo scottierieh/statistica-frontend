@@ -217,7 +217,7 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
                                     <CardDescription>Performance for alpha = {results.alpha}</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Image src={analysisResult.plot} alt="Ridge Actual vs Predicted Plot" width={1400} height={600} className="w-full rounded-md border"/>
+                                    <Image src={analysisResult.plot} alt="Ridge Actual vs Predicted Plot" width={1400} height={1200} className="w-full rounded-md border"/>
                                 </CardContent>
                             </Card>
                         )}
