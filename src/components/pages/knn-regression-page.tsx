@@ -91,7 +91,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
 
         setIsLoading(true);
         if (predictValue === undefined) {
-            setAnalysisResult(null);
+             setAnalysisResult(null);
         }
         
         try {
@@ -259,7 +259,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                     </TabsContent>
                     <TabsContent value="plots" className="mt-4">
                         <div className="space-y-4">
-                            {analysisResult.plot && (
+                             {analysisResult.plot && (
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>Model Fit: Actual vs. Predicted</CardTitle>
