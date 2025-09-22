@@ -245,14 +245,16 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                              <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{analysisResult.results.metrics.mae.toFixed(3)}</p></div>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Actual vs. Predicted</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="KNN Regression Plot" width={800} height={600} className="w-full rounded-md border"/>
-                        </CardContent>
-                    </Card>
+                    {mode !== 'simple' && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Actual vs. Predicted</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="KNN Regression Plot" width={800} height={600} className="w-full rounded-md border"/>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             )}
         </div>
