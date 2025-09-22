@@ -31,7 +31,7 @@ def fig_to_base64(fig):
     """Converts a matplotlib figure to a base64 encoded string."""
     buf = io.BytesIO()
     fig.savefig(buf, format='png', bbox_inches='tight')
-    plt.close(fig)
+    # Do not close the figure here, let the caller decide
     buf.seek(0)
     return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
 
@@ -55,7 +55,6 @@ def main():
         X = df[features]
         y = df[target]
         
-        # Ensure all feature columns are numeric, handle potential errors
         for col in features:
             X[col] = pd.to_numeric(X[col], errors='coerce')
         y = pd.to_numeric(y, errors='coerce')
@@ -92,6 +91,7 @@ def main():
         prediction_result = None
         relationship_plot_image = None
         prediction_plot_image = None
+        plot_image = None
 
         # --- Generate plots ---
         # Plot 1: Actual vs. Predicted (always generated)
@@ -103,12 +103,14 @@ def main():
         ax_actual_vs_pred.set_title(f'Model Performance (k={k})')
         ax_actual_vs_pred.grid(True)
         plot_image = fig_to_base64(fig_actual_vs_pred)
+        plt.close(fig_actual_vs_pred)
+
 
         # Generate relationship and prediction plots only for simple regression
         if len(features) == 1:
             feature_name = features[0]
             
-            # Plot 2: X vs Y Relationship plot
+            # Plot 2: X vs Y Relationship plot (always for simple regression)
             fig_relationship, ax_relationship = plt.subplots(figsize=(8, 6))
             ax_relationship.scatter(X_train[feature_name], y_train, alpha=0.6, label='Training Data')
             ax_relationship.set_xlabel(feature_name)
@@ -117,6 +119,7 @@ def main():
             ax_relationship.legend()
             ax_relationship.grid(True)
             relationship_plot_image = fig_to_base64(fig_relationship)
+            plt.close(fig_relationship)
 
             # Plot 3: Prediction Simulation plot (if predict_x is provided)
             if predict_x is not None:
@@ -145,6 +148,7 @@ def main():
                 ax_pred.legend()
                 ax_pred.grid(True)
                 prediction_plot_image = fig_to_base64(fig_pred)
+                plt.close(fig_pred)
 
         results['prediction'] = prediction_result
         
@@ -163,3 +167,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
