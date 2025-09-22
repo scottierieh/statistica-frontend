@@ -169,7 +169,7 @@ class RegressionAnalysis:
         else:
             self.X = numeric_features
 
-    def linear_regression(self, model_name="linear", features=None, standardize=False, selection_method='none'):
+    def linear_regression(self, model_name="linear", features=None, standardize=False, selection_method='none', predict_x=None):
         stepwise_log = []
         if features is None:
             # Map features to sanitized names
@@ -207,6 +207,22 @@ class RegressionAnalysis:
         metrics = self._calculate_metrics(self.y, y_pred, len(X_scaled.columns))
         diagnostics = self._calculate_diagnostics(X_scaled, self.y, y_pred, sm_model)
         
+        prediction_result = None
+        if predict_x is not None and model_name == 'simple':
+            predict_x_scaled = self.scaler.transform([[predict_x]])[0][0]
+            predicted_y = sklearn_model.predict([[predict_x_scaled]])[0]
+            
+            # Find neighbors for visualization
+            distances = np.abs(X_scaled.values.flatten() - predict_x_scaled)
+            neighbor_indices = np.argsort(distances)[:5]
+            neighbors = X_selected.iloc[neighbor_indices].values.flatten().tolist()
+
+            prediction_result = {
+                'x_value': predict_x,
+                'y_value': predicted_y,
+                'neighbors': neighbors
+            }
+
         self.results[model_name] = {
             'model_name': model_name,
             'model_type': 'linear_regression',
@@ -214,7 +230,8 @@ class RegressionAnalysis:
             'metrics': metrics,
             'diagnostics': diagnostics,
             'stepwise_log': stepwise_log,
-            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, list(X_scaled.columns))
+            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, list(X_scaled.columns)),
+            'prediction': prediction_result
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -331,7 +348,7 @@ class RegressionAnalysis:
                 if table_data and len(table_data) > 1 and 'coef' in table_data[0]:
                     for row in table_data[1:]:
                         if row and row[0]:
-                            row[0] = clean_name(row[0])
+                             row[0] = clean_name(row[0])
 
                 summary_data.append({'caption': getattr(table, 'title', None), 'data': table_data})
             diagnostics['model_summary_data'] = summary_data
@@ -472,19 +489,35 @@ class RegressionAnalysis:
 
 
     
-    def plot_results(self, model_name):
+    def plot_results(self, model_name, prediction_result=None):
         residuals = self.y - self.y_pred
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         fig.suptitle(f'Regression Diagnostics - {model_name}', fontsize=16, fontweight='bold')
         
         # Actual vs Predicted
         ax = axes[0, 0]
-        ax.scatter(self.y, self.y_pred, alpha=0.6)
+        ax.scatter(self.y, self.y_pred, alpha=0.6, label='Data Points')
         ax.plot([self.y.min(), self.y.max()], [self.y.min(), self.y.max()], 'r--', lw=2)
+        
+        if prediction_result:
+            x_val_orig = prediction_result['x_value']
+            y_val_pred = prediction_result['y_value']
+            neighbors = prediction_result.get('neighbors', [])
+            
+            # Highlight the predicted point
+            ax.scatter(y_val_pred, y_val_pred, color='magenta', s=150, zorder=5, marker='*', label=f'Prediction for X={x_val_orig}')
+
+            # Highlight neighbors if simple regression
+            if model_name == 'simple':
+                 y_neighbors = self.y[self.X_scaled.iloc[:,0].isin(self.scaler.transform(np.array(neighbors).reshape(-1,1))[:,0])]
+                 ax.scatter(y_neighbors, y_neighbors, color='cyan', s=100, marker='D', zorder=4, label='Neighbors')
+
+
         ax.set_xlabel('Actual Values')
         ax.set_ylabel('Predicted Values')
         ax.set_title(f"Actual vs Predicted (R² = {self.results[model_name]['metrics']['r2']:.4f})")
         ax.grid(True, alpha=0.3)
+        ax.legend()
         
         # Residuals vs Fitted
         ax = axes[0, 1]
@@ -528,6 +561,7 @@ def main():
         features = payload.get('features')
         model_type = payload.get('modelType', 'multiple')
         selection_method = payload.get('selectionMethod', 'none')
+        predict_x = payload.get('predict_x')
 
         if not all([data, target_variable, features]):
             raise ValueError("Missing 'data', 'targetVar', or 'features'")
@@ -538,7 +572,7 @@ def main():
         
         results = None
         if model_type == 'simple' or model_type == 'multiple':
-            results = reg_analysis.linear_regression(model_name=model_type, features=features, standardize=True, selection_method=selection_method)
+            results = reg_analysis.linear_regression(model_name=model_type, features=features, standardize=True, selection_method=selection_method, predict_x=predict_x)
         elif model_type == 'polynomial':
             degree = payload.get('degree', 2)
             results = reg_analysis.polynomial_regression(model_name=model_type, features=features, degree=degree)
@@ -549,7 +583,7 @@ def main():
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 
-        plot_image = reg_analysis.plot_results(model_type)
+        plot_image = reg_analysis.plot_results(model_type, prediction_result=results.get('prediction'))
 
         response = {
             'results': results,
@@ -568,4 +602,6 @@ if __name__ == '__main__':
     main()
 
     
+
+
 
