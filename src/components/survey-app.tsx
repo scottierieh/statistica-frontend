@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -66,6 +67,7 @@ import {
   DollarSign,
   ZoomIn,
   ZoomOut,
+  AreaChart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -636,8 +638,8 @@ const RatingQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, 
         </div>
     )}
     <div className="flex items-center gap-2">
-      {(question.scale || [1, 2, 3, 4, 5]).map((ratingValue: any, index: number) => (
-        <Star key={index} className={cn("w-8 h-8 text-yellow-400", isPreview && "cursor-pointer hover:text-yellow-500 transition-colors", ratingValue <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(ratingValue)}/>
+      {(question.scale || ['1', '2', '3', '4', '5']).map((ratingValue: any, index: number) => (
+        <Star key={index} className={cn("w-8 h-8 text-yellow-400", isPreview && "cursor-pointer hover:text-yellow-500 transition-colors", (index + 1) <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(index + 1)}/>
       ))}
     </div>
   </div>
@@ -924,40 +926,70 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
     );
 };
   
-const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
-    const plotLayout = {
-      autosize: true,
-      margin: { t: 20, b: 40, l: 120, r: 20 },
-      xaxis: { title: 'Count' },
-      yaxis: { autorange: 'reversed' as const },
-  };
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any[], tableData: any[], insightsData: string[], varName: string }) => {
+    const [chartType, setChartType] = useState<'bar' | 'hbar' | 'pie'>('hbar');
 
-  const plotConfig = {
-      displayModeBar: true,
-      modeBarButtonsToRemove: ['select2d', 'lasso2d'],
-  };
+    const plotLayout = useMemo(() => {
+        const baseLayout = {
+            autosize: true,
+            margin: { t: 40, b: 40, l: 40, r: 20 },
+        };
+        if (chartType === 'hbar') {
+            return { ...baseLayout, yaxis: { autorange: 'reversed' as const }, margin: { ...baseLayout.margin, l: 120 } };
+        }
+        if (chartType === 'bar') {
+            return { ...baseLayout, xaxis: { tickangle: -45 } };
+        }
+        return baseLayout;
+    }, [chartType]);
+
+    const plotData = useMemo(() => {
+        if (chartType === 'pie') {
+            return [{
+                values: chartData.map(d => d.count),
+                labels: chartData.map(d => d.name),
+                type: 'pie',
+                hole: 0.4,
+                marker: { colors: COLORS },
+            }];
+        }
+        return [{
+            y: chartType === 'hbar' ? chartData.map(d => d.name) : chartData.map(d => d.count),
+            x: chartType === 'hbar' ? chartData.map(d => d.count) : chartData.map(d => d.name),
+            type: 'bar',
+            orientation: chartType === 'hbar' ? 'h' : 'v',
+            marker: { color: COLORS },
+        }];
+    }, [chartType, chartData]);
 
     return (
-      <AnalysisDisplayShell varName={varName}>
+        <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                 <Card>
+                <Card>
                     <CardHeader>
-                       <CardTitle className="text-base">Distribution</CardTitle>
+                        <CardTitle className="text-base flex justify-between items-center">
+                            Distribution
+                             <div className="flex gap-1">
+                                <Button variant={chartType === 'hbar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('hbar')}><BarChart className="w-4 h-4 -rotate-90" /></Button>
+                                <Button variant={chartType === 'bar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('bar')}><BarChart className="w-4 h-4" /></Button>
+                                <Button variant={chartType === 'pie' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('pie')}><PieChartIcon className="w-4 h-4" /></Button>
+                            </div>
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
                         <Plot
-                            data={[chartData]}
+                            data={plotData}
                             layout={plotLayout}
                             style={{ width: '100%', height: '100%' }}
-                            config={plotConfig}
+                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
                             useResizeHandler
                         />
                     </CardContent>
                 </Card>
-                 <div className="space-y-4">
+                <div className="space-y-4">
                     <Card>
-                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
-                         <CardContent className="max-h-[200px] overflow-y-auto">
+                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                        <CardContent className="max-h-[200px] overflow-y-auto">
                             <Table>
                                 <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
                                 <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
@@ -970,12 +1002,13 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                     </Card>
                 </div>
             </div>
-      </AnalysisDisplayShell>
+        </AnalysisDisplayShell>
     );
 };
   
 const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question }: { chartData: any, tableData: any, insightsData: string[], varName: string, question: any }) => {
     const ratingScale = question.scale || ['1', '2', '3', '4', '5'];
+    
     return (
         <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -983,8 +1016,8 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, qu
                     <CardHeader>
                         <CardTitle className="text-base">Average Rating</CardTitle>
                     </CardHeader>
-                    <CardContent className="flex items-center justify-center min-h-[300px]">
-                        <Plot
+                     <CardContent className="flex items-center justify-center min-h-[300px]">
+                         <Plot
                             data={[{
                                 y: ['Average'],
                                 x: [chartData.avg],
@@ -1300,7 +1333,7 @@ const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
     const { kpiData, insights } = data;
     const kpiStatus = {
         npsScore: kpiData.npsScore > 50 ? 'excellent' : kpiData.npsScore > 0 ? 'good' : 'poor',
-        avgSatisfaction: kpiData.avgSatisfaction > 4 ? 'excellent' : kpiData.avgSatisfaction > 3 ? 'good' : 'poor',
+        avgSatisfaction: kpiData.avgSatisfaction > 4 ? 'excellent' : kpiData.avgSatisfaction > 3 ? 'good' : 'warning',
         avgOrderValue: 'good',
         repurchaseRate: kpiData.repurchaseRate > 50 ? 'excellent' : kpiData.repurchaseRate > 30 ? 'good' : 'warning',
     };
@@ -1622,21 +1655,15 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     name,
                     count,
                     percentage: responses.length > 0 ? ((count / responses.length) * 100).toFixed(1) : "0.0"
-                }));
+                })).sort((a,b) => b.count - a.count);
 
-                const mostSelected = [...tableData].sort((a, b) => b.count - a.count)[0];
+                const mostSelected = tableData[0];
                 insights = [
                     `Most frequent answer: <strong>${mostSelected.name}</strong> (${mostSelected.count} responses, ${mostSelected.percentage}%).`,
                     `A total of <strong>${responses.length}</strong> responses were collected for this question.`
                 ];
 
-                chartData = {
-                  y: tableData.map((d: any) => d.name),
-                  x: tableData.map((d: any) => d.count),
-                  type: 'bar',
-                  orientation: 'h',
-                  marker: { color: COLORS },
-                };
+                chartData = tableData;
                 break;
             }
             case 'text': {
@@ -2754,5 +2781,6 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
+
 
 
