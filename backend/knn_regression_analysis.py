@@ -43,8 +43,7 @@ def main():
         features = payload.get('features')
         k = int(payload.get('k', 5))
         test_size = float(payload.get('test_size', 0.2))
-        predict_x_str = payload.get('predict_x')
-        predict_x = float(predict_x_str) if predict_x_str is not None else None
+        predict_x_input = payload.get('predict_x')
 
         if not all([data, target, features]):
             raise ValueError("Missing data, target, or features")
@@ -99,12 +98,12 @@ def main():
         }
         
         prediction_result = None
-        
-        # --- Plotting ---
         plot_image = None
         relationship_plot_image = None
         prediction_plot_image = None
-
+        
+        # --- Plotting ---
+        
         # Always create the Actual vs. Predicted plot
         fig_actual_vs_pred, ax_actual_vs_pred = plt.subplots(figsize=(8, 6))
         sns.scatterplot(x=y_test, y=y_pred_test, ax=ax_actual_vs_pred, alpha=0.6)
@@ -129,8 +128,10 @@ def main():
             ax_relationship.grid(True)
             relationship_plot_image = fig_to_base64(fig_relationship)
 
-            if predict_x is not None:
-                predict_x_df = pd.DataFrame([[predict_x]], columns=features)
+        if predict_x_input is not None:
+            if len(features) == 1:
+                predict_x_val = float(predict_x_input)
+                predict_x_df = pd.DataFrame([[predict_x_val]], columns=features)
                 predict_x_scaled = scaler.transform(predict_x_df)
                 
                 predicted_y = model.predict(predict_x_scaled)[0]
@@ -140,21 +141,34 @@ def main():
                 neighbor_y = y_train.iloc[indices[0]]
 
                 prediction_result = {
-                    'x_value': predict_x,
+                    'x_value': predict_x_val,
                     'y_value': predicted_y,
                 }
                 
                 # Create Prediction Simulation Plot
                 fig_pred, ax_pred = plt.subplots(figsize=(8, 6))
-                ax_pred.scatter(X_train[feature_name], y_train, alpha=0.3, label='Training Data')
-                ax_pred.scatter(neighbor_X_unscaled[feature_name], neighbor_y, color='orange', s=100, marker='D', label=f'{k} Nearest Neighbors', zorder=5)
-                ax_pred.scatter([prediction_result['x_value']], [prediction_result['y_value']], color='magenta', s=200, marker='^', label=f'Prediction for X={predict_x}', zorder=6, edgecolors='black')
-                ax_pred.set_xlabel(feature_name)
+                ax_pred.scatter(X_train[features[0]], y_train, alpha=0.3, label='Training Data')
+                ax_pred.scatter(neighbor_X_unscaled[features[0]], neighbor_y, color='orange', s=100, marker='D', label=f'{k} Nearest Neighbors', zorder=5)
+                ax_pred.scatter([prediction_result['x_value']], [prediction_result['y_value']], color='magenta', s=200, marker='^', label=f'Prediction for X={predict_x_val}', zorder=6, edgecolors='black')
+                ax_pred.set_xlabel(features[0])
                 ax_pred.set_ylabel(target)
                 ax_pred.set_title(f'KNN Prediction Simulation (k={k})')
                 ax_pred.legend()
                 ax_pred.grid(True)
                 prediction_plot_image = fig_to_base64(fig_pred)
+            
+            else: # Multiple regression prediction
+                # Ensure the input dictionary keys match the feature order
+                predict_values_ordered = [predict_x_input[f] for f in features]
+                predict_x_df = pd.DataFrame([predict_values_ordered], columns=features)
+                predict_x_scaled = scaler.transform(predict_x_df)
+                predicted_y = model.predict(predict_x_scaled)[0]
+                
+                prediction_result = {
+                    'x_value': predict_x_input,
+                    'y_value': predicted_y,
+                }
+
 
         results['prediction'] = prediction_result
         
@@ -173,3 +187,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
