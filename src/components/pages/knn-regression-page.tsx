@@ -17,13 +17,18 @@ import Image from 'next/image';
 import { Input } from '../ui/input';
 import { Slider } from '../ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+interface KnnRegressionMetrics {
+    r2_score: number;
+    rmse: number;
+    mae: number;
+}
 
 interface KnnRegressionResults {
     metrics: {
-        r2_score: number;
-        rmse: number;
-        mae: number;
+        test: KnnRegressionMetrics;
+        train: KnnRegressionMetrics;
     };
     predictions: { actual: number; predicted: number }[];
     prediction?: {
@@ -73,7 +78,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== target), [numericHeaders, target]);
 
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= (mode === 'simple' ? 2 : 2), [data, numericHeaders, mode]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders, mode]);
 
     const handleFeatureChange = (header: string, checked: boolean) => {
         if (mode === 'simple') {
@@ -130,8 +135,8 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
             if ((result as any).error) throw new Error((result as any).error);
 
             setAnalysisResult(result);
-            if (predictValue !== undefined) {
-                toast({ title: 'Prediction Complete', description: `Predicted value is ${result.results.prediction?.y_value.toFixed(2)}` });
+            if (predictValue !== undefined && result.results.prediction) {
+                toast({ title: 'Prediction Complete', description: `Predicted value is ${result.results.prediction.y_value.toFixed(2)}` });
             }
 
         } catch (e: any) {
@@ -246,14 +251,38 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                         <TabsTrigger value="plots">Plots</TabsTrigger>
                     </TabsList>
                     <TabsContent value="summary" className="mt-4">
-                        <Card>
+                         <Card>
                             <CardHeader>
-                                <CardTitle>Model Performance</CardTitle>
+                                <CardTitle>Train vs. Test Performance</CardTitle>
+                                <CardDescription>Comparing model performance on training and testing data can help identify overfitting.</CardDescription>
                             </CardHeader>
-                            <CardContent className="grid md:grid-cols-3 gap-4 text-center">
-                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">R-squared</p><p className="text-2xl font-bold">{analysisResult.results.metrics.r2_score.toFixed(3)}</p></div>
-                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{analysisResult.results.metrics.rmse.toFixed(3)}</p></div>
-                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{analysisResult.results.metrics.mae.toFixed(3)}</p></div>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Metric</TableHead>
+                                            <TableHead className="text-right">Train Score</TableHead>
+                                            <TableHead className="text-right">Test Score</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow>
+                                            <TableCell>R-squared</TableCell>
+                                            <TableCell className="text-right font-mono">{results?.metrics.train.r2_score.toFixed(4)}</TableCell>
+                                            <TableCell className="text-right font-mono">{results?.metrics.test.r2_score.toFixed(4)}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>RMSE</TableCell>
+                                            <TableCell className="text-right font-mono">{results?.metrics.train.rmse.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{results?.metrics.test.rmse.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>MAE</TableCell>
+                                            <TableCell className="text-right font-mono">{results?.metrics.train.mae.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{results?.metrics.test.mae.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
                             </CardContent>
                         </Card>
                     </TabsContent>

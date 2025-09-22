@@ -31,7 +31,7 @@ def fig_to_base64(fig):
     """Converts a matplotlib figure to a base64 encoded string."""
     buf = io.BytesIO()
     fig.savefig(buf, format='png', bbox_inches='tight')
-    plt.close(fig)  # Close the specific figure to free up memory
+    plt.close(fig)
     buf.seek(0)
     return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
 
@@ -51,7 +51,6 @@ def main():
 
         df = pd.DataFrame(data)
         
-        # Data Preparation
         X = df[features]
         y = df[target]
         
@@ -72,17 +71,28 @@ def main():
         X_train_scaled = scaler.fit_transform(X_train)
         X_test_scaled = scaler.transform(X_test)
         
-        # Model Training
         model = KNeighborsRegressor(n_neighbors=k)
         model.fit(X_train_scaled, y_train)
-        y_pred_test = model.predict(X_test_scaled)
         
-        # Evaluation
+        y_pred_test = model.predict(X_test_scaled)
+        y_pred_train = model.predict(X_train_scaled)
+        
+        test_metrics = {
+            'r2_score': r2_score(y_test, y_pred_test),
+            'rmse': np.sqrt(mean_squared_error(y_test, y_pred_test)),
+            'mae': mean_absolute_error(y_test, y_pred_test)
+        }
+        
+        train_metrics = {
+            'r2_score': r2_score(y_train, y_pred_train),
+            'rmse': np.sqrt(mean_squared_error(y_train, y_pred_train)),
+            'mae': mean_absolute_error(y_train, y_pred_train)
+        }
+        
         results = {
             'metrics': {
-                'r2_score': r2_score(y_test, y_pred_test),
-                'rmse': np.sqrt(mean_squared_error(y_test, y_pred_test)),
-                'mae': mean_absolute_error(y_test, y_pred_test)
+                'test': test_metrics,
+                'train': train_metrics,
             },
             'predictions': [{'actual': act, 'predicted': pred} for act, pred in zip(y_test.tolist(), y_pred_test.tolist())],
             'features': features
@@ -90,8 +100,6 @@ def main():
         
         prediction_result = None
         
-        # --- Generate plots ---
-        # Plot 1: Actual vs. Predicted (always generated)
         fig_actual_vs_pred, ax_actual_vs_pred = plt.subplots(figsize=(8, 6))
         sns.scatterplot(x=y_test, y=y_pred_test, ax=ax_actual_vs_pred, alpha=0.6)
         ax_actual_vs_pred.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
@@ -104,11 +112,9 @@ def main():
         relationship_plot_image = None
         prediction_plot_image = None
 
-        # Generate relationship and prediction plots only for simple regression
         if len(features) == 1:
             feature_name = features[0]
             
-            # Plot 2: X vs Y Relationship plot
             fig_relationship, ax_relationship = plt.subplots(figsize=(8, 6))
             ax_relationship.scatter(X_train[feature_name], y_train, alpha=0.6, label='Training Data')
             ax_relationship.scatter(X_test[feature_name], y_test, alpha=0.6, label='Test Data', marker='x')
@@ -119,7 +125,6 @@ def main():
             ax_relationship.grid(True)
             relationship_plot_image = fig_to_base64(fig_relationship)
 
-            # Plot 3: Prediction Simulation plot (if predict_x is provided)
             if predict_x is not None:
                 predict_x_df = pd.DataFrame([[predict_x]], columns=features)
                 predict_x_scaled = scaler.transform(predict_x_df)
@@ -127,8 +132,7 @@ def main():
                 predicted_y = model.predict(predict_x_scaled)[0]
                 
                 distances, indices = model.kneighbors(predict_x_scaled)
-                neighbor_X_scaled = X_train_scaled[indices[0]]
-                neighbor_X = scaler.inverse_transform(neighbor_X_scaled)
+                neighbor_X_unscaled = X_train.iloc[indices[0]]
                 neighbor_y = y_train.iloc[indices[0]]
 
                 prediction_result = {
@@ -137,8 +141,8 @@ def main():
                 }
                 
                 fig_pred, ax_pred = plt.subplots(figsize=(8, 6))
-                ax_pred.scatter(X_train.values.flatten(), y_train, alpha=0.3, label='Training Data')
-                ax_pred.scatter(neighbor_X.flatten(), neighbor_y, color='orange', s=100, marker='D', label=f'{k} Nearest Neighbors', zorder=5)
+                ax_pred.scatter(X_train[feature_name], y_train, alpha=0.3, label='Training Data')
+                ax_pred.scatter(neighbor_X_unscaled[feature_name], neighbor_y, color='orange', s=100, marker='D', label=f'{k} Nearest Neighbors', zorder=5)
                 ax_pred.scatter([prediction_result['x_value']], [prediction_result['y_value']], color='magenta', s=200, marker='^', label=f'Prediction for X={predict_x}', zorder=6, edgecolors='black')
                 ax_pred.set_xlabel(feature_name)
                 ax_pred.set_ylabel(target)
