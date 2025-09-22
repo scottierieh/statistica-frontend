@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -18,16 +17,21 @@ import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Slider } from '../ui/slider';
 
+
+interface RegressionMetrics {
+    r2_score: number;
+    rmse: number;
+    mae: number;
+}
 interface RegressionResultsData {
     model_name: string;
     model_type: string;
     features: string[];
     metrics: {
-        r2: number;
-        adj_r2: number;
-        rmse: number;
-        mae: number;
+        train: RegressionMetrics;
+        test: RegressionMetrics;
     };
     diagnostics: {
         f_statistic?: number;
@@ -65,10 +69,11 @@ interface FullAnalysisResponse {
 }
 
 const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: string, f_pvalue?: number }) => {
+    if (!interpretation) return null;
+
     const isSignificant = f_pvalue !== undefined && f_pvalue < 0.05;
 
     const { interpretationText, warnings } = useMemo(() => {
-        if (!interpretation) return { interpretationText: '', warnings: [] };
         const parts = interpretation.split('--- Diagnostic Warnings ---');
         return {
             interpretationText: parts[0] || '',
@@ -89,8 +94,6 @@ const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: 
             .replace(/R²\s*=\s*([\d.-]+)/g, '<i>R</i>² = $1')
             .replace(/B\s*=\s*([\d.-]+)/g, '<i>B</i> = $1');
     }, [interpretationText]);
-
-    if (!interpretation) return null;
 
     return (
         <Card>
@@ -147,6 +150,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     // States for different models
     const [simpleFeatureVar, setSimpleFeatureVar] = useState<string | undefined>(numericHeaders[0]);
     const [multipleFeatureVars, setMultipleFeatureVars] = useState<string[]>(numericHeaders.slice(0, numericHeaders.length - 1));
+    const [testSize, setTestSize] = useState(0.2);
     
     // Simple regression prediction state
     const [predictXValue, setPredictXValue] = useState<number | ''>('');
@@ -154,10 +158,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     
     // Model specific params
     const [polyDegree, setPolyDegree] = useState(2);
-    const [ridgeAlpha, setRidgeAlpha] = useState(1.0);
-    const [lassoAlpha, setLassoAlpha] = useState(0.1);
-    const [elasticNetAlpha, setElasticNetAlpha] = useState(1.0);
-    const [elasticNetL1Ratio, setElasticNetL1Ratio] = useState(0.5);
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -188,7 +188,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         }
 
         let features: string[] = [];
-        let params: any = { data, targetVar, modelType, selectionMethod };
+        let params: any = { data, targetVar, modelType, selectionMethod, test_size: testSize };
 
         switch (modelType) {
             case 'simple':
@@ -203,21 +203,12 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                 break;
             case 'multiple':
             case 'polynomial':
-            case 'ridge':
-            case 'lasso':
-            case 'elasticnet':
                 if (multipleFeatureVars.length < 1) {
                     toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select at least one feature.'});
                     return;
                 }
                 features = multipleFeatureVars;
                 if (modelType === 'polynomial') params.degree = polyDegree;
-                if (modelType === 'ridge') params.alpha = ridgeAlpha;
-                if (modelType === 'lasso') params.alpha = lassoAlpha;
-                if (modelType === 'elasticnet') {
-                    params.alpha = elasticNetAlpha;
-                    params.l1_ratio = elasticNetL1Ratio;
-                }
                 break;
         }
 
@@ -256,7 +247,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         } finally {
             setIsLoading(false);
         }
-    }, [data, targetVar, modelType, simpleFeatureVar, multipleFeatureVars, polyDegree, ridgeAlpha, lassoAlpha, elasticNetAlpha, elasticNetL1Ratio, selectionMethod, toast]);
+    }, [data, targetVar, modelType, simpleFeatureVar, multipleFeatureVars, polyDegree, selectionMethod, toast, testSize]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
     
@@ -361,63 +352,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                         {renderMultiFeatureSelector()}
                     </div>
                 );
-            case 'ridge':
-                return (
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <Label>Target Variable (Y)</Label>
-                            <Select value={targetVar} onValueChange={setTargetVar}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                            <div className='mt-4'>
-                                <Label htmlFor="ridge-alpha">Alpha (Regularization Strength)</Label>
-                                <Input id="ridge-alpha" type="number" value={ridgeAlpha ?? ''} onChange={(e) => setRidgeAlpha(Number(e.target.value))} min="0" step="0.1" className="w-32" />
-                           </div>
-                        </div>
-                        {renderMultiFeatureSelector()}
-                    </div>
-                );
-            case 'lasso':
-                 return (
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <Label>Target Variable (Y)</Label>
-                            <Select value={targetVar} onValueChange={setTargetVar}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                            <div className='mt-4'>
-                                <Label htmlFor="lasso-alpha">Alpha (Regularization Strength)</Label>
-                                <Input id="lasso-alpha" type="number" value={lassoAlpha ?? ''} onChange={(e) => setLassoAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
-                           </div>
-                        </div>
-                       {renderMultiFeatureSelector()}
-                    </div>
-                );
-            case 'elasticnet':
-                 return (
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <Label>Target Variable (Y)</Label>
-                            <Select value={targetVar} onValueChange={setTargetVar}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                            <div className='mt-4 space-y-2'>
-                                <div>
-                                    <Label htmlFor="elastic-alpha">Alpha (Regularization Strength)</Label>
-                                    <Input id="elastic-alpha" type="number" value={elasticNetAlpha} onChange={(e) => setElasticNetAlpha(Number(e.target.value))} min="0" step="0.01" className="w-32" />
-                                </div>
-                                 <div>
-                                    <Label htmlFor="l1-ratio">L1 Ratio (0=Ridge, 1=Lasso)</Label>
-                                    <Input id="l1-ratio" type="number" value={elasticNetL1Ratio} onChange={(e) => setElasticNetL1Ratio(Number(e.target.value))} min="0" max="1" step="0.01" className="w-32" />
-                                </div>
-                           </div>
-                        </div>
-                       {renderMultiFeatureSelector()}
-                    </div>
-                );
             default:
                 return <p>Select a model type.</p>;
         }
@@ -464,8 +398,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         )
     }
 
-    const isRegularized = ['ridge', 'lasso', 'elasticnet'].includes(modelType);
-
     return (
         <div className="flex flex-col gap-4">
             <Card>
@@ -473,8 +405,12 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                     <CardTitle className="font-headline">Regression Analysis Setup</CardTitle>
                     <CardDescription>Select a regression model, then configure its variables and parameters.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     {renderSetupUI()}
+                     <div className='pt-4'>
+                        <Label>Test Set Size: {Math.round(testSize*100)}%</Label>
+                        <Slider value={[testSize]} onValueChange={v => setTestSize(v[0])} min={0.1} max={0.5} step={0.05} />
+                    </div>
                     <div className="flex justify-end mt-4">
                         <Button onClick={() => handleAnalysis()} disabled={getAnalysisButtonDisabled()}>
                             {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
@@ -495,7 +431,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                             </CardHeader>
                             <CardContent className="flex items-center gap-4">
                                 <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${simpleFeatureVar}`}/>
-                                <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === ''}>Predict</Button>
+                                <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === '' || isLoading}>Predict</Button>
                             </CardContent>
                             {predictedYValue !== null && (
                                 <CardFooter>
@@ -505,118 +441,71 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                         </Card>
                     )}
 
+                    <InterpretationDisplay interpretation={results.interpretation} f_pvalue={results.diagnostics.f_pvalue} />
+
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Model Summary</CardTitle>
-                            <CardDescription>Key performance metrics for the {analysisResult.model_type?.replace(/_/g, ' ')} model.</CardDescription>
+                            <CardTitle>Train vs. Test Performance</CardTitle>
                         </CardHeader>
-                        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">R-squared</p><p className="text-2xl font-bold">{results.metrics?.r2.toFixed(4)}</p></div>
-                            <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">Adj. R-squared</p><p className="text-2xl font-bold">{results.metrics?.adj_r2.toFixed(4)}</p></div>
-                            <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{results.metrics?.rmse.toFixed(3)}</p></div>
-                            {!isRegularized && <div className="p-4 bg-muted rounded-lg text-center"><p className="text-sm text-muted-foreground">F-statistic p-value</p><p className="text-2xl font-bold">{results.diagnostics.f_pvalue != null ? (results.diagnostics.f_pvalue < 0.001 ? '< 0.001' : results.diagnostics.f_pvalue.toFixed(4)) : 'N/A'}</p></div>}
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Metric</TableHead>
+                                        <TableHead className="text-right">Train Score</TableHead>
+                                        <TableHead className="text-right">Test Score</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>R-squared</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.train.r2_score.toFixed(4)}</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.test.r2_score.toFixed(4)}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>RMSE</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.train.rmse.toFixed(3)}</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.test.rmse.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>MAE</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.train.mae.toFixed(3)}</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.test.mae.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
                         </CardContent>
                     </Card>
 
-                    <InterpretationDisplay interpretation={results.interpretation} f_pvalue={results.diagnostics.f_pvalue} />
-                    
-                     <div className="grid lg:grid-cols-2 gap-4">
-                        <Card>
-                            <CardHeader><CardTitle className="font-headline">Coefficients</CardTitle></CardHeader>
-                            <CardContent>
-                                {coeffs ? (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Variable</TableHead>
-                                            <TableHead className="text-right">Coefficient</TableHead>
-                                            {!isRegularized && (
-                                            <>
-                                            <TableHead className="text-right">Std. Error</TableHead>
-                                            <TableHead className="text-right">p-value</TableHead>
-                                            </>
-                                            )}
+                    <Card>
+                        <CardHeader><CardTitle className="font-headline">Coefficients</CardTitle></CardHeader>
+                        <CardContent>
+                            {coeffs ? (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Variable</TableHead>
+                                        <TableHead className="text-right">Coefficient</TableHead>
+                                        <TableHead className="text-right">Std. Error</TableHead>
+                                        <TableHead className="text-right">t-value</TableHead>
+                                        <TableHead className="text-right">p-value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {coefficientTableData.map(row => (
+                                        <TableRow key={row.key}>
+                                            <TableCell>{row.key === 'const' ? 'Intercept' : row.key}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.coefficient?.toFixed(4) ?? 'N/A'}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.stdError?.toFixed(4) ?? 'N/A'}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.tValue?.toFixed(3) ?? 'N/A'}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4) ?? 'N/A'} {getSignificanceStars(row.pValue)}</TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {coefficientTableData.map(row => (
-                                            <TableRow key={row.key}>
-                                                <TableCell>{row.key === 'const' ? 'Intercept' : row.key}</TableCell>
-                                                <TableCell className="text-right font-mono">{row.coefficient?.toFixed(4) ?? 'N/A'}</TableCell>
-                                                {!isRegularized && (
-                                                <>
-                                                <TableCell className="text-right font-mono">{row.stdError?.toFixed(4) ?? 'N/A'}</TableCell>
-                                                <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4) ?? 'N/A'} {getSignificanceStars(row.pValue)}</TableCell>
-                                                </>
-                                                )}
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                                ) : <p className="text-muted-foreground">Coefficient details not available for this model type.</p>}
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader><CardTitle className="font-headline">Residual Diagnostics</CardTitle></CardHeader>
-                             <CardContent>
-                                <dl className="space-y-3 text-sm">
-                                    {!isRegularized && (
-                                    <>
-                                        <div className="flex justify-between items-center">
-                                            <span>Durbin-Watson:</span><span className="font-mono">{results.diagnostics.durbin_watson?.toFixed(3) || 'N/A'}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span>Homoscedasticity (Breusch-Pagan):</span>
-                                            <div className="flex items-center gap-2">
-                                                <Badge variant={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null && results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'secondary' : 'destructive'}>
-                                                    {results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value != null ? (results.diagnostics.heteroscedasticity_tests.breusch_pagan.p_value > 0.05 ? 'Met' : 'Violated') : 'N/A'}
-                                                </Badge>
-                                                <span className="font-mono">p={results.diagnostics.heteroscedasticity_tests?.breusch_pagan?.p_value?.toFixed(3) ?? 'N/A'}</span>
-                                            </div>
-                                        </div>
-                                    </>
-                                    )}
-                                    <div className="flex justify-between items-center">
-                                        <span>Normality (Shapiro-Wilk):</span>
-                                        <div className="flex items-center gap-2">
-                                             <Badge variant={results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null && results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'secondary' : 'destructive'}>
-                                                {results.diagnostics.normality_tests?.shapiro_wilk?.p_value != null ? (results.diagnostics.normality_tests.shapiro_wilk.p_value > 0.05 ? 'Normal' : 'Not Normal') : 'N/A'}
-                                            </Badge>
-                                            <span className="font-mono">p={results.diagnostics.normality_tests?.shapiro_wilk?.p_value?.toFixed(3) ?? 'N/A'}</span>
-                                        </div>
-                                    </div>
-                                    
-                                </dl>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {!isRegularized && results.diagnostics.vif && Object.keys(results.diagnostics.vif).length > 0 && (
-                        <Card>
-                             <CardHeader><CardTitle>Multicollinearity Diagnostics</CardTitle></CardHeader>
-                             <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Feature</TableHead>
-                                            <TableHead className="text-right">VIF</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                     <TableBody>
-                                        {Object.entries(results.diagnostics.vif).map(([key, value]) => (
-                                            <TableRow key={key}>
-                                                <TableCell>{key}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <Badge variant={value > 10 ? 'destructive' : value > 5 ? 'secondary' : 'default'}>{value.toFixed(2)}</Badge>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                             </CardContent>
-                        </Card>
-                    )}
-
+                                    ))}
+                                </TableBody>
+                            </Table>
+                            ) : <p className="text-muted-foreground">Coefficient details not available.</p>}
+                        </CardContent>
+                    </Card>
 
                     {analysisResult.plot && (
                         <Card>
@@ -629,4 +518,3 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     );
 }
-
