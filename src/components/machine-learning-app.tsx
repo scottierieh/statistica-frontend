@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -32,14 +33,16 @@ import { DataSet, parseData, unparseData } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import * as XLSX from 'xlsx';
 
-type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression';
+type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple';
 
-const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExample }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], onLoadExample: (e: ExampleDataSet) => void }) => {
+const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExample, allHeaders, categoricalHeaders }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], onLoadExample: (e: ExampleDataSet) => void, allHeaders: string[], categoricalHeaders: string[] }) => {
     switch (activeTask) {
         case 'deep-learning':
             return <DeepLearningApp />;
-        case 'knn-regression':
-            return <KnnRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} />;
+        case 'knn-regression-simple':
+            return <KnnRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} mode="simple" />;
+        case 'knn-regression-multiple':
+             return <KnnRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} mode="multiple" />;
         case 'regression':
         case 'classification':
         case 'tree':
@@ -64,7 +67,7 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExampl
 };
 
 export default function MachineLearningApp() {
-  const [activeTask, setActiveTask] = useState<MLTaskType>('knn-regression');
+  const [activeTask, setActiveTask] = useState<MLTaskType>('knn-regression-simple');
   const { toast } = useToast();
   const [data, setData] = useState<DataSet>([]);
   const [allHeaders, setAllHeaders] = useState<string[]>([]);
@@ -195,21 +198,30 @@ export default function MachineLearningApp() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => setActiveTask('regression')}
-                  isActive={activeTask === 'regression'}
+                  onClick={() => {}}
+                  isActive={activeTask.includes('regression')}
                 >
                   <TrendingUp />
                   <span>회귀 알고리즘</span>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                  <SidebarMenuButton
-                      onClick={() => setActiveTask('knn-regression')}
-                      isActive={activeTask === 'knn-regression'}
-                      >
-                      <Container />
-                      <span>KNN 회귀</span>
-                  </SidebarMenuButton>
+                <SidebarMenuSub>
+                    <SidebarMenuItem>
+                        <SidebarMenuSubButton
+                          onClick={() => setActiveTask('knn-regression-simple')}
+                          isActive={activeTask === 'knn-regression-simple'}
+                        >
+                          Simple KNN Regression
+                        </SidebarMenuSubButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                         <SidebarMenuSubButton
+                          onClick={() => setActiveTask('knn-regression-multiple')}
+                          isActive={activeTask === 'knn-regression-multiple'}
+                        >
+                          Multiple KNN Regression
+                        </SidebarMenuSubButton>
+                    </SidebarMenuItem>
+                </SidebarMenuSub>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -273,6 +285,8 @@ export default function MachineLearningApp() {
                 activeTask={activeTask}
                 data={data}
                 numericHeaders={numericHeaders}
+                categoricalHeaders={categoricalHeaders}
+                allHeaders={allHeaders}
                 onLoadExample={handleLoadExampleData}
              />
           </div>

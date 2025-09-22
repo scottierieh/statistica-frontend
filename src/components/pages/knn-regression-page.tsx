@@ -25,6 +25,12 @@ interface KnnRegressionResults {
         mae: number;
     };
     predictions: { actual: number; predicted: number }[];
+    prediction?: {
+        x_value: number;
+        y_value: number;
+        neighbors_X: number[][];
+        neighbors_y: number[];
+    };
 }
 
 interface FullAnalysisResponse {
@@ -82,40 +88,61 @@ interface KnnRegressionPageProps {
     data: DataSet;
     numericHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
+    mode: 'simple' | 'multiple';
 }
 
-export default function KnnRegressionPage({ data, numericHeaders, onLoadExample }: KnnRegressionPageProps) {
+export default function KnnRegressionPage({ data, numericHeaders, onLoadExample, mode }: KnnRegressionPageProps) {
     const { toast } = useToast();
     const [target, setTarget] = useState<string | undefined>();
     const [features, setFeatures] = useState<string[]>([]);
     const [k, setK] = useState(5);
     const [testSize, setTestSize] = useState(0.2);
+    
+    const [predictXValue, setPredictXValue] = useState<number | ''>('');
+    const [predictedYValue, setPredictedYValue] = useState<number | null>(null);
 
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        setTarget(numericHeaders[numericHeaders.length - 1]);
-        setFeatures(numericHeaders.slice(0, numericHeaders.length -1));
+        const defaultTarget = numericHeaders[numericHeaders.length - 1];
+        setTarget(defaultTarget);
+        if (mode === 'simple') {
+            setFeatures(numericHeaders.length > 1 ? [numericHeaders[0]] : []);
+        } else {
+            setFeatures(numericHeaders.filter(h => h !== defaultTarget));
+        }
         setAnalysisResult(null);
-    }, [data, numericHeaders]);
+    }, [data, numericHeaders, mode]);
+    
+    const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== target), [numericHeaders, target]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
 
-    const handleAnalysis = useCallback(async () => {
+    const handleFeatureChange = (header: string, checked: boolean) => {
+        if (mode === 'simple') {
+            setFeatures(checked ? [header] : []);
+        } else {
+            setFeatures(prev => checked ? [...prev, header] : prev.filter(f => f !== h));
+        }
+    };
+
+    const handleAnalysis = useCallback(async (predictValue?: number) => {
         if (!target || features.length === 0) {
             toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select a target and at least one feature.' });
             return;
         }
 
         setIsLoading(true);
-        setAnalysisResult(null);
+        if (typeof predictValue !== 'number') {
+            setAnalysisResult(null);
+        }
 
         try {
             const response = await fetch('/api/analysis/knn-regression', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, target, features, k, test_size: testSize })
+                body: JSON.stringify({ data, target, features, k, test_size: testSize, predict_x: predictValue })
             });
 
             if (!response.ok) {
@@ -127,6 +154,10 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample 
             if ((result as any).error) throw new Error((result as any).error);
 
             setAnalysisResult(result);
+            if (result.results.prediction) {
+                setPredictedYValue(result.results.prediction.y_value);
+            }
+
         } catch (e: any) {
             console.error('KNN Regression error:', e);
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
@@ -134,15 +165,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample 
             setIsLoading(false);
         }
     }, [data, target, features, k, testSize, toast]);
-
-    const handleSimulation = (state: any) => {
-        // This is a mock simulation. A real one would use the trained model.
-        if (!analysisResult) return 0;
-        const basePrediction = analysisResult.results.metrics.rmse; 
-        const influence = Object.values(state).reduce((acc: number, v: any) => acc + (v-50), 0);
-        return basePrediction + influence;
-    }
-
+    
     if (!canRun) {
         const regressionExample = exampleDatasets.find(ex => ex.id === 'regression-suite');
         return (
@@ -170,7 +193,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample 
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">KNN Regression Setup</CardTitle>
+                    <CardTitle className="font-headline">KNN Regression Setup ({mode})</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="grid md:grid-cols-2 gap-4">
@@ -183,34 +206,58 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample 
                         </div>
                         <div>
                             <Label>Features</Label>
+                            {mode === 'simple' ? (
+                                <Select value={features[0]} onValueChange={v => setFeatures([v])}>
+                                    <SelectTrigger><SelectValue/></SelectTrigger>
+                                    <SelectContent>{availableFeatures.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                </Select>
+                            ) : (
                             <ScrollArea className="h-24 border rounded-md p-2">
-                               {numericHeaders.filter(h => h !== target).map(h => (
+                               {availableFeatures.map(h => (
                                     <div key={h} className="flex items-center space-x-2">
-                                        <Checkbox id={`feat-${h}`} checked={features.includes(h)} onCheckedChange={(c) => setFeatures(prev => c ? [...prev, h] : prev.filter(f => f !== h))} />
+                                        <Checkbox id={`feat-${h}`} checked={features.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
                                         <Label htmlFor={`feat-${h}`}>{h}</Label>
                                     </div>
                                 ))}
                             </ScrollArea>
+                            )}
                         </div>
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">
                         <div>
-                            <Label>K (Number of Neighbors)</Label>
-                            <Input type="number" value={k} onChange={e => setK(Number(e.target.value))} min="1"/>
+                            <Label>K (Number of Neighbors): {k}</Label>
+                            <Slider value={[k]} onValueChange={v => setK(v[0])} min={1} max={50} step={1} />
                         </div>
                          <div>
-                            <Label>Test Set Size</Label>
+                            <Label>Test Set Size: {Math.round(testSize*100)}%</Label>
                             <Slider value={[testSize]} onValueChange={v => setTestSize(v[0])} min={0.1} max={0.5} step={0.05} />
-                             <span className="text-sm text-muted-foreground">{Math.round(testSize*100)}%</span>
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={isLoading || !target || features.length === 0}>
+                    <Button onClick={() => handleAnalysis()} disabled={isLoading || !target || features.length === 0}>
                         {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run KNN</>}
                     </Button>
                 </CardFooter>
             </Card>
+            
+            {mode === 'simple' && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Prediction Simulation</CardTitle>
+                        <CardDescription>Enter a value for '{features[0]}' to predict '{target}'.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex items-center gap-4">
+                        <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${features[0]}`}/>
+                        <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === ''}>Predict</Button>
+                    </CardContent>
+                    {predictedYValue !== null && (
+                        <CardFooter>
+                            <p className="text-lg">Predicted '{target}': <strong className="font-bold text-primary">{predictedYValue.toFixed(2)}</strong></p>
+                        </CardFooter>
+                    )}
+                </Card>
+            )}
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
@@ -234,7 +281,6 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample 
                             <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="KNN Regression Plot" width={800} height={600} className="w-full rounded-md border"/>
                         </CardContent>
                     </Card>
-                    <WhatIfSimulation features={features} onSimulate={handleSimulation} />
                 </div>
             )}
         </div>

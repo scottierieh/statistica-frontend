@@ -34,6 +34,7 @@ def main():
         features = payload.get('features')
         k = int(payload.get('k', 5))
         test_size = float(payload.get('test_size', 0.2))
+        predict_x = payload.get('predict_x')
 
         if not all([data, target, features]):
             raise ValueError("Missing data, target, or features")
@@ -45,6 +46,9 @@ def main():
         y = df[target]
         
         X = pd.get_dummies(X, drop_first=True)
+        # Ensure feature order is consistent
+        processed_features = X.columns.tolist()
+
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
         
         scaler = StandardScaler()
@@ -66,19 +70,48 @@ def main():
             'predictions': [{'actual': act, 'predicted': pred} for act, pred in zip(y_test, y_pred)]
         }
         
+        prediction_result = None
+        if predict_x is not None and len(features) == 1:
+            predict_x_df = pd.DataFrame([[predict_x]], columns=features)
+            predict_x_scaled = scaler.transform(predict_x_df)
+            predicted_y = model.predict(predict_x_scaled)[0]
+            
+            # Find neighbors
+            distances, indices = model.kneighbors(predict_x_scaled)
+            
+            neighbors_X = X_train.iloc[indices[0]].values.tolist()
+            neighbors_y = y_train.iloc[indices[0]].values.tolist()
+            
+            prediction_result = {
+                'x_value': predict_x,
+                'y_value': predicted_y,
+                'neighbors_X': neighbors_X,
+                'neighbors_y': neighbors_y
+            }
+        results['prediction'] = prediction_result
+
+
         # Plotting
         plt.figure(figsize=(10, 6))
-        sns.scatterplot(x=y_test, y=y_pred, alpha=0.6)
-        plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+        sns.scatterplot(x=y_test, y=y_pred, alpha=0.6, label='Test Data')
+        plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='Ideal Line')
+        
+        if prediction_result:
+            # Highlight the predicted point
+            plt.scatter(prediction_result['y_value'], prediction_result['y_value'], color='magenta', s=150, zorder=5, marker='*', label=f'Prediction for X={predict_x}')
+            
+            # Highlight neighbors on the plot if possible (this is tricky as we are plotting y vs y_pred)
+            # A better plot would be X vs Y for simple regression
+            
         plt.xlabel('Actual Values')
         plt.ylabel('Predicted Values')
         plt.title(f'KNN Regression: Actual vs. Predicted (k={k})')
         plt.grid(True)
+        plt.legend()
         
         buf = io.BytesIO()
         plt.savefig(buf, format='png')
         plt.close()
-        buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
         
         response = {
