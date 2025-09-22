@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -123,7 +124,6 @@ const ipaTemplate = {
       id: 2,
       type: 'rating',
       title: 'Overall, how satisfied are you with our service?',
-      scale: 7,
       required: true
     }
   ],
@@ -135,7 +135,7 @@ const retailTemplate = {
     description: 'Please provide feedback on your recent experience to help us improve.',
     questions: [
         { id: 1, type: 'single', title: 'Which age group do you belong to?', options: ['20s', '30s', '40s', '50s', '60+'], required: true },
-        { id: 2, type: 'rating', title: 'Overall, how satisfied are you with our service?', scale: 5, required: true },
+        { id: 2, type: 'rating', title: 'Overall, how satisfied are you with our service?', required: true },
         { id: 3, type: 'nps', title: 'How likely are you to recommend us to a friend or colleague?', required: true },
         { id: 4, type: 'number', title: 'How many times have you purchased from us in the last 6 months?', required: false },
         { id: 5, type: 'number', title: 'Approximately, what is your average spend per visit?', required: false },
@@ -406,7 +406,7 @@ const MultipleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete,
    );
 };
 
-const TextAnalysisDisplay = ({ tableData, insightsData, varName }: { tableData: any[]; insightsData: string[]; varName: string; }) => {
+const TextAnalysisDisplay = ({ tableData, insightsData, varName }: { tableData: any[], insightsData: string[], varName: string; }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [wordCloudImage, setWordCloudImage] = useState<string | null>(null);
 
@@ -598,55 +598,99 @@ const EmailQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload,
     </div>
 );
 
-const RatingQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: number; onAnswerChange?: (value: number) => void; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => {
-    const scale = question.scale || 5;
-
-    return (
-        <div className={cn("p-4", cardClassName)}>
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
-                    {question.required && <span className="text-destructive text-xs">* Required</span>}
-                </div>
-                <div className="flex items-center">
-                    {!isPreview && (
-                        <>
-                            <div className="flex items-center space-x-2 mr-4">
-                                <Label htmlFor={`scale-${question.id}`}>Scale</Label>
-                                <Input id={`scale-${question.id}`} type="number" value={scale} onChange={e => onUpdate?.({...question, scale: parseInt(e.target.value, 10) || 5})} className="w-16 h-8" />
-                            </div>
-                            <div className="flex items-center space-x-2 mr-2">
-                                <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
-                                <Label htmlFor={`required-${question.id}`}>Required</Label>
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
-                                <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                            </Button>
-                            <Button variant="ghost" size="icon">
-                                <Info className="w-5 h-5 text-muted-foreground" />
-                            </Button>
-                        </>
-                    )}
-                    {!isPreview && onDelete && (
-                        <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
-                            <Trash2 className="w-5 h-5 text-destructive" />
-                        </Button>
-                    )}
-                </div>
-            </div>
-            {question.imageUrl && (
-                <div className="my-4">
-                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+const RatingQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
+  <div className={cn("p-4", cardClassName)}>
+     <div className="flex justify-between items-start mb-4">
+        <div className="flex-1">
+            <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+            {question.required && <span className="text-destructive text-xs">* Required</span>}
+        </div>
+        <div className="flex items-center">
+            {!isPreview && (
+                <div className="flex items-center space-x-2 mr-2">
+                    <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                    <Label htmlFor={`required-${question.id}`}>Required</Label>
                 </div>
             )}
-            <div className="flex items-center gap-2">
-                {[...Array(scale)].map((_, i) => (
-                    <Star key={i} className={cn("w-8 h-8 text-yellow-400", isPreview && "cursor-pointer hover:text-yellow-500 transition-colors", i + 1 <= (answer || 0) && "fill-yellow-400")} onClick={() => onAnswerChange?.(i + 1)} />
-                ))}
-            </div>
+            {!isPreview && (
+                 <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
+                    <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                </Button>
+            )}
+            {!isPreview && (
+            <Button variant="ghost" size="icon">
+                <Info className="w-5 h-5 text-muted-foreground" />
+            </Button>
+            )}
+            {!isPreview && onDelete && (
+            <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
+                <Trash2 className="w-5 h-5 text-destructive" />
+            </Button>
+            )}
         </div>
-    );
-};
+    </div>
+    {question.imageUrl && (
+        <div className="my-4">
+            <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+        </div>
+    )}
+    <div className="flex items-center gap-2">
+      {[1, 2, 3, 4, 5].map(rating => (
+        <Star key={rating} className={cn("w-8 h-8 text-yellow-400", isPreview && "cursor-pointer hover:text-yellow-500 transition-colors")} />
+      ))}
+    </div>
+  </div>
+);
+
+const NPSQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: number; onAnswerChange?: (value: number) => void; onDelete?: (id: number) => void; onUpdate?: (q: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
+    <div className={cn("p-4", cardClassName)}>
+       <div className="flex justify-between items-start mb-4">
+        <div className="flex-1">
+            <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+            {question.required && <span className="text-destructive text-xs">* Required</span>}
+        </div>
+          <div className="flex items-center">
+              {!isPreview && (
+                <div className="flex items-center space-x-2 mr-2">
+                    <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                    <Label htmlFor={`required-${question.id}`}>Required</Label>
+                </div>
+              )}
+              {!isPreview && (
+                   <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
+                      <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                  </Button>
+              )}
+              {!isPreview && (
+              <Button variant="ghost" size="icon">
+                  <Info className="w-5 h-5 text-muted-foreground" />
+              </Button>
+              )}
+              {!isPreview && onDelete && (
+              <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
+                  <Trash2 className="w-5 h-5 text-destructive" />
+              </Button>
+              )}
+          </div>
+      </div>
+      {question.imageUrl && (
+          <div className="my-4">
+              <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+          </div>
+      )}
+      <div className="flex items-center justify-between gap-1 flex-wrap">
+        {[...Array(11)].map((_, i) => (
+            <Button key={i} variant={answer === i ? 'default' : 'outline'} size="icon" className="h-10 w-8 text-xs transition-transform hover:scale-110 active:scale-95" onClick={() => onAnswerChange?.(i)}>
+                {i}
+            </Button>
+        ))}
+      </div>
+       <div className="flex justify-between text-xs text-muted-foreground mt-2 px-1">
+          <span>Not at all likely</span>
+          <span>Extremely likely</span>
+      </div>
+    </div>
+  );
 
 const DescriptionBlock = ({ question, onDelete, onUpdate, isPreview, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; cardClassName?: string; }) => (
     <div className={cn("p-4 bg-muted/20", cardClassName)}>
@@ -725,56 +769,6 @@ const BestWorstQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpl
         </div>
     );
 };
-
-const NPSQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: number; onAnswerChange?: (value: number) => void; onDelete?: (id: number) => void; onUpdate?: (q: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
-    <div className={cn("p-4", cardClassName)}>
-       <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-            <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
-            {question.required && <span className="text-destructive text-xs">* Required</span>}
-        </div>
-          <div className="flex items-center">
-              {!isPreview && (
-                <div className="flex items-center space-x-2 mr-2">
-                    <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
-                    <Label htmlFor={`required-${question.id}`}>Required</Label>
-                </div>
-              )}
-              {!isPreview && (
-                   <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
-                      <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                  </Button>
-              )}
-              {!isPreview && (
-              <Button variant="ghost" size="icon">
-                  <Info className="w-5 h-5 text-muted-foreground" />
-              </Button>
-              )}
-              {!isPreview && onDelete && (
-              <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
-                  <Trash2 className="w-5 h-5 text-destructive" />
-              </Button>
-              )}
-          </div>
-      </div>
-      {question.imageUrl && (
-          <div className="my-4">
-              <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
-          </div>
-      )}
-      <div className="flex items-center justify-between gap-1 flex-wrap">
-        {[...Array(11)].map((_, i) => (
-            <Button key={i} variant={answer === i ? 'default' : 'outline'} size="icon" className="h-10 w-8 text-xs transition-transform hover:scale-110 active:scale-95" onClick={() => onAnswerChange?.(i)}>
-                {i}
-            </Button>
-        ))}
-      </div>
-       <div className="flex justify-between text-xs text-muted-foreground mt-2 px-1">
-          <span>Not at all likely</span>
-          <span>Extremely likely</span>
-      </div>
-    </div>
-  );
 
 const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, isPreview, cardClassName }: { question: any, answer: any, onAnswerChange?: (value: any) => void, onUpdate?: (q:any) => void, onDelete?: (id: number) => void, isPreview?: boolean, cardClassName?: string }) => {
     const handleRowChange = (index: number, value: string) => {
@@ -891,49 +885,94 @@ const getMedian = (arr: number[]): number | null => {
     return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
-const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode, varName: string }) => {
+
+// New Star Display Component
+const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number, total?: number, size?: string }) => {
+    const fullStars = Math.floor(rating);
+    const partialStar = rating % 1;
+    const emptyStars = total - Math.ceil(rating);
+
     return (
-        <Card>
-            <CardHeader>
-                 <CardTitle>{varName}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                {children}
-            </CardContent>
-        </Card>
+        <div className="flex items-center">
+            {[...Array(fullStars)].map((_, i) => (
+                <Star key={`full-${i}`} className={cn(size, 'text-yellow-400 fill-yellow-400')} />
+            ))}
+            {partialStar > 0 && (
+                <div className="relative">
+                    <Star className={cn(size, 'text-yellow-400')} />
+                    <div className="absolute top-0 left-0 overflow-hidden" style={{ width: `${partialStar * 100}%` }}>
+                        <Star className={cn(size, 'text-yellow-400 fill-yellow-400')} />
+                    </div>
+                </div>
+            )}
+            {[...Array(emptyStars)].map((_, i) => (
+                <Star key={`empty-${i}`} className={cn(size, 'text-yellow-400')} />
+            ))}
+        </div>
     );
 };
 
-const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: { name: string, count: number }[], tableData: any[], insightsData: string[], varName: string }) => {
+const AnalysisDisplayShell = ({ children, varName, onChartTypeChange, currentChartType, availableChartTypes }: { children: React.ReactNode, varName: string, onChartTypeChange?: (type: string) => void, currentChartType?: string, availableChartTypes?: string[] }) => {
+    return (
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <div>
+            <CardTitle>{varName}</CardTitle>
+          </div>
+          <div className="flex items-center gap-2">
+            {onChartTypeChange && currentChartType && availableChartTypes && (
+              <Select value={currentChartType} onValueChange={onChartTypeChange}>
+                <SelectTrigger className="w-[120px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableChartTypes.map(type => (
+                    <SelectItem key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button variant="ghost" size="icon"><ZoomIn className="w-4 h-4" /></Button>
+            <Button variant="ghost" size="icon"><Download className="w-4 h-4" /></Button>
+          </div>
+        </CardHeader>
+        <CardContent>{children}</CardContent>
+      </Card>
+    );
+};
+  
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any[], tableData: any[], insightsData: string[], varName: string }) => {
+    const highestValue = tableData.length > 0 ? Math.max(...tableData.map(d => parseFloat(d.percentage))) : 0;
+  
     return (
         <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <Card>
+                 <Card>
                     <CardHeader>
                        <CardTitle className="text-base">Distribution</CardTitle>
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
-                       <Plot
-                           data={[{
-                               y: chartData.map(d => d.name),
-                               x: chartData.map(d => d.count),
-                               type: 'bar',
-                               orientation: 'h',
-                               marker: { color: COLORS },
-                           }]}
-                           layout={{
-                               autosize: true,
-                               margin: { t: 20, b: 40, l: 120, r: 20 },
-                               xaxis: { title: 'Count' },
-                               yaxis: { autorange: 'reversed' },
-                           }}
-                           style={{ width: '100%', height: '100%' }}
-                           config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
-                           useResizeHandler
-                       />
+                        <Plot
+                            data={[{
+                                y: chartData.map(d => d.name),
+                                x: chartData.map(d => d.count),
+                                type: 'bar',
+                                orientation: 'h',
+                                marker: { color: COLORS },
+                            }]}
+                            layout={{
+                                autosize: true,
+                                margin: { t: 20, b: 40, l: 120, r: 20 },
+                                xaxis: { title: 'Count' },
+                                yaxis: { autorange: 'reversed' },
+                            }}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            useResizeHandler
+                        />
                     </CardContent>
                 </Card>
-                <div className="space-y-4">
+                 <div className="space-y-4">
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
                         <CardContent className="max-h-[200px] overflow-y-auto">
@@ -943,7 +982,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                             </Table>
                         </CardContent>
                     </Card>
-                    <Card>
+                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
                         <CardContent><ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul></CardContent>
                     </Card>
@@ -953,7 +992,8 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     );
 };
   
-const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
+const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question }: { chartData: any, tableData: any, insightsData: string[], varName: string, question: any }) => {
+    const ratingScale = question.options || ['1', '2', '3', '4', '5'];
     return (
         <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -968,14 +1008,19 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                                 x: [chartData.avg],
                                 type: 'bar',
                                 orientation: 'h',
-                                marker: { color: 'hsl(var(--primary))' },
                                 text: [chartData.avg.toFixed(2)],
                                 textposition: 'auto',
+                                hoverinfo: 'none',
+                                marker: { color: 'hsl(var(--primary))' },
                             }]}
                             layout={{
                                 autosize: true,
-                                margin: { t: 20, b: 40, l: 80, r: 20 },
-                                xaxis: { title: 'Rating Score', range: [0, chartData.maxScale] },
+                                margin: { t: 20, b: 40, l: 100, r: 20 },
+                                xaxis: {
+                                    range: [0, ratingScale.length],
+                                    title: 'Rating'
+                                },
+                                yaxis: { showticklabels: false },
                             }}
                             style={{ width: '100%', height: '150px' }}
                             config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
@@ -1016,7 +1061,7 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
             </div>
         </AnalysisDisplayShell>
     );
-}
+};
 
 const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
     return (
@@ -1503,7 +1548,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             { id: 'email', icon: Mail, label: 'Email Input', color: 'text-rose-500' },
         ],
         'Scale': [
-            { id: 'rating', icon: Star, label: 'Rating', scale: 5, color: 'text-yellow-500' },
+            { id: 'rating', icon: Star, label: 'Rating', options: ["1", "2", "3", "4", "5"], color: 'text-yellow-500' },
             { id: 'nps', icon: Share2, label: 'Net Promoter Score', color: 'text-sky-500' },
         ],
         'Structure': [
@@ -1641,7 +1686,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
              case 'rating': {
                 const ratings = allAnswers.filter((a): a is number => typeof a === 'number');
                 const avgRating = mean(ratings);
-                chartData = { avg: avgRating, count: ratings.length, maxScale: question.scale || 5 };
+                chartData = { avg: avgRating, count: ratings.length };
                 tableData = { 
                     avg: avgRating, 
                     median: getMedian(ratings) || 'N/A', 
@@ -1650,7 +1695,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     count: ratings.length 
                 };
                 insights = [
-                    `Average rating is <strong>${avgRating.toFixed(2)} / ${question.scale || 5}</strong>.`,
+                    `Average rating is <strong>${avgRating.toFixed(2)} / ${question.options?.length || 5}</strong>.`,
                     `The most common rating given was <strong>${getMode(ratings)} star(s)</strong>.`,
                     `<strong>${((ratings.filter(r => r >= 4).length / ratings.length) * 100).toFixed(1)}%</strong> of users gave a high rating (4 or 5 stars).`
                 ];
@@ -1731,7 +1776,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             newQuestion.columns = [...(questionConfig as any).columns];
         }
          if ('scale' in questionConfig) {
-            newQuestion.scale = (questionConfig as any).scale;
+            newQuestion.scale = [...(questionConfig as any).scale];
         }
         if (type === 'nps') {
             newQuestion.title = 'How likely are you to recommend our product to a friend or colleague?';
@@ -2588,7 +2633,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     return (
                                         <div key={`analysis-${q.id}`}>
                                             {AnalysisComponent ? (
-                                                <AnalysisComponent chartData={chartData} tableData={tableData} insightsData={insights} varName={`${qIndex + 1}. ${q.title}`} />
+                                                <AnalysisComponent chartData={chartData} tableData={tableData} insightsData={insights} varName={`${qIndex + 1}. ${q.title}`} question={q} />
                                             ) : (
                                                 <p className="text-muted-foreground">Analysis for this question type is not yet implemented.</p>
                                             )}
@@ -2626,7 +2671,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                         case 'number':
                                                             return <Plot data={[{ x: chartData.values, type: 'histogram' }]} layout={{ autosize: true, margin: { t: 40, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
                                                         case 'rating':
-                                                            return <div className="flex flex-col items-center gap-2"><div className="text-5xl font-bold">{chartData.avg.toFixed(2)}</div><p>out of {q.scale || 5}</p></div>;
+                                                            return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} /><p>{chartData.avg.toFixed(2)} / 5</p></div>;
                                                         case 'nps':
                                                             return <div className="text-5xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
                                                         case 'text':
@@ -2721,4 +2766,3 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
-
