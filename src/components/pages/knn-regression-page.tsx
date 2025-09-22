@@ -99,7 +99,6 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     const [testSize, setTestSize] = useState(0.2);
     
     const [predictXValue, setPredictXValue] = useState<number | ''>('');
-    const [predictedYValue, setPredictedYValue] = useState<number | null>(null);
 
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -134,8 +133,9 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         }
 
         setIsLoading(true);
-        if (typeof predictValue !== 'number') {
-            setAnalysisResult(null);
+        // If it's not a prediction-only update, clear the whole result.
+        if (predictValue === undefined) {
+             setAnalysisResult(null);
         }
 
         try {
@@ -154,10 +154,8 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
             if ((result as any).error) throw new Error((result as any).error);
 
             setAnalysisResult(result);
-            if (result.results.prediction) {
-                setPredictedYValue(result.results.prediction.y_value);
-            } else if (typeof predictValue !== 'number') {
-                setPredictedYValue(null);
+            if (predictValue !== undefined) {
+                toast({ title: 'Prediction Complete', description: `Predicted value is ${result.results.prediction?.y_value.toFixed(2)}` });
             }
 
         } catch (e: any) {
@@ -253,9 +251,9 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                         <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${features[0]}`}/>
                         <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === ''}>Predict</Button>
                     </CardContent>
-                    {predictedYValue !== null && (
+                    {analysisResult?.results.prediction && (
                         <CardFooter>
-                            <p className="text-lg">Predicted '{target}': <strong className="font-bold text-primary">{predictedYValue.toFixed(2)}</strong></p>
+                            <p className="text-lg">Predicted '{target}': <strong className="font-bold text-primary">{analysisResult.results.prediction.y_value.toFixed(2)}</strong></p>
                         </CardFooter>
                     )}
                 </Card>
@@ -263,7 +261,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {analysisResult && (
+            {analysisResult && analysisResult.plot && (
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
