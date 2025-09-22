@@ -252,12 +252,22 @@ export default function MachineLearningApp() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => setActiveTask('classification')}
-                  isActive={activeTask === 'classification'}
+                  onClick={() => {}}
+                  isActive={activeTask.includes('classification') || activeTask.includes('deep-learning')}
                 >
                   <Binary />
                   <span>분류 알고리즘</span>
                 </SidebarMenuButton>
+                 <SidebarMenuSub>
+                    <SidebarMenuItem>
+                        <SidebarMenuSubButton
+                          onClick={() => setActiveTask('deep-learning')}
+                          isActive={activeTask === 'deep-learning'}
+                        >
+                          딥러닝 분류
+                        </SidebarMenuSubButton>
+                    </SidebarMenuItem>
+                </SidebarMenuSub>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -286,15 +296,6 @@ export default function MachineLearningApp() {
                         </SidebarMenuSubButton>
                     </SidebarMenuItem>
                 </SidebarMenuSub>
-              </SidebarMenuItem>
-               <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveTask('deep-learning')}
-                  isActive={activeTask === 'deep-learning'}
-                >
-                  <Layers />
-                  <span>딥러닝</span>
-                </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
@@ -332,4 +333,3 @@ export default function MachineLearningApp() {
     </SidebarProvider>
   );
 }
-
