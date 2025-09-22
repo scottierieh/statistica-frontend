@@ -5,7 +5,6 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -33,14 +32,18 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
-const WhatIfSimulation = ({ features, onSimulate }: { features: string[], onSimulate: (state: any) => number }) => {
+interface WhatIfState {
+    [key: string]: number;
+}
+
+const WhatIfSimulation = ({ features, onSimulate }: { features: string[], onSimulate: (state: WhatIfState) => number }) => {
     const initialWhatIfState = useMemo(() => {
         const state: {[key: string]: number} = {};
         features.forEach(f => state[f] = 50);
         return state;
     }, [features]);
 
-    const [whatIfState, setWhatIfState] = useState(initialWhatIfState);
+    const [whatIfState, setWhatIfState] = useState<WhatIfState>(initialWhatIfState);
     const simulatedResult = onSimulate(whatIfState);
 
     return (
@@ -51,7 +54,7 @@ const WhatIfSimulation = ({ features, onSimulate }: { features: string[], onSimu
             <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-4">
-                        {features.map(feature => (
+                        {features.slice(0, 5).map(feature => (
                             <div key={feature}>
                                 <Label>{feature}: {whatIfState[feature].toFixed(0)}</Label>
                                 <Slider
@@ -75,8 +78,13 @@ const WhatIfSimulation = ({ features, onSimulate }: { features: string[], onSimu
     );
 };
 
+interface KnnRegressionPageProps {
+    data: DataSet;
+    numericHeaders: string[];
+    onLoadExample: (example: ExampleDataSet) => void;
+}
 
-export default function KnnRegressionPage() {
+export default function KnnRegressionPage({ data, numericHeaders, onLoadExample }: KnnRegressionPageProps) {
     const { toast } = useToast();
     const [target, setTarget] = useState<string | undefined>();
     const [features, setFeatures] = useState<string[]>([]);
@@ -85,8 +93,12 @@ export default function KnnRegressionPage() {
 
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [data, setData] = useState<DataSet>([]);
-    const [numericHeaders, setNumericHeaders] = useState<string[]>([]);
+
+    useEffect(() => {
+        setTarget(numericHeaders[numericHeaders.length - 1]);
+        setFeatures(numericHeaders.slice(0, numericHeaders.length -1));
+        setAnalysisResult(null);
+    }, [data, numericHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
 
@@ -130,13 +142,11 @@ export default function KnnRegressionPage() {
         const influence = Object.values(state).reduce((acc: number, v: any) => acc + (v-50), 0);
         return basePrediction + influence;
     }
-    
-    // Dummy onLoadExample to satisfy props
-    const onLoadExample = () => {};
 
     if (!canRun) {
+        const regressionExample = exampleDatasets.find(ex => ex.id === 'regression-suite');
         return (
-            <div className="flex flex-1 items-center justify-center">
+            <div className="flex flex-1 items-center justify-center h-full">
                 <Card className="w-full max-w-2xl text-center">
                     <CardHeader>
                         <CardTitle className="font-headline">K-Nearest Neighbors Regression</CardTitle>
@@ -144,6 +154,13 @@ export default function KnnRegressionPage() {
                            Upload data with numeric features and a target variable.
                         </CardDescription>
                     </CardHeader>
+                    {regressionExample && (
+                        <CardContent>
+                            <Button onClick={() => onLoadExample(regressionExample)}>
+                                Load Sample Regression Data
+                            </Button>
+                        </CardContent>
+                    )}
                 </Card>
             </div>
         );
