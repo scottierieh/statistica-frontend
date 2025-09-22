@@ -3,9 +3,10 @@ import sys
 import json
 import pandas as pd
 import numpy as np
-from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import matplotlib.pyplot as plt
 import seaborn as sns
 import io
@@ -18,7 +19,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -29,121 +30,104 @@ def main():
     try:
         payload = json.load(sys.stdin)
         data = payload.get('data')
-        features = payload.get('features')
         target = payload.get('target')
+        features = payload.get('features')
         k = int(payload.get('k', 5))
-        test_size = float(payload.get('test_size', 0.25))
+        test_size = float(payload.get('test_size', 0.2))
         predict_x = payload.get('predict_x')
 
-        if not all([data, features, target]):
-            raise ValueError("Missing data, features, or target")
+        if not all([data, target, features]):
+            raise ValueError("Missing data, target, or features")
 
         df = pd.DataFrame(data)
-
-        # --- Data Preparation ---
+        
+        # Data Preparation
         X = df[features]
         y = df[target]
-
+        
         X = pd.get_dummies(X, drop_first=True)
-        updated_features = X.columns.tolist()
+        processed_features = X.columns.tolist()
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
-
-        # --- Model Training ---
-        knr = KNeighborsRegressor(n_neighbors=k)
-        knr.fit(X_train, y_train)
-        y_pred = knr.predict(X_test)
-
-        # --- Evaluation ---
+        
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+        
+        # Model Training
+        model = KNeighborsRegressor(n_neighbors=k)
+        model.fit(X_train_scaled, y_train)
+        y_pred_test = model.predict(X_test_scaled)
+        
+        # Evaluation
         results = {
             'metrics': {
-                'r2_score': r2_score(y_test, y_pred),
-                'mse': mean_squared_error(y_test, y_pred),
-                'rmse': np.sqrt(mean_squared_error(y_test, y_pred))
+                'r2_score': r2_score(y_test, y_pred_test),
+                'rmse': np.sqrt(mean_squared_error(y_test, y_pred_test)),
+                'mae': mean_absolute_error(y_test, y_pred_test)
             },
-            'params': {
-                'k': k,
-                'test_size': test_size,
-                'n_train': len(X_train),
-                'n_test': len(X_test)
-            }
+            'predictions': [{'actual': act, 'predicted': pred} for act, pred in zip(y_test.tolist(), y_pred_test.tolist())]
         }
         
         prediction_result = None
-        if predict_x is not None:
-            try:
-                predict_x_value = float(predict_x)
-                prediction = knr.predict([[predict_x_value]])
-                
-                distances, indexes = knr.kneighbors([[predict_x_value]])
-
-                prediction_result = {
-                    'x_value': predict_x_value,
-                    'y_value': prediction[0],
-                    'neighbors': {
-                        'distances': distances[0].tolist(),
-                        'x_values': X_train.iloc[indexes[0]].values.flatten().tolist(),
-                        'y_values': y_train.iloc[indexes[0]].values.flatten().tolist(),
-                    }
-                }
-            except (ValueError, IndexError):
-                # Fails silently if predict_x is not a valid number or features > 1
-                pass
-        results['prediction'] = prediction_result
-
-
-        # --- Create Main Plot (Actual vs. Predicted) for all cases ---
-        fig_main, ax_main = plt.subplots(figsize=(8, 6))
-        sns.scatterplot(x=y_test, y=y_pred, ax=ax_main, alpha=0.7)
-        ax_main.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='Ideal Fit')
-        ax_main.set_xlabel("Actual Values")
-        ax_main.set_ylabel("Predicted Values")
-        ax_main.set_title(f"Model Performance: Actual vs. Predicted (R²={results['metrics']['r2_score']:.3f})")
-        ax_main.legend()
-        ax_main.grid(True, alpha=0.3)
-        
-        buf_main = io.BytesIO()
-        fig_main.savefig(buf_main, format='png', bbox_inches='tight')
-        plt.close(fig_main)
-        buf_main.seek(0)
-        main_plot_image = base64.b64encode(buf_main.read()).decode('utf-8')
-
-
-        # --- Create Prediction Simulation Plot (only for simple regression with prediction) ---
         prediction_plot_image = None
-        if len(features) == 1 and prediction_result:
-            fig_pred, ax_pred = plt.subplots(figsize=(8, 6))
+        
+        # --- Main Diagnostic Plot (Actual vs. Predicted) ---
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.scatterplot(x=y_test, y=y_pred_test, ax=ax, alpha=0.6)
+        ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+        ax.set_xlabel('Actual Values')
+        ax.set_ylabel('Predicted Values')
+        ax.set_title(f'Actual vs. Predicted Values (k={k})')
+        ax.grid(True)
+        plt.tight_layout()
             
-            # Scatter plot for training data
-            ax_pred.scatter(X_train, y_train, alpha=0.5, label='Training Data')
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        plot_image = base64.b64encode(buf.read()).decode('utf-8')
 
-            # Highlight neighbors
-            neighbor_x = prediction_result['neighbors']['x_values']
-            neighbor_y = prediction_result['neighbors']['y_values']
-            ax_pred.scatter(neighbor_x, neighbor_y, color='orange', s=150, marker='D', label='Neighbors', zorder=5, edgecolors='black')
+        # --- Prediction Simulation Plot (only for simple regression) ---
+        if len(features) == 1 and predict_x is not None:
+            predict_x_scaled = scaler.transform([[predict_x]])
+            predicted_y = model.predict(predict_x_scaled)[0]
+            
+            distances, indices = model.kneighbors(predict_x_scaled)
+            neighbor_X_scaled = X_train_scaled[indices[0]]
+            neighbor_X = scaler.inverse_transform(neighbor_X_scaled)
+            neighbor_y = y_train.iloc[indices[0]]
 
-            # Highlight prediction point
-            ax_pred.scatter([prediction_result['x_value']], [prediction_result['y_value']], color='magenta', s=200, marker='^', label=f'Prediction', zorder=6, edgecolors='black')
-
+            prediction_result = {
+                'x_value': predict_x,
+                'y_value': predicted_y,
+            }
+            
+            fig_pred, ax_pred = plt.subplots(figsize=(8, 6))
+            ax_pred.scatter(X_train.values.flatten(), y_train, alpha=0.6, label='Training Data')
+            ax_pred.scatter(neighbor_X.flatten(), neighbor_y, color='orange', s=100, marker='D', label=f'{k} Nearest Neighbors', zorder=5)
+            ax_pred.scatter([prediction_result['x_value']], [prediction_result['y_value']], color='magenta', s=200, marker='^', label=f'Prediction for X={predict_x}', zorder=6, edgecolors='black')
             ax_pred.set_xlabel(features[0])
             ax_pred.set_ylabel(target)
             ax_pred.set_title(f'KNN Prediction Simulation (k={k})')
             ax_pred.legend()
-            ax_pred.grid(True, linestyle='--', alpha=0.6)
-
-            buf_pred = io.BytesIO()
-            fig_pred.savefig(buf_pred, format='png', bbox_inches='tight')
+            ax_pred.grid(True)
+            plt.tight_layout()
+            
+            pred_buf = io.BytesIO()
+            fig_pred.savefig(pred_buf, format='png')
             plt.close(fig_pred)
-            buf_pred.seek(0)
-            prediction_plot_image = base64.b64encode(buf_pred.read()).decode('utf-8')
+            pred_buf.seek(0)
+            prediction_plot_image = base64.b64encode(pred_buf.read()).decode('utf-8')
 
-
+        results['prediction'] = prediction_result
+        
         response = {
             'results': results,
-            'plot': f"data:image/png;base64,{main_plot_image}",
+            'plot': f"data:image/png;base64,{plot_image}",
             'prediction_plot': f"data:image/png;base64,{prediction_plot_image}" if prediction_plot_image else None
         }
-
+        
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
