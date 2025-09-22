@@ -112,80 +112,67 @@ def main():
             'interpretation': interpretation,
         }
         
-        # --- Plotting: Actual vs Predicted (Train vs Test) ---
-        fig_main, axes = plt.subplots(2, 1, figsize=(8, 12))
-        fig_main.suptitle(f'Lasso Regression Performance (alpha={alpha})', fontsize=16)
+        # --- Create 2x2 Plot ---
+        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+        fig.suptitle(f'Lasso Regression Analysis (alpha={alpha})', fontsize=16)
 
-        # Train set plot
-        axes[0].scatter(y_train, y_pred_train, alpha=0.5, label='(Actual, Predicted)')
-        axes[0].plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()], 'r--', lw=2, label='45° Line (Perfect Fit)')
-        axes[0].set_xlabel('Actual Values')
-        axes[0].set_ylabel('Predicted Values')
-        axes[0].set_title('Train Set Performance')
-        axes[0].legend()
-        axes[0].grid(True)
-        train_text = (
-            f"Train R²: {train_metrics['r2_score']:.4f}\n"
-            f"Train RMSE: {train_metrics['rmse']:.4f}"
-        )
-        axes[0].text(0.05, 0.95, train_text, transform=axes[0].transAxes, fontsize=10,
-                     verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', fc='wheat', alpha=0.5))
+        # 1. Train set: Actual vs Predicted
+        axes[0, 0].scatter(y_train, y_pred_train, alpha=0.5, label='(Actual, Predicted)')
+        axes[0, 0].plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()], 'r--', lw=2, label='45° Line')
+        axes[0, 0].set_xlabel('Actual Values')
+        axes[0, 0].set_ylabel('Predicted Values')
+        axes[0, 0].set_title('Train Set Performance')
+        axes[0, 0].legend()
+        axes[0, 0].grid(True)
+        train_text = f"Train R²: {train_metrics['r2_score']:.4f}\nTrain RMSE: {train_metrics['rmse']:.4f}"
+        axes[0, 0].text(0.05, 0.95, train_text, transform=axes[0, 0].transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', fc='wheat', alpha=0.5))
 
-        # Test set plot
-        axes[1].scatter(y_test, y_pred_test, alpha=0.5, label='(Actual, Predicted)')
-        axes[1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='45° Line (Perfect Fit)')
-        axes[1].set_xlabel('Actual Values')
-        axes[1].set_ylabel('Predicted Values')
-        axes[1].set_title('Test Set Performance')
-        axes[1].legend()
-        axes[1].grid(True)
-        test_text = (
-            f"Test R²: {test_metrics['r2_score']:.4f}\n"
-            f"Test RMSE: {test_metrics['rmse']:.4f}"
-        )
-        axes[1].text(0.05, 0.95, test_text, transform=axes[1].transAxes, fontsize=10,
-                     verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', fc='wheat', alpha=0.5))
+        # 2. Test set: Actual vs Predicted
+        axes[0, 1].scatter(y_test, y_pred_test, alpha=0.5, label='(Actual, Predicted)')
+        axes[0, 1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='45° Line')
+        axes[0, 1].set_xlabel('Actual Values')
+        axes[0, 1].set_ylabel('Predicted Values')
+        axes[0, 1].set_title('Test Set Performance')
+        axes[0, 1].legend()
+        axes[0, 1].grid(True)
+        test_text = f"Test R²: {test_metrics['r2_score']:.4f}\nTest RMSE: {test_metrics['rmse']:.4f}"
+        axes[0, 1].text(0.05, 0.95, test_text, transform=axes[0, 1].transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', fc='wheat', alpha=0.5))
         
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plot_image = fig_to_base64(fig_main)
-
-        # --- Alpha vs Coefficients Path Plot ---
+        # --- Path Plot Data Calculation ---
         alpha_list = np.logspace(-3, 2, 100)
         coefs = []
-        train_scores, test_scores = [], []
+        path_train_scores, path_test_scores = [], []
         for a in alpha_list:
             lasso_iter = Lasso(alpha=a, random_state=42, max_iter=1000)
             lasso_iter.fit(X_train_scaled, y_train)
             coefs.append(lasso_iter.coef_)
-            train_scores.append(lasso_iter.score(X_train_scaled, y_train))
-            test_scores.append(lasso_iter.score(X_test_scaled, y_test))
-        
-        fig_path, axes_path = plt.subplots(2, 1, figsize=(8, 12))
-        fig_path.suptitle('Lasso Model Behavior vs. Alpha', fontsize=16)
+            path_train_scores.append(lasso_iter.score(X_train_scaled, y_train))
+            path_test_scores.append(lasso_iter.score(X_test_scaled, y_test))
 
-        axes_path[0].plot(alpha_list, train_scores, label='Train R²')
-        axes_path[0].plot(alpha_list, test_scores, label='Test R²')
-        axes_path[0].set_xlabel('Alpha')
-        axes_path[0].set_ylabel('R-squared')
-        axes_path[0].set_xscale('log')
-        axes_path[0].set_title('R-squared vs. Regularization Strength (alpha)')
-        axes_path[0].legend()
-        axes_path[0].grid(True)
+        # 3. R-squared vs. Alpha
+        axes[1, 0].plot(alpha_list, path_train_scores, label='Train R²')
+        axes[1, 0].plot(alpha_list, path_test_scores, label='Test R²')
+        axes[1, 0].set_xlabel('Alpha')
+        axes[1, 0].set_ylabel('R-squared')
+        axes[1, 0].set_xscale('log')
+        axes[1, 0].set_title('R-squared vs. Regularization Strength')
+        axes[1, 0].legend()
+        axes[1, 0].grid(True)
 
-        axes_path[1].plot(alpha_list, coefs)
-        axes_path[1].set_xscale('log')
-        axes_path[1].set_xlabel('Alpha')
-        axes_path[1].set_ylabel('Coefficients')
-        axes_path[1].set_title('Lasso Coefficients Path')
-        axes_path[1].grid(True)
+        # 4. Coefficients Path
+        axes[1, 1].plot(alpha_list, coefs)
+        axes[1, 1].set_xscale('log')
+        axes[1, 1].set_xlabel('Alpha')
+        axes[1, 1].set_ylabel('Coefficients')
+        axes[1, 1].set_title('Lasso Coefficients Path')
+        axes[1, 1].grid(True)
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        path_plot_image = fig_to_base64(fig_path)
-        
+        plot_image = fig_to_base64(fig)
+
         response = {
             'results': results,
-            'plot': plot_image,
-            'path_plot': path_plot_image
+            'plot': plot_image
         }
         
         print(json.dumps(response, default=_to_native_type))

@@ -39,7 +39,6 @@ interface RidgeRegressionResults {
 interface FullAnalysisResponse {
     results: RidgeRegressionResults;
     plot: string | null;
-    path_plot: string | null;
 }
 
 interface RidgeRegressionPageProps {
@@ -221,34 +220,26 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
                             </Table>
                         </CardContent>
                     </Card>
+
                     <div className="grid md:grid-cols-2 gap-4">
                         {analysisResult.plot && (
                             <Card className="md:col-span-2">
                                 <CardHeader>
-                                    <CardTitle>Model Fit: Actual vs. Predicted</CardTitle>
+                                    <CardTitle>Model Performance & Behavior vs. Alpha</CardTitle>
                                     <CardDescription>Performance for alpha = {results.alpha}</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Image src={analysisResult.plot} alt="Ridge Actual vs Predicted Plot" width={800} height={1200} className="w-full rounded-md border"/>
+                                    <Image src={analysisResult.plot} alt="Ridge Regression Plots" width={1600} height={1200} className="w-full rounded-md border"/>
                                 </CardContent>
                             </Card>
                         )}
-                        {analysisResult.path_plot && (
-                            <Card>
-                                <CardHeader>
-                                     <CardTitle>Alpha vs. Model Performance</CardTitle>
-                                    <CardDescription>Shows how R² and coefficients change as alpha increases.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <Image src={analysisResult.path_plot} alt="Ridge Coefficients Path Plot" width={800} height={1200} className="w-full rounded-md border"/>
-                                </CardContent>
-                            </Card>
-                        )}
-                        <Card>
-                            <CardHeader>
+                        
+                        <Card className="md:col-span-2">
+                             <CardHeader>
                                 <CardTitle>Coefficients</CardTitle>
+                                <CardDescription>Ridge regression shrinks coefficients towards zero to prevent overfitting.</CardDescription>
                             </CardHeader>
-                             <CardContent>
+                            <CardContent>
                                 <ScrollArea className="h-80">
                                     <Table>
                                         <TableHeader><TableRow><TableHead>Feature</TableHead><TableHead className="text-right">Coefficient</TableHead></TableRow></TableHeader>
