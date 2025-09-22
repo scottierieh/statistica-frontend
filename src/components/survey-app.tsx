@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -405,6 +406,78 @@ const MultipleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete,
    );
 };
 
+const TextAnalysisDisplay = ({ tableData, insightsData, varName }: { tableData: any[]; insightsData: string[]; varName: string; }) => {
+    const [isLoading, setIsLoading] = useState(true);
+    const [wordCloudImage, setWordCloudImage] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isMounted = true;
+        const generateCloud = async () => {
+            setIsLoading(true);
+            try {
+                const response = await fetch('/api/analysis/wordcloud', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: tableData.join('\n') })
+                });
+                if (!response.ok) throw new Error('Failed to generate word cloud');
+                const result = await response.json();
+                if (isMounted) {
+                    setWordCloudImage(result.plots.wordcloud);
+                }
+            } catch (error) {
+                console.error("Word cloud generation failed", error);
+                if (isMounted) setWordCloudImage(null);
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        if (tableData.length > 0) {
+            generateCloud();
+        } else {
+            setIsLoading(false);
+        }
+
+        return () => { isMounted = false };
+    }, [tableData]);
+
+    return (
+      <AnalysisDisplayShell varName={varName}>
+           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                 <Card>
+                    <CardHeader>
+                       <CardTitle className="text-base">Word Cloud</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={`data:image/png;base64,${wordCloudImage}`} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
+                    </CardContent>
+                </Card>
+                 <div className="space-y-4">
+                    <Card>
+                         <CardHeader className="pb-2"><CardTitle className="text-base">Sample Responses</CardTitle></CardHeader>
+                         <CardContent>
+                            <ScrollArea className="h-64">
+                                <ul className="space-y-2">
+                                    {tableData.slice(0, 10).map((text, i) => <li key={i} className="text-sm border-b pb-1">"{text}"</li>)}
+                                </ul>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm list-disc pl-4">
+                                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+      </AnalysisDisplayShell>
+    );
+};
+
 const TextQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
   <div className={cn("p-4", cardClassName)}>
     <div className="flex justify-between items-start mb-4">
@@ -697,7 +770,7 @@ const NPSQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isP
     </div>
   );
 
-const MatrixQuestion = ({ question, onUpdate, onDelete, isPreview, cardClassName }: { question: any, onUpdate?: (q:any) => void, onDelete?: (id: number) => void, isPreview?: boolean, cardClassName?: string }) => {
+const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, isPreview, cardClassName }: { question: any, answer: any, onAnswerChange?: (value: any) => void, onUpdate?: (q:any) => void, onDelete?: (id: number) => void, isPreview?: boolean, cardClassName?: string }) => {
     const handleRowChange = (index: number, value: string) => {
         const newRows = [...question.rows];
         newRows[index] = value;
@@ -751,11 +824,11 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, isPreview, cardClassName
                             <TableCell>
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
                             </TableCell>
-                            <RadioGroup asChild value={undefined}>
+                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                 <>
                                 {question.columns.map((col: string, colIndex: number) => (
                                     <TableCell key={colIndex} className="text-center">
-                                         <RadioGroupItem value={`${rowIndex}-${colIndex}`} id={`q${question.id}-r${rowIndex}-c${colIndex}`} disabled/>
+                                         <RadioGroupItem value={col}/>
                                     </TableCell>
                                 ))}
                                 </>
@@ -842,7 +915,7 @@ const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number
 const AnalysisDisplayShell = ({ children, varName, onChartTypeChange, currentChartType, availableChartTypes }: { children: React.ReactNode, varName: string, onChartTypeChange?: (type: string) => void, currentChartType?: string, availableChartTypes?: string[] }) => {
     return (
         <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
+            <CardHeader className="flex-row items-center justify-between">
                  <div>
                     <CardTitle>{varName}</CardTitle>
                  </div>
@@ -867,8 +940,8 @@ const AnalysisDisplayShell = ({ children, varName, onChartTypeChange, currentCha
         </Card>
     );
 };
-
-const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
+  
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any[], tableData: any[], insightsData: string[], varName: string }) => {
     const highestValue = tableData.length > 0 ? Math.max(...tableData.map(d => parseFloat(d.percentage))) : 0;
   
     return (
@@ -1150,78 +1223,6 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
                 </div>
             </div>
         </AnalysisDisplayShell>
-    );
-};
-
-const TextAnalysisDisplay = ({ tableData, insightsData, varName }: { tableData: any[]; insightsData: string[]; varName: string; }) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [wordCloudImage, setWordCloudImage] = useState<string | null>(null);
-
-    useEffect(() => {
-        let isMounted = true;
-        const generateCloud = async () => {
-            setIsLoading(true);
-            try {
-                const response = await fetch('/api/analysis/wordcloud', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: tableData.join('\n') })
-                });
-                if (!response.ok) throw new Error('Failed to generate word cloud');
-                const result = await response.json();
-                if (isMounted) {
-                    setWordCloudImage(result.plots.wordcloud);
-                }
-            } catch (error) {
-                console.error("Word cloud generation failed", error);
-                if (isMounted) setWordCloudImage(null);
-            } finally {
-                if (isMounted) setIsLoading(false);
-            }
-        };
-
-        if (tableData.length > 0) {
-            generateCloud();
-        } else {
-            setIsLoading(false);
-        }
-
-        return () => { isMounted = false };
-    }, [tableData]);
-
-    return (
-      <AnalysisDisplayShell varName={varName}>
-           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                 <Card>
-                    <CardHeader>
-                       <CardTitle className="text-base">Word Cloud</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex items-center justify-center min-h-[300px]">
-                        {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={`data:image/png;base64,${wordCloudImage}`} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
-                    </CardContent>
-                </Card>
-                 <div className="space-y-4">
-                    <Card>
-                         <CardHeader className="pb-2"><CardTitle className="text-base">Sample Responses</CardTitle></CardHeader>
-                         <CardContent>
-                            <ScrollArea className="h-64">
-                                <ul className="space-y-2">
-                                    {tableData.slice(0, 10).map((text, i) => <li key={i} className="text-sm border-b pb-1">"{text}"</li>)}
-                                </ul>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
-                        <CardContent>
-                            <ul className="space-y-2 text-sm list-disc pl-4">
-                                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
-                            </ul>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-      </AnalysisDisplayShell>
     );
 };
 
@@ -1627,10 +1628,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     `A total of <strong>${responses.length}</strong> responses were collected for this question.`
                 ];
 
-                chartData = {
-                    values: tableData.map(d => d.count),
-                    labels: tableData.map(d => d.name),
-                };
+                chartData = tableData;
                 break;
             }
             case 'text': {
@@ -2649,9 +2647,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                     switch (q.type) {
                                                         case 'single':
                                                         case 'multiple':
-                                                            return <Plot data={[{ values: chartData.values, labels: chartData.labels, type: 'pie', hole: .4 }]} layout={{ autosize: true, margin: { t: 20, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
+                                                            return <Plot data={[{ values: chartData.map((d: any) => d.count), labels: chartData.map((d: any) => d.name), type: 'pie', hole: .4 }]} layout={{ autosize: true, margin: { t: 20, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
                                                         case 'number':
-                                                            return <Plot data={[{ x: chartData.values, type: 'histogram' }]} layout={{ autosize: true, margin: { t: 20, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
+                                                            return <Plot data={[{ x: chartData.values, type: 'histogram' }]} layout={{ autosize: true, margin: { t: 40, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
                                                         case 'rating':
                                                             return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} /><p>{chartData.avg.toFixed(2)} / 5</p></div>;
                                                         case 'nps':
@@ -2748,6 +2746,7 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
+
 
 
 
