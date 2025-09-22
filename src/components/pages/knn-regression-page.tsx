@@ -16,7 +16,6 @@ import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Input } from '../ui/input';
 import { Slider } from '../ui/slider';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface KnnRegressionMetrics {
@@ -95,6 +94,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         }
 
         setIsLoading(true);
+        // Do not clear results if it's just a prediction run
         if (typeof predictValue !== 'number') {
             setAnalysisResult(null);
         }
@@ -234,7 +234,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                         <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${features[0]}`}/>
                         <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === '' || isLoading}>Predict</Button>
                     </CardContent>
-                    {analysisResult?.results?.prediction && (
+                    {analysisResult?.results.prediction && (
                         <CardFooter>
                             <p className="text-lg">Predicted '{target}': <strong className="font-bold text-primary">{analysisResult.results.prediction.y_value.toFixed(2)}</strong></p>
                         </CardFooter>
@@ -245,119 +245,110 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
             {analysisResult && (
-                <Tabs defaultValue="summary" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="summary">Summary</TabsTrigger>
-                        <TabsTrigger value="plots">Plots</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="summary" className="mt-4 space-y-4">
-                         <Card>
+                <div className="space-y-4">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Train vs. Test Performance</CardTitle>
+                            <CardDescription>Comparing model performance on training and testing data can help identify overfitting.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Metric</TableHead>
+                                        <TableHead className="text-right">Train Score</TableHead>
+                                        <TableHead className="text-right">Test Score</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>R-squared</TableCell>
+                                        <TableCell className="text-right font-mono">{results?.metrics.train.r2_score.toFixed(4)}</TableCell>
+                                        <TableCell className="text-right font-mono">{results?.metrics.test.r2_score.toFixed(4)}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>RMSE</TableCell>
+                                        <TableCell className="text-right font-mono">{results?.metrics.train.rmse.toFixed(3)}</TableCell>
+                                        <TableCell className="text-right font-mono">{results?.metrics.test.rmse.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>MAE</TableCell>
+                                        <TableCell className="text-right font-mono">{results?.metrics.train.mae.toFixed(3)}</TableCell>
+                                        <TableCell className="text-right font-mono">{results?.metrics.test.mae.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Info className="h-5 w-5"/>Interpreting R-squared Scores</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Situation</TableHead>
+                                        <TableHead>Train R² (Example)</TableHead>
+                                        <TableHead>Test R² (Example)</TableHead>
+                                        <TableHead>Interpretation</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell className="font-semibold">Good Fit</TableCell>
+                                        <TableCell className="font-mono">0.85</TableCell>
+                                        <TableCell className="font-mono">0.82</TableCell>
+                                        <TableCell>Train and test scores are similar and high. The model generalizes well.</TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell className="font-semibold text-orange-600">Overfitting</TableCell>
+                                        <TableCell className="font-mono">0.98</TableCell>
+                                        <TableCell className="font-mono">0.65</TableCell>
+                                        <TableCell>The model performs very well on training data but poorly on new (test) data. It learned the noise, not the signal.</TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell className="font-semibold text-blue-600">Underfitting</TableCell>
+                                        <TableCell className="font-mono">0.35</TableCell>
+                                        <TableCell className="font-mono">0.32</TableCell>
+                                        <TableCell>Both scores are low. The model is too simple and fails to capture the underlying pattern in the data.</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                    
+                    {analysisResult.plot && (
+                        <Card>
                             <CardHeader>
-                                <CardTitle>Train vs. Test Performance</CardTitle>
-                                <CardDescription>Comparing model performance on training and testing data can help identify overfitting.</CardDescription>
+                                <CardTitle>Model Fit: Actual vs. Predicted</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Metric</TableHead>
-                                            <TableHead className="text-right">Train Score</TableHead>
-                                            <TableHead className="text-right">Test Score</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow>
-                                            <TableCell>R-squared</TableCell>
-                                            <TableCell className="text-right font-mono">{results?.metrics.train.r2_score.toFixed(4)}</TableCell>
-                                            <TableCell className="text-right font-mono">{results?.metrics.test.r2_score.toFixed(4)}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableCell>RMSE</TableCell>
-                                            <TableCell className="text-right font-mono">{results?.metrics.train.rmse.toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">{results?.metrics.test.rmse.toFixed(3)}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableCell>MAE</TableCell>
-                                            <TableCell className="text-right font-mono">{results?.metrics.train.mae.toFixed(3)}</TableCell>
-                                            <TableCell className="text-right font-mono">{results?.metrics.test.mae.toFixed(3)}</TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
+                                <Image src={analysisResult.plot} alt="KNN Actual vs Predicted Plot" width={800} height={600} className="w-full rounded-md border"/>
                             </CardContent>
                         </Card>
-                         <Card>
+                    )}
+                    {analysisResult.relationship_plot && (
+                        <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Info className="h-5 w-5"/>Interpreting R-squared Scores</CardTitle>
+                                <CardTitle>X vs. Y Relationship</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Situation</TableHead>
-                                            <TableHead>Train R² (Example)</TableHead>
-                                            <TableHead>Test R² (Example)</TableHead>
-                                            <TableHead>Interpretation</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow>
-                                            <TableCell className="font-semibold">Good Fit</TableCell>
-                                            <TableCell className="font-mono">0.85</TableCell>
-                                            <TableCell className="font-mono">0.82</TableCell>
-                                            <TableCell>Train and test scores are similar and high. The model generalizes well.</TableCell>
-                                        </TableRow>
-                                         <TableRow>
-                                            <TableCell className="font-semibold text-orange-600">Overfitting</TableCell>
-                                            <TableCell className="font-mono">0.98</TableCell>
-                                            <TableCell className="font-mono">0.65</TableCell>
-                                            <TableCell>The model performs very well on training data but poorly on new (test) data. It learned the noise, not the signal.</TableCell>
-                                        </TableRow>
-                                         <TableRow>
-                                            <TableCell className="font-semibold text-blue-600">Underfitting</TableCell>
-                                            <TableCell className="font-mono">0.35</TableCell>
-                                            <TableCell className="font-mono">0.32</TableCell>
-                                            <TableCell>Both scores are low. The model is too simple and fails to capture the underlying pattern in the data.</TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
+                                <Image src={analysisResult.relationship_plot} alt="KNN Relationship Plot" width={800} height={600} className="w-full rounded-md border"/>
                             </CardContent>
                         </Card>
-                    </TabsContent>
-                    <TabsContent value="plots" className="mt-4">
-                        <div className="space-y-4">
-                             {analysisResult.plot && (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Model Fit: Actual vs. Predicted</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Image src={analysisResult.plot} alt="KNN Actual vs Predicted Plot" width={800} height={600} className="w-full rounded-md border"/>
-                                    </CardContent>
-                                </Card>
-                            )}
-                             {analysisResult.relationship_plot && (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>X vs. Y Relationship</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Image src={analysisResult.relationship_plot} alt="KNN Relationship Plot" width={800} height={600} className="w-full rounded-md border"/>
-                                    </CardContent>
-                                </Card>
-                            )}
-                            {analysisResult.prediction_plot && (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Prediction Simulation Plot</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Image src={analysisResult.prediction_plot} alt="KNN Prediction Plot" width={800} height={600} className="w-full rounded-md border"/>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
-                    </TabsContent>
-                </Tabs>
+                    )}
+                    {analysisResult.prediction_plot && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Prediction Simulation Plot</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Image src={analysisResult.prediction_plot} alt="KNN Prediction Plot" width={800} height={600} className="w-full rounded-md border"/>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
             )}
         </div>
     );
