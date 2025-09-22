@@ -12,7 +12,9 @@ import {
   SidebarTrigger,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenu
+  SidebarMenu,
+  SidebarMenuSub,
+  SidebarMenuSubButton
 } from '@/components/ui/sidebar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import {
