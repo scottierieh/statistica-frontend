@@ -50,6 +50,11 @@ interface RegressionResultsData {
     };
     stepwise_log?: string[];
     interpretation?: string;
+    prediction?: {
+        x_value: number,
+        y_value: number,
+        neighbors?: any[]
+    }
 }
 
 interface FullAnalysisResponse {
@@ -143,6 +148,10 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     const [simpleFeatureVar, setSimpleFeatureVar] = useState<string | undefined>(numericHeaders[0]);
     const [multipleFeatureVars, setMultipleFeatureVars] = useState<string[]>(numericHeaders.slice(0, numericHeaders.length - 1));
     
+    // Simple regression prediction state
+    const [predictXValue, setPredictXValue] = useState<number | ''>('');
+    const [predictedYValue, setPredictedYValue] = useState<number | null>(null);
+    
     // Model specific params
     const [polyDegree, setPolyDegree] = useState(2);
     const [ridgeAlpha, setRidgeAlpha] = useState(1.0);
@@ -172,7 +181,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         setMultipleFeatureVars(prev => checked ? [...prev, header] : prev.filter(v => v !== header));
     };
 
-    const handleAnalysis = useCallback(async () => {
+    const handleAnalysis = useCallback(async (predictValue?: number) => {
         if (!targetVar) {
             toast({variant: 'destructive', title: 'Variable Selection Error', description: 'Please select a target variable.'});
             return;
@@ -188,6 +197,9 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                     return;
                 }
                 features = [simpleFeatureVar];
+                if (typeof predictValue === 'number') {
+                    params.predict_x = predictValue;
+                }
                 break;
             case 'multiple':
             case 'polynomial':
@@ -212,7 +224,10 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         params.features = features;
 
         setIsLoading(true);
-        setAnalysisResult(null);
+        if (typeof predictValue !== 'number') {
+             setAnalysisResult(null);
+             setPredictedYValue(null);
+        }
         
         try {
             const response = await fetch('/api/analysis/regression', {
@@ -230,6 +245,9 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
             if ((result as any).error) throw new Error((result as any).error);
             
             setAnalysisResult(result);
+            if(result.results.prediction) {
+                setPredictedYValue(result.results.prediction.y_value);
+            }
 
         } catch (e: any) {
             console.error('Analysis error:', e);
@@ -458,7 +476,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                 <CardContent>
                     {renderSetupUI()}
                     <div className="flex justify-end mt-4">
-                        <Button onClick={handleAnalysis} disabled={getAnalysisButtonDisabled()}>
+                        <Button onClick={() => handleAnalysis()} disabled={getAnalysisButtonDisabled()}>
                             {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
                         </Button>
                     </div>
@@ -469,6 +487,24 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 
             {analysisResult && results && (
                 <div className="space-y-4">
+                    {modelType === 'simple' && (
+                        <Card>
+                             <CardHeader>
+                                <CardTitle className="font-headline">Prediction Simulation</CardTitle>
+                                <CardDescription>Enter a value for '{simpleFeatureVar}' to predict '{targetVar}'.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex items-center gap-4">
+                                <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${simpleFeatureVar}`}/>
+                                <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === ''}>Predict</Button>
+                            </CardContent>
+                            {predictedYValue !== null && (
+                                <CardFooter>
+                                    <p className="text-lg">Predicted '{targetVar}': <strong className="font-bold text-primary">{predictedYValue.toFixed(2)}</strong></p>
+                                </CardFooter>
+                            )}
+                        </Card>
+                    )}
+
                     <Card>
                         <CardHeader>
                             <CardTitle className="font-headline">Model Summary</CardTitle>

@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -15,6 +16,7 @@ import io
 import base64
 import warnings
 import math
+import re
 warnings.filterwarnings('ignore')
 
 try:
@@ -35,6 +37,17 @@ def _to_native_type(obj):
     elif isinstance(obj, np.ndarray): return obj.tolist()
     elif isinstance(obj, np.bool_): return bool(obj)
     return obj
+
+def _clean_coef_name(name, feature_names):
+    """Cleans statsmodels-generated coefficient names."""
+    name = name.strip()
+    match = re.search(r'Q\("([^"]+)"\)', name)
+    if match:
+        # Check if the extracted name is one of the original feature names
+        cleaned_name = match.group(1)
+        if cleaned_name in feature_names:
+            return cleaned_name
+    return name
     
 def perform_stepwise_selection(X, y, method='stepwise', p_enter=0.05, p_remove=0.1):
     """
@@ -141,24 +154,30 @@ class RegressionAnalysis:
             raise ValueError(f"Target variable '{target_variable}' not found in data")
         
         self.y = self.data[target_variable]
-        # One-hot encode categorical features and combine with numeric
-        numeric_features = self.data.select_dtypes(include=np.number).drop(columns=[target_variable], errors='ignore')
-        categorical_features = self.data.select_dtypes(include=['object', 'category'])
         
         X_to_process = self.data.drop(columns=[target_variable])
+        # Use regex to create sanitized but predictable names
+        self.sanitized_cols = {col: re.sub(r'[^A-Za-z0-9_]', '_', col) for col in X_to_process.columns}
+        X_to_process.rename(columns=self.sanitized_cols, inplace=True)
+
+        numeric_features = X_to_process.select_dtypes(include=np.number)
+        categorical_features = X_to_process.select_dtypes(include=['object', 'category'])
+        
         if not categorical_features.empty:
             X_encoded = pd.get_dummies(X_to_process, drop_first=True, dtype=float)
             self.X = X_encoded
         else:
             self.X = numeric_features
 
-
-    def linear_regression(self, model_name="linear", features=None, standardize=False, selection_method='none'):
+    def linear_regression(self, model_name="linear", features=None, standardize=False, selection_method='none', predict_x=None):
         stepwise_log = []
         if features is None:
-            X_selected = self.X
+            # Map features to sanitized names
+            sanitized_features = [self.sanitized_cols.get(f, f) for f in self.X.columns]
+            X_selected = self.X[sanitized_features]
         else:
-            X_selected = self.X[[col for col in features if col in self.X.columns]]
+            sanitized_features = [self.sanitized_cols.get(f, f) for f in features if self.sanitized_cols.get(f, f) in self.X.columns]
+            X_selected = self.X[sanitized_features]
         
         final_features = X_selected.columns.tolist()
 
@@ -167,7 +186,6 @@ class RegressionAnalysis:
             if not final_features:
                 raise ValueError("No features were selected by the stepwise method. Try adjusting p-values or using a different method.")
             X_selected = X_selected[final_features]
-
 
         if standardize:
             X_scaled = pd.DataFrame(self.scaler.fit_transform(X_selected), columns=X_selected.columns, index=X_selected.index)
@@ -189,6 +207,22 @@ class RegressionAnalysis:
         metrics = self._calculate_metrics(self.y, y_pred, len(X_scaled.columns))
         diagnostics = self._calculate_diagnostics(X_scaled, self.y, y_pred, sm_model)
         
+        prediction_result = None
+        if predict_x is not None and model_name == 'simple':
+            predict_x_scaled = self.scaler.transform([[predict_x]])[0][0]
+            predicted_y = sklearn_model.predict([[predict_x_scaled]])[0]
+            
+            # Find neighbors for visualization
+            distances = np.abs(X_scaled.values.flatten() - predict_x_scaled)
+            neighbor_indices = np.argsort(distances)[:5]
+            neighbors = X_selected.iloc[neighbor_indices].values.flatten().tolist()
+
+            prediction_result = {
+                'x_value': predict_x,
+                'y_value': predicted_y,
+                'neighbors': neighbors
+            }
+
         self.results[model_name] = {
             'model_name': model_name,
             'model_type': 'linear_regression',
@@ -196,7 +230,8 @@ class RegressionAnalysis:
             'metrics': metrics,
             'diagnostics': diagnostics,
             'stepwise_log': stepwise_log,
-            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, list(X_scaled.columns))
+            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, list(X_scaled.columns)),
+            'prediction': prediction_result
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -204,9 +239,11 @@ class RegressionAnalysis:
 
     def polynomial_regression(self, model_name="polynomial", degree=2, features=None):
         if features is None:
-            X_selected = self.X
+            sanitized_features = [self.sanitized_cols.get(f, f) for f in self.X.columns]
+            X_selected = self.X[sanitized_features]
         else:
-            X_selected = self.X[features]
+            sanitized_features = [self.sanitized_cols.get(f, f) for f in features if self.sanitized_cols.get(f, f) in self.X.columns]
+            X_selected = self.X[sanitized_features]
 
         poly = PolynomialFeatures(degree=degree, include_bias=False)
         X_poly = poly.fit_transform(X_selected)
@@ -239,9 +276,11 @@ class RegressionAnalysis:
 
     def regularized_regression(self, model_name, reg_type, alpha_reg, l1_ratio=None, features=None, standardize=True):
         if features is None:
-            X_selected = self.X
+            sanitized_features = [self.sanitized_cols.get(f, f) for f in self.X.columns]
+            X_selected = self.X[sanitized_features]
         else:
-            X_selected = self.X[features]
+            sanitized_features = [self.sanitized_cols.get(f, f) for f in features if self.sanitized_cols.get(f, f) in self.X.columns]
+            X_selected = self.X[sanitized_features]
 
         if standardize:
             X_scaled = pd.DataFrame(self.scaler.fit_transform(X_selected), columns=X_selected.columns, index=X_selected.index)
@@ -264,15 +303,17 @@ class RegressionAnalysis:
         
         diagnostics = self._basic_diagnostics(X_scaled, self.y, y_pred)
         
+        original_feature_names = [key for key, val in self.sanitized_cols.items() if val in X_scaled.columns]
+
         diagnostics['coefficient_tests'] = {
-            'params': {'const': model.intercept_, **dict(zip(X_scaled.columns, model.coef_))},
+            'params': {'const': model.intercept_, **dict(zip(original_feature_names, model.coef_))},
             'pvalues': {}, 'bse': {}, 'tvalues': {}
         }
 
         self.results[model_name] = {
-            'model_name': model_name, 'model_type': f'{reg_type}_regression', 'features': list(X_scaled.columns),
+            'model_name': model_name, 'model_type': f'{reg_type}_regression', 'features': original_feature_names,
             'metrics': metrics, 'diagnostics': diagnostics, 'stepwise_log': [],
-            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, list(X_scaled.columns))
+            'interpretation': self._generate_interpretation(metrics, diagnostics, model_name, self.target_variable, original_feature_names)
         }
         self.y_pred = y_pred
         self.X_scaled = X_scaled
@@ -290,12 +331,25 @@ class RegressionAnalysis:
     def _calculate_diagnostics(self, X, y_true, y_pred, sm_model):
         residuals = y_true - y_pred
         diagnostics = {}
+        
+        original_feature_names = [key for key, val in self.sanitized_cols.items() if val in X.columns]
+        
+        def clean_name(name):
+             for original, sanitized in self.sanitized_cols.items():
+                 if sanitized == name:
+                     return original
+             return name
 
         if HAS_STATSMODELS and sm_model:
             summary_obj = sm_model.summary()
             summary_data = []
             for table in summary_obj.tables:
                 table_data = [list(row) for row in table.data]
+                if table_data and len(table_data) > 1 and 'coef' in table_data[0]:
+                    for row in table_data[1:]:
+                        if row and row[0]:
+                             row[0] = clean_name(row[0])
+
                 summary_data.append({'caption': getattr(table, 'title', None), 'data': table_data})
             diagnostics['model_summary_data'] = summary_data
 
@@ -303,12 +357,17 @@ class RegressionAnalysis:
             diagnostics['f_pvalue'] = sm_model.f_pvalue
             diagnostics['df_model'] = sm_model.df_model
             diagnostics['df_resid'] = sm_model.df_resid
+            
+            cleaned_params = {clean_name(k): v for k, v in sm_model.params.to_dict().items()}
+            cleaned_pvalues = {clean_name(k): v for k, v in sm_model.pvalues.to_dict().items()}
+            cleaned_bse = {clean_name(k): v for k, v in sm_model.bse.to_dict().items()}
+            cleaned_tvalues = {clean_name(k): v for k, v in sm_model.tvalues.to_dict().items()}
 
             diagnostics['coefficient_tests'] = {
-                'params': sm_model.params.to_dict(),
-                'pvalues': sm_model.pvalues.to_dict(),
-                'bse': sm_model.bse.to_dict(),
-                'tvalues': sm_model.tvalues.to_dict(),
+                'params': cleaned_params,
+                'pvalues': cleaned_pvalues,
+                'bse': cleaned_bse,
+                'tvalues': cleaned_tvalues,
             }
             try:
                 diagnostics['durbin_watson'] = durbin_watson(residuals)
@@ -318,7 +377,7 @@ class RegressionAnalysis:
             try:
                  if X.shape[1] > 1:
                     vif_data = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
-                    vif = {X.columns[i]: vif_data[i] for i in range(X.shape[1])}
+                    vif = {clean_name(X.columns[i]): vif_data[i] for i in range(X.shape[1])}
                     diagnostics['vif'] = vif
                  else:
                      diagnostics['vif'] = {}
@@ -369,27 +428,32 @@ class RegressionAnalysis:
         f_pvalue = diagnostics.get('f_pvalue')
         df_model = diagnostics.get('df_model')
         df_resid = diagnostics.get('df_resid')
-        r_squared = metrics.get('r2')
+        adj_r2 = metrics.get('adj_r2')
 
-        if all(v is not None for v in [f_stat, f_pvalue, df_model, df_resid, r_squared]):
+        if all(v is not None for v in [f_stat, f_pvalue, df_model, df_resid, adj_r2]):
             p_val_str = f"p < .001" if f_pvalue < 0.001 else f"p = {f_pvalue:.3f}"
             model_sig_str = "statistically significant" if f_pvalue < self.alpha else "not statistically significant"
-            interpretation += f"The overall regression model was {model_sig_str}, F({int(df_model)}, {int(df_resid)}) = {f_stat:.2f}, {p_val_str}, and accounted for {r_squared*100:.1f}% of the variance (R² = {r_squared:.3f}).\n"
+            interpretation += f"The overall regression model was {model_sig_str}, *F*({int(df_model)}, {int(df_resid)}) = {f_stat:.2f}, {p_val_str}.\n"
+            interpretation += f"The model explained {adj_r2*100:.1f}% of the variance in '{target_variable}' (*R*²adj = {adj_r2:.3f}).\n\n"
+        elif adj_r2 is not None:
+             interpretation += f"The model explained {adj_r2*100:.1f}% of the variance in '{target_variable}' (*R*² = {metrics.get('r2', 0):.3f}).\n\n"
+
 
         coeffs = diagnostics.get('coefficient_tests')
-        if coeffs and coeffs.get('pvalues'):
+        if coeffs and coeffs.get('pvalues') and any(coeffs.get('pvalues')):
             params = coeffs['params']
             p_values = coeffs['pvalues']
             
-            sig_vars = []
+            sig_vars_text = []
             for var in features:
                 if var in p_values and p_values[var] < self.alpha:
                     b = params.get(var, 0)
-                    sig_vars.append(f"'{var}' (B = {b:.3f})")
+                    p_val_text = f"p < .001" if p_values[var] < 0.001 else f"p = {p_values[var]:.3f}"
+                    sig_vars_text.append(f"'{var}' (*B* = {b:.3f}, {p_val_text})")
             
-            if sig_vars:
-                interpretation += f"It was found that {', '.join(sig_vars)} significantly predicted '{target_variable}'.\n"
-        
+            if sig_vars_text:
+                interpretation += f"It was found that {', '.join(sig_vars_text)} significantly predicted '{target_variable}'.\n\n"
+
         if coeffs:
             b0 = coeffs['params'].get('const', 0)
             b1_str_parts = []
@@ -397,47 +461,63 @@ class RegressionAnalysis:
                  b_val = coeffs['params'].get(var)
                  if b_val is not None:
                      sign = "-" if b_val < 0 else "+"
-                     b1_str_parts.append(f"{sign} {abs(b_val):.3f} * ({var})")
+                     b1_str_parts.append(f"{sign} {abs(b_val):.3f}*({var})")
             
             b1_str = " ".join(b1_str_parts)
-            interpretation += f"\nThe final regression equation is: {target_variable} = {b0:.3f} {b1_str}."
+            interpretation += f"The final regression equation is: **{target_variable} = {b0:.3f} {b1_str}**."
 
         interpretation = interpretation.strip()
 
-        warnings = []
+        warnings_list = []
         normality_p = diagnostics.get('normality_tests', {}).get('shapiro_wilk', {}).get('p_value')
         if normality_p is not None and normality_p < self.alpha:
-            warnings.append("Warning: The residuals are not normally distributed (Shapiro-Wilk p < 0.05). This can affect the validity of p-values for the coefficients. Consider transforming the dependent variable (e.g., log transformation) or using a robust regression method.")
+            warnings_list.append("Warning: The residuals are not normally distributed (Shapiro-Wilk p < 0.05). This can affect the validity of p-values for the coefficients. Consider transforming the dependent variable (e.g., log transformation) or using a robust regression method.")
 
         hetero_p = diagnostics.get('heteroscedasticity_tests', {}).get('breusch_pagan', {}).get('p_value')
         if hetero_p is not None and hetero_p < self.alpha:
-            warnings.append("Warning: Heteroscedasticity detected (Breusch-Pagan p < 0.05), meaning the variance of residuals is not constant. This can lead to unreliable standard errors. Consider using robust standard errors or a different model specification.")
+            warnings_list.append("Warning: Heteroscedasticity detected (Breusch-Pagan p < 0.05), meaning the variance of residuals is not constant. This can lead to unreliable standard errors. Consider using robust standard errors or a different model specification.")
 
         vif_data = diagnostics.get('vif', {})
         high_vif_vars = [var for var, vif in vif_data.items() if vif > 10]
         if high_vif_vars:
-            warnings.append(f"Warning: High multicollinearity detected (VIF > 10) for variables: {', '.join(high_vif_vars)}. This suggests these variables are highly correlated, which can inflate standard errors and make coefficient estimates unstable. Consider removing one or more of these variables and re-running the analysis.")
+            warnings_list.append(f"Warning: High multicollinearity detected (VIF > 10) for variables: {', '.join(high_vif_vars)}. This suggests these variables are highly correlated, which can inflate standard errors and make coefficient estimates unstable. Consider removing one or more of these variables and re-running the analysis.")
 
-        if warnings:
-            interpretation += "\n\n--- Diagnostic Warnings ---\n" + "\n".join(warnings)
+        if warnings_list:
+            interpretation += "\n\n--- Diagnostic Warnings ---\n" + "\n".join(warnings_list)
 
         return interpretation
 
 
     
-    def plot_results(self, model_name):
+    def plot_results(self, model_name, prediction_result=None):
         residuals = self.y - self.y_pred
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         fig.suptitle(f'Regression Diagnostics - {model_name}', fontsize=16, fontweight='bold')
         
         # Actual vs Predicted
         ax = axes[0, 0]
-        ax.scatter(self.y, self.y_pred, alpha=0.6)
+        ax.scatter(self.y, self.y_pred, alpha=0.6, label='Data Points')
         ax.plot([self.y.min(), self.y.max()], [self.y.min(), self.y.max()], 'r--', lw=2)
+        
+        if prediction_result:
+            x_val_orig = prediction_result['x_value']
+            y_val_pred = prediction_result['y_value']
+            neighbors = prediction_result.get('neighbors', [])
+            
+            # Highlight the predicted point
+            ax.scatter(y_val_pred, y_val_pred, color='magenta', s=150, zorder=5, marker='*', label=f'Prediction for X={x_val_orig}')
+
+            # Highlight neighbors if simple regression
+            if model_name == 'simple':
+                 y_neighbors = self.y[self.X_scaled.iloc[:,0].isin(self.scaler.transform(np.array(neighbors).reshape(-1,1))[:,0])]
+                 ax.scatter(y_neighbors, y_neighbors, color='cyan', s=100, marker='D', zorder=4, label='Neighbors')
+
+
         ax.set_xlabel('Actual Values')
         ax.set_ylabel('Predicted Values')
         ax.set_title(f"Actual vs Predicted (R² = {self.results[model_name]['metrics']['r2']:.4f})")
         ax.grid(True, alpha=0.3)
+        ax.legend()
         
         # Residuals vs Fitted
         ax = axes[0, 1]
@@ -481,6 +561,7 @@ def main():
         features = payload.get('features')
         model_type = payload.get('modelType', 'multiple')
         selection_method = payload.get('selectionMethod', 'none')
+        predict_x = payload.get('predict_x')
 
         if not all([data, target_variable, features]):
             raise ValueError("Missing 'data', 'targetVar', or 'features'")
@@ -491,7 +572,7 @@ def main():
         
         results = None
         if model_type == 'simple' or model_type == 'multiple':
-            results = reg_analysis.linear_regression(model_name=model_type, features=features, standardize=True, selection_method=selection_method)
+            results = reg_analysis.linear_regression(model_name=model_type, features=features, standardize=True, selection_method=selection_method, predict_x=predict_x)
         elif model_type == 'polynomial':
             degree = payload.get('degree', 2)
             results = reg_analysis.polynomial_regression(model_name=model_type, features=features, degree=degree)
@@ -502,7 +583,8 @@ def main():
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 
-        plot_image = reg_analysis.plot_results(model_type)
+        plot_image = reg_analysis.plot_results(model_type, prediction_result=results.get('prediction'))
+
 
         response = {
             'results': results,
@@ -521,3 +603,5 @@ if __name__ == '__main__':
     main()
 
     
+
+
