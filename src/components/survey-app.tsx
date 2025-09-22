@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -101,6 +100,7 @@ import { ResponsiveContainer, BarChart as RechartsBarChart, CartesianGrid, XAxis
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { produce } from 'immer';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 const VanWestendorpPage = dynamic(() => import('@/components/pages/van-westendorp-page'), { ssr: false });
@@ -124,6 +124,7 @@ const ipaTemplate = {
       id: 2,
       type: 'rating',
       title: 'Overall, how satisfied are you with our service?',
+      scale: ['1', '2', '3', '4', '5', '6', '7'],
       required: true
     }
   ],
@@ -135,7 +136,7 @@ const retailTemplate = {
     description: 'Please provide feedback on your recent experience to help us improve.',
     questions: [
         { id: 1, type: 'single', title: 'Which age group do you belong to?', options: ['20s', '30s', '40s', '50s', '60+'], required: true },
-        { id: 2, type: 'rating', title: 'Overall, how satisfied are you with our service?', required: true },
+        { id: 2, type: 'rating', title: 'Overall, how satisfied are you with our service?', required: true, scale: ['1','2','3','4','5'] },
         { id: 3, type: 'nps', title: 'How likely are you to recommend us to a friend or colleague?', required: true },
         { id: 4, type: 'number', title: 'How many times have you purchased from us in the last 6 months?', required: false },
         { id: 5, type: 'number', title: 'Approximately, what is your average spend per visit?', required: false },
@@ -598,7 +599,7 @@ const EmailQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload,
     </div>
 );
 
-const RatingQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
+const RatingQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer: number; onAnswerChange: (value: number) => void; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
   <div className={cn("p-4", cardClassName)}>
      <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
@@ -635,8 +636,8 @@ const RatingQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload
         </div>
     )}
     <div className="flex items-center gap-2">
-      {[1, 2, 3, 4, 5].map(rating => (
-        <Star key={rating} className={cn("w-8 h-8 text-yellow-400", isPreview && "cursor-pointer hover:text-yellow-500 transition-colors")} />
+      {(question.scale || [1, 2, 3, 4, 5]).map((ratingValue: any, index: number) => (
+        <Star key={index} className={cn("w-8 h-8 text-yellow-400", isPreview && "cursor-pointer hover:text-yellow-500 transition-colors", ratingValue <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(ratingValue)}/>
       ))}
     </div>
   </div>
@@ -759,7 +760,7 @@ const BestWorstQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpl
                 <div className="space-y-2">
                     {question.items.map((item: string, index: number) => (
                          <div key={index} className="flex items-center space-x-2 group">
-                            <Input value={item} onChange={(e) => handleItemChange(index, e.target.value)} readOnly={isPreview} />
+                            <Input value={item} onChange={e => handleItemChange(index, e.target.value)} readOnly={isPreview} />
                             {!isPreview && <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={() => deleteItem(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>}
                         </div>
                     ))}
@@ -912,40 +913,32 @@ const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number
     );
 };
 
-const AnalysisDisplayShell = ({ children, varName, onChartTypeChange, currentChartType, availableChartTypes }: { children: React.ReactNode, varName: string, onChartTypeChange?: (type: string) => void, currentChartType?: string, availableChartTypes?: string[] }) => {
+const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode, varName: string}) => {
     return (
       <Card>
-        <CardHeader className="flex-row items-center justify-between">
-          <div>
-            <CardTitle>{varName}</CardTitle>
-          </div>
-          <div className="flex items-center gap-2">
-            {onChartTypeChange && currentChartType && availableChartTypes && (
-              <Select value={currentChartType} onValueChange={onChartTypeChange}>
-                <SelectTrigger className="w-[120px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableChartTypes.map(type => (
-                    <SelectItem key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <Button variant="ghost" size="icon"><ZoomIn className="w-4 h-4" /></Button>
-            <Button variant="ghost" size="icon"><Download className="w-4 h-4" /></Button>
-          </div>
+        <CardHeader>
+          <CardTitle>{varName}</CardTitle>
         </CardHeader>
         <CardContent>{children}</CardContent>
       </Card>
     );
 };
   
-const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any[], tableData: any[], insightsData: string[], varName: string }) => {
-    const highestValue = tableData.length > 0 ? Math.max(...tableData.map(d => parseFloat(d.percentage))) : 0;
-  
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
+    const plotLayout = {
+      autosize: true,
+      margin: { t: 20, b: 40, l: 120, r: 20 },
+      xaxis: { title: 'Count' },
+      yaxis: { autorange: 'reversed' as const },
+  };
+
+  const plotConfig = {
+      displayModeBar: true,
+      modeBarButtonsToRemove: ['select2d', 'lasso2d'],
+  };
+
     return (
-        <AnalysisDisplayShell varName={varName}>
+      <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                  <Card>
                     <CardHeader>
@@ -953,47 +946,36 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
                         <Plot
-                            data={[{
-                                y: chartData.map(d => d.name),
-                                x: chartData.map(d => d.count),
-                                type: 'bar',
-                                orientation: 'h',
-                                marker: { color: COLORS },
-                            }]}
-                            layout={{
-                                autosize: true,
-                                margin: { t: 20, b: 40, l: 120, r: 20 },
-                                xaxis: { title: 'Count' },
-                                yaxis: { autorange: 'reversed' },
-                            }}
+                            data={[chartData]}
+                            layout={plotLayout}
                             style={{ width: '100%', height: '100%' }}
-                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            config={plotConfig}
                             useResizeHandler
                         />
                     </CardContent>
                 </Card>
                  <div className="space-y-4">
                     <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
-                        <CardContent className="max-h-[200px] overflow-y-auto">
+                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                         <CardContent className="max-h-[200px] overflow-y-auto">
                             <Table>
                                 <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
                                 <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
                             </Table>
                         </CardContent>
                     </Card>
-                     <Card>
+                    <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
                         <CardContent><ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul></CardContent>
                     </Card>
                 </div>
             </div>
-        </AnalysisDisplayShell>
+      </AnalysisDisplayShell>
     );
 };
   
 const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question }: { chartData: any, tableData: any, insightsData: string[], varName: string, question: any }) => {
-    const ratingScale = question.options || ['1', '2', '3', '4', '5'];
+    const ratingScale = question.scale || ['1', '2', '3', '4', '5'];
     return (
         <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -1548,7 +1530,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             { id: 'email', icon: Mail, label: 'Email Input', color: 'text-rose-500' },
         ],
         'Scale': [
-            { id: 'rating', icon: Star, label: 'Rating', options: ["1", "2", "3", "4", "5"], color: 'text-yellow-500' },
+            { id: 'rating', icon: Star, label: 'Rating', scale: ['1', '2', '3', '4', '5'], color: 'text-yellow-500' },
             { id: 'nps', icon: Share2, label: 'Net Promoter Score', color: 'text-sky-500' },
         ],
         'Structure': [
@@ -1648,7 +1630,13 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     `A total of <strong>${responses.length}</strong> responses were collected for this question.`
                 ];
 
-                chartData = tableData;
+                chartData = {
+                  y: tableData.map((d: any) => d.name),
+                  x: tableData.map((d: any) => d.count),
+                  type: 'bar',
+                  orientation: 'h',
+                  marker: { color: COLORS },
+                };
                 break;
             }
             case 'text': {
@@ -1695,7 +1683,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     count: ratings.length 
                 };
                 insights = [
-                    `Average rating is <strong>${avgRating.toFixed(2)} / ${question.options?.length || 5}</strong>.`,
+                    `Average rating is <strong>${avgRating.toFixed(2)} / ${question.scale?.length || 5}</strong>.`,
                     `The most common rating given was <strong>${getMode(ratings)} star(s)</strong>.`,
                     `<strong>${((ratings.filter(r => r >= 4).length / ratings.length) * 100).toFixed(1)}%</strong> of users gave a high rating (4 or 5 stars).`
                 ];
@@ -2671,7 +2659,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                         case 'number':
                                                             return <Plot data={[{ x: chartData.values, type: 'histogram' }]} layout={{ autosize: true, margin: { t: 40, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
                                                         case 'rating':
-                                                            return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} /><p>{chartData.avg.toFixed(2)} / 5</p></div>;
+                                                            return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} total={q.scale?.length || 5} /><p>{chartData.avg.toFixed(2)} / {q.scale?.length || 5}</p></div>;
                                                         case 'nps':
                                                             return <div className="text-5xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
                                                         case 'text':
@@ -2766,3 +2754,5 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
+
+
