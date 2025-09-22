@@ -116,7 +116,7 @@ def main():
             'interpretation': interpretation,
         }
         
-        # --- Plotting ---
+        # --- Plotting: Actual vs Predicted (Train vs Test) ---
         fig_main, axes = plt.subplots(2, 1, figsize=(8, 12))
         fig_main.suptitle(f'Ridge Regression Performance (alpha={alpha})', fontsize=16)
 
@@ -154,9 +154,28 @@ def main():
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plot_image = fig_to_base64(fig_main)
 
+        # --- Alpha vs Coefficients Path Plot ---
+        alpha_list = np.logspace(-4, 4, 200)
+        coefs = []
+        for a in alpha_list:
+            ridge_iter = Ridge(alpha=a, random_state=42)
+            ridge_iter.fit(X_train_scaled, y_train)
+            coefs.append(ridge_iter.coef_)
+        
+        fig_path, ax_path = plt.subplots(figsize=(8, 6))
+        ax_path.plot(alpha_list, coefs)
+        ax_path.set_xscale('log')
+        ax_path.set_xlabel('Alpha (Regularization Strength)')
+        ax_path.set_ylabel('Coefficient Value')
+        ax_path.set_title('Ridge Coefficients Path')
+        ax_path.legend(final_features, bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
+        ax_path.grid(True)
+        path_plot_image = fig_to_base64(fig_path)
+
         response = {
             'results': results,
-            'plot': plot_image
+            'plot': plot_image,
+            'path_plot': path_plot_image
         }
         
         print(json.dumps(response, default=_to_native_type))

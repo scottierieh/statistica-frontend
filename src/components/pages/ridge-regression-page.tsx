@@ -39,6 +39,7 @@ interface RidgeRegressionResults {
 interface FullAnalysisResponse {
     results: RidgeRegressionResults;
     plot: string | null;
+    path_plot: string | null;
 }
 
 interface RidgeRegressionPageProps {
@@ -233,7 +234,18 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
                                 </CardContent>
                             </Card>
                         )}
-                        <Card className="md:col-span-2">
+                        {analysisResult.path_plot && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Ridge Coefficients Path</CardTitle>
+                                    <CardDescription>Shows how feature coefficients change as alpha increases.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Image src={analysisResult.path_plot} alt="Ridge Coefficients Path Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                </CardContent>
+                            </Card>
+                        )}
+                        <Card>
                              <CardHeader>
                                 <CardTitle>Coefficients</CardTitle>
                             </CardHeader>
