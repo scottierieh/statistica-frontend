@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
@@ -844,11 +843,23 @@ const AnalysisDisplayShell = ({ children, varName, onChartTypeChange, currentCha
     return (
         <Card>
             <CardHeader className="flex flex-row items-start justify-between">
-                <CardTitle>{varName}</CardTitle>
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon"><ZoomIn className="w-4 h-4"/></Button>
-                    <Button variant="ghost" size="icon"><Download className="w-4 h-4"/></Button>
-                </div>
+                 <div>
+                    <CardTitle>{varName}</CardTitle>
+                 </div>
+                 <div className="flex items-center gap-2">
+                    {onChartTypeChange && currentChartType && availableChartTypes && (
+                        <Select value={currentChartType} onValueChange={onChartTypeChange}>
+                            <SelectTrigger className="w-[120px] h-8 text-xs">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableChartTypes.map(type => (
+                                    <SelectItem key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                 </div>
             </CardHeader>
             <CardContent>
                 {children}
@@ -867,22 +878,25 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                     <CardHeader>
                        <CardTitle className="text-base">Distribution</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                         <ChartContainer config={{ percentage: { label: "Percentage" } }} className="w-full h-[300px]">
-                            <ResponsiveContainer width="100%" height={300}>
-                              <RechartsBarChart data={tableData} layout="vertical" margin={{ left: 100 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                                <XAxis type="number" domain={[0, highestValue > 0 ? Math.ceil(highestValue / 10) * 10 : 10]} unit="%" />
-                                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
-                                <Tooltip content={<ChartTooltipContent formatter={(value) => `${value}%`} />} cursor={{fill: 'hsl(var(--muted))'}} />
-                                <Bar dataKey="percentage" radius={[0, 4, 4, 0]}>
-                                  {tableData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                  ))}
-                                </Bar>
-                              </RechartsBarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        <Plot
+                            data={[{
+                                y: chartData.map((d: any) => d.name),
+                                x: chartData.map((d: any) => d.count),
+                                type: 'bar',
+                                orientation: 'h',
+                                marker: { color: COLORS },
+                            }]}
+                            layout={{
+                                autosize: true,
+                                margin: { t: 20, b: 40, l: 120, r: 20 },
+                                xaxis: { title: 'Count' },
+                                yaxis: { autorange: 'reversed' },
+                            }}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            useResizeHandler
+                        />
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
@@ -1345,33 +1359,43 @@ const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
     if (!ipaData) return null;
     const { points, meanImportance, meanSatisfaction, quadrants } = ipaData;
 
-    const chartConfig = {
-        satisfaction: { label: 'Satisfaction' },
-        importance: { label: 'Importance' },
-    };
-
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Importance-Performance Matrix</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <ChartContainer config={chartConfig} className="w-full h-[450px]">
-                        <ResponsiveContainer>
-                            <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 40 }}>
-                                <CartesianGrid />
-                                <XAxis type="number" dataKey="importance" name="Importance" label={{ value: "Derived Importance", position: "insideBottom", offset: -20 }} />
-                                <YAxis type="number" dataKey="satisfaction" name="Satisfaction" label={{ value: "Stated Satisfaction", angle: -90, position: "insideLeft" }} />
-                                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
-                                <ReferenceLine x={meanImportance} stroke="hsl(var(--primary))" strokeDasharray="3 3"><RechartsLabel value="Avg Importance" position="insideTopRight" fill="hsl(var(--primary))"/></ReferenceLine>
-                                <ReferenceLine y={meanSatisfaction} stroke="hsl(var(--primary))" strokeDasharray="3 3"><RechartsLabel value="Avg Satisfaction" position="insideTopRight" fill="hsl(var(--primary))"/></ReferenceLine>
-                                <Scatter name="Attributes" data={points}>
-                                    {points.map((p: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                                </Scatter>
-                            </ScatterChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
+                <CardContent className="flex justify-center">
+                    <Plot
+                        data={[{
+                            x: points.map((p: any) => p.importance),
+                            y: points.map((p: any) => p.satisfaction),
+                            text: points.map((p: any) => p.name),
+                            mode: 'markers+text',
+                            textposition: 'top center',
+                            type: 'scatter',
+                            marker: { size: 12 }
+                        }]}
+                        layout={{
+                            autosize: true,
+                            width: 600,
+                            height: 600,
+                            xaxis: { title: 'Derived Importance' },
+                            yaxis: { title: 'Stated Satisfaction' },
+                            shapes: [
+                                { type: 'line', x0: meanImportance, x1: meanImportance, y0: Math.min(...points.map((p:any) => p.satisfaction)) - 0.5, y1: Math.max(...points.map((p:any) => p.satisfaction)) + 0.5, line: { dash: 'dash', color: 'grey' } },
+                                { type: 'line', y0: meanSatisfaction, y1: meanSatisfaction, x0: Math.min(...points.map((p:any) => p.importance)) - 0.05, x1: Math.max(...points.map((p:any) => p.importance)) + 0.05, line: { dash: 'dash', color: 'grey' } }
+                            ],
+                            annotations: [
+                                { x: meanImportance, y: Math.max(...points.map((p:any) => p.satisfaction)) + 0.3, text: 'Keep Up Good Work', showarrow: false, xanchor: 'left'},
+                                { x: meanImportance, y: Math.min(...points.map((p:any) => p.satisfaction)) - 0.3, text: 'Concentrate Here', showarrow: false, xanchor: 'left', yanchor: 'top'},
+                                { x: Math.min(...points.map((p:any) => p.importance)) - 0.05, y: Math.max(...points.map((p:any) => p.satisfaction)) + 0.3, text: 'Possible Overkill', showarrow: false, xanchor: 'left'},
+                                { x: Math.min(...points.map((p:any) => p.importance)) - 0.05, y: Math.min(...points.map((p:any) => p.satisfaction)) - 0.3, text: 'Low Priority', showarrow: false, xanchor: 'left', yanchor: 'top'},
+                            ]
+                        }}
+                        style={{ width: '100%', height: '100%' }}
+                        useResizeHandler
+                    />
                 </CardContent>
             </Card>
         </div>
@@ -1603,7 +1627,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     `A total of <strong>${responses.length}</strong> responses were collected for this question.`
                 ];
 
-                chartData = tableData;
+                chartData = {
+                    values: tableData.map(d => d.count),
+                    labels: tableData.map(d => d.name),
+                };
                 break;
             }
             case 'text': {
@@ -2177,7 +2204,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 md:flex md:flex-wrap md:h-auto md:justify-start">
+                <TabsList className="flex flex-wrap h-auto justify-start">
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                     <TabsTrigger value="analysis-detail">Detailed Analysis</TabsTrigger>
@@ -2582,8 +2609,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                         number: NumberAnalysisDisplay,
                                         nps: NPSAnalysisDisplay,
                                         'best-worst': BestWorstAnalysisDisplay,
-                                    };
-                                    const AnalysisComponent = questionComponents[q.type];
+                                      };
+                                      const AnalysisComponent = questionComponents[q.type];
 
                                     return (
                                         <div key={`analysis-${q.id}`}>
@@ -2622,9 +2649,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                     switch (q.type) {
                                                         case 'single':
                                                         case 'multiple':
-                                                            return <ResponsiveContainer width="100%" height={300}><PieChart><Pie data={chartData} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>{chartData.map((_:any, i:any) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer>;
+                                                            return <Plot data={[{ values: chartData.values, labels: chartData.labels, type: 'pie', hole: .4 }]} layout={{ autosize: true, margin: { t: 20, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
                                                         case 'number':
-                                                            return <ResponsiveContainer width="100%" height={300}><RechartsBarChart data={[{name: 'Value', ...chartData}]}><CartesianGrid /><YAxis/><Tooltip/><Bar dataKey="mean" fill="#8884d8"/></RechartsBarChart></ResponsiveContainer>;
+                                                            return <Plot data={[{ x: chartData.values, type: 'histogram' }]} layout={{ autosize: true, margin: { t: 20, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
                                                         case 'rating':
                                                             return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} /><p>{chartData.avg.toFixed(2)} / 5</p></div>;
                                                         case 'nps':
@@ -2640,7 +2667,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                         <CardHeader>
                                                             <CardTitle className="truncate">{q.title}</CardTitle>
                                                         </CardHeader>
-                                                        <CardContent className="flex items-center justify-center">
+                                                        <CardContent className="flex items-center justify-center min-h-[300px]">
                                                             <ChartComponent />
                                                         </CardContent>
                                                     </SortableCard>
@@ -2721,5 +2748,6 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
+
 
 
