@@ -95,7 +95,7 @@ def main():
         }
         
         # --- Plotting: Actual vs Predicted (Train vs Test) ---
-        fig_main, axes = plt.subplots(1, 2, figsize=(14, 6))
+        fig_main, axes = plt.subplots(2, 1, figsize=(8, 12))
         fig_main.suptitle(f'Lasso Regression Performance (alpha={alpha})', fontsize=16)
 
         # Train set plot

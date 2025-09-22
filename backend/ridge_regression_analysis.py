@@ -98,8 +98,8 @@ def main():
         }
         
         # --- Plotting ---
-        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-        fig.suptitle(f'Ridge Regression Performance (alpha={alpha})', fontsize=16)
+        fig_main, axes = plt.subplots(2, 1, figsize=(8, 12))
+        fig_main.suptitle(f'Ridge Regression Performance (alpha={alpha})', fontsize=16)
 
         # Train set plot
         axes[0].scatter(y_train, y_pred_train, alpha=0.5, label='(Actual, Predicted)')
@@ -133,7 +133,7 @@ def main():
                      verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', fc='wheat', alpha=0.5))
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plot_image = fig_to_base64(fig)
+        plot_image = fig_to_base64(fig_main)
 
         response = {
             'results': results,
