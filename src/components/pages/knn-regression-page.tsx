@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Container } from 'lucide-react';
+import { Sigma, Loader2, Container, Info } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -95,8 +95,8 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         }
 
         setIsLoading(true);
-        if (predictValue === undefined) {
-             setAnalysisResult(null);
+        if (typeof predictValue !== 'number') {
+            setAnalysisResult(null);
         }
         
         try {
@@ -250,7 +250,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                         <TabsTrigger value="summary">Summary</TabsTrigger>
                         <TabsTrigger value="plots">Plots</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="summary" className="mt-4">
+                    <TabsContent value="summary" className="mt-4 space-y-4">
                          <Card>
                             <CardHeader>
                                 <CardTitle>Train vs. Test Performance</CardTitle>
@@ -280,6 +280,43 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                                             <TableCell>MAE</TableCell>
                                             <TableCell className="text-right font-mono">{results?.metrics.train.mae.toFixed(3)}</TableCell>
                                             <TableCell className="text-right font-mono">{results?.metrics.test.mae.toFixed(3)}</TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                         <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Info className="h-5 w-5"/>Interpreting R-squared Scores</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Situation</TableHead>
+                                            <TableHead>Train R² (Example)</TableHead>
+                                            <TableHead>Test R² (Example)</TableHead>
+                                            <TableHead>Interpretation</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow>
+                                            <TableCell className="font-semibold">Good Fit</TableCell>
+                                            <TableCell className="font-mono">0.85</TableCell>
+                                            <TableCell className="font-mono">0.82</TableCell>
+                                            <TableCell>Train and test scores are similar and high. The model generalizes well.</TableCell>
+                                        </TableRow>
+                                         <TableRow>
+                                            <TableCell className="font-semibold text-orange-600">Overfitting</TableCell>
+                                            <TableCell className="font-mono">0.98</TableCell>
+                                            <TableCell className="font-mono">0.65</TableCell>
+                                            <TableCell>The model performs very well on training data but poorly on new (test) data. It learned the noise, not the signal.</TableCell>
+                                        </TableRow>
+                                         <TableRow>
+                                            <TableCell className="font-semibold text-blue-600">Underfitting</TableCell>
+                                            <TableCell className="font-mono">0.35</TableCell>
+                                            <TableCell className="font-mono">0.32</TableCell>
+                                            <TableCell>Both scores are low. The model is too simple and fails to capture the underlying pattern in the data.</TableCell>
                                         </TableRow>
                                     </TableBody>
                                 </Table>
