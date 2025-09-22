@@ -39,7 +39,7 @@ interface LassoRegressionResults {
 interface FullAnalysisResponse {
     results: LassoRegressionResults;
     plot: string | null;
-    alpha_plot: string | null;
+    path_plot: string | null;
 }
 
 interface LassoRegressionPageProps {
@@ -224,7 +224,7 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
 
                     <div className="grid md:grid-cols-2 gap-4">
                         {analysisResult.plot && (
-                            <Card>
+                            <Card className="md:col-span-2">
                                 <CardHeader>
                                     <CardTitle>Model Fit: Actual vs. Predicted</CardTitle>
                                     <CardDescription>Performance for alpha = {results.alpha}</CardDescription>
@@ -234,43 +234,43 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
                                 </CardContent>
                             </Card>
                         )}
-                         {analysisResult.alpha_plot && (
+                         {analysisResult.path_plot && (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Alpha vs. R-squared</CardTitle>
-                                    <CardDescription>Model performance across different alpha values.</CardDescription>
+                                    <CardTitle>Lasso Coefficients Path</CardTitle>
+                                    <CardDescription>Shows how feature coefficients shrink to zero as alpha increases.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Image src={analysisResult.alpha_plot} alt="Lasso Alpha vs R-squared Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                    <Image src={analysisResult.path_plot} alt="Lasso Coefficients Path Plot" width={800} height={600} className="w-full rounded-md border"/>
                                 </CardContent>
                             </Card>
                         )}
-                    </div>
-                     <Card>
-                         <CardHeader>
-                            <CardTitle>Coefficients</CardTitle>
-                            <CardDescription>Lasso can shrink coefficients to zero, effectively performing feature selection.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ScrollArea className="h-80">
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Feature</TableHead><TableHead className="text-right">Coefficient</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        <TableRow>
-                                            <TableCell className="font-semibold">(Intercept)</TableCell>
-                                            <TableCell className="text-right font-mono">{results.intercept.toFixed(4)}</TableCell>
-                                        </TableRow>
-                                        {Object.entries(results.coefficients).map(([feature, coeff]) => (
-                                            <TableRow key={feature}>
-                                                <TableCell>{feature}</TableCell>
-                                                <TableCell className={`text-right font-mono ${Math.abs(coeff) < 1e-6 ? 'text-muted-foreground' : ''}`}>{coeff.toFixed(4)}</TableCell>
+                        <Card>
+                             <CardHeader>
+                                <CardTitle>Coefficients</CardTitle>
+                                <CardDescription>Lasso can shrink coefficients to zero, effectively performing feature selection.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ScrollArea className="h-80">
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Feature</TableHead><TableHead className="text-right">Coefficient</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            <TableRow>
+                                                <TableCell className="font-semibold">(Intercept)</TableCell>
+                                                <TableCell className="text-right font-mono">{results.intercept.toFixed(4)}</TableCell>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
+                                            {Object.entries(results.coefficients).map(([feature, coeff]) => (
+                                                <TableRow key={feature}>
+                                                    <TableCell>{feature}</TableCell>
+                                                    <TableCell className={`text-right font-mono ${Math.abs(coeff) < 1e-6 ? 'text-muted-foreground' : ''}`}>{coeff.toFixed(4)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             )}
         </div>
