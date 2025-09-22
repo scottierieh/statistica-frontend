@@ -31,7 +31,7 @@ interface KnnRegressionResults {
     };
     predictions: { actual: number; predicted: number }[];
     prediction?: {
-        x_value: number;
+        x_value: number | { [key: string]: number };
         y_value: number;
     };
     features: string[];
@@ -59,6 +59,8 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     const [testSize, setTestSize] = useState(0.2);
     
     const [predictXValue, setPredictXValue] = useState<number | ''>('');
+    const [predictXValues, setPredictXValues] = useState<{ [key: string]: number | '' }>({});
+
     const [predictedYValue, setPredictedYValue] = useState<number | null>(null);
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
@@ -69,33 +71,59 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         setTarget(defaultTarget);
 
         if (mode === 'simple') {
-            setFeatures(numericHeaders.length > 1 ? [numericHeaders[0]] : []);
+            const feature = numericHeaders.find(h => h !== defaultTarget) || numericHeaders[0];
+            setFeatures(feature ? [feature] : []);
+            setPredictXValues({});
         } else {
-            setFeatures(numericHeaders.filter(h => h !== defaultTarget));
+            const initialFeatures = numericHeaders.filter(h => h !== defaultTarget);
+            setFeatures(initialFeatures);
+            const initialValues: { [key: string]: number | '' } = {};
+            initialFeatures.forEach(f => initialValues[f] = '');
+            setPredictXValues(initialValues);
         }
         setAnalysisResult(null);
+        setPredictedYValue(null);
+        setPredictXValue('');
     }, [data, numericHeaders, mode]);
     
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== target), [numericHeaders, target]);
 
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= (mode === 'simple' ? 2 : 3), [data, numericHeaders, mode]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= (mode === 'simple' ? 2 : 2), [data, numericHeaders, mode]);
 
     const handleFeatureChange = (header: string, checked: boolean) => {
         if (mode === 'simple') {
             setFeatures(checked ? [header] : []);
         } else {
-            setFeatures(prev => checked ? [...prev, header] : prev.filter(f => f !== header));
+            setFeatures(prev => {
+                const newFeatures = checked ? [...prev, header] : prev.filter(f => f !== header);
+                // Also update the state for prediction inputs
+                setPredictXValues(currentValues => {
+                    const newPredictValues: { [key: string]: number | '' } = {};
+                    newFeatures.forEach(f => {
+                        newPredictValues[f] = currentValues[f] || '';
+                    });
+                    return newPredictValues;
+                });
+                return newFeatures;
+            });
         }
     };
+    
+    const handlePredictValuesChange = (feature: string, value: string) => {
+        setPredictXValues(prev => ({
+            ...prev,
+            [feature]: value === '' ? '' : Number(value)
+        }));
+    }
 
-    const handleAnalysis = useCallback(async (predictValue?: number) => {
+    const handleAnalysis = useCallback(async (predictValue?: number | { [key: string]: number }) => {
         if (!target || features.length === 0) {
             toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select a target and at least one feature.' });
             return;
         }
 
         setIsLoading(true);
-        if (typeof predictValue !== 'number') {
+        if (predictValue === undefined) {
             setAnalysisResult(null);
             setPredictedYValue(null);
         }
@@ -174,6 +202,19 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     
     const results = analysisResult?.results;
 
+    const handleMultiPredict = () => {
+        const valuesToPredict: { [key: string]: number } = {};
+        for(const feature of features) {
+            const val = predictXValues[feature];
+            if (val === '' || isNaN(val)) {
+                toast({ variant: 'destructive', title: 'Input Error', description: `Please enter a valid number for all features.` });
+                return;
+            }
+            valuesToPredict[feature] = Number(val);
+        }
+        handleAnalysis(valuesToPredict);
+    };
+
     return (
         <div className="space-y-4">
             <Card>
@@ -235,6 +276,37 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                     <CardContent className="flex items-center gap-4">
                         <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${features[0]}`}/>
                         <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === '' || isLoading}>Predict</Button>
+                    </CardContent>
+                    {predictedYValue !== null && (
+                        <CardFooter>
+                            <p className="text-lg">Predicted '{target}': <strong className="font-bold text-primary">{predictedYValue.toFixed(2)}</strong></p>
+                        </CardFooter>
+                    )}
+                </Card>
+            )}
+
+            {mode === 'multiple' && (
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Prediction Simulation</CardTitle>
+                        <CardDescription>Enter values for the features to get a prediction.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {features.map(feature => (
+                                <div key={feature}>
+                                    <Label htmlFor={`pred-in-${feature}`}>{feature}</Label>
+                                    <Input
+                                        id={`pred-in-${feature}`}
+                                        type="number"
+                                        value={predictXValues[feature] ?? ''}
+                                        onChange={(e) => handlePredictValuesChange(feature, e.target.value)}
+                                        placeholder="Enter value"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                        <Button onClick={handleMultiPredict} disabled={isLoading}>Predict</Button>
                     </CardContent>
                     {predictedYValue !== null && (
                         <CardFooter>
@@ -312,7 +384,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                                      <TableRow>
                                         <TableCell className="font-semibold text-blue-600">Underfitting</TableCell>
                                         <TableCell className="font-mono">0.35</TableCell>
-                                        <TableCell className="font-mono">0.32</TableCell>
+                                        <TableCell className="font-mono">0.30</TableCell>
                                         <TableCell>Both scores are low. The model is too simple and fails to capture the underlying pattern in the data.</TableCell>
                                     </TableRow>
                                 </TableBody>
