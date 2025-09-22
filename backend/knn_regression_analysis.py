@@ -75,14 +75,12 @@ def main():
 
         if len(features) == 1:
             feature_name = features[0]
+            
+            # Sort for plotting line
+            sort_axis = np.argsort(X_test_scaled[:, 0])
+            
             plt.scatter(X_test[feature_name], y_test, alpha=0.6, label='Test Data')
-            
-            X_range = np.linspace(X[feature_name].min(), X[feature_name].max(), 100).reshape(-1, 1)
-            X_range_scaled = scaler.transform(X_range)
-            y_range_pred = model.predict(X_range_scaled)
-            
-            sorted_range_indices = np.argsort(X_range.flatten())
-            plt.plot(X_range[sorted_range_indices], y_range_pred[sorted_range_indices], color='red', linestyle='--', label='KNN Prediction Line')
+            plt.plot(X_test[feature_name].iloc[sort_axis], y_pred[sort_axis], color='red', linestyle='--', label='KNN Prediction Line')
             
             if predict_x is not None:
                 predict_x_df = pd.DataFrame([[predict_x]], columns=features)
@@ -91,19 +89,19 @@ def main():
                 
                 distances, indices = model.kneighbors(predict_x_scaled)
                 
-                neighbors_X = X_train.iloc[indices[0]]
+                neighbors_X_scaled = X_train_scaled[indices[0]]
+                # Inverse transform to get original feature values
+                neighbors_X = scaler.inverse_transform(neighbors_X_scaled)[:, 0]
                 neighbors_y = y_train.iloc[indices[0]]
 
                 prediction_result = {
                     'x_value': predict_x,
                     'y_value': predicted_y,
-                    'neighbors_X': neighbors_X[features[0]].tolist(), # Get the single feature values
+                    'neighbors_X': neighbors_X.tolist(),
                     'neighbors_y': neighbors_y.tolist()
                 }
                 
-                # Highlight the neighbors
                 plt.scatter(prediction_result['neighbors_X'], prediction_result['neighbors_y'], color='orange', s=100, marker='D', label='Neighbors', zorder=5)
-                # Highlight the predicted point
                 plt.scatter([prediction_result['x_value']], [prediction_result['y_value']], color='magenta', s=200, marker='^', label=f'Prediction for X={predict_x}', zorder=6, edgecolors='black')
 
 
@@ -111,7 +109,7 @@ def main():
             plt.ylabel(target)
             plt.title(f'KNN Simple Regression (k={k})')
 
-        else:
+        else: # Multiple regression
              sns.scatterplot(x=y_test, y=y_pred, alpha=0.6, label='Test Data')
              plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='Ideal Line')
              plt.xlabel('Actual Values')
@@ -120,12 +118,13 @@ def main():
 
         plt.grid(True)
         plt.legend()
+        plt.tight_layout()
         
         buf = io.BytesIO()
         plt.savefig(buf, format='png')
-        plt.close(fig) # Correctly close the figure
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close(fig) # Close the figure
         
         results['prediction'] = prediction_result
         
