@@ -234,7 +234,7 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
                                 </CardContent>
                             </Card>
                         )}
-                        {analysisResult.path_plot && (
+                         {analysisResult.path_plot && (
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Ridge Coefficients Path</CardTitle>
