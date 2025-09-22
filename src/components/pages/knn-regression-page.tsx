@@ -28,8 +28,6 @@ interface KnnRegressionResults {
     prediction?: {
         x_value: number;
         y_value: number;
-        neighbors_X: number[];
-        neighbors_y: number[];
     };
 }
 
@@ -37,52 +35,6 @@ interface FullAnalysisResponse {
     results: KnnRegressionResults;
     plot: string;
 }
-
-interface WhatIfState {
-    [key: string]: number;
-}
-
-const WhatIfSimulation = ({ features, onSimulate }: { features: string[], onSimulate: (state: WhatIfState) => number }) => {
-    const initialWhatIfState = useMemo(() => {
-        const state: {[key: string]: number} = {};
-        features.forEach(f => state[f] = 50);
-        return state;
-    }, [features]);
-
-    const [whatIfState, setWhatIfState] = useState<WhatIfState>(initialWhatIfState);
-    const simulatedResult = onSimulate(whatIfState);
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>What-If Simulation</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-4">
-                        {features.slice(0, 5).map(feature => (
-                            <div key={feature}>
-                                <Label>{feature}: {whatIfState[feature].toFixed(0)}</Label>
-                                <Slider
-                                    value={[whatIfState[feature]]}
-                                    onValueChange={(v) => setWhatIfState(prev => ({...prev, [feature]: v[0]}))}
-                                    max={100}
-                                    step={1}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                    <div className="flex items-center justify-center">
-                        <div className="text-center">
-                            <p className="text-muted-foreground">Predicted Outcome</p>
-                            <p className="text-4xl font-bold">{simulatedResult.toFixed(2)}</p>
-                        </div>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
 
 interface KnnRegressionPageProps {
     data: DataSet;
@@ -133,16 +85,36 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         }
 
         setIsLoading(true);
-        // If it's not a prediction-only update, clear the whole result.
         if (predictValue === undefined) {
-             setAnalysisResult(null);
+            setAnalysisResult(null);
         }
 
         try {
+            // Filter data to only include selected columns to prevent serialization issues
+            const analysisData = data.map(row => {
+                const newRow: { [key: string]: any } = {};
+                if (target) newRow[target] = row[target];
+                features.forEach(f => {
+                    if (row[f] !== undefined) {
+                        newRow[f] = row[f];
+                    }
+                });
+                return newRow;
+            });
+
+            const body = {
+                data: analysisData,
+                target,
+                features,
+                k,
+                test_size: testSize,
+                predict_x: predictValue
+            };
+
             const response = await fetch('/api/analysis/knn-regression', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, target, features, k, test_size: testSize, predict_x: predictValue })
+                body: JSON.stringify(body)
             });
 
             if (!response.ok) {
@@ -249,7 +221,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                     </CardHeader>
                     <CardContent className="flex items-center gap-4">
                         <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${features[0]}`}/>
-                        <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === ''}>Predict</Button>
+                        <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === '' || isLoading}>Predict</Button>
                     </CardContent>
                     {analysisResult?.results.prediction && (
                         <CardFooter>

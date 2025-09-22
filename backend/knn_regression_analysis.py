@@ -1,4 +1,3 @@
-
 import sys
 import json
 import pandas as pd
@@ -19,7 +18,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -46,7 +45,6 @@ def main():
         y = df[target]
         
         X = pd.get_dummies(X, drop_first=True)
-        # Ensure feature order is consistent
         processed_features = X.columns.tolist()
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
@@ -58,39 +56,61 @@ def main():
         # Model Training
         model = KNeighborsRegressor(n_neighbors=k)
         model.fit(X_train_scaled, y_train)
-        y_pred = model.predict(X_test_scaled)
+        y_pred_test = model.predict(X_test_scaled)
         
         # Evaluation
         results = {
             'metrics': {
-                'r2_score': r2_score(y_test, y_pred),
-                'rmse': np.sqrt(mean_squared_error(y_test, y_pred)),
-                'mae': mean_absolute_error(y_test, y_pred)
+                'r2_score': r2_score(y_test, y_pred_test),
+                'rmse': np.sqrt(mean_squared_error(y_test, y_pred_test)),
+                'mae': mean_absolute_error(y_test, y_pred_test)
             },
-            'predictions': [{'actual': act, 'predicted': pred} for act, pred in zip(y_test.tolist(), y_pred.tolist())]
+            'predictions': [{'actual': act, 'predicted': pred} for act, pred in zip(y_test.tolist(), y_pred_test.tolist())]
         }
         
         prediction_result = None
-        if predict_x is not None and len(features) == 1:
-            predict_x_df = pd.DataFrame([[predict_x]], columns=features)
-            predict_x_scaled = scaler.transform(predict_x_df)
-            predicted_y = model.predict(predict_x_scaled)[0]
-            prediction_result = { 'x_value': predict_x, 'y_value': predicted_y }
-        
-        results['prediction'] = prediction_result
         
         # --- Plotting ---
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(8, 6))
 
         if len(features) == 1:
             feature_name = features[0]
+            
+            # Scatter of original data
             ax.scatter(X[feature_name], y, alpha=0.6, label='Data')
+            
+            # Generate a line for predictions
+            X_range = np.linspace(X[feature_name].min(), X[feature_name].max(), 100).reshape(-1, 1)
+            X_range_scaled = scaler.transform(X_range)
+            y_range_pred = model.predict(X_range_scaled)
+            ax.plot(X_range, y_range_pred, color='red', linewidth=2, label='KNN Fit')
+            
             ax.set_xlabel(feature_name)
             ax.set_ylabel(target)
-            ax.set_title(f'Scatter Plot of {target} vs {feature_name}')
+            ax.set_title(f'KNN Regression (k={k})')
+
+            if predict_x is not None:
+                predict_x_scaled = scaler.transform([[predict_x]])
+                predicted_y = model.predict(predict_x_scaled)[0]
+                
+                # Find neighbors
+                distances, indices = model.kneighbors(predict_x_scaled)
+                neighbor_X = scaler.inverse_transform(X_train_scaled[indices[0]])
+                neighbor_y = y_train.iloc[indices[0]]
+
+                prediction_result = {
+                    'x_value': predict_x,
+                    'y_value': predicted_y,
+                    'neighbors_X': neighbor_X.flatten().tolist(),
+                    'neighbors_y': neighbor_y.tolist()
+                }
+                
+                # Plot prediction and neighbors
+                ax.scatter(prediction_result['neighbors_X'], prediction_result['neighbors_y'], color='darkorange', s=100, marker='D', label='Neighbors', zorder=5)
+                ax.scatter([predict_x], [predicted_y], color='magenta', s=200, marker='^', label=f'Prediction for X={predict_x}', zorder=6, edgecolors='black')
+        
         else: # Multiple regression
-            # For multiple regression, we show actual vs predicted
-            ax.scatter(y_test, y_pred, alpha=0.6)
+            sns.scatterplot(x=y_test, y=y_pred_test, ax=ax, alpha=0.6)
             ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
             ax.set_xlabel('Actual Values')
             ax.set_ylabel('Predicted Values')
@@ -105,6 +125,8 @@ def main():
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
         plt.close(fig)
+
+        results['prediction'] = prediction_result
         
         response = {
             'results': results,
