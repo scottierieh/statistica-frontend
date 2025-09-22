@@ -1,3 +1,4 @@
+
 import sys
 import json
 import pandas as pd
@@ -71,24 +72,33 @@ def main():
         prediction_result = None
         plot_image = None
         
-        if len(features) > 1: # Multiple regression
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.scatterplot(x=y_test, y=y_pred_test, ax=ax, alpha=0.6)
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+        if len(features) == 1:
+            # Simple Regression: Scatter plot of training data
+            ax.scatter(X_train.values.flatten(), y_train, alpha=0.6, label='Training Data')
+            ax.set_xlabel(features[0])
+            ax.set_ylabel(target)
+            ax.set_title(f'{target} vs. {features[0]}')
+            ax.legend()
+        else: # Multiple regression
+            # Multi-regression: Actual vs. Predicted plot
+            ax.scatter(y_test, y_pred_test, alpha=0.6)
             ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
             ax.set_xlabel('Actual Values')
             ax.set_ylabel('Predicted Values')
             ax.set_title(f'Actual vs. Predicted Values (k={k})')
-            ax.grid(True)
-            plt.tight_layout()
-            
-            buf = io.BytesIO()
-            plt.savefig(buf, format='png')
-            plt.close(fig)
-            buf.seek(0)
-            plot_image = base64.b64encode(buf.read()).decode('utf-8')
         
-        # For simple regression, no plot is generated as per user request.
-
+        ax.grid(True)
+        plt.tight_layout()
+            
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        plot_image = base64.b64encode(buf.read()).decode('utf-8')
+        
+        # Prediction logic for simple regression
         if predict_x is not None and len(features) == 1:
             predict_x_scaled = scaler.transform([[predict_x]])
             predicted_y = model.predict(predict_x_scaled)[0]
