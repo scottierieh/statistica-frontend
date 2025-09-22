@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Tabs,
@@ -409,7 +409,7 @@ const MultipleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete,
    );
 };
 
-const TextAnalysisDisplay = ({ tableData, insightsData, varName }: { tableData: any[], insightsData: string[], varName: string; }) => {
+const TextAnalysisDisplay = ({ tableData, varName }: { tableData: any[], varName: string; }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [wordCloudImage, setWordCloudImage] = useState<string | null>(null);
 
@@ -465,14 +465,6 @@ const TextAnalysisDisplay = ({ tableData, insightsData, varName }: { tableData: 
                                     {tableData.slice(0, 10).map((text, i) => <li key={i} className="text-sm border-b pb-1">"{text}"</li>)}
                                 </ul>
                             </ScrollArea>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
-                        <CardContent>
-                            <ul className="space-y-2 text-sm list-disc pl-4">
-                                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
-                            </ul>
                         </CardContent>
                     </Card>
                 </div>
@@ -601,49 +593,54 @@ const EmailQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload,
     </div>
 );
 
-const RatingQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer: number; onAnswerChange: (value: number) => void; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
-  <div className={cn("p-4", cardClassName)}>
-     <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
-            <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
-            {question.required && <span className="text-destructive text-xs">* Required</span>}
-        </div>
-        <div className="flex items-center">
-            {!isPreview && (
-                <div className="flex items-center space-x-2 mr-2">
-                    <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
-                    <Label htmlFor={`required-${question.id}`}>Required</Label>
-                </div>
-            )}
-            {!isPreview && (
-                 <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
-                    <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                </Button>
-            )}
-            {!isPreview && (
-            <Button variant="ghost" size="icon">
-                <Info className="w-5 h-5 text-muted-foreground" />
-            </Button>
-            )}
-            {!isPreview && onDelete && (
-            <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
-                <Trash2 className="w-5 h-5 text-destructive" />
-            </Button>
-            )}
-        </div>
+const RatingQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer: number; onAnswerChange: (value: number) => void; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => {
+  const ratingScale = question.scale || ['1', '2', '3', '4', '5'];
+  
+  return (
+    <div className={cn("p-4", cardClassName)}>
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+              <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+              {question.required && <span className="text-destructive text-xs">* Required</span>}
+          </div>
+          <div className="flex items-center">
+              {!isPreview && (
+                  <div className="flex items-center space-x-2 mr-2">
+                      <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                      <Label htmlFor={`required-${question.id}`}>Required</Label>
+                  </div>
+              )}
+              {!isPreview && (
+                  <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
+                      <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                  </Button>
+              )}
+              {!isPreview && (
+              <Button variant="ghost" size="icon">
+                  <Info className="w-5 h-5 text-muted-foreground" />
+              </Button>
+              )}
+              {!isPreview && onDelete && (
+              <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
+                  <Trash2 className="w-5 h-5 text-destructive" />
+              </Button>
+              )}
+          </div>
+      </div>
+      {question.imageUrl && (
+          <div className="my-4">
+              <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+          </div>
+      )}
+      <div className="flex items-center gap-2">
+        {ratingScale.map((ratingValue: any, index: number) => (
+          <Star key={index} className={cn("w-8 h-8 text-yellow-400", isPreview && "cursor-pointer hover:text-yellow-500 transition-colors", (index + 1) <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(index + 1)}/>
+        ))}
+      </div>
     </div>
-    {question.imageUrl && (
-        <div className="my-4">
-            <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
-        </div>
-    )}
-    <div className="flex items-center gap-2">
-      {(question.scale || ['1', '2', '3', '4', '5']).map((ratingValue: any, index: number) => (
-        <Star key={index} className={cn("w-8 h-8 text-yellow-400", isPreview && "cursor-pointer hover:text-yellow-500 transition-colors", (index + 1) <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(index + 1)}/>
-      ))}
-    </div>
-  </div>
-);
+  );
+};
+
 
 const NPSQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: number; onAnswerChange?: (value: number) => void; onDelete?: (id: number) => void; onUpdate?: (q: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
     <div className={cn("p-4", cardClassName)}>
@@ -958,7 +955,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
             x: chartType === 'hbar' ? chartData.map(d => d.count) : chartData.map(d => d.name),
             type: 'bar',
             orientation: chartType === 'hbar' ? 'h' : 'v',
-            marker: { color: COLORS },
+            marker: { color: 'hsl(var(--primary))' },
         }];
     }, [chartType, chartData]);
 
@@ -1017,7 +1014,7 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, qu
                         <CardTitle className="text-base">Average Rating</CardTitle>
                     </CardHeader>
                      <CardContent className="flex items-center justify-center min-h-[300px]">
-                         <Plot
+                        <Plot
                             data={[{
                                 y: ['Average'],
                                 x: [chartData.avg],
@@ -2781,6 +2778,7 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
+
 
 
 
