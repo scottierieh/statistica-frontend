@@ -221,7 +221,6 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
                             </Table>
                         </CardContent>
                     </Card>
-
                     <div className="grid md:grid-cols-2 gap-4">
                         {analysisResult.plot && (
                             <Card className="md:col-span-2">
@@ -234,14 +233,14 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
                                 </CardContent>
                             </Card>
                         )}
-                         {analysisResult.path_plot && (
+                        {analysisResult.path_plot && (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Ridge Coefficients Path</CardTitle>
-                                    <CardDescription>Shows how feature coefficients change as alpha increases.</CardDescription>
+                                     <CardTitle>Alpha vs. Model Performance</CardTitle>
+                                    <CardDescription>Shows how R² and coefficients change as alpha increases.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Image src={analysisResult.path_plot} alt="Ridge Coefficients Path Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                    <Image src={analysisResult.path_plot} alt="Ridge Coefficients Path Plot" width={800} height={1200} className="w-full rounded-md border"/>
                                 </CardContent>
                             </Card>
                         )}

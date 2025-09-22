@@ -52,7 +52,7 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
     const { toast } = useToast();
     const [target, setTarget] = useState<string | undefined>();
     const [features, setFeatures] = useState<string[]>([]);
-    const [alpha, setAlpha] = useState(1.0);
+    const [alpha, setAlpha] = useState(0.1);
     const [testSize, setTestSize] = useState(0.2);
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
@@ -237,11 +237,11 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
                          {analysisResult.path_plot && (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Lasso Coefficients Path</CardTitle>
-                                    <CardDescription>Shows how feature coefficients shrink to zero as alpha increases.</CardDescription>
+                                    <CardTitle>Alpha vs. Model Performance</CardTitle>
+                                    <CardDescription>Shows how R² and coefficients change as alpha increases.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Image src={analysisResult.path_plot} alt="Lasso Coefficients Path Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                    <Image src={analysisResult.path_plot} alt="Lasso Coefficients Path Plot" width={800} height={1200} className="w-full rounded-md border"/>
                                 </CardContent>
                             </Card>
                         )}
