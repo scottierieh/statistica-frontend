@@ -94,28 +94,55 @@ def main():
             'alpha': alpha
         }
         
-        # --- Plotting: Actual vs Predicted ---
-        fig_main, ax_main = plt.subplots(figsize=(8, 6))
-        sns.scatterplot(x=y_test, y=y_pred_test, ax=ax_main, alpha=0.6)
-        ax_main.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
-        ax_main.set_xlabel('Actual Values')
-        ax_main.set_ylabel('Predicted Values')
-        ax_main.set_title(f'Lasso Regression Performance (alpha={alpha})')
-        ax_main.grid(True)
+        # --- Plotting: Actual vs Predicted (Train vs Test) ---
+        fig_main, axes = plt.subplots(1, 2, figsize=(14, 6))
+        fig_main.suptitle(f'Lasso Regression Performance (alpha={alpha})', fontsize=16)
+
+        # Train set plot
+        axes[0].scatter(y_train, y_pred_train, alpha=0.5, label='(Actual, Predicted)')
+        axes[0].plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()], 'r--', lw=2, label='45° Line (Perfect Fit)')
+        axes[0].set_xlabel('Actual Values')
+        axes[0].set_ylabel('Predicted Values')
+        axes[0].set_title('Train Set Performance')
+        axes[0].legend()
+        axes[0].grid(True)
+        train_text = (
+            f"Train R²: {train_metrics['r2_score']:.4f}\n"
+            f"Train RMSE: {train_metrics['rmse']:.4f}"
+        )
+        axes[0].text(0.05, 0.95, train_text, transform=axes[0].transAxes, fontsize=10,
+                     verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', fc='wheat', alpha=0.5))
+
+        # Test set plot
+        axes[1].scatter(y_test, y_pred_test, alpha=0.5, label='(Actual, Predicted)')
+        axes[1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='45° Line (Perfect Fit)')
+        axes[1].set_xlabel('Actual Values')
+        axes[1].set_ylabel('Predicted Values')
+        axes[1].set_title('Test Set Performance')
+        axes[1].legend()
+        axes[1].grid(True)
+        test_text = (
+            f"Test R²: {test_metrics['r2_score']:.4f}\n"
+            f"Test RMSE: {test_metrics['rmse']:.4f}"
+        )
+        axes[1].text(0.05, 0.95, test_text, transform=axes[1].transAxes, fontsize=10,
+                     verticalalignment='top', bbox=dict(boxstyle='round,pad=0.5', fc='wheat', alpha=0.5))
+        
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plot_image = fig_to_base64(fig_main)
 
         # --- Alpha vs R^2 Plot ---
-        train_scores, test_scores = [], []
+        train_scores_alpha, test_scores_alpha = [], []
         alpha_list = [0.001, 0.01, 0.1, 1, 10, 100]
         for alpha_val in alpha_list:
             lasso_iter = Lasso(alpha=alpha_val, max_iter=10000)
             lasso_iter.fit(X_train_scaled, y_train)
-            train_scores.append(lasso_iter.score(X_train_scaled, y_train))
-            test_scores.append(lasso_iter.score(X_test_scaled, y_test))
+            train_scores_alpha.append(lasso_iter.score(X_train_scaled, y_train))
+            test_scores_alpha.append(lasso_iter.score(X_test_scaled, y_test))
 
         fig_alpha, ax_alpha = plt.subplots(figsize=(8, 6))
-        ax_alpha.plot(np.log10(alpha_list), train_scores, label='Train R²')
-        ax_alpha.plot(np.log10(alpha_list), test_scores, label='Test R²')
+        ax_alpha.plot(np.log10(alpha_list), train_scores_alpha, label='Train R²')
+        ax_alpha.plot(np.log10(alpha_list), test_scores_alpha, label='Test R²')
         ax_alpha.set_xlabel('log10(alpha)')
         ax_alpha.set_ylabel('R² Score')
         ax_alpha.set_title('Lasso: Alpha vs. R-squared')
@@ -137,4 +164,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

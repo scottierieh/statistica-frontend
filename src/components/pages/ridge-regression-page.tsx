@@ -211,16 +211,17 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
 
                     <div className="grid md:grid-cols-2 gap-4">
                         {analysisResult.plot && (
-                            <Card>
+                            <Card className="md:col-span-2">
                                 <CardHeader>
                                     <CardTitle>Model Fit: Actual vs. Predicted</CardTitle>
+                                    <CardDescription>Performance for alpha = {results.alpha}</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Image src={analysisResult.plot} alt="Ridge Actual vs Predicted Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                    <Image src={analysisResult.plot} alt="Ridge Actual vs Predicted Plot" width={1400} height={600} className="w-full rounded-md border"/>
                                 </CardContent>
                             </Card>
                         )}
-                        <Card>
+                        <Card className="md:col-span-2">
                              <CardHeader>
                                 <CardTitle>Coefficients</CardTitle>
                             </CardHeader>
