@@ -39,9 +39,9 @@ interface KnnRegressionResults {
 
 interface FullAnalysisResponse {
     results: KnnRegressionResults;
-    plot: string;
-    relationship_plot?: string;
-    prediction_plot?: string;
+    plot: string | null;
+    relationship_plot?: string | null;
+    prediction_plot?: string | null;
 }
 
 interface KnnRegressionPageProps {
@@ -59,7 +59,8 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     const [testSize, setTestSize] = useState(0.2);
     
     const [predictXValue, setPredictXValue] = useState<number | ''>('');
-
+    const [predictedYValue, setPredictedYValue] = useState<number | null>(null);
+    
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -94,9 +95,9 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         }
 
         setIsLoading(true);
-        // Do not clear results if it's just a prediction run
         if (typeof predictValue !== 'number') {
             setAnalysisResult(null);
+            setPredictedYValue(null);
         }
         
         try {
@@ -136,7 +137,8 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
 
             setAnalysisResult(result);
             if (predictValue !== undefined && result.results.prediction) {
-                toast({ title: 'Prediction Complete', description: `Predicted value is ${result.results.prediction.y_value.toFixed(2)}` });
+                setPredictedYValue(result.results.prediction.y_value);
+                 toast({ title: 'Prediction Complete', description: `Predicted value is ${result.results.prediction.y_value.toFixed(2)}` });
             }
 
         } catch (e: any) {
@@ -234,9 +236,9 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                         <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${features[0]}`}/>
                         <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === '' || isLoading}>Predict</Button>
                     </CardContent>
-                    {analysisResult?.results.prediction && (
+                    {predictedYValue !== null && (
                         <CardFooter>
-                            <p className="text-lg">Predicted '{target}': <strong className="font-bold text-primary">{analysisResult.results.prediction.y_value.toFixed(2)}</strong></p>
+                            <p className="text-lg">Predicted '{target}': <strong className="font-bold text-primary">{predictedYValue.toFixed(2)}</strong></p>
                         </CardFooter>
                     )}
                 </Card>
@@ -246,7 +248,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
 
             {analysisResult && (
                 <div className="space-y-4">
-                     <Card>
+                    <Card>
                         <CardHeader>
                             <CardTitle>Train vs. Test Performance</CardTitle>
                             <CardDescription>Comparing model performance on training and testing data can help identify overfitting.</CardDescription>
@@ -317,27 +319,28 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                             </Table>
                         </CardContent>
                     </Card>
-                    
-                    {analysisResult.plot && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Model Fit: Actual vs. Predicted</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.plot} alt="KNN Actual vs Predicted Plot" width={800} height={600} className="w-full rounded-md border"/>
-                            </CardContent>
-                        </Card>
-                    )}
-                    {analysisResult.relationship_plot && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>X vs. Y Relationship</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.relationship_plot} alt="KNN Relationship Plot" width={800} height={600} className="w-full rounded-md border"/>
-                            </CardContent>
-                        </Card>
-                    )}
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {analysisResult.plot && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Model Fit: Actual vs. Predicted</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Image src={analysisResult.plot} alt="KNN Actual vs Predicted Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                </CardContent>
+                            </Card>
+                        )}
+                        {analysisResult.relationship_plot && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>X vs. Y Relationship</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Image src={analysisResult.relationship_plot} alt="KNN Relationship Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
                     {analysisResult.prediction_plot && (
                         <Card>
                             <CardHeader>
