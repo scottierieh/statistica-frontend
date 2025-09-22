@@ -78,7 +78,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== target), [numericHeaders, target]);
 
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders, mode]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= (mode === 'simple' ? 2 : 3), [data, numericHeaders, mode]);
 
     const handleFeatureChange = (header: string, checked: boolean) => {
         if (mode === 'simple') {
@@ -248,7 +248,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
 
             {analysisResult && (
                 <div className="space-y-4">
-                    <Card>
+                     <Card>
                         <CardHeader>
                             <CardTitle>Train vs. Test Performance</CardTitle>
                             <CardDescription>Comparing model performance on training and testing data can help identify overfitting.</CardDescription>
@@ -319,7 +319,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                             </Table>
                         </CardContent>
                     </Card>
-                    <div className="grid md:grid-cols-2 gap-4">
+                     <div className="grid md:grid-cols-2 gap-4">
                         {analysisResult.plot && (
                             <Card>
                                 <CardHeader>

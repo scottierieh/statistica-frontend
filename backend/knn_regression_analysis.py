@@ -100,6 +100,12 @@ def main():
         
         prediction_result = None
         
+        # --- Plotting ---
+        plot_image = None
+        relationship_plot_image = None
+        prediction_plot_image = None
+
+        # Always create the Actual vs. Predicted plot
         fig_actual_vs_pred, ax_actual_vs_pred = plt.subplots(figsize=(8, 6))
         sns.scatterplot(x=y_test, y=y_pred_test, ax=ax_actual_vs_pred, alpha=0.6)
         ax_actual_vs_pred.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
@@ -109,12 +115,10 @@ def main():
         ax_actual_vs_pred.grid(True)
         plot_image = fig_to_base64(fig_actual_vs_pred)
 
-        relationship_plot_image = None
-        prediction_plot_image = None
-
         if len(features) == 1:
             feature_name = features[0]
             
+            # Create Relationship Plot
             fig_relationship, ax_relationship = plt.subplots(figsize=(8, 6))
             ax_relationship.scatter(X_train[feature_name], y_train, alpha=0.6, label='Training Data')
             ax_relationship.scatter(X_test[feature_name], y_test, alpha=0.6, label='Test Data', marker='x')
@@ -140,6 +144,7 @@ def main():
                     'y_value': predicted_y,
                 }
                 
+                # Create Prediction Simulation Plot
                 fig_pred, ax_pred = plt.subplots(figsize=(8, 6))
                 ax_pred.scatter(X_train[feature_name], y_train, alpha=0.3, label='Training Data')
                 ax_pred.scatter(neighbor_X_unscaled[feature_name], neighbor_y, color='orange', s=100, marker='D', label=f'{k} Nearest Neighbors', zorder=5)
@@ -168,4 +173,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
