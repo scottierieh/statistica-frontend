@@ -1,3 +1,4 @@
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart } from "lucide-react";
@@ -36,15 +37,15 @@ export default function DashboardHubPage() {
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2">
                             <BrainCircuit className="h-5 w-5 text-primary"/>
-                            Deep Learning
+                            Machine Learning
                         </CardTitle>
                         <CardDescription>
-                            Build, train, and deploy deep learning models with a powerful, intuitive interface.
+                            Build, train, and deploy machine learning models for regression, classification, and more.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Button asChild className="w-full">
-                            <Link href="/dashboard/deep-learning" target="_blank" rel="noopener noreferrer">Launch Deep Learning</Link>
+                            <Link href="/dashboard/machine-learning" target="_blank" rel="noopener noreferrer">Launch Machine Learning</Link>
                         </Button>
                     </CardContent>
                 </Card>
