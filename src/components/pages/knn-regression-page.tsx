@@ -28,7 +28,7 @@ interface KnnRegressionResults {
     prediction?: {
         x_value: number;
         y_value: number;
-        neighbors_X: number[][];
+        neighbors_X: number[];
         neighbors_y: number[];
     };
 }
@@ -117,13 +117,13 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== target), [numericHeaders, target]);
 
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= (mode === 'simple' ? 2 : 2), [data, numericHeaders, mode]);
 
     const handleFeatureChange = (header: string, checked: boolean) => {
         if (mode === 'simple') {
             setFeatures(checked ? [header] : []);
         } else {
-            setFeatures(prev => checked ? [...prev, header] : prev.filter(f => f !== h));
+            setFeatures(prev => checked ? [...prev, header] : prev.filter(f => f !== header));
         }
     };
 
@@ -156,6 +156,8 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
             setAnalysisResult(result);
             if (result.results.prediction) {
                 setPredictedYValue(result.results.prediction.y_value);
+            } else if (typeof predictValue !== 'number') {
+                setPredictedYValue(null);
             }
 
         } catch (e: any) {
