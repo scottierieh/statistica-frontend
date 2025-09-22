@@ -71,27 +71,7 @@ def main():
         }
         
         prediction_result = None
-        if predict_x is not None and len(features) == 1:
-            predict_x_df = pd.DataFrame([[predict_x]], columns=features)
-            predict_x_scaled = scaler.transform(predict_x_df)
-            predicted_y = model.predict(predict_x_scaled)[0]
-            
-            distances, indices = model.kneighbors(predict_x_scaled)
-            
-            # Use original (unscaled) training data for reporting neighbors
-            neighbors_X_df = X_train.iloc[indices[0]]
-            neighbors_y_series = y_train.iloc[indices[0]]
-
-            prediction_result = {
-                'x_value': predict_x,
-                'y_value': predicted_y,
-                'neighbors_X': neighbors_X_df[features[0]].tolist(), # Get the single feature values
-                'neighbors_y': neighbors_y_series.tolist()
-            }
-        results['prediction'] = prediction_result
-
-        # Plotting
-        plt.figure(figsize=(10, 6))
+        fig = plt.figure(figsize=(10, 6))
 
         if len(features) == 1:
             feature_name = features[0]
@@ -104,11 +84,28 @@ def main():
             sorted_range_indices = np.argsort(X_range.flatten())
             plt.plot(X_range[sorted_range_indices], y_range_pred[sorted_range_indices], color='red', linestyle='--', label='KNN Prediction Line')
             
-            if prediction_result:
+            if predict_x is not None:
+                predict_x_df = pd.DataFrame([[predict_x]], columns=features)
+                predict_x_scaled = scaler.transform(predict_x_df)
+                predicted_y = model.predict(predict_x_scaled)[0]
+                
+                distances, indices = model.kneighbors(predict_x_scaled)
+                
+                neighbors_X = X_train.iloc[indices[0]]
+                neighbors_y = y_train.iloc[indices[0]]
+
+                prediction_result = {
+                    'x_value': predict_x,
+                    'y_value': predicted_y,
+                    'neighbors_X': neighbors_X[features[0]].tolist(), # Get the single feature values
+                    'neighbors_y': neighbors_y.tolist()
+                }
+                
                 # Highlight the neighbors
                 plt.scatter(prediction_result['neighbors_X'], prediction_result['neighbors_y'], color='orange', s=100, marker='D', label='Neighbors', zorder=5)
                 # Highlight the predicted point
                 plt.scatter([prediction_result['x_value']], [prediction_result['y_value']], color='magenta', s=200, marker='^', label=f'Prediction for X={predict_x}', zorder=6, edgecolors='black')
+
 
             plt.xlabel(feature_name)
             plt.ylabel(target)
@@ -126,8 +123,11 @@ def main():
         
         buf = io.BytesIO()
         plt.savefig(buf, format='png')
-        plt.close()
+        plt.close(fig) # Correctly close the figure
+        buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
+        
+        results['prediction'] = prediction_result
         
         response = {
             'results': results,
