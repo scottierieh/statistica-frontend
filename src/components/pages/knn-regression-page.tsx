@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Container, AlertTriangle } from 'lucide-react';
+import { Sigma, Loader2, Container } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -17,7 +16,8 @@ import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Input } from '../ui/input';
 import { Slider } from '../ui/slider';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+
 
 interface KnnRegressionResults {
     metrics: {
@@ -30,11 +30,13 @@ interface KnnRegressionResults {
         x_value: number;
         y_value: number;
     };
+    features: string[];
 }
 
 interface FullAnalysisResponse {
     results: KnnRegressionResults;
     plot: string;
+    relationship_plot?: string;
     prediction_plot?: string;
 }
 
@@ -58,8 +60,9 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        const defaultTarget = numericHeaders[numericHeaders.length - 1];
+        const defaultTarget = numericHeaders.length > 1 ? numericHeaders[numericHeaders.length - 1] : numericHeaders[0];
         setTarget(defaultTarget);
+
         if (mode === 'simple') {
             setFeatures(numericHeaders.length > 1 ? [numericHeaders[0]] : []);
         } else {
@@ -92,7 +95,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         }
         
         try {
-             const analysisData = data.map(row => {
+            const analysisData = data.map(row => {
                 const newRow: { [key: string]: any } = {};
                 if (target) newRow[target] = row[target];
                 features.forEach(f => {
@@ -162,6 +165,8 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         );
     }
     
+    const results = analysisResult?.results;
+
     return (
         <div className="space-y-4">
             <Card>
@@ -224,7 +229,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                         <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${features[0]}`}/>
                         <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === '' || isLoading}>Predict</Button>
                     </CardContent>
-                    {analysisResult?.results.prediction && (
+                    {analysisResult?.results?.prediction && (
                         <CardFooter>
                             <p className="text-lg">Predicted '{target}': <strong className="font-bold text-primary">{analysisResult.results.prediction.y_value.toFixed(2)}</strong></p>
                         </CardFooter>
@@ -235,41 +240,58 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
             {analysisResult && (
-                <div className="space-y-4">
-                     {analysisResult.prediction_plot && (
-                        <Card>
-                             <CardHeader>
-                                <CardTitle>Prediction Simulation Plot</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.prediction_plot} alt="KNN Prediction Plot" width={800} height={600} className="w-full rounded-md border"/>
-                            </CardContent>
-                        </Card>
-                    )}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Model Performance</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid md:grid-cols-3 gap-4 text-center">
-                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">R-squared</p><p className="text-2xl font-bold">{analysisResult.results.metrics.r2_score.toFixed(3)}</p></div>
-                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{analysisResult.results.metrics.rmse.toFixed(3)}</p></div>
-                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{analysisResult.results.metrics.mae.toFixed(3)}</p></div>
-                        </CardContent>
-                    </Card>
-                    {analysisResult.plot && (
+                <Tabs defaultValue="summary" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="summary">Summary</TabsTrigger>
+                        <TabsTrigger value="plots">Plots</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="summary" className="mt-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Model Fit</CardTitle>
-                                 <CardDescription>
-                                    {mode === 'simple' ? "Training data and model predictions" : "Model performance on the test set"}
-                                </CardDescription>
+                                <CardTitle>Model Performance</CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.plot} alt="KNN Regression Plot" width={800} height={600} className="w-full rounded-md border"/>
+                            <CardContent className="grid md:grid-cols-3 gap-4 text-center">
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">R-squared</p><p className="text-2xl font-bold">{analysisResult.results.metrics.r2_score.toFixed(3)}</p></div>
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{analysisResult.results.metrics.rmse.toFixed(3)}</p></div>
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{analysisResult.results.metrics.mae.toFixed(3)}</p></div>
                             </CardContent>
                         </Card>
-                    )}
-                </div>
+                    </TabsContent>
+                    <TabsContent value="plots" className="mt-4">
+                        <div className="space-y-4">
+                            {analysisResult.plot && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Model Fit: Actual vs. Predicted</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Image src={analysisResult.plot} alt="KNN Actual vs Predicted Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                    </CardContent>
+                                </Card>
+                            )}
+                             {analysisResult.relationship_plot && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>X vs. Y Relationship</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Image src={analysisResult.relationship_plot} alt="KNN Relationship Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                    </CardContent>
+                                </Card>
+                            )}
+                            {analysisResult.prediction_plot && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Prediction Simulation Plot</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Image src={analysisResult.prediction_plot} alt="KNN Prediction Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+                    </TabsContent>
+                </Tabs>
             )}
         </div>
     );
