@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Container } from 'lucide-react';
+import { Sigma, Loader2, Container, AlertTriangle, CheckCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -17,6 +17,7 @@ import Image from 'next/image';
 import { Input } from '../ui/input';
 import { Slider } from '../ui/slider';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface RegressionMetrics {
     r2_score: number;
@@ -32,6 +33,7 @@ interface RidgeRegressionResults {
     coefficients: { [key: string]: number };
     intercept: number;
     alpha: number;
+    interpretation: string;
 }
 
 interface FullAnalysisResponse {
@@ -175,6 +177,16 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
 
             {analysisResult && results && (
                 <div className="space-y-4">
+                    <Card>
+                        <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
+                        <CardContent>
+                           <Alert variant={results.interpretation.includes('Warning') || results.interpretation.includes('Possible') ? 'destructive' : 'default'}>
+                              {results.interpretation.includes('Warning') || results.interpretation.includes('Possible') ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                              <AlertTitle>{results.interpretation.split('**')[1] || 'Model Summary'}</AlertTitle>
+                              <AlertDescription dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\*\*(.*?)\*\*/g, '') }} />
+                           </Alert>
+                        </CardContent>
+                    </Card>
                      <Card>
                         <CardHeader>
                             <CardTitle>Train vs. Test Performance</CardTitle>
@@ -217,7 +229,7 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
                                     <CardDescription>Performance for alpha = {results.alpha}</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Image src={analysisResult.plot} alt="Ridge Actual vs Predicted Plot" width={1400} height={1200} className="w-full rounded-md border"/>
+                                    <Image src={analysisResult.plot} alt="Ridge Actual vs Predicted Plot" width={800} height={1200} className="w-full rounded-md border"/>
                                 </CardContent>
                             </Card>
                         )}

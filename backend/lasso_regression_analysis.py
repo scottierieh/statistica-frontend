@@ -33,6 +33,21 @@ def fig_to_base64(fig):
     buf.seek(0)
     return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
 
+def _generate_interpretation(train_r2, test_r2):
+    interpretation = ""
+    r2_diff = train_r2 - test_r2
+    
+    if train_r2 > 0.8 and r2_diff < 0.2:
+        interpretation = "The model shows a **Good Fit**. Both training and testing R-squared scores are high and close to each other, indicating that the model generalizes well to new data."
+    elif train_r2 > 0.7 and r2_diff > 0.3:
+        interpretation = "**Overfitting Warning**. The model performs significantly better on the training data than on the test data. This suggests that the model has learned the training data's noise and may not perform well on unseen data. Consider increasing the alpha value to add more regularization and potentially simplify the model."
+    elif train_r2 < 0.5 and test_r2 < 0.5:
+        interpretation = "**Underfitting Possible**. Both training and testing R-squared scores are low, suggesting the model is too simple to capture the underlying patterns in the data. The model may not be complex enough, or the features may not have a strong linear relationship with the target."
+    else:
+        interpretation = "The model's performance is moderate. Review the R-squared values and residuals to assess if the model is sufficient for your needs. The difference between train and test scores suggests some degree of overfitting might be present."
+        
+    return interpretation.strip()
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -87,11 +102,14 @@ def main():
             'mae': mean_absolute_error(y_train, y_pred_train)
         }
         
+        interpretation = _generate_interpretation(train_metrics['r2_score'], test_metrics['r2_score'])
+        
         results = {
             'metrics': { 'test': test_metrics, 'train': train_metrics },
             'coefficients': dict(zip(final_features, model.coef_)),
             'intercept': model.intercept_,
-            'alpha': alpha
+            'alpha': alpha,
+            'interpretation': interpretation,
         }
         
         # --- Plotting: Actual vs Predicted (Train vs Test) ---
