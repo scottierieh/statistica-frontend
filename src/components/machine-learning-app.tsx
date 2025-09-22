@@ -34,8 +34,9 @@ import { useToast } from '@/hooks/use-toast';
 import { DataSet, parseData, unparseData } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import * as XLSX from 'xlsx';
+import RidgeRegressionPage from './pages/ridge-regression-page';
 
-type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple';
+type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression';
 
 const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExample, allHeaders, categoricalHeaders }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], onLoadExample: (e: ExampleDataSet) => void, allHeaders: string[], categoricalHeaders: string[] }) => {
     switch (activeTask) {
@@ -45,6 +46,8 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExampl
             return <KnnRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} mode="simple" />;
         case 'knn-regression-multiple':
              return <KnnRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} mode="multiple" />;
+        case 'ridge-regression':
+            return <RidgeRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} />;
         case 'regression':
         case 'classification':
         case 'tree':
@@ -221,6 +224,14 @@ export default function MachineLearningApp() {
                           isActive={activeTask === 'knn-regression-multiple'}
                         >
                           Multiple KNN Regression
+                        </SidebarMenuSubButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuSubButton
+                          onClick={() => setActiveTask('ridge-regression')}
+                          isActive={activeTask === 'ridge-regression'}
+                        >
+                          Ridge Regression
                         </SidebarMenuSubButton>
                     </SidebarMenuItem>
                 </SidebarMenuSub>
