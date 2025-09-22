@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -91,7 +92,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         }
         
         try {
-            const analysisData = data.map(row => {
+             const analysisData = data.map(row => {
                 const newRow: { [key: string]: any } = {};
                 if (target) newRow[target] = row[target];
                 features.forEach(f => {
