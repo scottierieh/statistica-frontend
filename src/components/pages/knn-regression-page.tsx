@@ -243,7 +243,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                                 <li><strong>R-squared:</strong> Indicates how well the model explains the variance in the data. Closer to 1 is better. If Train R² is much higher than Test R², it may indicate overfitting.</li>
                                 <li><strong>RMSE (Root Mean Squared Error):</strong> The average size of the prediction errors. Lower is better.</li>
                                 <li><strong>Actual vs. Predicted Plot:</strong> Points closer to the 45-degree diagonal line indicate more accurate predictions.</li>
-                                <li><strong>Prediction Simulation:</strong> Allows you to input a specific X value, see the predicted Y value, and visualize which K neighbor data points were used for the prediction.</li>
+                                <li><strong>Prediction Simulation Plot:</strong> Allows you to input a specific X value, see the predicted Y value, and visualize which K neighbor data points were used for the prediction.</li>
                             </ul>
                         </div>
                     </CardContent>
@@ -268,14 +268,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <CardTitle className="font-headline">KNN Regression Setup ({mode})</CardTitle>
-                         <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>What is KNN Regression?</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                        <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -479,18 +472,20 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                                 </CardContent>
                             </Card>
                         )}
+                        {analysisResult.prediction_plot && (
+                             <div className="md:col-span-2">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Prediction Simulation Plot</CardTitle>
+                                        <CardDescription>This chart visualizes how the model makes a prediction. The large triangle is the predicted point. The diamonds are the 'K' nearest neighbors from the training data that were averaged to make the prediction.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Image src={analysisResult.prediction_plot} alt="KNN Prediction Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
                     </div>
-                    {analysisResult.prediction_plot && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Prediction Simulation Plot</CardTitle>
-                                <CardDescription>This chart visualizes how the model makes a prediction. The large triangle is the predicted point. The diamonds are the 'K' nearest neighbors from the training data that were averaged to make the prediction.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.prediction_plot} alt="KNN Prediction Plot" width={800} height={600} className="w-full rounded-md border"/>
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
             )}
         </div>

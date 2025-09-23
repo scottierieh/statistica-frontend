@@ -20,7 +20,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -36,7 +36,7 @@ def fig_to_base64(fig):
     return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
 
 def _generate_interpretation(train_metrics, test_metrics, k, target):
-    """Generates an interpretation of the KNN regression results."""
+    """Generates an interpretation of the KNN regression results using HTML tags."""
     train_r2 = train_metrics['r2_score']
     test_r2 = test_metrics['r2_score']
     rmse = test_metrics['rmse']
@@ -48,24 +48,25 @@ def _generate_interpretation(train_metrics, test_metrics, k, target):
 
     # R-squared interpretation
     if test_r2 > 0.8:
-        interp += f"The model shows a **strong fit** (R² = {test_r2:.3f}), explaining a large portion of the variance in '{target}'. "
+        interp += f"The model shows a <strong>strong fit</strong> (R² = {test_r2:.3f}), explaining a large portion of the variance in '{target}'. "
     elif test_r2 > 0.5:
-        interp += f"The model has a **moderate fit** (R² = {test_r2:.3f}), explaining a reasonable portion of the variance. "
+        interp += f"The model has a <strong>moderate fit</strong> (R² = {test_r2:.3f}), explaining a reasonable portion of the variance. "
     else:
-        interp += f"The model shows a **weak fit** (R² = {test_r2:.3f}), indicating it doesn't explain much of the variance in the target variable. "
+        interp += f"The model shows a <strong>weak fit</strong> (R² = {test_r2:.3f}), indicating it doesn't explain much of the variance in the target variable. "
 
     # Overfitting/Underfitting check
     if r2_diff > 0.2:
-        interp += "However, there is a significant drop in performance from the training set (R² = {train_r2:.3f}) to the test set, which suggests potential **overfitting**. The model may be too complex for the data, possibly due to a low K value. "
+        interp += f"However, there is a significant drop in performance from the training set (R² = {train_r2:.3f}) to the test set, which suggests potential <strong>overfitting</strong>. The model may be too complex for the data, possibly due to a low K value. "
     elif train_r2 < 0.5 and test_r2 < 0.5:
-        interp += "The low performance on both train and test sets may indicate **underfitting**. The model might be too simple, or the features may not have a strong relationship with the target. "
+        interp += "The low performance on both train and test sets may indicate <strong>underfitting</strong>. The model might be too simple, or the features may not have a strong relationship with the target. "
     else:
         interp += "The model generalizes well to new data, as the training and test set performances are similar. "
     
     # Error metrics interpretation
-    interp += f"\nOn average, the model's predictions are off by **{mae:.2f}** (Mean Absolute Error). The Root Mean Squared Error (RMSE) is **{rmse:.2f}**, which gives a sense of the magnitude of typical prediction errors."
+    interp += f"\nOn average, the model's predictions are off by <strong>{mae:.2f}</strong> (Mean Absolute Error). The Root Mean Squared Error (RMSE) is <strong>{rmse:.2f}</strong>, which gives a sense of the magnitude of typical prediction errors."
 
     return interp
+
 
 def main():
     try:
@@ -222,4 +223,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
