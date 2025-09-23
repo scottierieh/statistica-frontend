@@ -17,6 +17,8 @@ import { Progress } from '@/components/ui/progress';
 import { Star, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { produce } from 'immer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 // Re-defining question components for the view page
 // In a real app, these could be in a shared components directory.
@@ -75,6 +77,30 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { 
        </div>
    );
 };
+
+const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: any; answer?: string; onAnswerChange: (value: string) => void; }) => {
+    return (
+        <div className="p-4">
+            <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+            {question.imageUrl && (
+                <div className="my-4">
+                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+                </div>
+            )}
+            <Select value={answer} onValueChange={onAnswerChange}>
+                <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select an option..." />
+                </SelectTrigger>
+                <SelectContent>
+                    {question.options.map((option: string, index: number) => (
+                        <SelectItem key={index} value={option}>{option}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+    );
+};
+
 
 const TextQuestion = ({ question, answer, onAnswerChange }: { question: any, answer: string, onAnswerChange: (value: string) => void }) => (
   <div className="p-4">
@@ -243,6 +269,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: any, a
 const questionComponents: { [key: string]: React.ComponentType<any> } = {
   single: SingleSelectionQuestion,
   multiple: MultipleSelectionQuestion,
+  dropdown: DropdownQuestion,
   text: TextQuestion,
   rating: RatingQuestion,
   number: NumberQuestion,
