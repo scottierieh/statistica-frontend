@@ -2,6 +2,7 @@
 import sys
 import json
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import io
@@ -18,15 +19,44 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
 def main():
     try:
         payload = json.load(sys.stdin)
-        dataset_name = payload.get('dataset', 'moons')
         params = payload.get('params', {})
+
+        # --- Data Loading ---
+        is_custom_data = 'data' in payload
+        if is_custom_data:
+            df = pd.DataFrame(payload['data'])
+            feature_cols = payload['feature_cols']
+            target_col = payload['target_col']
+            
+            X = df[feature_cols].values
+            
+            if df[target_col].dtype == 'object':
+                le = LabelEncoder()
+                y = le.fit_transform(df[target_col])
+            else:
+                y = df[target_col].values
+        else:
+            dataset_name = payload.get('dataset', 'moons')
+            X_synthetic, y_synthetic = make_classification(
+                n_features=2, n_redundant=0, n_informative=2, random_state=1, n_clusters_per_class=1
+            )
+            rng = np.random.RandomState(2)
+            X_synthetic += 2 * rng.uniform(size=X_synthetic.shape)
+            linearly_separable = (X_synthetic, y_synthetic)
+
+            datasets_map = {
+                "moons": make_moons(noise=0.3, random_state=0),
+                "circles": make_circles(noise=0.2, factor=0.5, random_state=1),
+                "linear": linearly_separable,
+            }
+            X, y = datasets_map.get(dataset_name, datasets_map["moons"])
 
         names = [
             "Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
@@ -52,21 +82,6 @@ def main():
             QuadraticDiscriminantAnalysis(),
         ]
         
-        X, y = make_classification(
-            n_features=2, n_redundant=0, n_informative=2, random_state=1, n_clusters_per_class=1
-        )
-        rng = np.random.RandomState(2)
-        X += 2 * rng.uniform(size=X.shape)
-        linearly_separable = (X, y)
-
-        datasets_map = {
-            "moons": make_moons(noise=0.3, random_state=0),
-            "circles": make_circles(noise=0.2, factor=0.5, random_state=1),
-            "linear": linearly_separable,
-        }
-
-        X, y = datasets_map.get(dataset_name, datasets_map["moons"])
-
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.4, random_state=42
         )
@@ -77,10 +92,11 @@ def main():
         cm = plt.cm.RdBu
         cm_bright = ListedColormap(["#FF0000", "#0000FF"])
 
-        fig = plt.figure(figsize=(15, 9))
+        fig, axes = plt.subplots(3, 5, figsize=(18, 12))
+        fig.subplots_adjust(hspace=0.4, wspace=0.3)
         
-        # --- Plot input data on the first row ---
-        ax = plt.subplot(3, 5, 3) 
+        # --- Plot input data on the first position ---
+        ax = axes[0, 2] # Center the input data plot
         ax.set_title("Input data")
         ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, edgecolors="k")
         ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=cm_bright, alpha=0.6, edgecolors="k")
@@ -88,11 +104,17 @@ def main():
         ax.set_ylim(y_min, y_max)
         ax.set_xticks(())
         ax.set_yticks(())
+        
+        # Hide unused subplots in the first row
+        for i in [0, 1, 3, 4]:
+            axes[0, i].set_visible(False)
 
         scores = {}
-        # --- Plot classifiers on the next two rows ---
+        # --- Plot classifiers starting from the second row (index 1) ---
         for i, (name, clf) in enumerate(zip(names, classifiers)):
-            ax = plt.subplot(3, 5, i + 6)
+            row = (i // 5) + 1 # Start from row 1
+            col = i % 5
+            ax = axes[row, col]
             
             clf = make_pipeline(StandardScaler(), clf)
             clf.fit(X_train, y_train)
@@ -113,10 +135,9 @@ def main():
             ax.set_title(name, fontsize=10)
             ax.text(x_max - 0.3, y_min + 0.3, ("%.2f" % score).lstrip("0"), size=15, horizontalalignment="right")
 
-        plt.tight_layout()
         
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        plt.savefig(buf, format='png', bbox_inches='tight')
         plt.close(fig)
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
@@ -125,7 +146,7 @@ def main():
             'results': {
                 'scores': scores
             },
-            'plot': f"data:image/png;base64,{plot_image}"
+            'plot': plot_image
         }
         
         print(json.dumps(response))
