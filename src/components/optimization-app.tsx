@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
@@ -6,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, PlayCircle, FileJson } from 'lucide-react';
+import { Sigma, Loader2, PlayCircle, FileJson, FlaskConical, Zap } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenuItem, SidebarMenu, SidebarMenuButton, SidebarProvider, SidebarTrigger } from './ui/sidebar';
+
 
 interface SimplexIteration {
     title: string;
@@ -28,7 +31,7 @@ const defaultProblem = {
     b: [4, 2, 3]
 };
 
-export default function OptimizationApp() {
+const LinearProgrammingTool = () => {
     const { toast } = useToast();
     const [numVars, setNumVars] = useState(2);
     const [numConstraints, setNumConstraints] = useState(3);
@@ -115,7 +118,7 @@ export default function OptimizationApp() {
     }, [numVars, numConstraints]);
 
     return (
-        <div className="p-4 md:p-6 space-y-6">
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">선형계획법 (Simplex 알고리즘) 보드</CardTitle>
@@ -238,4 +241,47 @@ export default function OptimizationApp() {
             )}
         </div>
     );
+};
+
+
+export default function OptimizationApp() {
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <Sidebar>
+          <SidebarHeader>
+            <div className="flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+                <Zap className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <h1 className="text-xl font-headline font-bold">Optimization</h1>
+            </div>
+          </SidebarHeader>
+          <SidebarContent className="flex flex-col gap-2 p-2">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={true}
+                >
+                  <FlaskConical />
+                  <span>Linear Programming</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+
+        <SidebarInset>
+          <div className="p-4 md:p-6 h-full flex flex-col gap-4">
+            <header className="flex items-center justify-between md:justify-end">
+                <SidebarTrigger className="md:hidden"/>
+                <h1 className="text-2xl font-headline font-bold md:hidden">Optimization</h1>
+                <div />
+            </header>
+            <LinearProgrammingTool />
+          </div>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
 }
