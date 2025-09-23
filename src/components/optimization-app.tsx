@@ -1,7 +1,6 @@
 
 'use client';
-
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,7 +41,7 @@ const LinearProgrammingTool = () => {
 
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-    const [showBoard, setShowBoard] = useState(true);
+    const [showBoard, setShowBoard] = useState(false);
     
     const handleBoardCreate = () => {
         setC(Array(numVars).fill(0));
@@ -137,112 +136,116 @@ const LinearProgrammingTool = () => {
                     </div>
                     <Button onClick={handleBoardCreate}>입력 보드 만들기</Button>
                     <Button onClick={loadExample} variant="outline">예제 불러오기</Button>
-                    <Button onClick={runAnalysis} disabled={isLoading}>
-                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                        단계별 단순형 실행
-                    </Button>
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 {showBoard && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">문제 설정</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <Label>목표식 계수 (Max Z)</Label>
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                    {Array.from({ length: numVars }).map((_, i) => (
-                                        <div key={`c${i}`} className="flex items-center gap-1">
-                                            <Label htmlFor={`c${i+1}`} className="text-sm">c{i+1}:</Label>
-                                            <Input id={`c${i+1}`} type="number" value={c[i] ?? ''} onChange={e => handleInputChange('c', i, undefined, e.target.value)} className="w-20 h-8"/>
-                                        </div>
-                                    ))}
+            {showBoard && (
+                <>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">문제 설정</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <Label>목표식 계수 (Max Z)</Label>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {Array.from({ length: numVars }).map((_, i) => (
+                                            <div key={`c${i}`} className="flex items-center gap-1">
+                                                <Label htmlFor={`c${i+1}`} className="text-sm">c{i+1}:</Label>
+                                                <Input id={`c${i+1}`} type="number" value={c[i] ?? ''} onChange={e => handleInputChange('c', i, undefined, e.target.value)} className="w-20 h-8"/>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                             <div>
-                                <Label>제약식 (Σ aᵢⱼxⱼ ≤ bᵢ)</Label>
-                                <div className="space-y-2 mt-2">
-                                    {Array.from({ length: numConstraints }).map((_, i) => (
-                                        <div key={`con${i}`} className="flex flex-wrap items-center gap-2">
-                                             {Array.from({ length: numVars }).map((_, j) => (
-                                                 <div key={`a${i}${j}`} className="flex items-center gap-1">
-                                                    <Label htmlFor={`a${i+1}${j+1}`} className="text-sm">a{i+1}{j+1}:</Label>
-                                                    <Input id={`a${i+1}${j+1}`} type="number" value={A[i]?.[j] ?? ''} onChange={e => handleInputChange('A', i, j, e.target.value)} className="w-20 h-8"/>
+                                 <div>
+                                    <Label>제약식 (Σ aᵢⱼxⱼ ≤ bᵢ)</Label>
+                                    <div className="space-y-2 mt-2">
+                                        {Array.from({ length: numConstraints }).map((_, i) => (
+                                            <div key={`con${i}`} className="flex flex-wrap items-center gap-2">
+                                                 {Array.from({ length: numVars }).map((_, j) => (
+                                                     <div key={`a${i}${j}`} className="flex items-center gap-1">
+                                                        <Label htmlFor={`a${i+1}${j+1}`} className="text-sm">a{i+1}{j+1}:</Label>
+                                                        <Input id={`a${i+1}${j+1}`} type="number" value={A[i]?.[j] ?? ''} onChange={e => handleInputChange('A', i, j, e.target.value)} className="w-20 h-8"/>
+                                                    </div>
+                                                 ))}
+                                                  <div className="flex items-center gap-1">
+                                                    <Label htmlFor={`b${i+1}`} className="text-sm">b{i+1}:</Label>
+                                                    <Input id={`b${i+1}`} type="number" value={b[i] ?? ''} onChange={e => handleInputChange('b', i, undefined, e.target.value)} className="w-20 h-8"/>
                                                 </div>
-                                             ))}
-                                              <div className="flex items-center gap-1">
-                                                <Label htmlFor={`b${i+1}`} className="text-sm">b{i+1}:</Label>
-                                                <Input id={`b${i+1}`} type="number" value={b[i] ?? ''} onChange={e => handleInputChange('b', i, undefined, e.target.value)} className="w-20 h-8"/>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                 <div className="flex justify-end pt-4">
+                                     <Button onClick={runAnalysis} disabled={isLoading}>
+                                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+                                        단계별 단순형 실행
+                                    </Button>
+                                 </div>
+                            </CardContent>
+                        </Card>
+                        <div className="space-y-6">
+                             <Card>
+                                <CardHeader><CardTitle className="text-lg">목표식</CardTitle></CardHeader>
+                                <CardContent>
+                                    <p className="font-mono text-lg">{analysisResult?.objective_function_str || 'Max Z = ' + c.map((val, i) => `${val}·x${i+1}`).join(' + ')}</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader><CardTitle className="text-lg">제약식</CardTitle></CardHeader>
+                                <CardContent>
+                                    <ul className="list-disc pl-5 space-y-1 font-mono">
+                                        {(analysisResult?.constraints_str || A.map((row, i) => `${row.map((val, j) => `${val}·x${j+1}`).join(' + ')} ≤ ${b[i]}`)).map((con, i) => (
+                                            <li key={i}>{con}</li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                    
+                    {analysisResult && (
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader><CardTitle className="text-lg">최적해 & 최적값</CardTitle></CardHeader>
+                                <CardContent className="space-y-2">
+                                     <p><strong>해:</strong> {Object.entries(analysisResult.solution).map(([key, val]) => `${key}=${val.toFixed(6)}`).join(', ')}</p>
+                                     <p><strong>최적값 Z*:</strong> {analysisResult.optimal_value.toFixed(6)}</p>
+                                     <p><strong>방정식:</strong> Z = {c.map((val, i) => `${val}·(${analysisResult.solution[`x${i+1}`]?.toFixed(6) || 0})`).join(' + ')} = {analysisResult.optimal_value.toFixed(6)}</p>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader><CardTitle className="text-lg">단계별 Simplex 계산</CardTitle></CardHeader>
+                                <CardContent className="space-y-6">
+                                    {analysisResult.iterations.map((iter, index) => (
+                                        <div key={index}>
+                                            <h4 className="font-semibold mb-2">{iter.title}</h4>
+                                            <div className="overflow-x-auto">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            {tableHeaders.map(h => <TableHead key={h}>{h}</TableHead>)}
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {iter.tableau.map((row, rIndex) => (
+                                                            <TableRow key={rIndex}>
+                                                                <TableCell>{rIndex < numConstraints ? `제약${rIndex+1}` : 'Z'}</TableCell>
+                                                                {row.map((cell, cIndex) => <TableCell key={cIndex} className="font-mono">{cell.toFixed(6)}</TableCell>)}
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
                                             </div>
                                         </div>
                                     ))}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                 )}
-                <div className="space-y-6">
-                     <Card>
-                        <CardHeader><CardTitle className="text-lg">목표식</CardTitle></CardHeader>
-                        <CardContent>
-                            <p className="font-mono text-lg">{analysisResult?.objective_function_str || 'Max Z = ' + c.map((val, i) => `${val}·x${i+1}`).join(' + ')}</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader><CardTitle className="text-lg">제약식</CardTitle></CardHeader>
-                        <CardContent>
-                            <ul className="list-disc pl-5 space-y-1 font-mono">
-                                {(analysisResult?.constraints_str || A.map((row, i) => `${row.map((val, j) => `${val}·x${j+1}`).join(' + ')} ≤ ${b[i]}`)).map((con, i) => (
-                                    <li key={i}>{con}</li>
-                                ))}
-                            </ul>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-            
-            {analysisResult && (
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader><CardTitle className="text-lg">최적해 & 최적값</CardTitle></CardHeader>
-                        <CardContent className="space-y-2">
-                             <p><strong>해:</strong> {Object.entries(analysisResult.solution).map(([key, val]) => `${key}=${val.toFixed(6)}`).join(', ')}</p>
-                             <p><strong>최적값 Z*:</strong> {analysisResult.optimal_value.toFixed(6)}</p>
-                             <p><strong>방정식:</strong> Z = {c.map((val, i) => `${val}·(${analysisResult.solution[`x${i+1}`]?.toFixed(6) || 0})`).join(' + ')} = {analysisResult.optimal_value.toFixed(6)}</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader><CardTitle className="text-lg">단계별 Simplex 계산</CardTitle></CardHeader>
-                        <CardContent className="space-y-6">
-                            {analysisResult.iterations.map((iter, index) => (
-                                <div key={index}>
-                                    <h4 className="font-semibold mb-2">{iter.title}</h4>
-                                    <div className="overflow-x-auto">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    {tableHeaders.map(h => <TableHead key={h}>{h}</TableHead>)}
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {iter.tableau.map((row, rIndex) => (
-                                                    <TableRow key={rIndex}>
-                                                        <TableCell>{rIndex < numConstraints ? `제약${rIndex+1}` : 'Z'}</TableCell>
-                                                        {row.map((cell, cIndex) => <TableCell key={cIndex} className="font-mono">{cell.toFixed(6)}</TableCell>)}
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );
