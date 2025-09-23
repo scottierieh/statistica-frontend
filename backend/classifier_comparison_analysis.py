@@ -1,5 +1,4 @@
 
-
 import sys
 import json
 import numpy as np
@@ -83,9 +82,14 @@ def main():
             QuadraticDiscriminantAnalysis(),
         ]
         
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.4, random_state=42
-        )
+        try:
+             X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.4, random_state=42, stratify=y
+            )
+        except ValueError:
+             X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.4, random_state=42
+            )
 
         x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
         y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
@@ -127,9 +131,11 @@ def main():
             score = clf.score(X_test, y_test)
             scores[name] = score
 
-            DecisionBoundaryDisplay.from_estimator(
-                clf, X, alpha=0.8, ax=ax, eps=0.5
-            )
+            # Only plot decision boundary for 2D data
+            if X.shape[1] == 2:
+                DecisionBoundaryDisplay.from_estimator(
+                    clf, X, alpha=0.8, ax=ax, eps=0.5
+                )
 
             ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, edgecolors="k")
             ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=cm_bright, edgecolors="k", alpha=0.6)
@@ -164,5 +170,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-
-
+    
