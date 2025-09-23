@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -36,6 +37,7 @@ interface KnnRegressionResults {
     prediction?: {
         x_value: number | { [key: string]: number };
         y_value: number;
+        neighbors?: any[]
     };
     features: string[];
 }
@@ -202,32 +204,32 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                             Simple K-Nearest Neighbors (KNN) Regression
                         </CardTitle>
                         <CardDescription className="text-base pt-2">
-                           하나의 독립변수(X)를 사용하여 다른 하나의 종속변수(Y)를 예측하는 비모수 회귀 분석 방법입니다. "가까운 이웃과 비슷할 것이다"라는 단순한 아이디어에 기반합니다.
+                           This is a non-parametric regression method that uses a single independent variable (X) to predict a single dependent variable (Y). It is based on the simple idea that "things that are close to each other are similar."
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-4">
-                            <h3 className="font-semibold text-lg flex items-center"><HelpCircle className="mr-2 h-5 w-5 text-primary" />어떻게 작동하나요?</h3>
+                            <h3 className="font-semibold text-lg flex items-center"><HelpCircle className="mr-2 h-5 w-5 text-primary" />How It Works</h3>
                             <p className="text-muted-foreground">
-                                KNN 회귀 분석은 새로운 데이터 포인트의 값을 예측하기 위해, 훈련 데이터셋에서 가장 가까운 'K'개의 이웃을 찾습니다. 그리고 이 이웃들의 종속변수(Y) 값의 평균을 내어 예측값으로 사용합니다. 예를 들어, '공부 시간'으로 '시험 점수'를 예측할 때, 5시간 공부한 학생의 점수를 예측하기 위해 훈련 데이터에서 5시간과 가장 가까운 K명의 학생들의 점수 평균을 계산하는 방식입니다.
+                                KNN Regression predicts the value of a new data point by finding the 'K' nearest neighbors in the training dataset. It then averages the dependent variable (Y) values of these neighbors to make a prediction. For example, to predict the exam score of a student who studied for 5 hours, it would find the K students in the training data who studied closest to 5 hours and average their scores.
                             </p>
                         </div>
                         <div className="space-y-4">
-                            <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" />설정 방법</h3>
+                            <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" />Setup Guide</h3>
                              <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                <li><strong>Target Variable (Y):</strong> 예측하고자 하는 숫자형 변수를 선택합니다. (예: 시험 점수)</li>
-                                <li><strong>Feature Variable (X):</strong> 예측에 사용할 숫자형 변수를 선택합니다. (예: 공부 시간)</li>
-                                <li><strong>K (Number of Neighbors):</strong> 예측에 참고할 이웃의 수를 정합니다. 작은 K는 모델을 더 유연하게 만들지만 노이즈에 민감해질 수 있고, 큰 K는 예측을 더 안정시키지만 중요한 패턴을 놓칠 수 있습니다.</li>
-                                <li><strong>Test Set Size:</strong> 모델 성능 평가를 위해 전체 데이터에서 분리할 테스트 데이터의 비율을 정합니다. (예: 20%)</li>
+                                <li><strong>Target Variable (Y):</strong> Select the numeric variable you want to predict (e.g., Exam Score).</li>
+                                <li><strong>Feature Variable (X):</strong> Select the numeric variable to use for prediction (e.g., Study Hours).</li>
+                                <li><strong>K (Number of Neighbors):</strong> Choose how many neighbors to consider for each prediction. A smaller K makes the model more flexible but sensitive to noise; a larger K makes it more stable but may miss local patterns.</li>
+                                <li><strong>Test Set Size:</strong> The proportion of data held out to evaluate the model's performance (e.g., 20%).</li>
                             </ul>
                         </div>
                          <div className="space-y-4">
-                            <h3 className="font-semibold text-lg flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />결과 해석</h3>
+                            <h3 className="font-semibold text-lg flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />Result Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                <li><strong>R-squared (결정계수):</strong> 모델이 데이터의 분산을 얼마나 잘 설명하는지를 나타냅니다. 1에 가까울수록 좋습니다. Train R²가 Test R²보다 현저히 높으면 과적합(Overfitting)을 의심할 수 있습니다.</li>
-                                <li><strong>RMSE (Root Mean Squared Error):</strong> 예측 오차의 평균적인 크기를 나타냅니다. 낮을수록 좋습니다.</li>
-                                <li><strong>Actual vs. Predicted Plot:</strong> 점들이 45도 대각선에 가까울수록 모델의 예측이 정확하다는 의미입니다.</li>
-                                <li><strong>Prediction Simulation:</strong> 특정 X값에 대한 Y값을 예측하고, 예측에 사용된 K개의 이웃 데이터 포인트를 시각적으로 확인할 수 있습니다.</li>
+                                <li><strong>R-squared:</strong> Indicates how well the model explains the variance in the data. Closer to 1 is better. If Train R² is much higher than Test R², it may indicate overfitting.</li>
+                                <li><strong>RMSE (Root Mean Squared Error):</strong> The average size of the prediction errors. Lower is better.</li>
+                                <li><strong>Actual vs. Predicted Plot:</strong> Points closer to the 45-degree diagonal line indicate more accurate predictions.</li>
+                                <li><strong>Prediction Simulation:</strong> Allows you to input a specific X value, see the predicted Y value, and visualize which K neighbor data points were used for the prediction.</li>
                             </ul>
                         </div>
                     </CardContent>
@@ -270,7 +272,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                                 <TooltipTrigger asChild>
                                     <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>Learn about KNN Regression.</p></TooltipContent>
+                                <TooltipContent><p>What is KNN Regression?</p></TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </div>

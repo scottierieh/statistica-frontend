@@ -96,7 +96,7 @@ export default function MachineLearningApp() {
   const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const [openCategories, setOpenCategories] = useState<string[]>(['회귀 알고리즘', '분류 알고리즘', '비지도 학습']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Regression Algorithms', 'Classification Algorithms', 'Unsupervised Learning']);
   
   const hasData = data.length > 0;
 
@@ -226,12 +226,12 @@ export default function MachineLearningApp() {
           </SidebarHeader>
           <SidebarContent className="flex flex-col gap-2 p-2">
             <SidebarMenu>
-                <Collapsible open={openCategories.includes('회귀 알고리즘')} onOpenChange={() => toggleCategory('회귀 알고리즘')}>
+                <Collapsible open={openCategories.includes('Regression Algorithms')} onOpenChange={() => toggleCategory('Regression Algorithms')}>
                     <CollapsibleTrigger asChild>
                         <Button variant="ghost" className="w-full justify-start">
                             <TrendingUp className="mr-2" />
-                            <span>회귀 알고리즘</span>
-                            <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes('회귀 알고리즘') && 'rotate-180')}/>
+                            <span>Regression Algorithms</span>
+                            <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes('Regression Algorithms') && 'rotate-180')}/>
                         </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -251,40 +251,40 @@ export default function MachineLearningApp() {
                         </SidebarMenu>
                     </CollapsibleContent>
                 </Collapsible>
-              <Collapsible open={openCategories.includes('분류 알고리즘')} onOpenChange={() => toggleCategory('분류 알고리즘')}>
+              <Collapsible open={openCategories.includes('Classification Algorithms')} onOpenChange={() => toggleCategory('Classification Algorithms')}>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" className="w-full justify-start">
                     <Binary className="mr-2" />
-                    <span>분류 알고리즘</span>
-                     <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes('분류 알고리즘') && 'rotate-180')}/>
+                    <span>Classification Algorithms</span>
+                     <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes('Classification Algorithms') && 'rotate-180')}/>
                   </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton onClick={() => setActiveTask('deep-learning')} isActive={activeTask === 'deep-learning'}>딥러닝 분류</SidebarMenuButton>
+                            <SidebarMenuButton onClick={() => setActiveTask('deep-learning')} isActive={activeTask === 'deep-learning'}>Deep Learning Classification</SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton onClick={() => setActiveTask('classifier-comparison')} isActive={activeTask === 'classifier-comparison'}>분류기 모델 비교</SidebarMenuButton>
+                            <SidebarMenuButton onClick={() => setActiveTask('classifier-comparison')} isActive={activeTask === 'classifier-comparison'}>Classifier Model Comparison</SidebarMenuButton>
                         </SidebarMenuItem>
                          <SidebarMenuItem>
-                            <SidebarMenuButton onClick={() => setActiveTask('decision-tree-classifier')} isActive={activeTask === 'decision-tree-classifier'}>의사결정 트리 분류</SidebarMenuButton>
+                            <SidebarMenuButton onClick={() => setActiveTask('decision-tree-classifier')} isActive={activeTask === 'decision-tree-classifier'}>Decision Tree Classifier</SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
                   </CollapsibleContent>
               </Collapsible>
-              <Collapsible open={openCategories.includes('비지도 학습')} onOpenChange={() => toggleCategory('비지도 학습')}>
+              <Collapsible open={openCategories.includes('Unsupervised Learning')} onOpenChange={() => toggleCategory('Unsupervised Learning')}>
                   <CollapsibleTrigger asChild>
                       <Button variant="ghost" className="w-full justify-start">
                         <Users className="mr-2"/>
-                        <span>비지도 학습</span>
-                         <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes('비지도 학습') && 'rotate-180')}/>
+                        <span>Unsupervised Learning</span>
+                         <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes('Unsupervised Learning') && 'rotate-180')}/>
                       </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                      <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton onClick={() => setActiveTask('fruit-clustering')} isActive={activeTask === 'fruit-clustering'}>과일 이미지 군집 분석</SidebarMenuButton>
+                            <SidebarMenuButton onClick={() => setActiveTask('fruit-clustering')} isActive={activeTask === 'fruit-clustering'}>Fruit Image Clustering</SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
                   </CollapsibleContent>
