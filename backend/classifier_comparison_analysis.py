@@ -26,6 +26,7 @@ def main():
     try:
         payload = json.load(sys.stdin)
         dataset_name = payload.get('dataset', 'moons')
+        params = payload.get('params', {})
 
         names = [
             "Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
@@ -33,14 +34,20 @@ def main():
             "Naive Bayes", "QDA",
         ]
 
+        # Use parameters from frontend, with defaults from the original script
         classifiers = [
-            KNeighborsClassifier(3),
-            SVC(kernel="linear", C=0.025, random_state=42),
-            SVC(gamma=2, C=1, random_state=42),
-            GaussianProcessClassifier(1.0 * RBF(1.0), random_state=42),
-            DecisionTreeClassifier(max_depth=5, random_state=42),
-            RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1, random_state=42),
-            MLPClassifier(alpha=1, max_iter=1000, random_state=42),
+            KNeighborsClassifier(n_neighbors=int(params.get('Nearest Neighbors', {}).get('n_neighbors', 3))),
+            SVC(kernel="linear", C=float(params.get('Linear SVM', {}).get('C', 0.025)), random_state=42),
+            SVC(gamma=float(params.get('RBF SVM', {}).get('gamma', 2)), C=float(params.get('RBF SVM', {}).get('C', 1)), random_state=42),
+            GaussianProcessClassifier(1.0 * RBF(length_scale=float(params.get('Gaussian Process', {}).get('length_scale', 1.0))), random_state=42),
+            DecisionTreeClassifier(max_depth=int(params.get('Decision Tree', {}).get('max_depth', 5)), random_state=42),
+            RandomForestClassifier(
+                max_depth=int(params.get('Random Forest', {}).get('max_depth', 5)),
+                n_estimators=int(params.get('Random Forest', {}).get('n_estimators', 10)),
+                max_features=int(params.get('Random Forest', {}).get('max_features', 1)),
+                random_state=42
+            ),
+            MLPClassifier(alpha=float(params.get('Neural Net', {}).get('alpha', 1)), max_iter=1000, random_state=42),
             AdaBoostClassifier(random_state=42),
             GaussianNB(),
             QuadraticDiscriminantAnalysis(),
@@ -61,7 +68,6 @@ def main():
 
         X, y = datasets_map.get(dataset_name, datasets_map["moons"])
 
-        X = StandardScaler().fit_transform(X)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.4, random_state=42
         )
@@ -72,10 +78,10 @@ def main():
         cm = plt.cm.RdBu
         cm_bright = ListedColormap(["#FF0000", "#0000FF"])
 
-        fig = plt.figure(figsize=(len(classifiers) * 3 + 3, 4))
+        fig, axes = plt.subplots(len(classifiers) + 1, 1, figsize=(3, 3 * (len(classifiers) + 1)))
         
         # Plot input data
-        ax = plt.subplot(1, len(classifiers) + 1, 1)
+        ax = axes[0]
         ax.set_title("Input data")
         ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, edgecolors="k")
         ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=cm_bright, alpha=0.6, edgecolors="k")
@@ -85,8 +91,8 @@ def main():
         ax.set_yticks(())
 
         scores = {}
-        for i, (name, clf) in enumerate(zip(names, classifiers), start=2):
-            ax = plt.subplot(1, len(classifiers) + 1, i)
+        for i, (name, clf) in enumerate(zip(names, classifiers), start=1):
+            ax = axes[i]
             
             clf = make_pipeline(StandardScaler(), clf)
             clf.fit(X_train, y_train)
@@ -104,7 +110,7 @@ def main():
             ax.set_ylim(y_min, y_max)
             ax.set_xticks(())
             ax.set_yticks(())
-            ax.set_title(name)
+            ax.set_title(name, fontsize=10)
             ax.text(x_max - 0.3, y_min + 0.3, ("%.2f" % score).lstrip("0"), size=15, horizontalalignment="right")
 
         plt.tight_layout()
