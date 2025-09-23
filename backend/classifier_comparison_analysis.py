@@ -34,7 +34,6 @@ def main():
             "Naive Bayes", "QDA",
         ]
 
-        # Use parameters from frontend, with defaults from the original script
         classifiers = [
             KNeighborsClassifier(n_neighbors=int(params.get('Nearest Neighbors', {}).get('n_neighbors', 3))),
             SVC(kernel="linear", C=float(params.get('Linear SVM', {}).get('C', 0.025)), random_state=42),
@@ -78,10 +77,10 @@ def main():
         cm = plt.cm.RdBu
         cm_bright = ListedColormap(["#FF0000", "#0000FF"])
 
-        fig, axes = plt.subplots(len(classifiers) + 1, 1, figsize=(3, 3 * (len(classifiers) + 1)))
+        fig = plt.figure(figsize=(15, 9))
         
-        # Plot input data
-        ax = axes[0]
+        # --- Plot input data on the first row ---
+        ax = plt.subplot(3, 5, 3) 
         ax.set_title("Input data")
         ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, edgecolors="k")
         ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=cm_bright, alpha=0.6, edgecolors="k")
@@ -91,8 +90,9 @@ def main():
         ax.set_yticks(())
 
         scores = {}
-        for i, (name, clf) in enumerate(zip(names, classifiers), start=1):
-            ax = axes[i]
+        # --- Plot classifiers on the next two rows ---
+        for i, (name, clf) in enumerate(zip(names, classifiers)):
+            ax = plt.subplot(3, 5, i + 6)
             
             clf = make_pipeline(StandardScaler(), clf)
             clf.fit(X_train, y_train)
