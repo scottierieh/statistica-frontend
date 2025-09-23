@@ -26,7 +26,7 @@ import {
   FileText,
   Save,
   Info,
-  Link as LinkIcon,
+  LinkIcon,
   QrCode,
   Download,
   Copy,
@@ -62,7 +62,7 @@ import {
   ShieldAlert,
   Move,
   BarChart,
-  PieChart as PieChartIcon,
+  PieChartIcon,
   DollarSign,
   ZoomIn,
   ZoomOut,
@@ -1467,9 +1467,9 @@ const ServqualAnalyticsDashboard = ({ data }: { data: any }) => {
     if (!data) return null;
 
     const servqualChartConfig = {
-        expectation: { label: "Expectation", color: "hsl(var(--chart-1))" },
-        perception: { label: "Perception", color: "hsl(var(--chart-2))" },
-        gap: { label: "Gap", color: "hsl(var(--chart-5))" },
+        expectation: { label: "Expectation", color: PALETTE[1] },
+        perception: { label: "Perception", color: PALETTE[0] },
+        gap: { label: "Gap", color: PALETTE[3] },
     };
 
     return (
@@ -1974,17 +1974,17 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
       }
 
     const handleDashboardDragEnd = (event: DragEndEvent) => {
-        const {active, delta} = event;
-        setDashboardPositions(prev => {
-            const currentPosition = prev[active.id] || { x: 0, y: 0 };
-            return {
-                ...prev,
-                [active.id]: {
-                    x: currentPosition.x + delta.x,
-                    y: currentPosition.y + delta.y,
-                }
-            };
-        });
+        const { active, delta, over } = event;
+        // The transform property from useDraggable is the one to use for free-form movement.
+        // It provides the change in coordinates (delta) from the start of the drag.
+        const transform = (event.active.rect.current.translated) ? {x: event.active.rect.current.translated.left, y: event.active.rect.current.translated.top} : {x: 0, y: 0}
+        setDashboardPositions(prev => ({
+            ...prev,
+            [active.id]: {
+                x: transform.x,
+                y: transform.y,
+            }
+        }));
     };
 
     const saveAndTest = () => {
@@ -2894,10 +2894,13 @@ const DraggableDashboardCard = ({ id, children, position }: { id: any, children:
         position: 'absolute',
         width: 300,
         height: 300,
-        top: position?.y || 0,
-        left: position?.x || 0,
-        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+        transform: CSS.Translate.toString(position || {x: 0, y: 0}),
     };
+    
+    if (transform) {
+      style.top = transform.y;
+      style.left = transform.x;
+    }
 
     return (
         <div ref={setNodeRef} style={style}>
@@ -2908,5 +2911,89 @@ const DraggableDashboardCard = ({ id, children, position }: { id: any, children:
                 {children}
             </Card>
         </div>
+    );
+};
+
+// This function needs to be defined if it's used for IPA analysis
+function pearsonCorrelation(x: (number | undefined)[], y: (number | undefined)[]): number {
+    const validPairs = x.map((val, i) => [val, y[i]]).filter(([val1, val2]) => val1 !== undefined && val2 !== undefined) as [number, number][];
+    if (validPairs.length < 2) return 0;
+    
+    const xs = validPairs.map(p => p[0]);
+    const ys = validPairs.map(p => p[1]);
+
+    const meanX = mean(xs);
+    const meanY = mean(ys);
+    const stdDevX = standardDeviation(xs);
+    const stdDevY = standardDeviation(ys);
+
+    if (stdDevX === 0 || stdDevY === 0) return 0;
+
+    let covariance = 0;
+    for (let i = 0; i < validPairs.length; i++) {
+        covariance += (xs[i] - meanX) * (ys[i] - meanY);
+    }
+    covariance /= (validPairs.length - 1);
+
+    return covariance / (stdDevX * stdDevY);
+}
+
+
+interface KPICardProps {
+    title: string;
+    value: string;
+    status: 'excellent' | 'good' | 'warning' | 'poor';
+}
+
+const KPICard: React.FC<KPICardProps> = ({ title, value, status }) => {
+    const statusClasses = {
+        excellent: 'text-green-600',
+        good: 'text-green-500',
+        warning: 'text-yellow-600',
+        poor: 'text-red-600',
+    };
+    return (
+        <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className={`text-2xl font-bold ${statusClasses[status]}`}>{value}</div>
+            </CardContent>
+        </Card>
+    );
+};
+
+interface InsightCardProps {
+    insight: {
+        type: 'critical' | 'warning' | 'opportunity' | 'excellent';
+        title: string;
+        text: string;
+        actions: string;
+    };
+}
+const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
+    const ICONS = {
+        critical: <AlertTriangle className="text-red-500" />,
+        warning: <ShieldAlert className="text-yellow-500" />,
+        opportunity: <Lightbulb className="text-blue-500" />,
+        excellent: <Award className="text-green-500" />,
+    }
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-start gap-4">
+                {ICONS[insight.type]}
+                <div>
+                    <CardTitle className="text-base">{insight.title}</CardTitle>
+                    <CardDescription>{insight.text}</CardDescription>
+                </div>
+            </CardHeader>
+            <CardFooter>
+                 <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                    <MoveRight className="w-4 h-4"/>
+                    <span>{insight.actions}</span>
+                </div>
+            </CardFooter>
+        </Card>
     );
 };
