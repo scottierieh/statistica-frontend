@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -170,7 +171,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
             if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
             const result = await response.json();
             if (result.error) throw new Error(result.error);
-            setAnalysisResult(result);
+            setAnalysisResult(result.results);
             setCurrentStep(2);
             toast({ title: 'Analysis Complete', description: 'Conjoint analysis results are ready.' });
         } catch (error: any) {
@@ -182,7 +183,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
 
     const independentVariables = useMemo(() => Object.values(attributes).filter((attr: any) => attr.includeInAnalysis), [attributes]);
     
-    const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"];
+    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
     const importanceChartConfig = useMemo(() => {
       if (!analysisResult) return {};
@@ -387,7 +388,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                         <Pie data={analysisResult.importance} dataKey="importance" nameKey="attribute" cx="50%" cy="50%" outerRadius={100} label={p => `${p.attribute} (${p.importance.toFixed(1)}%)`}>
                                                             {analysisResult.importance.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                                         </Pie>
-                                                        <Tooltip content={<ChartTooltipContent />} />
+                                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
                                                     </PieChart>
                                                 </ResponsiveContainer>
                                             </ChartContainer>
@@ -403,11 +404,11 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                     <BarChart data={analysisResult.partWorths.filter(p => p.level !== 'coefficient')} layout="vertical" margin={{ left: 100 }}>
                                                         <CartesianGrid strokeDasharray="3 3" />
                                                         <XAxis type="number" />
-                                                        <YAxis dataKey="level" type="category" width={100} />
+                                                        <YAxis dataKey="level" type="category" width={80} />
                                                         <Tooltip content={<ChartTooltipContent />} />
                                                         <Bar dataKey="value" name="Part-Worth">
                                                             {analysisResult.partWorths.map((entry, index) => (
-                                                                <Cell key={`cell-${index}`} fill={entry.value > 0 ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-5))'} />
+                                                                <Cell key={`cell-${index}`} fill={entry.value > 0 ? COLORS[0] : COLORS[3]} />
                                                             ))}
                                                         </Bar>
                                                     </BarChart>
@@ -441,13 +442,13 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                             <Button onClick={runSimulation}>Run Simulation</Button>
                                             {simulationResult && (
                                                 <div className="mt-4">
-                                                    <ChartContainer config={{marketShare: {label: 'Market Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
+                                                    <ChartContainer config={{marketShare: {label: 'Market Share', color: COLORS[0]}}} className="w-full h-[300px]">
                                                       <ResponsiveContainer width="100%" height={300}>
                                                           <BarChart data={simulationResult}>
                                                               <CartesianGrid strokeDasharray="3 3" />
                                                               <XAxis dataKey="name" />
-                                                              <YAxis />
-                                                              <Tooltip content={<ChartTooltipContent />} />
+                                                              <YAxis unit="%"/>
+                                                              <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
                                                               <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
                                                           </BarChart>
                                                       </ResponsiveContainer>
@@ -478,7 +479,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                                 y: sensitivityResult.map((d: any) => d.utility),
                                                                 type: 'scatter',
                                                                 mode: 'lines+markers',
-                                                                marker: {color: 'hsl(var(--primary))'},
+                                                                marker: {color: COLORS[4]},
                                                             },
                                                         ]}
                                                         layout={{
