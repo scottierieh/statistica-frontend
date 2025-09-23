@@ -46,7 +46,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        setTarget(categoricalHeaders.find(h => new Set(data.map(row => row[h])).size > 1) || categoricalHeaders[0]);
+        setTarget(categoricalHeaders[0]);
     }, [data, categoricalHeaders]);
 
     useEffect(() => {

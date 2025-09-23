@@ -266,13 +266,13 @@ export const exampleDatasets: ExampleDataSet[] = [
         recommendedAnalysis: 'survival',
         data: survivalData,
     },
-     {
+    {
         id: 'loan-approval',
         name: 'Loan Approval Prediction',
         description: 'A balanced dataset for binary classification model comparison.',
         icon: DollarSign,
-        analysisTypes: ['classifier-comparison', 'logistic-regression', 'discriminant', 'gbm'],
-        recommendedAnalysis: 'classifier-comparison',
+        analysisTypes: ['classifier-comparison', 'logistic-regression', 'discriminant', 'gbm', 'decision-tree-classifier'],
+        recommendedAnalysis: 'decision-tree-classifier',
         data: loanApprovalData,
     },
     {
