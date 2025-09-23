@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
@@ -974,26 +973,28 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                 </TableHeader>
                 <TableBody>
                     {(question.rows || []).map((row: string, rowIndex: number) => (
-                            <TableRow key={rowIndex}>
-                                <TableCell className="group relative">
-                                    {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
-                                    {!isPreview && (
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 absolute top-1/2 -translate-y-1/2 right-0" onClick={() => deleteRow(rowIndex)}>
-                                            <Trash2 className="w-4 h-4 text-destructive"/>
-                                        </Button>
-                                    )}
+                        <TableRow key={rowIndex}>
+                            <TableCell className="group relative">
+                                {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
+                                {!isPreview && (
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 absolute top-1/2 -translate-y-1/2 right-0" onClick={() => deleteRow(rowIndex)}>
+                                        <Trash2 className="w-4 h-4 text-destructive"/>
+                                    </Button>
+                                )}
+                            </TableCell>
+                            {(question.columns || []).map((col: string, colIndex: number) => (
+                                <TableCell key={colIndex} className="text-center">
+                                  <RadioGroup
+                                    value={answer?.[row]}
+                                    onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}
+                                    className="flex justify-center"
+                                  >
+                                    <RadioGroupItem value={col}/>
+                                  </RadioGroup>
                                 </TableCell>
-                                <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                    <TableRow>
-                                        {(question.columns || []).map((col: string, colIndex: number) => (
-                                            <TableCell key={colIndex} className="text-center">
-                                                <RadioGroupItem value={col}/>
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                </RadioGroup>
-                                {!isPreview && <TableCell></TableCell>}
-                            </TableRow>
+                            ))}
+                            {!isPreview && <TableCell></TableCell>}
+                        </TableRow>
                     ))}
                 </TableBody>
             </Table>
@@ -1103,9 +1104,9 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     }, [chartType]);
 
     const plotData = useMemo(() => {
-        const percentages = chartData.map((d: any) => parseFloat(d.percentage));
-        const labels = chartData.map((d: any) => d.name);
-        const counts = chartData.map((d: any) => d.count);
+        const percentages = tableData.map((d: any) => parseFloat(d.percentage));
+        const labels = tableData.map((d: any) => d.name);
+        const counts = tableData.map((d: any) => d.count);
 
         if (chartType === 'pie') {
             return [{
@@ -1136,7 +1137,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
             text: percentages.map((p: number) => `${p.toFixed(1)}%`),
             textposition: 'auto',
         }];
-    }, [chartType, chartData]);
+    }, [chartType, tableData]);
 
     return (
         <AnalysisDisplayShell varName={varName}>
@@ -2968,4 +2969,3 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
-
