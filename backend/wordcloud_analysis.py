@@ -223,3 +223,6 @@ def main():
         error_response = {"error": str(e)}
         sys.stderr.write(json.dumps(error_response))
         sys.exit(1)
+
+if __name__ == '__main__':
+    main()
