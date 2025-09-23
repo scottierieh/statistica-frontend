@@ -68,6 +68,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [showHelpPage, setShowHelpPage] = useState(false);
 
     useEffect(() => {
         const defaultTarget = numericHeaders.length > 1 ? numericHeaders[numericHeaders.length - 1] : numericHeaders[0];
@@ -81,17 +82,25 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
             const initialFeatures = numericHeaders.filter(h => h !== defaultTarget);
             setFeatures(initialFeatures);
             const initialValues: { [key: string]: number | '' } = {};
-            initialFeatures.forEach(f => initialValues[f] = '');
+            initialFeatures.forEach(f => {
+                initialValues[f] = '';
+            });
             setPredictXValues(initialValues);
         }
         setAnalysisResult(null);
         setPredictedYValue(null);
         setPredictXValue('');
+        setShowHelpPage(data.length === 0);
     }, [data, numericHeaders, mode]);
     
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== target), [numericHeaders, target]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= (mode === 'simple' ? 2 : 2), [data, numericHeaders, mode]);
+    
+    useEffect(() => {
+        setShowHelpPage(!canRun);
+    }, [canRun]);
+
 
     const handleFeatureChange = (header: string, checked: boolean) => {
         if (mode === 'simple') {
@@ -180,7 +189,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         }
     }, [data, target, features, k, testSize, toast]);
     
-    if (!canRun) {
+    if (showHelpPage) {
         const regressionExample = exampleDatasets.find(ex => ex.id === 'regression-suite');
         return (
              <div className="flex flex-1 items-center justify-center p-4">
@@ -222,13 +231,14 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                             </ul>
                         </div>
                     </CardContent>
-                    {regressionExample && (
-                        <CardFooter>
-                            <Button onClick={() => onLoadExample(regressionExample)}>
+                    <CardFooter className="flex justify-between">
+                         {regressionExample && (
+                             <Button variant="outline" onClick={() => onLoadExample(regressionExample)}>
                                 <TrendingUp className="mr-2 h-4 w-4" /> Load Sample Regression Data
                             </Button>
-                        </CardFooter>
-                    )}
+                         )}
+                         {canRun && <Button onClick={() => setShowHelpPage(false)}>Back to Setup</Button>}
+                    </CardFooter>
                 </Card>
             </div>
         );
@@ -290,13 +300,8 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                             </div>
                         </div>
                         <div className="flex flex-col gap-2">
-                             <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="outline" size="icon"><HelpCircle className="h-4 w-4" /></Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>KNN regression predicts a value by averaging the values of its 'K' nearest neighbors.</p></TooltipContent>
-                                </Tooltip>
+                            <Button variant="outline" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
+                            <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button variant="outline" size="icon"><Info className="h-4 w-4" /></Button>
