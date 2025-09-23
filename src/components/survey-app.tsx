@@ -215,7 +215,7 @@ const psmTemplate = {
 };
 
 
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
 // Draggable Question Wrapper
 const DraggableQuestion = ({ id, children }: { id: any, children: React.ReactNode }) => {
@@ -1123,6 +1123,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                 parents: Array(labels.length).fill(""),
                 values: counts,
                 textinfo: 'label+value+percent root',
+                marker: {colors: COLORS}
             }];
         }
         return [{
@@ -1130,7 +1131,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
             x: chartType === 'hbar' ? percentages : labels,
             type: 'bar',
             orientation: chartType === 'hbar' ? 'h' : 'v',
-            marker: { color: 'hsl(var(--primary))' },
+            marker: { color: COLORS[0] },
             text: percentages.map((p: number) => `${p.toFixed(1)}%`),
             textposition: 'auto',
         }];
@@ -1263,7 +1264,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
                         <Plot
-                            data={[{ x: chartData.values, type: 'histogram' }]}
+                            data={[{ x: chartData.values, type: 'histogram', marker: {color: COLORS[0]} }]}
                             layout={{
                                 autosize: true,
                                 margin: { t: 40, b: 40, l: 40, r: 20 },
@@ -1322,7 +1323,7 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
                     </CardHeader>
                      <CardContent className="flex items-center justify-center min-h-[300px]">
                         <Plot
-                            data={[{ ...chartData, type: 'bar' }]}
+                            data={[{ ...chartData, type: 'bar', marker: { color: COLORS[1] } }]}
                             layout={{
                                 autosize: true,
                                 margin: { t: 20, b: 40, l: 100, r: 20 },
@@ -1518,7 +1519,7 @@ const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
                             mode: 'markers+text',
                             textposition: 'top center',
                             type: 'scatter',
-                            marker: { size: 12 }
+                            marker: { size: 12, color: COLORS[0] }
                         }]}
                         layout={{
                             autosize: true,
@@ -2804,9 +2805,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                              const ChartComponent = () => {
                                                 switch (q.type) {
                                                     case 'single': case 'multiple': case 'dropdown':
-                                                        return <Plot data={[{ values: chartData.map((d: any) => d.count), labels: chartData.map((d: any) => d.name), type: 'pie', hole: .4 }]} layout={{ autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 }, legend: {orientation: 'h'} }} style={{ width: '100%', height: '100%' }} useResizeHandler/>;
+                                                        return <Plot data={[{ values: chartData.map((d: any) => d.count), labels: chartData.map((d: any) => d.name), type: 'pie', hole: .4, marker: { colors: COLORS } }]} layout={{ autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 }, legend: {orientation: 'h'} }} style={{ width: '100%', height: '100%' }} useResizeHandler/>;
                                                     case 'number':
-                                                        return <Plot data={[{ x: chartData.values, type: 'histogram' }]} layout={{ autosize: true, margin: { t: 40, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '100%' }} useResizeHandler/>;
+                                                        return <Plot data={[{ x: chartData.values, type: 'histogram', marker: {color: COLORS[0]} }]} layout={{ autosize: true, margin: { t: 40, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '100%' }} useResizeHandler/>;
                                                     case 'rating':
                                                         return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} total={q.scale?.length || 5} /><p>{chartData.avg.toFixed(2)} / {q.scale?.length || 5}</p></div>;
                                                     case 'nps':
@@ -2819,10 +2820,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                             
                                             return (
                                                 <DraggableDashboardCard key={q.id} id={q.id} position={dashboardPositions[q.id] || {x: (i % 3) * 320 + 20, y: Math.floor(i / 3) * 320 + 20}}>
-                                                     <CardHeader className="p-2 cursor-grab" >
+                                                     <CardHeader className="p-2 cursor-grab flex-shrink-0" >
                                                         <CardTitle className="truncate text-sm">{q.title}</CardTitle>
                                                     </CardHeader>
-                                                    <CardContent className="p-2 flex-1 flex items-center justify-center">
+                                                    <CardContent className="p-2 flex-1 flex items-center justify-center overflow-hidden">
                                                         <ChartComponent />
                                                     </CardContent>
                                                 </DraggableDashboardCard>
@@ -2887,15 +2888,15 @@ type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
 
 const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position: Position }) => {
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
 
     const style: React.CSSProperties = {
         position: 'absolute',
         width: 300,
         height: 300,
-        transform: isDragging
-            ? `translate3d(${position.x + (transform?.x ?? 0)}px, ${position.y + (transform?.y ?? 0)}px, 0)`
-            : `translate3d(${position.x}px, ${position.y}px, 0)`,
+        top: position?.y || 0,
+        left: position?.x || 0,
+        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     };
 
     return (
