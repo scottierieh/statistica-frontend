@@ -82,15 +82,30 @@ def main():
         buf.seek(0)
         tree_plot_image = base64.b64encode(buf.read()).decode('utf-8')
 
-        # --- Cost-Complexity Pruning Path Plot ---
+        # --- Accuracy vs Alpha Plot ---
         path = clf.cost_complexity_pruning_path(X_train, y_train)
-        ccp_alphas, impurities = path.ccp_alphas, path.impurities
+        ccp_alphas = path.ccp_alphas
+
+        clfs = []
+        for ccp_alpha in ccp_alphas:
+            pruned_clf = DecisionTreeClassifier(random_state=random_state, ccp_alpha=ccp_alpha)
+            pruned_clf.fit(X_train, y_train)
+            clfs.append(pruned_clf)
+        
+        # We remove the last classifier because it's a trivial tree with only one node.
+        clfs = clfs[:-1]
+        ccp_alphas = ccp_alphas[:-1]
+
+        train_scores = [clf.score(X_train, y_train) for clf in clfs]
+        test_scores = [clf.score(X_test, y_test) for clf in clfs]
 
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(ccp_alphas[:-1], impurities[:-1], marker="o", drawstyle="steps-post")
         ax.set_xlabel("Effective Alpha")
-        ax.set_ylabel("Total Impurity of Leaves")
-        ax.set_title("Total Impurity vs Effective Alpha for Training Set")
+        ax.set_ylabel("Accuracy")
+        ax.set_title("Accuracy vs Effective Alpha for Training and Testing Sets")
+        ax.plot(ccp_alphas, train_scores, marker="o", label="train", drawstyle="steps-post")
+        ax.plot(ccp_alphas, test_scores, marker="o", label="test", drawstyle="steps-post")
+        ax.legend()
         ax.grid(True)
         
         pruning_buf = io.BytesIO()
@@ -98,7 +113,6 @@ def main():
         plt.close(fig)
         pruning_buf.seek(0)
         pruning_plot_image = base64.b64encode(pruning_buf.read()).decode('utf-8')
-
         
         response = {
             'results': {

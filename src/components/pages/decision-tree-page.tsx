@@ -62,6 +62,7 @@ const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: Example
                                 <li><strong>Accuracy:</strong> The percentage of correct predictions. A higher value indicates a better model.</li>
                                 <li><strong>Confusion Matrix:</strong> A table showing correct and incorrect predictions for each class, helping you see where the model gets confused.</li>
                                 <li><strong>Tree Visualization:</strong> A diagram showing the decision rules. It illustrates how the model splits the data based on feature values to arrive at a final prediction.</li>
+                                <li><strong>Accuracy vs. Alpha Plot:</strong> This shows how model accuracy on training and test data changes with the 'alpha' (pruning) parameter, helping to find a good balance between model complexity and performance on new data.</li>
                             </ul>
                         </div>
                     </div>
@@ -78,6 +79,7 @@ const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: Example
         </div>
     );
 };
+
 
 interface DecisionTreePageProps {
     data: DataSet;
@@ -152,6 +154,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
             setAnalysisResult(result);
 
         } catch (e: any) {
+            console.error('Decision Tree error:', e);
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
             setIsLoading(false);
@@ -255,11 +258,11 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                      {analysisResult.pruning_plot && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Cost-Complexity Pruning Path</CardTitle>
-                                <CardDescription>This plot shows how the total impurity of leaves decreases as the effective alpha (pruning parameter) increases.</CardDescription>
+                                <CardTitle>Accuracy vs. Alpha for Pruning</CardTitle>
+                                <CardDescription>This plot shows how model accuracy on training and test sets changes with the 'alpha' (pruning) parameter. The ideal alpha often maximizes test accuracy while avoiding overfitting.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <Image src={analysisResult.pruning_plot} alt="Pruning Path Plot" width={1000} height={600} className="w-full rounded-md border"/>
+                                <Image src={analysisResult.pruning_plot} alt="Accuracy vs Alpha Plot" width={1000} height={600} className="w-full rounded-md border"/>
                             </CardContent>
                         </Card>
                     )}
