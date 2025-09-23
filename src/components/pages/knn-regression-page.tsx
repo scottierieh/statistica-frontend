@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -56,6 +55,88 @@ interface KnnRegressionPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
     mode: 'simple' | 'multiple';
 }
+
+const HelpPage = ({ mode, onLoadExample, onBackToSetup }: { mode: 'simple' | 'multiple', onLoadExample: (e: ExampleDataSet) => void, onBackToSetup: () => void }) => {
+    const regressionExample = exampleDatasets.find(ex => ex.id === 'regression-suite');
+    
+    const content = {
+        simple: {
+            title: "Simple K-Nearest Neighbors (KNN) Regression",
+            description: "KNN is a non-parametric method that uses a single independent variable (X) to predict a single dependent variable (Y). It is based on the simple idea that 'things that are close to each other are similar.'",
+            setup: [
+                { title: 'Target Variable (Y)', text: 'Select the numeric variable you want to predict (e.g., Exam Score).' },
+                { title: 'Feature Variable (X)', text: 'Select the numeric variable to use for prediction (e.g., Study Hours).' },
+                { title: 'K (Number of Neighbors)', text: "Choose how many neighbors to consider for each prediction. A smaller K makes the model more flexible but sensitive to noise; a larger K makes it more stable but may miss local patterns." },
+                { title: 'Test Set Size', text: "The proportion of data held out to evaluate the model's performance (e.g., 20%)." },
+            ],
+            interpretation: [
+                { title: 'R-squared', text: "Indicates how well the model explains the variance in the data. Closer to 1 is better. If Train R² is much higher than Test R², it may indicate overfitting." },
+                { title: 'RMSE (Root Mean Squared Error)', text: "The average size of the prediction errors. Lower is better." },
+                { title: 'Actual vs. Predicted Plot', text: "Points closer to the 45-degree diagonal line indicate more accurate predictions." },
+                { title: 'Prediction Simulation Plot', text: "Allows you to input a specific X value, see the predicted Y value, and visualize which K neighbor data points were used for the prediction." },
+            ]
+        },
+        multiple: {
+            title: "Multiple K-Nearest Neighbors (KNN) Regression",
+            description: "Multiple KNN regression extends the simple version by using multiple independent variables (X₁, X₂, ...) to predict a single dependent variable (Y). It finds the 'K' nearest data points in a multi-dimensional space to make a prediction.",
+            setup: [
+                { title: 'Target Variable (Y)', text: 'Select the numeric variable you want to predict (e.g., House Price).' },
+                { title: 'Feature Variables (X)', text: 'Select two or more numeric variables to use for prediction (e.g., House Size, Location Score, Age).' },
+                { title: 'K (Number of Neighbors)', text: "The number of neighbors in the multi-dimensional feature space to average for a prediction." },
+                { title: 'Test Set Size', text: "The proportion of data used for testing. A common choice is 20-30%." },
+            ],
+            interpretation: [
+                { title: 'R-squared & Overfitting', text: "Similar to simple regression, a large gap between Train R² and Test R² can signal overfitting. The model may be too complex for the number of features." },
+                { title: 'RMSE / MAE', text: "These error metrics tell you, on average, how far off your predictions are in the original units of the target variable." },
+                { title: 'Prediction Simulation', text: "Input values for all feature variables to see the model's prediction for a new, unseen data point." },
+            ]
+        }
+    };
+
+    const currentContent = content[mode];
+
+    return (
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-4xl">
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-3 text-2xl">
+                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <Container size={28} />
+                         </div>
+                        {currentContent.title}
+                    </CardTitle>
+                    <CardDescription className="text-base pt-2">
+                        {currentContent.description}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" />Setup Guide</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                {currentContent.setup.map(item => <li key={item.title}><strong>{item.title}:</strong> {item.text}</li>)}
+                            </ul>
+                        </div>
+                         <div className="space-y-4">
+                            <h3 className="font-semibold text-lg flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />Result Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                {currentContent.interpretation.map(item => <li key={item.title}><strong>{item.title}:</strong> {item.text}</li>)}
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                     {regressionExample && (
+                         <Button variant="outline" onClick={() => onLoadExample(regressionExample)}>
+                            <TrendingUp className="mr-2 h-4 w-4" /> Load Sample Regression Data
+                        </Button>
+                     )}
+                     <Button onClick={onBackToSetup}>Back to Setup</Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
 
 export default function KnnRegressionPage({ data, numericHeaders, onLoadExample, mode }: KnnRegressionPageProps) {
     const { toast } = useToast();
@@ -206,58 +287,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     }, [data, target, features, k, testSize, toast]);
     
     if (showHelpPage) {
-        const regressionExample = exampleDatasets.find(ex => ex.id === 'regression-suite');
-        return (
-             <div className="flex flex-1 items-center justify-center p-4">
-                <Card className="w-full max-w-4xl">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-3 text-2xl">
-                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                <Container size={28} />
-                             </div>
-                            Simple K-Nearest Neighbors (KNN) Regression
-                        </CardTitle>
-                        <CardDescription className="text-base pt-2">
-                           KNN is a non-parametric method that uses a single independent variable (X) to predict a single dependent variable (Y). It is based on the simple idea that "things that are close to each other are similar."
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-lg flex items-center"><HelpCircle className="mr-2 h-5 w-5 text-primary" />How It Works</h3>
-                            <p className="text-muted-foreground">
-                                KNN Regression predicts the value of a new data point by finding the 'K' nearest neighbors in the training dataset. It then averages the dependent variable (Y) values of these neighbors to make a prediction. For example, to predict the exam score of a student who studied for 5 hours, it would find the K students in the training data who studied closest to 5 hours and average their scores.
-                            </p>
-                        </div>
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" />Setup Guide</h3>
-                             <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                <li><strong>Target Variable (Y):</strong> Select the numeric variable you want to predict (e.g., Exam Score).</li>
-                                <li><strong>Feature Variable (X):</strong> Select the numeric variable to use for prediction (e.g., Study Hours).</li>
-                                <li><strong>K (Number of Neighbors):</strong> Choose how many neighbors to consider for each prediction. A smaller K makes the model more flexible but sensitive to noise; a larger K makes it more stable but may miss local patterns.</li>
-                                <li><strong>Test Set Size:</strong> The proportion of data held out to evaluate the model's performance (e.g., 20%).</li>
-                            </ul>
-                        </div>
-                         <div className="space-y-4">
-                            <h3 className="font-semibold text-lg flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />Result Interpretation</h3>
-                             <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                <li><strong>R-squared:</strong> Indicates how well the model explains the variance in the data. Closer to 1 is better. If Train R² is much higher than Test R², it may indicate overfitting.</li>
-                                <li><strong>RMSE (Root Mean Squared Error):</strong> The average size of the prediction errors. Lower is better.</li>
-                                <li><strong>Actual vs. Predicted Plot:</strong> Points closer to the 45-degree diagonal line indicate more accurate predictions.</li>
-                                <li><strong>Prediction Simulation Plot:</strong> Allows you to input a specific X value, see the predicted Y value, and visualize which K neighbor data points were used for the prediction.</li>
-                            </ul>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                         {regressionExample && (
-                             <Button variant="outline" onClick={() => onLoadExample(regressionExample)}>
-                                <TrendingUp className="mr-2 h-4 w-4" /> Load Sample Regression Data
-                            </Button>
-                         )}
-                         {canRun && <Button onClick={() => setShowHelpPage(false)}>Back to Setup</Button>}
-                    </CardFooter>
-                </Card>
-            </div>
-        );
+        return <HelpPage mode={mode} onLoadExample={onLoadExample} onBackToSetup={() => setShowHelpPage(false)} />
     }
     
     const results = analysisResult?.results;
@@ -270,6 +300,9 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                         <CardTitle className="font-headline">KNN Regression Setup ({mode})</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
                     </div>
+                     <CardDescription>
+                        Select your target variable (Y), feature variable(s) (X), and configure the model parameters.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="flex-1 space-y-2">
@@ -400,7 +433,13 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Metric</TableHead>
+                                        <TableHead className="flex items-center gap-2">
+                                            Metric 
+                                            <TooltipProvider><Tooltip>
+                                                <TooltipTrigger asChild><Info className="w-4 h-4 text-muted-foreground"/></TooltipTrigger>
+                                                <TooltipContent><p>Performance metrics to evaluate the model.</p></TooltipContent>
+                                            </Tooltip></TooltipProvider>
+                                        </TableHead>
                                         <TableHead className="text-right">Train Score</TableHead>
                                         <TableHead className="text-right">Test Score</TableHead>
                                     </TableRow>
@@ -409,12 +448,10 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                                     <TableRow>
                                         <TableCell className="flex items-center gap-2">
                                             R-squared
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground"/></TooltipTrigger>
-                                                    <TooltipContent><p>Proportion of variance in the target explained by the model. Closer to 1 is better.</p></TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <TooltipProvider><Tooltip>
+                                                <TooltipTrigger asChild><Info className="w-4 h-4 text-muted-foreground"/></TooltipTrigger>
+                                                <TooltipContent><p>Proportion of variance in the target explained by the model. Closer to 1 is better.</p></TooltipContent>
+                                            </Tooltip></TooltipProvider>
                                         </TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.train.r2_score.toFixed(4)}</TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.test.r2_score.toFixed(4)}</TableCell>
@@ -422,12 +459,10 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                                     <TableRow>
                                         <TableCell className="flex items-center gap-2">
                                             RMSE
-                                             <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground"/></TooltipTrigger>
-                                                    <TooltipContent><p>Root Mean Squared Error. The average size of the prediction errors. Lower is better.</p></TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                             <TooltipProvider><Tooltip>
+                                                <TooltipTrigger asChild><Info className="w-4 h-4 text-muted-foreground"/></TooltipTrigger>
+                                                <TooltipContent><p>Root Mean Squared Error. The average size of the prediction errors. Lower is better.</p></TooltipContent>
+                                            </Tooltip></TooltipProvider>
                                         </TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.train.rmse.toFixed(3)}</TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.test.rmse.toFixed(3)}</TableCell>
@@ -435,12 +470,10 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                                     <TableRow>
                                         <TableCell className="flex items-center gap-2">
                                             MAE
-                                             <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground"/></TooltipTrigger>
-                                                    <TooltipContent><p>Mean Absolute Error. The average of the absolute prediction errors. Lower is better.</p></TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                             <TooltipProvider><Tooltip>
+                                                <TooltipTrigger asChild><Info className="w-4 h-4 text-muted-foreground"/></TooltipTrigger>
+                                                <TooltipContent><p>Mean Absolute Error. The average of the absolute prediction errors. Lower is better.</p></TooltipContent>
+                                            </Tooltip></TooltipProvider>
                                         </TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.train.mae.toFixed(3)}</TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.test.mae.toFixed(3)}</TableCell>
@@ -473,17 +506,15 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                             </Card>
                         )}
                         {analysisResult.prediction_plot && (
-                             <div className="md:col-span-2">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Prediction Simulation Plot</CardTitle>
-                                        <CardDescription>This chart visualizes how the model makes a prediction. The large triangle is the predicted point. The diamonds are the 'K' nearest neighbors from the training data that were averaged to make the prediction.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Image src={analysisResult.prediction_plot} alt="KNN Prediction Plot" width={800} height={600} className="w-full rounded-md border"/>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                             <Card className="md:col-span-2">
+                                <CardHeader>
+                                    <CardTitle>Prediction Simulation Plot</CardTitle>
+                                    <CardDescription>This chart visualizes how the model makes a prediction. The large triangle is the predicted point. The diamonds are the 'K' nearest neighbors from the training data that were averaged to make the prediction.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Image src={analysisResult.prediction_plot} alt="KNN Prediction Plot" width={800} height={600} className="w-full rounded-md border"/>
+                                </CardContent>
+                            </Card>
                         )}
                     </div>
                 </div>
@@ -491,4 +522,3 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         </div>
     );
 }
-
