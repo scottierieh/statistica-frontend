@@ -44,9 +44,9 @@ def main():
                 if phase == 1:
                     title += "Phase 1 - "
                 if 'status' in res and res.status != 0:
-                    title += f"피벗 선택: 행 {pivot[0]}, 열 {pivot[1]} (피벗 전)"
+                    title += f"Pivot Selection: Row {pivot[0]}, Column {pivot[1]} (Before Pivot)"
                 else:
-                    title += "최적 테이블"
+                    title += "Optimal Tableau"
 
                 iterations.append({
                     "title": title,
@@ -75,7 +75,7 @@ def main():
         response = {
             'results': {
                 'solution': solution,
-                'optimal_value': -res.fun,
+                'optimal_value': -res.fun if res.fun is not None else None,
                 'objective_function_str': objective_function_str,
                 'constraints_str': constraints_str,
                 'iterations': iterations

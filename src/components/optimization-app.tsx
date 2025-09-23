@@ -1,12 +1,12 @@
 
 'use client';
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, PlayCircle, FileJson, FlaskConical, Zap } from 'lucide-react';
+import { Sigma, Loader2, PlayCircle, FlaskConical, Zap } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarMenuItem, SidebarMenu, SidebarMenuButton, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 
@@ -112,7 +112,7 @@ const LinearProgrammingTool = () => {
     }, [c, A, b, toast]);
 
     const tableHeaders = useMemo(() => {
-        const headers = ['행/열'];
+        const headers = ['Basis'];
         for (let i = 1; i <= numVars; i++) headers.push(`x${i}`);
         for (let i = 1; i <= numConstraints; i++) headers.push(`s${i}`);
         headers.push('RHS');
@@ -123,19 +123,19 @@ const LinearProgrammingTool = () => {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">선형계획법 (Simplex 알고리즘) 보드</CardTitle>
+                    <CardTitle className="font-headline">Linear Programming (Simplex)</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-wrap items-center gap-4">
                     <div className="flex items-center gap-2">
-                        <Label htmlFor="num-vars">변수 개수:</Label>
+                        <Label htmlFor="num-vars">Variables:</Label>
                         <Input id="num-vars" type="number" value={numVars} onChange={e => setNumVars(Number(e.target.value))} className="w-20" min="1"/>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Label htmlFor="num-constraints">제약 개수:</Label>
+                        <Label htmlFor="num-constraints">Constraints:</Label>
                         <Input id="num-constraints" type="number" value={numConstraints} onChange={e => setNumConstraints(Number(e.target.value))} className="w-20" min="1"/>
                     </div>
-                    <Button onClick={handleBoardCreate}>입력 보드 만들기</Button>
-                    <Button onClick={loadExample} variant="outline">예제 불러오기</Button>
+                    <Button onClick={handleBoardCreate}>Create Input Board</Button>
+                    <Button onClick={loadExample} variant="outline">Load Example</Button>
                 </CardContent>
             </Card>
 
@@ -144,33 +144,35 @@ const LinearProgrammingTool = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg">문제 설정</CardTitle>
+                                <CardTitle className="text-lg">Problem Setup</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
-                                    <Label>목표식 계수 (Max Z)</Label>
+                                    <Label>Objective Function (Max Z)</Label>
                                     <div className="flex flex-wrap gap-2 mt-2">
                                         {Array.from({ length: numVars }).map((_, i) => (
                                             <div key={`c${i}`} className="flex items-center gap-1">
-                                                <Label htmlFor={`c${i+1}`} className="text-sm">c{i+1}:</Label>
                                                 <Input id={`c${i+1}`} type="number" value={c[i] ?? ''} onChange={e => handleInputChange('c', i, undefined, e.target.value)} className="w-20 h-8"/>
+                                                <Label htmlFor={`c${i+1}`} className="text-sm font-mono">x{i+1}</Label>
+                                                {i < numVars -1 && <span className="text-sm">+</span>}
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                                  <div>
-                                    <Label>제약식 (Σ aᵢⱼxⱼ ≤ bᵢ)</Label>
+                                    <Label>Constraints (Ax ≤ b)</Label>
                                     <div className="space-y-2 mt-2">
                                         {Array.from({ length: numConstraints }).map((_, i) => (
                                             <div key={`con${i}`} className="flex flex-wrap items-center gap-2">
                                                  {Array.from({ length: numVars }).map((_, j) => (
                                                      <div key={`a${i}${j}`} className="flex items-center gap-1">
-                                                        <Label htmlFor={`a${i+1}${j+1}`} className="text-sm">a{i+1}{j+1}:</Label>
-                                                        <Input id={`a${i+1}${j+1}`} type="number" value={A[i]?.[j] ?? ''} onChange={e => handleInputChange('A', i, j, e.target.value)} className="w-20 h-8"/>
+                                                        <Input id={`a${i+1}${j+1}`} type="number" value={A[i]?.[j] ?? ''} onChange={e => handleInputChange('A', i, j, e.target.value)} className="w-16 h-8"/>
+                                                        <Label htmlFor={`a${i+1}${j+1}`} className="text-sm font-mono">x{j+1}</Label>
+                                                         {j < numVars -1 && <span className="text-sm">+</span>}
                                                     </div>
                                                  ))}
                                                   <div className="flex items-center gap-1">
-                                                    <Label htmlFor={`b${i+1}`} className="text-sm">b{i+1}:</Label>
+                                                    <span className="text-sm font-mono">≤</span>
                                                     <Input id={`b${i+1}`} type="number" value={b[i] ?? ''} onChange={e => handleInputChange('b', i, undefined, e.target.value)} className="w-20 h-8"/>
                                                 </div>
                                             </div>
@@ -179,21 +181,21 @@ const LinearProgrammingTool = () => {
                                 </div>
                                  <div className="flex justify-end pt-4">
                                      <Button onClick={runAnalysis} disabled={isLoading}>
-                                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                                        단계별 단순형 실행
+                                        {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+                                        Run Simplex
                                     </Button>
                                  </div>
                             </CardContent>
                         </Card>
                         <div className="space-y-6">
                              <Card>
-                                <CardHeader><CardTitle className="text-lg">목표식</CardTitle></CardHeader>
+                                <CardHeader><CardTitle className="text-lg">Objective</CardTitle></CardHeader>
                                 <CardContent>
                                     <p className="font-mono text-lg">{analysisResult?.objective_function_str || 'Max Z = ' + c.map((val, i) => `${val}·x${i+1}`).join(' + ')}</p>
                                 </CardContent>
                             </Card>
                             <Card>
-                                <CardHeader><CardTitle className="text-lg">제약식</CardTitle></CardHeader>
+                                <CardHeader><CardTitle className="text-lg">Constraints</CardTitle></CardHeader>
                                 <CardContent>
                                     <ul className="list-disc pl-5 space-y-1 font-mono">
                                         {(analysisResult?.constraints_str || A.map((row, i) => `${row.map((val, j) => `${val}·x${j+1}`).join(' + ')} ≤ ${b[i]}`)).map((con, i) => (
@@ -208,16 +210,15 @@ const LinearProgrammingTool = () => {
                     {analysisResult && (
                         <div className="space-y-6">
                             <Card>
-                                <CardHeader><CardTitle className="text-lg">최적해 & 최적값</CardTitle></CardHeader>
+                                <CardHeader><CardTitle className="text-lg">Optimal Solution</CardTitle></CardHeader>
                                 <CardContent className="space-y-2">
-                                     <p><strong>해:</strong> {Object.entries(analysisResult.solution).map(([key, val]) => `${key}=${val.toFixed(6)}`).join(', ')}</p>
-                                     <p><strong>최적값 Z*:</strong> {analysisResult.optimal_value.toFixed(6)}</p>
-                                     <p><strong>방정식:</strong> Z = {c.map((val, i) => `${val}·(${analysisResult.solution[`x${i+1}`]?.toFixed(6) || 0})`).join(' + ')} = {analysisResult.optimal_value.toFixed(6)}</p>
+                                     <p><strong>Solution:</strong> {Object.entries(analysisResult.solution).map(([key, val]) => `${key}=${val.toFixed(3)}`).join(', ')}</p>
+                                     <p><strong>Optimal Value Z*:</strong> {analysisResult.optimal_value.toFixed(3)}</p>
                                 </CardContent>
                             </Card>
 
                             <Card>
-                                <CardHeader><CardTitle className="text-lg">단계별 Simplex 계산</CardTitle></CardHeader>
+                                <CardHeader><CardTitle className="text-lg">Simplex Iterations</CardTitle></CardHeader>
                                 <CardContent className="space-y-6">
                                     {analysisResult.iterations.map((iter, index) => (
                                         <div key={index}>
@@ -232,8 +233,7 @@ const LinearProgrammingTool = () => {
                                                     <TableBody>
                                                         {iter.tableau.map((row, rIndex) => (
                                                             <TableRow key={rIndex}>
-                                                                <TableCell>{rIndex < numConstraints ? `제약${rIndex+1}` : 'Z'}</TableCell>
-                                                                {row.map((cell, cIndex) => <TableCell key={cIndex} className="font-mono">{cell.toFixed(6)}</TableCell>)}
+                                                                {row.map((cell, cIndex) => <TableCell key={cIndex} className="font-mono">{cell.toFixed(3)}</TableCell>)}
                                                             </TableRow>
                                                         ))}
                                                     </TableBody>
