@@ -11,10 +11,13 @@ import {
   SidebarTrigger,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenu
+  SidebarMenu,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from '@/components/ui/button';
 import {
   BrainCircuit,
   TrendingUp,
@@ -203,6 +206,7 @@ export default function MachineLearningApp() {
   };
   
   return (
+    <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <Sidebar>
           <SidebarHeader>
@@ -317,5 +321,6 @@ export default function MachineLearningApp() {
           </div>
         </SidebarInset>
       </div>
+    </SidebarProvider>
   );
 }
