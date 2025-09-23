@@ -611,7 +611,7 @@ const RatingQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, 
                   </div>
               )}
               {!isPreview && (
-                  <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
+                   <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
                       <ImageIcon className="w-5 h-5 text-muted-foreground" />
                   </Button>
               )}
@@ -1020,9 +1020,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                                     <TableHead className="text-right">Percentage</TableHead>
                                 </TableRow>
                                 </TableHeader>
-                                <TableBody>
-                                    {tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}
-                                </TableBody>
+                                <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
                             </Table>
                         </CardContent>
                     </Card>
@@ -2285,7 +2283,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     </TabsList>
                     <TabsContent value="design">
                         <div className="grid md:grid-cols-12 gap-6 mt-4">
-                            <div className="md:col-span-2">
+                            <div className="md:col-span-3">
                                 <Card>
                                     <CardHeader>
                                         <CardTitle className="text-lg">Toolbox</CardTitle>
@@ -2412,7 +2410,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     </CardContent>
                                  </Card>
                             </div>
-                            <div className="md:col-span-10">
+                            <div className="md:col-span-9">
                                  <Card
                                     className="min-h-[600px] bg-cover bg-center"
                                     style={{ 
