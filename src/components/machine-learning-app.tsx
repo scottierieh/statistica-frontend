@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -37,8 +36,10 @@ import * as XLSX from 'xlsx';
 import RidgeRegressionPage from './pages/ridge-regression-page';
 import LassoRegressionPage from './pages/lasso-regression-page';
 import FruitClusteringPage from './pages/fruit-clustering-page';
+import DecisionTreePage from './pages/decision-tree-page';
+import ClassifierComparisonPage from './pages/classifier-comparison-page';
 
-type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering';
+type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison';
 
 const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExample, allHeaders, categoricalHeaders }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], onLoadExample: (e: ExampleDataSet) => void, allHeaders: string[], categoricalHeaders: string[] }) => {
     switch (activeTask) {
@@ -54,6 +55,10 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExampl
             return <LassoRegressionPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} />;
         case 'fruit-clustering':
             return <FruitClusteringPage />;
+        case 'decision-tree-classifier':
+            return <DecisionTreePage data={data} allHeaders={allHeaders} numericHeaders={numericHeaders} categoricalHeaders={categoricalHeaders} onLoadExample={onLoadExample} />;
+        case 'classifier-comparison':
+            return <ClassifierComparisonPage />;
         case 'regression':
         case 'classification':
         case 'tree':
@@ -86,6 +91,8 @@ export default function MachineLearningApp() {
   const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  
+  const hasData = data.length > 0;
 
   const processData = useCallback((content: string, name: string) => {
     setIsUploading(true);
@@ -185,8 +192,6 @@ export default function MachineLearningApp() {
     }
   };
   
-  const hasData = data.length > 0;
-  
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -267,15 +272,23 @@ export default function MachineLearningApp() {
                           딥러닝 분류
                         </SidebarMenuSubButton>
                     </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuSubButton
+                          onClick={() => setActiveTask('classifier-comparison')}
+                          isActive={activeTask === 'classifier-comparison'}
+                        >
+                          분류기 모델 비교
+                        </SidebarMenuSubButton>
+                    </SidebarMenuItem>
                 </SidebarMenuSub>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => setActiveTask('tree')}
-                  isActive={activeTask === 'tree'}
+                  onClick={() => setActiveTask('decision-tree-classifier')}
+                  isActive={activeTask === 'decision-tree-classifier'}
                 >
                   <GitBranch />
-                  <span>트리 알고리즘</span>
+                  <span>의사결정 트리 분류</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
