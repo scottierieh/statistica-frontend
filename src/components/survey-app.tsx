@@ -67,6 +67,7 @@ import {
   ZoomIn,
   ZoomOut,
   AreaChart,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -2066,8 +2067,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                 if(age && typeof satisfaction === 'number') {
                     if(!ageGroupSatisfaction[age]) ageGroupSatisfaction[age] = [];
                     ageGroupSatisfaction[age].push(satisfaction);
-                }
-            };
+                };
+            }
         });
         const avgAgeSatisfaction = Object.entries(ageGroupSatisfaction).map(([age, scores]) => ({ age, avg: mean(scores) }));
         if(avgAgeSatisfaction.length > 1) {
