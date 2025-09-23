@@ -68,7 +68,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [showHelpPage, setShowHelpPage] = useState(false);
+    const [showHelpPage, setShowHelpPage] = useState(data.length === 0);
 
     useEffect(() => {
         const defaultTarget = numericHeaders.length > 1 ? numericHeaders[numericHeaders.length - 1] : numericHeaders[0];
@@ -263,64 +263,49 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">KNN Regression Setup ({mode})</CardTitle>
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="font-headline">KNN Regression Setup ({mode})</CardTitle>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Learn about KNN Regression.</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     <div className="flex items-center gap-4">
-                         <div className="flex-1 space-y-2">
-                             <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <Label>Target Variable</Label>
-                                    <Select value={target} onValueChange={setTarget}>
+                     <div className="flex-1 space-y-2">
+                         <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <Label>Target Variable</Label>
+                                <Select value={target} onValueChange={setTarget}>
+                                    <SelectTrigger><SelectValue/></SelectTrigger>
+                                    <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                            {mode === 'simple' ? (
+                                 <div>
+                                    <Label>Feature Variable</Label>
+                                    <Select value={features[0]} onValueChange={v => setFeatures([v])}>
                                         <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{availableFeatures.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
-                                {mode === 'simple' ? (
-                                     <div>
-                                        <Label>Feature Variable</Label>
-                                        <Select value={features[0]} onValueChange={v => setFeatures([v])}>
-                                            <SelectTrigger><SelectValue/></SelectTrigger>
-                                            <SelectContent>{availableFeatures.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                    </div>
-                                ) : (
-                                    <div>
-                                        <Label>Features</Label>
-                                        <ScrollArea className="h-24 border rounded-md p-2">
-                                        {availableFeatures.map(h => (
-                                                <div key={h} className="flex items-center space-x-2">
-                                                    <Checkbox id={`feat-${h}`} checked={features.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
-                                                    <Label htmlFor={`feat-${h}`}>{h}</Label>
-                                                </div>
-                                            ))}
-                                        </ScrollArea>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <Button variant="outline" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="outline" size="icon"><Info className="h-4 w-4" /></Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>K is the number of nearest neighbors to consider.</p></TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="outline" size="icon"><Settings className="h-4 w-4" /></Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Adjust the train/test split ratio.</p></TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="outline" size="icon"><TrendingUp className="h-4 w-4" /></Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Run analysis and view performance metrics.</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                            ) : (
+                                <div>
+                                    <Label>Features</Label>
+                                    <ScrollArea className="h-24 border rounded-md p-2">
+                                    {availableFeatures.map(h => (
+                                            <div key={h} className="flex items-center space-x-2">
+                                                <Checkbox id={`feat-${h}`} checked={features.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
+                                                <Label htmlFor={`feat-${h}`}>{h}</Label>
+                                            </div>
+                                        ))}
+                                    </ScrollArea>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">
@@ -429,9 +414,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Info className="h-5 w-5"/>Interpreting R-squared Scores</CardTitle>
-                        </CardHeader>
+                        <CardHeader><CardTitle className="flex items-center gap-2"><Info className="h-5 w-5"/>Interpreting R-squared Scores</CardTitle></CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
