@@ -42,12 +42,14 @@ const LinearProgrammingTool = () => {
 
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+    const [showBoard, setShowBoard] = useState(true);
     
     const handleBoardCreate = () => {
         setC(Array(numVars).fill(0));
         setA(Array(numConstraints).fill(0).map(() => Array(numVars).fill(0)));
         setB(Array(numConstraints).fill(0));
         setAnalysisResult(null);
+        setShowBoard(true);
     };
 
     const loadExample = () => {
@@ -57,6 +59,7 @@ const LinearProgrammingTool = () => {
         setA(defaultProblem.A);
         setB(defaultProblem.b);
         setAnalysisResult(null);
+        setShowBoard(true);
     };
 
     const handleInputChange = (type: 'c' | 'A' | 'b', index: number, subIndex?: number, value?: string) => {
@@ -142,43 +145,45 @@ const LinearProgrammingTool = () => {
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">문제 설정</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <Label>목표식 계수 (Max Z)</Label>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {Array.from({ length: numVars }).map((_, i) => (
-                                    <div key={`c${i}`} className="flex items-center gap-1">
-                                        <Label htmlFor={`c${i+1}`} className="text-sm">c{i+1}:</Label>
-                                        <Input id={`c${i+1}`} type="number" value={c[i] ?? ''} onChange={e => handleInputChange('c', i, undefined, e.target.value)} className="w-20 h-8"/>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                         <div>
-                            <Label>제약식 (Σ aᵢⱼxⱼ ≤ bᵢ)</Label>
-                            <div className="space-y-2 mt-2">
-                                {Array.from({ length: numConstraints }).map((_, i) => (
-                                    <div key={`con${i}`} className="flex flex-wrap items-center gap-2">
-                                         {Array.from({ length: numVars }).map((_, j) => (
-                                             <div key={`a${i}${j}`} className="flex items-center gap-1">
-                                                <Label htmlFor={`a${i+1}${j+1}`} className="text-sm">a{i+1}{j+1}:</Label>
-                                                <Input id={`a${i+1}${j+1}`} type="number" value={A[i]?.[j] ?? ''} onChange={e => handleInputChange('A', i, j, e.target.value)} className="w-20 h-8"/>
-                                            </div>
-                                         ))}
-                                          <div className="flex items-center gap-1">
-                                            <Label htmlFor={`b${i+1}`} className="text-sm">b{i+1}:</Label>
-                                            <Input id={`b${i+1}`} type="number" value={b[i] ?? ''} onChange={e => handleInputChange('b', i, undefined, e.target.value)} className="w-20 h-8"/>
+                 {showBoard && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">문제 설정</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Label>목표식 계수 (Max Z)</Label>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {Array.from({ length: numVars }).map((_, i) => (
+                                        <div key={`c${i}`} className="flex items-center gap-1">
+                                            <Label htmlFor={`c${i+1}`} className="text-sm">c{i+1}:</Label>
+                                            <Input id={`c${i+1}`} type="number" value={c[i] ?? ''} onChange={e => handleInputChange('c', i, undefined, e.target.value)} className="w-20 h-8"/>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                             <div>
+                                <Label>제약식 (Σ aᵢⱼxⱼ ≤ bᵢ)</Label>
+                                <div className="space-y-2 mt-2">
+                                    {Array.from({ length: numConstraints }).map((_, i) => (
+                                        <div key={`con${i}`} className="flex flex-wrap items-center gap-2">
+                                             {Array.from({ length: numVars }).map((_, j) => (
+                                                 <div key={`a${i}${j}`} className="flex items-center gap-1">
+                                                    <Label htmlFor={`a${i+1}${j+1}`} className="text-sm">a{i+1}{j+1}:</Label>
+                                                    <Input id={`a${i+1}${j+1}`} type="number" value={A[i]?.[j] ?? ''} onChange={e => handleInputChange('A', i, j, e.target.value)} className="w-20 h-8"/>
+                                                </div>
+                                             ))}
+                                              <div className="flex items-center gap-1">
+                                                <Label htmlFor={`b${i+1}`} className="text-sm">b{i+1}:</Label>
+                                                <Input id={`b${i+1}`} type="number" value={b[i] ?? ''} onChange={e => handleInputChange('b', i, undefined, e.target.value)} className="w-20 h-8"/>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                 )}
                 <div className="space-y-6">
                      <Card>
                         <CardHeader><CardTitle className="text-lg">목표식</CardTitle></CardHeader>
