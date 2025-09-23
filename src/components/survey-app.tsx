@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
@@ -104,7 +105,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { produce } from 'immer';
 
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
 const VanWestendorpPage = dynamic(() => import('@/components/pages/van-westendorp-page'), { ssr: false });
 
 // Template Definition
@@ -2967,3 +2968,4 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
+
