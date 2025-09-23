@@ -706,9 +706,9 @@ const NPSQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isP
               </Button>
               )}
               {!isPreview && onDelete && (
-              <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
-                  <Trash2 className="w-5 h-5 text-destructive" />
-              </Button>
+                <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
+                    <Trash2 className="w-5 h-5 text-destructive" />
+                </Button>
               )}
           </div>
       </div>
@@ -729,7 +729,7 @@ const NPSQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isP
           <span>Extremely likely</span>
       </div>
     </div>
-  );
+);
 
 const DescriptionBlock = ({ question, onDelete, onUpdate, isPreview, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; cardClassName?: string; }) => (
     <div className={cn("p-4 bg-muted/20", cardClassName)}>
@@ -884,26 +884,26 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                     {(question.rows || []).map((row: string, rowIndex: number) => (
-                        <TableRow key={rowIndex}>
-                            <TableCell className="group relative">
-                                {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
-                                {!isPreview && (
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 absolute top-1/2 -translate-y-1/2 right-0" onClick={() => deleteRow(rowIndex)}>
-                                        <Trash2 className="w-4 h-4 text-destructive"/>
-                                    </Button>
-                                )}
-                            </TableCell>
-                             <div role="radiogroup" className="contents">
+                    {(question.rows || []).map((row: string, rowIndex: number) => (
+                        <RadioGroup key={rowIndex} asChild>
+                            <TableRow>
+                                <TableCell className="group relative">
+                                    {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
+                                    {!isPreview && (
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 absolute top-1/2 -translate-y-1/2 right-0" onClick={() => deleteRow(rowIndex)}>
+                                            <Trash2 className="w-4 h-4 text-destructive"/>
+                                        </Button>
+                                    )}
+                                </TableCell>
                                 {(question.columns || []).map((col: string, colIndex: number) => (
                                     <TableCell key={colIndex} className="text-center">
-                                          <RadioGroupItem value={col} onClick={() => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = col; }))} checked={answer?.[row] === col}/>
+                                        <RadioGroupItem value={col} onClick={() => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = col; }))} checked={answer?.[row] === col}/>
                                     </TableCell>
                                 ))}
-                            </div>
-                            {!isPreview && <TableCell></TableCell>}
-                         </TableRow>
-                     ))}
+                                {!isPreview && <TableCell></TableCell>}
+                            </TableRow>
+                        </RadioGroup>
+                    ))}
                 </TableBody>
             </Table>
             {!isPreview && (
@@ -2861,4 +2861,3 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
-
