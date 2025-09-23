@@ -39,19 +39,15 @@ def main():
         df = pd.DataFrame(data)
 
         # --- Data Preparation ---
-        # Handle categorical features using one-hot encoding
         X = pd.get_dummies(df[features], drop_first=True)
         
-        # Ensure all feature columns are numeric
         for col in X.columns:
             X[col] = pd.to_numeric(X[col], errors='coerce')
         
-        # Encode target variable
         le = LabelEncoder()
         y = le.fit_transform(df[target])
         class_names = le.classes_.tolist()
 
-        # Drop rows with NaN values that might have been introduced
         combined = pd.concat([X, pd.Series(y, name='target')], axis=1).dropna()
         X_clean = combined.drop('target', axis=1)
         y_clean = combined['target']
@@ -70,7 +66,7 @@ def main():
         accuracy = accuracy_score(y_test, y_pred)
         cm = confusion_matrix(y_test, y_pred).tolist()
         
-        # --- Plotting ---
+        # --- Decision Tree Plotting ---
         plt.figure(figsize=(20, 15))
         plot_tree(clf, 
                   feature_names=X_clean.columns.tolist(),
@@ -84,7 +80,25 @@ def main():
         plt.savefig(buf, format='png', bbox_inches='tight')
         plt.close()
         buf.seek(0)
-        plot_image = base64.b64encode(buf.read()).decode('utf-8')
+        tree_plot_image = base64.b64encode(buf.read()).decode('utf-8')
+
+        # --- Cost-Complexity Pruning Path Plot ---
+        path = clf.cost_complexity_pruning_path(X_train, y_train)
+        ccp_alphas, impurities = path.ccp_alphas, path.impurities
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(ccp_alphas[:-1], impurities[:-1], marker="o", drawstyle="steps-post")
+        ax.set_xlabel("Effective Alpha")
+        ax.set_ylabel("Total Impurity of Leaves")
+        ax.set_title("Total Impurity vs Effective Alpha for Training Set")
+        ax.grid(True)
+        
+        pruning_buf = io.BytesIO()
+        plt.savefig(pruning_buf, format='png', bbox_inches='tight')
+        plt.close(fig)
+        pruning_buf.seek(0)
+        pruning_plot_image = base64.b64encode(pruning_buf.read()).decode('utf-8')
+
         
         response = {
             'results': {
@@ -92,7 +106,8 @@ def main():
                 'confusion_matrix': cm,
                 'class_names': class_names,
             },
-            'plot': f"data:image/png;base64,{plot_image}"
+            'plot': f"data:image/png;base64,{tree_plot_image}",
+            'pruning_plot': f"data:image/png;base64,{pruning_plot_image}"
         }
         
         print(json.dumps(response, default=_to_native_type))

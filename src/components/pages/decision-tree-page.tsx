@@ -26,6 +26,7 @@ interface DtResults {
 interface FullAnalysisResponse {
     results: DtResults;
     plot: string;
+    pruning_plot?: string;
 }
 
 const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: ExampleDataSet) => void, onBackToSetup: () => void }) => {
@@ -179,7 +180,7 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                         <div>
                             <Label>Target Variable</Label>
                             <Select value={target} onValueChange={setTarget}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectTrigger><SelectValue placeholder="Select target"/></SelectTrigger>
                                 <SelectContent>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
@@ -251,6 +252,17 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
                              <Image src={analysisResult.plot} alt="Decision Tree Plot" width={1200} height={800} className="w-full rounded-md border"/>
                         </CardContent>
                     </Card>
+                     {analysisResult.pruning_plot && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Cost-Complexity Pruning Path</CardTitle>
+                                <CardDescription>This plot shows how the total impurity of leaves decreases as the effective alpha (pruning parameter) increases.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Image src={analysisResult.pruning_plot} alt="Pruning Path Plot" width={1000} height={600} className="w-full rounded-md border"/>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             )}
         </div>
