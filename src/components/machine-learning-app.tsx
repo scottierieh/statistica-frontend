@@ -13,7 +13,10 @@ import {
   SidebarMenuButton,
   SidebarMenu,
   SidebarMenuSub,
-  SidebarMenuSubButton
+  SidebarMenuSubButton,
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
 } from '@/components/ui/sidebar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import {
@@ -24,6 +27,7 @@ import {
   Users,
   Layers,
   Container,
+  ChevronDown,
 } from 'lucide-react';
 import DeepLearningApp from './deep-learning-app';
 import KnnRegressionPage from './pages/knn-regression-page';
@@ -38,6 +42,7 @@ import LassoRegressionPage from './pages/lasso-regression-page';
 import FruitClusteringPage from './pages/fruit-clustering-page';
 import DecisionTreePage from './pages/decision-tree-page';
 import ClassifierComparisonPage from './pages/classifier-comparison-page';
+import { cn } from '@/lib/utils';
 
 type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison';
 
@@ -91,8 +96,17 @@ export default function MachineLearningApp() {
   const [categoricalHeaders, setCategoricalHeaders] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [openCategories, setOpenCategories] = useState<string[]>(['회귀 알고리즘', '분류 알고리즘', '비지도 학습']);
   
   const hasData = data.length > 0;
+
+  const toggleCategory = (category: string) => {
+    setOpenCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    )
+  };
 
   const processData = useCallback((content: string, name: string) => {
     setIsUploading(true);
@@ -193,156 +207,119 @@ export default function MachineLearningApp() {
   };
   
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <Sidebar>
-          <SidebarHeader>
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <BrainCircuit className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <h1 className="text-xl font-headline font-bold">Machine Learning</h1>
+    <div className="flex min-h-screen w-full">
+      <Sidebar>
+        <SidebarHeader>
+          <div className="flex items-center gap-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+              <BrainCircuit className="h-6 w-6 text-primary-foreground" />
             </div>
-             <div className='p-2'>
-              <DataUploader 
-                onFileSelected={handleFileSelected}
-                loading={isUploading}
-              />
-            </div>
-          </SidebarHeader>
-          <SidebarContent className="flex flex-col gap-2 p-2">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => {}}
-                  isActive={activeTask.includes('regression')}
-                >
-                  <TrendingUp />
-                  <span>회귀 알고리즘</span>
-                </SidebarMenuButton>
-                <SidebarMenuSub>
-                    <SidebarMenuItem>
-                        <SidebarMenuSubButton
-                          onClick={() => setActiveTask('knn-regression-simple')}
-                          isActive={activeTask === 'knn-regression-simple'}
-                        >
-                          Simple KNN Regression
-                        </SidebarMenuSubButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                         <SidebarMenuSubButton
-                          onClick={() => setActiveTask('knn-regression-multiple')}
-                          isActive={activeTask === 'knn-regression-multiple'}
-                        >
-                          Multiple KNN Regression
-                        </SidebarMenuSubButton>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                        <SidebarMenuSubButton
-                          onClick={() => setActiveTask('ridge-regression')}
-                          isActive={activeTask === 'ridge-regression'}
-                        >
-                          Ridge Regression
-                        </SidebarMenuSubButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuSubButton
-                          onClick={() => setActiveTask('lasso-regression')}
-                          isActive={activeTask === 'lasso-regression'}
-                        >
-                          Lasso Regression
-                        </SidebarMenuSubButton>
-                    </SidebarMenuItem>
-                </SidebarMenuSub>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => {}}
-                  isActive={activeTask.includes('classification') || activeTask.includes('deep-learning')}
-                >
+            <h1 className="text-xl font-headline font-bold">Machine Learning</h1>
+          </div>
+           <div className='p-2'>
+            <DataUploader 
+              onFileSelected={handleFileSelected}
+              loading={isUploading}
+            />
+          </div>
+        </SidebarHeader>
+        <SidebarContent className="flex flex-col gap-2 p-2">
+          <SidebarMenu>
+              <Collapsible open={openCategories.includes('회귀 알고리즘')} onOpenChange={() => toggleCategory('회귀 알고리즘')}>
+                  <CollapsibleTrigger className="w-full">
+                      <SidebarMenuButton isActive={activeTask.includes('regression')} className="w-full">
+                          <TrendingUp />
+                          <span>회귀 알고리즘</span>
+                          <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes('회귀 알고리즘') && 'rotate-180')}/>
+                      </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                      <SidebarMenuSub>
+                          <SidebarMenuItem>
+                              <SidebarMenuSubButton onClick={() => setActiveTask('knn-regression-simple')} isActive={activeTask === 'knn-regression-simple'}>Simple KNN Regression</SidebarMenuSubButton>
+                          </SidebarMenuItem>
+                           <SidebarMenuItem>
+                              <SidebarMenuSubButton onClick={() => setActiveTask('knn-regression-multiple')} isActive={activeTask === 'knn-regression-multiple'}>Multiple KNN Regression</SidebarMenuSubButton>
+                          </SidebarMenuItem>
+                           <SidebarMenuItem>
+                              <SidebarMenuSubButton onClick={() => setActiveTask('ridge-regression')} isActive={activeTask === 'ridge-regression'}>Ridge Regression</SidebarMenuSubButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                              <SidebarMenuSubButton onClick={() => setActiveTask('lasso-regression')} isActive={activeTask === 'lasso-regression'}>Lasso Regression</SidebarMenuSubButton>
+                          </SidebarMenuItem>
+                      </SidebarMenuSub>
+                  </CollapsibleContent>
+              </Collapsible>
+            <Collapsible open={openCategories.includes('분류 알고리즘')} onOpenChange={() => toggleCategory('분류 알고리즘')}>
+              <CollapsibleTrigger className="w-full">
+                <SidebarMenuButton isActive={activeTask.includes('classification') || activeTask.includes('deep-learning') || activeTask.includes('tree')} className="w-full">
                   <Binary />
                   <span>분류 알고리즘</span>
+                   <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes('분류 알고리즘') && 'rotate-180')}/>
                 </SidebarMenuButton>
-                 <SidebarMenuSub>
-                    <SidebarMenuItem>
-                        <SidebarMenuSubButton
-                          onClick={() => setActiveTask('deep-learning')}
-                          isActive={activeTask === 'deep-learning'}
-                        >
-                          딥러닝 분류
-                        </SidebarMenuSubButton>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                        <SidebarMenuSubButton
-                          onClick={() => setActiveTask('classifier-comparison')}
-                          isActive={activeTask === 'classifier-comparison'}
-                        >
-                          분류기 모델 비교
-                        </SidebarMenuSubButton>
-                    </SidebarMenuItem>
-                </SidebarMenuSub>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveTask('decision-tree-classifier')}
-                  isActive={activeTask === 'decision-tree-classifier'}
-                >
-                  <GitBranch />
-                  <span>의사결정 트리 분류</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => {}}
-                  isActive={activeTask.includes('unsupervised') || activeTask.includes('fruit-clustering')}
-                >
-                  <Users />
-                  <span>비지도 학습</span>
-                </SidebarMenuButton>
-                 <SidebarMenuSub>
-                    <SidebarMenuItem>
-                        <SidebarMenuSubButton
-                          onClick={() => setActiveTask('fruit-clustering')}
-                          isActive={activeTask === 'fruit-clustering'}
-                        >
-                          과일 이미지 군집 분석
-                        </SidebarMenuSubButton>
-                    </SidebarMenuItem>
-                </SidebarMenuSub>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarContent>
-        </Sidebar>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                      <SidebarMenuItem>
+                          <SidebarMenuSubButton onClick={() => setActiveTask('deep-learning')} isActive={activeTask === 'deep-learning'}>딥러닝 분류</SidebarMenuSubButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                          <SidebarMenuSubButton onClick={() => setActiveTask('classifier-comparison')} isActive={activeTask === 'classifier-comparison'}>분류기 모델 비교</SidebarMenuSubButton>
+                      </SidebarMenuItem>
+                       <SidebarMenuItem>
+                          <SidebarMenuSubButton onClick={() => setActiveTask('decision-tree-classifier')} isActive={activeTask === 'decision-tree-classifier'}>의사결정 트리 분류</SidebarMenuSubButton>
+                      </SidebarMenuItem>
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+            </Collapsible>
+            <Collapsible open={openCategories.includes('비지도 학습')} onOpenChange={() => toggleCategory('비지도 학습')}>
+                <CollapsibleTrigger className="w-full">
+                    <SidebarMenuButton isActive={activeTask.includes('unsupervised') || activeTask.includes('fruit-clustering')} className="w-full">
+                      <Users />
+                      <span>비지도 학습</span>
+                       <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes('비지도 학습') && 'rotate-180')}/>
+                    </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                   <SidebarMenuSub>
+                      <SidebarMenuItem>
+                          <SidebarMenuSubButton onClick={() => setActiveTask('fruit-clustering')} isActive={activeTask === 'fruit-clustering'}>과일 이미지 군집 분석</SidebarMenuSubButton>
+                      </SidebarMenuItem>
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+            </Collapsible>
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
 
-        <SidebarInset>
-          <div className="p-4 md:p-6 h-full flex flex-col gap-4">
-            <header className="flex items-center justify-between md:justify-end">
-                <SidebarTrigger className="md:hidden"/>
-                <h1 className="text-2xl font-headline font-bold md:hidden">Machine Learning</h1>
-                <div />
-            </header>
-            
-            {hasData && (
-              <DataPreview 
-                fileName={fileName}
-                data={data}
-                headers={allHeaders}
-                onDownload={handleDownloadData}
-                onClearData={handleClearData}
-              />
-            )}
-            
-            <MachineLearningContent 
-                activeTask={activeTask}
-                data={data}
-                numericHeaders={numericHeaders}
-                categoricalHeaders={categoricalHeaders}
-                allHeaders={allHeaders}
-                onLoadExample={handleLoadExampleData}
-             />
-          </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+      <SidebarInset>
+        <div className="p-4 md:p-6 h-full flex flex-col gap-4">
+          <header className="flex items-center justify-between md:justify-end">
+              <SidebarTrigger className="md:hidden"/>
+              <h1 className="text-2xl font-headline font-bold md:hidden">Machine Learning</h1>
+              <div />
+          </header>
+          
+          {hasData && (
+            <DataPreview 
+              fileName={fileName}
+              data={data}
+              headers={allHeaders}
+              onDownload={handleDownloadData}
+              onClearData={handleClearData}
+            />
+          )}
+          
+          <MachineLearningContent 
+              activeTask={activeTask}
+              data={data}
+              numericHeaders={numericHeaders}
+              categoricalHeaders={categoricalHeaders}
+              allHeaders={allHeaders}
+              onLoadExample={handleLoadExampleData}
+           />
+        </div>
+      </SidebarInset>
+    </div>
   );
 }
