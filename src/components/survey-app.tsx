@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
@@ -86,7 +85,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useToast } from "@/hooks/use-toast";
@@ -984,15 +983,13 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                <>
-                                {question.columns.map((col: string, colIndex: number) => (
-                                    <TableCell key={colIndex} className="text-center">
+                            {question.columns.map((col: string, colIndex: number) => (
+                                <TableCell key={colIndex} className="text-center">
+                                    <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))} className="flex justify-center">
                                         <RadioGroupItem value={col}/>
-                                    </TableCell>
-                                ))}
-                                </>
-                            </RadioGroup>
+                                    </RadioGroup>
+                                </TableCell>
+                            ))}
                             {!isPreview && <TableCell></TableCell>}
                         </TableRow>
                     ))}
@@ -1098,7 +1095,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
             baseLayout.margin.l = 120;
         }
         if (chartType === 'bar') {
-            baseLayout.xaxis.tickangle = -45;
+            (baseLayout.xaxis as any).tickangle = -45;
         }
         return baseLayout;
     }, [chartType]);
@@ -1633,6 +1630,8 @@ function GeneralSurveyPageContentFromClient() {
     return <GeneralSurveyPageContent surveyId={surveyId as string} template={template} />;
 }
 
+type Position = { x: number; y: number };
+
 function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; template?: string | null }) {
     const [survey, setSurvey] = useState<any>({
         title: 'Untitled Survey',
@@ -1672,6 +1671,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     const [uploadingImageForQuestionId, setUploadingImageForQuestionId] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [loadedTemplate, setLoadedTemplate] = useState(false);
+    
+    const [dashboardPositions, setDashboardPositions] = useState<{ [key: string]: Position }>({});
 
     
     const sensors = useSensors(
@@ -2038,6 +2039,20 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         }
       }
 
+    const handleDashboardDragEnd = (event: DragEndEvent) => {
+        const {active, delta} = event;
+        setDashboardPositions(prev => {
+            const currentPosition = prev[active.id] || { x: 0, y: 0 };
+            return {
+                ...prev,
+                [active.id]: {
+                    x: currentPosition.x + delta.x,
+                    y: currentPosition.y + delta.y,
+                }
+            };
+        });
+    };
+
     const saveAndTest = () => {
         if(saveDraft()) {
             setIsShareModalOpen(true);
@@ -2334,17 +2349,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     useEffect(() => {
         setAnalysisItems(survey.questions);
     }, [survey.questions]);
-    
-    const handleDashboardDragEnd = (event: DragEndEvent) => {
-        const {active, over} = event;
-        if (over && active.id !== over.id) {
-            setAnalysisItems((items) => {
-                const oldIndex = items.findIndex((item: any) => item.id === active.id);
-                const newIndex = items.findIndex((item: any) => item.id === over.id);
-                return arrayMove(items, oldIndex, newIndex);
-            });
-        }
-    };
 
 
     return (
@@ -2858,44 +2862,40 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     <p className="text-muted-foreground">No responses yet to build a dashboard.</p>
                                 </div>
                             ) : (
-                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDashboardDragEnd}>
-                                    <SortableContext items={analysisItems.map((q: any) => q.id)} strategy={verticalListSortingStrategy}>
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                            {analysisItems.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any) => {
-                                                const { noData, chartData } = getAnalysisDataForQuestion(q.id);
-                                                if (noData) return null;
-                                                
-                                                 const ChartComponent = () => {
-                                                    switch (q.type) {
-                                                        case 'single':
-                                                        case 'multiple':
-                                                        case 'dropdown':
-                                                            return <Plot data={[{ values: chartData.map((d: any) => d.count), labels: chartData.map((d: any) => d.name), type: 'pie', hole: .4 }]} layout={{ autosize: true, margin: { t: 20, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
-                                                        case 'number':
-                                                            return <Plot data={[{ x: chartData.values, type: 'histogram' }]} layout={{ autosize: true, margin: { t: 40, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
-                                                        case 'rating':
-                                                            return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} total={q.scale?.length || 5} /><p>{chartData.avg.toFixed(2)} / {q.scale?.length || 5}</p></div>;
-                                                        case 'nps':
-                                                            return <div className="text-5xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
-                                                        case 'text':
-                                                            return <p className="text-sm text-muted-foreground p-4">Text analysis visual coming soon.</p>;
-                                                        default: return <p>Chart not available.</p>;
-                                                    }
-                                                };
-                                                
-                                                return (
-                                                     <SortableCard key={q.id} id={q.id}>
-                                                        <CardHeader>
-                                                            <CardTitle className="truncate">{q.title}</CardTitle>
-                                                        </CardHeader>
-                                                        <CardContent className="flex items-center justify-center min-h-[300px]">
-                                                            <ChartComponent />
-                                                        </CardContent>
-                                                    </SortableCard>
-                                                )
-                                            })}
-                                        </div>
-                                    </SortableContext>
+                                <DndContext sensors={sensors} onDragEnd={handleDashboardDragEnd}>
+                                    <div className="relative w-[1000px] h-[800px] bg-muted/50 rounded-lg border overflow-hidden">
+                                        {analysisItems.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, i: number) => {
+                                            const { noData, chartData } = getAnalysisDataForQuestion(q.id);
+                                            if (noData) return null;
+                                            
+                                             const ChartComponent = () => {
+                                                switch (q.type) {
+                                                    case 'single': case 'multiple': case 'dropdown':
+                                                        return <Plot data={[{ values: chartData.map((d: any) => d.count), labels: chartData.map((d: any) => d.name), type: 'pie', hole: .4 }]} layout={{ autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 }, legend: {orientation: 'h'} }} style={{ width: '100%', height: '100%' }} useResizeHandler/>;
+                                                    case 'number':
+                                                        return <Plot data={[{ x: chartData.values, type: 'histogram' }]} layout={{ autosize: true, margin: { t: 40, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '100%' }} useResizeHandler/>;
+                                                    case 'rating':
+                                                        return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} total={q.scale?.length || 5} /><p>{chartData.avg.toFixed(2)} / {q.scale?.length || 5}</p></div>;
+                                                    case 'nps':
+                                                        return <div className="text-5xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
+                                                    case 'text':
+                                                        return <p className="text-sm text-muted-foreground p-4">Text analysis visual coming soon.</p>;
+                                                    default: return <p>Chart not available.</p>;
+                                                }
+                                            };
+                                            
+                                            return (
+                                                <DraggableDashboardCard key={q.id} id={q.id} position={dashboardPositions[q.id] || {x: (i % 3) * 320 + 20, y: Math.floor(i / 3) * 320 + 20}}>
+                                                    <CardHeader>
+                                                        <CardTitle className="truncate text-base">{q.title}</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="flex items-center justify-center p-2">
+                                                        <ChartComponent />
+                                                    </CardContent>
+                                                </DraggableDashboardCard>
+                                            )
+                                        })}
+                                    </div>
                                 </DndContext>
                             )}
                          </CardContent>
@@ -2953,21 +2953,25 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
 
-const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) => {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position: Position }) => {
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
+    
     const style = {
-        transform: transform ? CSS.Transform.toString(transform) : undefined,
-        transition,
+        transform: transform
+            ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+            : `translate3d(${position.x}px, ${position.y}px, 0)`,
+        width: 300,
+        height: 300,
     };
+
     return (
-        <div ref={setNodeRef} style={style} className="relative">
-            <Card>
+        <div ref={setNodeRef} style={style} className="absolute">
+            <Card className="w-full h-full shadow-lg">
                 {children}
             </Card>
-            <div {...attributes} {...listeners} className="absolute top-2 right-2 p-1 cursor-grab">
-                <Move className="w-5 h-5 text-muted-foreground"/>
+             <div {...listeners} {...attributes} className="absolute top-2 right-2 p-1 cursor-grab bg-background/50 rounded-full">
+                <Move className="w-4 h-4 text-muted-foreground"/>
             </div>
         </div>
     );
 };
-
