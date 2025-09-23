@@ -1,16 +1,25 @@
 
+'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/use-auth";
+import { UserNav } from "@/components/user-nav";
 
 export default function DashboardHubPage() {
+  const { user } = useAuth();
+
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-background">
         <div className="flex items-center gap-2">
           <Calculator className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-headline font-bold">Skarii Dashboard</h1>
+        </div>
+         <div className="ml-auto flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">Welcome, {user?.name}</span>
+            <UserNav />
         </div>
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">

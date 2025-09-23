@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Calculator } from 'lucide-react';
 import Link from 'next/link';
@@ -30,9 +31,12 @@ export default function LandingPage() {
             About
           </Link>
         </nav>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-4">
           <Button variant="outline" asChild>
-            <Link href="/dashboard">Login</Link>
+            <Link href="/login">Login</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/register">Sign Up</Link>
           </Button>
         </div>
       </header>
