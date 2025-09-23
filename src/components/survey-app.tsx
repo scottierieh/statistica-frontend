@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
@@ -855,13 +853,17 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            <div className='contents' role="radiogroup">
+                             <RadioGroup
+                                value={answer?.[row]}
+                                onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}
+                                className="contents"
+                                >
                                 {question.columns?.map((col: string, colIndex: number) => (
                                     <TableCell key={colIndex} className="text-center">
-                                         <RadioGroupItem value={col}/>
+                                          <RadioGroupItem value={col}/>
                                     </TableCell>
                                 ))}
-                            </div>
+                            </RadioGroup>
                             {!isPreview && <TableCell></TableCell>}
                          </TableRow>
                      ))}
@@ -1905,7 +1907,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         } finally {
             setIsLoadingQr(false);
         }
-    }
+    };
 
     const handleQuestionImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0 || uploadingImageForQuestionId === null) {
@@ -2190,7 +2192,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
 
 
     return (
-        <div className="max-w-7xl mx-auto p-8 bg-gradient-to-br from-background to-slate-50">
+        <div className="max-w-7xl mx-auto p-4 md:p-8 bg-gradient-to-br from-background to-slate-50">
             <input type="file" ref={fileInputRef} onChange={handleQuestionImageFileChange} className="hidden" accept="image/*" />
             <header className="mb-8 flex justify-between items-center">
                 <div>
