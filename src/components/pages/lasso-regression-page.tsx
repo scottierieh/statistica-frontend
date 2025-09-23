@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Container, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Sigma, Loader2, Container, AlertTriangle, CheckCircle, TrendingUp, HelpCircle, Settings, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -39,7 +39,59 @@ interface LassoRegressionResults {
 interface FullAnalysisResponse {
     results: LassoRegressionResults;
     plot: string | null;
+    path_plot: string | null;
 }
+
+const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: ExampleDataSet) => void, onBackToSetup: () => void }) => {
+    const regressionExample = exampleDatasets.find(ex => ex.id === 'regression-suite');
+    
+    return (
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-4xl">
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-3 text-2xl">
+                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <Container size={28} />
+                         </div>
+                        Lasso Regression
+                    </CardTitle>
+                    <CardDescription className="text-base pt-2">
+                        Lasso (Least Absolute Shrinkage and Selection Operator) is a regularized linear regression model that adds an L1 penalty. It's particularly useful for feature selection as it can shrink the coefficients of less important features to exactly zero.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" />Setup Guide</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                <li><strong>Target Variable (Y):</strong> The numeric variable you want to predict.</li>
+                                <li><strong>Feature Variables (X):</strong> The numeric variables used for prediction.</li>
+                                <li><strong>Alpha (α):</strong> The regularization strength. A higher alpha increases the penalty, leading to more coefficients being set to zero and a simpler model. This is the key parameter for feature selection.</li>
+                                <li><strong>Test Set Size:</strong> The proportion of data used to evaluate the model on unseen data.</li>
+                            </ul>
+                        </div>
+                         <div className="space-y-4">
+                            <h3 className="font-semibold text-lg flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />Result Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                <li><strong>R-squared:</strong> Compare Train vs. Test R² to check for overfitting. Lasso helps mitigate overfitting by simplifying the model.</li>
+                                <li><strong>Coefficients:</strong> This is the most important part of Lasso. Features with a coefficient of zero have been eliminated from the model, indicating they were less important for prediction.</li>
+                                <li><strong>Coefficients Path Plot:</strong> Shows how feature coefficients shrink to zero as the alpha value increases, illustrating the feature selection process.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                     {regressionExample && (
+                         <Button variant="outline" onClick={() => onLoadExample(regressionExample)}>
+                            <TrendingUp className="mr-2 h-4 w-4" /> Load Sample Regression Data
+                        </Button>
+                     )}
+                     <Button onClick={onBackToSetup}>Back to Setup</Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
 
 interface LassoRegressionPageProps {
     data: DataSet;
@@ -56,6 +108,7 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [showHelpPage, setShowHelpPage] = useState(data.length === 0);
 
     const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== target), [numericHeaders, target]);
 
@@ -64,6 +117,7 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
         setTarget(defaultTarget);
         setFeatures(numericHeaders.filter(h => h !== defaultTarget));
         setAnalysisResult(null);
+        setShowHelpPage(data.length === 0);
     }, [data, numericHeaders]);
 
     const handleFeatureChange = (header: string, checked: boolean) => {
@@ -106,24 +160,13 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
     }, [data, target, features, alpha, testSize, toast]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
-    
-    if (!canRun) {
-        const regressionExample = exampleDatasets.find(ex => ex.id === 'regression-suite');
-        return (
-            <div className="flex flex-1 items-center justify-center h-full">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Lasso Regression</CardTitle>
-                        <CardDescription>Upload data with numeric features and a target variable.</CardDescription>
-                    </CardHeader>
-                    {regressionExample && (
-                        <CardContent>
-                            <Button onClick={() => onLoadExample(regressionExample)}>Load Sample Regression Data</Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+
+    useEffect(() => {
+        setShowHelpPage(!canRun);
+    }, [canRun]);
+
+    if (showHelpPage) {
+        return <HelpPage onLoadExample={onLoadExample} onBackToSetup={() => setShowHelpPage(false)} />
     }
     
     const results = analysisResult?.results;
@@ -132,7 +175,10 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Lasso Regression Setup</CardTitle>
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="font-headline">Lasso Regression Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
@@ -177,7 +223,7 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
 
             {analysisResult && results && (
                 <div className="space-y-4">
-                    <Card>
+                     <Card>
                         <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
                         <CardContent>
                            <Alert variant={results.interpretation.includes('Warning') || results.interpretation.includes('Possible') ? 'destructive' : 'default'}>
@@ -222,14 +268,14 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
                     </Card>
 
                     <div className="grid md:grid-cols-2 gap-4">
-                        {analysisResult.plot && (
+                        {(analysisResult.plot || analysisResult.path_plot) && (
                             <Card className="md:col-span-2">
                                 <CardHeader>
-                                    <CardTitle>Lasso Regression Diagnostic Plots</CardTitle>
-                                    <CardDescription>Performance for alpha = {results.alpha}</CardDescription>
+                                    <CardTitle>Lasso Regression Diagnostic & Path Plots</CardTitle>
                                 </CardHeader>
-                                <CardContent>
-                                    <Image src={analysisResult.plot} alt="Lasso Regression Plots" width={1600} height={1200} className="w-full rounded-md border"/>
+                                <CardContent className="grid md:grid-cols-2 gap-4">
+                                     {analysisResult.plot && <Image src={analysisResult.plot} alt="Lasso Regression Plots" width={800} height={1200} className="w-full rounded-md border"/>}
+                                     {analysisResult.path_plot && <Image src={analysisResult.path_plot} alt="Lasso Regression Path Plots" width={800} height={1200} className="w-full rounded-md border"/>}
                                 </CardContent>
                             </Card>
                         )}
@@ -237,7 +283,7 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
                         <Card className="md:col-span-2">
                              <CardHeader>
                                 <CardTitle>Coefficients</CardTitle>
-                                <CardDescription>Lasso can shrink coefficients to zero, effectively performing feature selection.</CardDescription>
+                                <CardDescription>Lasso regression shrinks coefficients, setting some to exactly zero for feature selection.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ScrollArea className="h-80">
@@ -265,3 +311,4 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
         </div>
     );
 }
+
