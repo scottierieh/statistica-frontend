@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -281,19 +280,21 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                      <div className="flex-1 space-y-2">
                          <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                                <Label>Target Variable</Label>
+                                <Label>Target Variable (Y)</Label>
                                 <Select value={target} onValueChange={setTarget}>
                                     <SelectTrigger><SelectValue/></SelectTrigger>
                                     <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                                 </Select>
+                                <p className="text-xs text-muted-foreground mt-1">The variable you want to predict.</p>
                             </div>
                             {mode === 'simple' ? (
                                  <div>
-                                    <Label>Feature Variable</Label>
+                                    <Label>Feature Variable (X)</Label>
                                     <Select value={features[0]} onValueChange={v => setFeatures([v])}>
                                         <SelectTrigger><SelectValue/></SelectTrigger>
                                         <SelectContent>{availableFeatures.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                                     </Select>
+                                    <p className="text-xs text-muted-foreground mt-1">The variable used to make the prediction.</p>
                                 </div>
                             ) : (
                                 <div>
@@ -314,10 +315,12 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                         <div>
                             <Label>K (Number of Neighbors): {k}</Label>
                             <Slider value={[k]} onValueChange={v => setK(v[0])} min={1} max={50} step={1} />
+                            <p className="text-xs text-muted-foreground mt-1">The number of nearest data points to consider for a prediction.</p>
                         </div>
                          <div>
                             <Label>Test Set Size: {Math.round(testSize*100)}%</Label>
                             <Slider value={[testSize]} onValueChange={v => setTestSize(v[0])} min={0.1} max={0.5} step={0.05} />
+                             <p className="text-xs text-muted-foreground mt-1">The proportion of data used for testing the model's accuracy.</p>
                         </div>
                     </div>
                 </CardContent>
@@ -384,7 +387,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                      <Card>
                         <CardHeader>
                             <CardTitle>Train vs. Test Performance</CardTitle>
-                            <CardDescription>Comparing model performance on training and testing data can help identify overfitting.</CardDescription>
+                            <CardDescription>Compares model accuracy on the data it was trained on versus new, unseen data.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
@@ -455,6 +458,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Model Fit: Actual vs. Predicted</CardTitle>
+                                    <CardDescription>This plot shows the actual values from the test set against the values predicted by the model. Points closer to the red dashed line indicate more accurate predictions.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <Image src={analysisResult.plot} alt="KNN Actual vs Predicted Plot" width={800} height={600} className="w-full rounded-md border"/>
@@ -465,6 +469,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                             <Card>
                                 <CardHeader>
                                     <CardTitle>X vs. Y Relationship</CardTitle>
+                                    <CardDescription>This scatter plot visualizes the relationship between the feature and target variables in your dataset.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <Image src={analysisResult.relationship_plot} alt="KNN Relationship Plot" width={800} height={600} className="w-full rounded-md border"/>
@@ -476,6 +481,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                         <Card>
                             <CardHeader>
                                 <CardTitle>Prediction Simulation Plot</CardTitle>
+                                <CardDescription>This chart visualizes how the model makes a prediction. The large triangle is the predicted point. The diamonds are the 'K' nearest neighbors from the training data that were averaged to make the prediction.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <Image src={analysisResult.prediction_plot} alt="KNN Prediction Plot" width={800} height={600} className="w-full rounded-md border"/>
