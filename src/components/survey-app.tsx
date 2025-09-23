@@ -974,7 +974,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                 </TableHeader>
                 <TableBody>
                     {(question.rows || []).map((row: string, rowIndex: number) => (
-                         <TableRow key={rowIndex}>
+                        <TableRow key={rowIndex}>
                             <TableCell className="group relative">
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
                                 {!isPreview && (
@@ -985,7 +985,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                             </TableCell>
                             {question.columns.map((col: string, colIndex: number) => (
                                 <TableCell key={colIndex} className="text-center">
-                                    <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))} className="flex justify-center">
+                                    <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                         <RadioGroupItem value={col}/>
                                     </RadioGroup>
                                 </TableCell>
@@ -1435,73 +1435,6 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
         </AnalysisDisplayShell>
     );
 };
-
-const KPICard = ({ title, value, status }: { title: string, value: string | number, status: 'excellent' | 'good' | 'warning' | 'poor' }) => {
-    const statusClasses = {
-        excellent: 'text-green-600 border-green-500',
-        good: 'text-blue-600 border-blue-500',
-        warning: 'text-amber-600 border-amber-500',
-        poor: 'text-red-600 border-red-500',
-    };
-    return (
-        <Card className={`relative before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:rounded-t-lg before:${statusClasses[status]}`}>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className={`text-3xl font-bold ${statusClasses[status]}`}>{value}</div>
-            </CardContent>
-        </Card>
-    );
-};
-
-const InsightCard = ({ insight }: { insight: any }) => {
-    const insightStyles = {
-        critical: { icon: <AlertTriangle className="h-5 w-5 text-red-600" />, card: 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800', title: 'text-red-800 dark:text-red-200' },
-        warning: { icon: <Frown className="h-5 w-5 text-amber-600" />, card: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800', title: 'text-amber-800 dark:text-amber-200' },
-        opportunity: { icon: <Lightbulb className="h-5 w-5 text-blue-600" />, card: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800', title: 'text-blue-800 dark:text-blue-200' },
-        excellent: { icon: <Award className="h-5 w-5 text-green-600" />, card: 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800', title: 'text-green-800 dark:text-green-200' },
-    };
-    const style = insightStyles[insight.type as keyof typeof insightStyles] || insightStyles.opportunity;
-    return (
-        <Card className={style.card}>
-            <CardHeader>
-                <CardTitle className={`flex items-center gap-2 text-lg ${style.title}`}>
-                    {style.icon}
-                    {insight.title}
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">{insight.text}</p>
-                <div className="bg-background/50 p-3 rounded-md">
-                    <p className="text-xs font-semibold">Recommended Action:</p>
-                    <p className="text-xs text-muted-foreground">{insight.actions}</p>
-                </div>
-            </CardContent>
-        </Card>
-    )
-}
-
-function pearsonCorrelation(arr1: (number | undefined)[], arr2: (number | undefined)[]): number {
-    const validPairs = arr1.map((val1, i) => [val1, arr2[i]]).filter(pair => pair[0] !== undefined && pair[1] !== undefined);
-    
-    if (validPairs.length < 2) return 0;
-    
-    const x = validPairs.map(p => p[0] as number);
-    const y = validPairs.map(p => p[1] as number);
-
-    const n = x.length;
-    const meanX = mean(x);
-    const meanY = mean(y);
-    const stdDevX = standardDeviation(x);
-    const stdDevY = standardDeviation(y);
-
-    if (stdDevX === 0 || stdDevY === 0) return 0;
-
-    const covariance = x.reduce((acc, val, i) => acc + (val - meanX) * (y[i] - meanY), 0) / (n - 1);
-    
-    return covariance / (stdDevX * stdDevY);
-}
 
 const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
     if (!data) return null;
@@ -2886,10 +2819,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                             
                                             return (
                                                 <DraggableDashboardCard key={q.id} id={q.id} position={dashboardPositions[q.id] || {x: (i % 3) * 320 + 20, y: Math.floor(i / 3) * 320 + 20}}>
-                                                    <CardHeader>
+                                                    <CardHeader className="p-4">
                                                         <CardTitle className="truncate text-base">{q.title}</CardTitle>
                                                     </CardHeader>
-                                                    <CardContent className="flex items-center justify-center p-2">
+                                                    <CardContent className="p-2 flex items-center justify-center h-full">
                                                         <ChartComponent />
                                                     </CardContent>
                                                 </DraggableDashboardCard>
@@ -2956,22 +2889,23 @@ type QuestionLogic = { questionId: number; paths: LogicPath[] };
 const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position: Position }) => {
     const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
     
-    const style = {
+    const style: React.CSSProperties = {
         transform: transform
             ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-            : `translate3d(${position.x}px, ${position.y}px, 0)`,
+            : (position ? `translate3d(${position.x}px, ${position.y}px, 0)` : undefined),
         width: 300,
         height: 300,
+        position: 'absolute'
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="absolute">
-            <Card className="w-full h-full shadow-lg">
+        <div ref={setNodeRef} style={style}>
+            <Card className="w-full h-full shadow-lg flex flex-col">
+                <div {...listeners} {...attributes} className="absolute top-2 right-2 p-1 cursor-grab bg-background/50 rounded-full">
+                    <Move className="w-4 h-4 text-muted-foreground"/>
+                </div>
                 {children}
             </Card>
-             <div {...listeners} {...attributes} className="absolute top-2 right-2 p-1 cursor-grab bg-background/50 rounded-full">
-                <Move className="w-4 h-4 text-muted-foreground"/>
-            </div>
         </div>
     );
 };
