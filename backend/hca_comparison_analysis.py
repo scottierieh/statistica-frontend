@@ -15,6 +15,7 @@ def main():
     try:
         payload = json.load(sys.stdin)
         dataset_name = payload.get("dataset", "noisy_circles")
+        params = payload.get("params", {})
         n_samples = 1500
 
         # Dataset generation
@@ -34,23 +35,21 @@ def main():
         # Normalize dataset for easier parameter selection
         X = StandardScaler().fit_transform(X)
 
-        # Algorithm parameters
-        params = {"n_clusters": 3}
-        if dataset_name in ["noisy_circles", "noisy_moons"]:
-            params["n_clusters"] = 2
+        # Get n_clusters from params, default to 2 if not provided
+        n_clusters = params.get("n_clusters", 2)
 
         # Create cluster objects
         ward = cluster.AgglomerativeClustering(
-            n_clusters=params["n_clusters"], linkage="ward"
+            n_clusters=n_clusters, linkage="ward"
         )
         complete = cluster.AgglomerativeClustering(
-            n_clusters=params["n_clusters"], linkage="complete"
+            n_clusters=n_clusters, linkage="complete"
         )
         average = cluster.AgglomerativeClustering(
-            n_clusters=params["n_clusters"], linkage="average"
+            n_clusters=n_clusters, linkage="average"
         )
         single = cluster.AgglomerativeClustering(
-            n_clusters=params["n_clusters"], linkage="single"
+            n_clusters=n_clusters, linkage="single"
         )
 
         clustering_algorithms = (
@@ -61,7 +60,7 @@ def main():
         )
         
         fig, axes = plt.subplots(1, len(clustering_algorithms), figsize=(len(clustering_algorithms) * 3.5, 3.5))
-        fig.suptitle(f"Hierarchical Clustering on '{dataset_name}' dataset", fontsize=16)
+        fig.suptitle(f"Hierarchical Clustering on '{dataset_name}' dataset (k={n_clusters})", fontsize=16)
 
         for plot_num, (name, algorithm) in enumerate(clustering_algorithms):
             ax = axes[plot_num]

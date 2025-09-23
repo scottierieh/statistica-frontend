@@ -1,6 +1,5 @@
-
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -8,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Play } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 
 interface AnalysisResponse {
     plot: string;
@@ -16,6 +17,7 @@ interface AnalysisResponse {
 export default function HcaComparisonPage() {
     const { toast } = useToast();
     const [dataset, setDataset] = useState('noisy_circles');
+    const [nClusters, setNClusters] = useState(3);
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
 
@@ -27,7 +29,7 @@ export default function HcaComparisonPage() {
             const response = await fetch('/api/analysis/hca-comparison', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dataset }),
+                body: JSON.stringify({ dataset, params: { "n_clusters": nClusters } }),
             });
 
             if (!response.ok) {
@@ -46,7 +48,7 @@ export default function HcaComparisonPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [dataset, toast]);
+    }, [dataset, toast, nClusters]);
 
     return (
         <div className="space-y-4">
@@ -57,17 +59,27 @@ export default function HcaComparisonPage() {
                 </CardHeader>
                 <CardContent>
                      <div className="grid md:grid-cols-2 gap-4 mb-4">
-                        <Select value={dataset} onValueChange={setDataset}>
-                             <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="noisy_circles">Noisy Circles</SelectItem>
-                                <SelectItem value="noisy_moons">Noisy Moons</SelectItem>
-                                <SelectItem value="blobs">Blobs</SelectItem>
-                                <SelectItem value="aniso">Anisotropic Blobs</SelectItem>
-                                <SelectItem value="varied">Varied Variance Blobs</SelectItem>
-                                <SelectItem value="no_structure">No Structure</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div>
+                            <Label>Dataset</Label>
+                            <Select value={dataset} onValueChange={setDataset}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="noisy_circles">Noisy Circles</SelectItem>
+                                    <SelectItem value="noisy_moons">Noisy Moons</SelectItem>
+                                    <SelectItem value="blobs">Blobs</SelectItem>
+                                    <SelectItem value="no_structure">No Structure</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Number of Clusters (n_clusters)</Label>
+                            <Input 
+                                type="number"
+                                value={nClusters}
+                                onChange={(e) => setNClusters(parseInt(e.target.value, 10))}
+                                min="2"
+                            />
+                        </div>
                     </div>
                 </CardContent>
                  <CardFooter className="flex justify-end">
