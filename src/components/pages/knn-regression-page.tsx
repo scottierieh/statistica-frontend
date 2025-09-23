@@ -247,19 +247,6 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     
     const results = analysisResult?.results;
 
-    const handleMultiPredict = () => {
-        const valuesToPredict: { [key: string]: number } = {};
-        for(const feature of features) {
-            const val = predictXValues[feature];
-            if (val === '' || isNaN(val)) {
-                toast({ variant: 'destructive', title: 'Input Error', description: `Please enter a valid number for all features.` });
-                return;
-            }
-            valuesToPredict[feature] = Number(val);
-        }
-        handleAnalysis(valuesToPredict);
-    };
-
     return (
         <div className="space-y-4">
             <Card>
@@ -382,7 +369,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {analysisResult && (
+            {analysisResult && results && (
                 <div className="space-y-4">
                      <Card>
                         <CardHeader>
@@ -400,54 +387,43 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                                 </TableHeader>
                                 <TableBody>
                                     <TableRow>
-                                        <TableCell>R-squared</TableCell>
+                                        <TableCell className="flex items-center gap-2">
+                                            R-squared
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground"/></TooltipTrigger>
+                                                    <TooltipContent><p>Proportion of variance in the target explained by the model. Closer to 1 is better.</p></TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.train.r2_score.toFixed(4)}</TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.test.r2_score.toFixed(4)}</TableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell>RMSE</TableCell>
+                                        <TableCell className="flex items-center gap-2">
+                                            RMSE
+                                             <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground"/></TooltipTrigger>
+                                                    <TooltipContent><p>Root Mean Squared Error. The average size of the prediction errors. Lower is better.</p></TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.train.rmse.toFixed(3)}</TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.test.rmse.toFixed(3)}</TableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell>MAE</TableCell>
+                                        <TableCell className="flex items-center gap-2">
+                                            MAE
+                                             <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground"/></TooltipTrigger>
+                                                    <TooltipContent><p>Mean Absolute Error. The average of the absolute prediction errors. Lower is better.</p></TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.train.mae.toFixed(3)}</TableCell>
                                         <TableCell className="text-right font-mono">{results?.metrics.test.mae.toFixed(3)}</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader><CardTitle className="flex items-center gap-2"><Info className="h-5 w-5"/>Interpreting R-squared Scores</CardTitle></CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Situation</TableHead>
-                                        <TableHead>Train R² (Example)</TableHead>
-                                        <TableHead>Test R² (Example)</TableHead>
-                                        <TableHead>Interpretation</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell className="font-semibold">Good Fit</TableCell>
-                                        <TableCell className="font-mono">0.85</TableCell>
-                                        <TableCell className="font-mono">0.82</TableCell>
-                                        <TableCell>Train and test scores are similar and high. The model generalizes well.</TableCell>
-                                    </TableRow>
-                                     <TableRow>
-                                        <TableCell className="font-semibold text-orange-600">Overfitting</TableCell>
-                                        <TableCell className="font-mono">0.98</TableCell>
-                                        <TableCell className="font-mono">0.65</TableCell>
-                                        <TableCell>The model performs very well on training data but poorly on new (test) data. It learned the noise, not the signal.</TableCell>
-                                    </TableRow>
-                                     <TableRow>
-                                        <TableCell className="font-semibold text-blue-600">Underfitting</TableCell>
-                                        <TableCell className="font-mono">0.35</TableCell>
-                                        <TableCell className="font-mono">0.30</TableCell>
-                                        <TableCell>Both scores are low. The model is too simple and fails to capture the underlying pattern in the data.</TableCell>
                                     </TableRow>
                                 </TableBody>
                             </Table>
