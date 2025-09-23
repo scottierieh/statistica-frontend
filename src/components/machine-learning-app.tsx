@@ -43,8 +43,9 @@ import FruitClusteringPage from './pages/fruit-clustering-page';
 import DecisionTreePage from './pages/decision-tree-page';
 import ClassifierComparisonPage from './pages/classifier-comparison-page';
 import { cn } from '@/lib/utils';
+import HcaPage from './pages/hca-page';
 
-type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison';
+type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison' | 'hca';
 
 const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalHeaders, allHeaders, onLoadExample }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], categoricalHeaders: string[], allHeaders: string[], onLoadExample: (e: ExampleDataSet) => void }) => {
     switch (activeTask) {
@@ -64,6 +65,8 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalH
             return <DecisionTreePage data={data} allHeaders={allHeaders} numericHeaders={numericHeaders} categoricalHeaders={categoricalHeaders} onLoadExample={onLoadExample} />;
         case 'classifier-comparison':
             return <ClassifierComparisonPage data={data} allHeaders={allHeaders} numericHeaders={numericHeaders} categoricalHeaders={categoricalHeaders} onLoadExample={onLoadExample} />;
+        case 'hca':
+            return <HcaPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} />;
         case 'regression':
         case 'classification':
         case 'tree':
@@ -285,6 +288,9 @@ export default function MachineLearningApp() {
                      <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton onClick={() => setActiveTask('fruit-clustering')} isActive={activeTask === 'fruit-clustering'}>Fruit Image Clustering</SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                           <SidebarMenuButton onClick={() => setActiveTask('hca')} isActive={activeTask === 'hca'}>Hierarchical Clustering</SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
                   </CollapsibleContent>

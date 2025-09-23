@@ -1,6 +1,7 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn, spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 
 export async function POST(req: NextRequest) {
