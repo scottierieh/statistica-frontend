@@ -16,6 +16,7 @@ import DataUploader from '../data-uploader';
 import { DataSet } from '@/lib/stats';
 import { ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface AnalysisResponse {
     results: {
@@ -39,7 +40,7 @@ const defaultParams = {
 
 export default function ClassifierComparisonPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample, onFileSelected }: { data: DataSet, allHeaders: string[], numericHeaders: string[], categoricalHeaders: string[], onLoadExample: (example: ExampleDataSet) => void, onFileSelected?: (file: File) => void }) {
     const { toast } = useToast();
-    const [datasetType, setDatasetType] = useState<'synthetic' | 'custom'>('custom');
+    const [datasetType, setDatasetType] = useState<'synthetic' | 'custom'>(data.length > 0 ? 'custom' : 'synthetic');
     const [syntheticDataset, setSyntheticDataset] = useState('moons');
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
@@ -48,15 +49,11 @@ export default function ClassifierComparisonPage({ data, allHeaders, numericHead
     // For custom data
     const [targetVar, setTargetVar] = useState<string | undefined>(categoricalHeaders[0]);
     const [features, setFeatures] = useState<string[]>(numericHeaders);
-    const [plotFeatureX, setPlotFeatureX] = useState<string | undefined>(numericHeaders[0]);
-    const [plotFeatureY, setPlotFeatureY] = useState<string | undefined>(numericHeaders[1]);
     const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         setTargetVar(categoricalHeaders[0]);
         setFeatures(numericHeaders);
-        setPlotFeatureX(numericHeaders[0]);
-        setPlotFeatureY(numericHeaders[1]);
     }, [data, numericHeaders, categoricalHeaders]);
 
 
@@ -76,13 +73,6 @@ export default function ClassifierComparisonPage({ data, allHeaders, numericHead
     const handleFeatureChange = (header: string, checked: boolean) => {
         setFeatures(prev => {
             const newFeatures = checked ? [...prev, header] : prev.filter(f => f !== header);
-            // Ensure plot features are still valid
-            if (!newFeatures.includes(plotFeatureX || '')) {
-                setPlotFeatureX(newFeatures[0]);
-            }
-            if (!newFeatures.includes(plotFeatureY || '') || newFeatures[0] === plotFeatureY) {
-                setPlotFeatureY(newFeatures[1] || newFeatures[0]);
-            }
             return newFeatures;
         });
     };
@@ -94,17 +84,12 @@ export default function ClassifierComparisonPage({ data, allHeaders, numericHead
 
         let body: any = { params };
         if (datasetType === 'custom') {
-            if (!data || !targetVar || !plotFeatureX || !plotFeatureY || features.length < 2) {
+            if (!data || !targetVar || features.length < 2) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Please select a target and at least two feature variables for custom data.' });
                 setIsLoading(false);
                 return;
             }
-             if (plotFeatureX === plotFeatureY) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Plot Feature X and Y must be different.' });
-                setIsLoading(false);
-                return;
-            }
-            body = { ...body, data, target_col: targetVar, feature_cols: features, plot_feature_x: plotFeatureX, plot_feature_y: plotFeatureY };
+            body = { ...body, data, target_col: targetVar, feature_cols: features };
         } else {
             body = { ...body, dataset: syntheticDataset };
         }
@@ -133,7 +118,7 @@ export default function ClassifierComparisonPage({ data, allHeaders, numericHead
         } finally {
             setIsLoading(false);
         }
-    }, [datasetType, syntheticDataset, params, toast, data, targetVar, features, plotFeatureX, plotFeatureY]);
+    }, [datasetType, syntheticDataset, params, toast, data, targetVar, features]);
     
     const scores = analysisResult?.results.scores;
 
@@ -215,7 +200,7 @@ export default function ClassifierComparisonPage({ data, allHeaders, numericHead
                         )}
                     </div>
                     {datasetType === 'custom' && (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div className="grid md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <Label>Target Variable</Label>
                                 <Select value={targetVar} onValueChange={setTargetVar}>
@@ -223,10 +208,10 @@ export default function ClassifierComparisonPage({ data, allHeaders, numericHead
                                     <SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                                 </Select>
                             </div>
-                            <div className="lg:col-span-3">
+                            <div className="lg:col-span-1">
                                 <Label>Feature Variables (select at least 2)</Label>
                                 <ScrollArea className="h-24 p-2 border rounded-md">
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
                                         {numericHeaders.filter(h => h !== targetVar).map(h => (
                                             <div key={h} className="flex items-center space-x-2">
                                                 <Checkbox id={`feat-${h}`} checked={features.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
@@ -235,20 +220,6 @@ export default function ClassifierComparisonPage({ data, allHeaders, numericHead
                                         ))}
                                     </div>
                                 </ScrollArea>
-                            </div>
-                            <div>
-                                <Label>Plot Feature X</Label>
-                                <Select value={plotFeatureX} onValueChange={setPlotFeatureX} disabled={features.length < 1}>
-                                    <SelectTrigger><SelectValue placeholder="Select Feature X"/></SelectTrigger>
-                                    <SelectContent>{features.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </div>
-                            <div>
-                                <Label>Plot Feature Y</Label>
-                                <Select value={plotFeatureY} onValueChange={setPlotFeatureY} disabled={features.length < 2}>
-                                    <SelectTrigger><SelectValue placeholder="Select Feature Y"/></SelectTrigger>
-                                    <SelectContent>{features.filter(h => h !== plotFeatureX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                </Select>
                             </div>
                         </div>
                     )}
