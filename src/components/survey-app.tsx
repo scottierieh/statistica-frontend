@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
@@ -90,7 +89,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '../ui/badge';
+import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -885,7 +884,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                     {question.rows?.map((row: string, rowIndex: number) => (
+                     {(question.rows || []).map((row: string, rowIndex: number) => (
                         <TableRow key={rowIndex}>
                             <TableCell className="group relative">
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
@@ -895,8 +894,8 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            <div role="radiogroup" className="contents">
-                                {question.columns?.map((col: string, colIndex: number) => (
+                             <div role="radiogroup" className="contents">
+                                {(question.columns || []).map((col: string, colIndex: number) => (
                                     <TableCell key={colIndex} className="text-center">
                                           <RadioGroupItem value={col} onClick={() => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = col; }))} checked={answer?.[row] === col}/>
                                     </TableCell>
@@ -2862,3 +2861,4 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
+
