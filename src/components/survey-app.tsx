@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
@@ -87,6 +88,7 @@ import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -227,7 +229,7 @@ const DraggableQuestion = ({ id, children }: { id: any, children: React.ReactNod
     } = useSortable({id: id});
     
     const style = {
-        transform: transform ? CSS.Transform.toString(transform) : undefined,
+        transform: CSS.Transform.toString(transform),
         transition,
     };
 
@@ -973,7 +975,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                 </TableHeader>
                 <TableBody>
                     {(question.rows || []).map((row: string, rowIndex: number) => (
-                        <TableRow key={rowIndex}>
+                         <TableRow key={rowIndex}>
                             <TableCell className="group relative">
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
                                 {!isPreview && (
@@ -982,17 +984,15 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            {(question.columns || []).map((col: string, colIndex: number) => (
-                                <TableCell key={colIndex} className="text-center">
-                                  <RadioGroup
-                                    value={answer?.[row]}
-                                    onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}
-                                    className="flex justify-center"
-                                  >
-                                    <RadioGroupItem value={col}/>
-                                  </RadioGroup>
-                                </TableCell>
-                            ))}
+                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                                <>
+                                {question.columns.map((col: string, colIndex: number) => (
+                                    <TableCell key={colIndex} className="text-center">
+                                        <RadioGroupItem value={col}/>
+                                    </TableCell>
+                                ))}
+                                </>
+                            </RadioGroup>
                             {!isPreview && <TableCell></TableCell>}
                         </TableRow>
                     ))}
@@ -2952,10 +2952,11 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
+
 const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
     const style = {
-        transform: CSS.Transform.toString(transform),
+        transform: transform ? CSS.Transform.toString(transform) : undefined,
         transition,
     };
     return (
@@ -2969,3 +2970,4 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
+
