@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitBranch } from 'lucide-react';
+import { Sigma, Loader2, GitBranch, Terminal, HelpCircle, Settings, BarChart, TrendingUp } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -28,6 +28,56 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
+const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: ExampleDataSet) => void, onBackToSetup: () => void }) => {
+    const loanApprovalExample = exampleDatasets.find(ex => ex.id === 'loan-approval');
+    
+    return (
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-4xl">
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-3 text-2xl">
+                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <GitBranch size={28} />
+                         </div>
+                        Decision Tree Classifier
+                    </CardTitle>
+                    <CardDescription className="text-base pt-2">
+                        A flowchart-like structure where each internal node represents a "test" on an attribute, each branch represents the outcome of the test, and each leaf node represents a class label (a decision). It's intuitive and easy to interpret.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" />Setup Guide</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                <li><strong>Target Variable:</strong> Select the categorical variable you want to predict. It can have two or more classes (e.g., 'Approved'/'Denied').</li>
+                                <li><strong>Feature Variables:</strong> Select the variables (numeric or categorical) that the model will use to make predictions.</li>
+                                <li><strong>Random State:</strong> A fixed number to ensure the result is reproducible. The same settings will produce the same tree every time.</li>
+                            </ul>
+                        </div>
+                         <div className="space-y-4">
+                            <h3 className="font-semibold text-lg flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />Result Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                <li><strong>Accuracy:</strong> The percentage of correct predictions. A higher value indicates a better model.</li>
+                                <li><strong>Confusion Matrix:</strong> A table showing correct and incorrect predictions for each class, helping you see where the model gets confused.</li>
+                                <li><strong>Tree Visualization:</strong> A diagram showing the decision rules. It illustrates how the model splits the data based on feature values to arrive at a final prediction.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                     {loanApprovalExample && (
+                         <Button variant="outline" onClick={() => onLoadExample(loanApprovalExample)}>
+                            <TrendingUp className="mr-2 h-4 w-4" /> Load Sample Loan Data
+                        </Button>
+                     )}
+                     <Button onClick={onBackToSetup}>Back to Setup</Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 interface DecisionTreePageProps {
     data: DataSet;
     allHeaders: string[];
@@ -44,6 +94,9 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [showHelpPage, setShowHelpPage] = useState(data.length === 0);
+
+    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2 && categoricalHeaders.length >= 1, [data, allHeaders, categoricalHeaders]);
 
     useEffect(() => {
         setTarget(categoricalHeaders[0]);
@@ -58,7 +111,9 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
         setAnalysisResult(null);
     }, [target, allHeaders]);
     
-    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2, [data, allHeaders]);
+     useEffect(() => {
+        setShowHelpPage(!canRun);
+    }, [canRun]);
 
     const handleFeatureChange = (header: string, checked: boolean) => {
         setFeatures(prev => checked ? [...prev, header] : prev.filter(f => f !== header));
@@ -103,28 +158,9 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
     }, [data, target, features, randomState, toast]);
     
     const availableFeatures = useMemo(() => allHeaders.filter(h => h !== target), [allHeaders, target]);
-
-    if (!canRun) {
-        const dtExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('decision-tree-classifier'));
-        return (
-            <div className="flex flex-1 items-center justify-center h-full">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Decision Tree Classifier</CardTitle>
-                        <CardDescription>
-                           Upload data with features and a categorical target variable.
-                        </CardDescription>
-                    </CardHeader>
-                    {dtExamples.length > 0 && (
-                        <CardContent>
-                            <Button onClick={() => onLoadExample(dtExamples[0])} className="w-full">
-                                <GitBranch className="mr-2 h-4 w-4" /> Load {dtExamples[0].name}
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+    
+    if (showHelpPage) {
+        return <HelpPage onLoadExample={onLoadExample} onBackToSetup={() => setShowHelpPage(false)} />
     }
     
     const results = analysisResult?.results;
@@ -133,7 +169,10 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Decision Tree Classifier Setup</CardTitle>
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="font-headline">Decision Tree Classifier Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="grid md:grid-cols-2 gap-4">
