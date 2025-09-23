@@ -32,6 +32,8 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
+        if np.isnan(obj):
+            return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
@@ -57,10 +59,13 @@ def get_font_path():
 
     elif system == 'Linux':
         # Check matplotlib's font cache first
-        font_list = fm.findSystemFonts(fontpaths=None, fontext='ttf')
-        nanum_fonts = [f for f in font_list if 'NanumGothic' in f]
-        if nanum_fonts:
-            return nanum_fonts[0]
+        try:
+            font_list = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+            nanum_fonts = [f for f in font_list if 'NanumGothic' in f]
+            if nanum_fonts:
+                return nanum_fonts[0]
+        except:
+            pass
 
     # Fallback to any font that might support CJK characters
     try:
@@ -218,6 +223,3 @@ def main():
         error_response = {"error": str(e)}
         sys.stderr.write(json.dumps(error_response))
         sys.exit(1)
-
-if __name__ == '__main__':
-    main()

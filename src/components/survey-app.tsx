@@ -425,8 +425,10 @@ const TextAnalysisDisplay = ({ tableData, varName }: { tableData: any[], varName
                 });
                 if (!response.ok) throw new Error('Failed to generate word cloud');
                 const result = await response.json();
-                if (isMounted) {
+                if (isMounted && result.plots?.wordcloud) {
                     setWordCloudImage(result.plots.wordcloud);
+                } else {
+                    throw new Error('Word cloud image not found in response');
                 }
             } catch (error) {
                 console.error("Word cloud generation failed", error);
@@ -453,7 +455,7 @@ const TextAnalysisDisplay = ({ tableData, varName }: { tableData: any[], varName
                        <CardTitle className="text-base">Word Cloud</CardTitle>
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
-                        {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={`data:image/png;base64,${wordCloudImage}`} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
+                        {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={wordCloudImage} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
                     </CardContent>
                 </Card>
                  <div className="space-y-4">
