@@ -2,7 +2,7 @@
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart } from "lucide-react";
+import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Zap } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
@@ -103,6 +103,22 @@ export default function DashboardHubPage() {
                     <CardContent>
                         <Button asChild className="w-full">
                             <Link href="/dashboard/financial-modeling" target="_blank" rel="noopener noreferrer">Launch Financial Modeling</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2">
+                            <Zap className="h-5 w-5 text-primary"/>
+                            Optimization
+                        </CardTitle>
+                        <CardDescription>
+                           Find the best solutions for your complex problems. Optimize resources, schedules, and strategies.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild className="w-full">
+                            <Link href="/dashboard/optimization" target="_blank" rel="noopener noreferrer">Launch Optimization</Link>
                         </Button>
                     </CardContent>
                 </Card>
