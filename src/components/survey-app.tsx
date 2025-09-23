@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
@@ -854,13 +855,13 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                 )}
                             </TableCell>
                             <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                <>
+                                <div className='contents'>
                                 {question.columns?.map((col: string, colIndex: number) => (
                                     <TableCell key={colIndex} className="text-center">
                                          <RadioGroupItem value={col}/>
                                     </TableCell>
                                 ))}
-                                </>
+                                </div>
                             </RadioGroup>
                             {!isPreview && <TableCell></TableCell>}
                          </TableRow>
@@ -2816,3 +2817,4 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
+
