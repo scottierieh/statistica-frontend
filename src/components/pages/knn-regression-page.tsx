@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Container, Info } from 'lucide-react';
+import { Sigma, Loader2, Container, Info, HelpCircle, Settings, BarChart, TrendingUp } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -17,6 +17,7 @@ import Image from 'next/image';
 import { Input } from '../ui/input';
 import { Slider } from '../ui/slider';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface KnnRegressionMetrics {
     r2_score: number;
@@ -180,20 +181,51 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
     if (!canRun) {
         const regressionExample = exampleDatasets.find(ex => ex.id === 'regression-suite');
         return (
-            <div className="flex flex-1 items-center justify-center h-full">
-                <Card className="w-full max-w-2xl text-center">
+             <div className="flex flex-1 items-center justify-center p-4">
+                <Card className="w-full max-w-4xl">
                     <CardHeader>
-                        <CardTitle className="font-headline">K-Nearest Neighbors Regression</CardTitle>
-                        <CardDescription>
-                           Upload data with numeric features and a target variable.
+                        <CardTitle className="font-headline flex items-center gap-3 text-2xl">
+                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <Container size={28} />
+                             </div>
+                            Simple K-Nearest Neighbors (KNN) Regression
+                        </CardTitle>
+                        <CardDescription className="text-base pt-2">
+                           하나의 독립변수(X)를 사용하여 다른 하나의 종속변수(Y)를 예측하는 비모수 회귀 분석 방법입니다. "가까운 이웃과 비슷할 것이다"라는 단순한 아이디어에 기반합니다.
                         </CardDescription>
                     </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-lg flex items-center"><HelpCircle className="mr-2 h-5 w-5 text-primary" />어떻게 작동하나요?</h3>
+                            <p className="text-muted-foreground">
+                                KNN 회귀 분석은 새로운 데이터 포인트의 값을 예측하기 위해, 훈련 데이터셋에서 가장 가까운 'K'개의 이웃을 찾습니다. 그리고 이 이웃들의 종속변수(Y) 값의 평균을 내어 예측값으로 사용합니다. 예를 들어, '공부 시간'으로 '시험 점수'를 예측할 때, 5시간 공부한 학생의 점수를 예측하기 위해 훈련 데이터에서 5시간과 가장 가까운 K명의 학생들의 점수 평균을 계산하는 방식입니다.
+                            </p>
+                        </div>
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" />설정 방법</h3>
+                             <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                <li><strong>Target Variable (Y):</strong> 예측하고자 하는 숫자형 변수를 선택합니다. (예: 시험 점수)</li>
+                                <li><strong>Feature Variable (X):</strong> 예측에 사용할 숫자형 변수를 선택합니다. (예: 공부 시간)</li>
+                                <li><strong>K (Number of Neighbors):</strong> 예측에 참고할 이웃의 수를 정합니다. 작은 K는 모델을 더 유연하게 만들지만 노이즈에 민감해질 수 있고, 큰 K는 예측을 더 안정시키지만 중요한 패턴을 놓칠 수 있습니다.</li>
+                                <li><strong>Test Set Size:</strong> 모델 성능 평가를 위해 전체 데이터에서 분리할 테스트 데이터의 비율을 정합니다. (예: 20%)</li>
+                            </ul>
+                        </div>
+                         <div className="space-y-4">
+                            <h3 className="font-semibold text-lg flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />결과 해석</h3>
+                             <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                <li><strong>R-squared (결정계수):</strong> 모델이 데이터의 분산을 얼마나 잘 설명하는지를 나타냅니다. 1에 가까울수록 좋습니다. Train R²가 Test R²보다 현저히 높으면 과적합(Overfitting)을 의심할 수 있습니다.</li>
+                                <li><strong>RMSE (Root Mean Squared Error):</strong> 예측 오차의 평균적인 크기를 나타냅니다. 낮을수록 좋습니다.</li>
+                                <li><strong>Actual vs. Predicted Plot:</strong> 점들이 45도 대각선에 가까울수록 모델의 예측이 정확하다는 의미입니다.</li>
+                                <li><strong>Prediction Simulation:</strong> 특정 X값에 대한 Y값을 예측하고, 예측에 사용된 K개의 이웃 데이터 포인트를 시각적으로 확인할 수 있습니다.</li>
+                            </ul>
+                        </div>
+                    </CardContent>
                     {regressionExample && (
-                        <CardContent>
+                        <CardFooter>
                             <Button onClick={() => onLoadExample(regressionExample)}>
-                                Load Sample Regression Data
+                                <TrendingUp className="mr-2 h-4 w-4" /> Load Sample Regression Data
                             </Button>
-                        </CardContent>
+                        </CardFooter>
                     )}
                 </Card>
             </div>
