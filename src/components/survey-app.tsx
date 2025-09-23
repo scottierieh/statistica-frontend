@@ -26,7 +26,7 @@ import {
   FileText,
   Save,
   Info,
-  LinkIcon,
+  Link as LinkIcon,
   QrCode,
   Download,
   Copy,
@@ -62,7 +62,7 @@ import {
   ShieldAlert,
   Move,
   BarChart,
-  PieChartIcon,
+  PieChart as PieChartIcon,
   DollarSign,
   ZoomIn,
   ZoomOut,
@@ -218,20 +218,12 @@ const psmTemplate = {
 const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
 // Draggable Question Wrapper
-const DraggableQuestion = ({ id, children }: { id: any, children: React.ReactNode }) => {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-    } = useSortable({id: id});
-    
+const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
     };
-
     return (
         <div ref={setNodeRef} style={style} className="flex items-start gap-2">
             <div {...attributes} {...listeners} className="p-2 cursor-grab mt-1">
@@ -974,7 +966,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                 </TableHeader>
                 <TableBody>
                     {(question.rows || []).map((row: string, rowIndex: number) => (
-                        <TableRow key={rowIndex}>
+                         <TableRow key={rowIndex}>
                             <TableCell className="group relative">
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
                                 {!isPreview && (
@@ -1974,17 +1966,18 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
       }
 
     const handleDashboardDragEnd = (event: DragEndEvent) => {
-        const { active, delta, over } = event;
-        // The transform property from useDraggable is the one to use for free-form movement.
-        // It provides the change in coordinates (delta) from the start of the drag.
-        const transform = (event.active.rect.current.translated) ? {x: event.active.rect.current.translated.left, y: event.active.rect.current.translated.top} : {x: 0, y: 0}
-        setDashboardPositions(prev => ({
-            ...prev,
-            [active.id]: {
-                x: transform.x,
-                y: transform.y,
-            }
-        }));
+        const { active, delta } = event;
+        setDashboardPositions(prev => {
+            const currentPosition = prev[active.id as any] || { x: 0, y: 0 };
+            const newPosition = {
+                x: currentPosition.x + delta.x,
+                y: currentPosition.y + delta.y,
+            };
+            return {
+                ...prev,
+                [active.id]: newPosition
+            };
+        });
     };
 
     const saveAndTest = () => {
@@ -2360,7 +2353,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList className="flex flex-wrap h-auto justify-start">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                     <TabsTrigger value="analysis-detail">Detailed Analysis</TabsTrigger>
@@ -2582,7 +2575,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                           const QuestionComponent = questionComponents[q.type];
                                                           if (!QuestionComponent) return null;
                                                         return (
-                                                            <DraggableQuestion key={q.id} id={q.id}>
+                                                            <SortableCard key={q.id} id={q.id}>
                                                                 <QuestionComponent
                                                                     question={q}
                                                                     onDelete={deleteQuestion}
@@ -2590,7 +2583,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                                     onImageUpload={triggerImageUpload}
                                                                     cardClassName={cardStyle}
                                                                 />
-                                                            </DraggableQuestion>
+                                                            </SortableCard>
                                                         )
                                                     })
                                                 )}
@@ -2820,7 +2813,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                             
                                             return (
                                                 <DraggableDashboardCard key={q.id} id={q.id} position={dashboardPositions[q.id] || {x: (i % 3) * 320 + 20, y: Math.floor(i / 3) * 320 + 20}}>
-                                                     <CardHeader className="p-2 cursor-grab flex-shrink-0" >
+                                                    <CardHeader className="p-2 cursor-grab flex-shrink-0">
                                                         <CardTitle className="truncate text-sm">{q.title}</CardTitle>
                                                     </CardHeader>
                                                     <CardContent className="p-2 flex-1 flex items-center justify-center overflow-hidden">
@@ -2892,15 +2885,12 @@ const DraggableDashboardCard = ({ id, children, position }: { id: any, children:
 
     const style: React.CSSProperties = {
         position: 'absolute',
+        top: position?.y || 0,
+        left: position?.x || 0,
         width: 300,
         height: 300,
-        transform: CSS.Translate.toString(position || {x: 0, y: 0}),
+        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     };
-    
-    if (transform) {
-      style.top = transform.y;
-      style.left = transform.x;
-    }
 
     return (
         <div ref={setNodeRef} style={style}>
