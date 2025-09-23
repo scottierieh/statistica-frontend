@@ -809,6 +809,7 @@ const BestWorstQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpl
     );
 };
 
+
 const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, isPreview, cardClassName }: { question: any, answer: any, onAnswerChange?: (value: any) => void, onUpdate?: (q:any) => void, onDelete?: (id: number) => void, isPreview?: boolean, cardClassName?: string }) => {
     const handleRowChange = (index: number, value: string) => {
         onUpdate?.(produce(question, (draft: any) => { draft.rows[index] = value; }));
@@ -885,8 +886,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                 </TableHeader>
                 <TableBody>
                     {(question.rows || []).map((row: string, rowIndex: number) => (
-                        <RadioGroup key={rowIndex} asChild>
-                            <TableRow>
+                            <TableRow key={rowIndex}>
                                 <TableCell className="group relative">
                                     {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
                                     {!isPreview && (
@@ -895,14 +895,17 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                         </Button>
                                     )}
                                 </TableCell>
-                                {(question.columns || []).map((col: string, colIndex: number) => (
-                                    <TableCell key={colIndex} className="text-center">
-                                        <RadioGroupItem value={col} onClick={() => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = col; }))} checked={answer?.[row] === col}/>
-                                    </TableCell>
-                                ))}
+                                <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                                    <>
+                                        {(question.columns || []).map((col: string, colIndex: number) => (
+                                            <TableCell key={colIndex} className="text-center">
+                                                <RadioGroupItem value={col}/>
+                                            </TableCell>
+                                        ))}
+                                    </>
+                                </RadioGroup>
                                 {!isPreview && <TableCell></TableCell>}
                             </TableRow>
-                        </RadioGroup>
                     ))}
                 </TableBody>
             </Table>
@@ -988,7 +991,7 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
 };
   
 const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
-    const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie'>('hbar');
+    const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'treemap'>('hbar');
 
     const plotLayout = useMemo(() => {
         const baseLayout = {
@@ -1014,6 +1017,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     const plotData = useMemo(() => {
         const percentages = chartData.map((d: any) => parseFloat(d.percentage));
         const labels = chartData.map((d: any) => d.name);
+        const counts = chartData.map((d: any) => d.count);
 
         if (chartType === 'pie') {
             return [{
@@ -1024,6 +1028,15 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                 marker: { colors: COLORS },
                 textinfo: 'label+percent',
                 textposition: 'inside',
+            }];
+        }
+        if (chartType === 'treemap') {
+            return [{
+                type: 'treemap',
+                labels: labels,
+                parents: Array(labels.length).fill(""),
+                values: counts,
+                textinfo: 'label+value+percent root',
             }];
         }
         return [{
@@ -1048,6 +1061,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                                 <Button variant={chartType === 'hbar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('hbar')}><BarChart className="w-4 h-4 -rotate-90" /></Button>
                                 <Button variant={chartType === 'bar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('bar')}><BarChart className="w-4 h-4" /></Button>
                                 <Button variant={chartType === 'pie' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('pie')}><PieChartIcon className="w-4 h-4" /></Button>
+                                <Button variant={chartType === 'treemap' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('treemap')}><Grid3x3 className="w-4 h-4" /></Button>
                             </div>
                         </CardTitle>
                     </CardHeader>
