@@ -290,7 +290,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
             </div>
             {question.imageUrl && (
                  <div className="my-4">
-                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
                 </div>
             )}
             <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-2" disabled={isPreview}>
@@ -344,7 +344,7 @@ const DropdownQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate
                 <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
                 {question.imageUrl && (
                     <div className="my-4">
-                        <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+                        <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
                     </div>
                 )}
                 <Select value={answer} onValueChange={onAnswerChange}>
@@ -460,7 +460,7 @@ const MultipleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete,
            </div>
            {question.imageUrl && (
                  <div className="my-4">
-                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
                 </div>
             )}
            <div className="space-y-2">
@@ -623,7 +623,7 @@ const TextQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, 
     </div>
     {question.imageUrl && (
         <div className="my-4">
-            <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+            <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
         </div>
     )}
     <Textarea placeholder="User answer..." disabled />
@@ -653,7 +653,7 @@ const NumberQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload
       </div>
         {question.imageUrl && (
             <div className="my-4">
-                <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+                <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
             </div>
         )}
       <Input type="number" placeholder="User enters a number..." disabled />
@@ -683,7 +683,7 @@ const PhoneQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload,
       </div>
         {question.imageUrl && (
             <div className="my-4">
-                <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+                <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
             </div>
         )}
       <Input type="tel" placeholder="User enters a phone number..." disabled />
@@ -713,7 +713,7 @@ const EmailQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload,
       </div>
         {question.imageUrl && (
             <div className="my-4">
-                <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+                <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
             </div>
         )}
       <Input type="email" placeholder="User enters an email address..." disabled />
@@ -756,7 +756,7 @@ const RatingQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, 
       </div>
       {question.imageUrl && (
           <div className="my-4">
-              <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+              <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
           </div>
       )}
       <div className="flex items-center gap-2">
@@ -802,7 +802,7 @@ const NPSQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isP
       </div>
       {question.imageUrl && (
           <div className="my-4">
-              <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+              <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
           </div>
       )}
       <div className="flex items-center justify-between gap-1 flex-wrap">
@@ -878,7 +878,7 @@ const BestWorstQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpl
             </div>
             {question.imageUrl && (
                 <div className="my-4">
-                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
                 </div>
             )}
             <div>
@@ -2819,10 +2819,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                             
                                             return (
                                                 <DraggableDashboardCard key={q.id} id={q.id} position={dashboardPositions[q.id] || {x: (i % 3) * 320 + 20, y: Math.floor(i / 3) * 320 + 20}}>
-                                                    <CardHeader className="p-4">
-                                                        <CardTitle className="truncate text-base">{q.title}</CardTitle>
+                                                     <CardHeader className="p-2 cursor-grab" >
+                                                        <CardTitle className="truncate text-sm">{q.title}</CardTitle>
                                                     </CardHeader>
-                                                    <CardContent className="p-2 flex items-center justify-center h-full">
+                                                    <CardContent className="p-2 flex-1 flex items-center justify-center">
                                                         <ChartComponent />
                                                     </CardContent>
                                                 </DraggableDashboardCard>
@@ -2887,15 +2887,15 @@ type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
 
 const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position: Position }) => {
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
-    
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+
     const style: React.CSSProperties = {
-        transform: transform
-            ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-            : (position ? `translate3d(${position.x}px, ${position.y}px, 0)` : undefined),
+        position: 'absolute',
         width: 300,
         height: 300,
-        position: 'absolute'
+        transform: isDragging
+            ? `translate3d(${position.x + (transform?.x ?? 0)}px, ${position.y + (transform?.y ?? 0)}px, 0)`
+            : `translate3d(${position.x}px, ${position.y}px, 0)`,
     };
 
     return (
