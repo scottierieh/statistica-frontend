@@ -90,7 +90,6 @@ def main():
         x_min, x_max = X[:, 0].min() - 0.5, X[:, 0].max() + 0.5
         y_min, y_max = X[:, 1].min() - 0.5, X[:, 1].max() + 0.5
         
-        cm = plt.cm.RdBu
         cm_bright = ListedColormap(["#FF0000", "#0000FF"])
 
         fig, axes = plt.subplots(3, 5, figsize=(18, 12))
@@ -129,7 +128,7 @@ def main():
             scores[name] = score
 
             DecisionBoundaryDisplay.from_estimator(
-                clf, X, cmap=cm, alpha=0.8, ax=ax, eps=0.5
+                clf, X, alpha=0.8, ax=ax, eps=0.5
             )
 
             ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, edgecolors="k")
@@ -164,5 +163,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
