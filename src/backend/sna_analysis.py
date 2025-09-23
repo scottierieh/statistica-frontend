@@ -97,7 +97,7 @@ def main():
 
         node_trace = go.Scatter(x=node_x, y=node_y, mode='markers+text', text=node_text, textposition='top center',
                                 hoverinfo='text', hovertext=node_info,
-                                marker=dict(showscale=True, colorscale=[[0, '#a8b5a3'], [1, '#6b7565']], reversescale=True,
+                                marker=dict(showscale=True, colorscale=[[0, '#d4c4a8'], [1, '#a67b70']], reversescale=True,
                                             color=node_color, size=node_size,
                                             colorbar=dict(thickness=15, title=dict(text='Node Connections', side='right'), xanchor='left'),
                                             line_width=2))

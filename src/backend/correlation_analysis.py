@@ -113,16 +113,11 @@ def generate_pairs_plot_plotly(df, group_var=None):
 
 def generate_heatmap_plotly(df, title='Correlation Matrix'):
     """Generates an interactive heatmap using Plotly."""
-    colorscale = [
-        [0.0, '#a67b70'],  # Min value color (Rosebrown)
-        [0.5, '#d4c4a8'],  # Mid value color (Cream Beige)
-        [1.0, '#7a9471']   # Max value color (Olive Green)
-    ]
     fig = go.Figure(data=go.Heatmap(
         z=df.values,
         x=df.columns,
         y=df.columns,
-        colorscale=colorscale,
+        colorscale='RdBu',
         zmin=-1,
         zmax=1,
         text=np.around(df.values, decimals=2),

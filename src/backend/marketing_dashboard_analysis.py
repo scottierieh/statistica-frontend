@@ -12,7 +12,7 @@ warnings.filterwarnings('ignore')
 pio.templates.default = "plotly_white"
 
 # New color palette
-PALETTE = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3']
+PALETTE = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3']
 
 def to_json(fig):
     """Converts a Plotly figure to a JSON string."""
