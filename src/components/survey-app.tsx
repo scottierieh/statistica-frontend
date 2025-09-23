@@ -68,6 +68,7 @@ import {
   ZoomOut,
   AreaChart,
   X,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -318,6 +319,92 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
         </div>
     );
 };
+
+const DropdownQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string; onAnswerChange?: (value: string) => void; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => {
+    const handleOptionChange = (index: number, value: string) => {
+        const newOptions = [...question.options];
+        newOptions[index] = value;
+        onUpdate?.({ ...question, options: newOptions });
+    };
+
+    const addOption = () => {
+        const newOptions = [...question.options, `Option ${question.options.length + 1}`];
+        onUpdate?.({ ...question, options: newOptions });
+    };
+
+    const deleteOption = (index: number) => {
+        const newOptions = question.options.filter((_:any, i:number) => i !== index);
+        onUpdate?.({ ...question, options: newOptions });
+    };
+    
+    if (isPreview) {
+        return (
+            <div className={cn("p-4", cardClassName)}>
+                <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+                {question.imageUrl && (
+                    <div className="my-4">
+                        <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+                    </div>
+                )}
+                <Select value={answer} onValueChange={onAnswerChange}>
+                    <SelectTrigger><SelectValue placeholder="Select an option..." /></SelectTrigger>
+                    <SelectContent>
+                        {question.options.map((option: string, index: number) => (
+                            <SelectItem key={index} value={option}>{option}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        );
+    }
+    
+    return (
+        <div className={cn("p-4", cardClassName)}>
+            <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+                     {question.required && <span className="text-destructive text-xs">* Required</span>}
+                </div>
+                {!isPreview && (
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                          <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                          <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
+                            <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                            <Info className="w-5 h-5 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}>
+                            <Trash2 className="w-5 h-5 text-destructive" />
+                        </Button>
+                    </div>
+                )}
+            </div>
+             <div className="space-y-2">
+                {question.options.map((option: string, index: number) => (
+                    <div key={index} className="flex items-center space-x-2 group">
+                        <Input 
+                            placeholder={`Option ${index + 1}`} 
+                            className="border-t-0 border-x-0 border-b focus:ring-0" 
+                            value={option}
+                            onChange={(e) => handleOptionChange(index, e.target.value)}
+                        />
+                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => deleteOption(index)}>
+                            <Trash2 className="w-4 h-4 text-destructive"/>
+                        </Button>
+                    </div>
+                ))}
+            </div>
+            <Button variant="link" size="sm" className="mt-2" onClick={addOption}>
+                <PlusCircle className="w-4 h-4 mr-2" /> Add Option
+            </Button>
+        </div>
+    );
+};
+
 
 const MultipleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string[]; onAnswerChange?: (newAnswer: string[]) => void; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => {
     const handleOptionChange = (index: number, value: string) => {
@@ -896,13 +983,13 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     )}
                                 </TableCell>
                                 <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                    <>
+                                    <TableRow>
                                         {(question.columns || []).map((col: string, colIndex: number) => (
                                             <TableCell key={colIndex} className="text-center">
                                                 <RadioGroupItem value={col}/>
                                             </TableCell>
                                         ))}
-                                    </>
+                                    </TableRow>
                                 </RadioGroup>
                                 {!isPreview && <TableCell></TableCell>}
                             </TableRow>
@@ -1643,6 +1730,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         'Choice': [
             { id: 'single', icon: CircleDot, label: 'Single Selection', options: ["Option 1", "Option 2"], color: 'text-blue-500' },
             { id: 'multiple', icon: CheckSquare, label: 'Multiple Selection', options: ["Option 1", "Option 2"], color: 'text-green-500' },
+            { id: 'dropdown', icon: ChevronDown, label: 'Dropdown', options: ["Option 1", "Option 2"], color: 'text-cyan-500' },
             { id: 'best-worst', icon: ThumbsUp, label: 'Best/Worst Choice', items: ["Item 1", "Item 2", "Item 3", "Item 4"], color: 'text-amber-500' },
         ],
         'Input': [
@@ -1735,7 +1823,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
 
         switch (question.type) {
             case 'single':
-            case 'multiple': {
+            case 'multiple':
+            case 'dropdown': {
                 const counts: { [key: string]: number } = {};
                 (question.options || []).forEach((opt: string) => { counts[opt] = 0; });
                 allAnswers.flat().forEach((ans: any) => { if (counts[ans] !== undefined) counts[ans]++; });
@@ -1743,13 +1832,13 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                 tableData = Object.entries(counts).map(([name, count]) => ({
                     name,
                     count,
-                    percentage: responses.length > 0 ? ((count / responses.length) * 100).toFixed(1) : "0.0"
+                    percentage: responses.length > 0 ? ((count / allAnswers.length) * 100) : 0
                 })).sort((a,b) => b.count - a.count);
 
                 const mostSelected = tableData[0];
                 insights = [
-                    `Most frequent answer: <strong>${mostSelected.name}</strong> (${mostSelected.count} responses, ${mostSelected.percentage}%).`,
-                    `A total of <strong>${responses.length}</strong> responses were collected for this question.`
+                    `Most frequent answer: <strong>${mostSelected.name}</strong> (${mostSelected.count} responses, ${mostSelected.percentage.toFixed(1)}%).`,
+                    `A total of <strong>${allAnswers.length}</strong> responses were collected for this question.`
                 ];
 
                 chartData = tableData;
@@ -2539,6 +2628,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                         const questionComponents: { [key: string]: React.ComponentType<any> } = {
                                                             single: SingleSelectionQuestion,
                                                             multiple: MultipleSelectionQuestion,
+                                                            dropdown: DropdownQuestion,
                                                             text: TextQuestion,
                                                             rating: RatingQuestion,
                                                             number: NumberQuestion,
@@ -2731,6 +2821,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     const questionComponents: { [key: string]: React.ComponentType<any> } = {
                                         single: ChoiceAnalysisDisplay,
                                         multiple: ChoiceAnalysisDisplay,
+                                        dropdown: ChoiceAnalysisDisplay,
                                         text: TextAnalysisDisplay,
                                         rating: RatingAnalysisDisplay,
                                         number: NumberAnalysisDisplay,
@@ -2776,6 +2867,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                     switch (q.type) {
                                                         case 'single':
                                                         case 'multiple':
+                                                        case 'dropdown':
                                                             return <Plot data={[{ values: chartData.map((d: any) => d.count), labels: chartData.map((d: any) => d.name), type: 'pie', hole: .4 }]} layout={{ autosize: true, margin: { t: 20, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
                                                         case 'number':
                                                             return <Plot data={[{ x: chartData.values, type: 'histogram' }]} layout={{ autosize: true, margin: { t: 40, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '300px' }} useResizeHandler/>;
