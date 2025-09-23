@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
@@ -794,9 +795,11 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
     };
     const deleteColumn = (index: number) => {
         onUpdate?.(produce(question, (draft: any) => {
-            draft.columns.splice(index, 1);
-            if (draft.scale.length > index) {
-                draft.scale.splice(index, 1);
+            if (draft.columns.length > 1) {
+                draft.columns.splice(index, 1);
+                if (draft.scale.length > index) {
+                    draft.scale.splice(index, 1);
+                }
             }
         }));
     };
@@ -853,16 +856,14 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                             <RadioGroup
-                                value={answer?.[row]}
-                                onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}
-                                className="contents"
-                                >
+                             <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                                <div className='contents'>
                                 {question.columns?.map((col: string, colIndex: number) => (
                                     <TableCell key={colIndex} className="text-center">
                                           <RadioGroupItem value={col}/>
                                     </TableCell>
                                 ))}
+                                </div>
                             </RadioGroup>
                             {!isPreview && <TableCell></TableCell>}
                          </TableRow>
@@ -957,32 +958,46 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
         const baseLayout = {
             autosize: true,
             margin: { t: 40, b: 40, l: 40, r: 20 },
+            xaxis: {
+                title: chartType === 'hbar' ? 'Percentage' : '',
+            },
+            yaxis: {
+                title: chartType === 'hbar' ? '' : 'Percentage',
+            },
         };
         if (chartType === 'hbar') {
-            return { ...baseLayout, yaxis: { autorange: 'reversed' as const }, margin: { ...baseLayout.margin, l: 120 } };
+            baseLayout.yaxis = { autorange: 'reversed' as const };
+            baseLayout.margin.l = 120;
         }
         if (chartType === 'bar') {
-            return { ...baseLayout, xaxis: { tickangle: -45 } };
+            baseLayout.xaxis.tickangle = -45;
         }
         return baseLayout;
     }, [chartType]);
 
     const plotData = useMemo(() => {
+        const percentages = chartData.map((d: any) => parseFloat(d.percentage));
+        const labels = chartData.map((d: any) => d.name);
+
         if (chartType === 'pie') {
             return [{
-                values: chartData.map((d: any) => d.count),
-                labels: chartData.map((d: any) => d.name),
+                values: percentages,
+                labels: labels,
                 type: 'pie',
                 hole: 0.4,
                 marker: { colors: COLORS },
+                textinfo: 'label+percent',
+                textposition: 'inside',
             }];
         }
         return [{
-            y: chartType === 'hbar' ? chartData.map((d: any) => d.name) : chartData.map((d: any) => d.count),
-            x: chartType === 'hbar' ? chartData.map((d: any) => d.count) : chartData.map((d: any) => d.name),
+            y: chartType === 'hbar' ? labels : percentages,
+            x: chartType === 'hbar' ? percentages : labels,
             type: 'bar',
             orientation: chartType === 'hbar' ? 'h' : 'v',
             marker: { color: 'hsl(var(--primary))' },
+            text: percentages.map((p: number) => `${p.toFixed(1)}%`),
+            textposition: 'auto',
         }];
     }, [chartType, chartData]);
 
