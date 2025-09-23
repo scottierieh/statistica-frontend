@@ -1175,8 +1175,6 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
 };
   
 const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question }: { chartData: any, tableData: any, insightsData: string[], varName: string, question: any }) => {
-    const ratingScale = question.scale || ['1', '2', '3', '4', '5'];
-    
     return (
         <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -1184,31 +1182,9 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, qu
                     <CardHeader>
                         <CardTitle className="text-base">Average Rating</CardTitle>
                     </CardHeader>
-                     <CardContent className="flex items-center justify-center min-h-[300px]">
-                        <Plot
-                            data={[{
-                                y: ['Average'],
-                                x: [chartData.avg],
-                                type: 'bar',
-                                orientation: 'h',
-                                text: [chartData.avg.toFixed(2)],
-                                textposition: 'auto',
-                                hoverinfo: 'none',
-                                marker: { color: 'hsl(var(--primary))' },
-                            }]}
-                            layout={{
-                                autosize: true,
-                                margin: { t: 20, b: 40, l: 100, r: 20 },
-                                xaxis: {
-                                    range: [0, ratingScale.length],
-                                    title: 'Rating'
-                                },
-                                yaxis: { showticklabels: false },
-                            }}
-                            style={{ width: '100%', height: '150px' }}
-                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
-                            useResizeHandler
-                        />
+                     <CardContent className="flex flex-col items-center justify-center min-h-[300px] gap-4">
+                        <StarDisplay rating={chartData.avg} total={question.scale?.length || 5} />
+                        <p className="text-2xl font-bold">{chartData.avg.toFixed(2)} <span className="text-base font-normal text-muted-foreground">/ {question.scale?.length || 5}</span></p>
                     </CardContent>
                 </Card>
                  <div className="space-y-4">
@@ -2813,7 +2789,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                             
                                             return (
                                                 <DraggableDashboardCard key={q.id} id={q.id} position={dashboardPositions[q.id] || {x: (i % 3) * 320 + 20, y: Math.floor(i / 3) * 320 + 20}}>
-                                                    <CardHeader className="p-2 cursor-grab flex-shrink-0">
+                                                     <CardHeader className="p-2 cursor-grab flex-shrink-0" >
                                                         <CardTitle className="truncate text-sm">{q.title}</CardTitle>
                                                     </CardHeader>
                                                     <CardContent className="p-2 flex-1 flex items-center justify-center overflow-hidden">
@@ -2880,15 +2856,15 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
 
-const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position: Position }) => {
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
+const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position?: Position }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
 
     const style: React.CSSProperties = {
         position: 'absolute',
-        top: position?.y || 0,
-        left: position?.x || 0,
         width: 300,
         height: 300,
+        top: position?.y || 0,
+        left: position?.x || 0,
         transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     };
 
