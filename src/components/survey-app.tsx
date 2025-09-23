@@ -96,7 +96,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import Papa from 'papaparse';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { ResponsiveContainer, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell, PieChart, Pie } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -771,17 +771,33 @@ const BestWorstQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpl
 
 const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, isPreview, cardClassName }: { question: any, answer: any, onAnswerChange?: (value: any) => void, onUpdate?: (q:any) => void, onDelete?: (id: number) => void, isPreview?: boolean, cardClassName?: string }) => {
     const handleRowChange = (index: number, value: string) => {
-        const newRows = [...question.rows];
-        newRows[index] = value;
-        onUpdate?.({ ...question, rows: newRows });
+        onUpdate?.(produce(question, (draft: any) => { draft.rows[index] = value; }));
     };
-
+    const handleColumnChange = (index: number, value: string) => {
+        onUpdate?.(produce(question, (draft: any) => { draft.scale[index] = value; }));
+    };
     const addRow = () => {
-        onUpdate?.({ ...question, rows: [...question.rows, `New Row`] });
+        onUpdate?.(produce(question, (draft: any) => { draft.rows.push(`New Row`); }));
     };
-
     const deleteRow = (index: number) => {
-        onUpdate?.({ ...question, rows: question.rows.filter((_:any, i:number) => i !== index) });
+        onUpdate?.(produce(question, (draft: any) => { draft.rows.splice(index, 1); }));
+    };
+    const addColumn = () => {
+        onUpdate?.(produce(question, (draft: any) => {
+            const newColNum = draft.columns.length + 1;
+            draft.columns.push(String(newColNum));
+            if (draft.scale.length < newColNum) {
+                draft.scale.push(`Label ${newColNum}`);
+            }
+        }));
+    };
+    const deleteColumn = (index: number) => {
+        onUpdate?.(produce(question, (draft: any) => {
+            draft.columns.splice(index, 1);
+            if (draft.scale.length > index) {
+                draft.scale.splice(index, 1);
+            }
+        }));
     };
 
     return (
@@ -807,21 +823,34 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-1/3"></TableHead>
-                        {question.columns?.map((col: string, colIndex: number) => {
-                            const showLabel = colIndex === 0 || colIndex === (question.columns?.length ?? 0) - 1;
-                            return (
-                                <TableHead key={colIndex} className={cn("text-center text-xs w-[60px]", !showLabel && "hidden sm:table-cell")}>
-                                    {showLabel ? question.scale?.[colIndex] : col}
-                                </TableHead>
-                            );
-                        })}
+                        {question.columns?.map((col: string, colIndex: number) => (
+                            <TableHead key={colIndex} className="text-center text-xs w-[80px] group relative">
+                                <Input 
+                                    value={question.scale?.[colIndex] || col} 
+                                    onChange={(e) => handleColumnChange(colIndex, e.target.value)} 
+                                    readOnly={isPreview}
+                                    className="border-none text-center bg-transparent focus:ring-0 p-0"
+                                />
+                                 {!isPreview && (
+                                    <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 absolute top-0 right-0" onClick={() => deleteColumn(colIndex)}>
+                                        <X className="w-3 h-3 text-destructive"/>
+                                    </Button>
+                                )}
+                            </TableHead>
+                        ))}
+                        {!isPreview && <TableHead><Button variant="ghost" size="icon" onClick={addColumn}><PlusCircle className="w-4 h-4" /></Button></TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                      {question.rows?.map((row: string, rowIndex: number) => (
                         <TableRow key={rowIndex}>
-                            <TableCell>
+                            <TableCell className="group relative">
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
+                                {!isPreview && (
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 absolute top-1/2 -translate-y-1/2 right-0" onClick={() => deleteRow(rowIndex)}>
+                                        <Trash2 className="w-4 h-4 text-destructive"/>
+                                    </Button>
+                                )}
                             </TableCell>
                             <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                 <>
@@ -832,11 +861,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                 ))}
                                 </>
                             </RadioGroup>
-                            {!isPreview && (
-                                <TableCell>
-                                    <Button variant="ghost" size="icon" onClick={() => deleteRow(rowIndex)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
-                                </TableCell>
-                            )}
+                            {!isPreview && <TableCell></TableCell>}
                          </TableRow>
                      ))}
                 </TableBody>
@@ -985,7 +1010,20 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                 <div className="space-y-4">
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
-                        <CardContent className="max-h-[200px] overflow-y-auto">{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</CardContent>
+                        <CardContent className="max-h-[200px] overflow-y-auto">
+                            <Table>
+                                <TableHeader>
+                                <TableRow>
+                                    <TableHead>Option</TableHead>
+                                    <TableHead className="text-right">Count</TableHead>
+                                    <TableHead className="text-right">Percentage</TableHead>
+                                </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
@@ -2029,7 +2067,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     if(!ageGroupSatisfaction[age]) ageGroupSatisfaction[age] = [];
                     ageGroupSatisfaction[age].push(satisfaction);
                 }
-            }
+            };
         });
         const avgAgeSatisfaction = Object.entries(ageGroupSatisfaction).map(([age, scores]) => ({ age, avg: mean(scores) }));
         if(avgAgeSatisfaction.length > 1) {
@@ -2213,11 +2251,13 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     </div>
                                 </div>
                             </div>
-                            <Button className="w-full" asChild>
-                                <a href={surveyUrl} target="_blank" rel="noopener noreferrer">
-                                    <Eye className="mr-2" /> Launch Kiosk
-                                </a>
-                            </Button>
+                            <DialogFooter>
+                                <Button className="w-full" asChild>
+                                    <a href={surveyUrl} target="_blank" rel="noopener noreferrer">
+                                        <Eye className="mr-2" /> Launch Kiosk
+                                    </a>
+                                </Button>
+                            </DialogFooter>
                         </DialogContent>
                     </Dialog>
 
