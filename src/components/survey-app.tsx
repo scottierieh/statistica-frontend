@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
@@ -808,25 +807,25 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-1/3"></TableHead>
-                        {question.columns.map((col: string, colIndex: number) => {
-                            const showLabel = colIndex === 0 || colIndex === question.columns.length - 1;
+                        {question.columns?.map((col: string, colIndex: number) => {
+                            const showLabel = colIndex === 0 || colIndex === (question.columns?.length ?? 0) - 1;
                             return (
                                 <TableHead key={colIndex} className={cn("text-center text-xs w-[60px]", !showLabel && "hidden sm:table-cell")}>
-                                    {showLabel ? question.scale[colIndex] : col}
+                                    {showLabel ? question.scale?.[colIndex] : col}
                                 </TableHead>
                             );
                         })}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                     {question.rows.map((row: string, rowIndex: number) => (
+                     {question.rows?.map((row: string, rowIndex: number) => (
                         <TableRow key={rowIndex}>
                             <TableCell>
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
                             </TableCell>
                             <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                 <>
-                                {question.columns.map((col: string, colIndex: number) => (
+                                {question.columns?.map((col: string, colIndex: number) => (
                                     <TableCell key={colIndex} className="text-center">
                                          <RadioGroupItem value={col}/>
                                     </TableCell>
@@ -923,7 +922,7 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
     );
 };
   
-const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any[], tableData: any[], insightsData: string[], varName: string }) => {
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
     const [chartType, setChartType] = useState<'bar' | 'hbar' | 'pie'>('hbar');
 
     const plotLayout = useMemo(() => {
@@ -943,16 +942,16 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     const plotData = useMemo(() => {
         if (chartType === 'pie') {
             return [{
-                values: chartData.map(d => d.count),
-                labels: chartData.map(d => d.name),
+                values: chartData.map((d: any) => d.count),
+                labels: chartData.map((d: any) => d.name),
                 type: 'pie',
                 hole: 0.4,
                 marker: { colors: COLORS },
             }];
         }
         return [{
-            y: chartType === 'hbar' ? chartData.map(d => d.name) : chartData.map(d => d.count),
-            x: chartType === 'hbar' ? chartData.map(d => d.count) : chartData.map(d => d.name),
+            y: chartType === 'hbar' ? chartData.map((d: any) => d.name) : chartData.map((d: any) => d.count),
+            x: chartType === 'hbar' ? chartData.map((d: any) => d.count) : chartData.map((d: any) => d.name),
             type: 'bar',
             orientation: chartType === 'hbar' ? 'h' : 'v',
             marker: { color: 'hsl(var(--primary))' },
@@ -986,12 +985,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                 <div className="space-y-4">
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
-                        <CardContent className="max-h-[200px] overflow-y-auto">
-                            <Table>
-                                <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
-                                <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
-                            </Table>
-                        </CardContent>
+                        <CardContent className="max-h-[200px] overflow-y-auto">{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
@@ -1792,6 +1786,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         }
         if (type === 'nps') {
             newQuestion.title = 'How likely are you to recommend our product to a friend or colleague?';
+        }
+        if (type === 'matrix') {
+            newQuestion.rows = ['Row 1', 'Row 2'];
         }
         setSurvey((prev: any) => ({ ...prev, questions: [...prev.questions, newQuestion] }));
     };
@@ -2778,7 +2775,3 @@ const SortableCard = ({ id, children }: { id: any, children: React.ReactNode }) 
         </div>
     );
 };
-
-
-
-
