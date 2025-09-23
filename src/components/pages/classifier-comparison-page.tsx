@@ -1,11 +1,11 @@
 
 'use client';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Play, BarChart, Settings, SlidersHorizontal, BarChartIcon } from 'lucide-react';
+import { Loader2, Play, SlidersHorizontal } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -13,7 +13,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '..
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import DataUploader from '../data-uploader';
-import { DataSet, parseData } from '@/lib/stats';
+import { DataSet } from '@/lib/stats';
 import { ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 
 interface AnalysisResponse {
@@ -36,7 +36,7 @@ const defaultParams = {
     "QDA": {},
 };
 
-export default function ClassifierComparisonPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample: onExampleSelect, onFileSelected: onFileSelect }: { data: DataSet, allHeaders: string[], numericHeaders: string[], categoricalHeaders: string[], onLoadExample: (example: ExampleDataSet) => void, onFileSelected: (file: File) => void }) {
+export default function ClassifierComparisonPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample, onFileSelected }: { data: DataSet, allHeaders: string[], numericHeaders: string[], categoricalHeaders: string[], onLoadExample: (example: ExampleDataSet) => void, onFileSelected: (file: File) => void }) {
     const { toast } = useToast();
     const [datasetType, setDatasetType] = useState<'synthetic' | 'custom'>('synthetic');
     const [syntheticDataset, setSyntheticDataset] = useState('moons');
@@ -45,10 +45,16 @@ export default function ClassifierComparisonPage({ data, allHeaders, numericHead
     const [params, setParams] = useState<any>(defaultParams);
     
     // For custom data
-    const [targetVar, setTargetVar] = useState<string | undefined>();
-    const [featureX, setFeatureX] = useState<string | undefined>();
-    const [featureY, setFeatureY] = useState<string | undefined>();
+    const [targetVar, setTargetVar] = useState<string | undefined>(categoricalHeaders[0]);
+    const [featureX, setFeatureX] = useState<string | undefined>(numericHeaders[0]);
+    const [featureY, setFeatureY] = useState<string | undefined>(numericHeaders[1]);
     const [isUploading, setIsUploading] = useState(false);
+
+    useEffect(() => {
+        setTargetVar(categoricalHeaders[0]);
+        setFeatureX(numericHeaders[0]);
+        setFeatureY(numericHeaders[1]);
+    }, [data, numericHeaders, categoricalHeaders]);
 
 
     const handleParamChange = (classifier: string, param: string, value: string) => {
@@ -72,7 +78,12 @@ export default function ClassifierComparisonPage({ data, allHeaders, numericHead
         let body: any = { params };
         if (datasetType === 'custom') {
             if (!data || !targetVar || !featureX || !featureY) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Please select target and feature variables for custom data.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Please select target and two feature variables for custom data.' });
+                setIsLoading(false);
+                return;
+            }
+             if (featureX === featureY) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Feature X and Feature Y must be different.' });
                 setIsLoading(false);
                 return;
             }
@@ -138,14 +149,15 @@ export default function ClassifierComparisonPage({ data, allHeaders, numericHead
                         <CardDescription>Upload your data to compare classifiers or switch to synthetic datasets.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <DataUploader onFileSelected={onFileSelect} loading={isUploading} />
+                        <DataUploader onFileSelected={onFileSelected} loading={isUploading} />
                         {classifierExample && (
                             <>
                                 <div className="relative">
                                     <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                                     <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or</span></div>
                                 </div>
-                                 <Button variant="secondary" className="w-full" onClick={() => onExampleSelect(classifierExample)}>
+                                 <Button variant="secondary" className="w-full" onClick={() => onLoadExample(classifierExample)}>
+                                    {/* @ts-ignore */}
                                     <classifierExample.icon className="mr-2"/>
                                     {classifierExample.name}
                                 </Button>
@@ -185,20 +197,29 @@ export default function ClassifierComparisonPage({ data, allHeaders, numericHead
                                 </SelectContent>
                             </Select>
                         ) : (
-                             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-2">
-                                <Select value={targetVar} onValueChange={setTargetVar}>
-                                    <SelectTrigger><SelectValue placeholder="Select Target"/></SelectTrigger>
-                                    <SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <Select value={featureX} onValueChange={setFeatureX}>
-                                    <SelectTrigger><SelectValue placeholder="Select Feature X"/></SelectTrigger>
-                                    <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <Select value={featureY} onValueChange={setFeatureY}>
-                                    <SelectTrigger><SelectValue placeholder="Select Feature Y"/></SelectTrigger>
-                                    <SelectContent>{numericHeaders.filter(h => h !== featureX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </div>
+                             <>
+                                <div>
+                                    <Label>Target Variable</Label>
+                                    <Select value={targetVar} onValueChange={setTargetVar}>
+                                        <SelectTrigger><SelectValue placeholder="Select Target"/></SelectTrigger>
+                                        <SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label>Feature X (for plot)</Label>
+                                    <Select value={featureX} onValueChange={setFeatureX}>
+                                        <SelectTrigger><SelectValue placeholder="Select Feature X"/></SelectTrigger>
+                                        <SelectContent>{numericHeaders.filter(h => h !== targetVar).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label>Feature Y (for plot)</Label>
+                                    <Select value={featureY} onValueChange={setFeatureY}>
+                                        <SelectTrigger><SelectValue placeholder="Select Feature Y"/></SelectTrigger>
+                                        <SelectContent>{numericHeaders.filter(h => h !== targetVar && h !== featureX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                            </>
                         )}
                     </div>
                      <Accordion type="single" collapsible className="w-full">
