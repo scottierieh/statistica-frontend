@@ -198,7 +198,9 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     sna: SnaPage,
     'topic-modeling': TopicModelingPage,
     dea: DeaPage,
-    't-test': TTestPage,
+    't-test-one-sample': TTestPage,
+    't-test-independent': TTestPage,
+    't-test-paired': TTestPage,
     ahp: AhpPage,
     did: DidPage,
     delphi: DelphiPage,
@@ -648,7 +650,7 @@ export default function StatisticaApp() {
                                   }}
                                   isActive={activeAnalysis === method.id}
                                   disabled={(method as any).implemented === false}
-                                  className="justify-start w-full h-8 text-xs"
+                                  className="justify-start w-full h-8 text-sm"
                               >
                                   <span>{method.label}</span>
                               </SidebarMenuButton>
@@ -658,7 +660,7 @@ export default function StatisticaApp() {
                         {category.subCategories?.map(sub => (
                            <Collapsible key={sub.name} open={openCategories.includes(sub.name)} onOpenChange={() => toggleCategory(sub.name)}>
                              <CollapsibleTrigger className="w-full">
-                               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground py-1">
+                               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground py-1">
                                   <span>{sub.name}</span>
                                   <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", openCategories.includes(sub.name) ? 'rotate-180' : '')} />
                                </div>
@@ -671,7 +673,7 @@ export default function StatisticaApp() {
                                           onClick={() => setActiveAnalysis(method.id as AnalysisType)}
                                           isActive={activeAnalysis === method.id}
                                           disabled={(method as any).implemented === false}
-                                          className="justify-start w-full h-8 text-xs"
+                                          className="justify-start w-full h-8 text-sm"
                                       >
                                           <span>{method.label}</span>
                                       </SidebarMenuButton>
@@ -722,8 +724,6 @@ export default function StatisticaApp() {
                 numericHeaders={numericHeaders}
                 categoricalHeaders={categoricalHeaders}
                 onLoadExample={handleLoadExampleData}
-                onFileSelected={handleFileSelected}
-                isUploading={isUploading}
                />
 
           </div>
@@ -749,6 +749,7 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
 
 
 
