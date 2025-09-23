@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -8,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Container, Info, HelpCircle, Settings, BarChart, TrendingUp } from 'lucide-react';
+import { Sigma, Loader2, Container, Info, HelpCircle, Settings, BarChart, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -39,6 +40,7 @@ interface KnnRegressionResults {
         neighbors?: any[]
     };
     features: string[];
+    interpretation: string;
 }
 
 interface FullAnalysisResponse {
@@ -128,6 +130,19 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
             [feature]: value === '' ? '' : Number(value)
         }));
     }
+    
+     const handleMultiPredict = () => {
+        const allValuesPresent = features.every(f => predictXValues[f] !== '' && predictXValues[f] !== null);
+        if(!allValuesPresent) {
+            toast({variant: 'destructive', title: 'Missing Values', description: 'Please enter a value for all feature variables.'})
+            return;
+        }
+        const valuesToPredict = features.reduce((acc, f) => {
+            acc[f] = Number(predictXValues[f]);
+            return acc;
+        }, {} as {[key: string]: number});
+        handleAnalysis(valuesToPredict);
+    };
 
     const handleAnalysis = useCallback(async (predictValue?: number | { [key: string]: number }) => {
         if (!target || features.length === 0) {
@@ -203,7 +218,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                             Simple K-Nearest Neighbors (KNN) Regression
                         </CardTitle>
                         <CardDescription className="text-base pt-2">
-                           This is a non-parametric regression method that uses a single independent variable (X) to predict a single dependent variable (Y). It is based on the simple idea that "things that are close to each other are similar."
+                           KNN is a non-parametric method that uses a single independent variable (X) to predict a single dependent variable (Y). It is based on the simple idea that "things that are close to each other are similar."
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
@@ -253,7 +268,7 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <CardTitle className="font-headline">KNN Regression Setup ({mode})</CardTitle>
-                        <TooltipProvider>
+                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
@@ -371,6 +386,18 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
 
             {analysisResult && results && (
                 <div className="space-y-4">
+                    {results.interpretation && (
+                        <Card>
+                            <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
+                            <CardContent>
+                               <Alert variant={results.interpretation.includes('Warning') || results.interpretation.includes('Possible') || results.interpretation.includes('weak fit') ? 'destructive' : 'default'}>
+                                  {results.interpretation.includes('strong fit') || results.interpretation.includes('moderate fit') ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                                  <AlertTitle>Model Performance Summary</AlertTitle>
+                                  <AlertDescription dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br/>') }} />
+                               </Alert>
+                            </CardContent>
+                        </Card>
+                    )}
                      <Card>
                         <CardHeader>
                             <CardTitle>Train vs. Test Performance</CardTitle>
@@ -469,3 +496,4 @@ export default function KnnRegressionPage({ data, numericHeaders, onLoadExample,
         </div>
     );
 }
+
