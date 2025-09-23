@@ -1,17 +1,20 @@
 
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Play, BarChart, Settings, SlidersHorizontal } from 'lucide-react';
+import { Loader2, Play, BarChart, Settings, SlidersHorizontal, BarChartIcon } from 'lucide-react';
 import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import DataUploader from '../data-uploader';
+import { DataSet, parseData } from '@/lib/stats';
+import { ExampleDataSet, exampleDatasets } from '@/lib/example-datasets';
 
 interface AnalysisResponse {
     results: {
@@ -33,13 +36,21 @@ const defaultParams = {
     "QDA": {},
 };
 
-export default function ClassifierComparisonPage() {
+export default function ClassifierComparisonPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample: onExampleSelect, onFileSelected: onFileSelect }: { data: DataSet, allHeaders: string[], numericHeaders: string[], categoricalHeaders: string[], onLoadExample: (example: ExampleDataSet) => void, onFileSelected: (file: File) => void }) {
     const { toast } = useToast();
-    const [dataset, setDataset] = useState('moons');
+    const [datasetType, setDatasetType] = useState<'synthetic' | 'custom'>('synthetic');
+    const [syntheticDataset, setSyntheticDataset] = useState('moons');
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
     const [params, setParams] = useState<any>(defaultParams);
     
+    // For custom data
+    const [targetVar, setTargetVar] = useState<string | undefined>();
+    const [featureX, setFeatureX] = useState<string | undefined>();
+    const [featureY, setFeatureY] = useState<string | undefined>();
+    const [isUploading, setIsUploading] = useState(false);
+
+
     const handleParamChange = (classifier: string, param: string, value: string) => {
         const numValue = Number(value);
         if (!isNaN(numValue)) {
@@ -58,11 +69,24 @@ export default function ClassifierComparisonPage() {
         setIsLoading(true);
         setAnalysisResult(null);
 
+        let body: any = { params };
+        if (datasetType === 'custom') {
+            if (!data || !targetVar || !featureX || !featureY) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Please select target and feature variables for custom data.' });
+                setIsLoading(false);
+                return;
+            }
+            body = { ...body, data, target_col: targetVar, feature_cols: [featureX, featureY] };
+        } else {
+            body = { ...body, dataset: syntheticDataset };
+        }
+
+
         try {
             const response = await fetch('/api/analysis/classifier-comparison', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dataset, params }),
+                body: JSON.stringify(body),
             });
 
             if (!response.ok) {
@@ -81,7 +105,7 @@ export default function ClassifierComparisonPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [dataset, params, toast]);
+    }, [datasetType, syntheticDataset, params, toast, data, targetVar, featureX, featureY]);
     
     const scores = analysisResult?.results.scores;
 
@@ -103,43 +127,99 @@ export default function ClassifierComparisonPage() {
         ));
     };
 
+    const classifierExample = exampleDatasets.find(ex => ex.id === 'iris');
+    
+     if (data.length === 0 && datasetType === 'custom') {
+        return (
+             <div className="flex flex-1 items-center justify-center h-full">
+                <Card className="w-full max-w-2xl text-center">
+                    <CardHeader>
+                        <CardTitle className="font-headline">Classifier Model Comparison</CardTitle>
+                        <CardDescription>Upload your data to compare classifiers or switch to synthetic datasets.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <DataUploader onFileSelected={onFileSelect} loading={isUploading} />
+                        {classifierExample && (
+                            <>
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or</span></div>
+                                </div>
+                                 <Button variant="secondary" className="w-full" onClick={() => onExampleSelect(classifierExample)}>
+                                    <classifierExample.icon className="mr-2"/>
+                                    {classifierExample.name}
+                                </Button>
+                            </>
+                        )}
+                        <Button variant="link" onClick={() => setDatasetType('synthetic')}>Use Synthetic Datasets</Button>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Classifier Model Comparison</CardTitle>
-                    <CardDescription>Compare various classification algorithms on different synthetic datasets.</CardDescription>
+                    <CardDescription>Compare various classification algorithms on different datasets.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                     <div className="flex items-center gap-4">
-                        <Select value={dataset} onValueChange={setDataset}>
-                            <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                    <div className="grid md:grid-cols-3 gap-4 mb-4">
+                        <Select value={datasetType} onValueChange={(v) => setDatasetType(v as any)}>
+                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="moons">Moons</SelectItem>
-                                <SelectItem value="circles">Circles</SelectItem>
-                                <SelectItem value="linear">Linearly Separable</SelectItem>
+                                <SelectItem value="synthetic">Synthetic Dataset</SelectItem>
+                                <SelectItem value="custom">Uploaded Data</SelectItem>
                             </SelectContent>
                         </Select>
-                         <Accordion type="single" collapsible className="w-full">
-                            <AccordionItem value="item-1">
-                                <AccordionTrigger>
-                                    <Button variant="outline"><SlidersHorizontal className="mr-2"/>Advanced Settings</Button>
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                    <div className="p-4 border rounded-lg mt-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4">
-                                        {Object.keys(params).map(classifier => (
-                                            <div key={classifier}>
-                                                <h4 className="font-semibold mb-2 text-sm">{classifier}</h4>
-                                                <div className="space-y-2">
-                                                    {renderParamInputs(classifier)}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
+
+                        {datasetType === 'synthetic' ? (
+                             <Select value={syntheticDataset} onValueChange={setSyntheticDataset}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="moons">Moons</SelectItem>
+                                    <SelectItem value="circles">Circles</SelectItem>
+                                    <SelectItem value="linear">Linearly Separable</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <Select value={targetVar} onValueChange={setTargetVar}>
+                                    <SelectTrigger><SelectValue placeholder="Select Target"/></SelectTrigger>
+                                    <SelectContent>{categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <Select value={featureX} onValueChange={setFeatureX}>
+                                    <SelectTrigger><SelectValue placeholder="Select Feature X"/></SelectTrigger>
+                                    <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <Select value={featureY} onValueChange={setFeatureY}>
+                                    <SelectTrigger><SelectValue placeholder="Select Feature Y"/></SelectTrigger>
+                                    <SelectContent>{numericHeaders.filter(h => h !== featureX).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </div>
+                     <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="item-1">
+                            <AccordionTrigger>
+                                <Button variant="outline"><SlidersHorizontal className="mr-2"/>Advanced Settings</Button>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="p-4 border rounded-lg mt-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4">
+                                    {Object.keys(params).map(classifier => (
+                                        <div key={classifier}>
+                                            <h4 className="font-semibold mb-2 text-sm">{classifier}</h4>
+                                            <div className="space-y-2">
+                                                {renderParamInputs(classifier)}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
                 </CardContent>
                  <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading}>
@@ -160,7 +240,7 @@ export default function ClassifierComparisonPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex justify-center overflow-x-auto">
-                            <Image src={analysisResult.plot} alt="Classifier Comparison Plot" width={1000} height={3000} className="rounded-md border" />
+                            <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="Classifier Comparison Plot" width={1500} height={900} className="rounded-md border" />
                         </CardContent>
                     </Card>
 

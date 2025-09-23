@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -45,7 +46,7 @@ import { cn } from '@/lib/utils';
 
 type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison';
 
-const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExample, allHeaders, categoricalHeaders }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], onLoadExample: (e: ExampleDataSet) => void, allHeaders: string[], categoricalHeaders: string[] }) => {
+const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalHeaders, allHeaders, onLoadExample }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], categoricalHeaders: string[], allHeaders: string[], onLoadExample: (e: ExampleDataSet) => void }) => {
     switch (activeTask) {
         case 'deep-learning':
             return <DeepLearningApp />;
@@ -62,7 +63,7 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, onLoadExampl
         case 'decision-tree-classifier':
             return <DecisionTreePage data={data} allHeaders={allHeaders} numericHeaders={numericHeaders} categoricalHeaders={categoricalHeaders} onLoadExample={onLoadExample} />;
         case 'classifier-comparison':
-            return <ClassifierComparisonPage />;
+            return <ClassifierComparisonPage data={data} allHeaders={allHeaders} numericHeaders={numericHeaders} categoricalHeaders={categoricalHeaders} onLoadExample={onLoadExample} />;
         case 'regression':
         case 'classification':
         case 'tree':
@@ -300,7 +301,7 @@ export default function MachineLearningApp() {
                 <div />
             </header>
             
-            {hasData && (
+            {hasData && activeTask !== 'classifier-comparison' && activeTask !== 'fruit-clustering' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
