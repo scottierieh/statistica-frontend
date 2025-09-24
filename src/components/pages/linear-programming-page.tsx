@@ -77,7 +77,6 @@ export default function LinearProgrammingPage() {
     const [c, setC] = useState<number[]>([3, 2]);
     const [A, setA] = useState<number[][]>([[1, 1], [1, 0], [0, 1]]);
     const [b, setB] = useState<number[]>([4, 2, 3]);
-    const [constraintTypes, setConstraintTypes] = useState<string[]>(['<=', '<=', '<=']);
     const [variableTypes, setVariableTypes] = useState<string[]>(['continuous', 'continuous']);
 
     const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +88,6 @@ export default function LinearProgrammingPage() {
         setC(Array(vars).fill(0));
         setA(Array(constraints).fill(null).map(() => Array(vars).fill(0)));
         setB(Array(constraints).fill(0));
-        setConstraintTypes(Array(constraints).fill('<='));
         setVariableTypes(Array(vars).fill('continuous'));
     };
 
@@ -101,7 +99,6 @@ export default function LinearProgrammingPage() {
         setC([3, 2]); 
         setA([[1, 1], [1, 0], [0, 1]]);
         setB([4, 2, 3]);
-        setConstraintTypes(['<=', '<=', '<=']);
         setVariableTypes(['continuous', 'continuous']);
         setAnalysisResult(null);
         toast({ title: "Sample Data Loaded", description: "Example maximization problem has been set up." });
@@ -123,12 +120,6 @@ export default function LinearProgrammingPage() {
             setC(newC);
         }
     };
-    
-    const handleConstraintTypeChange = (i: number, value: string) => {
-        const newTypes = [...constraintTypes];
-        newTypes[i] = value;
-        setConstraintTypes(newTypes);
-    };
 
     const handleVariableTypeChange = (j: number, value: string) => {
         const newTypes = [...variableTypes];
@@ -140,11 +131,13 @@ export default function LinearProgrammingPage() {
         setIsLoading(true);
         setAnalysisResult(null);
 
+        const constraint_types = Array(numConstraints).fill(objective === 'maximize' ? '<=' : '>=');
+
         try {
             const response = await fetch('/api/analysis/linear-programming', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ c, A, b, constraint_types: constraintTypes, objective, problem_type: problemType, variable_types: variableTypes })
+                body: JSON.stringify({ c, A, b, constraint_types, objective, problem_type: problemType, variable_types: variableTypes })
             });
 
             if (!response.ok) {
@@ -162,15 +155,17 @@ export default function LinearProgrammingPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [c, A, b, constraintTypes, objective, problemType, variableTypes, toast]);
+    }, [c, A, b, objective, problemType, variableTypes, toast, numConstraints]);
 
     const getObjectiveFunctionString = () => {
         return `${objective === 'maximize' ? 'Max' : 'Min'} Z = ` + c.map((val, j) => `${val}·x${j + 1}`).join(' + ');
     };
     
     const getConstraintString = (i: number) => {
-        return A[i].map((val, j) => `${val}·x${j + 1}`).join(' + ') + ` ${constraintTypes[i]} ${b[i]}`;
+        const constraintType = objective === 'maximize' ? '≤' : '≥';
+        return A[i].map((val, j) => `${val}·x${j + 1}`).join(' + ') + ` ${constraintType} ${b[i]}`;
     };
+
 
     if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} />;
@@ -275,14 +270,9 @@ export default function LinearProgrammingPage() {
                                                         </div>
                                                     ))}
                                                 </div>
-                                                <Select value={constraintTypes[i]} onValueChange={value => handleConstraintTypeChange(i, value)}>
-                                                    <SelectTrigger className="w-[60px]"><SelectValue /></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="<=">≤</SelectItem>
-                                                        <SelectItem value=">=">≥</SelectItem>
-                                                        <SelectItem value="==">=</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                                <div className="w-[60px] text-center font-bold text-lg">
+                                                    {objective === 'maximize' ? '≤' : '≥'}
+                                                </div>
                                                 <Input id={`b${i+1}`} type="number" value={b[i]} onChange={e => handleMatrixChange(e.target.value, i, 0, 'b')} className="w-24"/>
                                             </div>
                                         ))}
@@ -313,61 +303,31 @@ export default function LinearProgrammingPage() {
                             </ul>
                         </CardContent>
                     </Card>
-                    <Tabs defaultValue="solution">
-                        <TabsList>
-                            <TabsTrigger value="solution">Optimal Solution</TabsTrigger>
-                            {analysisResult.sensitivity && <TabsTrigger value="sensitivity">Sensitivity Analysis</TabsTrigger>}
-                        </TabsList>
-                        <TabsContent value="solution">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Optimal Solution</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {analysisResult.success ? (
-                                        <div>
-                                            <p><strong>Optimal Value (Z*):</strong> <span className="font-mono">{optimalValue?.toFixed(6)}</span></p>
-                                            <Table className="mt-2">
-                                                <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
-                                                <TableBody>
-                                                    {primalSolution?.map((s, i) => (
-                                                        <TableRow key={i}>
-                                                            <TableCell><strong>x{i + 1}</strong></TableCell>
-                                                            <TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    ) : (
-                                        <p className="text-destructive">{analysisResult.message}</p>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                        {analysisResult.sensitivity && (
-                             <TabsContent value="sensitivity">
-                                <Card>
-                                     <CardHeader><CardTitle>Sensitivity Analysis</CardTitle></CardHeader>
-                                     <CardContent>
-                                        <Table>
-                                            <TableHeader><TableRow><TableHead>Constraint</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Slack/Surplus</TableHead><TableHead className="text-right">Shadow Price</TableHead></TableRow></TableHeader>
-                                            <TableBody>
-                                                {constraintTypes.map((type, i) => (
-                                                    <TableRow key={i}>
-                                                        <TableCell>Constraint {i + 1}</TableCell>
-                                                        <TableCell>{type}</TableCell>
-                                                        <TableCell className="font-mono text-right">{analysisResult.sensitivity?.slack[i]?.toFixed(4)}</TableCell>
-                                                        <TableCell className="font-mono text-right">{analysisResult.sensitivity?.shadow_prices_ub[i]?.toFixed(4)}</TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
-                             </TabsContent>
-                        )}
-                    </Tabs>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Optimal Solution</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {analysisResult.success ? (
+                                <div>
+                                    <p><strong>Optimal Value (Z*):</strong> <span className="font-mono">{optimalValue?.toFixed(6)}</span></p>
+                                    <Table className="mt-2">
+                                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {primalSolution?.map((s, i) => (
+                                                <TableRow key={i}>
+                                                    <TableCell><strong>x{i + 1}</strong></TableCell>
+                                                    <TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            ) : (
+                                <p className="text-destructive">{analysisResult.message}</p>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
             )}
         </div>
