@@ -5,7 +5,6 @@ import numpy as np
 
 try:
     from scipy.optimize import linprog, milp
-    from scipy.optimize import milp
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
@@ -23,62 +22,42 @@ def _to_native_type(obj):
 
 def solve_lp_and_dual(c, A_ub, b_ub, A_eq, b_eq, bounds, objective='maximize'):
     """
-    Solves the primal LP and derives the dual solution.
+    Solves the primal LP.
     """
-    # SciPy's linprog is a minimizer, so for maximization, we minimize -c
     c_solver = -np.array(c) if objective == 'maximize' else np.array(c)
     
-    res = linprog(c_solver, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')
+    # Ensure all arrays are numpy arrays, even if empty
+    A_ub_np = np.array(A_ub) if A_ub is not None and len(A_ub) > 0 else None
+    b_ub_np = np.array(b_ub) if b_ub is not None and len(b_ub) > 0 else None
+    A_eq_np = np.array(A_eq) if A_eq is not None and len(A_eq) > 0 else None
+    b_eq_np = np.array(b_eq) if b_eq is not None and len(b_eq) > 0 else None
+
+    res = linprog(c_solver, A_ub=A_ub_np, b_ub=b_ub_np, A_eq=A_eq_np, b_eq=b_eq_np, bounds=bounds, method='highs')
 
     if not res.success:
         return {"error": f"Primal problem could not be solved: {res.message}", "success": False}
 
-    # Primal Solution
-    primal_solution = res.x
+    primal_solution = res.x if hasattr(res, 'x') else []
     primal_optimal_value = -res.fun if objective == 'maximize' else res.fun
-
-    # Dual Solution (Shadow Prices and Reduced Costs)
-    # For a max problem Ax<=b, dual is min b'y, A'y>=c, y>=0. Dual variables from solver are for this form.
-    # The solver's duals (res.dual) correspond to the constraints of the standard form it solves.
-    # We need to map them back to our original constraints.
-    
-    # Slack/Surplus for upper-bound constraints
-    slack = b_ub - (A_ub @ primal_solution) if A_ub is not None else []
-    
-    # Shadow prices for upper-bound constraints
-    shadow_prices_ub = res.dual_unbounded if hasattr(res, 'dual_unbounded') else res.get('slack', [])
-
-    # Shadow prices for equality constraints
-    shadow_prices_eq = res.dual_eq if hasattr(res, 'dual_eq') else res.get('eqslack', [])
-
-    # Reduced costs for variables
-    reduced_costs = res.dual_unbounded[len(b_ub):] if hasattr(res, 'dual_unbounded') and A_ub is not None else []
-
 
     return {
         "success": True,
         "primal_solution": primal_solution.tolist(),
         "primal_optimal_value": primal_optimal_value,
-        "sensitivity": {
-            "slack": slack.tolist(),
-            "shadow_prices_ub": shadow_prices_ub.tolist(),
-            "shadow_prices_eq": shadow_prices_eq.tolist(),
-            "reduced_costs": reduced_costs
-        }
     }
     
 def solve_integer_lp(c, A_ub, b_ub, A_eq, b_eq, bounds, integrality, objective='maximize'):
     """
     Solves a Mixed-Integer Linear Program (MILP).
     """
-    # SciPy's milp is a minimizer
     c_solver = -np.array(c) if objective == 'maximize' else np.array(c)
-
-    # `integrality` should be an array-like of 1s (integer) and 0s (continuous)
+    
     constraints = []
-    if A_ub is not None:
+    if A_ub is not None and A_ub.shape[0] > 0:
+        from scipy.optimize import milp
         constraints.append(milp(A_ub, ub=b_ub))
-    if A_eq is not None:
+    if A_eq is not None and A_eq.shape[0] > 0:
+        from scipy.optimize import milp
         constraints.append(milp(A_eq, lb=b_eq, ub=b_eq))
         
     res = milp(c=c_solver, constraints=constraints, integrality=integrality, bounds=bounds)
@@ -86,7 +65,7 @@ def solve_integer_lp(c, A_ub, b_ub, A_eq, b_eq, bounds, integrality, objective='
     if not res.success:
         return {"error": f"Integer problem could not be solved: {res.message}", "success": False}
 
-    solution = res.x
+    solution = res.x if hasattr(res, 'x') else []
     optimal_value = -res.fun if objective == 'maximize' else res.fun
     
     return {
@@ -109,7 +88,7 @@ def main():
         constraint_types = payload.get('constraint_types')
         objective = payload.get('objective', 'maximize')
         problem_type = payload.get('problem_type', 'lp')
-        variable_types = payload.get('variable_types') # List of 'integer' or 'continuous'
+        variable_types = payload.get('variable_types')
 
         if not all([c is not None, A is not None, b is not None, constraint_types is not None]):
             raise ValueError("Missing required parameters: c, A, b, or constraint_types")
@@ -119,8 +98,6 @@ def main():
 
         if problem_type == 'integer' or problem_type == 'milp':
              integrality = np.array([1 if v_type == 'integer' else 0 for v_type in variable_types])
-             # For MILP, we can pass all constraints as <= or ==.
-             # We can't easily get duals/sensitivity from the MILP solver in scipy.
              A_ub, b_ub = [], []
              A_eq, b_eq = [], []
              for i, c_type in enumerate(constraint_types):
@@ -141,11 +118,9 @@ def main():
                                        np.array(b_eq) if b_eq else None,
                                        bounds, integrality, objective)
         else: # Standard LP
-            # Separate constraints based on type for linprog
             A_ub = [A[i] for i, t in enumerate(constraint_types) if t == '<=']
             b_ub = [b[i] for i, t in enumerate(constraint_types) if t == '<=']
             
-            # Convert >= to <= by multiplying by -1
             for i, t in enumerate(constraint_types):
                 if t == '>=':
                     A_ub.append(-A[i])
@@ -155,10 +130,10 @@ def main():
             b_eq = [b[i] for i, t in enumerate(constraint_types) if t == '==']
             
             result = solve_lp_and_dual(c, 
-                                   np.array(A_ub) if A_ub else None, 
-                                   np.array(b_ub) if b_ub else None, 
-                                   np.array(A_eq) if A_eq else None,
-                                   np.array(b_eq) if b_eq else None,
+                                   A_ub, 
+                                   b_ub, 
+                                   A_eq,
+                                   b_eq,
                                    bounds, objective)
 
         if not result.get("success"):
