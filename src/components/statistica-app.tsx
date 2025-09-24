@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -57,11 +58,6 @@ import {
   Atom,
   MessagesSquare,
   Share2,
-  GitCommit,
-  DollarSign,
-  ThumbsUp,
-  Search,
-  ClipboardList,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -316,16 +312,6 @@ const analysisMenu = [
     ]
   },
   {
-    field: 'Specialized Models',
-    icon: FlaskConical,
-    methods: [
-      { id: 'survival', label: 'Survival Analysis' },
-      { id: 'meta-analysis', label: 'Meta-Analysis' },
-      { id: 'gbm', label: 'Gradient Boosting Machine (GBM)'},
-      { id: 'sna', label: 'Social Network Analysis' },
-    ]
-  },
-   {
     field: 'Text Analysis',
     icon: Feather,
     methods: [

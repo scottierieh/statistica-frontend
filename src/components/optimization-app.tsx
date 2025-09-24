@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -36,8 +37,13 @@ import IpaPage from './pages/ipa-page';
 import DidPage from './pages/did-page';
 import VanWestendorpPage from './pages/van-westendorp-page';
 import GaborGrangerPage from './pages/gabor-granger-page';
+import MaxDiffPage from './pages/maxdiff-page';
+import SurvivalAnalysisPage from './pages/survival-analysis-page';
+import MetaAnalysisPage from './pages/meta-analysis-page';
+import GbmPage from './pages/gbm-page';
+import SnaPage from './pages/sna-page';
 
-type OptimizationType = 'linear-programming' | 'transportation-problem' | 'goal-programming' | 'nonlinear-programming' | 'ahp' | 'dea' | 'conjoint' | 'cbc' | 'ipa' | 'did' | 'van-westendorp' | 'gabor-granger';
+type OptimizationType = 'linear-programming' | 'transportation-problem' | 'goal-programming' | 'nonlinear-programming' | 'ahp' | 'dea' | 'conjoint' | 'cbc' | 'ipa' | 'did' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'survival' | 'meta-analysis' | 'gbm' | 'sna';
 
 const optimizationPages: Record<string, React.ComponentType<any>> = {
   'linear-programming': LinearProgrammingPage,
@@ -52,6 +58,11 @@ const optimizationPages: Record<string, React.ComponentType<any>> = {
   'did': DidPage,
   'van-westendorp': VanWestendorpPage,
   'gabor-granger': GaborGrangerPage,
+  'maxdiff': MaxDiffPage,
+  'survival': SurvivalAnalysisPage,
+  'meta-analysis': MetaAnalysisPage,
+  'gbm': GbmPage,
+  'sna': SnaPage,
 };
 
 export default function DecisionAnalyticsApp() {
@@ -255,6 +266,18 @@ export default function DecisionAnalyticsApp() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton onClick={() => setActiveAnalysis('maxdiff')} isActive={activeAnalysis === 'maxdiff'}><ThumbsUp className="mr-2 h-4 w-4"/>MaxDiff</SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('survival')} isActive={activeAnalysis === 'survival'}>Survival Analysis</SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('meta-analysis')} isActive={activeAnalysis === 'meta-analysis'}>Meta-Analysis</SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('gbm')} isActive={activeAnalysis === 'gbm'}>Gradient Boosting Machine (GBM)</SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('sna')} isActive={activeAnalysis === 'sna'}>Social Network Analysis</SidebarMenuButton>
                     </SidebarMenuItem>
                 </CollapsibleContent>
               </Collapsible>
