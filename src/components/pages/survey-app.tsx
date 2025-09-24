@@ -10,7 +10,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import {
   ClipboardList,
   LayoutDashboard,
@@ -1966,11 +1966,12 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         });
     };
 
-    const saveAndTest = () => {
-        if(saveDraft()) {
-            setIsShareModalOpen(true);
+    const handleShareDialogOpen = (open: boolean) => {
+        if(open) {
+            saveDraft();
         }
-    };
+        setIsShareModalOpen(open);
+    }
     
     const generateQrCode = async () => {
         if (!surveyUrl) return;
@@ -2279,12 +2280,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                         <Save className="mr-2" />
                         Save Draft
                     </Button>
-                    <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+                    <Dialog open={isShareModalOpen} onOpenChange={handleShareDialogOpen}>
                         <DialogTrigger asChild>
-                             <Button onClick={saveAndTest} disabled={!surveyId}>
-                                <Share2 className="mr-2" />
-                                Share
-                            </Button>
+                            <Button disabled={!surveyId}><Share2 className="mr-2" /> Share</Button>
                         </DialogTrigger>
                         <DialogContent>
                              <DialogHeader>
@@ -2578,7 +2576,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     </div>
                 </TabsContent>
                 <TabsContent value="configuration">
-                    <Card className="mt-4">
+                     <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Survey Configuration</CardTitle>
                             <CardDescription>Configure the behavior and access of your survey.</CardDescription>
