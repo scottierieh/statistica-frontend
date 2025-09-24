@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
@@ -329,21 +328,21 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                      <div className="space-y-6">
                         <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
                         <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
+                            {tipsExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(tipsExample)}>
+                                    <Coffee className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{tipsExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{tipsExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
                             {irisExample && (
                                 <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(irisExample)}>
                                     <irisExample.icon className="mx-auto h-8 w-8 text-primary"/>
                                     <div>
                                         <h4 className="font-semibold">{irisExample.name}</h4>
                                         <p className="text-xs text-muted-foreground">{irisExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
-                             {tipsExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(tipsExample)}>
-                                    <tipsExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{tipsExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{tipsExample.description}</p>
                                     </div>
                                 </Card>
                             )}
