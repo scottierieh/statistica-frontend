@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -9,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, SlidersHorizontal } from 'lucide-react';
+import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, SlidersHorizontal, HelpCircle, MoveRight } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter } from 'recharts';
 import { Label } from '../ui/label';
@@ -52,31 +51,98 @@ interface Scenario {
     [key: string]: string;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
+    const conjointExample = exampleDatasets.find(d => d.id === 'conjoint-smartphone');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Network size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">컨조인트 분석 (Conjoint Analysis)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        제품이나 서비스가 가진 여러 속성들이 소비자의 선택에 얼마나 큰 영향을 미치는지 분석하는 기법입니다.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">컨조인트 분석이란?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            소비자는 제품을 구매할 때 가격, 브랜드, 디자인, 성능 등 여러 속성을 종합적으로 고려합니다. 컨조인트 분석은 이러한 복잡한 의사결정 과정을 통계적으로 분석하여, 각 속성이 소비자의 선호도에 얼마나 기여하는지를 '부분 가치(Part-Worth)'라는 수치로 계산해냅니다. 이를 통해 어떤 속성의 조합이 가장 높은 선호도를 보이는지 파악할 수 있습니다.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> 분석 단계 가이드</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>데이터 준비</strong>
+                                    <p className="text-sm pl-5">다양한 속성 조합(프로필)과 그에 대한 소비자 선호도(평점, 점수 등) 데이터가 필요합니다.</p>
+                                </li>
+                                <li>
+                                    <strong>목표 변수 선택</strong>
+                                    <p className="text-sm pl-5">분석의 기준이 될 '선호도 평점' 열을 선택합니다.</p>
+                                </li>
+                                <li>
+                                    <strong>속성 정의</strong>
+                                    <p className="text-sm pl-5">분석에 사용할 제품/서비스의 속성(Feature)들을 선택하고, 각 속성의 유형(범주형/수치형)을 확인합니다.</p>
+                                </li>
+                                 <li>
+                                    <strong>분석 실행</strong>
+                                    <p className="text-sm pl-5">'Run Analysis' 버튼을 클릭하여 회귀분석 기반의 컨조인트 분석을 실행합니다.</p>
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarIcon className="text-primary"/> 결과 해석 가이드</h3>
+                             <ul className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>상대적 중요도 (Relative Importance)</strong>
+                                    <p className="text-sm pl-5">각 속성이 소비자의 전체 선호도 결정에 얼마나 큰 영향을 미치는지를 백분율로 나타냅니다. 중요도가 높을수록 핵심적인 속성입니다.</p>
+                                </li>
+                                <li>
+                                    <strong>부분 가치 (Part-Worths)</strong>
+                                    <p className="text-sm pl-5">각 속성의 개별 수준(level)이 갖는 효용(utility) 값입니다. 이 값이 높을수록 해당 수준에 대한 선호도가 높다는 의미입니다. 기준 수준(base level)의 부분 가치는 항상 0입니다.</p>
+                                </li>
+                                <li>
+                                    <strong>시뮬레이션</strong>
+                                    <p className="text-sm pl-5">다양한 가상 제품 시나리오를 만들어 시장 점유율을 예측해볼 수 있습니다. 이를 통해 최적의 제품 조합을 탐색할 수 있습니다.</p>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                     <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">주요 활용 분야</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Brain className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">신제품 개발</h4><p className="text-xs text-muted-foreground">가장 선호되는 기능 조합을 찾아냅니다.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><path d="M12 3v18"/><path d="M5 9h14"/><path d="M5 15h14"/></svg><div><h4 className="font-semibold">가격 전략</h4><p className="text-xs text-muted-foreground">소비자가 수용 가능한 최적의 가격을 설정합니다.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pie-chart"><path d="M21.21 15.89A10 10 0 1 1 8 2.79"/><path d="M22 12A10 10 0 0 0 12 2v10h10z"/></svg><div><h4 className="font-semibold">시장 세분화</h4><p className="text-xs text-muted-foreground">특정 속성을 선호하는 고객 그룹을 파악합니다.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Target className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">브랜드 자산</h4><p className="text-xs text-muted-foreground">브랜드가 선호도에 미치는 영향을 측정합니다.</p></div></div>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                     {conjointExample && <Button variant="outline" onClick={() => onLoadExample(conjointExample)}>샘플 데이터로 시작하기</Button>}
+                     <Button size="lg" onClick={onStart}>새 분석 시작하기 <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 interface ConjointAnalysisPageProps {
     data: DataSet;
     allHeaders: string[];
     onLoadExample: (example: any) => void;
 }
 
-const StepIndicator = ({ currentStep }: { currentStep: number }) => {
-    const steps = ['Data & Target', 'Attributes', 'Results'];
-    return (
-        <div className="flex justify-center items-center gap-4 mb-8">
-            {steps.map((step, index) => (
-                <div key={index} className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${currentStep > index ? 'bg-primary text-primary-foreground' : currentStep === index ? 'bg-primary/80 text-primary-foreground' : 'bg-muted'}`}>
-                        {index + 1}
-                    </div>
-                    <span className={`${currentStep >= index ? 'text-foreground' : 'text-muted-foreground'}`}>{step}</span>
-                    {index < steps.length - 1 && <div className="w-12 h-0.5 bg-border" />}
-                </div>
-            ))}
-        </div>
-    );
-};
-
 export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }: ConjointAnalysisPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [currentStep, setCurrentStep] = useState(0);
     const [targetVariable, setTargetVariable] = useState<string | undefined>();
     const [attributes, setAttributes] = useState<any>({});
@@ -94,7 +160,11 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
     const canRun = useMemo(() => data.length > 0 && allHeaders.length > 1, [data, allHeaders]);
 
     useEffect(() => {
-        if (!canRun) return;
+        if (!canRun) {
+            setView('intro');
+            return;
+        };
+
         const initialTarget = allHeaders.find(h => h.toLowerCase().includes('rating') || h.toLowerCase().includes('score') || h.toLowerCase().includes('preference')) || allHeaders[allHeaders.length - 1];
         setTargetVariable(initialTarget);
 
@@ -171,7 +241,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
             if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
             const result = await response.json();
             if (result.error) throw new Error(result.error);
-            setAnalysisResult(result.results);
+            setAnalysisResult(result);
             setCurrentStep(2);
             toast({ title: 'Analysis Complete', description: 'Conjoint analysis results are ready.' });
         } catch (error: any) {
@@ -260,47 +330,8 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
       },
     };
 
-    if (!canRun) {
-        const conjointExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('conjoint'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Conjoint Analysis</CardTitle>
-                        <CardDescription>
-                           To perform this analysis, you need data with attributes and a preference/rating column. Try an example dataset.
-                        </CardDescription>
-                    </CardHeader>
-                     {conjointExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {conjointExamples.map((ex) => {
-                                    const Icon = ex.icon;
-                                    return (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <Icon className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                    )
-                                })}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        )
+    if (!canRun || view === 'intro') {
+       return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     return (
@@ -488,6 +519,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                             yaxis: { title: 'Calculated Utility'},
                                                             autosize: true,
                                                         }}
+                                                        style={{ width: '100%', height: '100%' }}
                                                         useResizeHandler={true}
                                                         className="w-full h-full"
                                                     />
@@ -507,33 +539,24 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                 <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{analysisResult.regression.rmse.toFixed(3)}</p></div>
                                                 <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{analysisResult.regression.mae.toFixed(3)}</p></div>
                                             </div>
-                                            <div className="grid md:grid-cols-2 gap-4">
-                                                 <Card>
-                                                    <CardHeader><CardTitle>Residuals vs. Fitted</CardTitle></CardHeader>
-                                                    <CardContent>
-                                                        <ChartContainer config={{}} className="w-full h-[300px]">
-                                                            <ResponsiveContainer width="100%" height={300}>
-                                                                <ScatterChart>
-                                                                    <CartesianGrid />
-                                                                    <XAxis type="number" dataKey="prediction" name="Fitted Value" />
-                                                                    <YAxis type="number" dataKey="residual" name="Residual" />
-                                                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
-                                                                    {analysisResult.regression.predictions && analysisResult.regression.residuals &&
-                                                                        <Scatter data={analysisResult.regression.predictions.map((p, i) => ({prediction: p, residual: analysisResult.regression.residuals[i]}))} fill="hsl(var(--primary))" />
-                                                                    }
-                                                                </ScatterChart>
-                                                            </ResponsiveContainer>
-                                                        </ChartContainer>
-                                                    </CardContent>
-                                                 </Card>
-                                                 <Card>
-                                                    <CardHeader><CardTitle>Q-Q Plot of Residuals</CardTitle></CardHeader>
-                                                    <CardContent>
-                                                         {/* Q-Q Plot placeholder */}
-                                                         <div className="flex items-center justify-center h-[300px] bg-muted rounded-md text-muted-foreground">Q-Q Plot Coming Soon</div>
-                                                    </CardContent>
-                                                 </Card>
-                                            </div>
+                                             <Card>
+                                                <CardHeader><CardTitle>Residuals vs. Fitted</CardTitle></CardHeader>
+                                                <CardContent>
+                                                    <ChartContainer config={{}} className="w-full h-[300px]">
+                                                        <ResponsiveContainer width="100%" height={300}>
+                                                            <ScatterChart>
+                                                                <CartesianGrid />
+                                                                <XAxis type="number" dataKey="prediction" name="Fitted Value" />
+                                                                <YAxis type="number" dataKey="residual" name="Residual" />
+                                                                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
+                                                                {analysisResult.regression.predictions && analysisResult.regression.residuals &&
+                                                                    <Scatter data={analysisResult.regression.predictions.map((p, i) => ({prediction: p, residual: analysisResult.regression.residuals[i]}))} fill="hsl(var(--primary))" />
+                                                                }
+                                                            </ScatterChart>
+                                                        </ResponsiveContainer>
+                                                    </ChartContainer>
+                                                </CardContent>
+                                             </Card>
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
