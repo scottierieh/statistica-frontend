@@ -202,7 +202,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     }, [activeAnalysis]);
 
     const [testType, setTestType] = useState(initialTestType);
-    const [view, setView] = useState('intro');
+    const [view, setView] = useState('main'); // Can be 'intro' or 'main'
     
     // States for different tests
     const [oneSampleVar, setOneSampleVar] = useState<string | undefined>(numericHeaders[0]);
@@ -221,19 +221,26 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     
-    useEffect(() => {
-        setTestType(initialTestType);
-        setView(data.length > 0 ? 'main' : 'intro');
-    }, [initialTestType, data]);
+     useEffect(() => {
+        const newTestType = activeAnalysis.includes('one-sample') ? 'one_sample'
+                          : activeAnalysis.includes('independent') ? 'independent_samples'
+                          : 'paired_samples';
+        setTestType(newTestType);
+        setView('intro'); // Always go to intro when switching
+        setAnalysisResult(null); // Clear previous results
+    }, [activeAnalysis]);
 
     useEffect(() => {
+        // Reset state when data changes
         setOneSampleVar(numericHeaders[0]);
         setIndependentVar(numericHeaders[0]);
         setGroupVar(binaryCategoricalHeaders[0]);
         setPairedVar1(numericHeaders[0]);
         setPairedVar2(numericHeaders[1]);
         setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [data, numericHeaders, categoricalHeaders, binaryCategoricalHeaders]);
+
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
@@ -283,6 +290,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             const result = await response.json();
             if (result.error) throw new Error(result.error);
             setAnalysisResult(result);
+            setView('main'); // Go to main analysis view after running
 
         } catch (e: any) {
             console.error('Analysis error:', e);
@@ -463,10 +471,10 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         )
     };
 
-    if (!canRun) {
+    if (!canRun && view === 'main') {
          return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
-
+    
     if (view === 'intro') {
        switch(testType) {
            case 'one_sample':
