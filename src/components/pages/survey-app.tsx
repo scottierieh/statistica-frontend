@@ -71,6 +71,9 @@ import {
   X,
   ChevronDown,
   Settings,
+  Calendar as CalendarIcon,
+  Lock,
+  Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -106,6 +109,8 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { produce } from 'immer';
+import { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '../ui/date-range-picker';
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
 const VanWestendorpPage = dynamic(() => import('@/components/pages/van-westendorp-page'), { ssr: false });
@@ -219,25 +224,16 @@ const psmTemplate = {
 
 const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
-// Draggable Question Wrapper
-const DraggableQuestion = ({ id, children }: { id: any, children: React.ReactNode }) => {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-    } = useSortable({id: id});
-    
+const SortableCard = ({ id, children }: { id: any; children: React.ReactNode }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
     };
-
     return (
         <div ref={setNodeRef} style={style} className="flex items-start gap-2">
             <div {...attributes} {...listeners} className="p-2 cursor-grab mt-1">
-                <GripVertical className="w-5 h-5 text-muted-foreground"/>
+                <GripVertical className="w-5 h-5 text-muted-foreground" />
             </div>
             <div className="flex-1">
                 {children}
@@ -1187,8 +1183,6 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
 };
   
 const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question }: { chartData: any, tableData: any, insightsData: string[], varName: string, question: any }) => {
-    const ratingScale = question.scale || ['1', '2', '3', '4', '5'];
-    
     return (
         <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -1565,6 +1559,12 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             headerImage: null,
             type: 'default',
             transition: 'slide',
+        },
+        settings: {
+            customUrl: '',
+            dateRange: undefined as DateRange | undefined,
+            maxResponses: undefined as number | undefined,
+            password: '',
         }
     });
     
@@ -2345,9 +2345,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
+                    <TabsTrigger value="setting"><Settings className="mr-2" />Setting</TabsTrigger>
+                    <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
-                    <TabsTrigger value="analysis-detail">Detailed Analysis</TabsTrigger>
-                    <TabsTrigger value="analysis-dashboard">Analysis Dashboard</TabsTrigger>
                 </TabsList>
                 <TabsContent value="design">
                     <div className="grid md:grid-cols-12 gap-6 mt-4">
@@ -2448,7 +2448,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     </Dialog>
                                 </CardContent>
                             </Card>
-                             
                         </div>
                         <div className="md:col-span-9">
                              <Card
@@ -2554,201 +2553,50 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     </div>
                 </TabsContent>
                  <TabsContent value="setting">
-                     <Card className="mt-4">
+                    <Card className="mt-4">
                         <CardHeader>
-                            <CardTitle>Survey Appearance & Behavior</CardTitle>
+                            <CardTitle>Survey Settings</CardTitle>
+                            <CardDescription>Configure the behavior and access of your survey.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-8">
                             <div className="space-y-4">
-                                <h3 className="font-semibold text-lg">Theme</h3>
-                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div>
-                                        <Label>Survey Type</Label>
-                                        <Select onValueChange={handleTypeChange} value={survey.theme?.type || 'default'}>
-                                            <SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="default">Default</SelectItem>
-                                                <SelectItem value="type1">Modern</SelectItem>
-                                                <SelectItem value="type2">Classic</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                <h3 className="font-semibold text-lg">Access & Schedule</h3>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                     <div>
+                                        <Label htmlFor="custom-url">Custom URL Path</Label>
+                                        <div className="flex items-center">
+                                            <span className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-l-md border border-r-0">/survey/p/</span>
+                                            <Input id="custom-url" placeholder="your-unique-path" className="rounded-l-none" value={survey.settings?.customUrl || ''} onChange={(e) => setSurvey(produce((draft: any) => {draft.settings.customUrl = e.target.value}))}/>
+                                        </div>
                                     </div>
                                     <div>
-                                        <Label>Page Transition</Label>
-                                         <Select onValueChange={(value) => setSurvey(prev => ({ ...prev, theme: { ...prev.theme, transition: value } }))} value={survey.theme?.transition || 'slide'}>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="slide">Slide</SelectItem>
-                                                <SelectItem value="fade">Fade</SelectItem>
-                                                <SelectItem value="none">None</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <Label>Active Dates</Label>
+                                        <DatePickerWithRange date={survey.settings?.dateRange} onDateChange={(date) => setSurvey(produce((draft: any) => {draft.settings.dateRange = date}))} />
                                     </div>
                                 </div>
                             </div>
                             <Separator />
                             <div className="space-y-4">
-                                <h3 className="font-semibold text-lg">Survey Logic</h3>
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline">
-                                            <Shuffle className="w-5 h-5 mr-2" /> Configure Question Logic
-                                        </Button>
-                                    </DialogTrigger>
-                                     <DialogContent className="max-w-2xl">
-                                         <DialogHeader>
-                                            <DialogTitle>Question Logic</DialogTitle>
-                                            <DialogDescription>Define paths to guide users through the survey based on their answers.</DialogDescription>
-                                        </DialogHeader>
-                                        <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
-                                            {/* ... Logic configuration UI ... */}
+                                <h3 className="font-semibold text-lg">Response Management</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <Label htmlFor="max-responses">Maximum Number of Responses</Label>
+                                        <Input id="max-responses" type="number" placeholder="Unlimited" value={survey.settings?.maxResponses || ''} onChange={(e) => setSurvey(produce((draft: any) => {draft.settings.maxResponses = parseInt(e.target.value, 10)}))} />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="password">Password Protection</Label>
+                                        <div className="flex items-center gap-2">
+                                            <Lock className="w-4 h-4 text-muted-foreground"/>
+                                            <Input id="password" type="password" placeholder="Leave blank to disable" value={survey.settings?.password || ''} onChange={(e) => setSurvey(produce((draft: any) => {draft.settings.password = e.target.value}))}/>
                                         </div>
-                                    </DialogContent>
-                                </Dialog>
+                                    </div>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
-                <TabsContent value="dashboard">
-                <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle>Survey Dashboard</CardTitle>
-                      <CardDescription>An overview of your survey's performance and sharing options.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-8">
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-                                    <EyeIcon className="h-4 w-4 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{views}</div>
-                                    <p className="text-xs text-muted-foreground">Total times the survey was viewed</p>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Total Responses</CardTitle>
-                                    <Users className="h-4 w-4 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{responses.length}</div>
-                                    <p className="text-xs text-muted-foreground">Total number of completed surveys</p>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{views > 0 ? `${((responses.length / views) * 100).toFixed(1)}%` : '0%'}</div>
-                                    <p className="text-xs text-muted-foreground">Based on views vs. responses</p>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-sm font-medium">Export Data</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                     <Button variant="outline" className="w-full" onClick={downloadResponsesCSV} disabled={responses.length === 0}>
-                                        <FileDown className="mr-2 h-4 w-4" />
-                                        Download Responses (CSV)
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <div className="grid gap-6 md:grid-cols-2">
-                            <Card>
-                                <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                    <LinkIcon className="w-6 h-6 text-primary" />
-                                    <div className='flex flex-col'>
-                                        <CardTitle>Shareable Link</CardTitle>
-                                        <CardDescription>This is the public URL for your survey.</CardDescription>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="flex items-center gap-2">
-                                    <Input ref={surveyUrlRef} value={surveyUrl} readOnly className="bg-muted" disabled={!isSaved}/>
-                                    <Button variant="outline" size="icon" onClick={copyUrlToClipboard} disabled={!isSaved}>
-                                        <Copy className="w-4 h-4"/>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader className="flex-row items-center gap-4 space-y-0">
-                                    <QrCode className="w-6 h-6 text-primary" />
-                                    <div className='flex flex-col'>
-                                        <CardTitle>QR Code</CardTitle>
-                                        <CardDescription>Respondents can scan this to open the survey.</CardDescription>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="flex flex-col items-center gap-4">
-                                    {isLoadingQr ? (
-                                        <div className="w-[166px] h-[166px] flex items-center justify-center bg-muted rounded-lg">
-                                            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                                        </div>
-                                    ) : qrCodeUrl ? (
-                                        <div className="p-4 border rounded-lg">
-                                            <Image src={qrCodeUrl} alt="Survey QR Code" width={150} height={150} data-ai-hint="QR code"/>
-                                        </div>
-                                    ) : (
-                                        <div className="w-[166px] h-[166px] flex items-center justify-center bg-muted rounded-lg">
-                                            <p className="text-muted-foreground text-center px-4 text-sm">Save your draft to generate a QR Code.</p>
-                                        </div>
-                                    )}
-                                    <Button variant="outline" disabled={!qrCodeUrl || isLoadingQr} onClick={downloadQrCode}>
-                                        <Download className="mr-2"/>
-                                        Download QR Code
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-
-                        <div className="space-y-6">
-                            <h3 className="text-xl font-bold">Recent Responses</h3>
-                            <Card>
-                                <CardContent className="p-0">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Response ID</TableHead>
-                                            <TableHead>Submitted At</TableHead>
-                                            {survey.questions.filter((q: any) => q.type !== 'description').slice(0, 3).map((q: any) => (
-                                                <TableHead key={q.id}>{q.title}</TableHead>
-                                            ))}
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {responses.length > 0 ? (
-                                            responses.slice(0, 5).map(response => (
-                                                <TableRow key={response.id}>
-                                                    <TableCell className="font-mono text-xs">...{response.id.slice(-6)}</TableCell>
-                                                    <TableCell>{new Date(response.submittedAt).toLocaleString()}</TableCell>
-                                                    {survey.questions.filter((q: any) => q.type !== 'description').slice(0, 3).map((q: any) => (
-                                                        <TableCell key={q.id}>{JSON.stringify(response.answers[q.id])}</TableCell>
-                                                    ))}
-                                                </TableRow>
-                                            ))
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={survey.questions.filter((q: any) => q.type !== 'description').slice(0, 3).length + 2} className="h-24 text-center">
-                                                    No responses yet.
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </CardContent>
-                </Card>
-                </TabsContent>
-                <TabsContent value="analysis-detail">
-                    <Card className="mt-4">
+                <TabsContent value="analysis">
+                     <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Detailed Analysis</CardTitle>
                             <CardDescription>
@@ -2791,7 +2639,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                         </CardContent>
                     </Card>
                 </TabsContent>
-                 <TabsContent value="analysis-dashboard">
+                 <TabsContent value="dashboard">
                     <Card className="mt-4">
                          <CardHeader>
                             <CardTitle>Analysis Dashboard</CardTitle>
