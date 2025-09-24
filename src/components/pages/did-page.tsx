@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, GitCommit } from 'lucide-react';
+import { Sigma, Loader2, GitCommit, HelpCircle, MoveRight } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import Image from 'next/image';
@@ -30,6 +30,50 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
+    const didExample = exampleDatasets.find(d => d.id === 'did-data');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                     <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <GitCommit size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Difference-in-Differences (DiD)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        A quasi-experimental technique to estimate the causal effect of a specific intervention by comparing the change in outcomes over time between a treatment group and a control group.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-8 px-8 py-10">
+                     <div className="space-y-4">
+                        <h3 className="font-semibold text-xl">How it Works</h3>
+                        <p className="text-muted-foreground">
+                            DiD mimics an experimental design using observational data. It assumes that, in the absence of the treatment, the treatment and control groups would have followed parallel trends. The effect of the treatment is then calculated as the difference in the average outcome change over time between the two groups.
+                        </p>
+                    </div>
+                     <div className="space-y-4">
+                        <h3 className="font-semibold text-xl">Key Concepts</h3>
+                        <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                            <li><strong>Treatment Group:</strong> The group that receives the intervention.</li>
+                            <li><strong>Control Group:</strong> The group that does not receive the intervention.</li>
+                            <li><strong>Pre-Period:</strong> The time period before the intervention.</li>
+                            <li><strong>Post-Period:</strong> The time period after the intervention.</li>
+                            <li><strong>Interaction Term:</strong> The key coefficient in the regression model that represents the DiD effect.</li>
+                        </ul>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    {didExample && <Button variant="outline" onClick={() => onLoadExample(didExample)}>Load Sample Data</Button>}
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+
 interface DidPageProps {
     data: DataSet;
     allHeaders: string[];
@@ -40,6 +84,7 @@ interface DidPageProps {
 
 export default function DidPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: DidPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [groupVar, setGroupVar] = useState<string | undefined>();
     const [timeVar, setTimeVar] = useState<string | undefined>();
     const [outcomeVar, setOutcomeVar] = useState<string | undefined>();
@@ -58,7 +103,8 @@ export default function DidPage({ data, allHeaders, numericHeaders, categoricalH
         setTimeVar(binaryCategoricalHeaders.find(h => h.toLowerCase().includes('time')));
         setOutcomeVar(numericHeaders[0]);
         setAnalysisResult(null);
-    }, [data, numericHeaders, binaryCategoricalHeaders]);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, numericHeaders, binaryCategoricalHeaders, canRun]);
 
     const handleAnalysis = useCallback(async () => {
         if (!groupVar || !timeVar || !outcomeVar) {
@@ -100,6 +146,10 @@ export default function DidPage({ data, allHeaders, numericHeaders, categoricalH
         }
     }, [data, groupVar, timeVar, outcomeVar, toast]);
 
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+
     if (!canRun) {
         const didExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('did'));
         return (
@@ -130,7 +180,10 @@ export default function DidPage({ data, allHeaders, numericHeaders, categoricalH
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">DiD Analysis Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">DiD Analysis Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Specify the outcome, group, and time variables for the analysis.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-3 gap-4">

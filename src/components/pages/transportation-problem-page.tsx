@@ -1,6 +1,7 @@
 
+
 'use client';
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,6 @@ import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Truck, MoveRight 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from "@/lib/utils";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface TransportationResult {
     initial_solution: number[][];
@@ -50,7 +50,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </ul>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                     <Button variant="outline" onClick={onLoadExample}>Load Example Data</Button>
+                     <Button variant="outline" onClick={onLoadExample}>Load Example</Button>
                      <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>

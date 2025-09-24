@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -215,7 +216,7 @@ export default function NonlinearProgrammingPage() {
                                 <div key={c.id} className="flex items-center gap-2">
                                     <Select value={c.type} onValueChange={(v) => setConstraints(produce(draft => {draft[i].type = v as any}))}>
                                         <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
-                                        <SelectContent><SelectItem value="ineq">ineq (>=0)</SelectItem><SelectItem value="eq">eq (==0)</SelectItem></SelectContent>
+                                        <SelectContent><SelectItem value="ineq">ineq (&gt;=0)</SelectItem><SelectItem value="eq">eq (==0)</SelectItem></SelectContent>
                                     </Select>
                                     <Input value={c.fun} onChange={e => setConstraints(produce(draft => {draft[i].fun = e.target.value}))} className="font-mono flex-1"/>
                                     <Button variant="ghost" size="icon" onClick={() => setConstraints(p => p.filter(pc => pc.id !== c.id))}><Trash2 className="w-4 h-4 text-destructive"/></Button>

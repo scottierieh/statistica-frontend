@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, SlidersHorizontal } from 'lucide-react';
+import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, SlidersHorizontal, HelpCircle, MoveRight, FileJson, DollarSign } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter } from 'recharts';
 import { Label } from '../ui/label';
@@ -46,6 +46,80 @@ interface Scenario {
     [key: string]: string;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const cbcExample = exampleDatasets.find(d => d.id === 'cbc-data');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Network size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Choice-Based Conjoint (CBC) Analysis</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Simulate real-world purchasing decisions by analyzing how customers choose between different product concepts.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Choice-Based Conjoint?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                           CBC is the most widely used form of conjoint analysis. Instead of rating single products, respondents are shown sets of products and asked to choose the one they would buy. This forces trade-offs and more accurately reflects actual market behavior, making it a powerful tool for predicting market share, optimizing product features, and setting prices.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Prepare Data</strong>
+                                    <p className="text-sm pl-5">Your dataset needs a specific structure: each row represents one alternative within a choice set. Key columns are a Respondent ID, an Alternative ID, a 'Choice' column (1 for chosen, 0 for not), and several attribute columns.</p>
+                                </li>
+                                <li>
+                                    <strong>Select Key Variables</strong>
+                                    <p className="text-sm pl-5">Identify the Respondent ID, Alternative ID, and the binary 'Choice' column.</p>
+                                </li>
+                                <li>
+                                    <strong>Define Attributes</strong>
+                                    <p className="text-sm pl-5">Select the product features (attributes) to be included in the model.</p>
+                                </li>
+                                 <li>
+                                    <strong>Run Analysis</strong>
+                                    <p className="text-sm pl-5">The tool will run a regression to estimate the utility (part-worth) of each attribute level based on the choices made.</p>
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarIcon className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Attribute Importance</strong>
+                                    <p className="text-sm pl-5">Shows which attributes (e.g., Brand, Price) have the most significant impact on consumer choice.</p>
+                                </li>
+                                <li>
+                                    <strong>Part-Worths (Utilities)</strong>
+                                    <p className="text-sm pl-5">Reveals the relative preference for each level within an attribute. Higher values indicate higher preference. For example, you can see how much more utility a price of $700 has compared to $1000.</p>
+                                </li>
+                                <li>
+                                    <strong>Market Simulation</strong>
+                                    <p className="text-sm pl-5">Create hypothetical product profiles and simulate their market share against competitors to test new product ideas and pricing strategies.</p>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                     {cbcExample && <Button variant="outline" onClick={() => onLoadExample(cbcExample)}>Load Sample CBC Data</Button>}
+                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 interface CbcPageProps {
     data: DataSet;
     allHeaders: string[];
@@ -54,6 +128,7 @@ interface CbcPageProps {
 
 export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: CbcPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [respondentIdCol, setRespondentIdCol] = useState<string | undefined>();
     const [altIdCol, setAltIdCol] = useState<string | undefined>();
     const [choiceCol, setChoiceCol] = useState<string | undefined>();
@@ -95,6 +170,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         const initialAttributes = allHeaders.filter(h => !['resp.id', 'alt', 'choice', 'rating'].some(keyword => h.toLowerCase().includes(keyword)));
         setAttributeCols(initialAttributes);
         setAnalysisResult(null);
+        setView(data.length === 0 ? 'intro' : 'main');
     }, [data, allHeaders]);
 
     useEffect(() => {
@@ -257,6 +333,25 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         }
     };
     
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+
+    if (!canRun) {
+        return (
+            <div className="flex flex-1 items-center justify-center">
+                <Card className="w-full max-w-2xl text-center">
+                    <CardHeader>
+                        <CardTitle className="font-headline">Choice-Based Conjoint (CBC) Analysis</CardTitle>
+                        <CardDescription>
+                           To perform CBC, you need choice data with respondent and alternative IDs, a choice indicator, and product attributes.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+            </div>
+        )
+    }
+
     const results = analysisResult?.results;
     const importanceData = results ? results.importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [];
     const partWorthsData = results ? results.part_worths : [];
@@ -269,7 +364,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         }));
     }, [results]);
 
-    const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff8042", "#0088FE", "#00C49F"];
+    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
     const importanceChartConfig = useMemo(() => {
       if (!analysisResult) return {};
       return importanceData.reduce((acc, item, index) => {
@@ -278,35 +373,16 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
       }, {} as any);
     }, [analysisResult, importanceData]);
 
-    if (!canRun) {
-        const cbcExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('cbc'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Choice-Based Conjoint (CBC) Analysis</CardTitle>
-                        <CardDescription>
-                           To perform CBC, you need choice data with respondent and alternative IDs, a choice indicator, and product attributes.
-                        </CardDescription>
-                    </CardHeader>
-                    {cbcExamples.length > 0 && (
-                        <CardContent>
-                            <Button onClick={() => onLoadExample(cbcExamples[0])} className="w-full" size="sm">
-                                <Network className="mr-2 h-4 w-4" />
-                                Load {cbcExamples[0].name}
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
-    }
+    const partWorthChartConfig = { value: { label: "Part-Worth" } };
 
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">CBC Analysis Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">CBC Analysis Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-3 gap-4">
@@ -445,7 +521,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                 {isSensitivityLoading && <Skeleton className="h-[300px] w-full" />}
                                 {sensitivityPlot && !isSensitivityLoading && (
                                     <div className="h-[300px] w-full">
-                                         <Image src={sensitivityPlot} alt="Sensitivity Analysis Plot" width={800} height={500} className="w-full h-full object-contain rounded-md border"/>
+                                         <Image src={`data:image/png;base64,${sensitivityPlot}`} alt="Sensitivity Analysis Plot" width={800} height={500} className="w-full h-full object-contain rounded-md border"/>
                                     </div>
                                 )}
                             </CardContent>

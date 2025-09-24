@@ -61,7 +61,7 @@ const IntroPage = ({ onStart }: { onStart: () => void }) => {
                         An optimization technique for handling multiple, often conflicting, objectives by minimizing deviations from set goals.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="text-left space-y-6 px-8 py-10">
+                <CardContent className="text-left space-y-4 px-8 py-10">
                     <p>
                         Unlike linear programming which optimizes a single objective, goal programming seeks a solution that comes as "close as possible" to achieving a set of goals, according to their priority.
                     </p>
