@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, Plus, Trash2, Network, BarChart as BarChartIcon, AlertTriangle, ChevronDown, ChevronRight, Share2, HelpCircle } from 'lucide-react';
+import { Sigma, Loader2, Play, Plus, Trash2, Network, BarChart as BarChartIcon, AlertTriangle, ChevronDown, ChevronRight, Share2, HelpCircle, FileJson, Building, Users, Star, Settings } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
@@ -39,41 +39,79 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     return (
         <div className="flex flex-1 items-center justify-center p-4">
             <Card className="w-full max-w-4xl">
-                <CardHeader>
-                    <CardTitle className="font-headline text-2xl flex items-center gap-3">
-                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                            <Share2 size={28} />
-                         </div>
-                        Analytic Hierarchy Process (AHP)
+                <CardHeader className="text-center">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Share2 size={32} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-3xl">
+                        계층 분석법 (AHP: Analytic Hierarchy Process)
                     </CardTitle>
-                    <CardDescription className="text-base pt-2">
-                        A structured technique for organizing and analyzing complex decisions, based on mathematics and psychology. It helps decision-makers find the solution that best suits their goal and their understanding of the problem.
+                    <CardDescription className="text-lg pt-2 text-muted-foreground">
+                        복잡한 다기준 의사결정 문제를 체계적으로 해결하기 위한 과학적 분석 도구
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                     <div className="grid md:grid-cols-2 gap-6">
+                <CardContent className="space-y-8 px-8 py-6">
+                    <div className="text-base text-center">
+                        <p>
+                            AHP는 1970년대 Thomas L. Saaty에 의해 개발된 의사결정 방법론입니다. 여러 개의 상충하는 평가 기준이 존재할 때, 각 기준의 중요도를 파악하고 대안들을 종합적으로 평가하여 최적의 대안을 선택할 수 있도록 돕습니다. 정량적 데이터뿐만 아니라 경험, 직관과 같은 정성적 요소까지 판단에 통합할 수 있는 강력한 도구입니다.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-4">
-                            <h3 className="font-semibold text-lg">Setup Guide</h3>
-                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                <li><strong>Goal:</strong> Define the main objective of your decision.</li>
-                                <li><strong>Hierarchy:</strong> Break down the decision into a hierarchy of criteria and, optionally, sub-criteria.</li>
-                                <li><strong>Alternatives:</strong> List the different options you are choosing between.</li>
-                                <li><strong>Pairwise Comparisons:</strong> For each level of the hierarchy, compare items in pairs to judge their relative importance with respect to the parent criterion.</li>
+                            <h3 className="font-semibold text-xl flex items-center gap-2"><Settings className="text-primary"/> 설정 가이드</h3>
+                            <ul className="list-decimal pl-5 space-y-3 text-muted-foreground">
+                                <li>
+                                    <strong>목표 설정 (Goal)</strong>
+                                    <p className="text-xs">달성하고자 하는 최종 목표를 명확하게 정의합니다. (예: '최적의 신입사원 채용')</p>
+                                </li>
+                                <li>
+                                    <strong>계층 구조 설계 (Hierarchy)</strong>
+                                    <p className="text-xs">목표 달성을 위한 주요 평가 기준(Criteria)을 설정합니다. 필요한 경우, 각 기준을 더 세부적인 하위 기준(Sub-criteria)으로 나눌 수 있습니다.</p>
+                                </li>
+                                <li>
+                                    <strong>대안 정의 (Alternatives)</strong>
+                                    <p className="text-xs">선택 가능한 대안들을 나열합니다. (예: '후보자 A', '후보자 B') 이 단계는 선택 사항입니다.</p>
+                                </li>
+                                <li>
+                                    <strong>쌍대 비교 (Pairwise Comparison)</strong>
+                                    <p className="text-xs">각 계층 수준에서 항목들을 1:1로 비교하며 상대적 중요도(선호도)를 판단합니다. 'A가 B보다 얼마나 더 중요한가?'와 같은 질문에 답하는 과정입니다.</p>
+                                </li>
                             </ul>
                         </div>
                          <div className="space-y-4">
-                            <h3 className="font-semibold text-lg">Result Interpretation</h3>
-                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                <li><strong>Final Ranking:</strong> Shows the overall scores for each alternative or criterion, indicating the most preferred option based on your judgments.</li>
-                                <li><strong>Consistency Ratio (CR):</strong> A crucial metric that checks for consistency in your pairwise comparisons. A CR value less than 0.10 is generally considered acceptable.</li>
-                                <li><strong>Weights:</strong> The calculated priority (weight) for each item at every level of the hierarchy.</li>
+                            <h3 className="font-semibold text-xl flex items-center gap-2"><BarChartIcon className="text-primary"/> 결과 해석</h3>
+                            <ul className="list-decimal pl-5 space-y-3 text-muted-foreground">
+                                <li>
+                                    <strong>최종 우선순위 (Final Ranking)</strong>
+                                    <p className="text-xs">모든 평가 기준과 쌍대 비교 결과를 종합하여 각 대안(또는 최하위 기준)의 최종 가중치를 보여줍니다. 점수가 가장 높은 항목이 최적의 대안입니다.</p>
+                                </li>
+                                <li>
+                                    <strong>일관성 비율 (Consistency Ratio, CR)</strong>
+                                    <p className="text-xs">쌍대 비교 과정에서 응답자가 얼마나 일관성 있게 판단했는지를 나타내는 지표입니다. 일반적으로 <strong>CR 값이 0.1 (10%) 미만</strong>일 때 판단의 일관성이 확보되었다고 봅니다. 이 값이 높으면 판단을 재검토해야 합니다.</p>
+                                </li>
+                                <li>
+                                    <strong>가중치 (Weights)</strong>
+                                    <p className="text-xs">각 계층에 있는 평가 기준과 대안들의 상대적 중요도를 수치로 보여줍니다.</p>
+                                </li>
                             </ul>
                         </div>
                     </div>
+                     <div className="space-y-4">
+                        <h3 className="font-semibold text-xl flex items-center gap-2"><Building className="text-primary"/> 주요 활용 분야</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div className="p-4 bg-muted/50 rounded-lg"><Users className="mx-auto mb-2 text-primary"/><span>인사 관리<br/>(채용, 승진)</span></div>
+                            <div className="p-4 bg-muted/50 rounded-lg"><Star className="mx-auto mb-2 text-primary"/><span>신제품 개발<br/>(기능 우선순위)</span></div>
+                            <div className="p-4 bg-muted/50 rounded-lg"><Target className="mx-auto mb-2 text-primary"/><span>마케팅 전략<br/>(채널 선택)</span></div>
+                            <div className="p-4 bg-muted/50 rounded-lg"><FileJson className="mx-auto mb-2 text-primary"/><span>정책 결정<br/>(대안 평가)</span></div>
+                        </div>
+                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                     <Button variant="outline" onClick={onLoadExample}>Load Sample Data</Button>
-                     <Button onClick={onStart}>Get Started</Button>
+                <CardFooter className="flex justify-between p-6">
+                     <Button variant="outline" onClick={onLoadExample}>샘플 데이터 불러오기</Button>
+                     <Button size="lg" onClick={onStart}>분석 시작하기 <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
