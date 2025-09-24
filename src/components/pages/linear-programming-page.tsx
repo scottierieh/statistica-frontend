@@ -1,7 +1,7 @@
 
 'use client';
 import React, { useState, useCallback, useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +15,42 @@ interface LpResult {
     optimal_value: number;
     success: boolean;
     message: string;
+    snapshots: { note: string; table: number[][] }[];
 }
+
+const TableauTable = ({ table, numVars, numConstraints }: { table: number[][], numVars: number, numConstraints: number }) => {
+    if (!table || table.length === 0) return null;
+
+    const headers = [...Array(numVars).keys()].map(i => `x${i + 1}`)
+        .concat([...Array(numConstraints).keys()].map(i => `s${i + 1}`))
+        .concat(['RHS']);
+    
+    return (
+        <div className="overflow-x-auto">
+            <Table className="min-w-full">
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Row/Col</TableHead>
+                        {headers.map(h => <TableHead key={h} className="text-right">{h}</TableHead>)}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {table.map((row, i) => {
+                        const rowLabel = i === table.length - 1 ? 'Z' : `Constraint ${i + 1}`;
+                        return (
+                            <TableRow key={i}>
+                                <TableHead>{rowLabel}</TableHead>
+                                {row.map((cell, j) => (
+                                    <TableCell key={j} className="text-right font-mono">{cell.toFixed(6)}</TableCell>
+                                ))}
+                            </TableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
+        </div>
+    );
+};
 
 export default function LinearProgrammingPage() {
     const { toast } = useToast();
@@ -40,10 +75,10 @@ export default function LinearProgrammingPage() {
     const handleLoadExample = () => {
         setNumVars(2);
         setNumConstraints(3);
-        setC([-3, -5]);
-        setA([[1, 0], [0, 2], [3, 2]]);
-        setB([4, 12, 18]);
-        setAnalysisResult(null); // Clear previous results
+        setC([-3, -2]); // Objective function is Max Z = 3x1 + 2x2. Negate for minimization problem in scipy.
+        setA([[1, 1], [1, 0], [0, 1]]);
+        setB([4, 2, 3]);
+        setAnalysisResult(null);
         toast({ title: "Sample Data Loaded", description: "Example maximization problem has been set up." });
     };
 
@@ -69,13 +104,10 @@ export default function LinearProgrammingPage() {
         setAnalysisResult(null);
 
         try {
-            // SciPy's linprog minimizes, so for maximization, we must negate the objective function coefficients.
-            const c_to_send = c.map(val => -val);
-
             const response = await fetch('/api/analysis/linear-programming', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ c: c_to_send, A_ub: A, b_ub: b })
+                body: JSON.stringify({ c: c, A_ub: A, b_ub: b, problem_type: 'maximize' })
             });
 
             if (!response.ok) {
@@ -86,8 +118,6 @@ export default function LinearProgrammingPage() {
             const result: LpResult = await response.json();
             if ((result as any).error) throw new Error((result as any).error);
             
-            // Since we negated 'c' for maximization, we negate the result back.
-            result.optimal_value = -result.optimal_value;
             setAnalysisResult(result);
             
         } catch (e: any) {
@@ -97,6 +127,14 @@ export default function LinearProgrammingPage() {
         }
     }, [c, A, b, toast]);
 
+    const getObjectiveFunctionString = () => {
+        return "Max Z = " + c.map((val, j) => `${val}·x${j + 1}`).join(' + ');
+    };
+    
+    const getConstraintString = (i: number) => {
+        return A[i].map((val, j) => `${val}·x${j + 1}`).join(' + ') + ` ≤ ${b[i]}`;
+    };
+    
     return (
         <div className="space-y-4">
             <Card>
@@ -172,53 +210,57 @@ export default function LinearProgrammingPage() {
             </Card>
 
             {analysisResult && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Optimal Solution</CardTitle>
-                        <CardDescription>{analysisResult.message}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {analysisResult.success ? (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Variable</TableHead>
-                                        <TableHead className="text-right">Optimal Value</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {analysisResult.solution.map((val, i) => (
-                                        <TableRow key={i}>
-                                            <TableCell>x{i+1}</TableCell>
-                                            <TableCell className="text-right font-mono">{val.toFixed(4)}</TableCell>
-                                        </TableRow>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <Card>
+                         <CardHeader>
+                            <CardTitle>Objective</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="font-mono">{getObjectiveFunctionString()}</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                         <CardHeader>
+                            <CardTitle>Constraints</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="list-disc pl-5 space-y-1 font-mono">
+                                {A.map((_, i) => <li key={i}>{getConstraintString(i)}</li>)}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Optimal Solution</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {analysisResult.success ? (
+                                <>
+                                    <p><strong>Optimal Value (Z*):</strong> <span className="font-mono">{analysisResult.optimal_value.toFixed(6)}</span></p>
+                                    {analysisResult.solution.slice(0, numVars).map((s, i) => (
+                                        <p key={i}><strong>x{i + 1}:</strong> <span className="font-mono">{s.toFixed(6)}</span></p>
                                     ))}
-                                    <TableRow className="font-bold border-t-2 bg-muted/50">
-                                        <TableCell>Maximum Objective Value (Z)</TableCell>
-                                        <TableCell className="text-right font-mono text-lg">{analysisResult.optimal_value.toFixed(4)}</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        ) : (
-                            <p className="text-destructive">{analysisResult.message}</p>
-                        )}
-                    </CardContent>
-                </Card>
+                                </>
+                            ) : (
+                                <p className="text-destructive">{analysisResult.message}</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                    <Card className="lg:col-span-3">
+                        <CardHeader>
+                            <CardTitle>Simplex Tableau Iterations</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {analysisResult.snapshots.map((snapshot, index) => (
+                                <div key={index}>
+                                    <h4 className="font-semibold mb-2">{index + 1}. {snapshot.note}</h4>
+                                    <TableauTable table={snapshot.table} numVars={numVars} numConstraints={numConstraints} />
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </div>
             )}
         </div>
     );
 }
-
-const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(({ className, ...props }, ref) => {
-    return (
-        <textarea
-            className={cn(
-                "flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-                className
-            )}
-            ref={ref}
-            {...props}
-        />
-    );
-});
-Textarea.displayName = "Textarea";
