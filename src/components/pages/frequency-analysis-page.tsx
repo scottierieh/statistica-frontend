@@ -103,9 +103,9 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                      <div className="space-y-6">
                         <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Users className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Demographics</h4><p className="text-xs text-muted-foreground">Analyzing the distribution of respondents by gender, region, or education level.</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><HandshakeIcon className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Survey Analysis</h4><p className="text-xs text-muted-foreground">Summarizing responses to multiple-choice questions (e.g., "Which brand do you prefer?").</p></div></div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Users className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Demographics</h4><p className="text-xs text-muted-foreground">Analyzing the distribution of respondents by gender, region, or education level.</p></div></div>
+                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><HandshakeIcon className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Survey Analysis</h4><p className="text-xs text-muted-foreground">Summarizing responses to multiple-choice questions (e.g., "Which brand do you prefer?").</p></div></div>
                         </div>
                     </div>
                 </CardContent>
@@ -416,4 +416,3 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
         </div>
     );
 }
-
