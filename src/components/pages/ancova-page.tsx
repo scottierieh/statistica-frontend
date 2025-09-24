@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -10,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Copy, AlertTriangle, Layers, Settings, FileSearch, MoveRight, HelpCircle } from 'lucide-react';
+import { Sigma, Loader2, Copy, AlertTriangle, Layers, Settings, FileSearch, MoveRight, HelpCircle, BookOpen } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -117,9 +118,22 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             </ul>
                         </div>
                     </div>
+                     <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
+                        <div className="flex justify-center">
+                            {ancovaExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ancovaExample)}>
+                                    <BookOpen className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{ancovaExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{ancovaExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {ancovaExample && <Button variant="outline" onClick={() => onLoadExample(ancovaExample)}>Load Student Performance Data</Button>}
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>

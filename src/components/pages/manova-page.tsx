@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -108,15 +109,29 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             </ul>
                         </div>
                     </div>
+                     <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
+                        <div className="flex justify-center">
+                           {manovaExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(manovaExample)}>
+                                    <Users className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{manovaExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{manovaExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {manovaExample && <Button variant="outline" onClick={() => onLoadExample(manovaExample)}><Users className="mr-2"/>Load Sample Group Data</Button>}
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
     );
 };
+
 
 interface ManovaPageProps {
     data: DataSet;
