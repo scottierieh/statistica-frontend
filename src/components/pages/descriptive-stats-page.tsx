@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Zap, Brain, AlertTriangle, BarChart as BarChartIcon } from 'lucide-react';
+import { Loader2, Zap, Brain, AlertTriangle, BarChart as BarChartIcon, BookOpen, Coffee, Settings, MoveRight } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,7 +15,9 @@ import { ScrollArea } from '../ui/scroll-area';
 import { type DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
+import dynamic from 'next/dynamic';
 
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 // --- Statistical Helper Functions ---
 const getQuantile = (arr: number[], q: number) => {
@@ -92,102 +93,114 @@ const generateCategoricalInsights = (stats: ReturnType<typeof getCategoricalStat
     return [`The most frequent category is <strong>"${mode.name}"</strong>, appearing in <strong>${mode.percentage}%</strong> of cases.`];
 };
 
-const AnalysisDisplayShell = ({ chart, table, insights, variableName }: { chart: React.ReactNode, table: React.ReactNode, insights: React.ReactNode, variableName: string }) => {
+const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode, varName: string }) => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{variableName}</CardTitle>
+                <CardTitle>{varName}</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <div className="flex items-center justify-center min-h-[300px]">
-                    {chart}
-                </div>
-                <div className="space-y-4">
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
-                        <CardContent className="max-h-[200px] overflow-y-auto">{table}</CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Brain className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
-                        <CardContent>{insights}</CardContent>
-                    </Card>
-                </div>
-            </CardContent>
+            <CardContent>{children}</CardContent>
         </Card>
     );
 };
   
 const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-    const chartConfig = {
-      count: {
-        label: 'Count',
-      },
-    };
-
+    
     return (
-      <AnalysisDisplayShell
-        variableName={varName}
-        chart={
-          <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-            <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} outerRadius={80} fill="#8884d8" dataKey="count">
-                    {chartData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                </Pie>
-                <Tooltip content={<ChartTooltipContent />} />
-                </PieChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        }
-        table={
-          <Table><TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
-            <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
-          </Table>
-        }
-        insights={ <ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }
-      />
+      <AnalysisDisplayShell varName={varName}>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                       <ChartContainer config={{count: {label: 'Count'}}} className="min-h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height={300}>
+                                <PieChart>
+                                <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} outerRadius={80} fill="#8884d8" dataKey="count">
+                                    {chartData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                </Pie>
+                                <Tooltip content={<ChartTooltipContent />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                       </ChartContainer>
+                    </CardContent>
+                </Card>
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                        <CardContent className="max-h-[200px] overflow-y-auto">{
+                            <Table><TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
+                            <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                            </Table>
+                        }</CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Brain className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+                        <CardContent>{ <ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }</CardContent>
+                    </Card>
+                </div>
+            </div>
+      </AnalysisDisplayShell>
     );
 };
   
 const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
-    const chartConfig = {
-      count: {
-        label: 'Frequency',
-        color: 'hsl(var(--primary))',
-      },
-    };
-    
     return (
-        <AnalysisDisplayShell
-            variableName={varName}
-            chart={
-                <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height={300}>
-                        <RechartsBarChart data={chartData.bins}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="range" />
-                            <YAxis />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" fill="hsl(var(--primary))" radius={4} />
-                        </RechartsBarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
-            }
-            table={
-                <Table><TableHeader><TableRow><TableHead>Metric</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{tableData.mean.toFixed(3)}</TableCell></TableRow>
-                        <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{tableData.median.toFixed(3)}</TableCell></TableRow>
-                        <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell></TableRow>
-                        <TableRow><TableCell>Minimum</TableCell><TableCell className="text-right">{tableData.min}</TableCell></TableRow>
-                        <TableRow><TableCell>Maximum</TableCell><TableCell className="text-right">{tableData.max}</TableCell></TableRow>
-                        <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{tableData.count}</TableCell></TableRow>
-                    </TableBody>
-                </Table>
-            }
-            insights={ <ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }
-        />
+        <AnalysisDisplayShell varName={varName}>
+             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Response Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        <Plot
+                            data={[{ x: chartData.values, type: 'histogram', marker: {color: 'hsl(var(--primary))'} }]}
+                            layout={{
+                                autosize: true,
+                                margin: { t: 40, b: 40, l: 40, r: 20 },
+                                bargap: 0.1,
+                            }}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            useResizeHandler
+                        />
+                    </CardContent>
+                </Card>
+                <div className="space-y-4">
+                    <Card>
+                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                         <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Metric</TableHead>
+                                        <TableHead className="text-right">Value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{tableData.mean.toFixed(3)}</TableCell></TableRow>
+                                    <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{tableData.median}</TableCell></TableRow>
+                                    <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell></TableRow>
+                                    <TableRow><TableCell>Minimum</TableCell><TableCell className="text-right">{tableData.min}</TableCell></TableRow>
+                                    <TableRow><TableCell>Maximum</TableCell><TableCell className="text-right">{tableData.max}</TableCell></TableRow>
+                                    <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{tableData.count}</TableCell></TableRow>
+                                </TableBody>
+                            </Table>
+                         </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Brain className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+                        <CardContent>
+                             <ul className="space-y-2 text-sm list-disc pl-4">
+                                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </AnalysisDisplayShell>
     );
 };
 
@@ -197,15 +210,84 @@ interface DescriptiveStatsPageProps {
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const statsExamples = exampleDatasets.filter(ex => ['iris', 'tips'].includes(ex.id));
+    return (
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-4xl">
+                 <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <BarChartIcon size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Descriptive Statistics</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Summarize and describe the main features of a collection of data. This is the first step in any data analysis.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Descriptive Statistics?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Descriptive statistics provide a simple summary of the sample and the measures. Together with simple graphics analysis, they form the basis of virtually every quantitative analysis of data. It is the first step in understanding and interpreting your dataset before moving on to more complex analyses.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Upload Data:</strong> Provide a dataset in a common format like CSV or Excel.
+                                </li>
+                                <li>
+                                    <strong>Select Variables:</strong> Choose the variables (columns) you want to analyze. The tool will automatically detect if they are numeric or categorical.
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> Click the 'Run Analysis' button to generate statistics and visualizations for your selected variables.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChart className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>For Numeric Data:</strong> Look at the mean and median to understand central tendency, and the standard deviation and range to understand variability and spread.</li>
+                                <li><strong>For Categorical Data:</strong> Analyze the frequency counts and percentages to see the distribution across different categories. The mode is the most common category.</li>
+                                <li><strong>Visualizations:</strong> Histograms show the shape of numeric data, while bar or pie charts effectively display the proportions of categorical data.</li>
+                            </ul>
+                        </div>
+                    </div>
+                     <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><BookOpen className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Academic Research</h4><p className="text-xs text-muted-foreground">Summarizing sample characteristics in research papers.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Coffee className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Business Intelligence</h4><p className="text-xs text-muted-foreground">Understanding sales data, customer demographics, or website traffic.</p></div></div>
+                        </div>
+                    </div>
+                </CardContent>
+                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                     <div className="flex gap-2">
+                        {statsExamples.map(ex => <Button key={ex.id} variant="outline" onClick={() => onLoadExample(ex)}>Load {ex.name} Data</Button>)}
+                     </div>
+                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExample }: DescriptiveStatsPageProps) {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [selectedVars, setSelectedVars] = useState<string[]>(allHeaders);
     const [analysisData, setAnalysisData] = useState<any | null>(null);
-    
+    const [view, setView] = useState('intro');
+
     useEffect(() => {
         setSelectedVars(allHeaders);
         setAnalysisData(null);
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [allHeaders, data]);
     
     const handleVarSelectionChange = (varName: string, isChecked: boolean) => {
@@ -219,7 +301,6 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
         }
         setIsLoading(true);
         
-        // Use a timeout to simulate async work and prevent blocking the UI thread
         setTimeout(() => {
             const results: { [key: string]: any } = {};
 
@@ -253,7 +334,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
                     });
                      columnData.forEach(val => {
                         let binIndex = Math.floor((val - min) / binWidth);
-                        if (val === max) binIndex = binCount - 1; // Put max in last bin
+                        if (val === max) binIndex = binCount - 1;
                         if (bins[binIndex]) bins[binIndex].count++;
                     });
 
@@ -276,6 +357,10 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
             toast({title: "Analysis Complete", description: `Descriptive statistics generated for ${selectedVars.length} variable(s).`});
         }, 500);
     }, [data, selectedVars, toast]);
+    
+    if(view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
 
     const renderResults = () => {
         if (!analysisData) return null;
@@ -313,52 +398,14 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
         );
     };
 
-    if (data.length === 0) {
-        const statsExamples = exampleDatasets.filter(ex => ['iris', 'tips'].includes(ex.id));
-       return (
-            <div className="flex flex-1 items-center justify-center">
-               <Card className="w-full max-w-2xl text-center">
-                   <CardHeader>
-                       <CardTitle className="font-headline">Descriptive Statistics</CardTitle>
-                       <CardDescription>
-                          To get started, upload a data file or try one of our example datasets.
-                       </CardDescription>
-                   </CardHeader>
-                   <CardContent>
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           {statsExamples.map((ex) => {
-                               const Icon = ex.icon;
-                               return (
-                               <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                   <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                           <Icon className="h-6 w-6 text-secondary-foreground" />
-                                       </div>
-                                       <div>
-                                           <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                           <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                       </div>
-                                   </CardHeader>
-                                   <CardFooter>
-                                       <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                           Load this data
-                                       </Button>
-                                   </CardFooter>
-                               </Card>
-                               )
-                           })}
-                       </div>
-                   </CardContent>
-               </Card>
-           </div>
-       )
-    }
-
     return (
         <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Descriptive Statistics Analysis</CardTitle>
+                <div className="flex justify-between items-center">
+                    <CardTitle>Descriptive Statistics Analysis</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                </div>
                 <CardDescription>Select the variables you want to analyze from your dataset.</CardDescription>
               </CardHeader>
               <CardContent>
