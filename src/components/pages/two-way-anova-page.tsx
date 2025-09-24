@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -225,7 +224,7 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
 
     const availableFactorB = useMemo(() => categoricalHeaders.filter(h => h !== factorA), [categoricalHeaders, factorA]);
     
-    if (!canRun) {
+    if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
@@ -436,4 +435,3 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
         </div>
     );
 }
-
