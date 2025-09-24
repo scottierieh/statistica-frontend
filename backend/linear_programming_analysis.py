@@ -17,41 +17,30 @@ def _to_native_type(obj):
 def run_simplex(c, A_ub, b_ub):
     num_vars = len(c)
     num_constraints = len(b_ub)
-    
-    # Add slack variables to represent inequalities as equalities
-    slack_vars = np.identity(num_constraints)
-    
+
+    # We are maximizing, so we use -c in the objective row.
+    objective = np.concatenate([-np.array(c), np.zeros(num_constraints + 1)])
+
     # Build the initial tableau
-    # Rows: constraints + objective function
-    # Cols: variables + slack variables + RHS
     tableau = np.zeros((num_constraints + 1, num_vars + num_constraints + 1))
     
-    # Fill in the constraints matrix (A_ub)
+    # Constraints part
     tableau[:num_constraints, :num_vars] = A_ub
-    
-    # Fill in the slack variables part
-    tableau[:num_constraints, num_vars:num_vars + num_constraints] = slack_vars
-    
-    # Fill in the RHS (b_ub)
+    tableau[:num_constraints, num_vars:num_vars + num_constraints] = np.identity(num_constraints)
     tableau[:num_constraints, -1] = b_ub
     
-    # Fill in the objective function row (negated for maximization)
-    tableau[-1, :num_vars] = -np.array(c)
-    tableau[-1, -1] = 0 # Initial objective value
+    # Objective function part
+    tableau[-1, :] = objective
 
     snapshots = [{'note': 'Initial Tableau', 'table': tableau.tolist()}]
-    
     iteration = 0
-    while np.any(tableau[-1, :-1] < -1e-9): # Continue if any cost is negative
+
+    while np.any(tableau[-1, :-1] < -1e-9):
         if iteration > 100: # Safety break
             return {'solution': [], 'optimal_value': 0, 'success': False, 'message': 'Exceeded iteration limit.', 'snapshots': snapshots}
         
-        # --- Find pivot column (entering variable) ---
-        # Using Bland's rule (smallest index) to prevent cycling
         pivot_col = np.where(tableau[-1, :-1] < -1e-9)[0][0]
-
-        # --- Find pivot row (leaving variable) ---
-        # Ratio test
+        
         ratios = np.full(num_constraints, np.inf)
         for i in range(num_constraints):
             if tableau[i, pivot_col] > 1e-9:
@@ -63,14 +52,10 @@ def run_simplex(c, A_ub, b_ub):
             return {'solution': [], 'optimal_value': np.inf, 'success': False, 'message': 'Solution is unbounded.', 'snapshots': snapshots}
 
         snapshots.append({'note': f'Iteration {iteration + 1}: Pivot on row {pivot_row + 1}, col {pivot_col + 1} (Before Pivot)', 'table': tableau.tolist()})
-
-        # --- Pivot Operation ---
-        pivot_element = tableau[pivot_row, pivot_col]
         
-        # Normalize the pivot row
+        pivot_element = tableau[pivot_row, pivot_col]
         tableau[pivot_row, :] /= pivot_element
         
-        # Eliminate other entries in the pivot column to zero
         for i in range(num_constraints + 1):
             if i != pivot_row:
                 factor = tableau[i, pivot_col]
@@ -81,16 +66,17 @@ def run_simplex(c, A_ub, b_ub):
 
     snapshots.append({'note': 'Final Tableau', 'table': tableau.tolist()})
     
-    # --- Extract Solution ---
     solution = np.zeros(num_vars)
-    for j in range(num_vars):
+    # Correctly identify basic variables and assign their values
+    for j in range(num_vars): # Iterate through decision variables
         col = tableau[:, j]
-        # Check if it's a basic variable (one 1, rest zeros)
-        is_basic = (np.count_nonzero(np.abs(col) < 1e-9) == num_constraints) and (np.count_nonzero(np.abs(col - 1) < 1e-9) == 1)
+        # Check if this column is a basic variable column
+        is_basic = (np.count_nonzero(np.abs(col) < 1e-9) == num_constraints) and (np.abs(np.sum(col) - 1) < 1e-9)
         if is_basic:
+            # Find the row index where the '1' is located
             row_index = np.where(np.abs(col - 1) < 1e-9)[0][0]
             solution[j] = tableau[row_index, -1]
-            
+
     optimal_value = tableau[-1, -1]
     
     return {
@@ -100,7 +86,6 @@ def run_simplex(c, A_ub, b_ub):
         'message': 'Optimization terminated successfully.',
         'snapshots': snapshots
     }
-
 
 def main():
     try:
@@ -112,10 +97,16 @@ def main():
         if not all([c, A_ub, b_ub]):
             raise ValueError("Missing required parameters: c, A_ub, or b_ub")
         
-        # We are maximizing, so the objective function in the tableau is already negated.
-        # run_simplex is designed for maximization.
+        # Invert objective for maximization as run_simplex expects minimization coefficients in obj row
+        c_for_max = [-x for x in c]
+        
+        # Scipy's linprog and our manual simplex handle this differently. 
+        # Our manual simplex negates 'c' internally. So we pass original 'c'.
         result = run_simplex(c, A_ub, b_ub)
         
+        # Since we are maximizing, the optimal value from tableau is already correct
+        # No need to negate it again.
+
         response = {
             'solution': result['solution'],
             'optimal_value': result['optimal_value'],
