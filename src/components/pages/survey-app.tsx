@@ -1,79 +1,27 @@
 
-
 'use client';
-
-import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import {
-  ClipboardList,
-  LayoutDashboard,
-  BarChart2,
-  ArrowLeft,
-  CircleDot,
-  CheckSquare,
-  CaseSensitive,
-  Star,
-  PlusCircle,
-  Trash2,
-  Eye,
-  Shuffle,
-  FileText,
-  Save,
-  Info,
-  Link as LinkIcon,
-  QrCode,
-  Download,
-  Copy,
-  Users,
-  EyeIcon,
-  TrendingUp,
-  Laptop,
-  Palette,
-  Grid3x3,
-  ThumbsUp,
-  Sigma,
-  MessageSquareQuote,
-  Target,
-  Sparkles,
-  MoveRight,
-  ImageIcon,
-  GripVertical,
-  Smartphone,
-  Tablet,
-  Monitor,
-  Loader2,
-  FileDown,
-  Share2,
-  Phone,
-  Mail,
-  Award,
-  Frown,
-  Lightbulb,
-  AlertTriangle,
-  ShoppingCart,
-  ShieldCheck,
-  BeakerIcon,
-  ShieldAlert,
-  Move,
-  BarChart,
-  PieChart as PieChartIcon,
-  DollarSign,
-  ZoomIn,
-  ZoomOut,
-  AreaChart,
-  X,
-  ChevronDown,
-  Settings,
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight, Building, Hospital, Landmark, GraduationCap, BarChart as BarChartIcon } from 'lucide-react';
+import { Table as DndTable } from '@/components/ui/table';
+import { Select as DndSelect, SelectTrigger as DndSelectTrigger, SelectValue as DndSelectValue, SelectContent as DndSelectContent, SelectItem as DndSelectItem } from '@/components/ui/select';
+import { produce } from 'immer';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { ChartContainer, ChartTooltipContent } from '../ui/chart';
+import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell } from 'recharts';
+import { Badge } from '../ui/badge';
+import { ScrollArea } from '../ui/scroll-area';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical, Plus, Trash2, ArrowLeft, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Eye, Shuffle, FileText, Save, Info, Link as LinkIcon, QrCode, Download, Copy, Users, EyeIcon, TrendingUp, Laptop, Palette, Grid3x3, ThumbsUp, MessageSquareQuote, Target, Sparkles, ImageIcon, Smartphone, Tablet, Monitor, FileDown, Share2, Phone, Mail, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, X, ChevronDown, Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -87,30 +35,19 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import dynamic from 'next/dynamic';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import Papa from 'papaparse';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { ResponsiveContainer, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar as RechartsBar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell, PieChart, Pie } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
-import { produce } from 'immer';
-import { DateRange } from 'react-day-picker';
+import { LineChart, Line, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, PieChart, Pie } from 'recharts';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DatePickerWithRange } from '../ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
+import { useParams, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+import VanWestendorpPage from '@/components/pages/van-westendorp-page';
+import dynamic from 'next/dynamic';
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
-const VanWestendorpPage = dynamic(() => import('@/components/pages/van-westendorp-page'), { ssr: false });
 
 // Template Definition
 const ipaTemplate = {
@@ -1584,7 +1521,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     const [loadedTemplate, setLoadedTemplate] = useState(false);
     
     const [dashboardPositions, setDashboardPositions] = useState<{ [key: string]: Position }>({});
-    const GRID_SIZE = 20;
     
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -1952,6 +1888,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
 
     const handleDashboardDragEnd = (event: DragEndEvent) => {
         const { active, delta } = event;
+        const GRID_SIZE = 20;
         setDashboardPositions(prev => {
             const currentPosition = prev[active.id as any] || { x: 0, y: 0 };
             const newX = Math.round((currentPosition.x + delta.x) / GRID_SIZE) * GRID_SIZE;
@@ -1963,12 +1900,11 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         });
     };
 
-    const handleShareDialogOpen = (open: boolean) => {
-        if(open) {
-            saveDraft();
+    const saveAndTest = () => {
+        if(saveDraft()) {
+            setIsShareModalOpen(true);
         }
-        setIsShareModalOpen(open);
-    }
+    };
     
     const generateQrCode = async () => {
         if (!surveyUrl) return;
@@ -2277,9 +2213,12 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                         <Save className="mr-2" />
                         Save Draft
                     </Button>
-                    <Dialog open={isShareModalOpen} onOpenChange={handleShareDialogOpen}>
+                    <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
                         <DialogTrigger asChild>
-                            <Button disabled={!surveyId} onClick={saveDraft}><Share2 className="mr-2" /> Share</Button>
+                             <Button onClick={saveAndTest} disabled={!surveyId}>
+                                <Share2 className="mr-2" />
+                                Share
+                            </Button>
                         </DialogTrigger>
                         <DialogContent>
                              <DialogHeader>
@@ -2606,7 +2545,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     <div>
                                         <Label htmlFor="password">Password Protection</Label>
                                         <div className="flex items-center gap-2">
-                                            <Lock className="w-4 h-4 text-muted-foreground"/>
                                             <Input id="password" type="password" placeholder="Leave blank to disable" value={survey.settings?.password || ''} onChange={(e) => setSurvey(produce((draft: any) => {draft.settings.password = e.target.value}))}/>
                                         </div>
                                     </div>
@@ -2662,7 +2600,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                  <TabsContent value="dashboard">
                     <Card className="mt-4">
                          <CardHeader>
-                            <CardTitle>Analysis Dashboard</CardTitle>
+                            <CardTitle>Analytics Dashboard</CardTitle>
                             <CardDescription>Drag and drop to rearrange your analysis dashboard.</CardDescription>
                          </CardHeader>
                          <CardContent>
@@ -2869,4 +2807,3 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
-
