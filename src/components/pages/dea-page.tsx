@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Binary, HeartPulse, BarChart as BarChartIcon, Bot, HelpCircle, MoveRight } from 'lucide-react';
+import { Sigma, Loader2, Binary, HeartPulse, BarChart as BarChartIcon, Bot, HelpCircle, MoveRight, Building, Hospital, Bank, GraduationCap } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -52,10 +52,16 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">Data Envelopment Analysis (DEA)</CardTitle>
                     <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        A performance measurement technique used to evaluate the relative efficiency of Decision-Making Units (DMUs).
+                        A powerful method for evaluating the relative efficiency of decision-making units (DMUs) with multiple inputs and outputs.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="text-left space-y-10 px-8 py-10">
+                <CardContent className="space-y-10 px-8 py-10">
+                     <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use DEA?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                           When organizations have multiple units (like bank branches, hospitals, or schools) that use various resources (inputs) to produce several outcomes (outputs), comparing their performance can be complex. DEA provides an objective, data-driven way to identify the "best practice" frontier and measure how far each unit is from this optimal frontier, highlighting specific areas for improvement.
+                        </p>
+                    </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                              <h3 className="font-semibold text-2xl">Setup Guide</h3>
@@ -69,15 +75,24 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                          <div className="space-y-6">
                             <h3 className="font-semibold text-2xl">Result Interpretation</h3>
                             <ul className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Efficiency Score:</strong> A score of 1.0 indicates a DMU is fully efficient. A score less than 1.0 indicates relative inefficiency.</li>
-                                <li><strong>Reference Set (Peer Group):</strong> For an inefficient DMU, this shows which efficient DMUs it should benchmark against to improve.</li>
-                                <li><strong>Interpretation:</strong> The AI-powered summary provides actionable insights, identifying top performers and highlighting areas for improvement for underperforming units.</li>
+                                <li><strong>Efficiency Score:</strong> A score of 1.0 indicates a DMU is on the efficiency frontier (best practice). A score less than 1.0 indicates relative inefficiency. For an input-oriented model, a score of 0.8 means the DMU could theoretically produce the same output with 20% fewer inputs.</li>
+                                <li><strong>Reference Set (Peer Group):</strong> For an inefficient DMU, this shows which efficient DMUs form a "virtual" benchmark. The weights (lambdas) indicate the importance of each peer in forming this benchmark.</li>
+                                <li><strong>AI Interpretation:</strong> The AI-powered summary provides actionable insights, identifying top performers and highlighting specific areas for improvement for underperforming units.</li>
                             </ul>
+                        </div>
+                    </div>
+                    <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Bank className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Banking</h4><p className="text-xs text-muted-foreground">Evaluating branch efficiency based on staff, costs, deposits, and loans.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Hospital className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Healthcare</h4><p className="text-xs text-muted-foreground">Assessing hospital performance using beds, staff, patient throughput, and outcomes.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><GraduationCap className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Education</h4><p className="text-xs text-muted-foreground">Comparing schools based on funding, teacher count, test scores, and graduation rates.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Building className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Public Sector</h4><p className="text-xs text-muted-foreground">Measuring the efficiency of police departments, libraries, or government agencies.</p></div></div>
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                     <Button variant="outline" onClick={onLoadExample}>Load Sample Data</Button>
+                     <Button variant="outline" onClick={onLoadExample}>Load Bank Branch Example</Button>
                      <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
