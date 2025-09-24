@@ -110,7 +110,7 @@ export default function DashboardHubPage() {
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2">
                             <Target className="h-5 w-5 text-primary"/>
-                            Optimization
+                            Optimization &amp; Quantitative Analysis
                         </CardTitle>
                         <CardDescription>
                             Solve complex optimization problems using linear and nonlinear programming techniques.
@@ -118,7 +118,7 @@ export default function DashboardHubPage() {
                     </CardHeader>
                     <CardContent>
                         <Button asChild className="w-full">
-                            <Link href="/dashboard/optimization" target="_blank" rel="noopener noreferrer">Launch Optimization</Link>
+                            <Link href="/dashboard/optimization" target="_blank" rel="noopener noreferrer">Launch Tool</Link>
                         </Button>
                     </CardContent>
                 </Card>

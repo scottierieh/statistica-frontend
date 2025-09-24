@@ -40,7 +40,7 @@ export default function OptimizationApp() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                 <Target className="h-6 w-6 text-primary-foreground" />
               </div>
-              <h1 className="text-xl font-headline font-bold">Optimization</h1>
+              <h1 className="text-xl font-headline font-bold">Optimization &amp; Quantitative Analysis</h1>
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -86,7 +86,7 @@ export default function OptimizationApp() {
           <div className="p-4 md:p-6 h-full flex flex-col gap-4">
             <header className="flex items-center justify-between md:justify-end">
               <SidebarTrigger className="md:hidden" />
-              <h1 className="text-2xl font-headline font-bold md:hidden">Optimization</h1>
+              <h1 className="text-2xl font-headline font-bold md:hidden">Optimization &amp; Quantitative Analysis</h1>
               <div />
             </header>
             <ActivePageComponent />
