@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -9,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BarChart, AlertTriangle, Lightbulb, CheckCircle, Bot, Zap } from 'lucide-react';
+import { Sigma, Loader2, BarChart, AlertTriangle, Lightbulb, CheckCircle, Bot, Zap, HelpCircle, MoveRight, Settings, FileSearch, Handshake, TestTube } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -50,6 +49,75 @@ interface VariableResult {
 interface FullAnalysisResponse {
     results: { [key: string]: VariableResult };
 }
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const freqExample = exampleDatasets.find(d => d.id === 'crosstab');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <BarChart size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Frequency Analysis</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Examine the distribution of categorical variables to understand counts and proportions.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Frequency Analysis?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Frequency analysis is one of the most fundamental methods for inspecting and understanding your data. It summarizes the distribution of a categorical variable by showing how many times each category appears. This helps in identifying the most and least common categories, spotting data entry errors, and understanding the basic composition of your sample.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Select Variables:</strong> Choose one or more categorical variables from your dataset. The analysis works best for variables with a manageable number of distinct categories (e.g., country, product type, satisfaction level).
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> Click the 'Run Analysis' button to generate frequency tables and visualizations for all selected variables.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Frequency Table:</strong> Shows the raw count, percentage, and cumulative percentage for each category. This helps you quickly identify the most common values (the mode).
+                                </li>
+                                <li>
+                                    <strong>Bar Chart:</strong> Provides a quick visual summary of the distribution, making it easy to compare the frequencies of different categories.
+                                </li>
+                                <li>
+                                    <strong>AI Insights:</strong> The AI automatically highlights key findings, such as highly skewed distributions or low diversity among categories, and offers recommendations for further analysis.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                     <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Users className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Demographics</h4><p className="text-xs text-muted-foreground">Analyzing the distribution of respondents by gender, region, or education level.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Handshake className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Survey Analysis</h4><p className="text-xs text-muted-foreground">Summarizing responses to multiple-choice questions (e.g., "Which brand do you prefer?").</p></div></div>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    {freqExample && <Button variant="outline" onClick={() => onLoadExample(freqExample)}>Load Sample Market Data</Button>}
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 
 const AIGeneratedInterpretation = ({ promise }: { promise: Promise<string | null> | null }) => {
   const [interpretation, setInterpretation] = useState<string | null>(null);
@@ -103,10 +171,12 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
     const [selectedVars, setSelectedVars] = useState<string[]>(categoricalHeaders);
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [view, setView] = useState('intro');
 
     useEffect(() => {
         setSelectedVars(categoricalHeaders);
         setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [data, categoricalHeaders]);
     
     const canRun = useMemo(() => data.length > 0 && categoricalHeaders.length > 0, [data, categoricalHeaders]);
@@ -167,47 +237,12 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
         }
     }, [data, selectedVars, toast]);
 
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+
     if (!canRun) {
-        const freqExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('frequency'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Frequency Analysis</CardTitle>
-                        <CardDescription>
-                           To perform a frequency analysis, you need data with at least one categorical variable. Try one of our example datasets.
-                        </CardDescription>
-                    </CardHeader>
-                    {freqExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {freqExamples.map((ex) => {
-                                    const Icon = ex.icon;
-                                    return (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <Icon className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                    )
-                                })}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     const renderResults = () => {
@@ -326,7 +361,10 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
         <div className="flex flex-col gap-4">
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline">Frequency Analysis Setup</CardTitle>
+                 <div className="flex justify-between items-center">
+                    <CardTitle className="font-headline">Frequency Analysis Setup</CardTitle>
+                     <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                </div>
                 <CardDescription>Select one or more categorical variables to analyze.</CardDescription>
               </CardHeader>
               <CardContent>
