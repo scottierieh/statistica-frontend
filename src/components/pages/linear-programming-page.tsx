@@ -16,9 +16,8 @@ interface LpResult {
     optimal_value: number;
     success: boolean;
     message: string;
-    slack: number[] | null;
+    tableau_steps?: number[][][];
 }
-
 
 const IntroPage = ({ onStart }: { onStart: () => void }) => {
     return (
@@ -226,45 +225,70 @@ export default function LinearProgrammingPage() {
 
             {analysisResult && (
                 <div className="space-y-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Problem Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <p className="font-semibold">{getObjectiveFunctionString()}</p>
+                            <p className="mt-2 text-muted-foreground">Subject to:</p>
+                            <ul className="list-disc pl-5 mt-1 space-y-1 font-mono">
+                                {A.map((_, i) => <li key={i}>{getConstraintString(i)}</li>)}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Optimal Solution</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {analysisResult.success ? (
+                                <div>
+                                    <p><strong>Optimal Value (Z*):</strong> <span className="font-mono">{analysisResult.optimal_value.toFixed(6)}</span></p>
+                                    <Table className="mt-2">
+                                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {analysisResult.solution.map((s, i) => (
+                                                <TableRow key={i}>
+                                                    <TableCell><strong>x{i + 1}</strong></TableCell>
+                                                    <TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            ) : (
+                                <p className="text-destructive">{analysisResult.message}</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                    {analysisResult.tableau_steps && analysisResult.tableau_steps.length > 0 && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Problem Summary</CardTitle>
+                                <CardTitle>Simplex Tableau Steps</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                 <p className="font-semibold">{getObjectiveFunctionString()}</p>
-                                <p className="mt-2 text-muted-foreground">Subject to:</p>
-                                <ul className="list-disc pl-5 mt-1 space-y-1 font-mono">
-                                    {A.map((_, i) => <li key={i}>{getConstraintString(i)}</li>)}
-                                </ul>
+                                <div className="space-y-4">
+                                    {analysisResult.tableau_steps.map((step, index) => (
+                                        <div key={index}>
+                                            <h4 className="font-semibold">Iteration {index}</h4>
+                                            <Table>
+                                                <TableBody>
+                                                    {step.map((row, i) => (
+                                                        <TableRow key={i}>
+                                                            {row.map((cell, j) => (
+                                                                <TableCell key={j} className="font-mono text-right">{cell.toFixed(2)}</TableCell>
+                                                            ))}
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    ))}
+                                </div>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Optimal Solution</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {analysisResult.success ? (
-                                    <div>
-                                        <p><strong>Optimal Value (Z*):</strong> <span className="font-mono">{analysisResult.optimal_value.toFixed(6)}</span></p>
-                                        <Table className="mt-2">
-                                            <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
-                                            <TableBody>
-                                                {analysisResult.solution.slice(0, numVars).map((s, i) => (
-                                                    <TableRow key={i}>
-                                                        <TableCell><strong>x{i + 1}</strong></TableCell>
-                                                        <TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                ) : (
-                                    <p className="text-destructive">{analysisResult.message}</p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
+                    )}
                 </div>
             )}
         </div>
