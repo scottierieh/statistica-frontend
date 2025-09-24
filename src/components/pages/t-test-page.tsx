@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, FlaskConical, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, Settings, TestTube, BarChart, Users, Repeat } from 'lucide-react';
+import { Sigma, Loader2, FlaskConical, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users, Repeat, TestTube } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
@@ -78,17 +78,22 @@ const OneSampleIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, o
                             </ul>
                         </div>
                     </div>
+                     <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
+                        <div className="flex justify-center">
+                           {ttestExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
+                                    <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{ttestExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {ttestExample ? (
-                        <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
-                            <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                            <div>
-                                <h4 className="font-semibold">{ttestExample.name}</h4>
-                                <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
-                            </div>
-                        </Card>
-                    ) : <div></div>}
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
@@ -137,17 +142,22 @@ const IndependentSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () =
                             </ul>
                         </div>
                     </div>
+                    <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
+                        <div className="flex justify-center">
+                           {ttestExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
+                                    <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{ttestExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {ttestExample ? (
-                        <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
-                            <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                            <div>
-                                <h4 className="font-semibold">{ttestExample.name}</h4>
-                                <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
-                            </div>
-                        </Card>
-                    ) : <div></div>}
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
@@ -196,17 +206,22 @@ const PairedSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () => voi
                             </ul>
                         </div>
                     </div>
+                     <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
+                        <div className="flex justify-center">
+                           {ttestExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
+                                    <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{ttestExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {ttestExample ? (
-                        <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
-                            <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                            <div>
-                                <h4 className="font-semibold">{ttestExample.name}</h4>
-                                <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
-                            </div>
-                        </Card>
-                    ) : <div></div>}
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
@@ -503,22 +518,14 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         )
     };
     
-    if (!canRun && view === 'main') {
-         return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
-    
-    if (view === 'intro') {
-       switch(testType) {
-           case 'one_sample':
-               return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-            case 'independent_samples':
-                return <IndependentSamplesIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-            case 'paired_samples':
-                return <PairedSamplesIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-            default:
-                setView('main'); // Fallback to main view
-                return null;
-       }
+    const IntroComponent = {
+        'one_sample': OneSampleIntroPage,
+        'independent_samples': IndependentSamplesIntroPage,
+        'paired_samples': PairedSamplesIntroPage,
+    }[testType];
+
+    if (!canRun || view === 'intro') {
+         return <IntroComponent onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     return (
@@ -547,3 +554,4 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
+
