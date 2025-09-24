@@ -36,7 +36,7 @@ const getQuantile = (arr: number[], q: number) => {
 const getNumericStats = (data: number[]) => {
     if (data.length === 0) return { count: 0, mean: NaN, stdDev: NaN, min: NaN, q1: NaN, median: NaN, q3: NaN, max: NaN };
     
-    const sortedData = [...data].sort((a, b) => a - b);
+    const sortedData = [...arr].sort((a, b) => a - b);
     const sum = data.reduce((acc, val) => acc + val, 0);
     const meanVal = sum / data.length;
     const stdDevVal = Math.sqrt(data.reduce((acc, val) => acc + (val - meanVal) ** 2, 0) / (data.length > 1 ? data.length - 1 : 1));
@@ -168,7 +168,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                         />
                     </CardContent>
                 </Card>
-                <div className="space-y-4">
+                 <div className="space-y-4">
                     <Card>
                          <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
                          <CardContent>
@@ -212,6 +212,8 @@ interface DescriptiveStatsPageProps {
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const statsExamples = exampleDatasets.filter(ex => ['iris', 'tips'].includes(ex.id));
+    const irisExample = statsExamples.find(ex => ex.id === 'iris');
+
     return (
         <div className="flex flex-1 items-center justify-center p-4">
             <Card className="w-full max-w-4xl">
@@ -261,16 +263,21 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                      <div className="space-y-6">
                         <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
                         <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><BookOpen className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Academic Research</h4><p className="text-xs text-muted-foreground">Summarizing sample characteristics in research papers.</p></div></div>
+                            {irisExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(irisExample)}>
+                                    <irisExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">Iris Flowers Dataset</h4>
+                                        <p className="text-xs text-muted-foreground">Classic dataset for classification and descriptive stats.</p>
+                                    </div>
+                                </Card>
+                            )}
                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Coffee className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Business Intelligence</h4><p className="text-xs text-muted-foreground">Understanding sales data, customer demographics, or website traffic.</p></div></div>
                         </div>
                     </div>
                 </CardContent>
-                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                     <div className="flex gap-2">
-                        {statsExamples.map(ex => <Button key={ex.id} variant="outline" onClick={() => onLoadExample(ex)}>Load {ex.name} Data</Button>)}
-                     </div>
-                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                 <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                     <Button size="lg" onClick={onStart}>Start New Analysis</Button>
                 </CardFooter>
             </Card>
         </div>
