@@ -385,7 +385,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                         </CardContent>
                     </Card>
                 )}
-                 <Card>
+                <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Interpretation</CardTitle>
                     </CardHeader>
