@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, FlaskConical, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, Settings, TestTube, BarChart } from 'lucide-react';
+import { Sigma, Loader2, FlaskConical, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, Settings, TestTube, BarChart, Users, Repeat } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
@@ -48,7 +48,7 @@ const OneSampleIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, o
                                     <strong>Select Variable:</strong> Choose the numeric variable whose mean you want to test.
                                 </li>
                                 <li>
-                                    <strong>Set Test Value (μ₀):</strong> Enter the known or hypothesized population mean you want to compare your sample against.
+                                    <strong>Set Test Value (μ₀):</strong> Enter the known or hypothesized population mean to compare your sample against.
                                 </li>
                                 <li>
                                     <strong>Run Analysis:</strong> The tool will calculate the t-statistic and p-value to determine significance.
@@ -80,13 +80,64 @@ const OneSampleIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, o
     );
 };
 
+const IndependentSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const ttestExample = exampleDatasets.find(d => d.id === 't-test-suite');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Users size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Independent Samples T-Test</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Compare the means of two independent groups to determine if there is a statistically significant difference between them.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use an Independent Samples T-Test?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            This test is ideal for A/B testing or comparing outcomes between a control group and a treatment group. For instance, you could use it to see if a new website design (Group A) leads to more time on site than the old design (Group B).
+                        </p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Group Variable:</strong> Select a categorical variable with exactly two groups (e.g., 'Group A', 'Group B').</li>
+                                <li><strong>Value Variable:</strong> Choose the numeric variable you want to compare between the two groups.</li>
+                                <li><strong>Run Analysis:</strong> The tool automatically performs Levene's test for variance equality and runs the appropriate t-test.</li>
+                            </ol>
+                        </div>
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChart className="text-primary"/> Results Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Levene's Test:</strong> If p > 0.05, the assumption of equal variances is met. If p &lt;= 0.05, the variances are unequal, and Welch's t-test (which doesn't assume equal variances) is used automatically.</li>
+                                <li><strong>p-value:</strong> A value less than 0.05 indicates a significant difference in the means of the two groups.</li>
+                                <li><strong>Cohen's d:</strong> This is the effect size. A larger value indicates a more substantial difference between the groups.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    {ttestExample && <Button variant="outline" onClick={() => onLoadExample(ttestExample)}>Load Sample T-Test Data</Button>}
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 
 interface TTestPageProps {
     data: DataSet;
     numericHeaders: string[];
     categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
-    activeAnalysis: string;
+    activeAnalysis: string; 
 }
 
 export default function TTestPage({ data, numericHeaders, categoricalHeaders, onLoadExample, activeAnalysis }: TTestPageProps) {
@@ -121,14 +172,17 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     
     useEffect(() => {
         setTestType(initialTestType);
+        setView(data.length > 0 ? 'main' : 'intro');
+    }, [initialTestType, data]);
+
+    useEffect(() => {
         setOneSampleVar(numericHeaders[0]);
         setIndependentVar(numericHeaders[0]);
         setGroupVar(binaryCategoricalHeaders[0]);
         setPairedVar1(numericHeaders[0]);
         setPairedVar2(numericHeaders[1]);
         setAnalysisResult(null);
-        setView(data.length > 0 ? 'main' : 'intro');
-    }, [initialTestType, data, numericHeaders, binaryCategoricalHeaders]);
+    }, [data, numericHeaders, categoricalHeaders, binaryCategoricalHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
@@ -190,7 +244,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     const renderSetupUI = () => {
         switch (testType) {
             case 'one_sample':
-                 if (view === 'intro') {
+                if (view === 'intro') {
                     return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
                 }
                 return (
@@ -209,6 +263,9 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                     </div>
                 );
             case 'independent_samples':
+                 if (view === 'intro') {
+                    return <IndependentSamplesIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+                }
                  if (binaryCategoricalHeaders.length === 0) {
                     return <p className="text-destructive-foreground bg-destructive p-3 rounded-md">This test requires a categorical variable with exactly two groups. None found.</p>
                 }
@@ -231,6 +288,10 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                     </div>
                 );
             case 'paired_samples':
+                 if (view === 'intro') {
+                    // You can create a PairedSamplesIntroPage component here if needed
+                    return <p>Paired samples intro page placeholder.</p>;
+                }
                 if (numericHeaders.length < 2) {
                     return <p className="text-destructive-foreground bg-destructive p-3 rounded-md">This test requires at least two numeric variables to compare.</p>
                 }
@@ -258,8 +319,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     
     const renderResult = () => {
         if (!analysisResult) return null;
-        const { results } = analysisResult;
-        const plot = analysisResult.plot;
+        const { results, plot } = analysisResult;
         
         if (!results) {
              return (
@@ -363,11 +423,20 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     };
 
     if (!canRun) {
-        return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+         return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
-    if (view === 'intro' && testType === 'one_sample') {
-        return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    if (view === 'intro') {
+       switch(testType) {
+           case 'one_sample':
+               return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+            case 'independent_samples':
+                return <IndependentSamplesIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+            // Add other intro pages if you create them
+            default:
+                setView('main'); // Fallback to main view
+                return null;
+       }
     }
 
     return (
@@ -376,7 +445,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                 <CardHeader>
                      <div className="flex justify-between items-center">
                         <CardTitle className="font-headline">T-Test Analysis Setup</CardTitle>
-                         {testType === 'one_sample' && <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>}
+                         {(testType === 'one_sample' || testType === 'independent_samples') && <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>}
                     </div>
                     <CardDescription>Select a test type and configure the variables for the analysis.</CardDescription>
                 </CardHeader>
