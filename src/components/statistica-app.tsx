@@ -97,9 +97,6 @@ import HdbscanPage from './pages/hdbscan-page';
 import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import CrosstabPage from './pages/crosstab-page';
 import SemPage from './pages/sem-page';
-import ConjointAnalysisPage from './pages/conjoint-analysis-page';
-import CbcAnalysisPage from './pages/cbc-analysis-page';
-import IpaPage from './pages/ipa-page';
 import PcaPage from './pages/pca-page';
 import SurvivalAnalysisPage from './pages/survival-analysis-page';
 import WordCloudPage from './pages/wordcloud-page';
@@ -125,12 +122,6 @@ import DbscanPage from './pages/dbscan-page';
 import NonlinearRegressionPage from './pages/nonlinear-regression-page';
 import SnaPage from './pages/sna-page';
 import TopicModelingPage from './pages/topic-modeling-page';
-import DidPage from './pages/did-page';
-import DelphiPage from './pages/delphi-page';
-import SurveyApp from './survey-app';
-import VanWestendorpPage from './pages/van-westendorp-page';
-import GaborGrangerPage from './pages/gabor-granger-page';
-import MaxDiffPage from './pages/maxdiff-page';
 import BinomialTestPage from './pages/binomial-test-page';
 
 
@@ -172,7 +163,6 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     frequency: FrequencyAnalysisPage,
     crosstab: CrosstabPage,
     sem: SemPage,
-    ipa: IpaPage,
     pca: PcaPage,
     survival: SurvivalAnalysisPage,
     wordcloud: WordCloudPage,
@@ -195,12 +185,6 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     't-test-one-sample': TTestPage,
     't-test-independent': TTestPage,
     't-test-paired': TTestPage,
-    did: DidPage,
-    delphi: DelphiPage,
-    survey: SurveyApp,
-    'van-westendorp': VanWestendorpPage,
-    'gabor-granger': GaborGrangerPage,
-    'maxdiff': MaxDiffPage,
     'binomial-test': BinomialTestPage,
 };
 
@@ -335,16 +319,10 @@ const analysisMenu = [
     field: 'Specialized Models',
     icon: FlaskConical,
     methods: [
-      { id: 'ipa', label: 'Importance-Performance Analysis (IPA)' },
       { id: 'survival', label: 'Survival Analysis' },
       { id: 'meta-analysis', label: 'Meta-Analysis' },
       { id: 'gbm', label: 'Gradient Boosting Machine (GBM)'},
       { id: 'sna', label: 'Social Network Analysis' },
-      { id: 'did', label: 'Difference-in-Differences' },
-      { id: 'delphi', label: 'Delphi Method' },
-      { id: 'van-westendorp', label: 'Van Westendorp PSM' },
-      { id: 'gabor-granger', label: 'Gabor-Granger Pricing' },
-      { id: 'maxdiff', label: 'MaxDiff Analysis' },
     ]
   },
    {
@@ -695,7 +673,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && activeAnalysis !== 'ahp' && activeAnalysis !== 'delphi' && activeAnalysis !== 'survey' && activeAnalysis !== 'maxdiff' && (
+            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}

@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -112,7 +113,7 @@ export default function DashboardHubPage() {
                             Decision Analytics
                         </CardTitle>
                         <CardDescription>
-                            Solve complex optimization problems using linear and nonlinear programming techniques.
+                            Solve complex optimization problems and perform quantitative analysis for decision making.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

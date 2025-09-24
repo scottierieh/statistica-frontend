@@ -14,7 +14,7 @@ import {
   SidebarMenu,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Target, Truck, Award, Atom, ChevronDown, FileDown } from 'lucide-react';
+import { Target, Truck, Award, Atom, ChevronDown, FileDown, ThumbsUp, DollarSign, GitCommit } from 'lucide-react';
 import LinearProgrammingPage from './pages/linear-programming-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
 import GoalProgrammingPage from './pages/goal-programming-page';
@@ -32,8 +32,12 @@ import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import ConjointAnalysisPage from './pages/conjoint-analysis-page';
 import CbcAnalysisPage from './pages/cbc-analysis-page';
+import IpaPage from './pages/ipa-page';
+import DidPage from './pages/did-page';
+import VanWestendorpPage from './pages/van-westendorp-page';
+import GaborGrangerPage from './pages/gabor-granger-page';
 
-type OptimizationType = 'linear-programming' | 'transportation-problem' | 'goal-programming' | 'nonlinear-programming' | 'ahp' | 'dea' | 'conjoint' | 'cbc';
+type OptimizationType = 'linear-programming' | 'transportation-problem' | 'goal-programming' | 'nonlinear-programming' | 'ahp' | 'dea' | 'conjoint' | 'cbc' | 'ipa' | 'did' | 'van-westendorp' | 'gabor-granger';
 
 const optimizationPages: Record<string, React.ComponentType<any>> = {
   'linear-programming': LinearProgrammingPage,
@@ -44,6 +48,10 @@ const optimizationPages: Record<string, React.ComponentType<any>> = {
   'dea': DeaPage,
   'conjoint': ConjointAnalysisPage,
   'cbc': CbcAnalysisPage,
+  'ipa': IpaPage,
+  'did': DidPage,
+  'van-westendorp': VanWestendorpPage,
+  'gabor-granger': GaborGrangerPage,
 };
 
 export default function DecisionAnalyticsApp() {
@@ -222,36 +230,31 @@ export default function DecisionAnalyticsApp() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                     <SidebarMenuItem>
-                        <SidebarMenuButton
-                            onClick={() => setActiveAnalysis('ahp')}
-                            isActive={activeAnalysis === 'ahp'}
-                        >
-                           AHP Analysis
-                        </SidebarMenuButton>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('ahp')} isActive={activeAnalysis === 'ahp'}> AHP Analysis</SidebarMenuButton>
                     </SidebarMenuItem>
                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                            onClick={() => setActiveAnalysis('dea')}
-                            isActive={activeAnalysis === 'dea'}
-                        >
-                           Data Envelopment Analysis
-                        </SidebarMenuButton>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('dea')} isActive={activeAnalysis === 'dea'}>Data Envelopment Analysis</SidebarMenuButton>
                     </SidebarMenuItem>
                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                            onClick={() => setActiveAnalysis('conjoint')}
-                            isActive={activeAnalysis === 'conjoint'}
-                        >
-                           Conjoint Analysis
-                        </SidebarMenuButton>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('conjoint')} isActive={activeAnalysis === 'conjoint'}>Conjoint Analysis</SidebarMenuButton>
                     </SidebarMenuItem>
                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                            onClick={() => setActiveAnalysis('cbc')}
-                            isActive={activeAnalysis === 'cbc'}
-                        >
-                           Choice-Based Conjoint
-                        </SidebarMenuButton>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('cbc')} isActive={activeAnalysis === 'cbc'}>Choice-Based Conjoint</SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('ipa')} isActive={activeAnalysis === 'ipa'}><Target className="mr-2 h-4 w-4"/>IPA</SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('did')} isActive={activeAnalysis === 'did'}><GitCommit className="mr-2 h-4 w-4"/>DiD</SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('van-westendorp')} isActive={activeAnalysis === 'van-westendorp'}><DollarSign className="mr-2 h-4 w-4"/>Van Westendorp PSM</SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('gabor-granger')} isActive={activeAnalysis === 'gabor-granger'}><DollarSign className="mr-2 h-4 w-4"/>Gabor-Granger</SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('maxdiff')} isActive={activeAnalysis === 'maxdiff'}><ThumbsUp className="mr-2 h-4 w-4"/>MaxDiff</SidebarMenuButton>
                     </SidebarMenuItem>
                 </CollapsibleContent>
               </Collapsible>
