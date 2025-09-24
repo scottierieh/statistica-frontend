@@ -58,7 +58,11 @@ import {
   Atom,
   MessagesSquare,
   Share2,
+  GitCommit,
+  DollarSign,
+  ThumbsUp,
   Search,
+  ClipboardList,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
