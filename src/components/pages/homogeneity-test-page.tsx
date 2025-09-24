@@ -38,7 +38,6 @@ interface FullAnalysisResponse {
     results: HomogeneityTestResult;
 }
 
-
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const homogeneityExample = exampleDatasets.find(d => d.id === 'tips');
     return (
@@ -59,7 +58,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     <div className="text-center">
                         <h2 className="text-2xl font-semibold mb-4">Why Test for Homogeneity?</h2>
                         <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Many statistical tests, like ANOVA, work best when the variability within each group being compared is similar. If one group's data is much more spread out than another's, it can violate the test's assumptions and lead to inaccurate conclusions. Levene's test is a robust way to check this assumption before you proceed with your main analysis.
+                            Many parametric statistical tests, like ANOVA, work best when the variability within each group being compared is similar. If one group's data is much more spread out than another's, it can violate the test's assumptions and lead to inaccurate conclusions. Levene's test is a robust way to check this assumption before you proceed with your main analysis.
                         </p>
                     </div>
 
@@ -93,9 +92,22 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             </ul>
                         </div>
                     </div>
+                     <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
+                        <div className="flex justify-center">
+                            {homogeneityExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(homogeneityExample)}>
+                                    <homogeneityExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{homogeneityExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{homogeneityExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {homogeneityExample && <Button variant="outline" onClick={() => onLoadExample(homogeneityExample)}>Load Sample Tips Data</Button>}
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
@@ -289,3 +301,4 @@ export default function HomogeneityTestPage({ data, numericHeaders, categoricalH
         </div>
     );
 }
+
