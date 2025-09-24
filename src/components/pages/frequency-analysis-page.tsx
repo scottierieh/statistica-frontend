@@ -102,15 +102,21 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </div>
                     </div>
                      <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
-                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Users className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Demographics</h4><p className="text-xs text-muted-foreground">Analyzing the distribution of respondents by gender, region, or education level.</p></div></div>
-                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><HandshakeIcon className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Survey Analysis</h4><p className="text-xs text-muted-foreground">Summarizing responses to multiple-choice questions (e.g., "Which brand do you prefer?").</p></div></div>
+                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
+                        <div className="flex justify-center">
+                            {freqExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(freqExample)}>
+                                    <Users className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">Demographics</h4>
+                                        <p className="text-xs text-muted-foreground">Example survey data including demographic variables like region.</p>
+                                    </div>
+                                </Card>
+                            )}
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {freqExample && <Button variant="outline" onClick={() => onLoadExample(freqExample)}><Users className="mr-2"/>Load Sample Demographics Data</Button>}
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
