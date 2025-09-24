@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -126,7 +125,6 @@ import DbscanPage from './pages/dbscan-page';
 import NonlinearRegressionPage from './pages/nonlinear-regression-page';
 import SnaPage from './pages/sna-page';
 import TopicModelingPage from './pages/topic-modeling-page';
-import TTestPage from './pages/t-test-page';
 import DidPage from './pages/did-page';
 import DelphiPage from './pages/delphi-page';
 import SurveyApp from './survey-app';
@@ -449,7 +447,7 @@ export default function StatisticaApp() {
   };
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
-    if (example.id === 'meta-analysis' || example.id === 'ahp' || example.id === 'delphi' || example.id === 'maxdiff') {
+    if (example.id === 'meta-analysis' || example.id === 'ahp') {
         setActiveAnalysis(example.id);
         toast({title: example.name, description: 'This analysis requires manual data entry. An example has been pre-filled for you.'});
         return;
@@ -744,10 +742,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
-
-
-
-
-
-
