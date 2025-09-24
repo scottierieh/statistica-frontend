@@ -1,24 +1,23 @@
 
 'use client';
-
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import type { DataSet } from '@/lib/stats';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Binary, HeartPulse, BarChart as BarChartIcon, Bot, HelpCircle, MoveRight, Building, Hospital, Bank, GraduationCap } from 'lucide-react';
-import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Label } from '../ui/label';
-import { ScrollArea } from '../ui/scroll-area';
-import { Checkbox } from '../ui/checkbox';
-import { Input } from '../ui/input';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight, Building, Hospital, Landmark, GraduationCap, BarChart as BarChartIcon } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { produce } from 'immer';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
 import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell } from 'recharts';
 import { Badge } from '../ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { ScrollArea } from '../ui/scroll-area';
+import { Skeleton } from '../ui/skeleton';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import type { DataSet } from '@/lib/stats';
 
 
 interface DeaResults {
@@ -44,35 +43,35 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
-                 <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                     <div className="flex justify-center items-center gap-3 mb-4">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                             <BarChartIcon size={36} />
-                         </div>
+                        </div>
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">Data Envelopment Analysis (DEA)</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        A powerful method for evaluating the relative efficiency of decision-making units (DMUs) with multiple inputs and outputs.
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
+                        A non-parametric method used to empirically measure the productive efficiency of decision-making units (DMUs).
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
-                     <div className="text-center">
+                    <div className="text-center">
                         <h2 className="text-2xl font-semibold mb-4">Why Use DEA?</h2>
                         <p className="max-w-3xl mx-auto text-muted-foreground">
-                           When organizations have multiple units (like bank branches, hospitals, or schools) that use various resources (inputs) to produce several outcomes (outputs), comparing their performance can be complex. DEA provides an objective, data-driven way to identify the "best practice" frontier and measure how far each unit is from this optimal frontier, highlighting specific areas for improvement.
+                            When organizations have multiple units (like bank branches, hospitals, or schools) that use various resources (inputs) to produce several outcomes (outputs), comparing their performance can be complex. DEA provides an objective, data-driven way to identify the "best practice" efficiency frontier and measure how far each unit is from this optimal frontier, highlighting specific areas for improvement. It is particularly useful when the relationship between inputs and outputs is complex and not well-understood.
                         </p>
                     </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
-                             <h3 className="font-semibold text-2xl">Setup Guide</h3>
+                            <h3 className="font-semibold text-2xl">Setup Guide</h3>
                             <ul className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>DMUs:</strong> The entities you are comparing (e.g., 'Branch A', 'Hospital X'). This is a categorical column where each value is unique.</li>
-                                <li><strong>Input Variables:</strong> Resources used by the DMU (e.g., 'Employees', 'Operating Cost'). Lower is better.</li>
-                                <li><strong>Output Variables:</strong> Products or services produced by the DMU (e.g., 'Loans', 'Deposits'). Higher is better.</li>
-                                <li><strong>Orientation:</strong> Choose 'Input-oriented' to see how much inputs can be reduced, or 'Output-oriented' to see how much outputs can be increased.</li>
+                                <li><strong>DMUs (Decision Making Units):</strong> The entities you are comparing (e.g., 'Branch A', 'Hospital X'). This is a categorical column where each value is unique.</li>
+                                <li><strong>Input Variables:</strong> Resources used by the DMU (e.g., 'Number of Employees', 'Operating Cost'). Lower values are generally better.</li>
+                                <li><strong>Output Variables:</strong> Products or services produced by the DMU (e.g., 'Loans Issued', 'Patients Treated'). Higher values are generally better.</li>
+                                <li><strong>Orientation:</strong> Choose 'Input-oriented' to see how much inputs can be reduced while producing the same output, or 'Output-oriented' to see how much outputs can be increased with the same input.</li>
                             </ul>
                         </div>
-                         <div className="space-y-6">
+                        <div className="space-y-6">
                             <h3 className="font-semibold text-2xl">Result Interpretation</h3>
                             <ul className="list-decimal list-inside space-y-4 text-muted-foreground">
                                 <li><strong>Efficiency Score:</strong> A score of 1.0 indicates a DMU is on the efficiency frontier (best practice). A score less than 1.0 indicates relative inefficiency. For an input-oriented model, a score of 0.8 means the DMU could theoretically produce the same output with 20% fewer inputs.</li>
@@ -84,7 +83,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     <div className="space-y-6">
                         <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Bank className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Banking</h4><p className="text-xs text-muted-foreground">Evaluating branch efficiency based on staff, costs, deposits, and loans.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Landmark className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Banking</h4><p className="text-xs text-muted-foreground">Evaluating branch efficiency based on staff, costs, deposits, and loans.</p></div></div>
                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Hospital className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Healthcare</h4><p className="text-xs text-muted-foreground">Assessing hospital performance using beds, staff, patient throughput, and outcomes.</p></div></div>
                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><GraduationCap className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Education</h4><p className="text-xs text-muted-foreground">Comparing schools based on funding, teacher count, test scores, and graduation rates.</p></div></div>
                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Building className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Public Sector</h4><p className="text-xs text-muted-foreground">Measuring the efficiency of police departments, libraries, or government agencies.</p></div></div>
@@ -92,8 +91,8 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                     <Button variant="outline" onClick={onLoadExample}>Load Bank Branch Example</Button>
-                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                    <Button variant="outline" onClick={onLoadExample}>Load Bank Branch Example</Button>
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
@@ -427,3 +426,4 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
         </div>
     );
 }
+
