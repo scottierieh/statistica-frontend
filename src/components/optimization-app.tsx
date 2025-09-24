@@ -12,15 +12,17 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Target, Truck } from 'lucide-react';
+import { Target, Truck, Award } from 'lucide-react';
 import LinearProgrammingPage from './pages/linear-programming-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
+import GoalProgrammingPage from './pages/goal-programming-page';
 
-type OptimizationType = 'linear-programming' | 'transportation-problem';
+type OptimizationType = 'linear-programming' | 'transportation-problem' | 'goal-programming';
 
 const optimizationPages: Record<string, React.ComponentType<any>> = {
   'linear-programming': LinearProgrammingPage,
   'transportation-problem': TransportationProblemPage,
+  'goal-programming': GoalProgrammingPage,
 };
 
 export default function OptimizationApp() {
@@ -55,6 +57,15 @@ export default function OptimizationApp() {
               >
                  <Truck className="mr-2 h-4 w-4" />
                 Transportation Problem
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setActiveAnalysis('goal-programming')}
+                isActive={activeAnalysis === 'goal-programming'}
+              >
+                 <Award className="mr-2 h-4 w-4" />
+                Goal Programming
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarContent>
