@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon } from 'lucide-react';
+import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -321,23 +321,6 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
                 
                 if (isNumeric) {
                     const stats = getNumericStats(columnData as number[]);
-                    const binCount = 10;
-                    const {min, max} = stats;
-                    const binWidth = (max - min) / binCount;
-                    const bins = Array.from({length: binCount}, (_, i) => {
-                        const rangeStart = min + i * binWidth;
-                        const rangeEnd = rangeStart + binWidth;
-                        return {
-                            range: `${rangeStart.toFixed(1)}-${rangeEnd.toFixed(1)}`,
-                            count: 0
-                        };
-                    });
-                     columnData.forEach(val => {
-                        let binIndex = Math.floor((val - min) / binWidth);
-                        if (val === max) binIndex = binCount - 1;
-                        if (bins[binIndex]) bins[binIndex].count++;
-                    });
-
                     results[varName] = {
                         type: 'numeric', stats: stats,
                         plotData: { values: columnData },

@@ -335,6 +335,7 @@ export default function AncovaPage({ data, numericHeaders, categoricalHeaders, o
                             <div className="flex justify-between items-center">
                                 <dt className="text-muted-foreground">Homogeneity of Variances (Levene's)</dt>
                                 <dd>{results.assumptions.homogeneity.met ? <Badge>Passed</Badge> : <Badge variant="destructive">Failed</Badge>} <span className='font-mono text-xs'>(p={(results.assumptions.homogeneity.p_value || 0).toFixed(3)})</span></dd>
+
                             </div>
                         </CardContent>
                     </Card>
