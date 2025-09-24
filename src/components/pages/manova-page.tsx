@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Users } from 'lucide-react';
+import { Sigma, Loader2, Users, FileSearch, Settings, MoveRight, HelpCircle, Layers } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -55,6 +55,69 @@ const getSignificanceStars = (p: number | undefined) => {
     return '';
 };
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const manovaExample = exampleDatasets.find(d => d.id === 'manova-groups');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Layers size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Multivariate Analysis of Variance (MANOVA)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
+                        An extension of ANOVA for situations where you have two or more dependent variables.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                     <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use MANOVA?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            MANOVA is used to determine whether there are any statistically significant differences between the means of two or more independent groups on a combination of two or more dependent variables. It's more powerful than running multiple separate ANOVAs because it accounts for the correlations between the dependent variables and reduces the risk of Type I errors (false positives).
+                        </p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Dependent Variables:</strong> Select two or more continuous numeric variables that represent the outcomes you are measuring (e.g., 'Test Score' and 'Time to Complete').
+                                </li>
+                                <li>
+                                    <strong>Factor Variable:</strong> Choose a single categorical variable that defines your independent groups (e.g., 'Teaching Group A', 'Group B', 'Group C').
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> The tool will calculate multivariate test statistics (like Pillai's Trace and Wilks' Lambda) to determine if there's an overall difference between groups.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Multivariate Tests:</strong> A significant p-value (e.g., for Pillai's Trace) indicates that there is a statistically significant difference between the groups when considering all dependent variables together.
+                                </li>
+                                <li>
+                                    <strong>Univariate Follow-up Tests:</strong> If the overall MANOVA is significant, you then look at the individual ANOVAs for each dependent variable to see which specific outcomes differ across the groups.
+                                </li>
+                                 <li>
+                                    <strong>Effect Size (Pillai's Trace or Partial η²):</strong> These metrics indicate the magnitude of the difference between groups.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    {manovaExample && <Button variant="outline" onClick={() => onLoadExample(manovaExample)}><Users className="mr-2"/>Load Sample Group Data</Button>}
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 interface ManovaPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -64,6 +127,7 @@ interface ManovaPageProps {
 
 export default function ManovaPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: ManovaPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [dependentVars, setDependentVars] = useState<string[]>([]);
     const [factorVar, setFactorVar] = useState<string | undefined>();
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
@@ -75,7 +139,8 @@ export default function ManovaPage({ data, numericHeaders, categoricalHeaders, o
         setDependentVars(numericHeaders.slice(0, 2));
         setFactorVar(categoricalHeaders[0]);
         setAnalysisResult(null);
-    }, [data, numericHeaders, categoricalHeaders]);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, numericHeaders, categoricalHeaders, canRun]);
 
     const handleDepVarChange = (header: string, checked: boolean) => {
         setDependentVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
@@ -119,27 +184,12 @@ export default function ManovaPage({ data, numericHeaders, categoricalHeaders, o
         }
     }, [data, dependentVars, factorVar, toast]);
     
-    if (!canRun) {
-        const manovaExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('manova'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Multivariate Analysis of Variance (MANOVA)</CardTitle>
-                        <CardDescription>
-                           To perform MANOVA, you need data with at least two numeric dependent variables and one categorical factor. Try an example dataset.
-                        </CardDescription>
-                    </CardHeader>
-                    {manovaExamples.length > 0 && (
-                        <CardContent>
-                            <Button onClick={() => onLoadExample(manovaExamples[0])} className="w-full" size="sm">
-                                Load {manovaExamples[0].name}
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        )
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     const results = analysisResult?.results;
@@ -148,7 +198,10 @@ export default function ManovaPage({ data, numericHeaders, categoricalHeaders, o
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">MANOVA Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">MANOVA Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select two or more dependent variables and one factor (grouping variable).</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
