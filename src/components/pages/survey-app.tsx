@@ -2552,7 +2552,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                         </div>
                     </div>
                 </TabsContent>
-                 <TabsContent value="setting">
+                <TabsContent value="setting">
                     <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Survey Settings</CardTitle>
