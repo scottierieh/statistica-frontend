@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BarChart, AlertTriangle, Lightbulb, CheckCircle, Bot, Zap, HelpCircle, MoveRight, Settings, FileSearch, Handshake, TestTube, Users } from 'lucide-react';
+import { Sigma, Loader2, BarChart, AlertTriangle, Lightbulb, CheckCircle, Bot, Zap, HelpCircle, MoveRight, Settings, FileSearch, Handshake, TestTube, Users, Handshake as HandshakeIcon } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -105,12 +106,12 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
                         <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Users className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Demographics</h4><p className="text-xs text-muted-foreground">Analyzing the distribution of respondents by gender, region, or education level.</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Handshake className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Survey Analysis</h4><p className="text-xs text-muted-foreground">Summarizing responses to multiple-choice questions (e.g., "Which brand do you prefer?").</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><HandshakeIcon className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Survey Analysis</h4><p className="text-xs text-muted-foreground">Summarizing responses to multiple-choice questions (e.g., "Which brand do you prefer?").</p></div></div>
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {freqExample && <Button variant="outline" onClick={() => onLoadExample(freqExample)}>Load Sample Market Data</Button>}
+                    {freqExample && <Button variant="outline" onClick={() => onLoadExample(freqExample)}><freqExample.icon className="mr-2"/>Load Sample Market Data</Button>}
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
@@ -182,7 +183,7 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
     const canRun = useMemo(() => data.length > 0 && categoricalHeaders.length > 0, [data, categoricalHeaders]);
 
     const handleVarSelectionChange = (header: string, checked: boolean) => {
-        setSelectedVars(prev => checked ? [...prev, header] : prev.filter(v => v !== varName));
+        setSelectedVars(prev => checked ? [...prev, header] : prev.filter(v => v !== header));
     };
 
     const handleAnalysis = useCallback(async () => {
@@ -416,4 +417,3 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
         </div>
     );
 }
-
