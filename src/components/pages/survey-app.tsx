@@ -1,6 +1,6 @@
 
-
 'use client';
+
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -916,13 +916,15 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            {question.columns.map((col: string, colIndex: number) => (
-                                <TableCell key={colIndex} className="text-center">
-                                    <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                                <>
+                                {question.columns.map((col: string, colIndex: number) => (
+                                    <TableCell key={colIndex} className="text-center">
                                         <RadioGroupItem value={col}/>
-                                    </RadioGroup>
-                                </TableCell>
-                            ))}
+                                    </TableCell>
+                                ))}
+                                </>
+                            </RadioGroup>
                             {!isPreview && <TableCell></TableCell>}
                         </TableRow>
                     ))}
@@ -2214,7 +2216,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                         <Save className="mr-2" />
                         Save Draft
                     </Button>
-                    <Dialog onOpenChange={(open) => { if(open) saveDraft() }}>
+                    <Dialog onOpenChange={(open) => { if (open) { saveDraft(); generateQrCode(); }}}>
                         <DialogTrigger asChild>
                             <Button disabled={!surveyId}>
                                 <Share2 className="mr-2" />
@@ -2244,7 +2246,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                         {isLoadingQr ? (
                                             <Loader2 className="w-8 h-8 animate-spin" />
                                         ) : qrCodeUrl ? (
-                                            <Image src={qrCodeUrl} alt="Survey QR Code" width={200} height={200} data-ai-hint="QR code"/>
+                                            <Image src={qrCodeUrl} alt="Survey QR Code" width={200} height={200} className="max-h-60 w-auto object-contain" data-ai-hint="QR code"/>
                                         ) : (
                                             <p className="text-muted-foreground">Could not load QR code.</p>
                                         )}
@@ -2274,9 +2276,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
-                    <TabsTrigger value="configuration"><Settings className="mr-2" />Configuration</TabsTrigger>
                     <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                 </TabsList>
@@ -2511,48 +2512,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                             </Card>
                         </div>
                     </div>
-                </TabsContent>
-                <TabsContent value="configuration">
-                     <Card className="mt-4">
-                        <CardHeader>
-                            <CardTitle>Survey Configuration</CardTitle>
-                            <CardDescription>Configure the behavior and access of your survey.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-8">
-                            <div className="space-y-4">
-                                <h3 className="font-semibold text-lg">Access & Schedule</h3>
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                     <div>
-                                        <Label htmlFor="custom-url">Custom URL Path</Label>
-                                        <div className="flex items-center">
-                                            <span className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-l-md border border-r-0">/survey/p/</span>
-                                            <Input id="custom-url" placeholder="your-unique-path" className="rounded-l-none" value={survey.settings?.customUrl || ''} onChange={(e) => setSurvey(produce((draft: any) => {draft.settings.customUrl = e.target.value}))}/>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <Label>Active Dates</Label>
-                                        <DatePickerWithRange date={survey.settings?.dateRange} onDateChange={(date) => setSurvey(produce((draft: any) => {draft.settings.dateRange = date}))} />
-                                    </div>
-                                </div>
-                            </div>
-                            <Separator />
-                            <div className="space-y-4">
-                                <h3 className="font-semibold text-lg">Response Management</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <Label htmlFor="max-responses">Maximum Number of Responses</Label>
-                                        <Input id="max-responses" type="number" placeholder="Unlimited" value={survey.settings?.maxResponses || ''} onChange={(e) => setSurvey(produce((draft: any) => {draft.settings.maxResponses = parseInt(e.target.value, 10)}))} />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="password">Password Protection</Label>
-                                        <div className="flex items-center gap-2">
-                                            <Input id="password" type="password" placeholder="Leave blank to disable" value={survey.settings?.password || ''} onChange={(e) => setSurvey(produce((draft: any) => {draft.settings.password = e.target.value}))}/>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
                 </TabsContent>
                 <TabsContent value="analysis">
                      <Card className="mt-4">
@@ -2808,3 +2767,5 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
+
+    
