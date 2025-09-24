@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle } from 'lucide-react';
+import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle, Sparkles, Grid3x3, PieChart as PieChartIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -276,8 +277,8 @@ interface DescriptiveStatsPageProps {
 }
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const statsExamples = exampleDatasets.filter(ex => ['iris', 'tips'].includes(ex.id));
-    const irisExample = statsExamples.find(ex => ex.id === 'iris');
+    const irisExample = exampleDatasets.find(ex => ex.id === 'iris');
+    const tipsExample = exampleDatasets.find(ex => ex.id === 'tips');
 
     return (
         <div className="flex flex-1 items-center justify-center p-4">
@@ -326,7 +327,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </div>
                     </div>
                      <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
+                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
                         <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
                             {irisExample && (
                                 <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(irisExample)}>
@@ -337,7 +338,15 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                     </div>
                                 </Card>
                             )}
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Coffee className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Business Intelligence</h4><p className="text-xs text-muted-foreground">Understanding sales data, customer demographics, or website traffic.</p></div></div>
+                             {tipsExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(tipsExample)}>
+                                    <tipsExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{tipsExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{tipsExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
                         </div>
                     </div>
                 </CardContent>
