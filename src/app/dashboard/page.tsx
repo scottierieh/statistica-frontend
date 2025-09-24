@@ -106,22 +106,6 @@ export default function DashboardHubPage() {
                         </Button>
                     </CardContent>
                 </Card>
-                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2">
-                            <Zap className="h-5 w-5 text-primary"/>
-                            Optimization
-                        </CardTitle>
-                        <CardDescription>
-                           Find the best solutions for your complex problems. Optimize resources, schedules, and strategies.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/optimization" target="_blank" rel="noopener noreferrer">Launch Optimization</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
             </div>
         </div>
       </main>
