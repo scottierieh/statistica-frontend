@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, SlidersHorizontal, HelpCircle, MoveRight, FileJson } from 'lucide-react';
+import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, SlidersHorizontal, HelpCircle, MoveRight, FileJson, DollarSign } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter } from 'recharts';
 import { Label } from '../ui/label';
@@ -120,7 +121,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Brain className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">New Product Development</h4><p className="text-xs text-muted-foreground">Identify the most preferred combination of features.</p></div></div>
                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><DollarSign className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Pricing Strategy</h4><p className="text-xs text-muted-foreground">Determine the optimal price point that customers are willing to pay.</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><PieChartIcon className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Market Segmentation</h4><p className="text-xs text-muted-foreground">Identify customer groups that prefer different sets of attributes.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><PieIcon className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Market Segmentation</h4><p className="text-xs text-muted-foreground">Identify customer groups that prefer different sets of attributes.</p></div></div>
                             <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Target className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Brand Equity</h4><p className="text-xs text-muted-foreground">Measure the impact of brand name on consumer preference.</p></div></div>
                         </div>
                     </div>
