@@ -1,13 +1,13 @@
 
 'use client';
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BarChart, TrendingUp, Zap, Lightbulb, Bot, AlertTriangle, MessageSquareQuote } from 'lucide-react';
+import { Sigma, Loader2, BarChart, TrendingUp, Zap, Lightbulb, Bot, AlertTriangle, MessageSquareQuote, Link2, HelpCircle, MoveRight, Settings, FileSearch, Handshake, TestTube } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -61,6 +61,81 @@ interface CorrelationResults {
   pairs_plot?: string;
   heatmap_plot?: string;
 }
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const corrExample = exampleDatasets.find(d => d.id === 'iris');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Link2 size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Correlation Analysis</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Measure the strength and direction of the linear relationship between two or more numeric variables.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Correlation Analysis?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Correlation analysis is a fundamental statistical method used to understand how variables move in relation to one another. It helps identify patterns in data, informs predictive modeling, and guides further investigation. A positive correlation means variables increase together, a negative correlation means one increases as the other decreases, and a zero correlation indicates no linear relationship.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Select Variables:</strong> Choose two or more numeric variables from your dataset that you want to compare.
+                                </li>
+                                <li>
+                                    <strong>Choose Method:</strong> Select the appropriate correlation method.
+                                    <ul className="list-disc pl-5 mt-2 text-xs">
+                                        <li><strong>Pearson:</strong> For linear relationships between normally distributed variables.</li>
+                                        <li><strong>Spearman:</strong> For monotonic relationships (variables tend to move in the same direction, but not necessarily linearly). Works on ranked data and is robust to outliers.</li>
+                                        <li><strong>Kendall's Tau:</strong> Also a rank-based measure, often used for smaller datasets or data with many tied ranks.</li>
+                                    </ul>
+                                </li>
+                                 <li>
+                                    <strong>Group By (Optional):</strong> Select a categorical variable to color-code the points in the pairs plot, helping to visualize relationships within different groups.
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> Click the button to calculate the correlation matrix, p-values, and generate visualizations.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChart className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Correlation Coefficient (r):</strong> Ranges from -1 to +1. Values near ±1 indicate a strong linear relationship, while values near 0 indicate a weak or non-existent linear relationship.
+                                </li>
+                                <li>
+                                    <strong>p-value:</strong> Indicates the statistical significance of the correlation. A p-value less than 0.05 typically means the observed correlation is unlikely to have occurred by chance.
+                                </li>
+                                <li>
+                                    <strong>Pairs Plot:</strong> Provides scatterplots for each pair of variables, allowing for a visual inspection of their relationship and distribution.
+                                </li>
+                                <li>
+                                    <strong>Heatmap:</strong> Offers a color-coded overview of the entire correlation matrix, making it easy to spot strong and weak relationships at a glance.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    {corrExample && <Button variant="outline" onClick={() => onLoadExample(corrExample)}>Load Sample Iris Data</Button>}
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
 
 const InterpretationDisplay = ({ title, body }: { title: string, body: string }) => {
     if (!title || !body) return null;
@@ -138,6 +213,7 @@ interface CorrelationPageProps {
 
 export default function CorrelationPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: CorrelationPageProps) {
   const { toast } = useToast();
+  const [view, setView] = useState('intro');
   const [selectedHeaders, setSelectedHeaders] = useState<string[]>(numericHeaders.slice(0, 8));
   const [groupVar, setGroupVar] = useState<string | undefined>();
   const [results, setResults] = useState<CorrelationResults | null>(null);
@@ -148,6 +224,7 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
     setSelectedHeaders(numericHeaders.slice(0, 8));
     setGroupVar(undefined);
     setResults(null);
+    setView(data.length > 0 ? 'main' : 'intro');
   }, [numericHeaders, data]);
 
   const handleSelectionChange = (header: string, checked: boolean) => {
@@ -197,46 +274,16 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
     return data.length > 0 && numericHeaders.length >= 2;
   }, [data, numericHeaders]);
 
-  if (!canRun) {
-    const corrExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('correlation'));
-    return (
-      <div className="flex flex-1 items-center justify-center">
-          <Card className="w-full max-w-2xl text-center">
-              <CardHeader>
-                  <CardTitle className="font-headline">Correlation Analysis</CardTitle>
-                  <CardDescription>
-                      To perform a correlation analysis, you need to upload data with at least two numeric variables. Try one of our example datasets.
-                  </CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {corrExamples.map((ex) => {
-                          const Icon = ex.icon;
-                          return (
-                          <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                              <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                      <Icon className="h-6 w-6 text-secondary-foreground" />
-                                  </div>
-                                  <div>
-                                      <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                      <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                  </div>
-                              </CardHeader>
-                              <CardFooter>
-                                  <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                      Load this data
-                                  </Button>
-                              </CardFooter>
-                          </Card>
-                          )
-                      })}
-                  </div>
-              </CardContent>
-          </Card>
-      </div>
-    );
-  }
+  if (!canRun && view === 'main') {
+        const corrExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('correlation'));
+        return (
+             <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />
+        )
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
 
   const heatmapPlotData = results ? JSON.parse(results.heatmap_plot || '{}') : null;
   const pairsPlotData = results ? JSON.parse(results.pairs_plot || '{}') : null;
@@ -246,7 +293,10 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Correlation Analysis Setup</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="font-headline">Correlation Analysis Setup</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+          </div>
           <CardDescription>Select variables and choose a correlation method.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -426,3 +476,4 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
     </div>
   );
 }
+
