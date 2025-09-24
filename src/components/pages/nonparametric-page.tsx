@@ -8,12 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, FlaskConical, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, Settings, FileSearch, BarChart as BarChartIcon, Users, Handshake, TestTube } from 'lucide-react';
+import { Sigma, Loader2, FlaskConical, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users, Repeat, TestTube, Columns } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Checkbox } from '../ui/checkbox';
 
 type TestType = 'mann_whitney' | 'wilcoxon' | 'kruskal_wallis' | 'friedman' | 'mcnemar';
 
@@ -23,20 +24,76 @@ const IntroPage = ({ testType, onStart, onLoadExample }: { testType: TestType, o
             icon: Users,
             title: "Mann-Whitney U Test",
             description: "Compare two independent groups when the assumption of normality is not met. It's the non-parametric equivalent of the independent samples t-test.",
-            why: "Use the Mann-Whitney U test when you want to compare the medians of two independent groups. For example, comparing customer satisfaction ratings (on a scale of 1-10) between two different store locations, where the data isn't normally distributed.",
+            why: "Use this test when you want to compare the medians of two independent groups. For example, comparing satisfaction ratings between two different user groups where the data isn't normally distributed.",
             setup: [
                 { title: 'Group Variable', text: 'Select a categorical variable with exactly two groups (e.g., "Group A" vs. "Group B").' },
                 { title: 'Value Variable', text: 'Choose the numeric or ordinal variable you want to compare between the groups.' },
-                { title: 'Run Analysis', text: 'The tool will compare the ranks of the data to determine if one group tends to have higher values than the other.' },
             ],
             interpretation: [
-                { title: 'U-statistic', text: 'The main test statistic. A smaller value indicates a larger difference between the groups.' },
-                { title: 'p-value', text: 'If less than 0.05, it indicates a statistically significant difference between the two groups.' },
+                { title: 'U-statistic & p-value', text: 'A p-value less than 0.05 indicates a statistically significant difference between the two groups.' },
                 { title: 'Mean Ranks', text: 'Compare which group has a higher average rank, indicating which group tends to have higher values overall.' },
             ],
             exampleId: 'nonparametric-suite'
         },
-        // ... other intros can be added here
+        wilcoxon: {
+            icon: Repeat,
+            title: "Wilcoxon Signed-Rank Test",
+            description: "Compare two related or matched samples to assess if their population mean ranks differ. It is the non-parametric alternative to the paired-samples t-test.",
+            why: "Use this test for 'before-and-after' studies or when comparing two measurements taken from the same subject. For example, testing if a training program significantly changed employee performance scores.",
+            setup: [
+                { title: 'Variable 1 (e.g., Pre-test)', text: 'Select the numeric variable for the first measurement.' },
+                { title: 'Variable 2 (e.g., Post-test)', text: 'Select the numeric variable for the second, paired measurement.' },
+            ],
+            interpretation: [
+                 { title: 'W-statistic & p-value', text: 'A p-value less than 0.05 suggests a significant difference between the paired observations.' },
+                 { title: 'Z-score', text: 'Indicates the magnitude and direction of the difference.' },
+            ],
+            exampleId: 'nonparametric-suite'
+        },
+        kruskal_wallis: {
+            icon: Users,
+            title: "Kruskal-Wallis H Test",
+            description: "Compare the medians of three or more independent groups. It's the non-parametric equivalent of the one-way ANOVA.",
+            why: "Use this test when you want to compare a numeric outcome across multiple groups, but your data doesn't meet the normality assumption of ANOVA. For example, comparing customer satisfaction scores across three different store locations.",
+            setup: [
+                { title: 'Group Variable', text: 'Select a categorical variable with three or more distinct groups.' },
+                { title: 'Value Variable', text: 'Choose the numeric or ordinal variable you want to compare across the groups.' },
+            ],
+            interpretation: [
+                { title: 'H-statistic & p-value', text: 'A significant p-value (< 0.05) indicates that at least one group is different from the others. It does not specify which groups differ.' },
+                { title: 'Effect Size (Epsilon-squared)', text: 'Measures the proportion of variance in the ranks explained by the group membership.' },
+            ],
+            exampleId: 'nonparametric-suite'
+        },
+        friedman: {
+            icon: Repeat,
+            title: "Friedman Test",
+            description: "Compare the distributions of three or more related samples. It is the non-parametric alternative to the repeated-measures ANOVA.",
+            why: "Use this test when you have multiple measurements from the same subject under different conditions. For example, comparing the preference ratings for three different product designs from the same group of participants.",
+            setup: [
+                { title: 'Select 3+ Variables', text: 'Choose three or more numeric variables that represent the repeated measures or related conditions.' },
+            ],
+            interpretation: [
+                { title: 'Chi-squared Statistic & p-value', text: 'A significant p-value (< 0.05) indicates that there is a significant difference among the repeated measures.' },
+                { title: 'Kendall\'s W', text: 'Measures the effect size, indicating the level of agreement (concordance) among the rankings of the different conditions.' },
+            ],
+            exampleId: 'nonparametric-suite'
+        },
+        mcnemar: {
+            icon: Columns,
+            title: "McNemar's Test",
+            description: "Used on paired nominal data to determine if there is a significant change in proportions for a dichotomous variable.",
+            why: "This test is ideal for 'before-and-after' studies where the outcome is binary (e.g., yes/no, pass/fail). For instance, testing if a marketing campaign changed the proportion of customers who are 'aware' vs. 'unaware' of a brand.",
+            setup: [
+                { title: 'Variable 1 (e.g., Before)', text: 'Select a binary categorical variable representing the initial state.' },
+                { title: 'Variable 2 (e.g., After)', text: 'Select a binary categorical variable representing the final state.' },
+            ],
+            interpretation: [
+                { title: 'Contingency Table', text: 'Focus on the off-diagonal cells (b and c), which represent the subjects who changed their status.' },
+                { title: 'p-value', text: 'A significant p-value (< 0.05) indicates that there was a significant marginal change in proportions between the two time points.' },
+            ],
+            exampleId: 'nonparametric-suite'
+        }
     };
 
     const content = intros[testType];
@@ -124,16 +181,16 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
     }, [activeAnalysis]);
     
     // States for each test
-    const [mwGroupCol, setMwGroupCol] = useState(categoricalHeaders.find(h => new Set(data.map(d => d[h]).filter(g => g != null)).size === 2) || categoricalHeaders[0]);
-    const [mwValueCol, setMwValueCol] = useState(numericHeaders[0]);
+    const [mwGroupCol, setMwGroupCol] = useState<string | undefined>();
+    const [mwValueCol, setMwValueCol] = useState<string | undefined>();
     
-    const [wxVar1, setWxVar1] = useState(numericHeaders[0]);
-    const [wxVar2, setWxVar2] = useState(numericHeaders[1]);
+    const [wxVar1, setWxVar1] = useState<string | undefined>();
+    const [wxVar2, setWxVar2] = useState<string | undefined>();
     
-    const [kwGroupCol, setKwGroupCol] = useState(categoricalHeaders.find(h => new Set(data.map(d => d[h]).filter(g => g != null)).size >= 3) || categoricalHeaders[0]);
-    const [kwValueCol, setKwValueCol] = useState(numericHeaders[0]);
+    const [kwGroupCol, setKwGroupCol] = useState<string | undefined>();
+    const [kwValueCol, setKwValueCol] = useState<string | undefined>();
     
-    const [friedmanVars, setFriedmanVars] = useState<string[]>(numericHeaders.slice(0, 3));
+    const [friedmanVars, setFriedmanVars] = useState<string[]>([]);
     
     const [mcNemarVar1, setMcNemarVar1] = useState<string | undefined>();
     const [mcNemarVar2, setMcNemarVar2] = useState<string | undefined>();
@@ -145,20 +202,31 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
     const binaryCategoricalHeaders = useMemo(() => {
         return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
     }, [data, categoricalHeaders]);
+    
+    const multiGroupCategoricalHeaders = useMemo(() => {
+        return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size >= 3);
+    }, [data, categoricalHeaders]);
 
     useEffect(() => {
+        // Reset states when data changes
         setMwGroupCol(binaryCategoricalHeaders[0]);
         setMwValueCol(numericHeaders[0]);
         setWxVar1(numericHeaders[0]);
         setWxVar2(numericHeaders[1]);
-        setKwGroupCol(categoricalHeaders.find(h => new Set(data.map(d => d[h]).filter(g => g != null)).size >= 3) || categoricalHeaders[0]);
+        setKwGroupCol(multiGroupCategoricalHeaders[0]);
         setKwValueCol(numericHeaders[0]);
         setFriedmanVars(numericHeaders.slice(0,3));
         setMcNemarVar1(binaryCategoricalHeaders.find(h => h.includes('pre')) || binaryCategoricalHeaders[0]);
         setMcNemarVar2(binaryCategoricalHeaders.find(h => h.includes('post')) || binaryCategoricalHeaders[1]);
         setAnalysisResult(null);
         setView(data.length > 0 ? 'main' : 'intro');
-    }, [numericHeaders, categoricalHeaders, data, binaryCategoricalHeaders]);
+    }, [data, numericHeaders, categoricalHeaders, binaryCategoricalHeaders, multiGroupCategoricalHeaders]);
+    
+     useEffect(() => {
+        // Reset view when activeTest changes
+        setView('intro');
+        setAnalysisResult(null);
+    }, [activeTest]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
@@ -172,29 +240,24 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
                 const groups = Array.from(new Set(data.map(d => d[mwGroupCol]))).filter(g => g != null);
                 if (groups.length !== 2) { toast({ variant: "destructive", title: `Mann-Whitney U test requires exactly 2 groups, but found ${groups.length} in '${mwGroupCol}'.` }); return; }
                 params = { group_col: mwGroupCol, value_col: mwValueCol, groups };
-                testType = 'mann_whitney';
                 break;
             case 'wilcoxon':
                 if (!wxVar1 || !wxVar2 || wxVar1 === wxVar2) { toast({ variant: "destructive", title: "Please select two different variables for Wilcoxon test." }); return; }
                 params = { var1: wxVar1, var2: wxVar2 };
-                testType = 'wilcoxon';
                 break;
             case 'kruskal_wallis':
                  if (!kwGroupCol || !kwValueCol) { toast({ variant: "destructive", title: "Please select group and value columns." }); return; }
                 const kwGroups = Array.from(new Set(data.map(d => d[kwGroupCol]))).filter(g => g != null);
                 if (kwGroups.length < 3) { toast({ variant: "destructive", title: `Kruskal-Wallis requires at least 3 groups, but found ${kwGroups.length} in '${kwGroupCol}'.` }); return; }
                 params = { group_col: kwGroupCol, value_col: kwValueCol };
-                testType = 'kruskal_wallis';
                 break;
             case 'friedman':
                 if (friedmanVars.length < 3) { toast({ variant: "destructive", title: "Please select at least 3 variables for Friedman test." }); return; }
                 params = { variables: friedmanVars };
-                testType = 'friedman';
                 break;
             case 'mcnemar':
                 if (!mcNemarVar1 || !mcNemarVar2 || mcNemarVar1 === mcNemarVar2) { toast({ variant: "destructive", title: "Please select two different binary categorical variables for McNemar's test." }); return; }
                 params = { var1: mcNemarVar1, var2: mcNemarVar2 };
-                testType = 'mcnemar';
                 break;
         }
 
@@ -355,7 +418,6 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
             </div>
           );
         case 'kruskal_wallis':
-            const multiGroupCategoricalHeaders = categoricalHeaders.filter(h => new Set(data.map(d => d[h])).size >= 3);
             if (multiGroupCategoricalHeaders.length === 0) return <p className="text-destructive">This test requires a categorical variable with at least 3 groups. None found.</p>;
           return (
              <div className="space-y-4">
