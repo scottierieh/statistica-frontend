@@ -46,77 +46,77 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </div>
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">
-                        계층 분석법 (AHP)
+                        Analytic Hierarchy Process (AHP)
                     </CardTitle>
                     <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        복잡한 다기준 의사결정 문제를 체계적으로 분해하고, 논리적인 우선순위를 도출하는 과학적 분석 도구입니다.
+                        A systematic tool for breaking down complex multi-criteria decisions and deriving logical priorities.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
                     <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">왜 AHP를 사용해야 할까요?</h2>
+                        <h2 className="text-2xl font-semibold mb-4">Why Use the Analytic Hierarchy Process?</h2>
                         <p className="max-w-3xl mx-auto text-muted-foreground">
-                            AHP는 1970년대 Thomas L. Saaty에 의해 개발된 의사결정 방법론으로, 여러 개의 상충하는 평가 기준이 존재할 때 최적의 대안을 선택하도록 돕습니다. 직관, 경험과 같은 정성적 요소와 정량적 데이터를 통합하여 복잡한 문제를 해결하는 데 강력한 프레임워크를 제공합니다.
+                            Developed in the 1970s by Thomas L. Saaty, AHP is a decision-making methodology that helps select the best alternative when multiple, conflicting criteria exist. It provides a powerful framework for solving complex problems by integrating qualitative factors like intuition and experience with quantitative data.
                         </p>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> 단계별 분석 가이드</h3>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Step-by-Step Analysis Guide</h3>
                             <ol className="list-decimal list-inside space-y-4">
                                 <li>
-                                    <strong>목표 설정 (Define Goal)</strong>
-                                    <p className="text-sm text-muted-foreground pl-5">달성하고자 하는 최종 목표를 명확하고 구체적으로 정의합니다. (예: '최적의 신입사원 채용')</p>
+                                    <strong>Define Goal</strong>
+                                    <p className="text-sm text-muted-foreground pl-5">Clearly and specifically define the final objective you want to achieve (e.g., 'Select the Optimal New Employee').</p>
                                 </li>
                                 <li>
-                                    <strong>계층 구조 설계 (Build Hierarchy)</strong>
-                                    <p className="text-sm text-muted-foreground pl-5">목표-기준-대안으로 이어지는 계층 구조를 만듭니다. 주요 기준을 설정하고, 필요 시 더 세부적인 하위 기준으로 나눕니다.</p>
+                                    <strong>Build Hierarchy</strong>
+                                    <p className="text-sm text-muted-foreground pl-5">Create a hierarchical structure of Goal-Criteria-Alternatives. Set the main criteria and, if necessary, break them down into more detailed sub-criteria.</p>
                                 </li>
                                 <li>
-                                    <strong>쌍대 비교 (Pairwise Comparison)</strong>
-                                    <p className="text-sm text-muted-foreground pl-5">각 계층의 요소들을 1:1로 비교하며 상대적 중요도를 판단합니다. 'A가 B보다 얼마나 더 중요한가?'와 같은 질문에 1~9점 척도로 답합니다.</p>
+                                    <strong>Pairwise Comparison</strong>
+                                    <p className="text-sm text-muted-foreground pl-5">Compare the elements in each layer on a 1-to-1 basis to determine their relative importance. Answer questions like, "How much more important is A than B?" on a 1-9 scale.</p>
                                 </li>
                                  <li>
-                                    <strong>가중치 및 일관성 계산 (Calculate)</strong>
-                                    <p className="text-sm text-muted-foreground pl-5">쌍대 비교 행렬을 바탕으로 각 요소의 상대적 가중치(우선순위)를 계산하고, 판단의 논리적 일관성을 검증합니다 (일관성 비율, CR).</p>
+                                    <strong>Calculate Weights & Consistency</strong>
+                                    <p className="text-sm text-muted-foreground pl-5">Based on the pairwise comparison matrices, calculate the relative weights (priorities) of each element and verify the logical consistency of the judgments (Consistency Ratio, CR).</p>
                                 </li>
                                  <li>
-                                    <strong>최종 우선순위 도출 (Synthesize)</strong>
-                                    <p className="text-sm text-muted-foreground pl-5">계층 구조 전반의 가중치를 종합하여 대안들의 최종 우선순위를 결정합니다.</p>
+                                    <strong>Synthesize Final Priorities</strong>
+                                    <p className="text-sm text-muted-foreground pl-5">Combine the weights throughout the hierarchy to determine the final priorities of the alternatives.</p>
                                 </li>
                             </ol>
                         </div>
                          <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChartIcon className="text-primary"/> 결과 해석 가이드</h3>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChartIcon className="text-primary"/> Results Interpretation Guide</h3>
                              <ul className="list-decimal list-inside space-y-4">
                                 <li>
-                                    <strong>최종 우선순위 (Final Ranking)</strong>
-                                    <p className="text-sm text-muted-foreground pl-5">모든 평가 기준과 쌍대 비교 결과를 종합하여 각 대안(또는 최하위 기준)의 최종 가중치를 보여줍니다. 점수가 가장 높은 항목이 최적의 대안입니다.</p>
+                                    <strong>Final Ranking</strong>
+                                    <p className="text-sm text-muted-foreground pl-5">This shows the final weight of each alternative (or the lowest-level criteria), synthesizing all evaluation criteria and pairwise comparisons. The item with the highest score is the optimal choice.</p>
                                 </li>
                                 <li>
-                                    <strong>일관성 비율 (Consistency Ratio, CR)</strong>
-                                    <p className="text-sm text-muted-foreground pl-5">쌍대 비교 과정에서 응답자가 얼마나 일관성 있게 판단했는지를 나타내는 지표입니다. 일반적으로 <strong>CR 값이 0.1 (10%) 미만</strong>일 때 판단의 일관성이 확보되었다고 봅니다. 이 값이 높으면 판단을 재검토해야 합니다.</p>
+                                    <strong>Consistency Ratio (CR)</strong>
+                                    <p className="text-sm text-muted-foreground pl-5">This metric indicates how consistently the respondent made judgments during the pairwise comparisons. Generally, a **CR value below 0.1 (10%)** is considered to have secured logical consistency. If this value is high, the judgments should be re-evaluated.</p>
                                 </li>
                                 <li>
-                                    <strong>가중치 (Weights)</strong>
-                                    <p className="text-sm text-muted-foreground pl-5">각 계층에 있는 평가 기준과 대안들의 상대적 중요도를 수치로 보여줍니다.</p>
+                                    <strong>Weights</strong>
+                                    <p className="text-sm text-muted-foreground pl-5">This numerically represents the relative importance of the evaluation criteria and alternatives at each level of the hierarchy.</p>
                                 </li>
                             </ul>
                         </div>
                     </div>
                      <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">주요 활용 분야</h3>
+                        <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Users className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">인사 관리</h4><p className="text-xs text-muted-foreground">채용, 승진 평가, 성과 측정</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Star className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">신제품 개발</h4><p className="text-xs text-muted-foreground">기능 우선순위 결정, 디자인 선택</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Target className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">마케팅 전략</h4><p className="text-xs text-muted-foreground">채널 선택, 캠페인 성과 평가</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><FileJson className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">공공 정책</h4><p className="text-xs text-muted-foreground">정책 대안 평가, 예산 분배</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Users className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Human Resources</h4><p className="text-xs text-muted-foreground">Recruitment, promotion evaluation, performance measurement.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Star className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Product Development</h4><p className="text-xs text-muted-foreground">Prioritizing features, selecting designs.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Target className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Marketing Strategy</h4><p className="text-xs text-muted-foreground">Channel selection, campaign performance evaluation.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><FileJson className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Public Policy</h4><p className="text-xs text-muted-foreground">Evaluating policy alternatives, budget allocation.</p></div></div>
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                     <Button variant="outline" onClick={onLoadExample}>샘플 데이터로 시작하기</Button>
-                     <Button size="lg" onClick={onStart}>새 분석 시작하기 <MoveRight className="ml-2 w-5 h-5"/></Button>
+                     <Button variant="outline" onClick={onLoadExample}>Start with Sample Data</Button>
+                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
