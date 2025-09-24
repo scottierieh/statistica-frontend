@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, SlidersHorizontal, HelpCircle, MoveRight } from 'lucide-react';
+import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, SlidersHorizontal, HelpCircle, MoveRight, FileJson } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter } from 'recharts';
 import { Label } from '../ui/label';
@@ -62,72 +62,72 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <Network size={36} />
                         </div>
                     </div>
-                    <CardTitle className="font-headline text-4xl font-bold">컨조인트 분석 (Conjoint Analysis)</CardTitle>
+                    <CardTitle className="font-headline text-4xl font-bold">Conjoint Analysis</CardTitle>
                     <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        제품이나 서비스가 가진 여러 속성들이 소비자의 선택에 얼마나 큰 영향을 미치는지 분석하는 기법입니다.
+                        A powerful market research technique to understand how customers value different attributes of a product or service.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
                     <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">컨조인트 분석이란?</h2>
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Conjoint Analysis?</h2>
                         <p className="max-w-3xl mx-auto text-muted-foreground">
-                            소비자는 제품을 구매할 때 가격, 브랜드, 디자인, 성능 등 여러 속성을 종합적으로 고려합니다. 컨조인트 분석은 이러한 복잡한 의사결정 과정을 통계적으로 분석하여, 각 속성이 소비자의 선호도에 얼마나 기여하는지를 '부분 가치(Part-Worth)'라는 수치로 계산해냅니다. 이를 통해 어떤 속성의 조합이 가장 높은 선호도를 보이는지 파악할 수 있습니다.
+                           When a customer decides to buy a product, they implicitly weigh its different features—like price, brand, and quality. Conjoint analysis deconstructs this decision-making process by presenting customers with a series of product profiles and analyzing their preferences. This allows you to quantify the value, or 'utility', of each attribute and level, revealing what truly drives customer choice. It's an essential tool for making data-driven decisions about product design, pricing, and feature prioritization.
                         </p>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> 분석 단계 가이드</h3>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Step-by-Step Guide</h3>
                             <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>데이터 준비</strong>
-                                    <p className="text-sm pl-5">다양한 속성 조합(프로필)과 그에 대한 소비자 선호도(평점, 점수 등) 데이터가 필요합니다.</p>
+                                    <strong>Prepare Data</strong>
+                                    <p className="text-sm pl-5">Your dataset should contain various product profiles, where each row represents a unique combination of attributes and includes a consumer preference score (e.g., a rating from 1-10).</p>
                                 </li>
                                 <li>
-                                    <strong>목표 변수 선택</strong>
-                                    <p className="text-sm pl-5">분석의 기준이 될 '선호도 평점' 열을 선택합니다.</p>
+                                    <strong>Select Target Variable</strong>
+                                    <p className="text-sm pl-5">Choose the column that represents the preference score or rating. This will be the dependent variable in the analysis.</p>
                                 </li>
                                 <li>
-                                    <strong>속성 정의</strong>
-                                    <p className="text-sm pl-5">분석에 사용할 제품/서비스의 속성(Feature)들을 선택하고, 각 속성의 유형(범주형/수치형)을 확인합니다.</p>
+                                    <strong>Define Attributes</strong>
+                                    <p className="text-sm pl-5">Select the product/service features to be included in the analysis. The tool will automatically detect if they are categorical or numerical.</p>
                                 </li>
                                  <li>
-                                    <strong>분석 실행</strong>
-                                    <p className="text-sm pl-5">'Run Analysis' 버튼을 클릭하여 회귀분석 기반의 컨조인트 분석을 실행합니다.</p>
+                                    <strong>Run Analysis</strong>
+                                    <p className="text-sm pl-5">Click 'Run Analysis' to perform the regression-based conjoint analysis, which calculates part-worths and attribute importance.</p>
                                 </li>
                             </ol>
                         </div>
                          <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarIcon className="text-primary"/> 결과 해석 가이드</h3>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarIcon className="text-primary"/> Results Interpretation Guide</h3>
                              <ul className="list-decimal list-inside space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>상대적 중요도 (Relative Importance)</strong>
-                                    <p className="text-sm pl-5">각 속성이 소비자의 전체 선호도 결정에 얼마나 큰 영향을 미치는지를 백분율로 나타냅니다. 중요도가 높을수록 핵심적인 속성입니다.</p>
+                                    <strong>Relative Importance</strong>
+                                    <p className="text-sm pl-5">This shows the influence of each attribute on the consumer's overall decision, expressed as a percentage. A higher percentage means the attribute is a more critical driver of choice.</p>
                                 </li>
                                 <li>
-                                    <strong>부분 가치 (Part-Worths)</strong>
-                                    <p className="text-sm pl-5">각 속성의 개별 수준(level)이 갖는 효용(utility) 값입니다. 이 값이 높을수록 해당 수준에 대한 선호도가 높다는 의미입니다. 기준 수준(base level)의 부분 가치는 항상 0입니다.</p>
+                                    <strong>Part-Worths (Utilities)</strong>
+                                    <p className="text-sm pl-5">These are numerical scores representing the utility or preference for each level of an attribute. Higher values indicate higher preference. The baseline level for each attribute is always set to zero.</p>
                                 </li>
                                 <li>
-                                    <strong>시뮬레이션</strong>
-                                    <p className="text-sm pl-5">다양한 가상 제품 시나리오를 만들어 시장 점유율을 예측해볼 수 있습니다. 이를 통해 최적의 제품 조합을 탐색할 수 있습니다.</p>
+                                    <strong>Market Simulation</strong>
+                                    <p className="text-sm pl-5">Create virtual product scenarios to predict their market share. This powerful feature helps you identify the optimal combination of attributes to maximize consumer preference.</p>
                                 </li>
                             </ul>
                         </div>
                     </div>
                      <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">주요 활용 분야</h3>
+                        <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Brain className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">신제품 개발</h4><p className="text-xs text-muted-foreground">가장 선호되는 기능 조합을 찾아냅니다.</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><path d="M12 3v18"/><path d="M5 9h14"/><path d="M5 15h14"/></svg><div><h4 className="font-semibold">가격 전략</h4><p className="text-xs text-muted-foreground">소비자가 수용 가능한 최적의 가격을 설정합니다.</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pie-chart"><path d="M21.21 15.89A10 10 0 1 1 8 2.79"/><path d="M22 12A10 10 0 0 0 12 2v10h10z"/></svg><div><h4 className="font-semibold">시장 세분화</h4><p className="text-xs text-muted-foreground">특정 속성을 선호하는 고객 그룹을 파악합니다.</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Target className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">브랜드 자산</h4><p className="text-xs text-muted-foreground">브랜드가 선호도에 미치는 영향을 측정합니다.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Brain className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">New Product Development</h4><p className="text-xs text-muted-foreground">Identify the most preferred combination of features.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><DollarSign className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Pricing Strategy</h4><p className="text-xs text-muted-foreground">Determine the optimal price point that customers are willing to pay.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><PieChartIcon className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Market Segmentation</h4><p className="text-xs text-muted-foreground">Identify customer groups that prefer different sets of attributes.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Target className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Brand Equity</h4><p className="text-xs text-muted-foreground">Measure the impact of brand name on consumer preference.</p></div></div>
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                     {conjointExample && <Button variant="outline" onClick={() => onLoadExample(conjointExample)}>샘플 데이터로 시작하기</Button>}
-                     <Button size="lg" onClick={onStart}>새 분석 시작하기 <MoveRight className="ml-2 w-5 h-5"/></Button>
+                     {conjointExample && <Button variant="outline" onClick={() => onLoadExample(conjointExample)}>Start with Sample Data</Button>}
+                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
@@ -323,14 +323,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         setSensitivityResult(results);
     };
     
-    const sensitivityChartConfig = {
-      utility: {
-        label: 'Utility',
-        color: 'hsl(var(--chart-1))',
-      },
-    };
-
-    if (!canRun || view === 'intro') {
+    if (view === 'intro') {
        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
@@ -572,3 +565,21 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         </div>
     );
 }
+
+const StepIndicator = ({ currentStep }: { currentStep: number }) => (
+    <div className="flex items-center justify-center p-4">
+      {[ 'Select Target', 'Configure Attributes', 'Review Results'].map((step, index) => (
+        <React.Fragment key={index}>
+          <div className="flex flex-col items-center">
+             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${currentStep >= index ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+              {index + 1}
+            </div>
+            <p className={`mt-2 text-xs text-center ${currentStep >= index ? 'font-semibold' : 'text-muted-foreground'}`}>{step}</p>
+          </div>
+          {index < 2 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > index ? 'bg-primary' : 'bg-border'}`} />}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+
+    
