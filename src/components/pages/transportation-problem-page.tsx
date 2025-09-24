@@ -1,5 +1,6 @@
+
 'use client';
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +8,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Sigma, Loader2, Play, Truck, HelpCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from "@/lib/utils";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface TransportationResult {
     initial_solution: number[][];
@@ -54,7 +55,7 @@ const IntroPage = ({ onStart }: { onStart: () => void }) => {
 
 export default function TransportationProblemPage() {
     const { toast } = useToast();
-    const [view, setView] = useState('main');
+    const [view, setView] = useState('intro');
     const [numSources, setNumSources] = useState(3);
     const [numDestinations, setNumDestinations] = useState(4);
     
@@ -279,41 +280,8 @@ export default function TransportationProblemPage() {
                 </CardFooter>
             </Card>
 
-            {analysisResult && (
-                <div className="space-y-4">
-                    {analysisResult.message && <Alert><AlertTitle>Solver Message</AlertTitle><AlertDescription>{analysisResult.message}</AlertDescription></Alert>}
-                    
-                    <Tabs defaultValue="optimal_solution">
-                      <TabsList>
-                        <TabsTrigger value="initial_solution">Initial Solution</TabsTrigger>
-                        {analysisResult.steps && <TabsTrigger value="steps">Optimization Steps</TabsTrigger>}
-                        {analysisResult.optimal_solution && <TabsTrigger value="optimal_solution">Optimal Solution</TabsTrigger>}
-                      </TabsList>
-                      <TabsContent value="initial_solution" className="mt-4">
-                          {renderSolutionTable(analysisResult.initial_solution, `Initial Solution (${analysisResult.initial_method})`, analysisResult.initial_cost)}
-                      </TabsContent>
-                      {analysisResult.steps && (
-                         <TabsContent value="steps" className="mt-4">
-                            <Card>
-                                <CardHeader><CardTitle>MODI Method Steps</CardTitle></CardHeader>
-                                <CardContent className="space-y-4">
-                                {analysisResult.steps.map((step, index) => (
-                                    <div key={index}>
-                                        <h4 className="font-semibold">Iteration {index + 1}: {step.message}</h4>
-                                        <p className="text-sm text-muted-foreground">Improvement Index: {step.max_improvement_index?.toFixed(4)} at ({step.entering_cell?.join(', ')})</p>
-                                    </div>
-                                ))}
-                                </CardContent>
-                            </Card>
-                         </TabsContent>
-                      )}
-                      {analysisResult.optimal_solution && (
-                        <TabsContent value="optimal_solution" className="mt-4">
-                             {renderSolutionTable(analysisResult.optimal_solution, `Optimal Solution (${analysisResult.optimization_method})`, analysisResult.optimal_cost!)}
-                        </TabsContent>
-                      )}
-                    </Tabs>
-                </div>
+            {analysisResult && analysisResult.optimal_solution && (
+                renderSolutionTable(analysisResult.optimal_solution, `Optimal Solution`, analysisResult.optimal_cost!)
             )}
         </div>
     );
