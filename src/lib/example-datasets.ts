@@ -323,7 +323,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         name: 'Restaurant Tips',
         description: 'Tips received by a server, along with customer and bill info.',
         icon: Coffee,
-        analysisTypes: ['stats', 'one-way-anova', 'visuals', 'frequency', 'normality', 'homogeneity', 't-test'],
+        analysisTypes: ['stats', 'one-way-anova', 'two-way-anova', 'visuals', 'frequency', 'normality', 'homogeneity', 't-test'],
         data: tipsData
     },
     {
