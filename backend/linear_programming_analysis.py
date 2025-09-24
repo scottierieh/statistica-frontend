@@ -17,56 +17,51 @@ def _to_native_type(obj):
 def solve_simplex(c, A, b, objective='maximize'):
     num_vars = len(c)
     num_constraints = len(b)
+
+    # --- Create the initial tableau ---
+    # Convert to standard form (maximization)
+    if objective == 'minimize':
+        c = -np.array(c)
+
+    # Add slack variables
+    slack_vars = np.eye(num_constraints)
+    A_std = np.hstack((A, slack_vars))
     
-    # --- Maximization Problem Setup ---
-    if objective == 'maximize':
-        tableau = np.zeros((num_constraints + 1, num_vars + num_constraints + 1))
-        tableau[:-1, :num_vars] = A
-        tableau[:-1, num_vars:num_vars + num_constraints] = np.eye(num_constraints)
-        tableau[:-1, -1] = b
-        tableau[-1, :num_vars] = -np.array(c)
-        tableau[-1, -1] = 0
-    # --- Minimization Problem Setup ---
-    else: # 'minimize'
-        # To solve a minimization problem, we can solve the dual maximization problem.
-        # min c*x s.t. Ax <= b  <=>  max -b*y s.t. -A_T*y <= -c
-        c_dual = -np.array(b)
-        A_dual = -np.array(A).T
-        b_dual = -np.array(c)
-        
-        num_vars_dual = len(c_dual)
-        num_constraints_dual = len(b_dual)
-
-        tableau = np.zeros((num_constraints_dual + 1, num_vars_dual + num_constraints_dual + 1))
-        tableau[:-1, :num_vars_dual] = A_dual
-        tableau[:-1, num_vars_dual:num_vars_dual + num_constraints_dual] = np.eye(num_constraints_dual)
-        tableau[:-1, -1] = b_dual
-        tableau[-1, :num_vars_dual] = -np.array(c_dual)
-        tableau[-1, -1] = 0
-
+    # Create the tableau
+    tableau = np.zeros((num_constraints + 1, num_vars + num_constraints + 1))
+    tableau[:-1, :num_vars + num_constraints] = A_std
+    tableau[:-1, -1] = b
+    tableau[-1, :num_vars] = c 
+    
     tableau_steps = [tableau.copy().tolist()]
 
     iteration = 0
     max_iterations = 50 
 
-    while np.any(tableau[-1, :-1] < -1e-6) and iteration < max_iterations:
-        pivot_col = np.argmin(tableau[-1, :-1])
+    # --- Simplex Algorithm Iterations ---
+    while np.any(tableau[-1, :-1] > 1e-6) and iteration < max_iterations:
+        # Find pivot column (most positive in objective row)
+        pivot_col = np.argmax(tableau[-1, :-1])
         
+        # Check for unboundedness
+        if np.all(tableau[:-1, pivot_col] <= 0):
+            return {"error": "Unbounded solution.", "steps": tableau_steps}
+            
+        # Find pivot row (minimum ratio test)
         ratios = []
-        for i in range(tableau.shape[0] - 1):
-            if tableau[i, pivot_col] > 1e-6:
+        for i in range(num_constraints):
+            if tableau[i, pivot_col] > 1e-9:
                 ratios.append(tableau[i, -1] / tableau[i, pivot_col])
             else:
                 ratios.append(np.inf)
         
-        if all(r == np.inf for r in ratios):
-            return {"error": "Unbounded solution.", "steps": tableau_steps}
-
         pivot_row = np.argmin(ratios)
+
+        # Perform pivot operation
         pivot_element = tableau[pivot_row, pivot_col]
         tableau[pivot_row, :] /= pivot_element
         
-        for i in range(tableau.shape[0]):
+        for i in range(num_constraints + 1):
             if i != pivot_row:
                 factor = tableau[i, pivot_col]
                 tableau[i, :] -= factor * tableau[pivot_row, :]
@@ -76,38 +71,25 @@ def solve_simplex(c, A, b, objective='maximize'):
         
     if iteration >= max_iterations:
          return {"error": "Max iterations reached. The problem may be unbounded or cycling.", "steps": tableau_steps}
-
-    # --- Extract Solution ---
-    num_total_vars = tableau.shape[1] - 1
-    solution = np.zeros(num_total_vars)
     
-    # Identify basic variables
-    for col in range(num_total_vars):
-        column = tableau[:-1, col]
-        is_basic = (np.sum(column) == 1.0) and (len(column[column == 1.0]) == 1)
+    # --- Extract Solution ---
+    solution = np.zeros(num_vars)
+    for j in range(num_vars):
+        col = tableau[:-1, j]
+        is_basic = (np.sum(col) == 1.0) and (len(col[col == 1.0]) == 1)
         if is_basic:
-            row_index = np.where(column == 1.0)[0][0]
-            # Check if this row hasn't been used for another basic variable
-            if np.sum(tableau[row_index, :num_total_vars] == 1.0) == 1:
-                 solution[col] = tableau[row_index, -1]
+            row_index = np.where(col == 1.0)[0][0]
+            solution[j] = tableau[row_index, -1]
 
-    if objective == 'maximize':
-        return {
-            "solution": solution[:num_vars].tolist(),
-            "optimal_value": tableau[-1, -1],
-            "steps": tableau_steps,
-            "success": True,
-            "message": "Optimization successful."
-        }
-    else: # For minimization, the solution is in the slack variables of the dual problem
-         num_vars_dual = len(c_dual)
-         return {
-            "solution": solution[num_vars_dual:num_vars_dual + num_vars].tolist(),
-            "optimal_value": tableau[-1, -1],
-            "steps": tableau_steps,
-            "success": True,
-            "message": "Optimization successful."
-        }
+    optimal_value = -tableau[-1, -1] if objective == 'maximize' else tableau[-1, -1]
+
+    return {
+        "solution": solution.tolist(),
+        "optimal_value": optimal_value,
+        "steps": tableau_steps,
+        "success": True,
+        "message": "Optimization successful."
+    }
 
 
 def main():
