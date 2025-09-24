@@ -1,18 +1,25 @@
-
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, Truck, Warehouse, MapPin, Building, Factory, Store, HelpCircle } from 'lucide-react';
+import { Sigma, Loader2, Play, Truck, HelpCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface TransportationResult {
-    success: boolean;
-    solution: number[][];
-    total_cost: number;
+    initial_solution: number[][];
+    initial_cost: number;
+    initial_method: string;
+    optimal_solution?: number[][];
+    optimal_cost?: number;
+    optimization_method?: string;
+    steps?: any[];
+    message?: string;
 }
 
 const IntroPage = ({ onStart }: { onStart: () => void }) => {
@@ -58,6 +65,9 @@ export default function TransportationProblemPage() {
         [9, 12, 13, 7],
         [14, 9, 16, 5]
     ]);
+    
+    const [initialMethod, setInitialMethod] = useState('least_cost');
+    const [optimizationMethod, setOptimizationMethod] = useState('modi');
 
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<TransportationResult | null>(null);
@@ -69,6 +79,16 @@ export default function TransportationProblemPage() {
         setDemand(Array(destinations).fill(10));
         setCosts(Array(sources).fill(null).map(() => Array(destinations).fill(1)));
         setAnalysisResult(null);
+    };
+
+    const handleLoadExample = () => {
+        setNumSources(3);
+        setNumDestinations(4);
+        setSupply([35, 50, 40]);
+        setDemand([45, 20, 30, 30]);
+        setCosts([[8, 6, 10, 9], [9, 12, 13, 7], [14, 9, 16, 5]]);
+        setAnalysisResult(null);
+        toast({ title: "Sample Data Loaded", description: "Example transportation problem has been set up." });
     };
 
     const handleMatrixChange = (val: string, i: number, j: number, type: 'costs' | 'supply' | 'demand') => {
@@ -89,13 +109,6 @@ export default function TransportationProblemPage() {
     };
     
     const handleAnalysis = useCallback(async () => {
-        const total_supply = supply.reduce((a, b) => a + b, 0);
-        const total_demand = demand.reduce((a, b) => a + b, 0);
-        if (total_supply < total_demand) {
-            toast({ title: 'Imbalanced Problem', description: 'Total supply must be greater than or equal to total demand.', variant: 'destructive'});
-            return;
-        }
-
         setIsLoading(true);
         setAnalysisResult(null);
 
@@ -103,7 +116,13 @@ export default function TransportationProblemPage() {
             const response = await fetch('/api/analysis/transportation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ costs, supply, demand })
+                body: JSON.stringify({ 
+                    costs, 
+                    supply, 
+                    demand,
+                    initial_method: initialMethod,
+                    optimization_method: optimizationMethod
+                })
             });
 
             if (!response.ok) {
@@ -121,7 +140,42 @@ export default function TransportationProblemPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [costs, supply, demand, toast]);
+    }, [costs, supply, demand, initialMethod, optimizationMethod, toast]);
+
+    const renderSolutionTable = (solution: number[][], title: string, cost: number) => (
+        <Card>
+            <CardHeader>
+                <CardTitle>{title}</CardTitle>
+                <CardDescription>Total Cost: <span className="font-bold text-primary">${cost.toFixed(2)}</span></CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead />
+                            {Array.from({ length: solution[0].length }).map((_, j) => (
+                                <TableHead key={j} className="text-center">Destination {j + 1}</TableHead>
+                            ))}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {solution.map((row, i) => (
+                            <TableRow key={i}>
+                                <TableHead>Source {i + 1}</TableHead>
+                                {row.map((val, j) => (
+                                    <TableCell key={j} className="text-center">
+                                        <div className={`p-2 rounded font-mono ${val > 0 ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground'}`}>
+                                            {val.toFixed(0)}
+                                        </div>
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
 
     if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} />;
@@ -150,6 +204,30 @@ export default function TransportationProblemPage() {
                             <Input id="num-destinations" type="number" value={numDestinations} onChange={e => setNumDestinations(parseInt(e.target.value))} min="1" className="w-20"/>
                         </div>
                         <Button onClick={handleBoardCreation}>Create Board</Button>
+                        <Button variant="outline" onClick={handleLoadExample}>Load Example</Button>
+                    </div>
+                    
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Initial Solution Method</Label>
+                            <Select value={initialMethod} onValueChange={(v) => setInitialMethod(v)}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="north_west">North-West Corner</SelectItem>
+                                    <SelectItem value="least_cost">Least Cost</SelectItem>
+                                    <SelectItem value="vam">Vogel's Approximation (VAM)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Optimization Method</Label>
+                             <Select value={optimizationMethod} onValueChange={(v) => setOptimizationMethod(v)}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="modi">MODI Method</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                     
                     <div className="space-y-6 pt-4 overflow-x-auto">
@@ -157,7 +235,7 @@ export default function TransportationProblemPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[100px]"><Warehouse className="w-5 h-5"/></TableHead>
+                                    <TableHead className="w-[100px]"/>
                                     {Array.from({ length: numDestinations }).map((_, j) => (
                                         <TableHead key={j}>Destination {j + 1}</TableHead>
                                     ))}
@@ -186,8 +264,7 @@ export default function TransportationProblemPage() {
                                         </TableCell>
                                     ))}
                                     <TableCell className="bg-secondary text-right font-mono">
-                                        ΣS: {supply.reduce((a,b)=>a+b,0)}
-                                        <br/>
+                                        ΣS: {supply.reduce((a,b)=>a+b,0)}<br/>
                                         ΣD: {demand.reduce((a,b)=>a+b,0)}
                                     </TableCell>
                                 </TableRow>
@@ -203,42 +280,40 @@ export default function TransportationProblemPage() {
             </Card>
 
             {analysisResult && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Optimal Shipping Plan</CardTitle>
-                        <CardDescription>The most cost-effective distribution of goods.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <div className="p-4 bg-muted rounded-lg text-center mb-4">
-                            <p className="text-muted-foreground">Minimum Total Cost</p>
-                            <p className="text-3xl font-bold text-primary">${analysisResult.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                        </div>
-                        <Table>
-                             <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[100px]"></TableHead>
-                                    {Array.from({ length: numDestinations }).map((_, j) => (
-                                        <TableHead key={j}>Destination {j + 1}</TableHead>
-                                    ))}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {analysisResult.solution.map((row, i) => (
-                                    <TableRow key={i}>
-                                        <TableHead>Source {i + 1}</TableHead>
-                                        {row.map((val, j) => (
-                                            <TableCell key={j}>
-                                                <div className={`p-2 rounded text-center font-mono ${val > 0 ? 'bg-primary/10 text-primary font-bold' : 'text-muted-foreground'}`}>
-                                                    {val.toFixed(2)}
-                                                </div>
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
+                <div className="space-y-4">
+                    {analysisResult.message && <Alert><AlertTitle>Solver Message</AlertTitle><AlertDescription>{analysisResult.message}</AlertDescription></Alert>}
+                    
+                    <Tabs defaultValue="optimal_solution">
+                      <TabsList>
+                        <TabsTrigger value="initial_solution">Initial Solution</TabsTrigger>
+                        {analysisResult.steps && <TabsTrigger value="steps">Optimization Steps</TabsTrigger>}
+                        {analysisResult.optimal_solution && <TabsTrigger value="optimal_solution">Optimal Solution</TabsTrigger>}
+                      </TabsList>
+                      <TabsContent value="initial_solution" className="mt-4">
+                          {renderSolutionTable(analysisResult.initial_solution, `Initial Solution (${analysisResult.initial_method})`, analysisResult.initial_cost)}
+                      </TabsContent>
+                      {analysisResult.steps && (
+                         <TabsContent value="steps" className="mt-4">
+                            <Card>
+                                <CardHeader><CardTitle>MODI Method Steps</CardTitle></CardHeader>
+                                <CardContent className="space-y-4">
+                                {analysisResult.steps.map((step, index) => (
+                                    <div key={index}>
+                                        <h4 className="font-semibold">Iteration {index + 1}: {step.message}</h4>
+                                        <p className="text-sm text-muted-foreground">Improvement Index: {step.max_improvement_index?.toFixed(4)} at ({step.entering_cell?.join(', ')})</p>
+                                    </div>
                                 ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                                </CardContent>
+                            </Card>
+                         </TabsContent>
+                      )}
+                      {analysisResult.optimal_solution && (
+                        <TabsContent value="optimal_solution" className="mt-4">
+                             {renderSolutionTable(analysisResult.optimal_solution, `Optimal Solution (${analysisResult.optimization_method})`, analysisResult.optimal_cost!)}
+                        </TabsContent>
+                      )}
+                    </Tabs>
+                </div>
             )}
         </div>
     );
