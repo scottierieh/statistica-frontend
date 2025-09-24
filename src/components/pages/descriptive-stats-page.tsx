@@ -36,7 +36,7 @@ const getQuantile = (arr: number[], q: number) => {
 const getNumericStats = (data: number[]) => {
     if (data.length === 0) return { count: 0, mean: NaN, stdDev: NaN, min: NaN, q1: NaN, median: NaN, q3: NaN, max: NaN };
     
-    const sortedData = [...arr].sort((a, b) => a - b);
+    const sortedData = [...data].sort((a, b) => a - b);
     const sum = data.reduce((acc, val) => acc + val, 0);
     const meanVal = sum / data.length;
     const stdDevVal = Math.sqrt(data.reduce((acc, val) => acc + (val - meanVal) ** 2, 0) / (data.length > 1 ? data.length - 1 : 1));
@@ -106,43 +106,108 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
   
 const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-    
+    const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'treemap'>('hbar');
+
+    const plotLayout = useMemo(() => {
+        const baseLayout = {
+            autosize: true,
+            margin: { t: 40, b: 40, l: 40, r: 20 },
+            xaxis: {
+                title: chartType === 'hbar' ? 'Percentage' : '',
+            },
+            yaxis: {
+                title: chartType === 'hbar' ? '' : 'Percentage',
+            },
+        };
+        if (chartType === 'hbar') {
+            baseLayout.yaxis = { autorange: 'reversed' as const };
+            baseLayout.margin.l = 120;
+        }
+        if (chartType === 'bar') {
+            (baseLayout.xaxis as any).tickangle = -45;
+        }
+        return baseLayout;
+    }, [chartType]);
+
+    const plotData = useMemo(() => {
+        const percentages = tableData.map((d: any) => parseFloat(d.percentage));
+        const labels = tableData.map((d: any) => d.name);
+        const counts = tableData.map((d: any) => d.count);
+
+        if (chartType === 'pie') {
+            return [{
+                values: percentages,
+                labels: labels,
+                type: 'pie',
+                hole: 0.4,
+                marker: { colors: COLORS },
+                textinfo: 'label+percent',
+                textposition: 'inside',
+            }];
+        }
+        if (chartType === 'treemap') {
+            return [{
+                type: 'treemap',
+                labels: labels,
+                parents: Array(labels.length).fill(""),
+                values: counts,
+                textinfo: 'label+value+percent root',
+                marker: {colors: COLORS}
+            }];
+        }
+        return [{
+            y: chartType === 'hbar' ? labels : percentages,
+            x: chartType === 'hbar' ? percentages : labels,
+            type: 'bar',
+            orientation: chartType === 'hbar' ? 'h' : 'v',
+            marker: { color: COLORS[0] },
+            text: percentages.map((p: number) => `${p.toFixed(1)}%`),
+            textposition: 'auto',
+        }];
+    }, [chartType, tableData]);
+
     return (
-      <AnalysisDisplayShell varName={varName}>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <AnalysisDisplayShell varName={varName}>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Distribution</CardTitle>
+                        <CardTitle className="text-base flex justify-between items-center">
+                            Distribution
+                             <div className="flex gap-1">
+                                <Button variant={chartType === 'hbar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('hbar')}><BarChartIcon className="w-4 h-4 -rotate-90" /></Button>
+                                <Button variant={chartType === 'bar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('bar')}><BarChartIcon className="w-4 h-4" /></Button>
+                                <Button variant={chartType === 'pie' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('pie')}><PieChartIcon className="w-4 h-4" /></Button>
+                                <Button variant={chartType === 'treemap' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('treemap')}><Grid3x3 className="w-4 h-4" /></Button>
+                            </div>
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
-                       <ChartContainer config={{count: {label: 'Count'}}} className="min-h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`} outerRadius={80} fill="#8884d8" dataKey="count">
-                                    {chartData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                </Pie>
-                                <Tooltip content={<ChartTooltipContent />} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                       </ChartContainer>
+                        <Plot
+                            data={plotData}
+                            layout={plotLayout}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            useResizeHandler
+                        />
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
                         <CardContent className="max-h-[200px] overflow-y-auto">{
-                            <Table><TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
-                            <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
+                                <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
                             </Table>
                         }</CardContent>
                     </Card>
                     <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Brain className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
                         <CardContent>{ <ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }</CardContent>
                     </Card>
                 </div>
             </div>
-      </AnalysisDisplayShell>
+        </AnalysisDisplayShell>
     );
 };
   
@@ -150,7 +215,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     return (
         <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                 <Card>
+                <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Response Distribution</CardTitle>
                     </CardHeader>
@@ -191,7 +256,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                          </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Brain className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
                         <CardContent>
                              <ul className="space-y-2 text-sm list-disc pl-4">
                                 {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
@@ -216,7 +281,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
 
     return (
         <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-4xl">
+            <Card className="w-full max-w-4xl shadow-2xl">
                  <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
                     <div className="flex justify-center items-center gap-3 mb-4">
                          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -267,8 +332,8 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                 <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(irisExample)}>
                                     <irisExample.icon className="mx-auto h-8 w-8 text-primary"/>
                                     <div>
-                                        <h4 className="font-semibold">Iris Flowers Dataset</h4>
-                                        <p className="text-xs text-muted-foreground">Classic dataset for classification and descriptive stats.</p>
+                                        <h4 className="font-semibold">{irisExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{irisExample.description}</p>
                                     </div>
                                 </Card>
                             )}
