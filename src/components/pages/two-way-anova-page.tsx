@@ -1,6 +1,8 @@
 
+
 'use client';
-import { useState, useMemo, useEffect, useCallback } from 'react';
+
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,13 +11,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sigma, AlertCircle, Loader2, Copy, Users, Settings, FileSearch, BarChart as BarChartIcon, HelpCircle, MoveRight } from 'lucide-react';
+import { Sigma, AlertCircle, Loader2, Copy, Users, Settings, FileSearch, BarChart as BarChartIcon, HelpCircle, MoveRight, FileText, Target } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
-import React from 'react';
 
 
 interface AnovaRow {
@@ -144,7 +145,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {anovaExample && <Button variant="outline" onClick={() => onLoadExample(anovaExample)}>Load Teaching Method Data</Button>}
+                    {anovaExample && <Button variant="outline" onClick={() => onLoadExample(anovaExample)}><BarChartIcon className="mr-2"/>Load Teaching Method Data</Button>}
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
