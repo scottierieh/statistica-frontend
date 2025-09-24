@@ -1,6 +1,6 @@
 
-import OptimizationApp from '@/components/optimization-app';
+import DecisionAnalyticsApp from '@/components/optimization-app';
 
 export default function OptimizationPage() {
-  return <OptimizationApp />;
+  return <DecisionAnalyticsApp />;
 }

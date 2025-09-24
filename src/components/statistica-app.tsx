@@ -87,6 +87,7 @@ import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
 import NonParametricPage from './pages/nonparametric-page';
 import HcaPage from './pages/hca-page';
+import TTestPage from './pages/t-test-page';
 import RegressionPage from './pages/regression-page';
 import LogisticRegressionPage from './pages/logistic-regression-page';
 import GlmPage from './pages/glm-page';
@@ -125,9 +126,7 @@ import DbscanPage from './pages/dbscan-page';
 import NonlinearRegressionPage from './pages/nonlinear-regression-page';
 import SnaPage from './pages/sna-page';
 import TopicModelingPage from './pages/topic-modeling-page';
-import DeaPage from './pages/dea-page';
 import TTestPage from './pages/t-test-page';
-import AhpPage from './pages/ahp-page';
 import DidPage from './pages/did-page';
 import DelphiPage from './pages/delphi-page';
 import SurveyApp from './survey-app';
@@ -197,11 +196,9 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'nonlinear-regression': NonlinearRegressionPage,
     sna: SnaPage,
     'topic-modeling': TopicModelingPage,
-    dea: DeaPage,
     't-test-one-sample': TTestPage,
     't-test-independent': TTestPage,
     't-test-paired': TTestPage,
-    ahp: AhpPage,
     did: DidPage,
     delphi: DelphiPage,
     survey: SurveyApp,
@@ -347,10 +344,8 @@ const analysisMenu = [
       { id: 'ipa', label: 'Importance-Performance Analysis (IPA)' },
       { id: 'survival', label: 'Survival Analysis' },
       { id: 'meta-analysis', label: 'Meta-Analysis' },
-      { id: 'ahp', label: 'AHP Analysis' },
       { id: 'gbm', label: 'Gradient Boosting Machine (GBM)'},
       { id: 'sna', label: 'Social Network Analysis' },
-      { id: 'dea', label: 'Data Envelopment Analysis (DEA)' },
       { id: 'did', label: 'Difference-in-Differences' },
       { id: 'delphi', label: 'Delphi Method' },
       { id: 'van-westendorp', label: 'Van Westendorp PSM' },
@@ -749,6 +744,7 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
 
 
 
