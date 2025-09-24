@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,9 +57,9 @@ export default function LinearProgrammingPage() {
     const [numVars, setNumVars] = useState(2);
     const [numConstraints, setNumConstraints] = useState(3);
     
-    const [c, setC] = useState<number[]>(Array(2).fill(0));
-    const [A, setA] = useState<number[][]>(Array(3).fill(null).map(() => Array(2).fill(0)));
-    const [b, setB] = useState<number[]>(Array(3).fill(0));
+    const [c, setC] = useState<number[]>([3, 2]);
+    const [A, setA] = useState<number[][]>([[1, 1], [1, 0], [0, 1]]);
+    const [b, setB] = useState<number[]>([4, 2, 3]);
 
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<LpResult | null>(null);
@@ -75,7 +75,7 @@ export default function LinearProgrammingPage() {
     const handleLoadExample = () => {
         setNumVars(2);
         setNumConstraints(3);
-        setC([-3, -2]); // Objective function is Max Z = 3x1 + 2x2. Negate for minimization problem in scipy.
+        setC([3, 2]); 
         setA([[1, 1], [1, 0], [0, 1]]);
         setB([4, 2, 3]);
         setAnalysisResult(null);
@@ -107,7 +107,7 @@ export default function LinearProgrammingPage() {
             const response = await fetch('/api/analysis/linear-programming', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ c: c, A_ub: A, b_ub: b, problem_type: 'maximize' })
+                body: JSON.stringify({ c, A_ub: A, b_ub: b })
             });
 
             if (!response.ok) {
@@ -147,11 +147,11 @@ export default function LinearProgrammingPage() {
                 <CardContent className="space-y-4">
                      <div className="flex flex-wrap items-center gap-4 p-4 border rounded-lg bg-muted/50">
                         <div className="flex items-center gap-2">
-                           <Label htmlFor="num-vars">Number of Variables:</Label>
+                           <Label htmlFor="num-vars">Variables:</Label>
                            <Input id="num-vars" type="number" value={numVars} onChange={e => setNumVars(parseInt(e.target.value))} min="1" className="w-20"/>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Label htmlFor="num-constraints">Number of Constraints:</Label>
+                            <Label htmlFor="num-constraints">Constraints:</Label>
                             <Input id="num-constraints" type="number" value={numConstraints} onChange={e => setNumConstraints(parseInt(e.target.value))} min="1" className="w-20"/>
                         </div>
                         <Button onClick={handleBoardCreation}>
@@ -248,15 +248,12 @@ export default function LinearProgrammingPage() {
                     </Card>
                     <Card className="lg:col-span-3">
                         <CardHeader>
-                            <CardTitle>Simplex Tableau Iterations</CardTitle>
+                            <CardTitle>Final Simplex Tableau</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            {analysisResult.snapshots.map((snapshot, index) => (
-                                <div key={index}>
-                                    <h4 className="font-semibold mb-2">{index + 1}. {snapshot.note}</h4>
-                                    <TableauTable table={snapshot.table} numVars={numVars} numConstraints={numConstraints} />
-                                </div>
-                            ))}
+                            {analysisResult.snapshots.length > 0 && (
+                                <TableauTable table={analysisResult.snapshots[analysisResult.snapshots.length - 1].table} numVars={numVars} numConstraints={numConstraints} />
+                            )}
                         </CardContent>
                     </Card>
                 </div>
