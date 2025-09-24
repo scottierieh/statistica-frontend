@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BarChart, AlertTriangle, Lightbulb, CheckCircle, Bot, Zap, HelpCircle, MoveRight, Settings, FileSearch, Handshake, TestTube } from 'lucide-react';
+import { Sigma, Loader2, BarChart, AlertTriangle, Lightbulb, CheckCircle, Bot, Zap, HelpCircle, MoveRight, Settings, FileSearch, Handshake, TestTube, Users } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -182,7 +182,7 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
     const canRun = useMemo(() => data.length > 0 && categoricalHeaders.length > 0, [data, categoricalHeaders]);
 
     const handleVarSelectionChange = (header: string, checked: boolean) => {
-        setSelectedVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+        setSelectedVars(prev => checked ? [...prev, header] : prev.filter(v => v !== varName));
     };
 
     const handleAnalysis = useCallback(async () => {
@@ -248,7 +248,7 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
     const renderResults = () => {
         if (!analysisResult) return null;
         return (
-            <div className="space-y-4">
+            <div className="space-y-8">
                 {selectedVars.map(header => {
                     if(!analysisResult.results[header] || analysisResult.results[header].error) {
                         return (
@@ -416,3 +416,4 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
         </div>
     );
 }
+
