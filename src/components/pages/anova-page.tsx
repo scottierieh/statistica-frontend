@@ -1,7 +1,6 @@
 
-
 'use client';
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sigma, AlertCircle, Loader2, Bot, CheckCircle2 } from 'lucide-react';
+import { Sigma, AlertCircle, Loader2, Bot, CheckCircle2, HelpCircle, MoveRight, Settings, FileSearch, BarChart as BarChartIcon, Users } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -79,6 +78,64 @@ interface EffectSizeInterpretation {
     eta_squared_interpretation: string;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const anovaExample = exampleDatasets.find(d => d.id === 'tips');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Users size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">One-Way Analysis of Variance (ANOVA)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Compare the means of three or more independent groups to determine if there is a statistically significant difference between them.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-8 px-8 py-10">
+                    <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                        <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                            <li>
+                                <strong>Select Group Variable:</strong> Choose a categorical variable with three or more groups (e.g., 'Treatment Type', 'Education Level').
+                            </li>
+                            <li>
+                                <strong>Select Value Variable:</strong> Choose the numeric variable whose mean you want to compare across the groups (e.g., 'Test Score', 'Income').
+                            </li>
+                            <li>
+                                <strong>Run Analysis:</strong> The tool performs the ANOVA, checks assumptions like normality and homogeneity of variances, and runs post-hoc tests (Tukey's HSD) if the overall result is significant.
+                            </li>
+                        </ol>
+                    </div>
+                    <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                        <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                            <li>
+                                <strong>ANOVA Table:</strong> The main result is the F-statistic and its p-value. If p < 0.05, it indicates that there is a significant difference somewhere among the group means.
+                            </li>
+                             <li>
+                                <strong>Effect Size (η²):</strong> Eta-squared tells you what percentage of the variance in the value variable is explained by the group variable.
+                            </li>
+                            <li>
+                                <strong>Post-Hoc Tests:</strong> If the overall ANOVA is significant, these tests show which specific pairs of groups are different from each other (e.g., 'Group A' is significantly different from 'Group C', but not 'Group B').
+                            </li>
+                             <li>
+                                <strong>Assumption Checks:</strong> It's important to check that the data meets the assumptions of normality and equal variances for the ANOVA results to be valid.
+                            </li>
+                        </ul>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    {anovaExample && <Button variant="outline" onClick={() => onLoadExample(anovaExample)}>Load Sample Tips Data</Button>}
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 const InterpretationDisplay = ({ anovaResult }: { anovaResult: AnovaResults | undefined }) => {
     const formattedInterpretation = useMemo(() => {
         if (!anovaResult?.interpretation) return null;
@@ -122,6 +179,7 @@ const getSignificanceStars = (p: number) => {
 
 export default function AnovaPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: AnovaPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [groupVar, setGroupVar] = useState(categoricalHeaders[0]);
     const [valueVar, setValueVar] = useState(numericHeaders[0]);
     const [analysisResponse, setAnalysisResponse] = useState<FullAnovaResponse | null>(null);
@@ -135,7 +193,8 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         setGroupVar(categoricalHeaders[0] || '');
         setValueVar(numericHeaders[0] || '');
         setAnalysisResponse(null);
-    }, [categoricalHeaders, numericHeaders, data]);
+        setView(canRun ? 'main' : 'intro');
+    }, [categoricalHeaders, numericHeaders, data, canRun]);
 
     const handleAnalysis = useCallback(async () => {
         if (!groupVar || !valueVar) {
@@ -186,49 +245,23 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
     }, [data, groupVar, valueVar, toast]);
 
     const anovaResult = analysisResponse?.results;
+    
+    if (view === 'intro') {
+       return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
 
     if (!canRun) {
-        const anovaExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('one-way-anova'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Analysis of Variance (ANOVA)</CardTitle>
-                        <CardDescription>
-                           To perform ANOVA, you need to upload data with at least one numeric and one categorical variable. Try one of our example datasets.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {anovaExamples.map((ex) => {
-                                const Icon = ex.icon;
-                                return (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader>
-                                        <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                        <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                            <Icon className="mr-2 h-4 w-4" />
-                                            Load this data
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">One-Way ANOVA Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">One-Way ANOVA Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>
                         Select a group variable (categorical) and a value variable (numeric) to compare means across groups, then click 'Run Analysis'.
                     </CardDescription>
@@ -458,11 +491,4 @@ export default function AnovaPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
-
-    
-    
-
-
-    
-
 
