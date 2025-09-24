@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -10,11 +9,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sigma, AlertCircle, Loader2, Copy } from 'lucide-react';
+import { Sigma, AlertCircle, Loader2, Copy, Users, Settings, FileSearch, BarChart as BarChartIcon, HelpCircle, MoveRight } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Label } from '../ui/label';
+import React from 'react';
+
 
 interface AnovaRow {
     Source: string;
@@ -92,6 +94,65 @@ const getEffectSizeInterpretation = (eta_squared_p: number) => {
     return 'Negligible';
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const anovaExample = exampleDatasets.find(d => d.id === 'two-way-anova');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Users size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Two-Way Analysis of Variance (ANOVA)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
+                        Examine the influence of two different categorical independent variables on one continuous dependent variable.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-8 px-8 py-10">
+                    <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                        <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                            <li>
+                                <strong>Dependent Variable:</strong> Select the continuous numeric variable you want to measure (e.g., 'Score', 'Response Time').
+                            </li>
+                            <li>
+                                <strong>Factor A & B:</strong> Choose two different categorical variables that represent the independent groups (e.g., 'Teaching Method' and 'Gender').
+                            </li>
+                            <li>
+                                <strong>Run Analysis:</strong> The tool will calculate the main effects of each factor, the interaction effect between them, and check statistical assumptions.
+                            </li>
+                        </ol>
+                    </div>
+                    <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                        <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                            <li>
+                                <strong>Main Effects:</strong> A significant main effect for a factor means that factor has an overall effect on the dependent variable, regardless of the other factor.
+                            </li>
+                            <li>
+                                <strong>Interaction Effect:</strong> A significant interaction effect is often the most important finding. It means the effect of one factor depends on the level of the other factor (e.g., Teaching Method A is only effective for one Gender).
+                            </li>
+                            <li>
+                                <strong>Interaction Plot:</strong> This plot is crucial for understanding an interaction. If the lines are not parallel, it suggests an interaction is present.
+                            </li>
+                            <li>
+                                <strong>Post-Hoc Tests:</strong> If the interaction is significant, these tests are performed to identify which specific group combinations are different from each other.
+                            </li>
+                        </ul>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    {anovaExample && <Button variant="outline" onClick={() => onLoadExample(anovaExample)}>Load Teaching Method Data</Button>}
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+
 interface TwoWayAnovaPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -101,6 +162,7 @@ interface TwoWayAnovaPageProps {
 
 export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: TwoWayAnovaPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [dependentVar, setDependentVar] = useState(numericHeaders[0]);
     const [factorA, setFactorA] = useState(categoricalHeaders[0]);
     const [factorB, setFactorB] = useState(categoricalHeaders.length > 1 ? categoricalHeaders[1] : undefined);
@@ -117,7 +179,8 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
         setFactorA(categoricalHeaders[0] || '');
         setFactorB(categoricalHeaders[1] || '');
         setAnalysisResponse(null);
-    }, [categoricalHeaders, numericHeaders, data]);
+        setView(canRun ? 'main' : 'intro');
+    }, [categoricalHeaders, numericHeaders, data, canRun]);
 
     const handleAnalysis = useCallback(async () => {
         if (!dependentVar || !factorA || !factorB) {
@@ -160,44 +223,13 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
     }, [data, dependentVar, factorA, factorB, toast]);
 
     const availableFactorB = useMemo(() => categoricalHeaders.filter(h => h !== factorA), [categoricalHeaders, factorA]);
-
+    
     if (!canRun) {
-        const anovaExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('two-way-anova'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Two-Way Analysis of Variance (ANOVA)</CardTitle>
-                        <CardDescription>
-                           To perform a Two-Way ANOVA, you need data with at least one numeric and two categorical variables. Try an example dataset.
-                        </CardDescription>
-                    </CardHeader>
-                    {anovaExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {anovaExamples.map((ex) => {
-                                    const Icon = ex.icon;
-                                    return (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                <Icon className="mr-2 h-4 w-4" />
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                    )
-                                })}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        )
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     const results = analysisResponse?.results;
@@ -207,7 +239,10 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Two-Way ANOVA Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Two-Way ANOVA Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>
                         Select a dependent variable (numeric) and two factor variables (categorical), then click 'Run Analysis'.
                     </CardDescription>
@@ -400,4 +435,3 @@ export default function TwoWayAnovaPage({ data, numericHeaders, categoricalHeade
         </div>
     );
 }
-
