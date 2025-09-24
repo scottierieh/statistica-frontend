@@ -9,48 +9,16 @@ import { useToast } from '@/hooks/use-toast';
 import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from "@/lib/utils";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 interface LpResult {
     solution: number[];
     optimal_value: number;
     success: boolean;
     message: string;
-    snapshots: { note: string; table: number[][] }[];
+    slack: number[] | null;
 }
 
-const TableauTable = ({ table, numVars, numConstraints }: { table: number[][], numVars: number, numConstraints: number }) => {
-    if (!table || table.length === 0) return null;
-
-    const headers = [...Array(numVars).keys()].map(i => `x${i + 1}`)
-        .concat([...Array(numConstraints).keys()].map(i => `s${i + 1}`))
-        .concat(['RHS']);
-    
-    return (
-        <div className="overflow-x-auto">
-            <Table className="min-w-full">
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Row/Col</TableHead>
-                        {headers.map(h => <TableHead key={h} className="text-right">{h}</TableHead>)}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {table.map((row, i) => {
-                        const rowLabel = i === table.length - 1 ? 'Z' : `Constraint ${i + 1}`;
-                        return (
-                            <TableRow key={i}>
-                                <TableHead>{rowLabel}</TableHead>
-                                {row.map((cell, j) => (
-                                    <TableCell key={j} className="text-right font-mono">{cell.toFixed(6)}</TableCell>
-                                ))}
-                            </TableRow>
-                        );
-                    })}
-                </TableBody>
-            </Table>
-        </div>
-    );
-};
 
 const IntroPage = ({ onStart }: { onStart: () => void }) => {
     return (
@@ -67,9 +35,9 @@ const IntroPage = ({ onStart }: { onStart: () => void }) => {
                         Linear programming addresses how to optimize (maximize or minimize) a linear objective function under given linear constraints. This tool uses the Simplex algorithm to find the solution.
                     </p>
                     <ul className="list-disc pl-5 space-y-2">
-                        <li><strong>Objective Function:</strong> A linear equation representing the goal to be maximized (e.g., `Max Z = 3x₁ + 2x₂`).</li>
+                        <li><strong>Objective Function:</strong> A linear equation representing the goal to be maximized or minimized (e.g., `Max Z = 3x₁ + 2x₂`).</li>
                         <li><strong>Constraints:</strong> Linear inequalities representing the limits of available resources (e.g., `x₁ + x₂ ≤ 4`).</li>
-                        <li><strong>Optimal Solution:</strong> The values of the variables (x₁, x₂, ...) that maximize the objective function while satisfying all constraints.</li>
+                        <li><strong>Optimal Solution:</strong> The values of the variables (x₁, x₂, ...) that optimize the objective function while satisfying all constraints.</li>
                     </ul>
                 </CardContent>
                 <CardFooter className="flex justify-center">
@@ -85,6 +53,7 @@ export default function LinearProgrammingPage() {
     const [view, setView] = useState('intro');
     const [numVars, setNumVars] = useState(2);
     const [numConstraints, setNumConstraints] = useState(3);
+    const [objective, setObjective] = useState<'maximize' | 'minimize'>('maximize');
     
     const [c, setC] = useState<number[]>([3, 2]);
     const [A, setA] = useState<number[][]>([[1, 1], [1, 0], [0, 1]]);
@@ -104,6 +73,7 @@ export default function LinearProgrammingPage() {
     const handleLoadExample = () => {
         setNumVars(2);
         setNumConstraints(3);
+        setObjective('maximize');
         setC([3, 2]); 
         setA([[1, 1], [1, 0], [0, 1]]);
         setB([4, 2, 3]);
@@ -136,7 +106,7 @@ export default function LinearProgrammingPage() {
             const response = await fetch('/api/analysis/linear-programming', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ c, A_ub: A, b_ub: b })
+                body: JSON.stringify({ c, A_ub: A, b_ub: b, objective })
             });
 
             if (!response.ok) {
@@ -154,10 +124,10 @@ export default function LinearProgrammingPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [c, A, b, toast]);
+    }, [c, A, b, objective, toast]);
 
     const getObjectiveFunctionString = () => {
-        return "Max Z = " + c.map((val, j) => `${val}·x${j + 1}`).join(' + ');
+        return `${objective === 'maximize' ? 'Max' : 'Min'} Z = ` + c.map((val, j) => `${val}·x${j + 1}`).join(' + ');
     };
     
     const getConstraintString = (i: number) => {
@@ -173,11 +143,11 @@ export default function LinearProgrammingPage() {
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">Linear Programming (Simplex) Board</CardTitle>
+                        <CardTitle className="font-headline">Linear Programming Board</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                     <CardDescription>
-                        Define your variables and constraints to find the optimal solution. This tool solves maximization problems.
+                        Define your variables and constraints to find the optimal solution.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -202,13 +172,22 @@ export default function LinearProgrammingPage() {
                         <div>
                             <h3 className="font-semibold">Problem Setup</h3>
                             <div className="mt-4 p-4 border rounded-lg space-y-4">
-                                <div>
-                                    <Label>Objective Function Coefficients (Max Z = c₁x₁ + c₂x₂ + ...)</Label>
-                                    <div className="flex flex-wrap gap-2 mt-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <div>
+                                        <Label>Objective Function</Label>
+                                         <Select value={objective} onValueChange={(v) => setObjective(v as any)}>
+                                            <SelectTrigger><SelectValue/></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="maximize">Maximize</SelectItem>
+                                                <SelectItem value="minimize">Minimize</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex flex-wrap items-end gap-2">
                                         {c.map((val, j) => (
-                                            <div key={j} className="flex items-center gap-2">
-                                                <Label htmlFor={`c${j}`}>x{j+1}:</Label>
-                                                <Input id={`c${j}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, 0, j, 'c')} className="w-24" />
+                                            <div key={j} className="flex-1 min-w-[100px]">
+                                                <Label htmlFor={`c${j}`}>x{j+1} Coeff:</Label>
+                                                <Input id={`c${j}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, 0, j, 'c')} />
                                             </div>
                                         ))}
                                     </div>
@@ -240,61 +219,52 @@ export default function LinearProgrammingPage() {
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Calculating...</> : <><Play className="mr-2"/>Solve with Simplex</>}
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Calculating...</> : <><Play className="mr-2"/>Solve</>}
                     </Button>
                 </CardFooter>
             </Card>
 
             {analysisResult && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <Card>
-                         <CardHeader>
-                            <CardTitle>Objective</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="font-mono">{getObjectiveFunctionString()}</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                         <CardHeader>
-                            <CardTitle>Constraints</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className="list-disc pl-5 space-y-1 font-mono">
-                                {A.map((_, i) => <li key={i}>{getConstraintString(i)}</li>)}
-                            </ul>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Optimal Solution</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {analysisResult.success ? (
-                                <>
-                                    <p><strong>Optimal Value (Z*):</strong> <span className="font-mono">{analysisResult.optimal_value.toFixed(6)}</span></p>
-                                    {analysisResult.solution.slice(0, numVars).map((s, i) => (
-                                        <p key={i}><strong>x{i + 1}:</strong> <span className="font-mono">{s.toFixed(6)}</span></p>
-                                    ))}
-                                </>
-                            ) : (
-                                <p className="text-destructive">{analysisResult.message}</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                     <Card className="lg:col-span-3">
-                        <CardHeader>
-                            <CardTitle>Simplex Tableau Steps</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {analysisResult.snapshots.map((snapshot, index) => (
-                                <div key={index} className="space-y-2">
-                                    <h4 className="font-semibold">{index + 1}. {snapshot.note}</h4>
-                                    <TableauTable table={snapshot.table} numVars={numVars} numConstraints={numConstraints} />
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Problem Summary</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                 <p className="font-semibold">{getObjectiveFunctionString()}</p>
+                                <p className="mt-2 text-muted-foreground">Subject to:</p>
+                                <ul className="list-disc pl-5 mt-1 space-y-1 font-mono">
+                                    {A.map((_, i) => <li key={i}>{getConstraintString(i)}</li>)}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Optimal Solution</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {analysisResult.success ? (
+                                    <div>
+                                        <p><strong>Optimal Value (Z*):</strong> <span className="font-mono">{analysisResult.optimal_value.toFixed(6)}</span></p>
+                                        <Table className="mt-2">
+                                            <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {analysisResult.solution.slice(0, numVars).map((s, i) => (
+                                                    <TableRow key={i}>
+                                                        <TableCell><strong>x{i + 1}</strong></TableCell>
+                                                        <TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                ) : (
+                                    <p className="text-destructive">{analysisResult.message}</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             )}
         </div>

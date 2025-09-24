@@ -2,6 +2,7 @@
 import sys
 import json
 import numpy as np
+from scipy.optimize import linprog
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -14,78 +15,38 @@ def _to_native_type(obj):
         return obj.tolist()
     return obj
 
-def run_simplex(c, A_ub, b_ub):
+def solve_lp(c, A_ub, b_ub, method='highs', objective='maximize'):
+    """
+    Solves a linear programming problem using scipy.optimize.linprog.
+    """
     num_vars = len(c)
-    num_constraints = len(b_ub)
-
-    # We are maximizing, so we use -c in the objective row.
-    objective = np.concatenate([-np.array(c), np.zeros(num_constraints + 1)])
-
-    # Build the initial tableau
-    tableau = np.zeros((num_constraints + 1, num_vars + num_constraints + 1))
     
-    # Constraints part
-    tableau[:num_constraints, :num_vars] = A_ub
-    tableau[:num_constraints, num_vars:num_vars + num_constraints] = np.identity(num_constraints)
-    tableau[:num_constraints, -1] = b_ub
+    # linprog solves minimization problems by default.
+    # If we want to maximize, we minimize the negative of the objective function.
+    c_for_solver = np.array(c)
+    if objective == 'maximize':
+        c_for_solver = -c_for_solver
+
+    res = linprog(c=c_for_solver, A_ub=A_ub, b_ub=b_ub, method=method, bounds=[(0, None)] * num_vars)
+
+    solution = []
+    optimal_value = 0
+    success = res.success
+    message = res.message
     
-    # Objective function part
-    tableau[-1, :] = objective
-
-    snapshots = [{'note': 'Initial Tableau', 'table': tableau.tolist()}]
-    iteration = 0
-
-    while np.any(tableau[-1, :-1] < -1e-9):
-        if iteration > 100: # Safety break
-            return {'solution': [], 'optimal_value': 0, 'success': False, 'message': 'Exceeded iteration limit.', 'snapshots': snapshots}
-        
-        pivot_col = np.where(tableau[-1, :-1] < -1e-9)[0][0]
-        
-        ratios = np.full(num_constraints, np.inf)
-        for i in range(num_constraints):
-            if tableau[i, pivot_col] > 1e-9:
-                ratios[i] = tableau[i, -1] / tableau[i, pivot_col]
-        
-        pivot_row = np.argmin(ratios)
-        
-        if np.isinf(ratios[pivot_row]):
-            return {'solution': [], 'optimal_value': np.inf, 'success': False, 'message': 'Solution is unbounded.', 'snapshots': snapshots}
-
-        snapshots.append({'note': f'Iteration {iteration + 1}: Pivot on row {pivot_row + 1}, col {pivot_col + 1} (Before Pivot)', 'table': tableau.tolist()})
-        
-        pivot_element = tableau[pivot_row, pivot_col]
-        tableau[pivot_row, :] /= pivot_element
-        
-        for i in range(num_constraints + 1):
-            if i != pivot_row:
-                factor = tableau[i, pivot_col]
-                tableau[i, :] -= factor * tableau[pivot_row, :]
-        
-        snapshots.append({'note': f'Iteration {iteration + 1}: After Pivot', 'table': tableau.tolist()})
-        iteration += 1
-
-    snapshots.append({'note': 'Final Tableau', 'table': tableau.tolist()})
-    
-    solution = np.zeros(num_vars)
-    # Correctly identify basic variables and assign their values
-    for j in range(num_vars): # Iterate through decision variables
-        col = tableau[:, j]
-        # Check if this column is a basic variable column
-        is_basic = (np.count_nonzero(np.abs(col) < 1e-9) == num_constraints) and (np.abs(np.sum(col) - 1) < 1e-9)
-        if is_basic:
-            # Find the row index where the '1' is located
-            row_index = np.where(np.abs(col - 1) < 1e-9)[0][0]
-            solution[j] = tableau[row_index, -1]
-
-    optimal_value = tableau[-1, -1]
+    if success:
+        solution = res.x.tolist()
+        # If we maximized, the optimal value is the negative of the result
+        optimal_value = -res.fun if objective == 'maximize' else res.fun
     
     return {
-        'solution': solution.tolist(),
+        'solution': solution,
         'optimal_value': optimal_value,
-        'success': True,
-        'message': 'Optimization terminated successfully.',
-        'snapshots': snapshots
+        'success': success,
+        'message': message,
+        'slack': res.slack.tolist() if hasattr(res, 'slack') else None,
     }
+
 
 def main():
     try:
@@ -93,26 +54,19 @@ def main():
         c = payload.get('c')
         A_ub = payload.get('A_ub')
         b_ub = payload.get('b_ub')
+        objective = payload.get('objective', 'maximize')
 
         if not all([c, A_ub, b_ub]):
             raise ValueError("Missing required parameters: c, A_ub, or b_ub")
         
-        # Invert objective for maximization as run_simplex expects minimization coefficients in obj row
-        c_for_max = [-x for x in c]
+        result = solve_lp(c, A_ub, b_ub, objective=objective)
         
-        # Scipy's linprog and our manual simplex handle this differently. 
-        # Our manual simplex negates 'c' internally. So we pass original 'c'.
-        result = run_simplex(c, A_ub, b_ub)
-        
-        # Since we are maximizing, the optimal value from tableau is already correct
-        # No need to negate it again.
-
         response = {
             'solution': result['solution'],
             'optimal_value': result['optimal_value'],
             'success': result['success'],
             'message': result['message'],
-            'snapshots': result['snapshots']
+            'slack': result['slack']
         }
 
         print(json.dumps(response, default=_to_native_type))
