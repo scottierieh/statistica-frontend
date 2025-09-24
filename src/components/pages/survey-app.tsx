@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -18,10 +19,10 @@ import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, Responsive
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent, useDraggable } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, Trash2, ArrowLeft, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Eye, Shuffle, FileText, Save, Info, Link as LinkIcon, QrCode, Download, Copy, Users, EyeIcon, TrendingUp, Laptop, Palette, Grid3x3, ThumbsUp, MessageSquareQuote, Target, Sparkles, ImageIcon, Smartphone, Tablet, Monitor, FileDown, Share2, Phone, Mail, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, X, ChevronDown, Settings } from 'lucide-react';
+import { GripVertical, Plus, Trash2, ArrowLeft, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Eye, Shuffle, FileText, Save, Info, Link as LinkIcon, QrCode, Download, Copy, Users, EyeIcon, TrendingUp, Laptop, Palette, Grid3x3, ThumbsUp, MessageSquareQuote, Target, Sparkles, ImageIcon, Smartphone, Tablet, Monitor, FileDown, Share2, Phone, Mail, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, X, ChevronDown, Settings, LayoutDashboard } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -40,8 +41,8 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { LineChart, Line, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, PieChart, Pie } from 'recharts';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { DatePickerWithRange } from '../ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '../ui/date-range-picker';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import VanWestendorpPage from '@/components/pages/van-westendorp-page';
@@ -1511,7 +1512,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     const [surveyUrl, setSurveyUrl] = useState('');
     const [qrCodeUrl, setQrCodeUrl] = useState('');
     const [isLoadingQr, setIsLoadingQr] = useState(false);
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [retailAnalysisData, setRetailAnalysisData] = useState<any>(null);
     const [servqualAnalysisData, setServqualAnalysisData] = useState<any>(null);
     const [ipaAnalysisData, setIpaAnalysisData] = useState<any>(null);
@@ -1902,7 +1902,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
 
     const saveAndTest = () => {
         if(saveDraft()) {
-            setIsShareModalOpen(true);
+            // This state is just to trigger the Dialog's onOpenChange,
+            // which will then call generateQrCode. The Dialog itself manages its open state.
         }
     };
     
@@ -2213,9 +2214,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                         <Save className="mr-2" />
                         Save Draft
                     </Button>
-                    <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+                    <Dialog onOpenChange={(open) => { if(open) saveDraft() }}>
                         <DialogTrigger asChild>
-                             <Button onClick={saveAndTest} disabled={!surveyId}>
+                            <Button disabled={!surveyId}>
                                 <Share2 className="mr-2" />
                                 Share
                             </Button>
@@ -2277,7 +2278,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="configuration"><Settings className="mr-2" />Configuration</TabsTrigger>
                     <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
-                    <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Analytics Dashboard</TabsTrigger>
+                    <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                 </TabsList>
                 <TabsContent value="design">
                     <div className="grid md:grid-cols-12 gap-6 mt-4">
@@ -2600,7 +2601,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                  <TabsContent value="dashboard">
                     <Card className="mt-4">
                          <CardHeader>
-                            <CardTitle>Analytics Dashboard</CardTitle>
+                            <CardTitle>Analysis Dashboard</CardTitle>
                             <CardDescription>Drag and drop to rearrange your analysis dashboard.</CardDescription>
                          </CardHeader>
                          <CardContent>
