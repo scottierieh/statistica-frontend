@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -9,15 +8,78 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, FlaskConical } from 'lucide-react';
+import { Sigma, Loader2, FlaskConical, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, Settings, TestTube, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Switch } from '../ui/switch';
+
+const OneSampleIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const ttestExample = exampleDatasets.find(d => d.id === 't-test-suite');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <TestTube size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">One-Sample T-Test</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Determine if the mean of a single sample is significantly different from a known or hypothesized value.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use a One-Sample T-Test?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            This test is used to check if the average of a sample is statistically different from a population mean or a theoretical value. For example, you could test if the average IQ score of a group of students is different from the national average of 100.
+                        </p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Select Variable:</strong> Choose the numeric variable whose mean you want to test.
+                                </li>
+                                <li>
+                                    <strong>Set Test Value (μ₀):</strong> Enter the known or hypothesized population mean you want to compare your sample against.
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> The tool will calculate the t-statistic and p-value to determine significance.
+                                </li>
+                            </ol>
+                        </div>
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChart className="text-primary"/> Results Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>t-statistic:</strong> A larger absolute value indicates a greater difference between your sample mean and the test value.
+                                </li>
+                                <li>
+                                    <strong>p-value:</strong> If less than 0.05, you can conclude that your sample mean is statistically significantly different from the test value.
+                                </li>
+                                <li>
+                                    <strong>Cohen's d:</strong> Measures the size of the difference. A value around 0.2 is small, 0.5 is medium, and 0.8 is large.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    {ttestExample && <Button variant="outline" onClick={() => onLoadExample(ttestExample)}>Load Sample T-Test Data</Button>}
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 
 interface TTestPageProps {
     data: DataSet;
@@ -38,6 +100,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     }, [activeAnalysis]);
 
     const [testType, setTestType] = useState(initialTestType);
+    const [view, setView] = useState('intro');
     
     // States for different tests
     const [oneSampleVar, setOneSampleVar] = useState<string | undefined>(numericHeaders[0]);
@@ -64,6 +127,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         setPairedVar1(numericHeaders[0]);
         setPairedVar2(numericHeaders[1]);
         setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [initialTestType, data, numericHeaders, binaryCategoricalHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
@@ -126,6 +190,9 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     const renderSetupUI = () => {
         switch (testType) {
             case 'one_sample':
+                 if (view === 'intro') {
+                    return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+                }
                 return (
                     <div className="grid md:grid-cols-2 gap-4">
                         <div>
@@ -296,34 +363,21 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     };
 
     if (!canRun) {
-        const testExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('t-test'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">T-Test</CardTitle>
-                        <CardDescription>
-                           To perform a t-test, you need data with numeric variables.
-                        </CardDescription>
-                    </CardHeader>
-                    {testExamples.length > 0 && (
-                        <CardContent>
-                           <Button onClick={() => onLoadExample(testExamples[0])} className="w-full" size="sm">
-                                <Sigma className="mr-2 h-4 w-4" />
-                                Load T-Test Suite Data
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+        return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+
+    if (view === 'intro' && testType === 'one_sample') {
+        return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">T-Test Analysis</CardTitle>
+                     <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">T-Test Analysis Setup</CardTitle>
+                         {testType === 'one_sample' && <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>}
+                    </div>
                     <CardDescription>Select a test type and configure the variables for the analysis.</CardDescription>
                 </CardHeader>
                 <CardContent>
