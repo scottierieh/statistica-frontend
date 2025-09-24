@@ -153,6 +153,9 @@ export default function NonlinearProgrammingPage() {
                                 <SelectItem value="SLSQP">SLSQP</SelectItem>
                                 <SelectItem value="COBYLA">COBYLA</SelectItem>
                                 <SelectItem value="trust-constr">trust-constr</SelectItem>
+                                <SelectItem value="CG">Conjugate-Gradient (CG)</SelectItem>
+                                <SelectItem value="BFGS">BFGS</SelectItem>
+                                <SelectItem value="Newton-CG">Newton-CG</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
