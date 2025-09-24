@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, CheckCircle2, AlertTriangle, LineChart } from 'lucide-react';
+import { Sigma, Loader2, CheckCircle2, AlertTriangle, LineChart, HelpCircle, MoveRight, Settings, FileSearch, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -37,6 +37,81 @@ interface FullAnalysisResponse {
     results: { [key: string]: NormalityTestResult };
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const normalityExample = exampleDatasets.find(d => d.id === 'iris');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <CheckCircle2 size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Normality Test</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Check whether your data has a Gaussian (normal) distribution, a key assumption for many statistical tests.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Test for Normality?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Many parametric statistical tests, such as the t-test and ANOVA, assume that the data is normally distributed. If this assumption is violated, the results of these tests may be unreliable. Testing for normality helps you choose the appropriate statistical methods for your analysis—parametric tests for normal data and non-parametric tests for non-normal data.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Select Variables:</strong> Choose one or more numeric variables from your dataset that you want to test for normality.
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> The tool will perform statistical tests (Shapiro-Wilk and Jarque-Bera) and generate visualizations (histogram and Q-Q plot) for each selected variable.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Shapiro-Wilk Test:</strong> This is a powerful test for normality, especially for smaller sample sizes. If the p-value is greater than 0.05, the data is considered normally distributed.
+                                </li>
+                                 <li>
+                                    <strong>Histogram:</strong> For normal data, the histogram should approximate a bell shape.
+                                </li>
+                                <li>
+                                    <strong>Q-Q Plot:</strong> For normal data, the points should fall closely along the straight red line.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                     <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
+                        <div className="flex justify-center">
+                            {normalityExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(normalityExample)}>
+                                    <normalityExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{normalityExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{normalityExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+
 interface NormalityTestPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -48,16 +123,18 @@ export default function NormalityTestPage({ data, numericHeaders, onLoadExample 
     const [selectedVars, setSelectedVars] = useState<string[]>(numericHeaders);
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [view, setView] = useState('intro');
 
     useEffect(() => {
         setSelectedVars(numericHeaders);
         setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [data, numericHeaders]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
     const handleVarSelectionChange = (header: string, checked: boolean) => {
-        setSelectedVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
+        setSelectedVars(prev => checked ? [...prev, header] : prev.filter(v => v !== header));
     };
 
     const handleAnalysis = useCallback(async () => {
@@ -93,52 +170,23 @@ export default function NormalityTestPage({ data, numericHeaders, onLoadExample 
             setIsLoading(false);
         }
     }, [data, selectedVars, toast]);
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
 
     if (!canRun) {
-        const normalityExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('normality'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Normality Test</CardTitle>
-                        <CardDescription>
-                           To perform a normality test, you need data with at least one numeric variable.
-                        </CardDescription>
-                    </CardHeader>
-                    {normalityExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {normalityExamples.map((ex) => (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <LineChart className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                ))}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Normality Test Setup</CardTitle>
+                     <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Normality Test Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select one or more numeric variables to test for normality.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -182,7 +230,7 @@ export default function NormalityTestPage({ data, numericHeaders, onLoadExample 
                                     <div className="space-y-4">
                                         <Alert variant={result.is_normal_shapiro ? 'default' : 'destructive'}>
                                           {result.is_normal_shapiro ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4"/>}
-                                          <AlertTitle>Normality Assumption ({result.is_normal_shapiro ? "Met" : "Not Met"})</AlertTitle>
+                                          <AlertTitle>Assumption of Normality ({result.is_normal_shapiro ? "Met" : "Not Met"})</AlertTitle>
                                           <AlertDescription>{result.interpretation}</AlertDescription>
                                         </Alert>
                                         
