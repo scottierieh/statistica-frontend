@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, FileJson, Asterisk } from 'lucide-react';
+import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from "@/lib/utils";
 
@@ -52,8 +52,37 @@ const TableauTable = ({ table, numVars, numConstraints }: { table: number[][], n
     );
 };
 
+const IntroPage = ({ onStart }: { onStart: () => void }) => {
+    return (
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-2xl text-center">
+                <CardHeader>
+                    <CardTitle className="font-headline text-2xl">선형 계획법 (Linear Programming)</CardTitle>
+                    <CardDescription className="text-base pt-2">
+                        제한된 자원을 사용하여 최대의 이익이나 최소의 비용을 찾는 강력한 수학적 최적화 기법입니다.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="text-left space-y-4">
+                    <p>
+                        선형 계획법은 주어진 선형 제약 조건 하에서 선형 목적 함수를 최적화(최대화 또는 최소화)하는 방법을 다룹니다. 이 도구는 Simplex 알고리즘을 사용하여 해를 찾습니다.
+                    </p>
+                    <ul className="list-disc pl-5 space-y-2">
+                        <li><strong>목적 함수:</strong> 최대화하려는 목표를 나타내는 선형 방정식입니다 (예: `Max Z = 3x₁ + 2x₂`).</li>
+                        <li><strong>제약 조건:</strong> 사용 가능한 자원의 한계를 나타내는 선형 부등식입니다 (예: `x₁ + x₂ ≤ 4`).</li>
+                        <li><strong>최적해:</strong> 모든 제약 조건을 만족시키면서 목적 함수를 최대로 만드는 변수(x₁, x₂, ...)의 값입니다.</li>
+                    </ul>
+                </CardContent>
+                <CardFooter className="flex justify-center">
+                    <Button onClick={onStart}>들어가기</Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 export default function LinearProgrammingPage() {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [numVars, setNumVars] = useState(2);
     const [numConstraints, setNumConstraints] = useState(3);
     
@@ -134,40 +163,47 @@ export default function LinearProgrammingPage() {
     const getConstraintString = (i: number) => {
         return A[i].map((val, j) => `${val}·x${j + 1}`).join(' + ') + ` ≤ ${b[i]}`;
     };
+
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} />;
+    }
     
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Linear Programming (Simplex) Board</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">선형 계획법 (Simplex) 보드</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>
-                        Define your variables and constraints to find the optimal solution. This tool solves maximization problems.
+                        변수와 제약 조건을 정의하여 최적해를 찾으세요. 이 도구는 최대화 문제를 해결합니다.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="flex flex-wrap items-center gap-4 p-4 border rounded-lg bg-muted/50">
                         <div className="flex items-center gap-2">
-                           <Label htmlFor="num-vars">Variables:</Label>
+                           <Label htmlFor="num-vars">변수 개수:</Label>
                            <Input id="num-vars" type="number" value={numVars} onChange={e => setNumVars(parseInt(e.target.value))} min="1" className="w-20"/>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Label htmlFor="num-constraints">Constraints:</Label>
+                            <Label htmlFor="num-constraints">제약 조건 개수:</Label>
                             <Input id="num-constraints" type="number" value={numConstraints} onChange={e => setNumConstraints(parseInt(e.target.value))} min="1" className="w-20"/>
                         </div>
                         <Button onClick={handleBoardCreation}>
-                            <Asterisk className="mr-2 h-4 w-4" />Create Board
+                            <Asterisk className="mr-2 h-4 w-4" />보드 생성
                         </Button>
                         <Button variant="outline" onClick={handleLoadExample}>
-                           <FileJson className="mr-2 h-4 w-4" /> Load Example
+                           <FileJson className="mr-2 h-4 w-4" /> 예제 불러오기
                         </Button>
                     </div>
                     
                     <div className="space-y-6 pt-4">
                         <div>
-                            <h3 className="font-semibold">Problem Setup</h3>
+                            <h3 className="font-semibold">문제 설정</h3>
                             <div className="mt-4 p-4 border rounded-lg space-y-4">
                                 <div>
-                                    <Label>Objective Function Coefficients (Max Z = c₁x₁ + c₂x₂ + ...)</Label>
+                                    <Label>목적 함수 계수 (Max Z = c₁x₁ + c₂x₂ + ...)</Label>
                                     <div className="flex flex-wrap gap-2 mt-2">
                                         {c.map((val, j) => (
                                             <div key={j} className="flex items-center gap-2">
@@ -178,7 +214,7 @@ export default function LinearProgrammingPage() {
                                     </div>
                                 </div>
                                 <div className="mt-4">
-                                     <Label>Constraints (Σaᵢⱼxⱼ ≤ bᵢ)</Label>
+                                     <Label>제약식 (Σaᵢⱼxⱼ ≤ bᵢ)</Label>
                                      <div className="grid grid-cols-1 gap-2 mt-2">
                                         {A.map((row, i) => (
                                             <div key={i} className="flex flex-wrap items-center gap-4 p-2 rounded-md bg-muted/20">
@@ -204,7 +240,7 @@ export default function LinearProgrammingPage() {
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Solving...</> : <><Play className="mr-2"/>Solve with Simplex</>}
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> 계산 중...</> : <><Play className="mr-2"/>Simplex로 풀기</>}
                     </Button>
                 </CardFooter>
             </Card>
@@ -213,7 +249,7 @@ export default function LinearProgrammingPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <Card>
                          <CardHeader>
-                            <CardTitle>Objective</CardTitle>
+                            <CardTitle>목표</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p className="font-mono">{getObjectiveFunctionString()}</p>
@@ -221,7 +257,7 @@ export default function LinearProgrammingPage() {
                     </Card>
                     <Card>
                          <CardHeader>
-                            <CardTitle>Constraints</CardTitle>
+                            <CardTitle>제약 조건</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <ul className="list-disc pl-5 space-y-1 font-mono">
@@ -231,12 +267,12 @@ export default function LinearProgrammingPage() {
                     </Card>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Optimal Solution</CardTitle>
+                            <CardTitle>최적해</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {analysisResult.success ? (
                                 <>
-                                    <p><strong>Optimal Value (Z*):</strong> <span className="font-mono">{analysisResult.optimal_value.toFixed(6)}</span></p>
+                                    <p><strong>최적값 (Z*):</strong> <span className="font-mono">{analysisResult.optimal_value.toFixed(6)}</span></p>
                                     {analysisResult.solution.slice(0, numVars).map((s, i) => (
                                         <p key={i}><strong>x{i + 1}:</strong> <span className="font-mono">{s.toFixed(6)}</span></p>
                                     ))}
@@ -248,7 +284,7 @@ export default function LinearProgrammingPage() {
                     </Card>
                     <Card className="lg:col-span-3">
                         <CardHeader>
-                            <CardTitle>Final Simplex Tableau</CardTitle>
+                            <CardTitle>최종 Tableau</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             {analysisResult.snapshots.length > 0 && (
@@ -261,3 +297,4 @@ export default function LinearProgrammingPage() {
         </div>
     );
 }
+
