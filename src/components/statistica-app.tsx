@@ -172,8 +172,6 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     frequency: FrequencyAnalysisPage,
     crosstab: CrosstabPage,
     sem: SemPage,
-    conjoint: ConjointAnalysisPage,
-    cbc: CbcAnalysisPage,
     ipa: IpaPage,
     pca: PcaPage,
     survival: SurvivalAnalysisPage,
@@ -337,8 +335,6 @@ const analysisMenu = [
     field: 'Specialized Models',
     icon: FlaskConical,
     methods: [
-      { id: 'conjoint', label: 'Conjoint Analysis' },
-      { id: 'cbc', label: 'Choice-Based Conjoint (CBC)' },
       { id: 'ipa', label: 'Importance-Performance Analysis (IPA)' },
       { id: 'survival', label: 'Survival Analysis' },
       { id: 'meta-analysis', label: 'Meta-Analysis' },

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -30,8 +30,10 @@ import * as XLSX from 'xlsx';
 import { type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
+import ConjointAnalysisPage from './pages/conjoint-analysis-page';
+import CbcAnalysisPage from './pages/cbc-analysis-page';
 
-type OptimizationType = 'linear-programming' | 'transportation-problem' | 'goal-programming' | 'nonlinear-programming' | 'ahp' | 'dea';
+type OptimizationType = 'linear-programming' | 'transportation-problem' | 'goal-programming' | 'nonlinear-programming' | 'ahp' | 'dea' | 'conjoint' | 'cbc';
 
 const optimizationPages: Record<string, React.ComponentType<any>> = {
   'linear-programming': LinearProgrammingPage,
@@ -40,6 +42,8 @@ const optimizationPages: Record<string, React.ComponentType<any>> = {
   'nonlinear-programming': NonlinearProgrammingPage,
   'ahp': AhpPage,
   'dea': DeaPage,
+  'conjoint': ConjointAnalysisPage,
+  'cbc': CbcAnalysisPage,
 };
 
 export default function DecisionAnalyticsApp() {
@@ -231,6 +235,22 @@ export default function DecisionAnalyticsApp() {
                             isActive={activeAnalysis === 'dea'}
                         >
                            Data Envelopment Analysis
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton
+                            onClick={() => setActiveAnalysis('conjoint')}
+                            isActive={activeAnalysis === 'conjoint'}
+                        >
+                           Conjoint Analysis
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton
+                            onClick={() => setActiveAnalysis('cbc')}
+                            isActive={activeAnalysis === 'cbc'}
+                        >
+                           Choice-Based Conjoint
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </CollapsibleContent>
