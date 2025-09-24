@@ -131,6 +131,57 @@ const IndependentSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () =
     );
 };
 
+const PairedSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const ttestExample = exampleDatasets.find(d => d.id === 't-test-suite');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Repeat size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Paired Samples T-Test</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Compare the means of two related groups to determine if there is a statistically significant difference between their means.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use a Paired Samples T-Test?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            This test is used for "before-and-after" scenarios or matched-pairs designs. For example, you can use it to test if a training program had a significant effect on employee performance by comparing their scores before and after the training.
+                        </p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Variable 1:</strong> Select the numeric variable representing the first measurement (e.g., 'Pre-test Score').</li>
+                                <li><strong>Variable 2:</strong> Select the numeric variable representing the second, related measurement (e.g., 'Post-test Score').</li>
+                                <li><strong>Run Analysis:</strong> The tool calculates the difference for each pair and tests if the average difference is significantly different from zero.</li>
+                            </ol>
+                        </div>
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChart className="text-primary"/> Results Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>t-statistic:</strong> Indicates the size of the difference relative to the variation in the differences.</li>
+                                <li><strong>p-value:</strong> If less than 0.05, there is a significant mean difference between the two paired measurements.</li>
+                                <li><strong>Mean Difference & CI:</strong> Shows the average difference and the 95% confidence interval. If the CI does not contain zero, the result is significant.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    {ttestExample && <Button variant="outline" onClick={() => onLoadExample(ttestExample)}>Load Sample T-Test Data</Button>}
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 
 interface TTestPageProps {
     data: DataSet;
@@ -244,10 +295,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     const renderSetupUI = () => {
         switch (testType) {
             case 'one_sample':
-                if (view === 'intro') {
-                    return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-                }
-                return (
+                 return (
                     <div className="grid md:grid-cols-2 gap-4">
                         <div>
                             <Label>Variable</Label>
@@ -263,9 +311,6 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                     </div>
                 );
             case 'independent_samples':
-                 if (view === 'intro') {
-                    return <IndependentSamplesIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-                }
                  if (binaryCategoricalHeaders.length === 0) {
                     return <p className="text-destructive-foreground bg-destructive p-3 rounded-md">This test requires a categorical variable with exactly two groups. None found.</p>
                 }
@@ -288,10 +333,6 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                     </div>
                 );
             case 'paired_samples':
-                 if (view === 'intro') {
-                    // You can create a PairedSamplesIntroPage component here if needed
-                    return <p>Paired samples intro page placeholder.</p>;
-                }
                 if (numericHeaders.length < 2) {
                     return <p className="text-destructive-foreground bg-destructive p-3 rounded-md">This test requires at least two numeric variables to compare.</p>
                 }
@@ -432,7 +473,8 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                return <OneSampleIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
             case 'independent_samples':
                 return <IndependentSamplesIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-            // Add other intro pages if you create them
+            case 'paired_samples':
+                return <PairedSamplesIntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
             default:
                 setView('main'); // Fallback to main view
                 return null;
@@ -445,7 +487,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                 <CardHeader>
                      <div className="flex justify-between items-center">
                         <CardTitle className="font-headline">T-Test Analysis Setup</CardTitle>
-                         {(testType === 'one_sample' || testType === 'independent_samples') && <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>}
+                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                     <CardDescription>Select a test type and configure the variables for the analysis.</CardDescription>
                 </CardHeader>
