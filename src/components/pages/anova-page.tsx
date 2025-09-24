@@ -1,13 +1,13 @@
 
 'use client';
 
-import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import React, { useState } from 'react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { type DataSet } from '@/lib/stats';
 import { type ExampleDataSet } from '@/lib/example-datasets';
 import { exampleDatasets } from '@/lib/example-datasets';
 import { Button } from '@/components/ui/button';
-import { Sigma, FlaskConical, MoveRight } from 'lucide-react';
+import { Sigma, FlaskConical, MoveRight, BarChart as BarChartIcon } from 'lucide-react';
 
 interface AnovaPageProps {
     data: DataSet;
