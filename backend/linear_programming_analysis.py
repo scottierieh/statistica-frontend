@@ -18,64 +18,77 @@ def run_simplex(c, A_ub, b_ub):
     num_vars = len(c)
     num_constraints = len(b_ub)
     
-    # --- Build Tableau ---
-    # The tableau will have `num_constraints + 1` rows and `num_vars + num_constraints + 1` columns
+    # Add slack variables to represent inequalities as equalities
+    slack_vars = np.identity(num_constraints)
+    
+    # Build the initial tableau
+    # Rows: constraints + objective function
+    # Cols: variables + slack variables + RHS
     tableau = np.zeros((num_constraints + 1, num_vars + num_constraints + 1))
     
-    # Add constraints to tableau
+    # Fill in the constraints matrix (A_ub)
     tableau[:num_constraints, :num_vars] = A_ub
-    # Add slack variables
-    tableau[:num_constraints, num_vars:num_vars + num_constraints] = np.identity(num_constraints)
-    # Add RHS (b values)
+    
+    # Fill in the slack variables part
+    tableau[:num_constraints, num_vars:num_vars + num_constraints] = slack_vars
+    
+    # Fill in the RHS (b_ub)
     tableau[:num_constraints, -1] = b_ub
     
-    # Add objective function to the last row (negated for maximization)
+    # Fill in the objective function row (negated for maximization)
     tableau[-1, :num_vars] = -np.array(c)
-    
-    snapshots = []
-    snapshots.append({'note': 'Initial Tableau', 'table': tableau.tolist()})
+    tableau[-1, -1] = 0 # Initial objective value
 
+    snapshots = [{'note': 'Initial Tableau', 'table': tableau.tolist()}]
+    
     iteration = 0
-    while np.any(tableau[-1, :-1] < -1e-8) and iteration < 100: # Iteration guard
-        iteration += 1
+    while np.any(tableau[-1, :-1] < -1e-9): # Continue if any cost is negative
+        if iteration > 100: # Safety break
+            return {'solution': [], 'optimal_value': 0, 'success': False, 'message': 'Exceeded iteration limit.', 'snapshots': snapshots}
         
-        # --- Find pivot column ---
-        pivot_col = np.argmin(tableau[-1, :-1])
-        
-        # --- Find pivot row ---
-        ratios = []
+        # --- Find pivot column (entering variable) ---
+        # Using Bland's rule (smallest index) to prevent cycling
+        pivot_col = np.where(tableau[-1, :-1] < -1e-9)[0][0]
+
+        # --- Find pivot row (leaving variable) ---
+        # Ratio test
+        ratios = np.full(num_constraints, np.inf)
         for i in range(num_constraints):
-            if tableau[i, pivot_col] > 1e-8:
-                ratios.append(tableau[i, -1] / tableau[i, pivot_col])
-            else:
-                ratios.append(np.inf)
+            if tableau[i, pivot_col] > 1e-9:
+                ratios[i] = tableau[i, -1] / tableau[i, pivot_col]
         
         pivot_row = np.argmin(ratios)
         
         if np.isinf(ratios[pivot_row]):
-             # Unbounded solution
-            return { 'solution': [], 'optimal_value': np.inf, 'success': False, 'message': 'Solution is unbounded.', 'snapshots': snapshots }
+            return {'solution': [], 'optimal_value': np.inf, 'success': False, 'message': 'Solution is unbounded.', 'snapshots': snapshots}
+
+        snapshots.append({'note': f'Iteration {iteration + 1}: Pivot on row {pivot_row + 1}, col {pivot_col + 1} (Before Pivot)', 'table': tableau.tolist()})
 
         # --- Pivot Operation ---
         pivot_element = tableau[pivot_row, pivot_col]
-        # Normalize pivot row
+        
+        # Normalize the pivot row
         tableau[pivot_row, :] /= pivot_element
         
-        # Eliminate other entries in pivot column
+        # Eliminate other entries in the pivot column to zero
         for i in range(num_constraints + 1):
             if i != pivot_row:
                 factor = tableau[i, pivot_col]
                 tableau[i, :] -= factor * tableau[pivot_row, :]
         
-        snapshots.append({'note': f'Iteration {iteration} (Pivot on row {pivot_row+1}, col {pivot_col+1})', 'table': tableau.tolist()})
-        
+        snapshots.append({'note': f'Iteration {iteration + 1}: After Pivot', 'table': tableau.tolist()})
+        iteration += 1
+
+    snapshots.append({'note': 'Final Tableau', 'table': tableau.tolist()})
+    
     # --- Extract Solution ---
     solution = np.zeros(num_vars)
     for j in range(num_vars):
         col = tableau[:, j]
-        is_basic = (np.count_nonzero(col) == 1) and (np.sum(col) == 1.0)
+        # Check if it's a basic variable (one 1, rest zeros)
+        is_basic = (np.count_nonzero(np.abs(col) < 1e-9) == num_constraints) and (np.count_nonzero(np.abs(col - 1) < 1e-9) == 1)
         if is_basic:
-            row_index = np.where(col == 1.0)[0][0]
+            row_index = np.where(np.abs(col - 1) < 1e-9)[0][0]
             solution[j] = tableau[row_index, -1]
             
     optimal_value = tableau[-1, -1]
@@ -95,20 +108,13 @@ def main():
         c = payload.get('c')
         A_ub = payload.get('A_ub')
         b_ub = payload.get('b_ub')
-        problem_type = payload.get('problem_type', 'maximize')
 
         if not all([c, A_ub, b_ub]):
             raise ValueError("Missing required parameters: c, A_ub, or b_ub")
         
-        c_np = np.array(c)
-        if problem_type == 'maximize':
-            c_np = -c_np
-
-        # SciPy's linprog minimizes, so we run our simplex on the maximization form
-        # The internal simplex implementation handles maximization by negating 'c'
+        # We are maximizing, so the objective function in the tableau is already negated.
+        # run_simplex is designed for maximization.
         result = run_simplex(c, A_ub, b_ub)
-        
-        # If we maximized, the optimal value from the Z-row is already negated, so it's correct.
         
         response = {
             'solution': result['solution'],
