@@ -1,16 +1,17 @@
 
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, HelpCircle, AlertTriangle } from 'lucide-react';
+import { Sigma, Loader2, Play, HelpCircle, AlertTriangle, PlusCircle, Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '../ui/textarea';
+import { produce } from 'immer';
 
 interface NlpResult {
     success: boolean;
@@ -18,6 +19,12 @@ interface NlpResult {
     solution: number[];
     optimal_value: number;
     iterations: number;
+}
+
+interface Constraint {
+    id: string;
+    type: 'eq' | 'ineq';
+    fun: string;
 }
 
 const IntroPage = ({ onStart }: { onStart: () => void }) => {
@@ -56,19 +63,40 @@ export default function NonlinearProgrammingPage() {
     
     // Default to Rosenbrock function example
     const [objectiveStr, setObjectiveStr] = useState("100 * (x[1] - x[0]**2)**2 + (1 - x[0])**2");
-    const [constraintsStr, setConstraintsStr] = useState("[{'type': 'ineq', 'fun': 'lambda x: x[0] + 2*x[1] - 1'}]");
-    const [boundsStr, setBoundsStr] = useState("[(0, None), (0, None)]");
-    const [initialGuessStr, setInitialGuessStr] = useState("[2, 2]");
+    const [numVars, setNumVars] = useState(2);
+    const [initialGuess, setInitialGuess] = useState<string[]>(['2', '2']);
+    const [bounds, setBounds] = useState<{min: string, max: string}[]>([{min: '0', max: 'None'}, {min: '0', max: 'None'}]);
+    const [constraints, setConstraints] = useState<Constraint[]>([
+        { id: `c-${Date.now()}`, type: 'ineq', fun: 'lambda x: x[0] + 2*x[1] - 1' }
+    ]);
     const [method, setMethod] = useState('SLSQP');
 
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<NlpResult | null>(null);
+    
+    const updateNumVars = (num: number) => {
+        const newNum = Math.max(1, num);
+        setNumVars(newNum);
+
+        setInitialGuess(prev => {
+            const newGuess = Array(newNum).fill('0');
+            prev.forEach((val, i) => { if(i < newNum) newGuess[i] = val });
+            return newGuess;
+        });
+
+        setBounds(prev => {
+            const newBounds = Array(newNum).fill(null).map(() => ({ min: '0', max: 'None' }));
+            prev.forEach((val, i) => { if(i < newNum) newBounds[i] = val });
+            return newBounds;
+        });
+    };
 
     const handleLoadExample = () => {
         setObjectiveStr("100 * (x[1] - x[0]**2)**2 + (1 - x[0])**2");
-        setInitialGuessStr("[2, 2]");
-        setBoundsStr("[(0, None), (0, None)]");
-        setConstraintsStr("[{'type': 'ineq', 'fun': 'lambda x: x[0] + 2*x[1] - 1'}]");
+        updateNumVars(2);
+        setInitialGuess(['2', '2']);
+        setBounds([{min: '0', max: 'None'}, {min: '0', max: 'None'}]);
+        setConstraints([ { id: `c-${Date.now()}`, type: 'ineq', fun: 'lambda x: x[0] + 2*x[1] - 1' } ]);
         setMethod('SLSQP');
         toast({ title: "Example Loaded", description: "Rosenbrock function example has been set up." });
     };
@@ -76,6 +104,10 @@ export default function NonlinearProgrammingPage() {
     const handleAnalysis = useCallback(async () => {
         setIsLoading(true);
         setAnalysisResult(null);
+
+        const initialGuessStr = `[${initialGuess.join(', ')}]`;
+        const boundsStr = `[${bounds.map(b => `(${b.min}, ${b.max})`).join(', ')}]`;
+        const constraintsStr = `[${constraints.map(c => `{'type': '${c.type}', 'fun': ${c.fun}}`).join(', ')}]`;
 
         try {
             const response = await fetch('/api/analysis/nonlinear-programming', {
@@ -100,7 +132,7 @@ export default function NonlinearProgrammingPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [objectiveStr, initialGuessStr, boundsStr, constraintsStr, method, toast]);
+    }, [objectiveStr, initialGuess, bounds, constraints, method, toast]);
     
     if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} />;
@@ -126,24 +158,52 @@ export default function NonlinearProgrammingPage() {
                             This tool uses `eval` to process Python code. Do not run untrusted code. This feature is intended for educational and prototyping purposes only.
                         </AlertDescription>
                     </Alert>
+                    
+                    <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
+                        <Label htmlFor="num-vars">Number of Variables:</Label>
+                        <Input id="num-vars" type="number" value={numVars} onChange={e => updateNumVars(parseInt(e.target.value))} min="1" className="w-20"/>
+                    </div>
 
                     <div>
                         <Label htmlFor="objective-func">Objective Function (to minimize)</Label>
                         <Textarea id="objective-func" value={objectiveStr} onChange={e => setObjectiveStr(e.target.value)} placeholder="e.g., (x[0] - 1)**2 + (x[1] - 2.5)**2" className="font-mono" />
                     </div>
-                    <div className="grid md:grid-cols-2 gap-4">
+                     <div className="grid md:grid-cols-2 gap-6">
                         <div>
-                            <Label htmlFor="initial-guess">Initial Guess</Label>
-                            <Input id="initial-guess" value={initialGuessStr} onChange={e => setInitialGuessStr(e.target.value)} placeholder="e.g., [0, 0]" className="font-mono"/>
+                           <Label>Initial Guess</Label>
+                           <div className="grid grid-cols-2 gap-2 mt-2">
+                               {initialGuess.map((val, i) => (
+                                   <div key={i}><Label htmlFor={`guess-${i}`} className="text-xs">x[{i}]</Label><Input id={`guess-${i}`} value={val} onChange={e => setInitialGuess(produce(draft => {draft[i] = e.target.value}))} className="font-mono" /></div>
+                               ))}
+                           </div>
                         </div>
-                         <div>
-                            <Label htmlFor="bounds">Bounds for Variables</Label>
-                            <Input id="bounds" value={boundsStr} onChange={e => setBoundsStr(e.target.value)} placeholder="e.g., [(0, None), (0, 1)]" className="font-mono"/>
+                        <div>
+                           <Label>Bounds for Variables</Label>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                               {bounds.map((b, i) => (
+                                   <div key={i} className="flex items-center gap-2">
+                                       <Label htmlFor={`b-min-${i}`} className="text-xs">x[{i}] Min:</Label><Input id={`b-min-${i}`} value={b.min} onChange={e => setBounds(produce(draft => {draft[i].min = e.target.value}))} className="font-mono" />
+                                       <Label htmlFor={`b-max-${i}`} className="text-xs">Max:</Label><Input id={`b-max-${i}`} value={b.max} onChange={e => setBounds(produce(draft => {draft[i].max = e.target.value}))} className="font-mono" />
+                                   </div>
+                               ))}
+                            </div>
                         </div>
                     </div>
                      <div>
-                        <Label htmlFor="constraints">Constraints</Label>
-                        <Textarea id="constraints" value={constraintsStr} onChange={e => setConstraintsStr(e.target.value)} className="font-mono" rows={4} placeholder="e.g., [{'type': 'ineq', 'fun': 'lambda x: x[0] - 2*x[1] + 2'}]"/>
+                        <Label>Constraints (as Python lambda functions)</Label>
+                        <div className="space-y-2">
+                            {constraints.map((c, i) => (
+                                <div key={c.id} className="flex items-center gap-2">
+                                    <Select value={c.type} onValueChange={(v) => setConstraints(produce(draft => {draft[i].type = v as any}))}>
+                                        <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                                        <SelectContent><SelectItem value="ineq">ineq (>=0)</SelectItem><SelectItem value="eq">eq (==0)</SelectItem></SelectContent>
+                                    </Select>
+                                    <Input value={c.fun} onChange={e => setConstraints(produce(draft => {draft[i].fun = e.target.value}))} className="font-mono flex-1"/>
+                                    <Button variant="ghost" size="icon" onClick={() => setConstraints(p => p.filter(pc => pc.id !== c.id))}><Trash2 className="w-4 h-4 text-destructive"/></Button>
+                                </div>
+                            ))}
+                        </div>
+                         <Button variant="outline" size="sm" className="mt-2" onClick={() => setConstraints(p => [...p, {id: `c-${Date.now()}`, type: 'ineq', fun: 'lambda x: ' }])}><PlusCircle className="mr-2"/>Add Constraint</Button>
                     </div>
                     <div>
                         <Label>Solver Method</Label>
@@ -153,7 +213,7 @@ export default function NonlinearProgrammingPage() {
                                 <SelectItem value="SLSQP">Sequential Least Squares Programming (SLSQP)</SelectItem>
                                 <SelectItem value="COBYLA">Constrained Optimization by Linear Approximation (COBYLA)</SelectItem>
                                 <SelectItem value="trust-constr">Trust-Region Constrained (trust-constr)</SelectItem>
-                                <SelectItem value="CG">Conjugate-Gradient (CG)</SelectItem>
+                                <SelectItem value="CG">Conjugate Gradient (CG)</SelectItem>
                                 <SelectItem value="BFGS">Broyden-Fletcher-Goldfarb-Shanno (BFGS)</SelectItem>
                                 <SelectItem value="Newton-CG">Newton-Conjugate Gradient (Newton-CG)</SelectItem>
                             </SelectContent>
@@ -183,7 +243,7 @@ export default function NonlinearProgrammingPage() {
                                     <TableBody>
                                         {analysisResult.solution?.map((s, i) => (
                                             <TableRow key={i}>
-                                                <TableCell><strong>x{i}</strong></TableCell>
+                                                <TableCell><strong>x[{i}]</strong></TableCell>
                                                 <TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell>
                                             </TableRow>
                                         ))}
