@@ -981,15 +981,13 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                <>
-                                {question.columns.map((col: string, colIndex: number) => (
-                                    <TableCell key={colIndex} className="text-center">
+                            {question.columns.map((col: string, colIndex: number) => (
+                                <TableCell key={colIndex} className="text-center">
+                                    <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                         <RadioGroupItem value={col}/>
-                                    </TableCell>
-                                ))}
-                                </>
-                            </RadioGroup>
+                                    </RadioGroup>
+                                </TableCell>
+                            ))}
                             {!isPreview && <TableCell></TableCell>}
                         </TableRow>
                     ))}
@@ -1541,7 +1539,6 @@ function GeneralSurveyPageContentFromClient() {
 }
 
 type Position = { x: number; y: number };
-const GRID_SIZE = 20;
 
 function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; template?: string | null }) {
     const [survey, setSurvey] = useState<any>({
@@ -1590,7 +1587,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     const [loadedTemplate, setLoadedTemplate] = useState(false);
     
     const [dashboardPositions, setDashboardPositions] = useState<{ [key: string]: Position }>({});
-
+    const GRID_SIZE = 20;
     
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -1960,13 +1957,11 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         const { active, delta } = event;
         setDashboardPositions(prev => {
             const currentPosition = prev[active.id as any] || { x: 0, y: 0 };
-            const newPosition = {
-                x: Math.round((currentPosition.x + delta.x) / GRID_SIZE) * GRID_SIZE,
-                y: Math.round((currentPosition.y + delta.y) / GRID_SIZE) * GRID_SIZE,
-            };
+            const newX = Math.round((currentPosition.x + delta.x) / GRID_SIZE) * GRID_SIZE;
+            const newY = Math.round((currentPosition.y + delta.y) / GRID_SIZE) * GRID_SIZE;
             return {
                 ...prev,
-                [active.id]: newPosition
+                [active.id]: { x: newX, y: newY }
             };
         });
     };
@@ -2348,7 +2343,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="configuration"><Settings className="mr-2" />Configuration</TabsTrigger>
                     <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
-                    <TabsTrigger value="analytics-dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
+                    <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Analytics Dashboard</TabsTrigger>
                 </TabsList>
                 <TabsContent value="design">
                     <div className="grid md:grid-cols-12 gap-6 mt-4">
@@ -2449,6 +2444,35 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     </Dialog>
                                 </CardContent>
                             </Card>
+                             <Card>
+                                <CardHeader>
+                                     <CardTitle className="text-lg">Appearance</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-2 space-y-4">
+                                    <div>
+                                        <Label className="text-xs font-semibold mb-2 text-muted-foreground px-1">Survey Type</Label>
+                                        <Select onValueChange={handleTypeChange} value={survey.theme?.type || 'default'}>
+                                            <SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="default">Default</SelectItem>
+                                                <SelectItem value="type1">Type 1</SelectItem>
+                                                <SelectItem value="type2">Type 2</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs font-semibold mb-2 text-muted-foreground px-1">Page Transition</Label>
+                                        <Select onValueChange={(value) => setSurvey(produce((draft: any) => { draft.theme.transition = value; }))} value={survey.theme?.transition || 'slide'}>
+                                            <SelectTrigger><SelectValue placeholder="Select a transition" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="slide">Slide</SelectItem>
+                                                <SelectItem value="fade">Fade</SelectItem>
+                                                <SelectItem value="none">None</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </CardContent>
+                             </Card>
                         </div>
                         <div className="md:col-span-9">
                              <Card
@@ -2554,7 +2578,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     </div>
                 </TabsContent>
                 <TabsContent value="configuration">
-                     <Card className="mt-4">
+                    <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Survey Configuration</CardTitle>
                             <CardDescription>Configure the behavior and access of your survey.</CardDescription>
@@ -2640,7 +2664,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                         </CardContent>
                     </Card>
                 </TabsContent>
-                 <TabsContent value="analytics-dashboard">
+                 <TabsContent value="dashboard">
                     <Card className="mt-4">
                          <CardHeader>
                             <CardTitle>Analytics Dashboard</CardTitle>
@@ -2653,7 +2677,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 </div>
                             ) : (
                                 <DndContext sensors={sensors} onDragEnd={handleDashboardDragEnd}>
-                                    <div className="relative w-[1000px] h-[800px] bg-muted/50 rounded-lg border overflow-hidden">
+                                    <div className="relative w-[1000px] h-[800px] bg-muted/50 rounded-lg border overflow-hidden bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:20px_20px]">
                                         {analysisItems.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, i: number) => {
                                             const { noData, chartData } = getAnalysisDataForQuestion(q.id);
                                             if (noData) return null;
@@ -2850,3 +2874,4 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
+
