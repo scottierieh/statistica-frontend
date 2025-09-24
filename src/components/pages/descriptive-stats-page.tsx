@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Zap, Brain, AlertTriangle, BarChart as BarChartIcon, BookOpen, Coffee, Settings, MoveRight } from 'lucide-react';
+import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -202,7 +202,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
             </div>
         </AnalysisDisplayShell>
     );
-};
+  };
 
 interface DescriptiveStatsPageProps {
     data: DataSet;
@@ -250,7 +250,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             </ol>
                         </div>
                          <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChart className="text-primary"/> Results Interpretation</h3>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChartIcon className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li><strong>For Numeric Data:</strong> Look at the mean and median to understand central tendency, and the standard deviation and range to understand variability and spread.</li>
                                 <li><strong>For Categorical Data:</strong> Analyze the frequency counts and percentages to see the distribution across different categories. The mode is the most common category.</li>
@@ -340,7 +340,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
 
                     results[varName] = {
                         type: 'numeric', stats: stats,
-                        plotData: { bins },
+                        plotData: { values: columnData },
                         insights: generateNumericInsights(stats),
                     };
                 } else {
