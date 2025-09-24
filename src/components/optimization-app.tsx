@@ -12,17 +12,19 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Target, Truck, Award } from 'lucide-react';
+import { Target, Truck, Award, Atom } from 'lucide-react';
 import LinearProgrammingPage from './pages/linear-programming-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
 import GoalProgrammingPage from './pages/goal-programming-page';
+import NonlinearProgrammingPage from './pages/nonlinear-programming-page';
 
-type OptimizationType = 'linear-programming' | 'transportation-problem' | 'goal-programming';
+type OptimizationType = 'linear-programming' | 'transportation-problem' | 'goal-programming' | 'nonlinear-programming';
 
 const optimizationPages: Record<string, React.ComponentType<any>> = {
   'linear-programming': LinearProgrammingPage,
   'transportation-problem': TransportationProblemPage,
   'goal-programming': GoalProgrammingPage,
+  'nonlinear-programming': NonlinearProgrammingPage,
 };
 
 export default function OptimizationApp() {
@@ -48,6 +50,15 @@ export default function OptimizationApp() {
                 isActive={activeAnalysis === 'linear-programming'}
               >
                 Linear Programming
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setActiveAnalysis('nonlinear-programming')}
+                isActive={activeAnalysis === 'nonlinear-programming'}
+              >
+                 <Atom className="mr-2 h-4 w-4" />
+                Nonlinear Programming
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
