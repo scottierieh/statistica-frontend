@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -111,7 +110,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {freqExample && <Button variant="outline" onClick={() => onLoadExample(freqExample)}><freqExample.icon className="mr-2"/>Load Sample Market Data</Button>}
+                    {freqExample && <Button variant="outline" onClick={() => onLoadExample(freqExample)}><Users className="mr-2"/>Load Sample Demographics Data</Button>}
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
@@ -417,3 +416,4 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
         </div>
     );
 }
+
