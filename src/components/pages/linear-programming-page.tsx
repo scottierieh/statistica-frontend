@@ -10,14 +10,33 @@ import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle } from 'lucide-rea
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from "@/lib/utils";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface LpResult {
-    solution: number[];
-    optimal_value: number;
+    primal_solution?: number[];
+    solution?: number[]; // For MILP
+    primal_optimal_value?: number;
+    optimal_value?: number; // For MILP
     success: boolean;
-    message: string;
-    tableau_steps?: number[][][];
+    message?: string;
+    sensitivity?: {
+        slack: number[];
+        shadow_prices_ub: number[];
+        shadow_prices_eq: number[];
+    };
+    dual_problem?: {
+        objective: string;
+        c: number[];
+        A: number[][];
+        b: number[];
+        constraint_types: string[];
+    };
+    dual_solution?: {
+        solution: number[];
+        optimal_value: number;
+    };
 }
+
 
 const IntroPage = ({ onStart }: { onStart: () => void }) => {
     return (
@@ -53,10 +72,13 @@ export default function LinearProgrammingPage() {
     const [numVars, setNumVars] = useState(2);
     const [numConstraints, setNumConstraints] = useState(3);
     const [objective, setObjective] = useState<'maximize' | 'minimize'>('maximize');
+    const [problemType, setProblemType] = useState<'lp' | 'integer' | 'milp'>('lp');
     
     const [c, setC] = useState<number[]>([3, 2]);
     const [A, setA] = useState<number[][]>([[1, 1], [1, 0], [0, 1]]);
     const [b, setB] = useState<number[]>([4, 2, 3]);
+    const [constraintTypes, setConstraintTypes] = useState<string[]>(['<=', '<=', '<=']);
+    const [variableTypes, setVariableTypes] = useState<string[]>(['continuous', 'continuous']);
 
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<LpResult | null>(null);
@@ -67,15 +89,20 @@ export default function LinearProgrammingPage() {
         setC(Array(vars).fill(0));
         setA(Array(constraints).fill(null).map(() => Array(vars).fill(0)));
         setB(Array(constraints).fill(0));
+        setConstraintTypes(Array(constraints).fill('<='));
+        setVariableTypes(Array(vars).fill('continuous'));
     };
 
     const handleLoadExample = () => {
         setNumVars(2);
         setNumConstraints(3);
         setObjective('maximize');
+        setProblemType('lp');
         setC([3, 2]); 
         setA([[1, 1], [1, 0], [0, 1]]);
         setB([4, 2, 3]);
+        setConstraintTypes(['<=', '<=', '<=']);
+        setVariableTypes(['continuous', 'continuous']);
         setAnalysisResult(null);
         toast({ title: "Sample Data Loaded", description: "Example maximization problem has been set up." });
     };
@@ -97,6 +124,18 @@ export default function LinearProgrammingPage() {
         }
     };
     
+    const handleConstraintTypeChange = (i: number, value: string) => {
+        const newTypes = [...constraintTypes];
+        newTypes[i] = value;
+        setConstraintTypes(newTypes);
+    };
+
+    const handleVariableTypeChange = (j: number, value: string) => {
+        const newTypes = [...variableTypes];
+        newTypes[j] = value;
+        setVariableTypes(newTypes);
+    }
+    
     const handleAnalysis = useCallback(async () => {
         setIsLoading(true);
         setAnalysisResult(null);
@@ -105,7 +144,7 @@ export default function LinearProgrammingPage() {
             const response = await fetch('/api/analysis/linear-programming', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ c, A_ub: A, b_ub: b, objective })
+                body: JSON.stringify({ c, A, b, constraint_types: constraintTypes, objective, problem_type: problemType, variable_types: variableTypes })
             });
 
             if (!response.ok) {
@@ -123,20 +162,23 @@ export default function LinearProgrammingPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [c, A, b, objective, toast]);
+    }, [c, A, b, constraintTypes, objective, problemType, variableTypes, toast]);
 
     const getObjectiveFunctionString = () => {
         return `${objective === 'maximize' ? 'Max' : 'Min'} Z = ` + c.map((val, j) => `${val}·x${j + 1}`).join(' + ');
     };
     
     const getConstraintString = (i: number) => {
-        return A[i].map((val, j) => `${val}·x${j + 1}`).join(' + ') + ` ≤ ${b[i]}`;
+        return A[i].map((val, j) => `${val}·x${j + 1}`).join(' + ') + ` ${constraintTypes[i]} ${b[i]}`;
     };
 
     if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} />;
     }
     
+    const primalSolution = analysisResult?.primal_solution ?? analysisResult?.solution;
+    const optimalValue = analysisResult?.primal_optimal_value ?? analysisResult?.optimal_value;
+
     return (
         <div className="space-y-4">
             <Card>
@@ -182,32 +224,66 @@ export default function LinearProgrammingPage() {
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <div className="flex flex-wrap items-end gap-2">
-                                        {c.map((val, j) => (
-                                            <div key={j} className="flex-1 min-w-[100px]">
-                                                <Label htmlFor={`c${j}`}>x{j+1} Coeff:</Label>
-                                                <Input id={`c${j}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, 0, j, 'c')} />
-                                            </div>
-                                        ))}
+                                    <div>
+                                        <Label>Problem Type</Label>
+                                         <Select value={problemType} onValueChange={(v) => setProblemType(v as any)}>
+                                            <SelectTrigger><SelectValue/></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="lp">Standard LP</SelectItem>
+                                                <SelectItem value="integer">Integer Programming (MIP)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
+                                <div className="flex flex-wrap items-end gap-2">
+                                    {c.map((val, j) => (
+                                        <div key={j} className="flex-1 min-w-[100px]">
+                                            <Label htmlFor={`c${j}`}>x{j+1} Coeff:</Label>
+                                            <Input id={`c${j}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, 0, j, 'c')} />
+                                        </div>
+                                    ))}
+                                </div>
+                                {problemType === 'integer' && (
+                                    <div className="mt-4">
+                                        <Label>Variable Types</Label>
+                                        <div className="flex flex-wrap gap-4 mt-2">
+                                            {variableTypes.map((vType, j) => (
+                                                <div key={j}>
+                                                    <Label htmlFor={`vtype${j}`}>x{j+1}</Label>
+                                                    <Select value={vType} onValueChange={value => handleVariableTypeChange(j, value)}>
+                                                        <SelectTrigger id={`vtype${j}`}><SelectValue/></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="continuous">Continuous</SelectItem>
+                                                            <SelectItem value="integer">Integer</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="mt-4">
-                                     <Label>Constraints (Σaᵢⱼxⱼ ≤ bᵢ)</Label>
+                                     <Label>Constraints</Label>
                                      <div className="grid grid-cols-1 gap-2 mt-2">
                                         {A.map((row, i) => (
-                                            <div key={i} className="flex flex-wrap items-center gap-4 p-2 rounded-md bg-muted/20">
+                                            <div key={i} className="flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/20">
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     {row.map((val, j) => (
                                                         <div key={j} className="flex items-center gap-2">
-                                                            <Label htmlFor={`a${i+1}${j+1}`}>x{j+1}:</Label>
-                                                            <Input id={`a${i+1}${j+1}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, i, j, 'A')} className="w-24"/>
+                                                            <Input id={`a${i+1}${j+1}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, i, j, 'A')} className="w-20"/>
+                                                            <Label htmlFor={`a${i+1}${j+1}`}>· x{j+1}</Label>
                                                         </div>
                                                     ))}
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-muted-foreground">≤</span>
-                                                    <Input id={`b${i+1}`} type="number" value={b[i]} onChange={e => handleMatrixChange(e.target.value, i, 0, 'b')} className="w-24"/>
-                                                </div>
+                                                <Select value={constraintTypes[i]} onValueChange={value => handleConstraintTypeChange(i, value)}>
+                                                    <SelectTrigger className="w-[60px]"><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="<=">≤</SelectItem>
+                                                        <SelectItem value=">=">≥</SelectItem>
+                                                        <SelectItem value="==">=</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <Input id={`b${i+1}`} type="number" value={b[i]} onChange={e => handleMatrixChange(e.target.value, i, 0, 'b')} className="w-24"/>
                                             </div>
                                         ))}
                                      </div>
@@ -237,58 +313,61 @@ export default function LinearProgrammingPage() {
                             </ul>
                         </CardContent>
                     </Card>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Optimal Solution</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {analysisResult.success ? (
-                                <div>
-                                    <p><strong>Optimal Value (Z*):</strong> <span className="font-mono">{analysisResult.optimal_value.toFixed(6)}</span></p>
-                                    <Table className="mt-2">
-                                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {analysisResult.solution.map((s, i) => (
-                                                <TableRow key={i}>
-                                                    <TableCell><strong>x{i + 1}</strong></TableCell>
-                                                    <TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            ) : (
-                                <p className="text-destructive">{analysisResult.message}</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                    {analysisResult.tableau_steps && analysisResult.tableau_steps.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Simplex Tableau Steps</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {analysisResult.tableau_steps.map((step, index) => (
-                                        <div key={index}>
-                                            <h4 className="font-semibold">Iteration {index}</h4>
-                                            <Table>
+                    <Tabs defaultValue="solution">
+                        <TabsList>
+                            <TabsTrigger value="solution">Optimal Solution</TabsTrigger>
+                            {analysisResult.sensitivity && <TabsTrigger value="sensitivity">Sensitivity Analysis</TabsTrigger>}
+                        </TabsList>
+                        <TabsContent value="solution">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Optimal Solution</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {analysisResult.success ? (
+                                        <div>
+                                            <p><strong>Optimal Value (Z*):</strong> <span className="font-mono">{optimalValue?.toFixed(6)}</span></p>
+                                            <Table className="mt-2">
+                                                <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
                                                 <TableBody>
-                                                    {step.map((row, i) => (
+                                                    {primalSolution?.map((s, i) => (
                                                         <TableRow key={i}>
-                                                            {row.map((cell, j) => (
-                                                                <TableCell key={j} className="font-mono text-right">{cell.toFixed(2)}</TableCell>
-                                                            ))}
+                                                            <TableCell><strong>x{i + 1}</strong></TableCell>
+                                                            <TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell>
                                                         </TableRow>
                                                     ))}
                                                 </TableBody>
                                             </Table>
                                         </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                                    ) : (
+                                        <p className="text-destructive">{analysisResult.message}</p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        {analysisResult.sensitivity && (
+                             <TabsContent value="sensitivity">
+                                <Card>
+                                     <CardHeader><CardTitle>Sensitivity Analysis</CardTitle></CardHeader>
+                                     <CardContent>
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>Constraint</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Slack/Surplus</TableHead><TableHead className="text-right">Shadow Price</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {constraintTypes.map((type, i) => (
+                                                    <TableRow key={i}>
+                                                        <TableCell>Constraint {i + 1}</TableCell>
+                                                        <TableCell>{type}</TableCell>
+                                                        <TableCell className="font-mono text-right">{analysisResult.sensitivity?.slack[i]?.toFixed(4)}</TableCell>
+                                                        <TableCell className="font-mono text-right">{analysisResult.sensitivity?.shadow_prices_ub[i]?.toFixed(4)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                             </TabsContent>
+                        )}
+                    </Tabs>
                 </div>
             )}
         </div>

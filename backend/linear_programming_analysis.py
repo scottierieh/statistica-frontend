@@ -3,6 +3,13 @@ import sys
 import json
 import numpy as np
 
+try:
+    from scipy.optimize import linprog, milp
+    from scipy.optimize import milp
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
@@ -14,110 +21,150 @@ def _to_native_type(obj):
         return obj.tolist()
     return obj
 
-def solve_simplex(c, A, b, objective='maximize'):
-    num_vars = len(c)
-    num_constraints = len(b)
-
-    # --- Create the initial tableau ---
-    # Convert to standard form (maximization)
-    if objective == 'minimize':
-        c = -np.array(c)
-
-    # Add slack variables
-    slack_vars = np.eye(num_constraints)
-    A_std = np.hstack((A, slack_vars))
+def solve_lp_and_dual(c, A_ub, b_ub, A_eq, b_eq, bounds, objective='maximize'):
+    """
+    Solves the primal LP and derives the dual solution.
+    """
+    # SciPy's linprog is a minimizer, so for maximization, we minimize -c
+    c_solver = -np.array(c) if objective == 'maximize' else np.array(c)
     
-    # Create the tableau
-    tableau = np.zeros((num_constraints + 1, num_vars + num_constraints + 1))
-    tableau[:-1, :num_vars + num_constraints] = A_std
-    tableau[:-1, -1] = b
-    tableau[-1, :num_vars] = c 
+    res = linprog(c_solver, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')
+
+    if not res.success:
+        return {"error": f"Primal problem could not be solved: {res.message}", "success": False}
+
+    # Primal Solution
+    primal_solution = res.x
+    primal_optimal_value = -res.fun if objective == 'maximize' else res.fun
+
+    # Dual Solution (Shadow Prices and Reduced Costs)
+    # For a max problem Ax<=b, dual is min b'y, A'y>=c, y>=0. Dual variables from solver are for this form.
+    # The solver's duals (res.dual) correspond to the constraints of the standard form it solves.
+    # We need to map them back to our original constraints.
     
-    tableau_steps = [tableau.copy().tolist()]
-
-    iteration = 0
-    max_iterations = 50 
-
-    # --- Simplex Algorithm Iterations ---
-    while np.any(tableau[-1, :-1] > 1e-6) and iteration < max_iterations:
-        # Find pivot column (most positive in objective row)
-        pivot_col = np.argmax(tableau[-1, :-1])
-        
-        # Check for unboundedness
-        if np.all(tableau[:-1, pivot_col] <= 0):
-            return {"error": "Unbounded solution.", "steps": tableau_steps}
-            
-        # Find pivot row (minimum ratio test)
-        ratios = []
-        for i in range(num_constraints):
-            if tableau[i, pivot_col] > 1e-9:
-                ratios.append(tableau[i, -1] / tableau[i, pivot_col])
-            else:
-                ratios.append(np.inf)
-        
-        pivot_row = np.argmin(ratios)
-
-        # Perform pivot operation
-        pivot_element = tableau[pivot_row, pivot_col]
-        tableau[pivot_row, :] /= pivot_element
-        
-        for i in range(num_constraints + 1):
-            if i != pivot_row:
-                factor = tableau[i, pivot_col]
-                tableau[i, :] -= factor * tableau[pivot_row, :]
-        
-        tableau_steps.append(tableau.copy().tolist())
-        iteration += 1
-        
-    if iteration >= max_iterations:
-         return {"error": "Max iterations reached. The problem may be unbounded or cycling.", "steps": tableau_steps}
+    # Slack/Surplus for upper-bound constraints
+    slack = b_ub - (A_ub @ primal_solution) if A_ub is not None else []
     
-    # --- Extract Solution ---
-    solution = np.zeros(num_vars)
-    for j in range(num_vars):
-        col = tableau[:-1, j]
-        is_basic = (np.sum(col) == 1.0) and (len(col[col == 1.0]) == 1)
-        if is_basic:
-            row_index = np.where(col == 1.0)[0][0]
-            solution[j] = tableau[row_index, -1]
+    # Shadow prices for upper-bound constraints
+    shadow_prices_ub = res.dual_unbounded if hasattr(res, 'dual_unbounded') else res.get('slack', [])
 
-    optimal_value = -tableau[-1, -1] if objective == 'maximize' else tableau[-1, -1]
+    # Shadow prices for equality constraints
+    shadow_prices_eq = res.dual_eq if hasattr(res, 'dual_eq') else res.get('eqslack', [])
+
+    # Reduced costs for variables
+    reduced_costs = res.dual_unbounded[len(b_ub):] if hasattr(res, 'dual_unbounded') and A_ub is not None else []
+
 
     return {
-        "solution": solution.tolist(),
-        "optimal_value": optimal_value,
-        "steps": tableau_steps,
         "success": True,
-        "message": "Optimization successful."
+        "primal_solution": primal_solution.tolist(),
+        "primal_optimal_value": primal_optimal_value,
+        "sensitivity": {
+            "slack": slack.tolist(),
+            "shadow_prices_ub": shadow_prices_ub.tolist(),
+            "shadow_prices_eq": shadow_prices_eq.tolist(),
+            "reduced_costs": reduced_costs
+        }
+    }
+    
+def solve_integer_lp(c, A_ub, b_ub, A_eq, b_eq, bounds, integrality, objective='maximize'):
+    """
+    Solves a Mixed-Integer Linear Program (MILP).
+    """
+    # SciPy's milp is a minimizer
+    c_solver = -np.array(c) if objective == 'maximize' else np.array(c)
+
+    # `integrality` should be an array-like of 1s (integer) and 0s (continuous)
+    constraints = []
+    if A_ub is not None:
+        constraints.append(milp(A_ub, ub=b_ub))
+    if A_eq is not None:
+        constraints.append(milp(A_eq, lb=b_eq, ub=b_eq))
+        
+    res = milp(c=c_solver, constraints=constraints, integrality=integrality, bounds=bounds)
+
+    if not res.success:
+        return {"error": f"Integer problem could not be solved: {res.message}", "success": False}
+
+    solution = res.x
+    optimal_value = -res.fun if objective == 'maximize' else res.fun
+    
+    return {
+        "success": True,
+        "solution": solution.tolist(),
+        "optimal_value": optimal_value
     }
 
 
 def main():
+    if not SCIPY_AVAILABLE:
+        print(json.dumps({"error": "SciPy library is not installed. Please install it to use this feature."}), file=sys.stderr)
+        sys.exit(1)
+
     try:
         payload = json.load(sys.stdin)
         c = payload.get('c')
-        A_ub = payload.get('A_ub')
-        b_ub = payload.get('b_ub')
+        A = np.array(payload.get('A'))
+        b = np.array(payload.get('b'))
+        constraint_types = payload.get('constraint_types')
         objective = payload.get('objective', 'maximize')
+        problem_type = payload.get('problem_type', 'lp')
+        variable_types = payload.get('variable_types') # List of 'integer' or 'continuous'
 
-        if not all([c, A_ub, b_ub]):
-            raise ValueError("Missing required parameters: c, A_ub, or b_ub")
+        if not all([c is not None, A is not None, b is not None, constraint_types is not None]):
+            raise ValueError("Missing required parameters: c, A, b, or constraint_types")
         
-        result = solve_simplex(c, A_ub, b_ub, objective=objective)
-        
-        if "error" in result:
-             print(json.dumps(result), file=sys.stderr)
-             sys.exit(1)
+        num_vars = len(c)
+        bounds = (0, None) # Non-negativity constraint
 
-        response = {
-            'solution': result['solution'],
-            'optimal_value': result['optimal_value'],
-            'success': result['success'],
-            'message': result['message'],
-            'tableau_steps': result.get('steps', [])
-        }
+        if problem_type == 'integer' or problem_type == 'milp':
+             integrality = np.array([1 if v_type == 'integer' else 0 for v_type in variable_types])
+             # For MILP, we can pass all constraints as <= or ==.
+             # We can't easily get duals/sensitivity from the MILP solver in scipy.
+             A_ub, b_ub = [], []
+             A_eq, b_eq = [], []
+             for i, c_type in enumerate(constraint_types):
+                if c_type == '<=':
+                    A_ub.append(A[i])
+                    b_ub.append(b[i])
+                elif c_type == '>=':
+                    A_ub.append(-A[i])
+                    b_ub.append(-b[i])
+                elif c_type == '==':
+                    A_eq.append(A[i])
+                    b_eq.append(b[i])
+             
+             result = solve_integer_lp(c, 
+                                       np.array(A_ub) if A_ub else None, 
+                                       np.array(b_ub) if b_ub else None, 
+                                       np.array(A_eq) if A_eq else None,
+                                       np.array(b_eq) if b_eq else None,
+                                       bounds, integrality, objective)
+        else: # Standard LP
+            # Separate constraints based on type for linprog
+            A_ub = [A[i] for i, t in enumerate(constraint_types) if t == '<=']
+            b_ub = [b[i] for i, t in enumerate(constraint_types) if t == '<=']
+            
+            # Convert >= to <= by multiplying by -1
+            for i, t in enumerate(constraint_types):
+                if t == '>=':
+                    A_ub.append(-A[i])
+                    b_ub.append(-b[i])
 
-        print(json.dumps(response, default=_to_native_type))
+            A_eq = [A[i] for i, t in enumerate(constraint_types) if t == '==']
+            b_eq = [b[i] for i, t in enumerate(constraint_types) if t == '==']
+            
+            result = solve_lp_and_dual(c, 
+                                   np.array(A_ub) if A_ub else None, 
+                                   np.array(b_ub) if b_ub else None, 
+                                   np.array(A_eq) if A_eq else None,
+                                   np.array(b_eq) if b_eq else None,
+                                   bounds, objective)
+
+        if not result.get("success"):
+            raise ValueError(result.get("error", "An unknown error occurred in the solver."))
+
+        print(json.dumps(result, default=_to_native_type))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
@@ -125,3 +172,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
