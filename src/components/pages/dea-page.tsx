@@ -55,7 +55,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         A performance measurement technique used to evaluate the relative efficiency of Decision-Making Units (DMUs).
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
+                <CardContent className="text-left space-y-10 px-8 py-10">
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                              <h3 className="font-semibold text-2xl">Setup Guide</h3>
@@ -407,12 +407,6 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             </ScrollArea>
                         </CardContent>
                     </Card>
-                </div>
-            )}
-
-            {!analysisResult && !isLoading && (
-                <div className="text-center text-muted-foreground py-10">
-                    <p>Select DMU, inputs, and outputs to run DEA.</p>
                 </div>
             )}
         </div>
