@@ -39,10 +39,11 @@ export default function LinearProgrammingPage() {
 
     const handleLoadExample = () => {
         setNumVars(2);
-        setNumConstraints(2);
+        setNumConstraints(3);
         setC([-3, -5]);
         setA([[1, 0], [0, 2], [3, 2]]);
         setB([4, 12, 18]);
+        setAnalysisResult(null); // Clear previous results
         toast({ title: "Sample Data Loaded", description: "Example maximization problem has been set up." });
     };
 
@@ -132,7 +133,7 @@ export default function LinearProgrammingPage() {
                                     <div className="flex flex-wrap gap-2 mt-2">
                                         {c.map((val, j) => (
                                             <div key={j} className="flex items-center gap-2">
-                                                <Label htmlFor={`c${j}`}>c{j+1}:</Label>
+                                                <Label htmlFor={`c${j}`}>x{j+1}:</Label>
                                                 <Input id={`c${j}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, 0, j, 'c')} className="w-24" />
                                             </div>
                                         ))}
@@ -146,14 +147,13 @@ export default function LinearProgrammingPage() {
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     {row.map((val, j) => (
                                                         <div key={j} className="flex items-center gap-2">
-                                                            <Label htmlFor={`a${i+1}${j+1}`}>a{i+1}{j+1}:</Label>
+                                                            <Label htmlFor={`a${i+1}${j+1}`}>x{j+1}:</Label>
                                                             <Input id={`a${i+1}${j+1}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, i, j, 'A')} className="w-24"/>
                                                         </div>
                                                     ))}
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-muted-foreground">≤</span>
-                                                    <Label htmlFor={`b${i+1}`}>b{i+1}:</Label>
                                                     <Input id={`b${i+1}`} type="number" value={b[i]} onChange={e => handleMatrixChange(e.target.value, i, 0, 'b')} className="w-24"/>
                                                 </div>
                                             </div>
@@ -222,5 +222,3 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttribu
     );
 });
 Textarea.displayName = "Textarea";
-
-    
