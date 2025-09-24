@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, Plus, Trash2, HelpCircle } from 'lucide-react';
+import { Sigma, Loader2, Play, Plus, Trash2, HelpCircle, Award, MoveRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { produce } from 'immer';
@@ -48,27 +48,32 @@ interface GpResult {
 
 const IntroPage = ({ onStart }: { onStart: () => void }) => {
     return (
-        <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-2xl text-center">
-                <CardHeader>
-                    <CardTitle className="font-headline text-2xl">Goal Programming</CardTitle>
-                    <CardDescription className="text-base pt-2">
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Award size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Goal Programming</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
                         An optimization technique for handling multiple, often conflicting, objectives by minimizing deviations from set goals.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="text-left space-y-4">
+                <CardContent className="text-left space-y-6 px-8 py-10">
                     <p>
                         Unlike linear programming which optimizes a single objective, goal programming seeks a solution that comes as "close as possible" to achieving a set of goals, according to their priority.
                     </p>
-                    <ul className="list-disc pl-5 space-y-2">
+                    <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                         <li><strong>Decision Variables:</strong> The variables you can control to achieve your goals (e.g., production quantities, budget allocation).</li>
                         <li><strong>Goals:</strong> The target values for your objectives. Each goal has a priority level.</li>
                         <li><strong>Deviation Variables:</strong> Represent the under-achievement (d⁻) or over-achievement (d⁺) for each goal. The algorithm works to minimize these deviations.</li>
                         <li><strong>Priorities:</strong> Goals are solved sequentially from the highest priority (P1) to the lowest.</li>
                     </ul>
                 </CardContent>
-                <CardFooter className="flex justify-center">
-                    <Button onClick={onStart}>Get Started</Button>
+                <CardFooter className="flex justify-center p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Get Started <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>

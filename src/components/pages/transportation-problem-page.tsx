@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, Truck, HelpCircle } from 'lucide-react';
+import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Truck, MoveRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from "@/lib/utils";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -23,29 +23,35 @@ interface TransportationResult {
     message?: string;
 }
 
-const IntroPage = ({ onStart }: { onStart: () => void }) => {
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
     return (
-        <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-2xl text-center">
-                <CardHeader>
-                    <CardTitle className="font-headline text-2xl flex items-center justify-center gap-2"><Truck /> Transportation Problem</CardTitle>
-                    <CardDescription className="text-base pt-2">
-                        Find the most cost-effective way to ship goods from multiple sources (e.g., factories) to multiple destinations (e.g., warehouses).
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Truck size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Transportation Problem</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Find the most cost-effective way to ship goods from multiple sources to multiple destinations.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="text-left space-y-4">
+                <CardContent className="text-left space-y-4 px-8 py-10">
                     <p>
                         The Transportation Problem is a classic optimization problem. It helps businesses minimize transportation costs by determining the optimal quantity of goods to ship from each supply point to each demand point, while respecting supply and demand constraints.
                     </p>
-                    <ul className="list-disc pl-5 space-y-2">
+                    <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                         <li><strong>Sources:</strong> Locations with a limited supply of goods (e.g., factories, plants).</li>
                         <li><strong>Destinations:</strong> Locations with a specific demand for goods (e.g., warehouses, retail stores).</li>
                         <li><strong>Costs:</strong> The cost to transport one unit of a good from each source to each destination.</li>
                         <li><strong>Optimal Solution:</strong> The shipping plan that satisfies all demand without exceeding supply, at the lowest possible total cost.</li>
                     </ul>
                 </CardContent>
-                <CardFooter className="flex justify-center">
-                    <Button onClick={onStart}>Get Started</Button>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                     <Button variant="outline" onClick={onLoadExample}>Load Example Data</Button>
+                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
@@ -89,6 +95,7 @@ export default function TransportationProblemPage() {
         setDemand([45, 20, 30, 30]);
         setCosts([[8, 6, 10, 9], [9, 12, 13, 7], [14, 9, 16, 5]]);
         setAnalysisResult(null);
+        setView('main');
         toast({ title: "Sample Data Loaded", description: "Example transportation problem has been set up." });
     };
 
@@ -179,16 +186,16 @@ export default function TransportationProblemPage() {
     );
 
     if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} />;
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExample} />;
     }
 
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                     <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">Transportation Problem</CardTitle>
-                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Transportation Problem Solver</CardTitle>
+                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                     <CardDescription>
                         Define your supply, demand, and costs to find the optimal shipping plan.
@@ -204,8 +211,12 @@ export default function TransportationProblemPage() {
                             <Label htmlFor="num-destinations">Destinations:</Label>
                             <Input id="num-destinations" type="number" value={numDestinations} onChange={e => setNumDestinations(parseInt(e.target.value))} min="1" className="w-20"/>
                         </div>
-                        <Button onClick={handleBoardCreation}>Create Board</Button>
-                        <Button variant="outline" onClick={handleLoadExample}>Load Example</Button>
+                        <Button onClick={handleBoardCreation}>
+                            <Asterisk className="mr-2 h-4 w-4" />Create Board
+                        </Button>
+                        <Button variant="outline" onClick={handleLoadExample}>
+                           <FileJson className="mr-2 h-4 w-4" /> Load Example
+                        </Button>
                     </div>
                     
                     <div className="grid md:grid-cols-2 gap-4">
@@ -280,8 +291,12 @@ export default function TransportationProblemPage() {
                 </CardFooter>
             </Card>
 
-            {analysisResult && analysisResult.optimal_solution && (
-                renderSolutionTable(analysisResult.optimal_solution, `Optimal Solution`, analysisResult.optimal_cost!)
+            {analysisResult && (
+                <div className="space-y-4">
+                    {analysisResult.optimal_solution && (
+                        renderSolutionTable(analysisResult.optimal_solution, `Optimal Solution`, analysisResult.optimal_cost!)
+                    )}
+                </div>
             )}
         </div>
     );

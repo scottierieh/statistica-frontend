@@ -49,7 +49,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         Analytic Hierarchy Process (AHP)
                     </CardTitle>
                     <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        A systematic tool for breaking down complex multi-criteria decisions and deriving logical priorities.
+                        A structured technique for organizing and analyzing complex decisions, based on mathematics and psychology.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
@@ -454,3 +454,4 @@ export default function AhpPage() {
         </div>
     );
 }
+

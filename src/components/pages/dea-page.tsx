@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Binary, HeartPulse, BarChart as BarChartIcon, Bot, HelpCircle } from 'lucide-react';
+import { Sigma, Loader2, Binary, HeartPulse, BarChart as BarChartIcon, Bot, HelpCircle, MoveRight } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -42,33 +42,33 @@ interface FullDeaResponse {
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
     return (
-        <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-4xl">
-                <CardHeader>
-                    <CardTitle className="font-headline text-2xl flex items-center gap-3">
-                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                            <BarChartIcon size={28} />
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                 <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                     <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <BarChartIcon size={36} />
                          </div>
-                        Data Envelopment Analysis (DEA)
-                    </CardTitle>
-                    <CardDescription className="text-base pt-2">
-                        A performance measurement technique used to evaluate the relative efficiency of Decision-Making Units (DMUs) like hospitals, banks, or schools.
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Data Envelopment Analysis (DEA)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        A performance measurement technique used to evaluate the relative efficiency of Decision-Making Units (DMUs).
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                     <div className="grid md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-lg">Setup Guide</h3>
-                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                             <h3 className="font-semibold text-2xl">Setup Guide</h3>
+                            <ul className="list-decimal list-inside space-y-4 text-muted-foreground">
                                 <li><strong>DMUs:</strong> The entities you are comparing (e.g., 'Branch A', 'Hospital X'). This is a categorical column where each value is unique.</li>
                                 <li><strong>Input Variables:</strong> Resources used by the DMU (e.g., 'Employees', 'Operating Cost'). Lower is better.</li>
                                 <li><strong>Output Variables:</strong> Products or services produced by the DMU (e.g., 'Loans', 'Deposits'). Higher is better.</li>
                                 <li><strong>Orientation:</strong> Choose 'Input-oriented' to see how much inputs can be reduced, or 'Output-oriented' to see how much outputs can be increased.</li>
                             </ul>
                         </div>
-                         <div className="space-y-4">
-                            <h3 className="font-semibold text-lg">Result Interpretation</h3>
-                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl">Result Interpretation</h3>
+                            <ul className="list-decimal list-inside space-y-4 text-muted-foreground">
                                 <li><strong>Efficiency Score:</strong> A score of 1.0 indicates a DMU is fully efficient. A score less than 1.0 indicates relative inefficiency.</li>
                                 <li><strong>Reference Set (Peer Group):</strong> For an inefficient DMU, this shows which efficient DMUs it should benchmark against to improve.</li>
                                 <li><strong>Interpretation:</strong> The AI-powered summary provides actionable insights, identifying top performers and highlighting areas for improvement for underperforming units.</li>
@@ -76,14 +76,15 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-between">
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
                      <Button variant="outline" onClick={onLoadExample}>Load Sample Data</Button>
-                     <Button onClick={onStart}>Get Started</Button>
+                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
     );
 };
+
 
 interface DeaPageProps {
     data: DataSet;

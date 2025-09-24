@@ -1,12 +1,12 @@
 
 'use client';
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, HelpCircle, AlertTriangle, PlusCircle, Trash2 } from 'lucide-react';
+import { Sigma, Loader2, Play, HelpCircle, AlertTriangle, PlusCircle, Trash2, Atom, MoveRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -29,27 +29,32 @@ interface Constraint {
 
 const IntroPage = ({ onStart }: { onStart: () => void }) => {
     return (
-        <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-2xl text-center">
-                <CardHeader>
-                    <CardTitle className="font-headline text-2xl">Nonlinear Programming</CardTitle>
-                    <CardDescription className="text-base pt-2">
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Atom size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Nonlinear Programming</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
                         Solve optimization problems where the objective function or constraints are nonlinear.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="text-left space-y-4">
+                <CardContent className="text-left space-y-4 px-8 py-10">
                     <p>
                         Nonlinear programming extends optimization to problems that cannot be described with linear relationships. This tool uses numerical methods to find the optimal solution.
                     </p>
-                    <ul className="list-disc pl-5 space-y-2">
+                    <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                         <li><strong>Objective Function:</strong> The function to minimize, written in Python syntax (e.g., `(x[0] - 1)**2 + (x[1] - 2.5)**2`). Variables are accessed as `x[0]`, `x[1]`, etc.</li>
                         <li><strong>Constraints:</strong> Define limits on your variables. Can be equality (`type: 'eq'`) or inequality (`type: 'ineq'`). Inequality constraints are of the form C(x) >= 0.</li>
                         <li><strong>Bounds:</strong> The lower and upper limits for each decision variable.</li>
                         <li><strong>Initial Guess:</strong> A starting point for the solver to begin its search.</li>
                     </ul>
                 </CardContent>
-                <CardFooter className="flex justify-center">
-                    <Button onClick={onStart}>Get Started</Button>
+                <CardFooter className="flex justify-center p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Get Started <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
@@ -105,19 +110,33 @@ export default function NonlinearProgrammingPage() {
         setIsLoading(true);
         setAnalysisResult(null);
 
-        const initialGuessStr = `[${initialGuess.join(', ')}]`;
-        const boundsStr = `[${bounds.map(b => `(${b.min}, ${b.max})`).join(', ')}]`;
-        const constraintsStr = `[${constraints.map(c => `{'type': '${c.type}', 'fun': ${c.fun}}`).join(', ')}]`;
-
         try {
+            const parsedInitialGuess = initialGuess.map(v => parseFloat(v));
+            if (parsedInitialGuess.some(isNaN)) {
+                throw new Error("Initial guess values must all be numbers.");
+            }
+
+            const parsedBounds = bounds.map(b => {
+                const min = b.min.toLowerCase() === 'none' ? null : parseFloat(b.min);
+                const max = b.max.toLowerCase() === 'none' ? null : parseFloat(b.max);
+                if (isNaN(min as number) && min !== null) throw new Error(`Invalid min bound: ${b.min}`);
+                if (isNaN(max as number) && max !== null) throw new Error(`Invalid max bound: ${b.max}`);
+                return [min, max];
+            });
+
+            const parsedConstraints = constraints.map(c => ({
+                type: c.type,
+                fun: c.fun,
+            }));
+
             const response = await fetch('/api/analysis/nonlinear-programming', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     objective_str: objectiveStr, 
-                    initial_guess: initialGuessStr, 
-                    bounds: boundsStr, 
-                    constraints: constraintsStr,
+                    initial_guess: parsedInitialGuess, 
+                    bounds: parsedBounds, 
+                    constraints: parsedConstraints,
                     method
                 })
             });
@@ -155,7 +174,7 @@ export default function NonlinearProgrammingPage() {
                         <AlertTriangle className="h-4 w-4" />
                         <AlertTitle>Security Warning</AlertTitle>
                         <AlertDescription>
-                            This tool uses `eval` to process Python code. Do not run untrusted code. This feature is intended for educational and prototyping purposes only.
+                            This tool executes Python code on the backend. Do not run untrusted code. This feature is intended for educational and prototyping purposes only.
                         </AlertDescription>
                     </Alert>
                     
@@ -190,7 +209,7 @@ export default function NonlinearProgrammingPage() {
                         </div>
                     </div>
                      <div>
-                        <Label>Constraints (as Python lambda functions)</Label>
+                        <Label>Constraints</Label>
                         <div className="space-y-2">
                             {constraints.map((c, i) => (
                                 <div key={c.id} className="flex items-center gap-2">

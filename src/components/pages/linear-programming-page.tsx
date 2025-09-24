@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle } from 'lucide-react';
+import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, MoveRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { cn } from "@/lib/utils";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
@@ -37,34 +36,39 @@ interface LpResult {
     };
 }
 
-
 const IntroPage = ({ onStart }: { onStart: () => void }) => {
     return (
-        <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-2xl text-center">
-                <CardHeader>
-                    <CardTitle className="font-headline text-2xl">Linear Programming</CardTitle>
-                    <CardDescription className="text-base pt-2">
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Sigma size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Linear Programming</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
                         A powerful mathematical optimization technique to find the maximum profit or minimum cost using limited resources.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="text-left space-y-4">
+                <CardContent className="text-left space-y-6 px-8 py-10">
                     <p>
                         Linear programming addresses how to optimize (maximize or minimize) a linear objective function under given linear constraints. This tool uses the Simplex algorithm to find the solution.
                     </p>
-                    <ul className="list-disc pl-5 space-y-2">
+                    <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                         <li><strong>Objective Function:</strong> A linear equation representing the goal to be maximized or minimized (e.g., `Max Z = 3x₁ + 2x₂`).</li>
                         <li><strong>Constraints:</strong> Linear inequalities representing the limits of available resources (e.g., `x₁ + x₂ ≤ 4`).</li>
                         <li><strong>Optimal Solution:</strong> The values of the variables (x₁, x₂, ...) that optimize the objective function while satisfying all constraints.</li>
                     </ul>
                 </CardContent>
-                <CardFooter className="flex justify-center">
-                    <Button onClick={onStart}>Get Started</Button>
+                <CardFooter className="flex justify-center p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Get Started <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
     );
 };
+
 
 export default function LinearProgrammingPage() {
     const { toast } = useToast();
