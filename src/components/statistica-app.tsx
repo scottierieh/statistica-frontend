@@ -196,7 +196,6 @@ const analysisMenu = [
     methods: [
       { id: 'stats', label: 'Descriptive Statistics' },
       { id: 'frequency', label: 'Frequency Analysis' },
-      { id: 'crosstab', label: 'Crosstabulation' },
       { id: 'normality', label: 'Normality Test' },
       { id: 'homogeneity', label: 'Homogeneity Test' },
     ]
@@ -231,6 +230,7 @@ const analysisMenu = [
       {
         name: 'Non-Parametric Tests',
         methods: [
+          { id: 'crosstab', label: 'Chi-squared Test' },
           { id: 'mann-whitney', label: 'Mann-Whitney U Test' },
           { id: 'wilcoxon', label: 'Wilcoxon Signed-Rank' },
           { id: 'kruskal-wallis', label: 'Kruskal-Wallis Test' },
@@ -707,3 +707,4 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
