@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
@@ -1540,6 +1541,7 @@ function GeneralSurveyPageContentFromClient() {
 }
 
 type Position = { x: number; y: number };
+const GRID_SIZE = 20;
 
 function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; template?: string | null }) {
     const [survey, setSurvey] = useState<any>({
@@ -1959,8 +1961,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         setDashboardPositions(prev => {
             const currentPosition = prev[active.id as any] || { x: 0, y: 0 };
             const newPosition = {
-                x: currentPosition.x + delta.x,
-                y: currentPosition.y + delta.y,
+                x: Math.round((currentPosition.x + delta.x) / GRID_SIZE) * GRID_SIZE,
+                y: Math.round((currentPosition.y + delta.y) / GRID_SIZE) * GRID_SIZE,
             };
             return {
                 ...prev,
@@ -2346,7 +2348,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="configuration"><Settings className="mr-2" />Configuration</TabsTrigger>
                     <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
-                    <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Analytics Dashboard</TabsTrigger>
+                    <TabsTrigger value="analytics-dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                 </TabsList>
                 <TabsContent value="design">
                     <div className="grid md:grid-cols-12 gap-6 mt-4">
@@ -2591,34 +2593,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     </div>
                                 </div>
                             </div>
-                             <Separator />
-                            <div className="space-y-4">
-                                <h3 className="font-semibold text-lg">Appearance</h3>
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <Label>Survey Type</Label>
-                                        <Select onValueChange={handleTypeChange} value={survey.theme?.type || 'default'}>
-                                            <SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="default">Default</SelectItem>
-                                                <SelectItem value="type1">Type 1</SelectItem>
-                                                <SelectItem value="type2">Type 2</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div>
-                                        <Label>Page Transition</Label>
-                                        <Select onValueChange={(value) => setSurvey(produce((draft: any) => { draft.theme.transition = value; }))} value={survey.theme?.transition || 'slide'}>
-                                            <SelectTrigger><SelectValue placeholder="Select a transition" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="slide">Slide</SelectItem>
-                                                <SelectItem value="fade">Fade</SelectItem>
-                                                <SelectItem value="none">None</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -2666,7 +2640,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                         </CardContent>
                     </Card>
                 </TabsContent>
-                 <TabsContent value="dashboard">
+                 <TabsContent value="analytics-dashboard">
                     <Card className="mt-4">
                          <CardHeader>
                             <CardTitle>Analytics Dashboard</CardTitle>
