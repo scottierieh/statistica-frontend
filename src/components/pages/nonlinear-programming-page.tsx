@@ -150,12 +150,12 @@ export default function NonlinearProgrammingPage() {
                          <Select value={method} onValueChange={setMethod}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="SLSQP">SLSQP</SelectItem>
-                                <SelectItem value="COBYLA">COBYLA</SelectItem>
-                                <SelectItem value="trust-constr">trust-constr</SelectItem>
+                                <SelectItem value="SLSQP">Sequential Least Squares Programming (SLSQP)</SelectItem>
+                                <SelectItem value="COBYLA">Constrained Optimization by Linear Approximation (COBYLA)</SelectItem>
+                                <SelectItem value="trust-constr">Trust-Region Constrained (trust-constr)</SelectItem>
                                 <SelectItem value="CG">Conjugate-Gradient (CG)</SelectItem>
-                                <SelectItem value="BFGS">BFGS</SelectItem>
-                                <SelectItem value="Newton-CG">Newton-CG</SelectItem>
+                                <SelectItem value="BFGS">Broyden-Fletcher-Goldfarb-Shanno (BFGS)</SelectItem>
+                                <SelectItem value="Newton-CG">Newton-Conjugate Gradient (Newton-CG)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
