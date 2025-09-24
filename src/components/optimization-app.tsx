@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -217,32 +217,34 @@ const LinearProgrammingTool = () => {
                                 </CardContent>
                             </Card>
 
-                            <Card>
-                                <CardHeader><CardTitle className="text-lg">Simplex Iterations</CardTitle></CardHeader>
-                                <CardContent className="space-y-6">
-                                    {analysisResult.iterations.map((iter, index) => (
-                                        <div key={index}>
-                                            <h4 className="font-semibold mb-2">{iter.title}</h4>
-                                            <div className="overflow-x-auto">
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            {tableHeaders.map(h => <TableHead key={h}>{h}</TableHead>)}
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {iter.tableau.map((row, rIndex) => (
-                                                            <TableRow key={rIndex}>
-                                                                {row.map((cell, cIndex) => <TableCell key={cIndex} className="font-mono">{cell.toFixed(3)}</TableCell>)}
+                             {analysisResult.iterations.length > 0 && (
+                                <Card>
+                                    <CardHeader><CardTitle className="text-lg">Simplex Iterations</CardTitle></CardHeader>
+                                    <CardContent className="space-y-6">
+                                        {analysisResult.iterations.map((iter, index) => (
+                                            <div key={index}>
+                                                <h4 className="font-semibold mb-2">{iter.title}</h4>
+                                                <div className="overflow-x-auto">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                {tableHeaders.map(h => <TableHead key={h}>{h}</TableHead>)}
                                                             </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {iter.tableau.map((row, rIndex) => (
+                                                                <TableRow key={rIndex}>
+                                                                    {row.map((cell, cIndex) => <TableCell key={cIndex} className="font-mono">{cell.toFixed(3)}</TableCell>)}
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </CardContent>
-                            </Card>
+                                        ))}
+                                    </CardContent>
+                                </Card>
+                             )}
                         </div>
                     )}
                 </>
