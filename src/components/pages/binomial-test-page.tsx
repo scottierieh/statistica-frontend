@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sigma, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Loader2, Sigma, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, TestTube, Check, CircleDotDashed } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -27,8 +27,49 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
+const IntroPage = ({ onStart }: { onStart: () => void }) => {
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <CircleDotDashed size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Binomial Test</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Determine if the proportion of successes in a series of independent Bernoulli trials is consistent with a hypothesized probability.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-8 px-8 py-10">
+                    <div className="space-y-4">
+                        <h3 className="font-semibold text-xl">How it Works</h3>
+                        <p className="text-muted-foreground">
+                            The Binomial Test is used for analyzing experiments with a binary outcome (success/failure, heads/tails, yes/no). It compares the observed number of successes to the number expected under a null hypothesis, calculating the exact probability of observing a result as extreme or more extreme.
+                        </p>
+                    </div>
+                     <div className="space-y-4">
+                        <h3 className="font-semibold text-xl">Key Concepts</h3>
+                        <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                            <li><strong>Number of Trials (n):</strong> The total number of independent trials conducted.</li>
+                            <li><strong>Number of Successes (k):</strong> The count of "successful" outcomes observed.</li>
+                            <li><strong>Expected Probability (p):</strong> The hypothesized probability of success on a single trial (e.g., 0.5 for a fair coin).</li>
+                            <li><strong>p-value:</strong> The probability of observing the data, or something more extreme, if the null hypothesis is true. A small p-value (&lt; 0.05) suggests the observed proportion is significantly different from the expected probability.</li>
+                        </ul>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-center p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 export default function BinomialTestPage() {
     const { toast } = useToast();
+    const [view, setView] = useState<'intro' | 'main'>('intro');
     const [successes, setSuccesses] = useState<number>(0);
     const [trials, setTrials] = useState<number>(0);
     const [probability, setProbability] = useState<number>(0.5);
@@ -68,13 +109,20 @@ export default function BinomialTestPage() {
         }
     }, [successes, trials, probability, alternative, toast]);
     
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} />;
+    }
+
     const results = analysisResult?.results;
 
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Binomial Test</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Binomial Test</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Test if the proportion of successes in a set of trials is consistent with a hypothesized probability.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
