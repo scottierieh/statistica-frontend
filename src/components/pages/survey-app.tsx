@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
@@ -71,7 +70,7 @@ import {
   X,
   ChevronDown,
   Settings,
-  Calendar as CalendarIcon,
+  CalendarIcon,
   Lock,
   Hash,
 } from 'lucide-react';
@@ -2345,9 +2344,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
-                    <TabsTrigger value="setting"><Settings className="mr-2" />Setting</TabsTrigger>
+                    <TabsTrigger value="configuration"><Settings className="mr-2" />Configuration</TabsTrigger>
                     <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
-                    <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
+                    <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Analytics Dashboard</TabsTrigger>
                 </TabsList>
                 <TabsContent value="design">
                     <div className="grid md:grid-cols-12 gap-6 mt-4">
@@ -2552,10 +2551,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                         </div>
                     </div>
                 </TabsContent>
-                <TabsContent value="setting">
-                    <Card className="mt-4">
+                <TabsContent value="configuration">
+                     <Card className="mt-4">
                         <CardHeader>
-                            <CardTitle>Survey Settings</CardTitle>
+                            <CardTitle>Survey Configuration</CardTitle>
                             <CardDescription>Configure the behavior and access of your survey.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-8">
@@ -2589,6 +2588,34 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                             <Lock className="w-4 h-4 text-muted-foreground"/>
                                             <Input id="password" type="password" placeholder="Leave blank to disable" value={survey.settings?.password || ''} onChange={(e) => setSurvey(produce((draft: any) => {draft.settings.password = e.target.value}))}/>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                             <Separator />
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-lg">Appearance</h3>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <Label>Survey Type</Label>
+                                        <Select onValueChange={handleTypeChange} value={survey.theme?.type || 'default'}>
+                                            <SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="default">Default</SelectItem>
+                                                <SelectItem value="type1">Type 1</SelectItem>
+                                                <SelectItem value="type2">Type 2</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label>Page Transition</Label>
+                                        <Select onValueChange={(value) => setSurvey(produce((draft: any) => { draft.theme.transition = value; }))} value={survey.theme?.transition || 'slide'}>
+                                            <SelectTrigger><SelectValue placeholder="Select a transition" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="slide">Slide</SelectItem>
+                                                <SelectItem value="fade">Fade</SelectItem>
+                                                <SelectItem value="none">None</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
                             </div>
@@ -2642,7 +2669,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                  <TabsContent value="dashboard">
                     <Card className="mt-4">
                          <CardHeader>
-                            <CardTitle>Analysis Dashboard</CardTitle>
+                            <CardTitle>Analytics Dashboard</CardTitle>
                             <CardDescription>Drag and drop to rearrange your analysis dashboard.</CardDescription>
                          </CardHeader>
                          <CardContent>
