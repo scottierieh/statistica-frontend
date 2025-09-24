@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,7 +109,7 @@ export default function DashboardHubPage() {
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2">
                             <Target className="h-5 w-5 text-primary"/>
-                            Optimization &amp; Quantitative Analysis
+                            Decision Analytics
                         </CardTitle>
                         <CardDescription>
                             Solve complex optimization problems using linear and nonlinear programming techniques.
