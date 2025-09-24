@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -7,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
+import { Sigma, Loader2, CheckCircle2, AlertTriangle, Layers, HelpCircle, MoveRight, Settings, FileSearch } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import Image from 'next/image';
@@ -37,6 +38,72 @@ interface FullAnalysisResponse {
     results: HomogeneityTestResult;
 }
 
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const homogeneityExample = exampleDatasets.find(d => d.id === 'tips');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Layers size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Homogeneity of Variances Test</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Use Levene's test to check if the variances are equal across two or more groups, a key assumption for ANOVA.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Test for Homogeneity?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Many statistical tests, like ANOVA, work best when the variability within each group being compared is similar. If one group's data is much more spread out than another's, it can violate the test's assumptions and lead to inaccurate conclusions. Levene's test is a robust way to check this assumption before you proceed with your main analysis.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Value Variable:</strong> Select the continuous numeric variable you want to check (e.g., 'Tip Amount').
+                                </li>
+                                <li>
+                                    <strong>Grouping Variable:</strong> Choose the categorical variable that defines your groups (e.g., 'Day of the Week').
+                                </li>
+                                 <li>
+                                    <strong>Run Test:</strong> The tool will perform Levene's test and provide a clear pass/fail result.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Passed (p &gt; 0.05):</strong> The variances are equal across groups. You can proceed with standard tests like ANOVA.
+                                </li>
+                                <li>
+                                    <strong>Failed (p &lt;= 0.05):</strong> The variances are unequal. You should use a statistical test that does not assume equal variances (e.g., Welch's ANOVA).
+                                </li>
+                                 <li>
+                                    <strong>Box Plot:</strong> Visually inspect the plot. If the boxes for each group have roughly the same height (Interquartile Range), it supports the assumption of homogeneity.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    {homogeneityExample && <Button variant="outline" onClick={() => onLoadExample(homogeneityExample)}>Load Sample Tips Data</Button>}
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+
 interface HomogeneityTestPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -46,18 +113,20 @@ interface HomogeneityTestPageProps {
 
 export default function HomogeneityTestPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: HomogeneityTestPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [valueVar, setValueVar] = useState<string | undefined>(numericHeaders[0]);
     const [groupVar, setGroupVar] = useState<string | undefined>(categoricalHeaders[0]);
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0 && categoricalHeaders.length >= 1, [data, numericHeaders, categoricalHeaders]);
+    
     useEffect(() => {
         setValueVar(numericHeaders[0]);
         setGroupVar(categoricalHeaders[0]);
         setAnalysisResult(null);
-    }, [data, numericHeaders, categoricalHeaders]);
-    
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0 && categoricalHeaders.length >= 1, [data, numericHeaders, categoricalHeaders]);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, numericHeaders, categoricalHeaders, canRun]);
 
     const handleAnalysis = useCallback(async () => {
         if (!valueVar || !groupVar) {
@@ -98,44 +167,12 @@ export default function HomogeneityTestPage({ data, numericHeaders, categoricalH
         }
     }, [data, valueVar, groupVar, toast]);
 
-    if (!canRun) {
-        const homogeneityExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('homogeneity'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Homogeneity of Variances Test</CardTitle>
-                        <CardDescription>
-                           To perform this test, you need data with at least one numeric variable and one categorical variable with two or more groups.
-                        </CardDescription>
-                    </CardHeader>
-                    {homogeneityExamples.length > 0 && (
-                         <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {homogeneityExamples.map((ex) => (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <ex.icon className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                ))}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     const results = analysisResult?.results;
@@ -144,7 +181,10 @@ export default function HomogeneityTestPage({ data, numericHeaders, categoricalH
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Homogeneity of Variances Test (Levene's Test)</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Homogeneity of Variances Test (Levene's Test)</CardTitle>
+                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select a numeric variable and a categorical grouping variable to test if the variances are equal across groups.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
