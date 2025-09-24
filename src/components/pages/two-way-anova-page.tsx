@@ -110,37 +110,45 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         Examine the influence of two different categorical independent variables on one continuous dependent variable.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-8 px-8 py-10">
-                    <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                        <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                            <li>
-                                <strong>Dependent Variable:</strong> Select the continuous numeric variable you want to measure (e.g., 'Score', 'Response Time').
-                            </li>
-                            <li>
-                                <strong>Factor A & B:</strong> Choose two different categorical variables that represent the independent groups (e.g., 'Teaching Method' and 'Gender').
-                            </li>
-                            <li>
-                                <strong>Run Analysis:</strong> The tool will calculate the main effects of each factor, the interaction effect between them, and check statistical assumptions.
-                            </li>
-                        </ol>
+                <CardContent className="space-y-10 px-8 py-10">
+                     <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Two-Way ANOVA?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Two-Way ANOVA extends One-Way ANOVA by allowing you to test the effects of two independent factors simultaneously. This is powerful because it not only reveals the main effect of each factor but also uncovers if there is an **interaction effect** between them. An interaction means the effect of one factor depends on the level of the other, providing deeper insights than running separate one-way tests.
+                        </p>
                     </div>
-                    <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                        <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                            <li>
-                                <strong>Main Effects:</strong> A significant main effect for a factor means that factor has an overall effect on the dependent variable, regardless of the other factor.
-                            </li>
-                            <li>
-                                <strong>Interaction Effect:</strong> A significant interaction effect is often the most important finding. It means the effect of one factor depends on the level of the other factor (e.g., Teaching Method A is only effective for one Gender).
-                            </li>
-                            <li>
-                                <strong>Interaction Plot:</strong> This plot is crucial for understanding an interaction. If the lines are not parallel, it suggests an interaction is present.
-                            </li>
-                            <li>
-                                <strong>Post-Hoc Tests:</strong> If the interaction is significant, these tests are performed to identify which specific group combinations are different from each other.
-                            </li>
-                        </ul>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Dependent Variable:</strong> Select the continuous numeric variable you want to measure (e.g., 'Score', 'Response Time').
+                                </li>
+                                <li>
+                                    <strong>Factor A & B:</strong> Choose two different categorical variables that represent the independent groups (e.g., 'Teaching Method' and 'Gender').
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> The tool will calculate the main effects of each factor, the interaction effect between them, and check statistical assumptions.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Main Effects:</strong> A significant main effect for a factor means that factor has an overall effect on the dependent variable, regardless of the other factor.
+                                </li>
+                                <li>
+                                    <strong>Interaction Effect:</strong> A significant interaction effect is often the most important finding. It means the effect of one factor depends on the level of the other factor (e.g., Teaching Method A is only effective for one Gender).
+                                </li>
+                                <li>
+                                    <strong>Interaction Plot:</strong> This plot is crucial for understanding an interaction. If the lines are not parallel, it suggests an interaction is present.
+                                </li>
+                                <li>
+                                    <strong>Post-Hoc Tests:</strong> If the interaction is significant, these tests are performed to identify which specific group combinations are different from each other.
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
