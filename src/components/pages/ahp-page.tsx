@@ -1,13 +1,13 @@
 
 'use client';
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Plus, Trash2, Network, BarChart as BarChartIcon, AlertTriangle, ChevronDown, ChevronRight, Share2 } from 'lucide-react';
+import { Sigma, Loader2, Play, Plus, Trash2, Network, BarChart as BarChartIcon, AlertTriangle, ChevronDown, ChevronRight, Share2, HelpCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
@@ -34,6 +34,51 @@ interface AnalysisBlock {
     consistency_ratio: number;
     is_consistent: boolean;
 }
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
+    return (
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-4xl">
+                <CardHeader>
+                    <CardTitle className="font-headline text-2xl flex items-center gap-3">
+                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <Share2 size={28} />
+                         </div>
+                        Analytic Hierarchy Process (AHP)
+                    </CardTitle>
+                    <CardDescription className="text-base pt-2">
+                        A structured technique for organizing and analyzing complex decisions, based on mathematics and psychology. It helps decision-makers find the solution that best suits their goal and their understanding of the problem.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                     <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-lg">Setup Guide</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                <li><strong>Goal:</strong> Define the main objective of your decision.</li>
+                                <li><strong>Hierarchy:</strong> Break down the decision into a hierarchy of criteria and, optionally, sub-criteria.</li>
+                                <li><strong>Alternatives:</strong> List the different options you are choosing between.</li>
+                                <li><strong>Pairwise Comparisons:</strong> For each level of the hierarchy, compare items in pairs to judge their relative importance with respect to the parent criterion.</li>
+                            </ul>
+                        </div>
+                         <div className="space-y-4">
+                            <h3 className="font-semibold text-lg">Result Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                <li><strong>Final Ranking:</strong> Shows the overall scores for each alternative or criterion, indicating the most preferred option based on your judgments.</li>
+                                <li><strong>Consistency Ratio (CR):</strong> A crucial metric that checks for consistency in your pairwise comparisons. A CR value less than 0.10 is generally considered acceptable.</li>
+                                <li><strong>Weights:</strong> The calculated priority (weight) for each item at every level of the hierarchy.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                     <Button variant="outline" onClick={onLoadExample}>Load Sample Data</Button>
+                     <Button onClick={onStart}>Get Started</Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
 
 const ComparisonMatrix = ({ items, matrix: initialMatrix, onMatrixChange }: { items: string[], matrix?: number[][], onMatrixChange: (matrix: number[][]) => void }) => {
     const [matrix, setMatrix] = useState<number[][]>(() => initialMatrix || Array(items.length).fill(0).map(() => Array(items.length).fill(1)));
@@ -102,6 +147,7 @@ interface HierarchyLevel {
 
 export default function AhpPage() {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [goal, setGoal] = useState("Select the best new car");
     const [hasAlternatives, setHasAlternatives] = useState(true);
     const [alternatives, setAlternatives] = useState<string[]>(["Car A", "Car B", "Car C"]);
@@ -123,6 +169,7 @@ export default function AhpPage() {
                 }
                 const parsedData = JSON.parse(content);
                 loadAHPData(parsedData, file.name);
+                setView('main');
             } catch (error: any) {
                  toast({ variant: 'destructive', title: 'File Load Error', description: error.message });
             } finally {
@@ -152,6 +199,7 @@ export default function AhpPage() {
             try {
                 const parsedData = JSON.parse(ahpExample.data);
                 loadAHPData(parsedData, ahpExample.name);
+                setView('main');
             } catch (error: any) {
                  toast({ variant: 'destructive', title: 'Sample Load Error', description: error.message });
             }
@@ -232,12 +280,19 @@ export default function AhpPage() {
     const results = analysisResult;
     const isConsistent = results ? Object.values(results.analysis_results).every(a => a === null || a.is_consistent) : true;
     
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadSample} />;
+    }
+
     return (
         <div className="space-y-4">
             {currentStep === 0 && (
                 <Card>
                     <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2"><Share2 /> Analytic Hierarchy Process (AHP)</CardTitle>
+                         <div className="flex justify-between items-center">
+                            <CardTitle className="font-headline flex items-center gap-2"><Share2 /> Analytic Hierarchy Process (AHP)</CardTitle>
+                            <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                        </div>
                         <CardDescription>Structure your decision, make pairwise comparisons, and find the optimal choice. You can manually input your structure or upload a JSON configuration file.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">

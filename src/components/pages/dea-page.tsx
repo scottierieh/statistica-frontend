@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Binary, HeartPulse, BarChart as BarChartIcon, Bot } from 'lucide-react';
+import { Sigma, Loader2, Binary, HeartPulse, BarChart as BarChartIcon, Bot, HelpCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -40,6 +40,51 @@ interface FullDeaResponse {
     results: DeaResults;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
+    return (
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-4xl">
+                <CardHeader>
+                    <CardTitle className="font-headline text-2xl flex items-center gap-3">
+                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <BarChartIcon size={28} />
+                         </div>
+                        Data Envelopment Analysis (DEA)
+                    </CardTitle>
+                    <CardDescription className="text-base pt-2">
+                        A performance measurement technique used to evaluate the relative efficiency of Decision-Making Units (DMUs) like hospitals, banks, or schools.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                     <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-lg">Setup Guide</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                <li><strong>DMUs:</strong> The entities you are comparing (e.g., 'Branch A', 'Hospital X'). This is a categorical column where each value is unique.</li>
+                                <li><strong>Input Variables:</strong> Resources used by the DMU (e.g., 'Employees', 'Operating Cost'). Lower is better.</li>
+                                <li><strong>Output Variables:</strong> Products or services produced by the DMU (e.g., 'Loans', 'Deposits'). Higher is better.</li>
+                                <li><strong>Orientation:</strong> Choose 'Input-oriented' to see how much inputs can be reduced, or 'Output-oriented' to see how much outputs can be increased.</li>
+                            </ul>
+                        </div>
+                         <div className="space-y-4">
+                            <h3 className="font-semibold text-lg">Result Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                                <li><strong>Efficiency Score:</strong> A score of 1.0 indicates a DMU is fully efficient. A score less than 1.0 indicates relative inefficiency.</li>
+                                <li><strong>Reference Set (Peer Group):</strong> For an inefficient DMU, this shows which efficient DMUs it should benchmark against to improve.</li>
+                                <li><strong>Interpretation:</strong> The AI-powered summary provides actionable insights, identifying top performers and highlighting areas for improvement for underperforming units.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                     <Button variant="outline" onClick={onLoadExample}>Load Sample Data</Button>
+                     <Button onClick={onStart}>Get Started</Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 interface DeaPageProps {
     data: DataSet;
     allHeaders: string[];
@@ -49,6 +94,7 @@ interface DeaPageProps {
 
 export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExample }: DeaPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [dmuCol, setDmuCol] = useState<string | undefined>();
     const [inputCols, setInputCols] = useState<string[]>([]);
     const [outputCols, setOutputCols] = useState<string[]>([]);
@@ -153,32 +199,33 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
 
     }, [data, dmuCol, inputCols, outputCols, orientation, returnsToScale, toast]);
     
+     const handleLoadExampleData = () => {
+        const deaExample = exampleDatasets.find(ex => ex.id === 'dea-bank-data');
+        if (deaExample) {
+            onLoadExample(deaExample);
+            setView('main');
+        }
+    };
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
+    }
+    
     if (!canRun) {
-        const deaExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('dea'));
         return (
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
                     <CardHeader>
                         <CardTitle className="font-headline">Data Envelopment Analysis (DEA)</CardTitle>
                         <CardDescription>
-                           To perform DEA, you need data with inputs, outputs, and decision-making units (DMUs). Try an example dataset.
+                           To perform DEA, you need data with inputs, outputs, and decision-making units (DMUs).
                         </CardDescription>
                     </CardHeader>
-                    {deaExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {deaExamples.map((ex) => (
-                                    <Button key={ex.id} variant="outline" className="w-full justify-start h-auto p-4" onClick={() => onLoadExample(ex)}>
-                                         <ex.icon className="h-8 w-8 text-primary mr-4" />
-                                         <div>
-                                            <p className="font-semibold">{ex.name}</p>
-                                            <p className="text-xs text-muted-foreground text-left">{ex.description}</p>
-                                         </div>
-                                    </Button>
-                                ))}
-                            </div>
-                        </CardContent>
-                    )}
+                    <CardContent>
+                       <Button onClick={handleLoadExampleData} className="w-full" size="sm">
+                           Load Bank Branch Example
+                       </Button>
+                    </CardContent>
                 </Card>
             </div>
         )
@@ -188,7 +235,10 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">DEA Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">DEA Setup</CardTitle>
+                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Define your Decision Making Units (DMUs), inputs, and outputs.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -203,7 +253,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                         <div>
                             <Label>Orientation</Label>
                             <Select value={orientation} onValueChange={(v) => setOrientation(v as any)}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="input">Input-Oriented</SelectItem>
                                     <SelectItem value="output">Output-Oriented</SelectItem>
