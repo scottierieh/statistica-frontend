@@ -21,17 +21,22 @@ def main():
         c = payload.get('c')
         A_ub = payload.get('A_ub')
         b_ub = payload.get('b_ub')
+        problem_type = payload.get('problem_type', 'maximize') # Assume maximize by default
 
         if not all([c, A_ub, b_ub]):
             raise ValueError("Missing required parameters: c, A_ub, or b_ub")
         
-        # SciPy's linprog minimizes, so for maximization problems, you'd negate c.
-        # We'll assume minimization for this setup.
-        res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=(0, None), method='highs')
+        # SciPy's linprog minimizes. For maximization, we negate the objective function's coefficients.
+        c_to_send = c if problem_type == 'minimize' else [-val for val in c]
+        
+        res = linprog(c_to_send, A_ub=A_ub, b_ub=b_ub, bounds=(0, None), method='highs')
+
+        # If we maximized, the optimal value needs to be negated back.
+        optimal_value = res.fun if problem_type == 'minimize' else -res.fun if res.success else res.fun
 
         response = {
             'solution': res.x,
-            'optimal_value': res.fun,
+            'optimal_value': optimal_value,
             'success': res.success,
             'message': res.message
         }
