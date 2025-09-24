@@ -70,6 +70,7 @@ import {
   AreaChart,
   X,
   ChevronDown,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -984,7 +985,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                             <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                 <>
                                 {question.columns.map((col: string, colIndex: number) => (
                                     <TableCell key={colIndex} className="text-center">
@@ -1195,31 +1196,9 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, qu
                     <CardHeader>
                         <CardTitle className="text-base">Average Rating</CardTitle>
                     </CardHeader>
-                     <CardContent className="flex items-center justify-center min-h-[300px]">
-                        <Plot
-                            data={[{
-                                y: ['Average'],
-                                x: [chartData.avg],
-                                type: 'bar',
-                                orientation: 'h',
-                                text: [chartData.avg.toFixed(2)],
-                                textposition: 'auto',
-                                hoverinfo: 'none',
-                                marker: { color: 'hsl(var(--primary))' },
-                            }]}
-                            layout={{
-                                autosize: true,
-                                margin: { t: 20, b: 40, l: 100, r: 20 },
-                                xaxis: {
-                                    range: [0, ratingScale.length],
-                                    title: 'Rating'
-                                },
-                                yaxis: { showticklabels: false },
-                            }}
-                            style={{ width: '100%', height: '150px' }}
-                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
-                            useResizeHandler
-                        />
+                     <CardContent className="flex flex-col items-center justify-center min-h-[300px] gap-4">
+                        <StarDisplay rating={chartData.avg} total={question.scale?.length || 5} />
+                        <p className="text-2xl font-bold">{chartData.avg.toFixed(2)} <span className="text-base font-normal text-muted-foreground">/ {question.scale?.length || 5}</span></p>
                     </CardContent>
                 </Card>
                  <div className="space-y-4">
@@ -1522,7 +1501,7 @@ const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
                             mode: 'markers+text',
                             textposition: 'top center',
                             type: 'scatter',
-                            marker: { size: 12, color: PALETTE[0] }
+                            marker: { size: 12, color: COLORS[0] }
                         }]}
                         layout={{
                             autosize: true,
@@ -1977,15 +1956,16 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
       }
 
     const handleDashboardDragEnd = (event: DragEndEvent) => {
-        const {active, delta} = event;
+        const { active, delta } = event;
         setDashboardPositions(prev => {
-            const currentPosition = prev[active.id] || { x: 0, y: 0 };
+            const currentPosition = prev[active.id as any] || { x: 0, y: 0 };
+            const newPosition = {
+                x: currentPosition.x + delta.x,
+                y: currentPosition.y + delta.y,
+            };
             return {
                 ...prev,
-                [active.id]: {
-                    x: currentPosition.x + delta.x,
-                    y: currentPosition.y + delta.y,
-                }
+                [active.id]: newPosition
             };
         });
     };
@@ -2363,15 +2343,11 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList className="flex flex-wrap h-auto justify-start">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                     <TabsTrigger value="analysis-detail">Detailed Analysis</TabsTrigger>
                     <TabsTrigger value="analysis-dashboard">Analysis Dashboard</TabsTrigger>
-                    {survey.isRetailTemplate && <TabsTrigger value="retail-dashboard"><ShoppingCart className="mr-2" />Retail Dashboard</TabsTrigger>}
-                    {survey.isServqualTemplate && <TabsTrigger value="servqual-dashboard"><ShieldCheck className="mr-2" />SERVQUAL Dashboard</TabsTrigger>}
-                    {survey.isIpaTemplate && <TabsTrigger value="ipa-dashboard"><Target className="mr-2" />IPA Dashboard</TabsTrigger>}
-                    {survey.isPsmTemplate && <TabsTrigger value="psm-dashboard"><DollarSign className="mr-2" />PSM Dashboard</TabsTrigger>}
                 </TabsList>
                 <TabsContent value="design">
                     <div className="grid md:grid-cols-12 gap-6 mt-4">
@@ -2472,35 +2448,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     </Dialog>
                                 </CardContent>
                             </Card>
-                             <Card>
-                                <CardHeader>
-                                     <CardTitle className="text-lg">Appearance</CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-2 space-y-4">
-                                    <div>
-                                        <Label className="text-xs font-semibold mb-2 text-muted-foreground px-1">Survey Type</Label>
-                                        <Select onValueChange={handleTypeChange} value={survey.theme?.type || 'default'}>
-                                            <SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="default">Default</SelectItem>
-                                                <SelectItem value="type1">Type 1</SelectItem>
-                                                <SelectItem value="type2">Type 2</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div>
-                                        <Label className="text-xs font-semibold mb-2 text-muted-foreground px-1">Page Transition</Label>
-                                        <Select onValueChange={(value) => setSurvey(prev => ({ ...prev, theme: { ...prev.theme, transition: value } }))} value={survey.theme?.transition || 'slide'}>
-                                            <SelectTrigger><SelectValue placeholder="Select a transition" /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="slide">Slide</SelectItem>
-                                                <SelectItem value="fade">Fade</SelectItem>
-                                                <SelectItem value="none">None</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </CardContent>
-                             </Card>
+                             
                         </div>
                         <div className="md:col-span-9">
                              <Card
@@ -2585,7 +2533,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                           const QuestionComponent = questionComponents[q.type];
                                                           if (!QuestionComponent) return null;
                                                         return (
-                                                            <DraggableQuestion key={q.id} id={q.id}>
+                                                            <SortableCard key={q.id} id={q.id}>
                                                                 <QuestionComponent
                                                                     question={q}
                                                                     onDelete={deleteQuestion}
@@ -2593,7 +2541,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                                     onImageUpload={triggerImageUpload}
                                                                     cardClassName={cardStyle}
                                                                 />
-                                                            </DraggableQuestion>
+                                                            </SortableCard>
                                                         )
                                                     })
                                                 )}
@@ -2604,6 +2552,62 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                             </Card>
                         </div>
                     </div>
+                </TabsContent>
+                 <TabsContent value="setting">
+                     <Card className="mt-4">
+                        <CardHeader>
+                            <CardTitle>Survey Appearance & Behavior</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-8">
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-lg">Theme</h3>
+                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div>
+                                        <Label>Survey Type</Label>
+                                        <Select onValueChange={handleTypeChange} value={survey.theme?.type || 'default'}>
+                                            <SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="default">Default</SelectItem>
+                                                <SelectItem value="type1">Modern</SelectItem>
+                                                <SelectItem value="type2">Classic</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label>Page Transition</Label>
+                                         <Select onValueChange={(value) => setSurvey(prev => ({ ...prev, theme: { ...prev.theme, transition: value } }))} value={survey.theme?.transition || 'slide'}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="slide">Slide</SelectItem>
+                                                <SelectItem value="fade">Fade</SelectItem>
+                                                <SelectItem value="none">None</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </div>
+                            <Separator />
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-lg">Survey Logic</h3>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline">
+                                            <Shuffle className="w-5 h-5 mr-2" /> Configure Question Logic
+                                        </Button>
+                                    </DialogTrigger>
+                                     <DialogContent className="max-w-2xl">
+                                         <DialogHeader>
+                                            <DialogTitle>Question Logic</DialogTitle>
+                                            <DialogDescription>Define paths to guide users through the survey based on their answers.</DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
+                                            {/* ... Logic configuration UI ... */}
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
                 <TabsContent value="dashboard">
                 <Card className="mt-4">
@@ -2822,7 +2826,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                             };
                                             
                                             return (
-                                                <DraggableDashboardCard key={q.id} id={q.id} position={dashboardPositions[q.id]}>
+                                                <DraggableDashboardCard key={q.id} id={q.id} position={dashboardPositions[q.id] || {x: (i % 3) * 320 + 20, y: Math.floor(i / 3) * 320 + 20}}>
                                                      <CardHeader className="p-2 cursor-grab flex-shrink-0" >
                                                         <CardTitle className="truncate text-sm">{q.title}</CardTitle>
                                                     </CardHeader>
@@ -2890,16 +2894,16 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
 
-const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position: Position }) => {
+const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position?: Position }) => {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
 
     const style: React.CSSProperties = {
         position: 'absolute',
         width: 300,
         height: 300,
-        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
         top: position?.y || 0,
         left: position?.x || 0,
+        transform: isDragging ? (transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined) : undefined,
     };
 
     return (
@@ -2911,5 +2915,89 @@ const DraggableDashboardCard = ({ id, children, position }: { id: any, children:
                 {children}
             </Card>
         </div>
+    );
+};
+
+// This function needs to be defined if it's used for IPA analysis
+function pearsonCorrelation(x: (number | undefined)[], y: (number | undefined)[]): number {
+    const validPairs = x.map((val, i) => [val, y[i]]).filter(([val1, val2]) => val1 !== undefined && val2 !== undefined) as [number, number][];
+    if (validPairs.length < 2) return 0;
+    
+    const xs = validPairs.map(p => p[0]);
+    const ys = validPairs.map(p => p[1]);
+
+    const meanX = mean(xs);
+    const meanY = mean(ys);
+    const stdDevX = standardDeviation(xs);
+    const stdDevY = standardDeviation(ys);
+
+    if (stdDevX === 0 || stdDevY === 0) return 0;
+
+    let covariance = 0;
+    for (let i = 0; i < validPairs.length; i++) {
+        covariance += (xs[i] - meanX) * (ys[i] - meanY);
+    }
+    covariance /= (validPairs.length - 1);
+
+    return covariance / (stdDevX * stdDevY);
+}
+
+
+interface KPICardProps {
+    title: string;
+    value: string;
+    status: 'excellent' | 'good' | 'warning' | 'poor';
+}
+
+const KPICard: React.FC<KPICardProps> = ({ title, value, status }) => {
+    const statusClasses = {
+        excellent: 'text-green-600',
+        good: 'text-green-500',
+        warning: 'text-yellow-600',
+        poor: 'text-red-600',
+    };
+    return (
+        <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className={`text-2xl font-bold ${statusClasses[status]}`}>{value}</div>
+            </CardContent>
+        </Card>
+    );
+};
+
+interface InsightCardProps {
+    insight: {
+        type: 'critical' | 'warning' | 'opportunity' | 'excellent';
+        title: string;
+        text: string;
+        actions: string;
+    };
+}
+const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
+    const ICONS = {
+        critical: <AlertTriangle className="text-red-500" />,
+        warning: <ShieldAlert className="text-yellow-500" />,
+        opportunity: <Lightbulb className="text-blue-500" />,
+        excellent: <Award className="text-green-500" />,
+    }
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-start gap-4">
+                {ICONS[insight.type]}
+                <div>
+                    <CardTitle className="text-base">{insight.title}</CardTitle>
+                    <CardDescription>{insight.text}</CardDescription>
+                </div>
+            </CardHeader>
+            <CardFooter>
+                 <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                    <MoveRight className="w-4 h-4"/>
+                    <span>{insight.actions}</span>
+                </div>
+            </CardFooter>
+        </Card>
     );
 };
