@@ -71,9 +71,6 @@ import {
   X,
   ChevronDown,
   Settings,
-  CalendarIcon,
-  Lock,
-  Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -2282,7 +2279,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     </Button>
                     <Dialog open={isShareModalOpen} onOpenChange={handleShareDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button disabled={!surveyId}><Share2 className="mr-2" /> Share</Button>
+                            <Button disabled={!surveyId} onClick={saveDraft}><Share2 className="mr-2" /> Share</Button>
                         </DialogTrigger>
                         <DialogContent>
                              <DialogHeader>
@@ -2665,7 +2662,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                  <TabsContent value="dashboard">
                     <Card className="mt-4">
                          <CardHeader>
-                            <CardTitle>Analytics Dashboard</CardTitle>
+                            <CardTitle>Analysis Dashboard</CardTitle>
                             <CardDescription>Drag and drop to rearrange your analysis dashboard.</CardDescription>
                          </CardHeader>
                          <CardContent>
@@ -2675,7 +2672,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 </div>
                             ) : (
                                 <DndContext sensors={sensors} onDragEnd={handleDashboardDragEnd}>
-                                    <div className="relative w-[1000px] h-[800px] bg-muted/50 rounded-lg border overflow-hidden bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:20px_20px]">
+                                    <div className="relative w-full h-[800px] bg-muted/50 rounded-lg border overflow-hidden bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:20px_20px]">
                                         {analysisItems.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, i: number) => {
                                             const { noData, chartData } = getAnalysisDataForQuestion(q.id);
                                             if (noData) return null;
