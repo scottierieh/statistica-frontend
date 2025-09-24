@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -9,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Columns, AlertTriangle, HelpCircle, CheckCircle2 } from 'lucide-react';
+import { Sigma, Loader2, Columns, AlertTriangle, HelpCircle, CheckCircle2, MoveRight, FileSearch, Settings, BarChart as BarChartIcon, Users, Handshake } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -46,6 +45,76 @@ const getSignificanceStars = (p: number) => {
     return '';
 };
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const crosstabExample = exampleDatasets.find(d => d.id === 'crosstab');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Columns size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Crosstabulation & Chi-Squared Test</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Analyze the relationship between two categorical variables to determine if they are independent.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Crosstabulation?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Crosstabulation (or cross-tab) creates a contingency table that shows the frequency distribution of variables. It is a foundational tool for understanding the relationship between two or more categorical variables. The accompanying Chi-Squared (χ²) test of independence determines whether this observed relationship is statistically significant or if it could have occurred by chance.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Select Variables:</strong> Choose two categorical variables from your dataset. One will be the 'Row Variable' and the other the 'Column Variable' in the table.
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> Click the 'Run Analysis' button. The tool will automatically generate the contingency table, perform the Chi-Squared test, and create a grouped bar chart.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Chi-Squared (χ²) Statistic:</strong> A large value indicates a greater difference between observed and expected frequencies.
+                                </li>
+                                 <li>
+                                    <strong>p-value:</strong> If less than 0.05, it suggests a statistically significant association between the variables (i.e., they are likely not independent).
+                                </li>
+                                <li>
+                                    <strong>Contingency Table:</strong> Examine the counts and percentages (Row %, Column %, Total %) to understand the nature of the relationship. Look for cells where the observed count is much higher or lower than expected.
+                                </li>
+                                <li>
+                                    <strong>Cramer's V:</strong> An effect size measure from 0 to 1. Higher values indicate a stronger association between the variables.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                     <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Users className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Market Research</h4><p className="text-xs text-muted-foreground">Is there a relationship between product choice and a customer's region?</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Handshake className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Survey Analysis</h4><p className="text-xs text-muted-foreground">Does satisfaction level differ between different user groups?</p></div></div>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    {crosstabExample && <Button variant="outline" onClick={() => onLoadExample(crosstabExample)}>Load Sample Market Data</Button>}
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
 
 interface CrosstabPageProps {
     data: DataSet;
@@ -55,6 +124,7 @@ interface CrosstabPageProps {
 
 export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }: CrosstabPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [rowVar, setRowVar] = useState<string | undefined>(categoricalHeaders[0]);
     const [colVar, setColVar] = useState<string | undefined>(categoricalHeaders[1]);
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
@@ -66,6 +136,7 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
         setRowVar(categoricalHeaders[0] || '');
         setColVar(categoricalHeaders[1] || '');
         setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [data, categoricalHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && categoricalHeaders.length >= 2, [data, categoricalHeaders]);
@@ -118,43 +189,12 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
             .replace(/z\s*=\s*(-?[\d.]+)/g, '<i>z</i> = $1');
     }, [results]);
 
+     if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+
     if (!canRun) {
-        const crosstabExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('crosstab'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Crosstab Analysis</CardTitle>
-                        <CardDescription>
-                           To perform a crosstabulation, you need data with at least two categorical variables. Try an example dataset.
-                        </CardDescription>
-                    </CardHeader>
-                    {crosstabExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {crosstabExamples.map((ex) => {
-                                    const Icon = ex.icon;
-                                    return (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                <Icon className="mr-2 h-4 w-4" />
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                    )
-                                })}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     const renderContingencyTable = () => {
@@ -212,7 +252,10 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Crosstab Analysis Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Crosstab Analysis Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select two categorical variables to create a contingency table and run a Chi-squared test.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -247,10 +290,11 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                                 <Alert variant={results.chi_squared.p_value < 0.05 ? 'default' : 'destructive'}>
                                     {results.chi_squared.p_value < 0.05 ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <AlertTriangle className="h-4 w-4" />}
                                     <AlertTitle>
-                                        {results.chi_squared.p_value < 0.05 ? 'Statistically Significant Association' : 'No Significant Association'}
+                                        {results.chi_squared.p_value < 0.05 ? 'Statistically Significant Association' : 'No Significant Association Found'}
                                     </AlertTitle>
                                     <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }}/>
                                 </Alert>
+                                
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
