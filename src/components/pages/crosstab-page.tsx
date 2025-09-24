@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -101,15 +102,21 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                      <div className="space-y-6">
                         <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Users className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Market Research</h4><p className="text-xs text-muted-foreground">Is there a relationship between product choice and a customer's region?</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Handshake className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Survey Analysis</h4><p className="text-xs text-muted-foreground">Does satisfaction level differ between different user groups?</p></div></div>
+                        <div className="flex justify-center">
+                           {crosstabExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(crosstabExample)}>
+                                    <Users className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{crosstabExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{crosstabExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {crosstabExample && <Button variant="outline" onClick={() => onLoadExample(crosstabExample)}>Load Sample Market Data</Button>}
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                    <Button size="lg" onClick={onStart} className="w-full">Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
@@ -347,7 +354,7 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
 
             {!analysisResult && !isLoading && (
                 <div className="text-center text-muted-foreground py-10">
-                    <Columns className="mx-auto h-12 w-12"/>
+                    <Columns className="mx-auto h-12 w-12 text-gray-400"/>
                     <p className="mt-2">Select two categorical variables to generate a crosstabulation.</p>
                 </div>
             )}
