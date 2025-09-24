@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sigma, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, TestTube, Check, CircleDotDashed } from 'lucide-react';
+import { Loader2, Sigma, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, Settings, FileSearch, TestTube, BarChart } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Skeleton } from '../ui/skeleton';
@@ -34,7 +34,7 @@ const IntroPage = ({ onStart }: { onStart: () => void }) => {
                 <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
                     <div className="flex justify-center items-center gap-3 mb-4">
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <CircleDotDashed size={36} />
+                            <TestTube size={36} />
                         </div>
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">Binomial Test</CardTitle>
@@ -42,21 +42,37 @@ const IntroPage = ({ onStart }: { onStart: () => void }) => {
                         Determine if the proportion of successes in a series of independent Bernoulli trials is consistent with a hypothesized probability.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-8 px-8 py-10">
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-xl">How it Works</h3>
-                        <p className="text-muted-foreground">
-                            The Binomial Test is used for analyzing experiments with a binary outcome (success/failure, heads/tails, yes/no). It compares the observed number of successes to the number expected under a null hypothesis, calculating the exact probability of observing a result as extreme or more extreme.
+                <CardContent className="space-y-10 px-8 py-10">
+                     <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use a Binomial Test?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            The Binomial Test is used for analyzing experiments with a binary outcome (e.g., success/failure, heads/tails, yes/no). It compares the observed number of successes to the number expected under a specific probability, calculating the exact likelihood of observing a result as extreme or more extreme if the hypothesized probability were true.
                         </p>
                     </div>
-                     <div className="space-y-4">
-                        <h3 className="font-semibold text-xl">Key Concepts</h3>
-                        <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                            <li><strong>Number of Trials (n):</strong> The total number of independent trials conducted.</li>
-                            <li><strong>Number of Successes (k):</strong> The count of "successful" outcomes observed.</li>
-                            <li><strong>Expected Probability (p):</strong> The hypothesized probability of success on a single trial (e.g., 0.5 for a fair coin).</li>
-                            <li><strong>p-value:</strong> The probability of observing the data, or something more extreme, if the null hypothesis is true. A small p-value (&lt; 0.05) suggests the observed proportion is significantly different from the expected probability.</li>
-                        </ul>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Number of Trials (n):</strong> Enter the total number of independent trials conducted.</li>
+                                <li><strong>Number of Successes (k):</strong> Enter the count of "successful" outcomes observed.</li>
+                                <li><strong>Expected Probability (p):</strong> Set the hypothesized probability of success on a single trial (e.g., 0.5 for a fair coin).</li>
+                                <li><strong>Run Test:</strong> The tool will calculate the exact binomial probability and provide a conclusion.</li>
+                            </ol>
+                        </div>
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>p-value:</strong> If this value is less than 0.05, you can conclude that the observed proportion of successes is statistically different from the expected probability.
+                                </li>
+                                <li>
+                                    <strong>Observed vs. Expected Proportion:</strong> Compare the actual proportion of successes in your data to the hypothesized probability to understand the direction of the difference.
+                                </li>
+                                <li>
+                                    <strong>Binomial Distribution Plot:</strong> The plot visualizes the probability of every possible number of successes under the null hypothesis. The red line marks your observed outcome, helping you see how likely or unlikely it was.
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-center p-6 bg-muted/30 rounded-b-lg">
