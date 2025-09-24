@@ -149,16 +149,17 @@ def modi_method(initial_solution, costs):
 
         # Calculate improvement indices (opportunity costs) for non-basic cells
         improvement_indices = np.zeros((n, m))
-        max_improvement_index = -np.inf
+        max_improvement_index = -1e-9 # Use a small negative number to handle floating point issues
         entering_cell = None
         for i in range(n):
             for j in range(m):
                 if solution[i, j] < 1e-6: # Non-basic cell
-                    improvement_indices[i, j] = costs[i, j] - (u[i] + v[j])
-                    if improvement_indices[i, j] < max_improvement_index:
-                        max_improvement_index = improvement_indices[i, j]
-                        entering_cell = (i, j)
-
+                    if not np.isnan(u[i]) and not np.isnan(v[j]):
+                        improvement_indices[i, j] = costs[i, j] - (u[i] + v[j])
+                        if improvement_indices[i, j] < max_improvement_index:
+                            max_improvement_index = improvement_indices[i, j]
+                            entering_cell = (i, j)
+        
         step_info = {
             'iteration': iteration + 1, 'u': u.tolist(), 'v': v.tolist(),
             'improvement_indices': improvement_indices.tolist(),
@@ -166,7 +167,7 @@ def modi_method(initial_solution, costs):
             'entering_cell': entering_cell, 'message': ''
         }
 
-        if max_improvement_index >= -1e-6:
+        if max_improvement_index >= -1e-9 or entering_cell is None:
             step_info['message'] = "Optimal solution found."
             steps.append(step_info)
             return solution, steps
@@ -174,7 +175,7 @@ def modi_method(initial_solution, costs):
         # Find the loop
         path = find_loop_bfs(solution, entering_cell)
         if not path:
-            step_info['message'] = "Could not find a loop to improve the solution. Optimal or degenerate case."
+            step_info['message'] = "Could not find a loop to improve the solution. This can happen in degenerate cases. The current solution is considered optimal."
             steps.append(step_info)
             return solution, steps
             
@@ -196,37 +197,53 @@ def modi_method(initial_solution, costs):
 
 def find_loop_bfs(solution, start_node):
     n, m = solution.shape
+    adj = { (r, c): [] for r in range(n) for c in range(m) if solution[r, c] > 1e-6 }
+    for r in range(n):
+        for c in range(m):
+            if solution[r,c] > 1e-6:
+                for c2 in range(m):
+                    if c2 != c and solution[r, c2] > 1e-6:
+                        adj[(r, c)].append((r, c2))
+                for r2 in range(n):
+                    if r2 != r and solution[r2, c] > 1e-6:
+                        adj[(r, c)].append((r2, c))
+
+    # Find path from start_node's row to start_node's col
+    # We are looking for a path from a cell in start_node's row to a cell in start_node's col
+    start_r, start_c = start_node
     
-    # Breadth-First Search to find a path
-    # 'parent' tracks the path, 'direction' tracks if the last move was horizontal or vertical
-    q = [(start_node, [start_node], 'h')]
-    visited = {start_node}
+    # Find potential starting points for the loop (basic cells in the same row/col as entering cell)
+    potential_starts = []
+    for c in range(m):
+        if c != start_c and solution[start_r, c] > 1e-6:
+            potential_starts.append(((start_r, c), 'v'))
+    for r in range(n):
+        if r != start_r and solution[r, start_c] > 1e-6:
+            potential_starts.append(((r, start_c), 'h'))
 
-    while q:
-        (current_r, current_c), path, direction = q.pop(0)
+    for start, initial_direction in potential_starts:
+        q = [(start, [start_node, start], initial_direction)]
+        visited = {start_node, start}
 
-        # Search horizontally
-        if direction == 'h':
-            for next_c in range(m):
-                if next_c != current_c and solution[current_r, next_c] > 1e-6:
-                    if (current_r, next_c) == start_node: continue
-                    # Check if this move completes a loop
-                    if next_c == start_node[1]:
-                        return path + [(current_r, next_c)]
-                    if (current_r, next_c) not in visited:
-                        visited.add((current_r, next_c))
-                        q.append(((current_r, next_c), path + [(current_r, next_c)], 'v'))
-        # Search vertically
-        else: # direction == 'v'
-            for next_r in range(n):
-                if next_r != current_r and solution[next_r, current_c] > 1e-6:
-                    if (next_r, current_c) == start_node: continue
-                    # Check if this move completes a loop
-                    if next_r == start_node[0]:
-                        return path + [(next_r, current_c)]
-                    if (next_r, current_c) not in visited:
-                        visited.add((next_r, current_c))
-                        q.append(((next_r, current_c), path + [(next_r, current_c)], 'h'))
+        while q:
+            (current_r, current_c), path, direction = q.pop(0)
+
+            if direction == 'h': # Search horizontally
+                for next_c in range(m):
+                    if next_c != current_c and solution[current_r, next_c] > 1e-6:
+                        if (current_r, next_c) == start_node: continue # should not happen
+                        if (current_r, next_c) not in visited:
+                            visited.add((current_r, next_c))
+                            q.append(((current_r, next_c), path + [(current_r, next_c)], 'v'))
+            else: # direction == 'v', Search vertically
+                for next_r in range(n):
+                    if next_r != current_r and solution[next_r, current_c] > 1e-6:
+                        if (next_r, current_c) == start_node: continue # should not happen
+                        if next_r == start_node[0]: # Loop found
+                            return path + [(next_r, current_c)]
+                        if (next_r, current_c) not in visited:
+                            visited.add((next_r, current_c))
+                            q.append(((next_r, current_c), path + [(next_r, current_c)], 'h'))
     return None
 
 def main():
@@ -265,7 +282,6 @@ def main():
         
         message = "Optimal solution found."
         if not steps or "Optimal" not in steps[-1].get('message', ''):
-             # check if loop finder failed
             if steps and "Could not find a loop" in steps[-1].get('message', ''):
                  message = "Could not find a loop to improve the solution. The result may be optimal or degenerate."
             else:
