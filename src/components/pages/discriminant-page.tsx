@@ -388,9 +388,11 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
                             </ScrollArea>
                         </div>
                     </div>
-                    <Button onClick={handleAnalysis} className="w-full md:w-auto self-end" disabled={!groupVar || predictorVars.length < 1 || isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
-                    </Button>
+                    <div className="flex justify-end">
+                        <Button onClick={handleAnalysis} className="w-full md:w-auto" disabled={!groupVar || predictorVars.length < 1 || isLoading}>
+                            {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -416,4 +418,3 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
         </div>
     );
 }
-

@@ -107,17 +107,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                            Unlike EFA which is exploratory, CFA is a confirmatory technique used to test a hypothesis about the structure of latent variables. It is a crucial step in validating a measurement instrument (like a survey or test) by confirming that its items load onto their intended factors and that the overall model provides a good fit to the data.
                         </p>
                     </div>
-                     <div className="flex justify-center">
-                        {cfaExample && (
-                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
-                                <cfaExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{cfaExample.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
-                                </div>
-                            </Card>
-                        )}
-                    </div>
+                    
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
