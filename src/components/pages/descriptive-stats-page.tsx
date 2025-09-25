@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -213,8 +214,8 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
   
 const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
     return (
-        <AnalysisDisplayShell varName={varName}>
-             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <AnalysisDisplayShell varName={varName}>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Response Distribution</CardTitle>
@@ -247,6 +248,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                                 <TableBody>
                                     <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{tableData.mean.toFixed(3)}</TableCell></TableRow>
                                     <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{tableData.median}</TableCell></TableRow>
+                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{tableData.mode}</TableCell></TableRow>
                                     <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell></TableRow>
                                     <TableRow><TableCell>Minimum</TableCell><TableCell className="text-right">{tableData.min}</TableCell></TableRow>
                                     <TableRow><TableCell>Maximum</TableCell><TableCell className="text-right">{tableData.max}</TableCell></TableRow>
@@ -265,7 +267,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                     </Card>
                 </div>
             </div>
-        </AnalysisDisplayShell>
+      </AnalysisDisplayShell>
     );
   };
 
@@ -300,7 +302,26 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             Descriptive statistics provide a simple summary of the sample and the measures. Together with simple graphics analysis, they form the basis of virtually every quantitative analysis of data. It is the first step in understanding and interpreting your dataset before moving on to more complex analyses.
                         </p>
                     </div>
-
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {tipsExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(tipsExample)}>
+                                <Coffee className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{tipsExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{tipsExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                        {irisExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(irisExample)}>
+                                <irisExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{irisExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{irisExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -317,35 +338,12 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             </ol>
                         </div>
                          <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChartIcon className="text-primary"/> Results Interpretation</h3>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li><strong>For Numeric Data:</strong> Look at the mean and median to understand central tendency, and the standard deviation and range to understand variability and spread.</li>
                                 <li><strong>For Categorical Data:</strong> Analyze the frequency counts and percentages to see the distribution across different categories. The mode is the most common category.</li>
                                 <li><strong>Visualizations:</strong> Histograms show the shape of numeric data, while bar or pie charts effectively display the proportions of categorical data.</li>
                             </ul>
-                        </div>
-                    </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
-                            {tipsExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(tipsExample)}>
-                                    <Coffee className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{tipsExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{tipsExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
-                            {irisExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(irisExample)}>
-                                    <irisExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{irisExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{irisExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
                 </CardContent>
