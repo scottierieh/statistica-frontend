@@ -218,7 +218,6 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'ahp': AhpPage,
     'dea': DeaPage,
     'transportation-problem': TransportationProblemPage,
-    'goal-programming': GoalProgrammingPage,
     'nonlinear-programming': NonlinearProgrammingPage,
 };
 
@@ -339,37 +338,38 @@ const analysisMenu = [
   },
   {
     field: 'Time Series Analysis',
-    icon: LineChart,
+    icon: TrendingUp,
     subCategories: [
-        {
-          name: 'Exploration',
-          methods: [
-            { id: 'trend-analysis', label: 'Data Exploration Plot' },
+      {
+        name: 'Exploration',
+        methods: [
+            { id: 'trend-analysis', label: 'Time Series Plot' },
             { id: 'seasonal-decomposition', label: 'Decomposition' },
-            { id: 'stationarity-tests', label: 'Stationarity Tests' },
-          ]
-        },
-        {
-          name: 'Modeling',
-          methods: [
-            { id: 'autoregressive', label: 'ARIMA-family' },
+        ]
+      },
+      {
+        name: 'Modeling',
+        methods: [
+            { id: 'autoregressive', label: 'ARIMA-family Models' },
             { id: 'exponential-smoothing', label: 'Exponential Smoothing'},
-          ]
-        },
-        {
-          name: 'Diagnostics',
-          methods: [
-            { id: 'acf-pacf', label: 'ACF/PACF Analysis' },
-            { id: 'ljung-box', label: 'Ljung-Box Test' },
-            { id: 'arch-lm-test', label: 'ARCH-LM Test' },
-          ]
-        },
-        {
-          name: 'Forecast & Evaluation',
-          methods: [
-            { id: 'forecast-eval', label: 'Forecast & Evaluation' },
-          ]
-        }
+            { id: 'gbm', label: 'Gradient Boosting (Time Series)'},
+        ]
+      },
+      {
+        name: 'Diagnostics',
+        methods: [
+          { id: 'stationarity-tests', label: 'Stationarity Tests' },
+          { id: 'acf-pacf', label: 'ACF/PACF Plots' },
+          { id: 'ljung-box', label: 'Ljung-Box Test' },
+          { id: 'arch-lm-test', label: 'ARCH-LM Test' },
+        ]
+      },
+      {
+        name: 'Forecast & Evaluation',
+        methods: [
+          { id: 'forecast-eval', label: 'Model Evaluation' },
+        ]
+      },
     ]
   },
   {
@@ -383,6 +383,48 @@ const analysisMenu = [
   }
 ];
 
+// This function is defined outside the component to avoid re-creation on every render.
+// It is a pure function that filters the menu based on the search query.
+const getFilteredMenu = (query: string) => {
+    if (!query) {
+        return analysisMenu;
+    }
+
+    const lowercasedQuery = query.toLowerCase();
+
+    return analysisMenu.reduce((acc, category) => {
+        const categoryNameMatches = category.field.toLowerCase().includes(lowercasedQuery);
+
+        const filteredMethods = category.methods?.filter(method =>
+            method.label.toLowerCase().includes(lowercasedQuery)
+        ) || [];
+
+        const filteredSubCategories = category.subCategories?.reduce((subAcc, sub) => {
+            const subCategoryNameMatches = sub.name.toLowerCase().includes(lowercasedQuery);
+            const subMethods = sub.methods.filter(method =>
+                method.label.toLowerCase().includes(lowercasedQuery)
+            );
+
+            if (subMethods.length > 0) {
+                subAcc.push({ ...sub, methods: subMethods });
+            } else if (subCategoryNameMatches) {
+                subAcc.push(sub);
+            }
+            return subAcc;
+        }, [] as NonNullable<typeof category.subCategories>);
+
+
+        if (categoryNameMatches || filteredMethods.length > 0 || (filteredSubCategories && filteredSubCategories.length > 0)) {
+            acc.push({
+                ...category,
+                methods: categoryNameMatches ? category.methods : filteredMethods,
+                subCategories: categoryNameMatches ? category.subCategories : filteredSubCategories,
+            });
+        }
+
+        return acc;
+    }, [] as typeof analysisMenu);
+};
 
 export default function StatisticaApp() {
   const [data, setData] = useState<DataSet>([]);
@@ -547,54 +589,7 @@ export default function StatisticaApp() {
     )
   };
 
-  const filteredMenu = useMemo(() => {
-    if (!searchQuery) {
-        return analysisMenu;
-    }
-    const lowercasedQuery = searchQuery.toLowerCase();
-
-    const results = analysisMenu.map(category => {
-        const matchingMethods = category.methods?.filter(method =>
-            method.label.toLowerCase().includes(lowercasedQuery)
-        );
-
-        const matchingSubCategories = category.subCategories
-            ?.map(sub => {
-                const methods = sub.methods.filter(method =>
-                    method.label.toLowerCase().includes(lowercasedQuery)
-                );
-                // Return the subcategory if its name matches or it has matching methods
-                if (methods.length > 0 || sub.name.toLowerCase().includes(lowercasedQuery)) {
-                    return { ...sub, methods: methods.length > 0 ? methods : sub.methods };
-                }
-                return null;
-            })
-            .filter((s): s is NonNullable<typeof s> => s !== null);
-
-        // Determine if the category itself should be included
-        const categoryNameMatches = category.field.toLowerCase().includes(lowercasedQuery);
-        const hasMatchingMethods = matchingMethods && matchingMethods.length > 0;
-        const hasMatchingSubcategories = matchingSubCategories && matchingSubCategories.length > 0;
-
-        if (categoryNameMatches) {
-            return category; // If category name matches, show all its children
-        }
-
-        if (hasMatchingMethods || hasMatchingSubcategories) {
-            return {
-                ...category,
-                methods: hasMatchingMethods ? matchingMethods : [],
-                subCategories: hasMatchingSubcategories ? matchingSubCategories : []
-            };
-        }
-
-        return null;
-    });
-
-    return results.filter((c): c is NonNullable<typeof c> => c !== null);
-  }, [searchQuery]);
-
-
+  const filteredMenu = useMemo(() => getFilteredMenu(searchQuery), [searchQuery]);
 
   return (
     <SidebarProvider>
@@ -745,6 +740,8 @@ export default function StatisticaApp() {
                 numericHeaders={numericHeaders}
                 categoricalHeaders={categoricalHeaders}
                 onLoadExample={handleLoadExampleData}
+                onFileSelected={handleFileSelected}
+                isUploading={isUploading}
                />
 
           </div>
