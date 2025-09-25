@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -24,6 +23,7 @@ interface FitIndices {
     chi_square: number;
     df: number;
     p_value: number;
+    chi_square_p?: number; // From SEM py
     cfi: number;
     tli: number;
     rmsea: number;
@@ -107,7 +107,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                            Unlike EFA which is exploratory, CFA is a confirmatory technique used to test a hypothesis about the structure of latent variables. It is a crucial step in validating a measurement instrument (like a survey or test) by confirming that its items load onto their intended factors and that the overall model provides a good fit to the data.
                         </p>
                     </div>
-                     <div className="flex justify-center">
+                    <div className="flex justify-center">
                         {cfaExample && (
                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
                                 <cfaExample.icon className="mx-auto h-8 w-8 text-primary"/>
@@ -137,7 +137,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>Model Fit Indices:</strong> Check values like CFI, TLI, RMSEA, and SRMR to assess overall model fit. Good fit (e.g., CFI > .95, RMSEA < .06) supports your hypothesized structure.
+                                    <strong>Model Fit Indices:</strong> Check values like CFI, TLI, RMSEA, and SRMR to assess overall model fit. Good fit (e.g., CFI > .95, RMSEA < .06, SRMR < .08) supports your hypothesized structure.
                                 </li>
                                  <li>
                                     <strong>Factor Loadings:</strong> Verify that each indicator loads significantly and substantially onto its intended factor.
@@ -205,6 +205,8 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         setView(canRun ? 'main' : 'intro');
     }, [numericHeaders, data]);
     
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 3, [data, numericHeaders]);
+
     const canRunAnalysis = useMemo(() => {
         return data.length > 0 && factors.length > 0 && factors.every(f => f.items.length >= 2 && f.name.trim() !== '');
     }, [data, factors]);
@@ -276,8 +278,6 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         }
     }, [data, factors, canRunAnalysis, toast]);
     
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 3, [data, numericHeaders]);
-
     if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
@@ -420,7 +420,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                     <TableRow><TableCell>TLI</TableCell><TableCell className="text-right font-mono">{fitIndices?.tli.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices && fitIndices.tli > 0.9 ? 'default' : 'destructive'}>{fitIndices && fitIndices.tli > 0.9 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
                                     <TableRow><TableCell>RMSEA</TableCell><TableCell className="text-right font-mono">{fitIndices?.rmsea.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices && fitIndices.rmsea < 0.08 ? 'default' : 'destructive'}>{fitIndices && fitIndices.rmsea < 0.08 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
                                     <TableRow><TableCell>SRMR</TableCell><TableCell className="text-right font-mono">{fitIndices?.srmr.toFixed(3)}</TableCell><TableCell><Badge variant={fitIndices && fitIndices.srmr < 0.08 ? 'default' : 'destructive'}>{fitIndices && fitIndices.srmr < 0.08 ? 'Good' : 'Poor'}</Badge></TableCell></TableRow>
-                                    <TableRow><TableCell>χ²(df={fitIndices?.df})</TableCell><TableCell className="text-right font-mono">{fitIndices?.chi_square.toFixed(2)}</TableCell><TableCell><Badge variant={fitIndices && fitIndices.p_value > 0.05 ? 'default' : 'destructive'}>p {(fitIndices?.p_value || 0).toFixed(3)}</Badge></TableCell></TableRow>
+                                    <TableRow><TableCell>χ²(df={fitIndices?.df})</TableCell><TableCell className="text-right font-mono">{fitIndices?.chi_square.toFixed(2)}</TableCell><TableCell><Badge variant={fitIndices && (fitIndices.p_value ?? fitIndices.chi_square_p ?? 0) > 0.05 ? 'default' : 'destructive'}>p {(fitIndices?.p_value ?? fitIndices?.chi_square_p ?? 0).toFixed(3)}</Badge></TableCell></TableRow>
                                 </TableBody>
                             </Table>
                              {analysisResult.qq_plot && (
@@ -527,3 +527,4 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         </div>
     );
 }
+
