@@ -164,7 +164,7 @@ const InterpretationDisplay = ({ results }: { results?: CfaResults }) => {
 
     const formattedInterpretation = useMemo(() => {
         return results.interpretation
-            .replace(/\n/g, '<br />')
+            .replace(/\\n/g, '<br />')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<i>$1</i>');
     }, [results.interpretation]);
