@@ -8,10 +8,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sigma, AlertTriangle, Loader2, ShieldCheck, Settings2, Bot, CheckCircle2 } from 'lucide-react';
+import { Sigma, AlertTriangle, Loader2, ShieldCheck, Settings2, Bot, CheckCircle2, FileSearch, MoveRight, HelpCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '../ui/scroll-area';
+import { Checkbox } from '../ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -36,6 +36,10 @@ interface ReliabilityResults {
         avg_inter_item_correlation: number;
     };
     interpretation: string;
+}
+
+interface FullAnalysisResponse {
+    results: ReliabilityResults;
 }
 
 const getAlphaInterpretationLevel = (alpha: number): { level: 'Excellent' | 'Good' | 'Acceptable' | 'Questionable' | 'Poor' | 'Unacceptable', color: string } => {
@@ -79,6 +83,73 @@ const InterpretationDisplay = ({ interpretation, alpha }: { interpretation?: str
     );
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const reliabilityExample = exampleDatasets.find(d => d.id === 'well-being-survey');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <ShieldCheck size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Reliability Analysis (Cronbach's Alpha)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Measure the internal consistency and reliability of a set of scale items.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Reliability Analysis?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            When using a survey or questionnaire with multiple questions to measure a single underlying concept (like 'job satisfaction' or 'anxiety'), it's crucial to know if those questions are consistently measuring the same thing. Cronbach's Alpha is the most common measure of this internal consistency. A high alpha value indicates that your scale items are reliable and hang together well.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {reliabilityExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(reliabilityExample)}>
+                                <ShieldCheck className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{reliabilityExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{reliabilityExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings2 className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Select Items:</strong> Choose all the numeric columns that belong to the scale you want to test.
+                                </li>
+                                <li>
+                                    <strong>Reverse-Code (Optional):</strong> If your scale includes negatively worded items (e.g., "I am *not* satisfied"), select them to be reverse-coded so they are scored in the same direction as other items.
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> The tool will calculate Cronbach's Alpha and provide item-level statistics to help you assess and improve your scale.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Cronbach's Alpha (α):</strong> Ranges from 0 to 1. General guidelines: α ≥ 0.9 (Excellent), ≥ 0.8 (Good), ≥ 0.7 (Acceptable), ≥ 0.6 (Questionable), ≥ 0.5 (Poor), &lt; 0.5 (Unacceptable).</li>
+                                <li><strong>Corrected Item-Total Correlation:</strong> Shows how well each item correlates with the total score of the other items. Low values (e.g., &lt; 0.3) suggest an item may not belong to the scale.</li>
+                                <li><strong>Alpha if Item Deleted:</strong> This crucial metric shows what the scale's alpha would be if you removed a specific item. If removing an item significantly increases the alpha, that item may be problematic and worth dropping.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 interface ReliabilityPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -87,6 +158,7 @@ interface ReliabilityPageProps {
 
 export default function ReliabilityPage({ data, numericHeaders, onLoadExample }: ReliabilityPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders.slice(0, 10));
     const [reverseCodeItems, setReverseCodeItems] = useState<string[]>([]);
     
@@ -97,6 +169,7 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
       setSelectedItems(numericHeaders.slice(0, 10));
       setReverseCodeItems([]);
       setReliabilityResult(null);
+      setView(canRun ? 'main' : 'intro');
     }, [data, numericHeaders])
 
     const canRun = useMemo(() => {
@@ -154,41 +227,12 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         }
     }, [data, selectedItems, reverseCodeItems, toast]);
 
-    if (!canRun) {
-        const reliabilityExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('reliability'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Reliability Analysis</CardTitle>
-                        <CardDescription>
-                           To perform a reliability analysis, you need data with multiple numeric items (e.g., a survey scale). Please upload data or try an example dataset.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {reliabilityExamples.map((ex) => {
-                                const Icon = ex.icon;
-                                return (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader>
-                                        <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                        <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                            <Icon className="mr-2 h-4 w-4" />
-                                            Load this data
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     const alphaInterpretation = reliabilityResult ? getAlphaInterpretationLevel(reliabilityResult.alpha) : null;
@@ -197,14 +241,17 @@ export default function ReliabilityPage({ data, numericHeaders, onLoadExample }:
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Reliability Analysis Setup</CardTitle>
+                     <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Reliability Analysis Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>
                         Select the numeric items that form a single scale to calculate internal consistency reliability (Cronbach's Alpha).
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                     <Label>Select Items for Analysis</Label>
-                    <ScrollArea className="h-48 border rounded-md p-4">
+                    <ScrollArea className="h-48 border rounded-lg p-4">
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {numericHeaders.map(header => (
                           <div key={header} className="flex items-center space-x-2">
