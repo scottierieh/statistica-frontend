@@ -207,7 +207,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 3, [data, numericHeaders]);
 
-    const canRunAnalysis = useMemo(() => {
+    const isModelValid = useMemo(() => {
         return data.length > 0 && factors.length > 0 && factors.every(f => f.items.length >= 2 && f.name.trim() !== '');
     }, [data, factors]);
 
@@ -238,7 +238,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     };
 
     const handleAnalysis = useCallback(async () => {
-        if (!canRunAnalysis) {
+        if (!isModelValid) {
             toast({ variant: 'destructive', title: 'Model Specification Error', description: 'Please ensure every factor has a name and at least two items.' });
             return;
         }
@@ -276,7 +276,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         } finally {
             setIsLoading(false);
         }
-    }, [data, factors, canRunAnalysis, toast]);
+    }, [data, factors, isModelValid, toast]);
     
     if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
@@ -397,7 +397,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
                     <div className="flex justify-end gap-2 pt-4">
                         <Button variant="ghost" onClick={handleAutoSpec}><Wand2 className="mr-2" /> Auto-specify (EFA)</Button>
-                        <Button onClick={handleAnalysis} disabled={!canRunAnalysis || isLoading}>
+                        <Button onClick={handleAnalysis} disabled={!isModelValid || isLoading}>
                             {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2"/> Run Analysis</>}
                         </Button>
                     </div>
