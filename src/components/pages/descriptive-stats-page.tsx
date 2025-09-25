@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle, Sparkles, Grid3x3, PieChart as PieChartIcon } from 'lucide-react';
+import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle, Sparkles, Grid3x3, PieChart as PieChartIcon, FileSearch } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -35,7 +34,7 @@ const getQuantile = (arr: number[], q: number) => {
 };
 
 const getNumericStats = (data: number[]) => {
-    if (data.length === 0) return { count: 0, mean: NaN, stdDev: NaN, min: NaN, q1: NaN, median: NaN, q3: NaN, max: NaN };
+    if (data.length === 0) return { count: 0, mean: NaN, stdDev: NaN, min: NaN, q1: NaN, median: NaN, q3: NaN, max: NaN, mode: NaN };
     
     const sortedData = [...data].sort((a, b) => a - b);
     const sum = data.reduce((acc, val) => acc + val, 0);
@@ -46,8 +45,23 @@ const getNumericStats = (data: number[]) => {
     const medianVal = getQuantile(sortedData, 0.5);
     const q3 = getQuantile(sortedData, 0.75);
 
+    const counts: { [key: string]: number } = {};
+    data.forEach(val => {
+      const key = String(val);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    let modeVal: number | null = null;
+    let maxCount = 0;
+    Object.entries(counts).forEach(([val, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        modeVal = parseFloat(val);
+      }
+    });
+
+
     return {
-        count: data.length, mean: meanVal, stdDev: stdDevVal, min: sortedData[0], q1, median: medianVal, q3, max: sortedData[data.length - 1],
+        count: data.length, mean: meanVal, stdDev: stdDevVal, min: sortedData[0], q1, median: medianVal, q3, max: sortedData[data.length - 1], mode: modeVal,
     };
 };
 
@@ -175,8 +189,8 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                         <CardTitle className="text-base flex justify-between items-center">
                             Distribution
                              <div className="flex gap-1">
-                                <Button variant={chartType === 'hbar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('hbar')}><BarChartIcon className="w-4 h-4 -rotate-90" /></Button>
-                                <Button variant={chartType === 'bar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('bar')}><BarChartIcon className="w-4 h-4" /></Button>
+                                <Button variant={chartType === 'hbar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('hbar')}><BarChart className="w-4 h-4 -rotate-90" /></Button>
+                                <Button variant={chartType === 'bar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('bar')}><BarChart className="w-4 h-4" /></Button>
                                 <Button variant={chartType === 'pie' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('pie')}><PieChartIcon className="w-4 h-4" /></Button>
                                 <Button variant={chartType === 'treemap' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('treemap')}><Grid3x3 className="w-4 h-4" /></Button>
                             </div>
@@ -348,7 +362,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                 </CardContent>
                  <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                     <Button size="lg" onClick={onStart}>Start New Analysis</Button>
+                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
@@ -518,3 +532,5 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
         </div>
     );
 }
+
+    
