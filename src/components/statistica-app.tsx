@@ -122,9 +122,10 @@ import SnaPage from './pages/sna-page';
 import TopicModelingPage from './pages/topic-modeling-page';
 import BinomialTestPage from './pages/binomial-test-page';
 import StationarityPage from './pages/stationarity-page';
+import LjungBoxPage from './pages/ljung-box-page';
 
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | 'classifier-comparison' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -184,6 +185,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     't-test-paired': TTestPage,
     'binomial-test': BinomialTestPage,
     'stationarity-tests': StationarityPage,
+    'ljung-box': LjungBoxPage,
 };
 
 const analysisMenu = [
@@ -323,10 +325,15 @@ const analysisMenu = [
         ]
       },
       {
-        name: 'Diagnostics & Evaluation',
+        name: 'Residual diagnostics',
         methods: [
-          { id: 'ljung-box', label: 'Ljung-Box Test', implemented: false },
+          { id: 'ljung-box', label: 'Ljung-Box Test' },
           { id: 'arch-test', label: 'ARCH-LM Test', implemented: false },
+        ]
+      },
+      {
+        name: 'Forecast & Evaluation',
+        methods: [
           { id: 'forecast-eval', label: 'Forecast & Evaluation (AIC, BIC, MAE, RMSE, MAPE)', implemented: false },
         ]
       }
