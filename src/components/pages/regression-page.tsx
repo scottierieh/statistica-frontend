@@ -1,5 +1,6 @@
+
 'use client';
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,9 +21,11 @@ import { Slider } from '../ui/slider';
 
 
 interface RegressionMetrics {
-    r2_score: number;
+    r2: number;
+    adj_r2: number;
     rmse: number;
     mae: number;
+    mse: number;
 }
 interface RegressionResultsData {
     model_name: string;
@@ -66,6 +69,7 @@ interface FullAnalysisResponse {
     model_type: string;
     plot: string;
 }
+
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const regressionExample = exampleDatasets.find(d => d.id === 'regression-suite');
@@ -548,3 +552,4 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     );
 }
+
