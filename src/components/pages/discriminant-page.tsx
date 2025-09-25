@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -9,14 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Users, CheckCircle, XCircle, Search, BarChart3, Binary, AlertTriangle } from 'lucide-react';
+import { Sigma, Loader2, Users, CheckCircle, XCircle, Search, BarChart, Binary, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
-import { BarChart, XAxis, YAxis, Legend, Tooltip, Bar, ResponsiveContainer, CartesianGrid, ReferenceLine, ScatterChart, Scatter } from 'recharts';
+import { BarChart as RechartsBarChart, XAxis, YAxis, Legend, Tooltip, CartesianGrid, ReferenceLine, ScatterChart, Scatter } from 'recharts';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 
@@ -57,8 +56,73 @@ interface DiscriminantAnalysisResults {
 
 interface FullAnalysisResponse {
     results: DiscriminantAnalysisResults;
-    plot: string;
+    plots: {
+      lda_scatter: string;
+      [key: string]: string | null | undefined;
+    }
 }
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const discriminantExample = exampleDatasets.find(d => d.id === 'loan-approval');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Users size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Discriminant Analysis</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        A classification method that finds linear combinations of predictors to separate two or more groups.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                     <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Discriminant Analysis?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Discriminant Analysis is used to predict group membership from a set of continuous independent variables. It's particularly useful for understanding which variables are most powerful in distinguishing between groups and for creating a predictive model for classification. For example, it can be used to predict whether a customer will belong to a 'high-value' or 'low-value' segment based on their purchasing behavior.
+                        </p>
+                    </div>
+                    <div className="flex justify-center">
+                        {discriminantExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(discriminantExample)}>
+                                <discriminantExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{discriminantExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{discriminantExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Group Variable:</strong> Select a categorical variable with two or more distinct groups that you want to predict (e.g., 'Customer Type').</li>
+                                <li><strong>Predictor Variables:</strong> Choose the numeric variables that will be used to predict group membership (e.g., 'Age', 'Income', 'Spending').</li>
+                                <li><strong>Run Analysis:</strong> The tool will create discriminant functions and classify your data.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Wilks' Lambda:</strong> A test of whether the discriminant functions are significant. A p-value less than 0.05 indicates the model can effectively separate the groups.</li>
+                                <li><strong>Standardized Coefficients:</strong> Show the relative importance of each predictor in the discriminant function. Larger absolute values have more weight.</li>
+                                <li><strong>Structure Matrix (Loadings):</strong> The correlation between each predictor and the discriminant function, helping to interpret the meaning of the function.</li>
+                                <li><strong>Scatterplot:</strong> Visualizes how well the first two discriminant functions separate the groups. Well-separated clusters indicate a good model.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
 
 const getSignificanceStars = (p: number | undefined) => {
     if (p === undefined || p === null) return '';
@@ -93,7 +157,7 @@ const GroupMeansChart = ({ centroids, groups, n_components }: { centroids: numbe
             <CardContent>
                  <ChartContainer config={chartConfig} className="w-full h-[300px]">
                      <ResponsiveContainer>
-                         <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                         <RechartsBarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis dataKey="name" />
                             {n_components > 1 && <YAxis />}
@@ -103,7 +167,7 @@ const GroupMeansChart = ({ centroids, groups, n_components }: { centroids: numbe
                             {groups.map((group) => (
                                 <Bar key={group} dataKey={group} fill={`var(--color-${group})`} radius={4} />
                             ))}
-                        </BarChart>
+                        </RechartsBarChart>
                     </ResponsiveContainer>
                  </ChartContainer>
             </CardContent>
@@ -112,7 +176,7 @@ const GroupMeansChart = ({ centroids, groups, n_components }: { centroids: numbe
 };
 
 
-const ResultDisplay = ({ results, plot }: { results: DiscriminantAnalysisResults, plot: string }) => {
+const ResultDisplay = ({ results, plots }: { results: DiscriminantAnalysisResults, plots: FullAnalysisResponse['plots'] }) => {
     const isSignificant = results.wilks_lambda.p_value < 0.05;
 
     return (
@@ -140,7 +204,7 @@ const ResultDisplay = ({ results, plot }: { results: DiscriminantAnalysisResults
                         <CardTitle className="flex items-center gap-2"><Search/> Discriminant Function Plot</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Image src={plot} alt="Discriminant Analysis Plot" width={800} height={600} className="rounded-md border" />
+                        {plots.lda_scatter && <Image src={`data:image/png;base64,${plots.lda_scatter}`} alt="Discriminant Analysis Plot" width={800} height={600} className="rounded-md border" />}
                     </CardContent>
                 </Card>
                  <GroupMeansChart centroids={results.group_centroids} groups={results.meta.groups} n_components={results.meta.n_components} />
@@ -221,6 +285,7 @@ interface DiscriminantPageProps {
 
 export default function DiscriminantPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: DiscriminantPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [groupVar, setGroupVar] = useState<string | undefined>(categoricalHeaders[0]);
     const [predictorVars, setPredictorVars] = useState<string[]>(numericHeaders);
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
@@ -230,11 +295,10 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
         setGroupVar(categoricalHeaders[0] || '');
         setPredictorVars(numericHeaders);
         setAnalysisResult(null);
+        setView(canRun ? 'main' : 'intro');
     }, [categoricalHeaders, numericHeaders, data]);
 
-    const canRun = useMemo(() => {
-      return data.length > 0 && numericHeaders.length >= 1 && categoricalHeaders.length >= 1;
-    }, [data, numericHeaders, categoricalHeaders]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 1 && categoricalHeaders.length >= 1, [data, numericHeaders, categoricalHeaders]);
     
     const handlePredictorSelectionChange = (header: string, checked: boolean) => {
         setPredictorVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
@@ -265,7 +329,7 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
             if (result.error) throw new Error(result.error);
             setAnalysisResult(result);
 
-        } catch(e: any) {
+        } catch (e: any) {
             console.error('Analysis error:', e);
             toast({variant: 'destructive', title: 'Analysis Error', description: e.message || 'An unexpected error occurred.'})
             setAnalysisResult(null);
@@ -278,36 +342,24 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
         return numericHeaders.filter(h => h !== groupVar);
     }, [numericHeaders, groupVar]);
 
-    if (!canRun) {
-        const discriminantExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('discriminant'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Discriminant Analysis</CardTitle>
-                        <CardDescription>
-                           To perform this analysis, you need data with at least one categorical group variable and one numeric predictor variable. Try an example dataset.
-                        </CardDescription>
-                    </CardHeader>
-                     {discriminantExamples.length > 0 && (
-                        <CardContent>
-                           <Button onClick={() => onLoadExample(discriminantExamples[0])} className="w-full" size="sm">
-                                Load {discriminantExamples[0].name}
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        )
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
-    const { results, plot } = analysisResult || {};
+    const { results, plots } = analysisResult || {};
 
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Discriminant Analysis Setup</CardTitle>
+                     <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Discriminant Analysis Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>
                        Select variables to classify groups. Choose one categorical group variable and at least one numeric predictor.
                     </CardDescription>
@@ -352,7 +404,7 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
                 </Card>
             )}
             
-            {results && plot && <ResultDisplay results={results} plot={plot} />}
+            {results && plots?.lda_scatter && <ResultDisplay results={results} plots={plots} />}
 
             {!analysisResult && !isLoading && (
                 <div className="text-center text-muted-foreground py-10">
@@ -363,4 +415,3 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
         </div>
     );
 }
-
