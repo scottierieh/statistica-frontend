@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -13,10 +13,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenu,
-  SidebarInput,
   SidebarMenuSub,
   SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -81,7 +79,7 @@ import ReliabilityPage from './pages/reliability-page';
 import VisualizationPage from './pages/visualization-page';
 import DiscriminantPage from './pages/discriminant-page';
 import EfaPage from './pages/efa-page';
-import CfaPage from '../pages/cfa-page';
+import CfaPage from './pages/cfa-page';
 import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
 import NonParametricPage from './pages/nonparametric-page';
@@ -254,6 +252,7 @@ const analysisMenu = [
             { id: 'two-way-anova', label: 'Two-Way ANOVA' },
             { id: 'ancova', label: 'ANCOVA' },
             { id: 'manova', label: 'MANOVA' },
+            { id: 'rm-anova-pingouin', label: 'Repeated Measures ANOVA'},
         ]
       },
       {
@@ -333,21 +332,21 @@ const analysisMenu = [
        { id: 'moderation', label: 'Moderation Analysis' },
     ]
   },
-    {
-        field: 'Time Series',
-        icon: TrendingUp,
-        methods: [
-            { id: 'trend-analysis', label: 'Time Series Plot' },
-            { id: 'seasonal-decomposition', label: 'Decomposition' },
-            { id: 'stationarity-tests', label: 'Stationarity Tests' },
-            { id: 'acf-pacf', label: 'ACF/PACF Plots' },
-            { id: 'ljung-box', label: 'Ljung-Box Test' },
-            { id: 'arch-lm-test', label: 'ARCH-LM Test' },
-            { id: 'exponential-smoothing', label: 'Exponential Smoothing'},
-            { id: 'autoregressive', label: 'ARIMA-family Models' },
-            { id: 'forecast-eval', label: 'Model Evaluation' },
-        ]
-    },
+  {
+    field: 'Time Series Analysis',
+    icon: TrendingUp,
+    methods: [
+        { id: 'trend-analysis', label: 'Time Series Plot' },
+        { id: 'seasonal-decomposition', label: 'Decomposition' },
+        { id: 'stationarity-tests', label: 'Stationarity Tests' },
+        { id: 'acf-pacf', label: 'ACF/PACF Plots' },
+        { id: 'ljung-box', label: 'Ljung-Box Test' },
+        { id: 'arch-lm-test', label: 'ARCH-LM Test' },
+        { id: 'exponential-smoothing', label: 'Exponential Smoothing'},
+        { id: 'autoregressive', label: 'ARIMA-family Models' },
+        { id: 'forecast-eval', label: 'Model Evaluation' },
+    ]
+  },
   {
     field: 'Text Analysis',
     icon: Feather,
@@ -369,9 +368,7 @@ export default function StatisticaApp() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
-  const [openCategories, setOpenCategories] = useState<string[]>(analysisMenu.map(c => c.field).concat(analysisMenu.flatMap(c => c.subCategories?.map(sc => sc.name) ?? [])));
-  const [searchQuery, setSearchQuery] = useState('');
-
+  
   const { toast } = useToast();
   
   const processData = useCallback((content: string, name: string) => {
@@ -514,6 +511,13 @@ export default function StatisticaApp() {
 
   const hasData = data.length > 0;
   
+  const [openCategories, setOpenCategories] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    setOpenCategories(analysisMenu.map(c => c.field).concat(analysisMenu.flatMap(c => c.subCategories?.map(sc => sc.name) ?? [])));
+  }, []);
+
   const toggleCategory = (category: string) => {
     setOpenCategories(prev => 
       prev.includes(category) 
@@ -521,35 +525,33 @@ export default function StatisticaApp() {
         : [...prev, category]
     )
   };
-
+  
   const filteredMenu = useMemo(() => {
-    if (!searchQuery) {
-      return analysisMenu;
+    if (!searchTerm) {
+        return analysisMenu;
     }
-    const lowercasedQuery = searchQuery.toLowerCase();
-
+    
+    const lowercasedFilter = searchTerm.toLowerCase();
+    
     return analysisMenu.map(category => {
-      const filteredMethods = category.methods?.filter(method =>
-        method.label.toLowerCase().includes(lowercasedQuery)
-      ) || [];
-      
-      const filteredSubCategories = category.subCategories?.map(sub => ({
-        ...sub,
-        methods: sub.methods.filter(method =>
-          method.label.toLowerCase().includes(lowercasedQuery)
-        ),
-      })).filter(sub => sub.methods.length > 0) || [];
-
-      if (filteredMethods.length > 0 || filteredSubCategories.length > 0) {
-        return {
-          ...category,
-          methods: filteredMethods,
-          subCategories: filteredSubCategories,
-        };
-      }
-      return null;
-    }).filter(Boolean);
-  }, [searchQuery]);
+        const filteredMethods = category.methods?.filter(method => 
+            method.label.toLowerCase().includes(lowercasedFilter)
+        ) || [];
+        
+        const filteredSubCategories = category.subCategories?.map(sub => {
+            const filteredSubMethods = sub.methods.filter(method =>
+                method.label.toLowerCase().includes(lowercasedFilter)
+            );
+            return filteredSubMethods.length > 0 ? { ...sub, methods: filteredSubMethods } : null;
+        }).filter((sub): sub is Exclude<typeof sub, null> => sub !== null) || [];
+        
+        if (filteredMethods.length > 0 || filteredSubCategories.length > 0) {
+            return { ...category, methods: filteredMethods, subCategories: filteredSubCategories };
+        }
+        
+        return null;
+    }).filter((category): category is Exclude<typeof category, null> => category !== null);
+  }, [searchTerm]);
 
   return (
     <SidebarProvider>
@@ -562,14 +564,14 @@ export default function StatisticaApp() {
               </div>
               <h1 className="text-xl font-headline font-bold">Statistica</h1>
             </div>
-          </SidebarHeader>
-          <SidebarContent className="flex flex-col gap-2 p-2">
             <div className='p-2'>
               <DataUploader 
                 onFileSelected={handleFileSelected}
                 loading={isUploading}
               />
             </div>
+          </SidebarHeader>
+          <SidebarContent className="flex flex-col gap-2 p-2">
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton
@@ -657,7 +659,7 @@ export default function StatisticaApp() {
                 )
               })}
             </div>
-          </SidebarFooter>
+          </SidebarContent>
           <SidebarFooter>
             <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="w-full">
               {isGeneratingReport ? <Loader2 className="animate-spin" /> : <FileText />}
@@ -674,7 +676,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && activeAnalysis !== 'ahp' && (
+            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && activeAnalysis !== 'ahp' && activeAnalysis !== 'transportation-problem' && activeAnalysis !== 'nonlinear-programming' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
