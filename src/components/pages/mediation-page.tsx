@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -10,9 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Network, CheckCircle, XCircle } from 'lucide-react';
+import { Sigma, Loader2, Network, CheckCircle, XCircle, HelpCircle, MoveRight, Settings, FileSearch, TrendingUp } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -21,7 +20,7 @@ interface PathResult {
     se: number;
     t_stat: number;
     p_value: number;
-    r_squared?: number; // Optional as it might not be on all path results from backend
+    r_squared?: number;
 }
 
 interface SobelResult {
@@ -59,13 +58,75 @@ interface FullAnalysisResponse {
     plot: string; // base64 image string
 }
 
-
 const getSignificanceStars = (p: number | undefined) => {
     if (p === undefined || p === null) return '';
     if (p < 0.001) return '***';
     if (p < 0.01) return '**';
     if (p < 0.05) return '*';
     return '';
+};
+
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const mediationExample = exampleDatasets.find(d => d.id === 'work-stress');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Network size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Mediation Analysis</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Explore how a third variable (the mediator) explains the relationship between an independent variable and a dependent variable.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Mediation Analysis?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Mediation analysis helps you understand the 'how' and 'why' behind an observed relationship. It tests whether the effect of an independent variable on a dependent variable is transmitted through a third, intermediary variable (the mediator). It's a powerful tool for uncovering causal mechanisms.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {mediationExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(mediationExample)}>
+                                <mediationExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{mediationExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{mediationExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Independent Variable (X):</strong> The initial predictor variable.</li>
+                                <li><strong>Mediator Variable (M):</strong> The variable that is hypothesized to transmit the effect from X to Y.</li>
+                                <li><strong>Dependent Variable (Y):</strong> The final outcome variable.</li>
+                                <li><strong>Run Analysis:</strong> The tool will perform regressions for each path in the mediation model.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Indirect Effect (a*b):</strong> This is the key result. It represents the portion of the X-Y relationship that is explained by the mediator (M). A significant bootstrap confidence interval that does not contain zero indicates significant mediation.</li>
+                                <li><strong>Direct Effect (c'):</strong> The effect of X on Y after controlling for the mediator. If this is non-significant, it suggests full mediation. If it remains significant, it's partial mediation.</li>
+                                 <li><strong>Total Effect (c):</strong> The overall effect of X on Y without considering the mediator.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
 };
 
 
@@ -83,12 +144,14 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
 
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [view, setView] = useState('intro');
 
     useEffect(() => {
         setXVar(numericHeaders[0] || undefined);
         setMVar(numericHeaders[1] || undefined);
         setYVar(numericHeaders[2] || undefined);
         setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [numericHeaders, data]);
     
     const canRun = useMemo(() => {
@@ -134,44 +197,12 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
         }
     }, [data, xVar, mVar, yVar, toast]);
     
-    if (!canRun) {
-        const mediationExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('mediation'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Mediation Analysis</CardTitle>
-                        <CardDescription>
-                           To perform mediation analysis, you need data with at least 3 numeric variables. Try an example dataset.
-                        </CardDescription>
-                    </CardHeader>
-                    {mediationExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {mediationExamples.map((ex) => (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <Network className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                ))}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        )
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     const availableForM = numericHeaders.filter(h => h !== xVar);
@@ -185,7 +216,10 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Mediation Analysis Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Mediation Analysis Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select your Independent (X), Mediator (M), and Dependent (Y) variables. Analysis uses standardized variables.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
@@ -221,7 +255,7 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
                          <Image src={analysisResult.plot} alt="Mediation Plot" width={1200} height={500} className="w-full rounded-md border" />
                          <div className='space-y-4'>
                             <Alert variant={results.mediation_type !== "No Mediation" ? 'default' : 'destructive'}>
-                                {results.mediation_type !== "No Mediation" ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                                {results.mediation_type !== "No Mediation" ? <CheckCircle className='mr-2 h-4 w-4' /> : <XCircle className='mr-2 h-4 w-4' />}
                                 <AlertTitle>Mediation Result</AlertTitle>
                                 <AlertDescription>The analysis suggests a <span className="font-bold">{results.mediation_type}</span> effect.</AlertDescription>
                             </Alert>
@@ -325,5 +359,3 @@ export default function MediationPage({ data, numericHeaders, onLoadExample }: M
         </div>
     );
 }
-
-    
