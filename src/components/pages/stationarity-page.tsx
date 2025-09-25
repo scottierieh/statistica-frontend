@@ -107,7 +107,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
-
 const ResultCard = ({ title, results }: { title: string, results: AdfResult }) => (
     <Card>
         <CardHeader>
@@ -170,12 +169,17 @@ export default function StationarityPage({ data, allHeaders, onLoadExample }: St
 
         setIsLoading(true);
         setAnalysisResult(null);
-        
+
+        const analysisData = data.map(row => ({
+            [timeCol]: row[timeCol],
+            [valueCol]: row[valueCol],
+        }));
+
         try {
             const response = await fetch('/api/analysis/stationarity', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, timeCol, valueCol })
+                body: JSON.stringify({ data: analysisData, timeCol, valueCol })
             });
 
             if (!response.ok) {
