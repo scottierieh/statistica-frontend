@@ -16,7 +16,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { produce } from 'immer';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
 
 interface LatentVariable {
@@ -201,6 +201,10 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     const availableIndicators = numericHeaders;
     const results = analysisResult?.results;
 
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
     if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }

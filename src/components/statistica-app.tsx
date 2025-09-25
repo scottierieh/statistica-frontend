@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -306,30 +307,30 @@ const analysisMenu = [
     ]
   },
   {
-    field: 'Statistics-based Time Series',
+    field: 'Time Series Analysis',
     icon: LineChart,
     subCategories: [
       {
-        name: 'Exploration & Tests',
+        name: 'Exploration',
         methods: [
-          { id: 'trend-analysis', label: 'Data Exploration (Plot)' },
+          { id: 'trend-analysis', label: 'Data Exploration Plot' },
           { id: 'seasonal-decomposition', label: 'Decomposition' },
-          { id: 'exponential-smoothing', label: 'Exponential Smoothing'},
-          { id: 'acf-pacf', label: 'ACF/PACF Analysis' },
           { id: 'stationarity-tests', label: 'Stationarity Tests' },
         ]
       },
-      {
-        name: 'Models',
+       {
+        name: 'Modeling',
         methods: [
-          { id: 'autoregressive', label: 'AR, MA, ARMA, ARIMA, SARIMA' },
+          { id: 'autoregressive', label: 'ARIMA-family' },
+          { id: 'exponential-smoothing', label: 'Exponential Smoothing'},
           { id: 'arch-garch', label: 'ARCH/GARCH', implemented: false },
           { id: 'state-space', label: 'State Space Models', implemented: false },
         ]
       },
       {
-        name: 'Residual diagnostics',
+        name: 'Diagnostics',
         methods: [
+          { id: 'acf-pacf', label: 'ACF/PACF Analysis' },
           { id: 'ljung-box', label: 'Ljung-Box Test' },
           { id: 'arch-lm-test', label: 'ARCH-LM Test' },
         ]
@@ -337,7 +338,7 @@ const analysisMenu = [
       {
         name: 'Forecast & Evaluation',
         methods: [
-          { id: 'forecast-eval', label: 'Forecast & Evaluation (AIC, BIC, MAE, RMSE, MAPE)' },
+          { id: 'forecast-eval', label: 'Forecast & Evaluation' },
         ]
       }
     ]
@@ -521,44 +522,34 @@ export default function StatisticaApp() {
     const lowercasedQuery = searchQuery.toLowerCase();
     
     return analysisMenu.map(category => {
-      if (category.field.toLowerCase().includes(lowercasedQuery)) {
-        return category; // Include the whole category if the main title matches
-      }
-
-      let matchingMethods: any[] = [];
-      if (category.methods) {
-        matchingMethods = category.methods.filter(method =>
-          method.label.toLowerCase().includes(lowercasedQuery)
-        );
-      }
-
-      let matchingSubCategories: any[] = [];
-      if (category.subCategories) {
-        matchingSubCategories = category.subCategories.map(sub => {
-          const methods = sub.methods.filter(method =>
+        const matchingMethods = category.methods?.filter(method =>
             method.label.toLowerCase().includes(lowercasedQuery)
-          );
-          if (methods.length > 0) {
-            return { ...sub, methods };
-          }
-          if (sub.name.toLowerCase().includes(lowercasedQuery)) {
-            return sub;
-          }
-          return null;
-        }).filter(Boolean) as (typeof category.subCategories)[];
-      }
+        ) || [];
 
-      if (matchingMethods.length > 0 || matchingSubCategories.length > 0) {
-        return {
-          ...category,
-          methods: matchingMethods,
-          subCategories: matchingSubCategories
-        };
-      }
+        const matchingSubCategories = category.subCategories?.map(sub => {
+            const methods = sub.methods.filter(method =>
+                method.label.toLowerCase().includes(lowercasedQuery)
+            );
+            if (methods.length > 0) {
+                return { ...sub, methods };
+            }
+            if (sub.name.toLowerCase().includes(lowercasedQuery)) {
+                return sub;
+            }
+            return null;
+        }).filter(Boolean) as any[];
 
-      return null;
+        if (category.field.toLowerCase().includes(lowercasedQuery) || matchingMethods.length > 0 || matchingSubCategories.length > 0) {
+            return {
+                ...category,
+                methods: category.field.toLowerCase().includes(lowercasedQuery) ? category.methods : matchingMethods,
+                subCategories: category.field.toLowerCase().includes(lowercasedQuery) ? category.subCategories : matchingSubCategories
+            };
+        }
+        return null;
     }).filter(Boolean) as typeof analysisMenu;
-  }, [searchQuery]);
+}, [searchQuery]);
+
 
   return (
     <SidebarProvider>
@@ -673,7 +664,7 @@ export default function StatisticaApp() {
                 )
               })}
             </div>
-          </SidebarContent>
+          </SidebarFooter>
           <SidebarFooter>
             <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="w-full">
               {isGeneratingReport ? <Loader2 className="animate-spin" /> : <FileText />}

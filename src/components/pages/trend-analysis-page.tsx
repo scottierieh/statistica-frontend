@@ -11,16 +11,8 @@ import { Sigma, Loader2, AreaChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
-import { Input } from '../ui/input';
-
-interface TrendResults {
-    trend: { [key: string]: number | string }[];
-    seasonal: { [key: string]: number | string }[];
-    resid: { [key: string]: number | string }[];
-}
 
 interface FullAnalysisResponse {
-    results: TrendResults;
     plot: string;
 }
 
@@ -34,8 +26,6 @@ export default function TrendAnalysisPage({ data, allHeaders, onLoadExample }: T
     const { toast } = useToast();
     const [timeCol, setTimeCol] = useState<string | undefined>();
     const [valueCol, setValueCol] = useState<string | undefined>();
-    const [model, setModel] = useState('additive');
-    const [period, setPeriod] = useState<number>(7);
     
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -60,8 +50,6 @@ export default function TrendAnalysisPage({ data, allHeaders, onLoadExample }: T
         setIsLoading(true);
         setAnalysisResult(null);
 
-        // This is the crucial fix: create a new, clean array of objects with only the data needed.
-        // This avoids passing the complex `data` prop (which is a React state object) to JSON.stringify.
         const analysisData = data.map(row => ({
             [timeCol]: row[timeCol],
             [valueCol]: row[valueCol],
@@ -75,8 +63,6 @@ export default function TrendAnalysisPage({ data, allHeaders, onLoadExample }: T
                     data: analysisData, 
                     timeCol, 
                     valueCol, 
-                    model, 
-                    period 
                 })
             });
 
@@ -96,7 +82,7 @@ export default function TrendAnalysisPage({ data, allHeaders, onLoadExample }: T
         } finally {
             setIsLoading(false);
         }
-    }, [data, timeCol, valueCol, model, period, toast]);
+    }, [data, timeCol, valueCol, toast]);
 
     if (!canRun) {
         const trendExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('trend-analysis'));
@@ -143,31 +129,21 @@ export default function TrendAnalysisPage({ data, allHeaders, onLoadExample }: T
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Trend Analysis Setup</CardTitle>
-                    <CardDescription>Configure the parameters for time series decomposition.</CardDescription>
+                    <CardDescription>Select variables to plot the time series.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-4 gap-4">
-                        <div>
-                            <Label>Time Column</Label>
-                            <Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                        <div>
-                            <Label>Value Column</Label>
-                            <Select value={valueCol} onValueChange={setValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.filter(h=>h !== timeCol).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                         <div>
-                            <Label>Model Type</Label>
-                            <Select value={model} onValueChange={setModel}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="additive">Additive</SelectItem><SelectItem value="multiplicative">Multiplicative</SelectItem></SelectContent></Select>
-                        </div>
-                        <div>
-                            <Label>Period (Seasonality)</Label>
-                            <Input type="number" value={period} onChange={e => setPeriod(Number(e.target.value))} min="2" />
-                        </div>
+                <CardContent className="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <Label>Time Column</Label>
+                        <Select value={timeCol} onValueChange={setTimeCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                    <div>
+                        <Label>Value Column</Label>
+                        <Select value={valueCol} onValueChange={setValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.filter(h=>h !== timeCol).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading || !timeCol || !valueCol}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Plotting...</> : <><Sigma className="mr-2"/>Plot Chart</>}
                     </Button>
                 </CardFooter>
             </Card>
@@ -177,14 +153,14 @@ export default function TrendAnalysisPage({ data, allHeaders, onLoadExample }: T
             {analysisResult?.plot && (
                 <Card>
                     <CardHeader>
-                        <CardTitle className="font-headline">Time Series Decomposition</CardTitle>
-                        <CardDescription>The original series decomposed into trend, seasonal, and residual components.</CardDescription>
+                        <CardTitle className="font-headline">Time Series Plot</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Image src={analysisResult.plot} alt="Time Series Decomposition Plot" width={1200} height={1000} className="w-full rounded-md border"/>
+                        <Image src={analysisResult.plot} alt="Time Series Plot" width={1200} height={600} className="w-full rounded-md border"/>
                     </CardContent>
                 </Card>
             )}
         </div>
     );
 }
+
