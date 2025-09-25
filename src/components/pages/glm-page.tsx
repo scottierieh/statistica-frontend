@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Scaling } from 'lucide-react';
+import { Sigma, Loader2, Scaling, HelpCircle, MoveRight, Settings, FileSearch, TrendingUp } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -45,6 +45,85 @@ const getSignificanceStars = (p: number) => {
     return '';
 };
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const glmExample = exampleDatasets.find(d => d.id === 'admission-data');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Scaling size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Generalized Linear Models (GLM)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        An advanced and flexible extension of linear regression for modeling various types of outcome data.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use GLMs?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Generalized Linear Models are a powerful class of statistical models that include and extend standard linear regression. GLMs are flexible and can handle dependent variables with different distributions, such as binary outcomes (yes/no) with Binomial GLMs or count data with Poisson GLMs, by using a 'link function'. This makes them one of the most widely used tools in modern statistics.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {glmExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(glmExample)}>
+                                <glmExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{glmExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{glmExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Model Family:</strong> Choose the distribution that matches your dependent variable (e.g., 'Binomial' for binary outcomes, 'Poisson' for counts, 'Gaussian' for normal data).
+                                </li>
+                                <li>
+                                    <strong>Link Function:</strong> This function links the linear model to the outcome. It's often set automatically based on the family, but can be customized (e.g., 'Logit' for Binomial).
+                                </li>
+                                <li>
+                                    <strong>Target and Features:</strong> Select your dependent variable (target) and one or more independent variables (features).
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> The tool fits the specified GLM and provides detailed coefficient tables and model fit statistics.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Coefficients:</strong> The interpretation depends on the link function. For a Logit link, the exponentiated coefficient (Exp(Coef)) is the Odds Ratio.
+                                </li>
+                                <li>
+                                    <strong>Pseudo R²:</strong> An equivalent to R-squared for GLMs, indicating the proportion of variance explained by the model.
+                                </li>
+                                 <li>
+                                    <strong>AIC/BIC:</strong> Information criteria used to compare the fit of different models. Lower values are generally better.
+                                </li>
+                                <li>
+                                    <strong>Deviance:</strong> A measure of model fit. A well-fitting model will have a deviance close to its degrees of freedom.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 
 interface GlmPageProps {
     data: DataSet;
@@ -56,6 +135,7 @@ interface GlmPageProps {
 
 export default function GlmPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: GlmPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [family, setFamily] = useState('gaussian');
     const [linkFunction, setLinkFunction] = useState<string | undefined>();
     const [targetVar, setTargetVar] = useState<string | undefined>();
@@ -85,7 +165,8 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
         setTargetVar(newTarget);
         setFeatures(allHeaders.filter(h => h !== newTarget));
         setAnalysisResult(null);
-    }, [family, data, allHeaders, targetOptions]);
+        setView(canRun ? 'main' : 'intro');
+    }, [family, data, allHeaders, targetOptions, canRun]);
 
     const linkFunctionOptions = useMemo(() => {
         switch (family) {
@@ -168,51 +249,24 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
         return items;
     }, [analysisResult]);
 
-    if (!canRun) {
-        const glmExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('glm'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Generalized Linear Models (GLM)</CardTitle>
-                        <CardDescription>
-                           To perform GLM, you need data with at least two variables. Try an example dataset.
-                        </CardDescription>
-                    </CardHeader>
-                     {glmExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {glmExamples.map((ex) => (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <Scaling className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                ))}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        )
+     if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+
+    const results = analysisResult;
 
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">GLM Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">GLM Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select the model family, target variable, and features.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -269,16 +323,16 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
             
-            {analysisResult && (
+            {results && (
                 <div className="space-y-4">
                     <Card>
                         <CardHeader><CardTitle>Model Summary</CardTitle></CardHeader>
                         <CardContent>
                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">AIC</p><p className="text-2xl font-bold">{analysisResult.aic.toFixed(2)}</p></div>
-                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">BIC</p><p className="text-2xl font-bold">{analysisResult.bic.toFixed(2)}</p></div>
-                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Log-Likelihood</p><p className="text-2xl font-bold">{analysisResult.log_likelihood.toFixed(2)}</p></div>
-                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Pseudo R²</p><p className="text-2xl font-bold">{analysisResult.pseudo_r2.toFixed(4)}</p></div>
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">AIC</p><p className="text-2xl font-bold">{results.aic.toFixed(2)}</p></div>
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">BIC</p><p className="text-2xl font-bold">{results.bic.toFixed(2)}</p></div>
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Log-Likelihood</p><p className="text-2xl font-bold">{results.log_likelihood.toFixed(2)}</p></div>
+                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Pseudo R²</p><p className="text-2xl font-bold">{results.pseudo_r2.toFixed(4)}</p></div>
                             </div>
                         </CardContent>
                     </Card>
@@ -290,17 +344,17 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
                                     <TableRow>
                                         <TableHead>Variable</TableHead>
                                         <TableHead className="text-right">Coefficient</TableHead>
-                                        {analysisResult.family !== 'gaussian' && <TableHead className="text-right">Exp(Coef)</TableHead>}
+                                        {results.family !== 'gaussian' && <TableHead className="text-right">Exp(Coef)</TableHead>}
                                         <TableHead className="text-right">p-value</TableHead>
                                         <TableHead className="text-right">95% Confidence Interval</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {analysisResult.coefficients.map(c => (
+                                    {results.coefficients.map(c => (
                                         <TableRow key={c.variable}>
                                             <TableCell>{c.variable.replace(/Q\("([^"]+)"\)/g, '$1')}</TableCell>
                                             <TableCell className="font-mono text-right">{c.coefficient.toFixed(4)}</TableCell>
-                                            {analysisResult.family !== 'gaussian' && <TableCell className="font-mono text-right">{c.exp_coefficient?.toFixed(4)}</TableCell>}
+                                            {results.family !== 'gaussian' && <TableCell className="font-mono text-right">{c.exp_coefficient?.toFixed(4)}</TableCell>}
                                             <TableCell className="font-mono text-right">{c.p_value < 0.001 ? '<.001' : c.p_value.toFixed(4)} {getSignificanceStars(c.p_value)}</TableCell>
                                             <TableCell className="font-mono text-right">[{c.conf_int_lower.toFixed(3)}, {c.conf_int_upper.toFixed(3)}]</TableCell>
                                         </TableRow>
@@ -325,20 +379,20 @@ export default function GlmPage({ data, allHeaders, numericHeaders, categoricalH
                                     </dl>
                                 </CardContent>
                             </Card>
-                            {analysisResult.model_summary_data?.[1] && (
+                            {results.model_summary_data?.[1] && (
                                 <Card>
                                      <CardHeader><CardTitle className="text-base">Coefficients (Detailed)</CardTitle></CardHeader>
                                      <CardContent>
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
-                                                    {analysisResult.model_summary_data[1].data[0].map((header, i) => (
+                                                    {results.model_summary_data[1].data[0].map((header, i) => (
                                                         <TableHead key={i} className={i > 0 ? "text-right" : ""}>{header}</TableHead>
                                                     ))}
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {analysisResult.model_summary_data[1].data.slice(1).map((row, i) => (
+                                                {results.model_summary_data[1].data.slice(1).map((row, i) => (
                                                     <TableRow key={i}>
                                                         {row.map((cell, j) => (
                                                             <TableCell key={j} className={`font-mono ${j > 0 ? "text-right" : ""}`}>
