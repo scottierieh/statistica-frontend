@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -11,10 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, BrainCircuit, AlertTriangle, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Settings, RotateCw, Replace, Bot, CheckCircle2, FileSearch, MoveRight, HelpCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
+import { Checkbox } from '../ui/checkbox';
+import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -246,9 +246,7 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
         setView(canRun ? 'main' : 'intro');
     }, [numericHeaders, data]);
     
-    const canRun = useMemo(() => {
-        return data.length > 0 && numericHeaders.length >= 3;
-    }, [data, numericHeaders]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 3, [data, numericHeaders]);
 
     const handleAnalysis = useCallback(async () => {
         if (selectedItems.length < 3) {
@@ -449,7 +447,7 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                             <CardDescription>Indicates how much each variable is associated with each factor. Loadings &gt; 0.4 are highlighted.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <ScrollArea className="w-full h-96">
+                            <ScrollArea className="h-96">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
