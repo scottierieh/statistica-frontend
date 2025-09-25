@@ -73,6 +73,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             Frequency analysis is one of the most fundamental methods for inspecting and understanding your data. It summarizes the distribution of a categorical variable by showing how many times each category appears. This helps in identifying the most and least common categories, spotting data entry errors, and understanding the basic composition of your sample.
                         </p>
                     </div>
+                     <div className="flex justify-center">
+                            {freqExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(freqExample)}>
+                                    <Users className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">Demographics</h4>
+                                        <p className="text-xs text-muted-foreground">Example survey data including demographic variables like region.</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
@@ -99,20 +110,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                     <strong>AI Insights:</strong> The AI automatically highlights key findings, such as highly skewed distributions or low diversity among categories, and offers recommendations for further analysis.
                                 </li>
                             </ul>
-                        </div>
-                    </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
-                        <div className="flex justify-center">
-                            {freqExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(freqExample)}>
-                                    <Users className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">Demographics</h4>
-                                        <p className="text-xs text-muted-foreground">Example survey data including demographic variables like region.</p>
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
                 </CardContent>
@@ -369,7 +366,7 @@ export default function FrequencyAnalysisPage({ data, categoricalHeaders, onLoad
               <CardHeader>
                  <div className="flex justify-between items-center">
                     <CardTitle className="font-headline">Frequency Analysis Setup</CardTitle>
-                     <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                 </div>
                 <CardDescription>Select one or more categorical variables to analyze.</CardDescription>
               </CardHeader>

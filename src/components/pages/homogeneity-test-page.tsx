@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, CheckCircle2, AlertTriangle, Layers, HelpCircle, MoveRight, Settings, FileSearch } from 'lucide-react';
+import { Sigma, Loader2, CheckCircle2, AlertTriangle, Layers, HelpCircle, MoveRight, Settings, FileSearch, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import Image from 'next/image';
@@ -61,7 +61,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             Many parametric statistical tests, like ANOVA, work best when the variability within each group being compared is similar. If one group's data is much more spread out than another's, it can violate the test's assumptions and lead to inaccurate conclusions. Levene's test is a robust way to check this assumption before you proceed with your main analysis.
                         </p>
                     </div>
-
+                     <div className="flex justify-center">
+                        {homogeneityExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(homogeneityExample)}>
+                                <homogeneityExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{homogeneityExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{homogeneityExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -90,20 +100,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                     <strong>Box Plot:</strong> Visually inspect the plot. If the boxes for each group have roughly the same height (Interquartile Range), it supports the assumption of homogeneity.
                                 </li>
                             </ul>
-                        </div>
-                    </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
-                        <div className="flex justify-center">
-                            {homogeneityExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(homogeneityExample)}>
-                                    <homogeneityExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{homogeneityExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{homogeneityExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
                 </CardContent>
@@ -301,4 +297,3 @@ export default function HomogeneityTestPage({ data, numericHeaders, categoricalH
         </div>
     );
 }
-

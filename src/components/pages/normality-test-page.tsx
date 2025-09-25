@@ -60,6 +60,18 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             Many parametric statistical tests, such as the t-test and ANOVA, assume that the data is normally distributed. If this assumption is violated, the results of these tests may be unreliable. Testing for normality helps you choose the appropriate statistical methods for your analysis—parametric tests for normal data and non-parametric tests for non-normal data.
                         </p>
                     </div>
+                    
+                    <div className="flex justify-center">
+                        {normalityExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(normalityExample)}>
+                                <normalityExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{normalityExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{normalityExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
@@ -86,20 +98,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                     <strong>Q-Q Plot:</strong> For normal data, the points should fall closely along the straight red line.
                                 </li>
                             </ul>
-                        </div>
-                    </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
-                        <div className="flex justify-center">
-                            {normalityExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(normalityExample)}>
-                                    <normalityExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{normalityExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{normalityExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
                 </CardContent>
@@ -192,8 +190,8 @@ export default function NormalityTestPage({ data, numericHeaders, onLoadExample 
                 <CardContent className="space-y-4">
                      <div>
                         <Label>Numeric Variables</Label>
-                        <ScrollArea className="h-40 border rounded-md p-4">
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <ScrollArea className="h-40 border rounded-lg p-4 mt-2">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {numericHeaders.map(header => (
                               <div key={header} className="flex items-center space-x-2">
                                 <Checkbox
