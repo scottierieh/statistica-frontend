@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -122,6 +123,17 @@ const IntroPage = ({ testType, onStart, onLoadExample }: { testType: TestType, o
                            {content.why}
                         </p>
                     </div>
+                     <div className="flex justify-center">
+                           {example && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(example)}>
+                                    <example.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{example.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{example.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -134,20 +146,6 @@ const IntroPage = ({ testType, onStart, onLoadExample }: { testType: TestType, o
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 {content.interpretation.map(item => <li key={item.title}><strong>{item.title}:</strong> {item.text}</li>)}
                             </ul>
-                        </div>
-                    </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
-                        <div className="flex justify-center">
-                           {example && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(example)}>
-                                    <example.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{example.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{example.description}</p>
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
                 </CardContent>
