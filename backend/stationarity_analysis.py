@@ -61,8 +61,10 @@ def main():
         df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
         df[value_col] = pd.to_numeric(df[value_col], errors='coerce')
         
-        # Create a clean series for analysis
-        series = df[[time_col, value_col]].copy().dropna().set_index(time_col)[value_col].sort_index()
+        df = df.dropna(subset=[time_col, value_col])
+        df = df.set_index(time_col).sort_index()
+
+        series = df[value_col].copy()
 
         if len(series) < 4:
             raise ValueError("Not enough valid data points to perform stationarity test after cleaning.")
@@ -71,8 +73,10 @@ def main():
         original_test = perform_adf_test(series)
         
         plt.figure(figsize=(10, 4))
-        plt.plot(series.index, series.values, label=f"Original: {value_col}", color="blue")
+        plt.plot(series.index, series.values, marker='o', linestyle='-', color="blue", label=f"Original: {value_col}")
         plt.title("Original Time Series")
+        plt.xlabel("Date")
+        plt.ylabel("Value")
         plt.legend()
         plt.grid(True, linestyle='--', alpha=0.6)
         original_plot_buf = io.BytesIO()
@@ -85,8 +89,10 @@ def main():
         diff_test = perform_adf_test(diff_series)
 
         plt.figure(figsize=(10, 4))
-        plt.plot(diff_series.index, diff_series.values, label=f"1st Difference", color="green")
+        plt.plot(diff_series.index, diff_series.values, marker='o', linestyle='-', color="green", label=f"1st Difference")
         plt.title("1st Differenced Time Series")
+        plt.xlabel("Date")
+        plt.ylabel("Differenced Value")
         plt.legend()
         plt.grid(True, linestyle='--', alpha=0.6)
         diff_plot_buf = io.BytesIO()
