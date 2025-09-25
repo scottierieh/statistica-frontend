@@ -16,14 +16,14 @@ import { Select as DndSelect, SelectTrigger as DndSelectTrigger, SelectValue as 
 import { produce } from 'immer';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
-import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell } from 'recharts';
+import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell, PieChart, Pie } from 'recharts';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, Trash2, ArrowLeft, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Eye, Shuffle, FileText, Save, Info, Link as LinkIcon, QrCode, Download, Copy, Users, EyeIcon, TrendingUp, Laptop, Palette, Grid3x3, ThumbsUp, MessageSquareQuote, Target, Sparkles, ImageIcon, Smartphone, Tablet, Monitor, FileDown, Share2, Phone, Mail, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, X, ChevronDown, Settings, LayoutDashboard } from 'lucide-react';
+import { GripVertical, Plus, Trash2, ArrowLeft, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Eye, Shuffle, FileText, Save, Info, Link as LinkIcon, QrCode, Download, Copy, Users, EyeIcon, TrendingUp, Laptop, Palette, Grid3x3, ThumbsUp, MessageSquareQuote, Target, Sparkles, ImageIcon, Smartphone, Tablet, Monitor, FileDown, Share2, Phone, Mail, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, X, ChevronDown, Settings, LayoutDashboard, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -40,7 +40,7 @@ import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { LineChart, Line, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, PieChart, Pie } from 'recharts';
+import { LineChart, Line, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DateRange } from 'react-day-picker';
 import { DatePickerWithRange } from '../ui/date-range-picker';
@@ -917,15 +917,13 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                <>
-                                {question.columns.map((col: string, colIndex: number) => (
-                                    <TableCell key={colIndex} className="text-center">
+                            {question.columns.map((col: string, colIndex: number) => (
+                                <TableCell key={colIndex} className="text-center">
+                                    <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                         <RadioGroupItem value={col}/>
-                                    </TableCell>
-                                ))}
-                                </>
-                            </RadioGroup>
+                                    </RadioGroup>
+                                </TableCell>
+                            ))}
                             {!isPreview && <TableCell></TableCell>}
                         </TableRow>
                     ))}
@@ -1653,13 +1651,21 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
 
     
-    const getAnalysisDataForQuestion = (questionId: number) => {
+    const getAnalysisDataForQuestion = (questionId: number, filter: {filterKey: string, filterValue: string} | null) => {
         const question = survey.questions.find((q: any) => q.id === questionId);
         if (!question) {
             return { noData: true, chartData: null, tableData: null, insights: [] };
         }
         
-        const allAnswers = responses.map(r => r.answers ? r.answers[question.id] : undefined).filter(a => a !== undefined && a !== null && a !== '');
+        let targetResponses = responses;
+        if (filter) {
+            const filterQuestion = survey.questions.find((q:any) => q.title === filter.filterKey);
+            if(filterQuestion) {
+                 targetResponses = responses.filter(r => r.answers[filterQuestion.id] === filter.filterValue);
+            }
+        }
+        
+        const allAnswers = targetResponses.map(r => r.answers ? r.answers[question.id] : undefined).filter(a => a !== undefined && a !== null && a !== '');
         
         if (allAnswers.length === 0) {
             return { noData: true, chartData: null, tableData: null, insights: ["No responses yet."] };
@@ -2191,6 +2197,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     
     const [analysisItems, setAnalysisItems] = useState(survey.questions);
     
+    const [filterKey, setFilterKey] = useState<string>('All');
+    const [filterValue, setFilterValue] = useState<string | null>(null);
+    const demographicQuestions = survey.questions.filter((q:any) => q.type === 'single' || q.type === 'dropdown');
+
     useEffect(() => {
         setAnalysisItems(survey.questions);
     }, [survey.questions]);
@@ -2516,9 +2526,25 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                      <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Detailed Analysis</CardTitle>
-                            <CardDescription>
-                                A question-by-question breakdown of survey responses.
-                            </CardDescription>
+                            <div className="flex items-center gap-2">
+                                <Label htmlFor="filter-key">Filter by</Label>
+                                <Select value={filterKey} onValueChange={(v) => {setFilterKey(v); setFilterValue(null);}}>
+                                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="All">All Respondents</SelectItem>
+                                        {demographicQuestions.map((q:any) => <SelectItem key={q.id} value={q.title}>{q.title}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                {filterKey !== 'All' && (
+                                    <Select value={filterValue || ''} onValueChange={(v) => setFilterValue(v === 'All' ? null : v)}>
+                                        <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select value..."/></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="All">All</SelectItem>
+                                            {(survey.questions.find((q:any) => q.title === filterKey)?.options || []).map((opt:string) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </div>
                         </CardHeader>
                         <CardContent className="space-y-8">
                             {responses.length === 0 ? (
@@ -2527,7 +2553,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 </div>
                             ) : (
                                 survey.questions.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, qIndex: number) => {
-                                    const { noData, chartData, tableData, insights } = getAnalysisDataForQuestion(q.id);
+                                    const { noData, chartData, tableData, insights } = getAnalysisDataForQuestion(q.id, filterKey !== 'All' && filterValue ? {filterKey, filterValue} : null);
                                     if (noData) return null;
                                     
                                     const questionComponents: { [key: string]: React.ComponentType<any> } = {
@@ -2569,9 +2595,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 </div>
                             ) : (
                                 <DndContext sensors={sensors} onDragEnd={handleDashboardDragEnd}>
-                                    <div className="relative w-full h-[800px] bg-muted/50 rounded-lg border overflow-hidden bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:20px_20px]">
+                                    <div className="relative w-[1000px] h-[800px] bg-muted/50 rounded-lg border overflow-hidden">
                                         {analysisItems.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, i: number) => {
-                                            const { noData, chartData } = getAnalysisDataForQuestion(q.id);
+                                            const { noData, chartData } = getAnalysisDataForQuestion(q.id, null);
                                             if (noData) return null;
                                             
                                              const ChartComponent = () => {
@@ -2668,11 +2694,8 @@ const DraggableDashboardCard = ({ id, children, position }: { id: any, children:
         height: 300,
         top: position?.y || 0,
         left: position?.x || 0,
+        transform: isDragging ? (transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined) : undefined,
     };
-    
-    if (isDragging && transform) {
-        style.transform = `translate3d(${transform.x}px, ${transform.y}px, 0)`;
-    }
 
     return (
         <div ref={setNodeRef} style={style}>
@@ -2769,3 +2792,4 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
+
