@@ -91,7 +91,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                 <li><strong>KMO & Bartlett's Test:</strong> These tests assess if your data is suitable for factor analysis. Look for a KMO value > 0.6 and a significant p-value for Bartlett's test.</li>
                                 <li><strong>Scree Plot:</strong> The 'elbow' in this plot suggests the optimal number of factors to retain.</li>
                                 <li><strong>Factor Loadings:</strong> These are the correlations between each variable and the extracted factors. A high loading (e.g., > 0.4) indicates that the variable is strongly associated with that factor. Use these loadings to interpret and name your factors.</li>
-                                <li><strong>Explained Variance:</strong> Shows how much of the total information in your original variables is captured by the extracted factors.</li>
+                                <li><strong>Explained Variance:</strong> Shows how much of the total information (variance) from the original variables is captured by the extracted factors. The cumulative percentage tells you the total variance captured by the selected number of components.</li>
                             </ul>
                         </div>
                     </div>
