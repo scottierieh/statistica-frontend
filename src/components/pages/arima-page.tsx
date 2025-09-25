@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, AreaChart } from 'lucide-react';
+import { Sigma, Loader2, AreaChart, TableIcon } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
@@ -33,6 +33,7 @@ interface ArimaResults {
 interface FullAnalysisResponse {
     results: ArimaResults;
     plot: string;
+    diagnostics_plot: string;
 }
 
 interface ArimaPageProps {
@@ -354,7 +355,7 @@ export default function ArimaPage({ data, allHeaders, onLoadExample }: ArimaPage
                             <CardDescription>Plots to assess the model's performance and check assumptions about the residuals.</CardDescription>
                         </CardHeader>
                          <CardContent>
-                            <Image src={analysisResult.plot} alt="ARIMA Diagnostics" width={1500} height={1200} className="w-full rounded-md border"/>
+                            <Image src={analysisResult.diagnostics_plot!} alt="ARIMA Diagnostics" width={1500} height={1200} className="w-full rounded-md border"/>
                         </CardContent>
                     </Card>
                 </div>

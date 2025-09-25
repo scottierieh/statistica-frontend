@@ -92,13 +92,38 @@ def main():
         forecast_df = forecast.summary_frame(alpha=0.05)
         forecast_df.index.name = 'forecast_date'
 
-        # Generate diagnostic plots
-        fig = model_fit.plot_diagnostics(figsize=(15, 12))
-        plt.tight_layout()
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        # --- Plotting ---
+        fig, axes = plt.subplots(2, 1, figsize=(15, 12))
+        
+        # Forecast plot
+        ax1 = axes[0]
+        series.plot(ax=ax1, label='Original')
+        forecast_df['mean'].plot(ax=ax1, label='Forecast')
+        ax1.fill_between(forecast_df.index,
+                         forecast_df['mean_ci_lower'],
+                         forecast_df['mean_ci_upper'], color='k', alpha=.15)
+        ax1.set_title('Forecast vs Actuals')
+        ax1.legend()
+
+        # Diagnostic plots
+        # We cannot pass axes to plot_diagnostics, so we generate a separate figure for it and combine.
+        # This part is now handled on the frontend to display two separate images.
+        diag_fig = model_fit.plot_diagnostics(figsize=(15, 12))
+        
+        # Save forecast plot
+        buf_forecast = io.BytesIO()
+        fig.savefig(buf_forecast, format='png')
         plt.close(fig)
-        plot_image = base64.b64encode(buf.read()).decode('utf-8')
+        buf_forecast.seek(0)
+        forecast_plot_image = base64.b64encode(buf_forecast.read()).decode('utf-8')
+
+        # Save diagnostics plot
+        buf_diag = io.BytesIO()
+        diag_fig.savefig(buf_diag, format='png')
+        plt.close(diag_fig)
+        buf_diag.seek(0)
+        diag_plot_image = base64.b64encode(buf_diag.read()).decode('utf-8')
+
 
         # Prepare results
         summary_obj = model_fit.summary()
@@ -122,7 +147,8 @@ def main():
                 'forecast': forecast_df.reset_index().to_dict('records'),
                 'residuals_summary': residuals_desc,
             },
-            'plot': f"data:image/png;base64,{plot_image}"
+            'plot': f"data:image/png;base64,{forecast_plot_image}",
+            'diagnostics_plot': f"data:image/png;base64,{diag_plot_image}"
         }
 
         print(json.dumps(response, default=_to_native_type))
