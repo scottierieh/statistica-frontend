@@ -243,7 +243,7 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
     useEffect(() => {
         setSelectedItems(numericHeaders);
         setAnalysisResult(null);
-        setView(canRun ? 'main' : 'intro');
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [numericHeaders, data]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 3, [data, numericHeaders]);
@@ -486,3 +486,4 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
         </div>
     );
 }
+
