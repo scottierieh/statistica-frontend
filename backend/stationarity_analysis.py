@@ -68,7 +68,6 @@ def main():
                 'test_results': original_test,
                 'plot': f"data:image/png;base64,{original_plot_base64}"
             },
-            # Remove differenced part as per user request
             'differenced': None 
         }
 
