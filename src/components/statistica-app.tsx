@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -96,7 +95,6 @@ import KMedoidsPage from './pages/kmedoids-page';
 import HdbscanPage from './pages/hdbscan-page';
 import FrequencyAnalysisPage from './pages/frequency-analysis-page';
 import CrosstabPage from './pages/crosstab-page';
-import SemPage from './pages/sem-page';
 import PcaPage from './pages/pca-page';
 import SurvivalAnalysisPage from './pages/survival-analysis-page';
 import WordCloudPage from './pages/wordcloud-page';
@@ -161,7 +159,6 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     dbscan: DbscanPage,
     frequency: FrequencyAnalysisPage,
     crosstab: CrosstabPage,
-    sem: SemPage,
     pca: PcaPage,
     survival: SurvivalAnalysisPage,
     wordcloud: WordCloudPage,
@@ -303,15 +300,34 @@ const analysisMenu = [
     ]
   },
   {
-    field: 'Time Series',
-    icon: AreaChart,
-    methods: [
-      { id: 'trend-analysis', label: 'Trend Analysis' },
-      { id: 'seasonal-decomposition', label: 'Seasonal Decomposition' },
-      { id: 'moving-average', label: 'Moving Average' },
-      { id: 'exponential-smoothing', label: 'Exponential Smoothing' },
-      { id: 'autoregressive', label: 'Autoregressive Models' },
-      { id: 'acf-pacf', label: 'ACF/PACF Plots' },
+    field: 'Statistics-based Time Series',
+    icon: LineChart,
+    subCategories: [
+      {
+        name: 'Exploration & Tests',
+        methods: [
+          { id: 'trend-analysis', label: 'Data Exploration (Plot)' },
+          { id: 'seasonal-decomposition', label: 'Decomposition' },
+          { id: 'acf-pacf', label: 'ACF/PACF Analysis' },
+          { id: 'stationarity-tests', label: 'Stationarity Tests (ADF, KPSS, PP)', implemented: false },
+        ]
+      },
+      {
+        name: 'Models',
+        methods: [
+          { id: 'autoregressive', label: 'AR, MA, ARMA, ARIMA, SARIMA' },
+          { id: 'arch-garch', label: 'ARCH/GARCH', implemented: false },
+          { id: 'state-space', label: 'State Space Models', implemented: false },
+        ]
+      },
+      {
+        name: 'Diagnostics & Evaluation',
+        methods: [
+          { id: 'ljung-box', label: 'Ljung-Box Test', implemented: false },
+          { id: 'arch-test', label: 'ARCH-LM Test', implemented: false },
+          { id: 'forecast-eval', label: 'Forecast & Evaluation (AIC, BIC, MAE, RMSE, MAPE)', implemented: false },
+        ]
+      }
     ]
   },
   {
@@ -705,4 +721,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
