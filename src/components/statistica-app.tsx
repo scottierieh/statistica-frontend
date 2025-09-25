@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -18,6 +19,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
@@ -81,6 +84,7 @@ import ReliabilityPage from './pages/reliability-page';
 import VisualizationPage from './pages/visualization-page';
 import DiscriminantPage from './pages/discriminant-page';
 import EfaPage from './pages/efa-page';
+import CfaPage from '../pages/cfa-page';
 import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
 import NonParametricPage from './pages/nonparametric-page';
@@ -103,7 +107,6 @@ import SentimentAnalysisPage from './pages/sentiment-analysis-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import TwoWayAnovaPage from './pages/two-way-anova-page';
 import MetaAnalysisPage from './pages/meta-analysis-page';
@@ -124,6 +127,19 @@ import StationarityPage from './pages/stationarity-page';
 import LjungBoxPage from './pages/ljung-box-page';
 import ArchLmTestPage from './pages/arch-lm-test-page';
 import ForecastEvaluationPage from './pages/forecast-evaluation-page';
+import SemPage from './pages/sem-page';
+import ConjointAnalysisPage from './pages/conjoint-analysis-page';
+import CbcAnalysisPage from './pages/cbc-analysis-page';
+import IpaPage from './pages/ipa-page';
+import DidPage from './pages/did-page';
+import DelphiPage from './pages/delphi-page';
+import VanWestendorpPage from './pages/van-westendorp-page';
+import GaborGrangerPage from './pages/gabor-granger-page';
+import MaxDiffPage from './pages/maxdiff-page';
+import AhpPage from './pages/ahp-page';
+import DeaPage from './pages/dea-page';
+import TransportationProblemPage from './pages/transportation-problem-page';
+import NonlinearProgrammingPage from './pages/nonlinear-programming-page';
 
 
 type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | 'classifier-comparison' | string;
@@ -139,6 +155,8 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
     efa: EfaPage,
+    cfa: CfaPage,
+    sem: SemPage,
     mediation: MediationPage,
     moderation: ModerationPage,
     'mann-whitney': NonParametricPage,
@@ -189,6 +207,19 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'ljung-box': LjungBoxPage,
     'arch-lm-test': ArchLmTestPage,
     'forecast-eval': ForecastEvaluationPage,
+    'conjoint': ConjointAnalysisPage,
+    'cbc': CbcAnalysisPage,
+    'ipa': IpaPage,
+    'did': DidPage,
+    'delphi': DelphiPage,
+    'van-westendorp': VanWestendorpPage,
+    'gabor-granger': GaborGrangerPage,
+    'maxdiff': MaxDiffPage,
+    'ahp': AhpPage,
+    'dea': DeaPage,
+    'transportation-problem': TransportationProblemPage,
+    'goal-programming': GoalProgrammingPage,
+    'nonlinear-programming': NonlinearProgrammingPage,
 };
 
 const analysisMenu = [
@@ -310,37 +341,35 @@ const analysisMenu = [
     field: 'Time Series Analysis',
     icon: LineChart,
     subCategories: [
-      {
-        name: 'Exploration',
-        methods: [
-          { id: 'trend-analysis', label: 'Data Exploration Plot' },
-          { id: 'seasonal-decomposition', label: 'Decomposition' },
-          { id: 'stationarity-tests', label: 'Stationarity Tests' },
-        ]
-      },
-       {
-        name: 'Modeling',
-        methods: [
-          { id: 'autoregressive', label: 'ARIMA-family' },
-          { id: 'exponential-smoothing', label: 'Exponential Smoothing'},
-          { id: 'arch-garch', label: 'ARCH/GARCH', implemented: false },
-          { id: 'state-space', label: 'State Space Models', implemented: false },
-        ]
-      },
-      {
-        name: 'Diagnostics',
-        methods: [
-          { id: 'acf-pacf', label: 'ACF/PACF Analysis' },
-          { id: 'ljung-box', label: 'Ljung-Box Test' },
-          { id: 'arch-lm-test', label: 'ARCH-LM Test' },
-        ]
-      },
-      {
-        name: 'Forecast & Evaluation',
-        methods: [
-          { id: 'forecast-eval', label: 'Forecast & Evaluation' },
-        ]
-      }
+        {
+          name: 'Exploration',
+          methods: [
+            { id: 'trend-analysis', label: 'Data Exploration Plot' },
+            { id: 'seasonal-decomposition', label: 'Decomposition' },
+            { id: 'stationarity-tests', label: 'Stationarity Tests' },
+          ]
+        },
+        {
+          name: 'Modeling',
+          methods: [
+            { id: 'autoregressive', label: 'ARIMA-family' },
+            { id: 'exponential-smoothing', label: 'Exponential Smoothing'},
+          ]
+        },
+        {
+          name: 'Diagnostics',
+          methods: [
+            { id: 'acf-pacf', label: 'ACF/PACF Analysis' },
+            { id: 'ljung-box', label: 'Ljung-Box Test' },
+            { id: 'arch-lm-test', label: 'ARCH-LM Test' },
+          ]
+        },
+        {
+          name: 'Forecast & Evaluation',
+          methods: [
+            { id: 'forecast-eval', label: 'Forecast & Evaluation' },
+          ]
+        }
     ]
   },
   {
@@ -353,6 +382,7 @@ const analysisMenu = [
     ]
   }
 ];
+
 
 export default function StatisticaApp() {
   const [data, setData] = useState<DataSet>([]);
@@ -518,37 +548,52 @@ export default function StatisticaApp() {
   };
 
   const filteredMenu = useMemo(() => {
-    if (!searchQuery) return analysisMenu;
+    if (!searchQuery) {
+        return analysisMenu;
+    }
     const lowercasedQuery = searchQuery.toLowerCase();
-    
-    return analysisMenu.map(category => {
+
+    const results = analysisMenu.map(category => {
         const matchingMethods = category.methods?.filter(method =>
             method.label.toLowerCase().includes(lowercasedQuery)
-        ) || [];
+        );
 
-        const matchingSubCategories = category.subCategories?.map(sub => {
-            const methods = sub.methods.filter(method =>
-                method.label.toLowerCase().includes(lowercasedQuery)
-            );
-            if (methods.length > 0) {
-                return { ...sub, methods };
-            }
-            if (sub.name.toLowerCase().includes(lowercasedQuery)) {
-                return sub;
-            }
-            return null;
-        }).filter(Boolean) as any[];
+        const matchingSubCategories = category.subCategories
+            ?.map(sub => {
+                const methods = sub.methods.filter(method =>
+                    method.label.toLowerCase().includes(lowercasedQuery)
+                );
+                // Return the subcategory if its name matches or it has matching methods
+                if (methods.length > 0 || sub.name.toLowerCase().includes(lowercasedQuery)) {
+                    return { ...sub, methods: methods.length > 0 ? methods : sub.methods };
+                }
+                return null;
+            })
+            .filter((s): s is NonNullable<typeof s> => s !== null);
 
-        if (category.field.toLowerCase().includes(lowercasedQuery) || matchingMethods.length > 0 || matchingSubCategories.length > 0) {
+        // Determine if the category itself should be included
+        const categoryNameMatches = category.field.toLowerCase().includes(lowercasedQuery);
+        const hasMatchingMethods = matchingMethods && matchingMethods.length > 0;
+        const hasMatchingSubcategories = matchingSubCategories && matchingSubCategories.length > 0;
+
+        if (categoryNameMatches) {
+            return category; // If category name matches, show all its children
+        }
+
+        if (hasMatchingMethods || hasMatchingSubcategories) {
             return {
                 ...category,
-                methods: category.field.toLowerCase().includes(lowercasedQuery) ? category.methods : matchingMethods,
-                subCategories: category.field.toLowerCase().includes(lowercasedQuery) ? category.subCategories : matchingSubCategories
+                methods: hasMatchingMethods ? matchingMethods : [],
+                subCategories: hasMatchingSubcategories ? matchingSubCategories : []
             };
         }
+
         return null;
-    }).filter(Boolean) as typeof analysisMenu;
-}, [searchQuery]);
+    });
+
+    return results.filter((c): c is NonNullable<typeof c> => c !== null);
+  }, [searchQuery]);
+
 
 
   return (
@@ -603,6 +648,7 @@ export default function StatisticaApp() {
             
             <div className="flex-1 overflow-y-auto">
               {filteredMenu.map((category) => {
+                if (!category) return null;
                 const Icon = category.icon;
                 const isOpen = openCategories.includes(category.field);
 
@@ -681,7 +727,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && (
+            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && activeAnalysis !== 'ahp' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
