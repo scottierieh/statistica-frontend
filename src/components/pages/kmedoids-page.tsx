@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Binary, Bot } from 'lucide-react';
+import { Sigma, Loader2, Binary, Bot, Users, Settings, FileSearch, MoveRight, HelpCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -46,6 +46,73 @@ interface FullKMedoidsResponse {
     plot: string;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const kmedoidsExample = exampleDatasets.find(d => d.id === 'customer-segments');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Binary size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">K-Medoids Clustering (PAM)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        A robust alternative to K-Means that partitions data into clusters using actual data points as centers (medoids).
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use K-Medoids?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                           K-Medoids is less sensitive to outliers than K-Means because it uses medoids (the most centrally located data points within a cluster) as cluster centers instead of the mean. This makes it a more robust choice when your data contains noise or extreme values.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {kmedoidsExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(kmedoidsExample)}>
+                                <Users className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{kmedoidsExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{kmedoidsExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Select Variables:</strong> Choose two or more numeric variables to base the clustering on.</li>
+                                <li><strong>Number of Clusters (K):</strong> Specify how many clusters you want to create.</li>
+                                <li><strong>Run Analysis:</strong> The algorithm will partition your data into 'k' clusters, each represented by a medoid.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Medoids:</strong> Unlike K-Means, the cluster centers are actual data points from your dataset, making them directly interpretable.
+                                </li>
+                                <li>
+                                    <strong>Silhouette Score:</strong> Measures how similar a data point is to its own cluster compared to others. Scores closer to +1 indicate well-defined, dense clusters.
+                                </li>
+                                 <li>
+                                    <strong>Cluster Profiles:</strong> Examine the mean values for each cluster to understand its characteristics, even though the center is a medoid.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 const InterpretationDisplay = ({ interpretations }: { interpretations: KMedoidsResults['interpretations'] | undefined }) => {
   if (!interpretations) return null;
 
@@ -57,7 +124,7 @@ const InterpretationDisplay = ({ interpretations }: { interpretations: KMedoidsR
       <CardContent className="space-y-4 text-sm text-muted-foreground">
         <div>
             <strong className="text-foreground">Overall Quality:</strong>
-            <p dangerouslySetInnerHTML={{ __html: interpretations.overall_quality.replace(/\n/g, '<br />') }} />
+            <p dangerouslySetInnerHTML={{ __html: interpretations.overall_quality.replace(/\\n/g, '<br />') }} />
         </div>
         <div>
           <h4 className="font-semibold text-foreground mb-2">Cluster Profiles:</h4>
@@ -85,6 +152,7 @@ interface KMedoidsPageProps {
 
 export default function KMedoidsPage({ data, numericHeaders, onLoadExample }: KMedoidsPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
     const [nClusters, setNClusters] = useState<number>(3);
     const [analysisResult, setAnalysisResult] = useState<FullKMedoidsResponse | null>(null);
@@ -93,6 +161,7 @@ export default function KMedoidsPage({ data, numericHeaders, onLoadExample }: KM
     useEffect(() => {
         setSelectedItems(numericHeaders);
         setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [data, numericHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
@@ -143,27 +212,12 @@ export default function KMedoidsPage({ data, numericHeaders, onLoadExample }: KM
         }
     }, [data, selectedItems, nClusters, toast]);
     
-    if (!canRun) {
-        const kmedoidsExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('kmedoids'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">K-Medoids Clustering (PAM)</CardTitle>
-                        <CardDescription>
-                           To perform K-Medoids, you need data with at least two numeric variables. Try an example dataset to get started.
-                        </CardDescription>
-                    </CardHeader>
-                    {kmedoidsExamples.length > 0 && (
-                        <CardContent>
-                            <Button onClick={() => onLoadExample(kmedoidsExamples[0])} className="w-full" size="sm">
-                                Load {kmedoidsExamples[0].name}
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        )
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     const results = analysisResult?.results;
@@ -172,7 +226,10 @@ export default function KMedoidsPage({ data, numericHeaders, onLoadExample }: KM
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">K-Medoids Clustering Setup</CardTitle>
+                     <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">K-Medoids Clustering Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select variables and specify the number of clusters (k).</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
