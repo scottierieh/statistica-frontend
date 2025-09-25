@@ -7,12 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, AreaChart, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Sigma, Loader2, AreaChart, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
+
 
 interface LjungBoxResult {
     lb_statistic: number;
@@ -149,10 +151,32 @@ export default function LjungBoxPage({ data, numericHeaders, onLoadExample }: Lj
                         </CardHeader>
                         <CardContent>
                             <Alert variant={results.is_significant ? 'destructive' : 'default'}>
-                               {results.is_significant ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                               {results.is_significant ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                                <AlertTitle>{results.is_significant ? "Autocorrelation Detected" : "No Autocorrelation Detected"}</AlertTitle>
                                <AlertDescription>{results.interpretation}</AlertDescription>
                             </Alert>
+                             <Table className="mt-4">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Metric</TableHead>
+                                        <TableHead className="text-right">Value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>Ljung-Box Statistic</TableCell>
+                                        <TableCell className="font-mono text-right">{results.lb_statistic.toFixed(4)}</TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell>P-value</TableCell>
+                                        <TableCell className="font-mono text-right">{results.p_value < 0.001 ? "< 0.001" : results.p_value.toFixed(4)}</TableCell>
+                                    </TableRow>
+                                     <TableRow>
+                                        <TableCell>Lags</TableCell>
+                                        <TableCell className="font-mono text-right">{results.lags}</TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
                         </CardContent>
                     </Card>
                     <Card>
