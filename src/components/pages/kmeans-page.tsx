@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -9,14 +7,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Binary, Bot } from 'lucide-react';
+import { Sigma, Loader2, Binary, Bot, Settings, FileSearch, MoveRight, HelpCircle, Users } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface KMeansResults {
     optimal_k?: {
@@ -28,6 +25,8 @@ interface KMeansResults {
     clustering_summary: {
         n_clusters: number;
         inertia: number;
+        centroids: number[][];
+        labels: number[];
     };
     profiles: {
         [key: string]: {
@@ -53,6 +52,69 @@ interface FullKMeansResponse {
     plot: string;
 }
 
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const kmeansExample = exampleDatasets.find(d => d.id === 'customer-segments');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Binary size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">K-Means Clustering</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        An unsupervised learning algorithm that partitions data into a pre-defined number of distinct, non-overlapping subgroups (clusters).
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use K-Means Clustering?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            K-Means is one of the most popular and straightforward clustering methods, ideal for discovering underlying groups in your data when you don't have pre-defined labels. It's widely used for customer segmentation, document clustering, and image compression by grouping similar data points together based on their features.
+                        </p>
+                    </div>
+                    <div className="flex justify-center">
+                        {kmeansExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(kmeansExample)}>
+                                <Users className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{kmeansExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{kmeansExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Select Variables:</strong> Choose two or more numeric variables that will be used to determine the clusters.</li>
+                                <li><strong>Number of Clusters (K):</strong> Specify how many clusters you want to create. The Elbow Method and Silhouette Score plots can help you choose an optimal value for 'k'.</li>
+                                <li><strong>Run Analysis:</strong> The algorithm will partition your data into 'k' clusters and provide detailed profiles for each group.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Elbow Plot:</strong> Look for the "elbow" point where the rate of decrease in inertia (WCSS) sharply slows down. This is often a good indicator for the optimal 'k'.</li>
+                                <li><strong>Silhouette Score:</strong> Measures how similar an object is to its own cluster compared to other clusters. Scores closer to +1 indicate well-defined clusters.</li>
+                                 <li><strong>Cluster Profiles:</strong> Examine the mean values (centroids) for each cluster to understand its defining characteristics. For example, "Cluster 1 has high income but low purchase frequency."</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+
 interface KMeansPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -70,7 +132,7 @@ const InterpretationDisplay = ({ interpretations }: { interpretations: KMeansRes
       <CardContent className="space-y-4 text-sm text-muted-foreground">
         <div>
             <strong className="text-foreground">Overall Quality:</strong>
-            <p dangerouslySetInnerHTML={{ __html: interpretations.overall_quality }} />
+            <p dangerouslySetInnerHTML={{ __html: interpretations.overall_quality.replace(/\\n/g, '<br />') }} />
         </div>
         <div>
           <h4 className="font-semibold text-foreground mb-2">Cluster Profiles:</h4>
@@ -92,6 +154,7 @@ const InterpretationDisplay = ({ interpretations }: { interpretations: KMeansRes
 
 export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMeansPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
     const [nClusters, setNClusters] = useState<number>(3);
     const [analysisResult, setAnalysisResult] = useState<FullKMeansResponse | null>(null);
@@ -100,6 +163,7 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
     useEffect(() => {
         setSelectedItems(numericHeaders);
         setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [data, numericHeaders]);
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
@@ -152,42 +216,11 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
         }
     }, [data, selectedItems, nClusters, toast]);
     
-    if (!canRun) {
-        const kmeansExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('kmeans'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">K-Means Clustering</CardTitle>
-                        <CardDescription>
-                           To perform K-Means, you need data with at least two numeric variables. Try an example dataset to get started.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {kmeansExamples.map((ex) => (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                            <Binary className="h-6 w-6 text-secondary-foreground" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </div>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                            Load this data
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     const results = analysisResult?.results;
@@ -197,7 +230,10 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">K-Means Clustering Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">K-Means Clustering Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select variables and specify the number of clusters (k).</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -241,18 +277,20 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
 
             {analysisResult && results && (
                  <div className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Analysis Visualizations</CardTitle>
-                            <CardDescription>
-                                A comprehensive overview of the clustering results, including methods for determining the optimal number of clusters.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Image src={analysisResult.plot} alt="Comprehensive K-Means Plots" width={1200} height={1000} className="w-full rounded-md border"/>
-                        </CardContent>
-                    </Card>
-
+                    {analysisResult.plot && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Analysis Visualizations</CardTitle>
+                                <CardDescription>
+                                    A comprehensive overview of the clustering results, including methods for determining the optimal number of clusters.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Image src={analysisResult.plot} alt="Comprehensive K-Means Plots" width={1200} height={1000} className="w-full rounded-md border"/>
+                            </CardContent>
+                        </Card>
+                    )}
+                    
                     <div className="grid lg:grid-cols-3 gap-4">
                         <Card className="lg:col-span-2">
                             <CardHeader>
@@ -316,4 +354,3 @@ export default function KMeansPage({ data, numericHeaders, onLoadExample }: KMea
         </div>
     );
 }
-
