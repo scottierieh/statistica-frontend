@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Network, Plus, Trash2, Link, Spline } from 'lucide-react';
+import { Sigma, Loader2, Network, Plus, Trash2, Link, Spline, HelpCircle, MoveRight, Settings, FileSearch, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
@@ -93,6 +92,78 @@ interface FullAnalysisResponse {
     plot: string | null;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const semExample = exampleDatasets.find(d => d.id === 'sem-satisfaction');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Network size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Structural Equation Modeling (SEM)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
+                        A powerful multivariate statistical analysis technique that combines factor analysis and multiple regression to test complex theoretical models.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use SEM?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            SEM allows you to test an entire theory or model in a single analysis. It's used to examine the relationships between observed variables (indicators) and unobserved latent variables, as well as the causal relationships between the latent variables themselves. This makes it ideal for fields like psychology, sociology, and marketing where researchers want to test complex theoretical frameworks.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {semExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(semExample)}>
+                                <semExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{semExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{semExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Measurement Model:</strong> Define your latent variables (constructs) and assign their observed indicators (the survey questions or measurements). Each latent variable should have at least 2-3 indicators.
+                                </li>
+                                <li>
+                                    <strong>Structural Model:</strong> Specify the causal paths (hypothesized relationships) between your latent variables.
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> The tool will estimate all the paths in your model and provide fit indices to assess how well your theoretical model fits the observed data.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChart className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Model Fit Indices:</strong> These are crucial. Look for CFI/TLI > 0.90 (ideally > 0.95), RMSEA < 0.08, and SRMR < 0.08 to indicate a good model fit.
+                                </li>
+                                <li>
+                                    <strong>Path Coefficients (β):</strong> These are like regression coefficients. A significant, standardized coefficient shows the strength and direction of the relationship between two latent variables.
+                                </li>
+                                <li>
+                                    <strong>Factor Loadings:</strong> Check that all indicators load significantly and strongly onto their respective latent variables, confirming your measurement model.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
 
 const getFitInterpretation = (fit: FitIndices | undefined) => {
     if (!fit) return { level: "Unknown", color: "bg-gray-400" };
@@ -122,6 +193,7 @@ interface SemPageProps {
 
 export default function SemPage({ data, numericHeaders, onLoadExample }: SemPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [latentVariables, setLatentVariables] = useState<LatentVariable[]>([
         { id: `lv-0`, name: 'LatentVar1', indicators: [] }
     ]);
@@ -227,45 +299,6 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
         }
     }, [isModelValid, latentVariables, structuralPaths, data, toast]);
 
-
-    if (!canRun) {
-        const semExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('sem'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Structural Equation Modeling (SEM)</CardTitle>
-                        <CardDescription>
-                            To perform SEM, you need data with multiple numeric variables. Try an example dataset to get started.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {semExamples.map((ex) => (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                            <Network className="h-6 w-6 text-secondary-foreground" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </div>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                            Load this data
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
-    }
-
     const availableIndicators = numericHeaders;
     const latentVariableNames = latentVariables.map(lv => lv.name).filter(Boolean);
     const results = analysisResult?.results;
@@ -292,12 +325,27 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
             </Card>
         );
     };
+    
+    useEffect(() => {
+        if (data.length > 0) {
+            setView('main');
+        } else {
+            setView('intro');
+        }
+    }, [data]);
+
+    if (view === 'intro' || !canRun) {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
 
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">SEM Model Builder</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">SEM Model Builder</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Define your measurement and structural models.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">

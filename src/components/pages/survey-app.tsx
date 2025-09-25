@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -1494,12 +1495,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             headerImage: null,
             type: 'default',
             transition: 'slide',
-        },
-        settings: {
-            customUrl: '',
-            dateRange: undefined as DateRange | undefined,
-            maxResponses: undefined as number | undefined,
-            password: '',
         }
     });
     
@@ -1514,6 +1509,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     const [surveyUrl, setSurveyUrl] = useState('');
     const [qrCodeUrl, setQrCodeUrl] = useState('');
     const [isLoadingQr, setIsLoadingQr] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [retailAnalysisData, setRetailAnalysisData] = useState<any>(null);
     const [servqualAnalysisData, setServqualAnalysisData] = useState<any>(null);
     const [ipaAnalysisData, setIpaAnalysisData] = useState<any>(null);
@@ -1904,8 +1900,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
 
     const saveAndTest = () => {
         if(saveDraft()) {
-            // This state is just to trigger the Dialog's onOpenChange,
-            // which will then call generateQrCode. The Dialog itself manages its open state.
+            setIsShareModalOpen(true);
         }
     };
     
@@ -2216,9 +2211,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                         <Save className="mr-2" />
                         Save Draft
                     </Button>
-                    <Dialog onOpenChange={(open) => { if (open) { saveDraft(); generateQrCode(); }}}>
+                    <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
                         <DialogTrigger asChild>
-                            <Button disabled={!surveyId}>
+                             <Button onClick={saveAndTest} disabled={!surveyId}>
                                 <Share2 className="mr-2" />
                                 Share
                             </Button>
@@ -2246,7 +2241,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                         {isLoadingQr ? (
                                             <Loader2 className="w-8 h-8 animate-spin" />
                                         ) : qrCodeUrl ? (
-                                            <Image src={qrCodeUrl} alt="Survey QR Code" width={200} height={200} className="max-h-60 w-auto object-contain" data-ai-hint="QR code"/>
+                                            <Image src={qrCodeUrl} alt="Survey QR Code" width={200} height={200} data-ai-hint="QR code"/>
                                         ) : (
                                             <p className="text-muted-foreground">Could not load QR code.</p>
                                         )}
@@ -2276,8 +2271,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
+                    <TabsTrigger value="setting"><Settings className="mr-2" />Setting</TabsTrigger>
                     <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                 </TabsList>
@@ -2513,6 +2509,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                         </div>
                     </div>
                 </TabsContent>
+                <TabsContent value="setting">
+                    <p>Setting tab content goes here.</p>
+                </TabsContent>
                 <TabsContent value="analysis">
                      <Card className="mt-4">
                         <CardHeader>
@@ -2669,8 +2668,11 @@ const DraggableDashboardCard = ({ id, children, position }: { id: any, children:
         height: 300,
         top: position?.y || 0,
         left: position?.x || 0,
-        transform: isDragging ? (transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined) : undefined,
     };
+    
+    if (isDragging && transform) {
+        style.transform = `translate3d(${transform.x}px, ${transform.y}px, 0)`;
+    }
 
     return (
         <div ref={setNodeRef} style={style}>
@@ -2767,5 +2769,3 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
-
-    
