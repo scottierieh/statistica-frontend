@@ -62,9 +62,11 @@ def main():
         df[value_col] = pd.to_numeric(df[value_col], errors='coerce')
         
         df = df.dropna(subset=[time_col, value_col])
-        df = df.set_index(time_col).sort_index()
 
         series = df[value_col].copy()
+        series.index = pd.to_datetime(df[time_col])
+        series = series.sort_index()
+
 
         if len(series) < 4:
             raise ValueError("Not enough valid data points to perform stationarity test after cleaning.")
