@@ -68,8 +68,18 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         <p className="max-w-3xl mx-auto text-muted-foreground">
                             Crosstabulation (or cross-tab) creates a contingency table that shows the frequency distribution of variables. It is a foundational tool for understanding the relationship between two or more categorical variables. The accompanying Chi-Squared (χ²) test of independence determines whether this observed relationship is statistically significant or if it could have occurred by chance.
                         </p>
+                         {crosstabExample && (
+                            <div className="mt-6 flex justify-center">
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(crosstabExample)}>
+                                    <Users className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{crosstabExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{crosstabExample.description}</p>
+                                    </div>
+                                </Card>
+                            </div>
+                        )}
                     </div>
-
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -100,23 +110,9 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             </ul>
                         </div>
                     </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
-                        <div className="flex justify-center">
-                           {crosstabExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(crosstabExample)}>
-                                    <Users className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{crosstabExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{crosstabExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
-                        </div>
-                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart} className="w-full">Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
