@@ -62,8 +62,6 @@ import {
   GitCommit,
   DollarSign,
   ThumbsUp,
-  Search,
-  ClipboardList,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -335,42 +333,21 @@ const analysisMenu = [
        { id: 'moderation', label: 'Moderation Analysis' },
     ]
   },
-  {
-    field: 'Time Series Analysis',
-    icon: TrendingUp,
-    subCategories: [
-      {
-        name: 'Exploration',
+    {
+        field: 'Time Series',
+        icon: TrendingUp,
         methods: [
             { id: 'trend-analysis', label: 'Time Series Plot' },
             { id: 'seasonal-decomposition', label: 'Decomposition' },
-        ]
-      },
-      {
-        name: 'Modeling',
-        methods: [
-            { id: 'autoregressive', label: 'ARIMA-family Models' },
+            { id: 'stationarity-tests', label: 'Stationarity Tests' },
+            { id: 'acf-pacf', label: 'ACF/PACF Plots' },
+            { id: 'ljung-box', label: 'Ljung-Box Test' },
+            { id: 'arch-lm-test', label: 'ARCH-LM Test' },
             { id: 'exponential-smoothing', label: 'Exponential Smoothing'},
-            { id: 'gbm', label: 'Gradient Boosting (Time Series)'},
+            { id: 'autoregressive', label: 'ARIMA-family Models' },
+            { id: 'forecast-eval', label: 'Model Evaluation' },
         ]
-      },
-      {
-        name: 'Diagnostics',
-        methods: [
-          { id: 'stationarity-tests', label: 'Stationarity Tests' },
-          { id: 'acf-pacf', label: 'ACF/PACF Plots' },
-          { id: 'ljung-box', label: 'Ljung-Box Test' },
-          { id: 'arch-lm-test', label: 'ARCH-LM Test' },
-        ]
-      },
-      {
-        name: 'Forecast & Evaluation',
-        methods: [
-          { id: 'forecast-eval', label: 'Model Evaluation' },
-        ]
-      },
-    ]
-  },
+    },
   {
     field: 'Text Analysis',
     icon: Feather,
@@ -549,43 +526,30 @@ export default function StatisticaApp() {
     if (!searchQuery) {
       return analysisMenu;
     }
-
     const lowercasedQuery = searchQuery.toLowerCase();
-    
+
     return analysisMenu.map(category => {
-      const categoryNameMatches = category.field.toLowerCase().includes(lowercasedQuery);
-      
-      const filteredMethods = category.methods?.filter(method => 
+      const filteredMethods = category.methods?.filter(method =>
         method.label.toLowerCase().includes(lowercasedQuery)
-      );
+      ) || [];
+      
+      const filteredSubCategories = category.subCategories?.map(sub => ({
+        ...sub,
+        methods: sub.methods.filter(method =>
+          method.label.toLowerCase().includes(lowercasedQuery)
+        ),
+      })).filter(sub => sub.methods.length > 0) || [];
 
-      const filteredSubCategories = category.subCategories
-        ?.map(sub => {
-          const subCategoryNameMatches = sub.name.toLowerCase().includes(lowercasedQuery);
-          const subMethods = sub.methods.filter(method => 
-            method.label.toLowerCase().includes(lowercasedQuery)
-          );
-          if (subMethods.length > 0 || subCategoryNameMatches) {
-            return {
-              ...sub,
-              methods: subCategoryNameMatches ? sub.methods : subMethods,
-            };
-          }
-          return null;
-        })
-        .filter((sub): sub is NonNullable<typeof sub> => sub !== null);
-
-      if (categoryNameMatches || (filteredMethods && filteredMethods.length > 0) || (filteredSubCategories && filteredSubCategories.length > 0)) {
+      if (filteredMethods.length > 0 || filteredSubCategories.length > 0) {
         return {
           ...category,
-          methods: categoryNameMatches ? category.methods : filteredMethods,
-          subCategories: categoryNameMatches ? category.subCategories : filteredSubCategories,
+          methods: filteredMethods,
+          subCategories: filteredSubCategories,
         };
       }
       return null;
-    }).filter((category): category is NonNullable<typeof category> => category !== null);
+    }).filter(Boolean);
   }, [searchQuery]);
-
 
   return (
     <SidebarProvider>
@@ -598,16 +562,8 @@ export default function StatisticaApp() {
               </div>
               <h1 className="text-xl font-headline font-bold">Statistica</h1>
             </div>
-             <div className="relative flex items-center">
-                <SidebarInput 
-                  placeholder="Search analyses..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
-            </div>
           </SidebarHeader>
-          <SidebarContent className="flex flex-col p-2 gap-2">
+          <SidebarContent className="flex flex-col gap-2 p-2">
             <div className='p-2'>
               <DataUploader 
                 onFileSelected={handleFileSelected}
@@ -638,7 +594,7 @@ export default function StatisticaApp() {
             </SidebarMenu>
             
             <div className="flex-1 overflow-y-auto">
-              {filteredMenu.map((category) => {
+              {analysisMenu.map((category) => {
                 if (!category) return null;
                 const Icon = category.icon;
                 const isOpen = openCategories.includes(category.field);
@@ -736,8 +692,6 @@ export default function StatisticaApp() {
                 numericHeaders={numericHeaders}
                 categoricalHeaders={categoricalHeaders}
                 onLoadExample={handleLoadExampleData}
-                onFileSelected={handleFileSelected}
-                isUploading={isUploading}
                />
 
           </div>
@@ -763,4 +717,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
