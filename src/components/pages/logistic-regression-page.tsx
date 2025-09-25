@@ -1,5 +1,6 @@
 
 'use client';
+
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -8,14 +9,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, CheckCircle, XCircle } from 'lucide-react';
+import { Sigma, Loader2, Target, CheckCircle, XCircle, HelpCircle, MoveRight, Settings, FileSearch, Binary, BookOpen } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { Badge } from '../ui/badge';
+import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
-import Image from 'next/image';
-import { Badge } from '../ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+
 
 interface LogisticRegressionResults {
     metrics: {
@@ -47,6 +49,79 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const admissionExample = exampleDatasets.find(d => d.id === 'admission-data');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Binary size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Logistic Regression</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Predict a binary outcome (e.g., yes/no, true/false) based on one or more predictor variables.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Logistic Regression?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            When your goal is to predict which of two categories an outcome will fall into, linear regression is not suitable. Logistic regression is designed specifically for this purpose. It models the probability of a binary outcome occurring, making it a cornerstone of classification analysis in fields from medicine to marketing.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {admissionExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(admissionExample)}>
+                                <admissionExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{admissionExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{admissionExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Dependent Variable:</strong> Select a categorical variable with exactly two outcomes (e.g., 'admit' vs 'deny', 'churn' vs 'no-churn').
+                                </li>
+                                <li>
+                                    <strong>Independent Variables:</strong> Choose one or more numeric or categorical variables that you believe influence the outcome.
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> The tool will fit a logistic regression model and provide key metrics and visualizations to evaluate its performance.
+                                </li>
+                            </ol>
+                        </div>
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Odds Ratios:</strong> This is a key output. An odds ratio greater than 1 means the predictor increases the odds of the outcome occurring. A value less than 1 means it decreases the odds.
+                                </li>
+                                <li>
+                                    <strong>Accuracy & AUC:</strong> Accuracy measures overall correctness, while the Area Under the Curve (AUC) from the ROC plot indicates the model's ability to distinguish between the two classes (AUC > 0.8 is generally considered good).
+                                </li>
+                                 <li>
+                                    <strong>p-value:</strong> A significant p-value for a coefficient suggests that the predictor variable has a meaningful impact on the outcome.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 interface LogisticRegressionPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -57,6 +132,7 @@ interface LogisticRegressionPageProps {
 
 export default function LogisticRegressionPage({ data, numericHeaders, allHeaders, categoricalHeaders, onLoadExample }: LogisticRegressionPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [dependentVar, setDependentVar] = useState<string | undefined>();
     const [independentVars, setIndependentVars] = useState<string[]>([]);
     
@@ -64,18 +140,19 @@ export default function LogisticRegressionPage({ data, numericHeaders, allHeader
     const [isLoading, setIsLoading] = useState(false);
 
     const binaryCategoricalHeaders = useMemo(() => {
-        return categoricalHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
-    }, [data, categoricalHeaders]);
+        return allHeaders.filter(h => new Set(data.map(row => row[h]).filter(v => v != null && v !== '')).size === 2);
+    }, [data, allHeaders]);
 
-    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2, [data, allHeaders]);
-
+    const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2 && binaryCategoricalHeaders.length >=1, [data, allHeaders, binaryCategoricalHeaders]);
+    
     useEffect(() => {
         const defaultDepVar = binaryCategoricalHeaders[0] || allHeaders[0];
         setDependentVar(defaultDepVar);
         const initialIndepVars = allHeaders.filter(h => h !== defaultDepVar);
         setIndependentVars(initialIndepVars);
         setAnalysisResult(null);
-    }, [data, allHeaders, binaryCategoricalHeaders]);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, allHeaders, binaryCategoricalHeaders, canRun]);
 
     const availableFeatures = useMemo(() => allHeaders.filter(h => h !== dependentVar), [allHeaders, dependentVar]);
     
@@ -128,44 +205,12 @@ export default function LogisticRegressionPage({ data, numericHeaders, allHeader
         }
     }, [data, dependentVar, independentVars, toast]);
 
-    if (!canRun) {
-        const logisticExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('logistic-regression'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Logistic Regression</CardTitle>
-                        <CardDescription>
-                           To perform this analysis, you need data with at least one binary categorical variable (the outcome) and one or more predictor variables.
-                        </CardDescription>
-                    </CardHeader>
-                    {logisticExamples.length > 0 && (
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {logisticExamples.map((ex) => (
-                                    <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                        <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                                <Target className="h-6 w-6 text-secondary-foreground" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                                <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardFooter>
-                                            <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                                Load this data
-                                            </Button>
-                                        </CardFooter>
-                                    </Card>
-                                ))}
-                            </div>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
+    if (!canRun && view === 'main') {
+         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     const results = analysisResult?.results;
@@ -174,7 +219,10 @@ export default function LogisticRegressionPage({ data, numericHeaders, allHeader
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Logistic Regression Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Logistic Regression Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select a binary dependent variable and the independent variables to predict the outcome.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -183,7 +231,7 @@ export default function LogisticRegressionPage({ data, numericHeaders, allHeader
                             <Label>Dependent Variable (Binary Outcome)</Label>
                             <Select value={dependentVar} onValueChange={setDependentVar}>
                                 <SelectTrigger><SelectValue placeholder="Select an outcome variable" /></SelectTrigger>
-                                <SelectContent>{allHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                                <SelectContent>{binaryCategoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div>
@@ -206,7 +254,7 @@ export default function LogisticRegressionPage({ data, numericHeaders, allHeader
                 </CardFooter>
             </Card>
 
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[500px] w-full" /></CardContent></Card>}
+            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[500px] w-full"/></CardContent></Card>}
 
             {results && analysisResult?.plot && (
                 <div className="space-y-4">
