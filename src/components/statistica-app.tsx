@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -124,6 +122,7 @@ import BinomialTestPage from './pages/binomial-test-page';
 import StationarityPage from './pages/stationarity-page';
 import LjungBoxPage from './pages/ljung-box-page';
 import ArchLmTestPage from './pages/arch-lm-test-page';
+import ForecastEvaluationPage from './pages/forecast-evaluation-page';
 
 
 type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | 'classifier-comparison' | string;
@@ -188,6 +187,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'stationarity-tests': StationarityPage,
     'ljung-box': LjungBoxPage,
     'arch-lm-test': ArchLmTestPage,
+    'forecast-eval': ForecastEvaluationPage,
 };
 
 const analysisMenu = [
@@ -337,7 +337,7 @@ const analysisMenu = [
       {
         name: 'Forecast & Evaluation',
         methods: [
-          { id: 'forecast-eval', label: 'Forecast & Evaluation (AIC, BIC, MAE, RMSE, MAPE)', implemented: false },
+          { id: 'forecast-eval', label: 'Forecast & Evaluation (AIC, BIC, MAE, RMSE, MAPE)' },
         ]
       }
     ]
