@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -70,29 +69,19 @@ interface FullAnalysisResponse {
     plot: string;
 }
 
-
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+const SimpleLinearIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const regressionExample = exampleDatasets.find(d => d.id === 'regression-suite');
     return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                    <div className="flex justify-center items-center gap-3 mb-4">
-                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <TrendingUp size={36} />
-                        </div>
-                    </div>
-                    <CardTitle className="font-headline text-4xl font-bold">Linear Regression</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        Model the relationship between a dependent variable and one or more independent variables.
-                    </CardDescription>
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-4xl">
+                <CardHeader className="text-center p-8">
+                    <CardTitle className="font-headline text-4xl font-bold">Simple Linear Regression</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground">Model the relationship between two continuous variables.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
-                     <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use Linear Regression?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Linear regression is a cornerstone of predictive analytics. It helps you understand how different variables are connected and allows you to predict a future outcome based on historical data. Whether you're forecasting sales, estimating house prices, or analyzing the impact of advertising, linear regression provides a clear and interpretable model.
-                        </p>
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Simple Linear Regression?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">This is the simplest form of regression, used to understand the relationship between a single independent variable (predictor) and a single dependent variable (outcome). It's perfect for finding a linear trend and making basic predictions.</p>
                     </div>
                      <div className="flex justify-center">
                            {regressionExample && (
@@ -109,18 +98,118 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
                             <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Select Model:</strong> Choose between Simple (one predictor), Multiple (many predictors), or Polynomial (for curved relationships) regression.</li>
-                                <li><strong>Select Variables:</strong> Assign a numeric dependent variable (Y) and one or more numeric independent variables (X).</li>
-                                <li><strong>Variable Selection (Optional):</strong> For multiple regression, you can use stepwise methods to automatically select the most significant predictors.</li>
-                                <li><strong>Run Analysis:</strong> Generate the model, diagnostic plots, and interpretation.</li>
+                                <li><strong>Target Variable (Y):</strong> The outcome you want to predict.</li>
+                                <li><strong>Feature Variable (X):</strong> The single variable you believe influences the target.</li>
                             </ol>
                         </div>
-                         <div className="space-y-6">
+                        <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>R-squared (R²):</strong> The proportion of the variance in the dependent variable that is predictable from the independent variable(s). Higher is generally better.</li>
-                                <li><strong>Coefficients:</strong> Show the strength and direction of each predictor's effect. A p-value &lt; 0.05 indicates a significant effect.</li>
-                                 <li><strong>Diagnostic Plots:</strong> Help you check key assumptions of linear regression, such as linearity, normality of residuals, and equal variance (homoscedasticity).</li>
+                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Equation:</strong> Y = B₀ + B₁X. B₁ is the slope, showing how much Y changes for a one-unit change in X.</li>
+                                <li><strong>R-squared (R²):</strong> The percentage of variance in Y explained by X.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+const MultipleLinearIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const regressionExample = exampleDatasets.find(d => d.id === 'regression-suite');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-4xl">
+                 <CardHeader className="text-center p-8">
+                    <CardTitle className="font-headline text-4xl font-bold">Multiple Linear Regression</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground">Predict an outcome based on the linear relationship with two or more predictor variables.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Multiple Linear Regression?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">This is an extension of simple linear regression. It allows you to model a single outcome variable using multiple predictor variables, assessing the independent contribution of each predictor while controlling for the others.</p>
+                    </div>
+                     <div className="flex justify-center">
+                           {regressionExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(regressionExample)}>
+                                    <regressionExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{regressionExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{regressionExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                     <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Target Variable (Y):</strong> The single outcome variable to predict.</li>
+                                <li><strong>Feature Variables (X):</strong> Select two or more predictor variables.</li>
+                                <li><strong>Variable Selection:</strong> Optionally use Forward, Backward, or Stepwise methods to automatically select the most impactful features.</li>
+                            </ol>
+                        </div>
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Coefficients:</strong> Each coefficient represents the change in Y for a one-unit change in its corresponding X, holding all other predictors constant.</li>
+                                <li><strong>Adjusted R-squared:</strong> A modified version of R² that accounts for the number of predictors, providing a more accurate measure of model fit.</li>
+                                <li><strong>VIF (Variance Inflation Factor):</strong> Checks for multicollinearity. Values above 5 or 10 suggest a predictor is highly correlated with others and may be redundant.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+const PolynomialIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const regressionExample = exampleDatasets.find(d => d.id === 'regression-suite');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-4xl">
+                 <CardHeader className="text-center p-8">
+                    <CardTitle className="font-headline text-4xl font-bold">Polynomial Regression</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground">Model a non-linear relationship between variables by fitting a polynomial equation.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Polynomial Regression?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">When your data shows a curved or U-shaped pattern, a straight line (linear regression) won't fit well. Polynomial regression can capture these non-linear trends by adding polynomial terms (like X², X³) to the model, creating a more flexible curve.</p>
+                    </div>
+                     <div className="flex justify-center">
+                           {regressionExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(regressionExample)}>
+                                    <regressionExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{regressionExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{regressionExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                     <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Target Variable (Y):</strong> The outcome variable.</li>
+                                <li><strong>Feature Variable(s) (X):</strong> One or more predictor variables.</li>
+                                <li><strong>Degree:</strong> The degree of the polynomial. A degree of 2 creates a quadratic model (e.g., Y = B₀ + B₁X + B₂X²). A degree of 3 creates a cubic model.</li>
+                            </ol>
+                        </div>
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>R-squared (R²):</strong> Measures how well the curve fits the data. Be cautious, as higher degrees can easily overfit the data.</li>
+                                <li><strong>Coefficients:</strong> Interpreting individual polynomial coefficients is complex. It's often better to focus on the overall model fit and the shape of the curve in the diagnostic plot.</li>
+                                <li><strong>Actual vs. Predicted Plot:</strong> This is key to seeing if the generated curve accurately captures the trend in your data points.</li>
                             </ul>
                         </div>
                     </div>
@@ -336,6 +425,16 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         if (modelType !== 'simple' && multipleFeatureVars.length === 0) return true;
         return false;
     }
+
+    const IntroComponent = {
+        simple: SimpleLinearIntroPage,
+        multiple: MultipleLinearIntroPage,
+        polynomial: PolynomialIntroPage
+    }[modelType];
+    
+    if (!canRun || view === 'intro') {
+        return IntroComponent ? <IntroComponent onStart={() => setView('main')} onLoadExample={onLoadExample} /> : null;
+    }
     
     const renderMultiFeatureSelector = () => (
         <div className="flex flex-col gap-4">
@@ -424,10 +523,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                 return <p>Select a model type.</p>;
         }
     };
-    
-    if (!canRun || view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
 
     return (
         <div className="flex flex-col gap-4">
@@ -552,4 +647,3 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     );
 }
-
