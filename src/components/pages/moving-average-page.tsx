@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -14,25 +15,40 @@ import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { ScrollArea } from '../ui/scroll-area';
 
-interface FullAnalysisResponse {
-    results: any[];
+interface AnalysisResponse {
+    results: {
+        data: any[];
+        model_params: any;
+        aic: number;
+        bic: number;
+        aicc: number;
+    };
     plot: string;
-    ma_col_name: string;
 }
 
-interface MovingAveragePageProps {
+interface ExponentialSmoothingPageProps {
     data: DataSet;
     allHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function MovingAveragePage({ data, allHeaders, onLoadExample }: MovingAveragePageProps) {
+export default function ExponentialSmoothingPage({ data, allHeaders, onLoadExample }: ExponentialSmoothingPageProps) {
     const { toast } = useToast();
     const [timeCol, setTimeCol] = useState<string | undefined>();
     const [valueCol, setValueCol] = useState<string | undefined>();
-    const [windowSize, setWindowSize] = useState<number>(7);
+    const [smoothingType, setSmoothingType] = useState('simple');
     
-    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
+    // Model params
+    const [alpha, setAlpha] = useState<number | null>(null);
+    const [beta, setBeta] = useState<number | null>(null);
+    const [gamma, setGamma] = useState<number | null>(null);
+
+    // Holt-Winters params
+    const [trendType, setTrendType] = useState('add');
+    const [seasonalType, setSeasonalType] = useState('add');
+    const [seasonalPeriods, setSeasonalPeriods] = useState<number | undefined>(12);
+    
+    const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
     const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2, [data, allHeaders]);
@@ -61,39 +77,40 @@ export default function MovingAveragePage({ data, allHeaders, onLoadExample }: M
         }));
 
         try {
-            const response = await fetch('/api/analysis/moving-average', {
+            const response = await fetch('/api/analysis/exponential-smoothing', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     data: analysisData, 
                     timeCol, 
                     valueCol, 
-                    window: windowSize 
+                    smoothingType,
+                    alpha: alpha,
+                    beta: beta,
+                    gamma: gamma,
+                    trendType: smoothingType !== 'simple' ? trendType : undefined,
+                    seasonalType: smoothingType === 'holt-winters' ? seasonalType : undefined,
+                    seasonalPeriods: smoothingType === 'holt-winters' ? seasonalPeriods : undefined,
                 })
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                try {
-                    const errorJson = JSON.parse(errorText);
-                    throw new Error(errorJson.error || `HTTP error! status: ${response.status}`);
-                } catch (e) {
-                    throw new Error(`Server returned non-JSON error: ${errorText}`);
-                }
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
 
-            const result: FullAnalysisResponse = await response.json();
+            const result: AnalysisResponse = await response.json();
             if ((result as any).error) throw new Error((result as any).error);
             
             setAnalysisResult(result);
 
         } catch (e: any) {
-            console.error('Moving Average Analysis error:', e);
+            console.error('Analysis error:', e);
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
             setIsLoading(false);
         }
-    }, [data, timeCol, valueCol, windowSize, toast]);
+    }, [data, timeCol, valueCol, smoothingType, trendType, seasonalType, seasonalPeriods, toast, alpha, beta, gamma]);
 
     if (!canRun) {
         const trendExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('trend-analysis'));
@@ -101,9 +118,9 @@ export default function MovingAveragePage({ data, allHeaders, onLoadExample }: M
             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
                     <CardHeader>
-                        <CardTitle className="font-headline">Moving Average</CardTitle>
+                        <CardTitle className="font-headline">Exponential Smoothing</CardTitle>
                         <CardDescription>
-                           To calculate a moving average, you need time-series data with at least one date/time column and one numeric column.
+                           To use this feature, you need time-series data with at least one date/time column and one numeric column.
                         </CardDescription>
                     </CardHeader>
                      {trendExamples.length > 0 && (
@@ -135,12 +152,14 @@ export default function MovingAveragePage({ data, allHeaders, onLoadExample }: M
         );
     }
     
+    const results = analysisResult?.results;
+
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Moving Average Setup</CardTitle>
-                    <CardDescription>Configure the parameters for the moving average calculation.</CardDescription>
+                    <CardTitle className="font-headline">Exponential Smoothing Setup</CardTitle>
+                    <CardDescription>Configure the parameters for the smoothing model.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid md:grid-cols-3 gap-4">
@@ -153,9 +172,61 @@ export default function MovingAveragePage({ data, allHeaders, onLoadExample }: M
                             <Select value={valueCol} onValueChange={setValueCol}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{allHeaders.filter(h=>h !== timeCol).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
                         </div>
                         <div>
-                            <Label>Window Size (Periods)</Label>
-                            <Input type="number" value={windowSize} onChange={e => setWindowSize(Number(e.target.value))} min="2" />
+                            <Label>Smoothing Type</Label>
+                            <Select value={smoothingType} onValueChange={setSmoothingType}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>
+                                <SelectItem value="simple">Simple</SelectItem>
+                                <SelectItem value="holt">Holt's Linear</SelectItem>
+                                <SelectItem value="holt-winters">Holt-Winters</SelectItem>
+                            </SelectContent></Select>
                         </div>
+                    </div>
+                    {smoothingType !== 'simple' && (
+                        <div className="grid md:grid-cols-3 gap-4 p-4 border rounded-lg">
+                           <h3 className="md:col-span-3 font-semibold text-sm">Model Type Parameters</h3>
+                            <div>
+                                <Label>Trend</Label>
+                                <Select value={trendType} onValueChange={setTrendType}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>
+                                    <SelectItem value="add">Additive</SelectItem>
+                                    <SelectItem value="mul">Multiplicative</SelectItem>
+                                </SelectContent></Select>
+                            </div>
+                            {smoothingType === 'holt-winters' && (
+                                <>
+                                <div>
+                                    <Label>Seasonality</Label>
+                                    <Select value={seasonalType} onValueChange={setSeasonalType}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>
+                                        <SelectItem value="add">Additive</SelectItem>
+                                        <SelectItem value="mul">Multiplicative</SelectItem>
+                                    </SelectContent></Select>
+                                </div>
+                                <div>
+                                    <Label>Seasonal Periods</Label>
+                                    <Input type="number" value={seasonalPeriods} onChange={e => setSeasonalPeriods(Number(e.target.value))} min="2" placeholder="e.g., 12 for monthly"/>
+                                </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+                    <div className="grid md:grid-cols-3 gap-4 p-4 border rounded-lg bg-muted/50">
+                        <h3 className="md:col-span-3 font-semibold text-sm">Smoothing Parameters (Optional)</h3>
+                        <p className="md:col-span-3 text-xs text-muted-foreground -mt-2">Leave blank to let the model find the optimal values.</p>
+                         <div>
+                            <Label>Alpha (Level)</Label>
+                            <Input type="number" value={alpha ?? ''} onChange={e => setAlpha(e.target.value ? parseFloat(e.target.value) : null)} min="0" max="1" step="0.01" />
+                        </div>
+                        {smoothingType !== 'simple' && (
+                            <div>
+                                <Label>Beta (Trend)</Label>
+                                <Input type="number" value={beta ?? ''} onChange={e => setBeta(e.target.value ? parseFloat(e.target.value) : null)} min="0" max="1" step="0.01" />
+                            </div>
+                        )}
+                         {smoothingType === 'holt-winters' && (
+                            <div>
+                                <Label>Gamma (Seasonal)</Label>
+                                <Input type="number" value={gamma ?? ''} onChange={e => setGamma(e.target.value ? parseFloat(e.target.value) : null)} min="0" max="1" step="0.01" />
+                            </div>
+                        )}
+
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
@@ -167,44 +238,42 @@ export default function MovingAveragePage({ data, allHeaders, onLoadExample }: M
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {analysisResult?.plot && (
+            {results && analysisResult?.plot && (
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Moving Average Plot</CardTitle>
-                            <CardDescription>The original time series data plotted against its moving average to show the trend.</CardDescription>
+                            <CardTitle className="font-headline">Exponential Smoothing Plot</CardTitle>
+                            <CardDescription>The original time series data plotted against the model's fitted values.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Image src={analysisResult.plot} alt="Moving Average Plot" width={1200} height={600} className="w-full rounded-md border"/>
+                            <Image src={analysisResult.plot} alt="Exponential Smoothing Plot" width={1200} height={600} className="w-full rounded-md border"/>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><TableIcon/> Data with Moving Average</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ScrollArea className="h-96">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>{timeCol}</TableHead>
-                                            <TableHead className="text-right">{valueCol}</TableHead>
-                                            <TableHead className="text-right">{analysisResult.ma_col_name}</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {analysisResult.results.map((row, i) => (
-                                            <TableRow key={i}>
-                                                <TableCell>{new Date(row[timeCol!]).toLocaleDateString()}</TableCell>
-                                                <TableCell className="text-right font-mono">{Number(row[valueCol!]).toFixed(2)}</TableCell>
-                                                <TableCell className="text-right font-mono text-primary font-semibold">{Number(row[analysisResult.ma_col_name]).toFixed(2)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader><CardTitle>Model Fit</CardTitle></CardHeader>
+                             <CardContent>
+                                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                    <dt className="text-muted-foreground">AIC</dt><dd className="text-right font-mono">{results.aic.toFixed(2)}</dd>
+                                    <dt className="text-muted-foreground">BIC</dt><dd className="text-right font-mono">{results.bic.toFixed(2)}</dd>
+                                    <dt className="text-muted-foreground">AICc</dt><dd className="text-right font-mono">{results.aicc.toFixed(2)}</dd>
+                                </dl>
+                             </CardContent>
+                        </Card>
+                         <Card>
+                            <CardHeader><CardTitle>Fitted Parameters</CardTitle></CardHeader>
+                            <CardContent>
+                               <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                    {Object.entries(results.model_params).map(([key, value]) => (
+                                        <div key={key} className="flex justify-between border-b">
+                                            <dt className="text-muted-foreground">{key}</dt>
+                                            <dd className="font-mono">{typeof value === 'number' ? value.toFixed(4) : String(value)}</dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             )}
         </div>

@@ -111,7 +111,6 @@ import TrendAnalysisPage from './pages/trend-analysis-page';
 import SeasonalDecompositionPage from './pages/seasonal-decomposition-page';
 import NormalityTestPage from './pages/normality-test-page';
 import HomogeneityTestPage from './pages/homogeneity-test-page';
-import MovingAveragePage from './pages/moving-average-page';
 import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
 import ArimaPage from './pages/arima-page';
 import AcfPacfPage from './pages/acf-pacf-page';
@@ -172,7 +171,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'seasonal-decomposition': SeasonalDecompositionPage,
     normality: NormalityTestPage,
     homogeneity: HomogeneityTestPage,
-    'moving-average': MovingAveragePage,
+    'moving-average': ExponentialSmoothingPage,
     'exponential-smoothing': ExponentialSmoothingPage,
     autoregressive: ArimaPage,
     'acf-pacf': AcfPacfPage,
@@ -312,6 +311,7 @@ const analysisMenu = [
         methods: [
           { id: 'trend-analysis', label: 'Data Exploration (Plot)' },
           { id: 'seasonal-decomposition', label: 'Decomposition' },
+          { id: 'exponential-smoothing', label: 'Exponential Smoothing'},
           { id: 'acf-pacf', label: 'ACF/PACF Analysis' },
           { id: 'stationarity-tests', label: 'Stationarity Tests' },
         ]
