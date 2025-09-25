@@ -1651,14 +1651,14 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
 
     
-    const getAnalysisDataForQuestion = (questionId: number, filter: {filterKey: string, filterValue: string} | null) => {
+    const getAnalysisDataForQuestion = (questionId: number, filter: {filterKey: string, filterValue: string | null} | null) => {
         const question = survey.questions.find((q: any) => q.id === questionId);
         if (!question) {
             return { noData: true, chartData: null, tableData: null, insights: [] };
         }
         
         let targetResponses = responses;
-        if (filter) {
+        if (filter && filter.filterValue) {
             const filterQuestion = survey.questions.find((q:any) => q.title === filter.filterKey);
             if(filterQuestion) {
                  targetResponses = responses.filter(r => r.answers[filterQuestion.id] === filter.filterValue);
@@ -1892,14 +1892,15 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
 
     const handleDashboardDragEnd = (event: DragEndEvent) => {
         const { active, delta } = event;
-        const GRID_SIZE = 20;
         setDashboardPositions(prev => {
             const currentPosition = prev[active.id as any] || { x: 0, y: 0 };
-            const newX = Math.round((currentPosition.x + delta.x) / GRID_SIZE) * GRID_SIZE;
-            const newY = Math.round((currentPosition.y + delta.y) / GRID_SIZE) * GRID_SIZE;
+            const newPosition = {
+                x: currentPosition.x + delta.x,
+                y: currentPosition.y + delta.y,
+            };
             return {
                 ...prev,
-                [active.id]: { x: newX, y: newY }
+                [active.id]: newPosition
             };
         });
     };
@@ -2526,7 +2527,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                      <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Detailed Analysis</CardTitle>
-                            <div className="flex items-center gap-2">
+                             <div className="flex items-center gap-2">
                                 <Label htmlFor="filter-key">Filter by</Label>
                                 <Select value={filterKey} onValueChange={(v) => {setFilterKey(v); setFilterValue(null);}}>
                                     <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
