@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Container, AlertTriangle, CheckCircle, TrendingUp, HelpCircle, Settings, BarChart } from 'lucide-react';
+import { Sigma, Loader2, Container, AlertTriangle, CheckCircle, TrendingUp, HelpCircle, Settings, BarChart, X } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -60,7 +59,13 @@ const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: Example
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="text-center">
+                        <h2 className="text-xl font-semibold mb-2">Why Use Lasso Regression?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                           When faced with a large number of features, some of which may be irrelevant, Lasso is an excellent tool. By forcing some coefficients to be zero, it performs automatic feature selection, resulting in a simpler, more interpretable model that is less prone to overfitting.
+                        </p>
+                    </div>
+                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-4">
                             <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" />Setup Guide</h3>
                             <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
@@ -160,7 +165,7 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
     }, [data, target, features, alpha, testSize, toast]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
-
+    
     useEffect(() => {
         setShowHelpPage(!canRun);
     }, [canRun]);
@@ -175,7 +180,7 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <div className="flex items-center gap-2">
+                     <div className="flex items-center gap-2">
                         <CardTitle className="font-headline">Lasso Regression Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setShowHelpPage(true)}><HelpCircle className="h-4 w-4" /></Button>
                     </div>
@@ -271,7 +276,7 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
                         {(analysisResult.plot || analysisResult.path_plot) && (
                             <Card className="md:col-span-2">
                                 <CardHeader>
-                                    <CardTitle>Lasso Regression Diagnostic & Path Plots</CardTitle>
+                                    <CardTitle>Lasso Regression Diagnostic &amp; Path Plots</CardTitle>
                                 </CardHeader>
                                 <CardContent className="grid md:grid-cols-2 gap-4">
                                      {analysisResult.plot && <Image src={analysisResult.plot} alt="Lasso Regression Plots" width={800} height={1200} className="w-full rounded-md border"/>}
@@ -311,4 +316,3 @@ export default function LassoRegressionPage({ data, numericHeaders, onLoadExampl
         </div>
     );
 }
-

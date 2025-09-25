@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -8,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, TrendingUp, AlertTriangle, CheckCircle, Bot } from 'lucide-react';
+import { Sigma, Loader2, TrendingUp, AlertTriangle, CheckCircle, Bot, MoveRight, HelpCircle, Settings, FileSearch, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -16,7 +15,7 @@ import { Badge } from '../ui/badge';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Slider } from '../ui/slider';
 
 
@@ -67,6 +66,69 @@ interface FullAnalysisResponse {
     model_type: string;
     plot: string;
 }
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const regressionExample = exampleDatasets.find(d => d.id === 'regression-suite');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <TrendingUp size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Linear Regression</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Model the relationship between a dependent variable and one or more independent variables.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                     <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Linear Regression?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Linear regression is a cornerstone of predictive analytics. It helps you understand how different variables are connected and allows you to predict a future outcome based on historical data. Whether you're forecasting sales, estimating house prices, or analyzing the impact of advertising, linear regression provides a clear and interpretable model.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                           {regressionExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(regressionExample)}>
+                                    <regressionExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{regressionExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{regressionExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Select Model:</strong> Choose between Simple (one predictor), Multiple (many predictors), or Polynomial (for curved relationships) regression.</li>
+                                <li><strong>Select Variables:</strong> Assign a numeric dependent variable (Y) and one or more numeric independent variables (X).</li>
+                                <li><strong>Variable Selection (Optional):</strong> For multiple regression, you can use stepwise methods to automatically select the most significant predictors.</li>
+                                <li><strong>Run Analysis:</strong> Generate the model, diagnostic plots, and interpretation.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>R-squared (R²):</strong> The proportion of the variance in the dependent variable that is predictable from the independent variable(s). Higher is generally better.</li>
+                                <li><strong>Coefficients:</strong> Show the strength and direction of each predictor's effect. A p-value &lt; 0.05 indicates a significant effect.</li>
+                                 <li><strong>Diagnostic Plots:</strong> Help you check key assumptions of linear regression, such as linearity, normality of residuals, and equal variance (homoscedasticity).</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 
 const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: string, f_pvalue?: number }) => {
     if (!interpretation) return null;
@@ -143,7 +205,8 @@ interface RegressionPageProps {
 export default function RegressionPage({ data, numericHeaders, onLoadExample, activeAnalysis }: RegressionPageProps) {
     const { toast } = useToast();
     const [targetVar, setTargetVar] = useState<string | undefined>(numericHeaders[numericHeaders.length - 1]);
-    
+    const [view, setView] = useState('intro');
+
     const modelType = useMemo(() => activeAnalysis.replace('regression-', ''), [activeAnalysis]);
     const [selectionMethod, setSelectionMethod] = useState('none');
 
@@ -175,6 +238,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         setMultipleFeatureVars(initialFeatures);
 
         setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
     }, [data, numericHeaders]);
 
     const handleMultiFeatureSelectionChange = (header: string, checked: boolean) => {
@@ -357,52 +421,18 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         }
     };
     
-    if (!canRun) {
-        const regressionExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('regression'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Regression Analysis</CardTitle>
-                        <CardDescription>
-                           To perform regression, you need data with at least two numeric variables. Try an example dataset.
-                        </CardDescription>
-                    </CardHeader>
-                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {regressionExamples.map((ex) => {
-                                const Icon = ex.icon;
-                                return (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                            <TrendingUp className="h-6 w-6 text-secondary-foreground" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                            <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                            Load this data
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
+    if (!canRun || view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Regression Analysis Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Linear Regression Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select a regression model, then configure its variables and parameters.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -459,8 +489,8 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                 <TableBody>
                                     <TableRow>
                                         <TableCell>R-squared</TableCell>
-                                        <TableCell className="text-right font-mono">{results.metrics.train.r2_score.toFixed(4)}</TableCell>
-                                        <TableCell className="text-right font-mono">{results.metrics.test.r2_score.toFixed(4)}</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.train.r2.toFixed(4)}</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.test.r2.toFixed(4)}</TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>RMSE</TableCell>

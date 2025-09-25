@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Container, AlertTriangle, CheckCircle, TrendingUp, HelpCircle, Settings, BarChart, X } from 'lucide-react';
+import { Sigma, Loader2, Container, AlertTriangle, CheckCircle, TrendingUp, HelpCircle, Settings, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
@@ -56,27 +55,33 @@ const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: Example
                         Ridge Regression
                     </CardTitle>
                     <CardDescription className="text-base pt-2">
-                        Ridge Regression is a regularized linear regression model designed to prevent overfitting by adding a penalty term (L2 regularization) to the loss function. It shrinks the coefficients of less important features towards zero without eliminating them completely.
+                        Ridge Regression is a regularized linear regression model designed to prevent overfitting by adding an L2 penalty. It's particularly useful when dealing with multicollinearity (highly correlated predictors).
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="text-center">
+                        <h2 className="text-xl font-semibold mb-2">Why Use Ridge Regression?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            When multiple features in your data are highly correlated, standard linear regression coefficients can become unstable and have high variance. Ridge regression addresses this by shrinking the coefficients, making the model more robust and improving its performance on new, unseen data. Unlike Lasso, it does not shrink coefficients to exactly zero, so it doesn't perform automatic feature selection.
+                        </p>
+                    </div>
+                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-4">
                             <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" />Setup Guide</h3>
                             <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                <li><strong>Target Variable (Y):</strong> Select the numeric variable you want to predict.</li>
-                                <li><strong>Feature Variables (X):</strong> Select the numeric variables to use for prediction.</li>
-                                <li><strong>Alpha (α):</strong> This is the regularization strength. A higher alpha value results in smaller coefficients and more regularization, which can help prevent overfitting but may lead to underfitting if too high.</li>
-                                <li><strong>Test Set Size:</strong> The proportion of data used for evaluating the model's performance on unseen data.</li>
+                                <li><strong>Target Variable (Y):</strong> The numeric variable you want to predict.</li>
+                                <li><strong>Feature Variables (X):</strong> The numeric variables used for prediction.</li>
+                                <li><strong>Alpha (α):</strong> The regularization strength. Higher values lead to more shrinkage and a simpler model.</li>
+                                <li><strong>Test Set Size:</strong> The proportion of data held out for model evaluation.</li>
                             </ul>
                         </div>
                          <div className="space-y-4">
                             <h3 className="font-semibold text-lg flex items-center"><BarChart className="mr-2 h-5 w-5 text-primary" />Result Interpretation</h3>
                             <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                                <li><strong>R-squared:</strong> A large gap between Train and Test R² can indicate overfitting. Ridge regression aims to reduce this gap.</li>
-                                <li><strong>Coefficients:</strong> Ridge shrinks coefficients. Unlike Lasso, they will approach but not become exactly zero.</li>
-                                <li><strong>R-squared vs. Alpha Plot:</strong> This shows how model performance on train and test sets changes as regularization (alpha) increases. The ideal alpha is often where the test R² is maximized.</li>
-                                <li><strong>Coefficients Path Plot:</strong> Visualizes how the magnitude of each feature's coefficient decreases as alpha increases.</li>
+                                <li><strong>R-squared:</strong> Compare Train vs. Test R² to check for overfitting. A smaller gap indicates better generalization.</li>
+                                <li><strong>Coefficients:</strong> Observe how the model has shrunk the coefficients compared to a standard linear regression.</li>
+                                <li><strong>R-squared vs. Alpha Plot:</strong> Find the "sweet spot" for alpha where the test set R-squared is maximized before it starts to decrease due to over-penalization (underfitting).</li>
+                                <li><strong>Coefficients Path Plot:</strong> Shows how feature coefficients shrink towards zero as the alpha value increases.</li>
                             </ul>
                         </div>
                     </div>
@@ -118,7 +123,7 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
         setTarget(defaultTarget);
         setFeatures(numericHeaders.filter(h => h !== defaultTarget));
         setAnalysisResult(null);
-         setShowHelpPage(data.length === 0);
+        setShowHelpPage(data.length === 0);
     }, [data, numericHeaders]);
 
     const handleFeatureChange = (header: string, checked: boolean) => {
@@ -272,7 +277,7 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
                         {(analysisResult.plot || analysisResult.path_plot) && (
                             <Card className="md:col-span-2">
                                 <CardHeader>
-                                    <CardTitle>Ridge Regression Diagnostic & Path Plots</CardTitle>
+                                    <CardTitle>Ridge Regression Diagnostic &amp; Path Plots</CardTitle>
                                 </CardHeader>
                                 <CardContent className="grid md:grid-cols-2 gap-4">
                                      {analysisResult.plot && <Image src={analysisResult.plot} alt="Ridge Regression Plots" width={800} height={1200} className="w-full rounded-md border"/>}
@@ -312,4 +317,3 @@ export default function RidgeRegressionPage({ data, numericHeaders, onLoadExampl
         </div>
     );
 }
-
