@@ -8,14 +8,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Scaling, Users } from 'lucide-react';
+import { Sigma, Loader2, Scaling, Users, HelpCircle, MoveRight, Settings, FileSearch, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
 
+interface SummaryTableData {
+    caption: string | null;
+    data: string[][];
+}
 interface MixedModelResults {
-    model_summary_data: { caption: string | null; data: string[][] }[];
+    model_summary_data: SummaryTableData[];
     fixed_effects: { [key: string]: number };
     random_effects: { [key: string]: number };
     p_values: { [key: string]: number };
@@ -32,15 +36,94 @@ const getSignificanceStars = (p: number | undefined) => {
     return '';
 };
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const mixedModelExample = exampleDatasets.find(d => d.id === 'rm-anova'); // Using repeated measures data as an example
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Scaling size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Mixed Effects Models</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Analyze data with hierarchical or nested structures, like students within classrooms or repeated measurements on subjects.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use a Mixed Effects Model?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Standard regression models assume that all data points are independent. Mixed models are designed for situations where this assumption is violated, such as when data is grouped or clustered. They account for both **fixed effects** (consistent predictors across the population) and **random effects** (variability between different groups or subjects), leading to more accurate and reliable conclusions for hierarchical data.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {mixedModelExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(mixedModelExample)}>
+                                <mixedModelExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{mixedModelExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{mixedModelExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Dependent Variable (Y):</strong> The continuous outcome you are trying to predict.
+                                </li>
+                                <li>
+                                    <strong>Grouping Variable:</strong> The categorical variable that identifies the clusters or groups in your data (e.g., 'Subject ID', 'Class ID').
+                                </li>
+                                <li>
+                                    <strong>Fixed Effects:</strong> The predictor variables whose effects you want to estimate across the entire population.
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> The tool will fit the model, estimating both fixed effects and the variance of the random effects.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Fixed Effects Coefficients:</strong> Interpret these like standard regression coefficients. They represent the average effect of a predictor across all groups.
+                                </li>
+                                 <li>
+                                    <strong>Random Effects Variance:</strong> The 'Group Var' in the results table shows the variance *between* groups. A larger value indicates more variability from one group to another.
+                                </li>
+                                <li>
+                                    <strong>AIC/BIC:</strong> These are information criteria used for comparing different models. Lower values indicate a better model fit.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+
 interface MixedModelPageProps {
     data: DataSet;
+    allHeaders: string[];
     numericHeaders: string[];
     categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function MixedModelPage({ data, numericHeaders, categoricalHeaders, onLoadExample }: MixedModelPageProps) {
+export default function MixedModelPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: MixedModelPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [dependentVar, setDependentVar] = useState<string | undefined>();
     const [fixedEffects, setFixedEffects] = useState<string[]>([]);
     const [groupVar, setGroupVar] = useState<string | undefined>();
@@ -57,7 +140,8 @@ export default function MixedModelPage({ data, numericHeaders, categoricalHeader
         setFixedEffects(numericHeaders.slice(1,3));
         setGroupVar(categoricalHeaders[0]);
         setAnalysisResult(null);
-    }, [data, numericHeaders, categoricalHeaders]);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, numericHeaders, categoricalHeaders, canRun]);
 
     const handleFeatureChange = (header: string, checked: boolean) => {
         setFixedEffects(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
@@ -97,21 +181,12 @@ export default function MixedModelPage({ data, numericHeaders, categoricalHeader
         }
     }, [data, dependentVar, fixedEffects, groupVar, toast]);
     
-    if (!canRun) {
-        const mixedModelExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('mixed-model'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Mixed Effects Model</CardTitle>
-                        <CardDescription>
-                           To run a mixed model, you need data with at least one numeric dependent variable, one numeric fixed effect, and one categorical grouping variable.
-                        </CardDescription>
-                    </CardHeader>
-                    {/* Example data loader can be added here if available */}
-                </Card>
-            </div>
-        )
+     if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     const results = analysisResult;
@@ -120,7 +195,10 @@ export default function MixedModelPage({ data, numericHeaders, categoricalHeader
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Mixed Effects Model Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Mixed Effects Model Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select the dependent variable, fixed effects (predictors), and the grouping variable for random effects.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
