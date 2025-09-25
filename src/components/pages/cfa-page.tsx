@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BrainCircuit, Plus, Trash2, Wand2, Check, X, Bot, AlertTriangle } from 'lucide-react';
+import { Sigma, Loader2, BrainCircuit, Plus, Trash2, Wand2, Check, X, Bot, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
@@ -84,6 +84,79 @@ interface Factor {
     items: string[];
 }
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <BrainCircuit size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Confirmatory Factor Analysis (CFA)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Test and confirm a pre-specified theoretical model by evaluating how well it fits your observed data.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use CFA?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                           Unlike EFA which is exploratory, CFA is a confirmatory technique used to test a hypothesis about the structure of latent variables. It is a crucial step in validating a measurement instrument (like a survey or test) by confirming that its items load onto their intended factors and that the overall model provides a good fit to the data.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {cfaExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
+                                <cfaExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{cfaExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Define Factors:</strong> Create the latent variables (constructs) that you hypothesize exist in your data (e.g., 'Cognitive', 'Emotional').
+                                </li>
+                                <li>
+                                    <strong>Assign Indicators:</strong> For each factor, select the observed variables (items from your dataset) that you believe measure that specific construct.
+                                </li>
+                                <li>
+                                    <strong>Run Analysis:</strong> The tool will estimate the model parameters and provide a range of fit indices to evaluate your model.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Model Fit Indices:</strong> Check values like CFI, TLI, RMSEA, and SRMR to assess overall model fit. Good fit (e.g., CFI > .95, RMSEA < .06) supports your hypothesized structure.
+                                </li>
+                                 <li>
+                                    <strong>Factor Loadings:</strong> Verify that each indicator loads significantly and substantially onto its intended factor.
+                                </li>
+                                <li>
+                                    <strong>Convergent & Discriminant Validity:</strong> Use Composite Reliability (CR), Average Variance Extracted (AVE), and the Fornell-Larcker criterion to ensure your factors are both reliable and distinct from one another.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 const InterpretationDisplay = ({ results }: { results?: CfaResults }) => {
     if (!results?.interpretation) return null;
     
@@ -120,6 +193,7 @@ interface CfaPageProps {
 
 export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [factors, setFactors] = useState<Factor[]>([{id: `factor-0`, name: 'Factor 1', items: []}]);
     
     const [analysisResult, setAnalysisResult] = useState<FullCfaResponse | null>(null);
@@ -128,6 +202,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     useEffect(() => {
         setFactors([{id: `factor-0`, name: 'Factor 1', items: []}]);
         setAnalysisResult(null);
+        setView(canRun ? 'main' : 'intro');
     }, [numericHeaders, data]);
     
     const canRunAnalysis = useMemo(() => {
@@ -201,43 +276,14 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         }
     }, [data, factors, canRunAnalysis, toast]);
     
-    const canRunPage = useMemo(() => data.length > 0 && numericHeaders.length >= 3, [data, numericHeaders]);
+    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 3, [data, numericHeaders]);
 
-    if (!canRunPage) {
-        const cfaExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('cfa'));
-        return (
-             <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Confirmatory Factor Analysis (CFA)</CardTitle>
-                        <CardDescription>
-                           To perform CFA, you need data with at least 3 numeric variables. Try one of our example datasets.
-                        </CardDescription>
-                    </CardHeader>
-                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {cfaExamples.map((ex) => {
-                                const Icon = ex.icon;
-                                return (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader>
-                                        <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                        <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                            <Icon className="mr-2 h-4 w-4" />
-                                            Load this data
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
     const results = analysisResult?.results;
@@ -284,7 +330,10 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">CFA Model Specification</CardTitle>
+                     <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">CFA Model Specification</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Define your measurement model by creating factors and assigning variables to them.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -414,7 +463,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                         ))}
                                     </TableBody>
                                 </Table>
-                                <CardDescription className="text-xs mt-2">CR > 0.7 and AVE > 0.5 are generally acceptable.</CardDescription>
+                                <CardDescription className="text-xs mt-2">CR &gt; 0.7 and AVE &gt; 0.5 are generally acceptable.</CardDescription>
                             </CardContent>
                         </Card>
                          {results.discriminant_validity.fornell_larcker_criterion && (

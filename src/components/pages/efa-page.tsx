@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, BrainCircuit, AlertTriangle, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Settings, RotateCw, Replace, Bot, CheckCircle2 } from 'lucide-react';
+import { Sigma, Loader2, BrainCircuit, AlertTriangle, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Settings, RotateCw, Replace, Bot, CheckCircle2, FileSearch, MoveRight, HelpCircle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
@@ -40,6 +40,69 @@ interface EfaResults {
     interpretation: { [key: string]: { variables: string[], loadings: number[] } };
     full_interpretation: string;
 }
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+    const efaExample = exampleDatasets.find(d => d.id === 'well-being-survey');
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <BrainCircuit size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Exploratory Factor Analysis (EFA)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Uncover the underlying structure of a set of variables and reduce a large number of variables into fewer, more manageable factors.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use EFA?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                           EFA is a powerful exploratory technique used in the early stages of research to identify the latent constructs (or factors) that underlie a set of observed variables. It's perfect for developing theories, simplifying complex datasets, and constructing new scales by grouping together variables that are highly correlated.
+                        </p>
+                    </div>
+                     <div className="flex justify-center">
+                        {efaExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(efaExample)}>
+                                <efaExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{efaExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{efaExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Select Items:</strong> Choose all the numeric variables you believe may be related to one or more underlying factors (e.g., all items from a psychological scale).</li>
+                                <li><strong>Number of Factors:</strong> Specify how many underlying factors you hypothesize. The Scree Plot and Kaiser criterion (eigenvalues > 1) can help you determine the optimal number to extract.</li>
+                                <li><strong>Rotation Method:</strong> Choose a rotation to make the factor structure more interpretable. 'Varimax' is a common orthogonal rotation, while 'Promax' is an oblique rotation for correlated factors.</li>
+                                <li><strong>Run Analysis:</strong> The tool will perform the analysis and provide factor loadings and key metrics.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>KMO & Bartlett's Test:</strong> These tests assess if your data is suitable for factor analysis. Look for a KMO value > 0.6 and a significant p-value for Bartlett's test.</li>
+                                <li><strong>Scree Plot:</strong> The 'elbow' in this plot suggests the optimal number of factors to retain.</li>
+                                <li><strong>Factor Loadings:</strong> These are the correlations between each variable and the extracted factors. A high loading (e.g., > 0.4) indicates that the variable is strongly associated with that factor. Use these loadings to interpret and name your factors.</li>
+                                <li><strong>Explained Variance:</strong> Shows how much of the total information in your original variables is captured by the extracted factors.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
 
 const InterpretationDisplay = ({ results }: { results: EfaResults | undefined }) => {
     if (!results?.full_interpretation) return null;
@@ -168,6 +231,7 @@ interface EfaPageProps {
 
 export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
     const [nFactors, setNFactors] = useState<number>(3);
     const [rotationMethod, setRotationMethod] = useState('varimax');
@@ -179,6 +243,7 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
     useEffect(() => {
         setSelectedItems(numericHeaders);
         setAnalysisResult(null);
+        setView(canRun ? 'main' : 'intro');
     }, [numericHeaders, data]);
     
     const canRun = useMemo(() => {
@@ -223,7 +288,7 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
             }
             setAnalysisResult(result);
 
-        } catch(e: any) {
+        } catch (e: any) {
             console.error('Analysis error:', e);
             toast({variant: 'destructive', title: 'Analysis Error', description: e.message || 'An unexpected error occurred.'})
             setAnalysisResult(null);
@@ -231,50 +296,25 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
             setIsLoading(false);
         }
     }, [data, selectedItems, nFactors, rotationMethod, extractionMethod, toast]);
-
-    if (!canRun) {
-        const efaExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('efa'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Exploratory Factor Analysis (EFA)</CardTitle>
-                        <CardDescription>
-                           To perform EFA, you need data with multiple numeric variables (e.g., survey items). Try an example dataset.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {efaExamples.map((ex) => {
-                                const Icon = ex.icon;
-                                return (
-                                <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                    <CardHeader>
-                                        <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                        <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">
-                                            Load this data
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                                )
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        )
+    
+    if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+
     const results = analysisResult;
 
     return (
         <div className="flex flex-col gap-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">EFA Setup</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">EFA Setup</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                     <CardDescription>Select variables and specify analysis parameters.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
@@ -355,56 +395,6 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                 <div className="grid lg:grid-cols-3 gap-4">
                     <Card className="lg:col-span-1">
                         <CardHeader>
-                            <CardTitle className="font-headline">Variance Explained by Factors</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Factor</TableHead>
-                                        <TableHead className="text-right">% of Variance</TableHead>
-                                        <TableHead className="text-right">Cumulative %</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {results.variance_explained.per_factor.map((variance, i) => (
-                                         <TableRow key={i}>
-                                            <TableCell>Factor {i+1}</TableCell>
-                                            <TableCell className="text-right font-mono">{variance.toFixed(2)}%</TableCell>
-                                            <TableCell className="text-right font-mono">{results.variance_explained.cumulative[i].toFixed(2)}%</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                     <Card className="lg:col-span-1">
-                        <CardHeader>
-                            <CardTitle className="font-headline">Communalities</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <ScrollArea className="h-72">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Variable</TableHead>
-                                            <TableHead className="text-right">Communality</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {results.variables.map((variable, i) => (
-                                            <TableRow key={variable}>
-                                                <TableCell>{variable}</TableCell>
-                                                <TableCell className="text-right font-mono">{results.communalities[i].toFixed(3)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                             </ScrollArea>
-                        </CardContent>
-                    </Card>
-                    <Card className="lg:col-span-1">
-                        <CardHeader>
                             <CardTitle className="font-headline">Data Adequacy</CardTitle>
                         </CardHeader>
                          <CardContent>
@@ -425,10 +415,37 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                             </dl>
                         </CardContent>
                     </Card>
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="font-headline">Total Variance Explained</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Factor</TableHead>
+                                        <TableHead className="text-right">Eigenvalue</TableHead>
+                                        <TableHead className="text-right">% of Variance</TableHead>
+                                        <TableHead className="text-right">Cumulative %</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {results.eigenvalues.slice(0, results.n_factors).map((ev, i) => (
+                                         <TableRow key={i}>
+                                            <TableCell>Factor {i+1}</TableCell>
+                                            <TableCell className="text-right font-mono">{ev.toFixed(3)}</TableCell>
+                                            <TableCell className="text-right font-mono">{results.variance_explained.per_factor[i].toFixed(2)}%</TableCell>
+                                            <TableCell className="text-right font-mono">{results.variance_explained.cumulative[i].toFixed(2)}%</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
                 </div>
                  <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline">Factor Loadings</CardTitle>
+                            <CardTitle className="font-headline">Factor Loadings (Rotated)</CardTitle>
                             <CardDescription>Indicates how much each variable is associated with each factor. Loadings &gt; 0.4 are highlighted.</CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -463,11 +480,9 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                     </Card>
                 </>
             )}
-
             {!analysisResult && !isLoading && (
                 <div className="text-center text-muted-foreground py-10">
-                    <BrainCircuit className="mx-auto h-12 w-12 text-gray-400"/>
-                    <p className="mt-2">Select variables and click 'Run Analysis' to see EFA results.</p>
+                    <p>Select variables and click 'Run Analysis' to see EFA results.</p>
                 </div>
             )}
         </div>
