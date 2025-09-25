@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -383,49 +382,6 @@ const analysisMenu = [
   }
 ];
 
-// This function is defined outside the component to avoid re-creation on every render.
-// It is a pure function that filters the menu based on the search query.
-const getFilteredMenu = (query: string) => {
-    if (!query) {
-        return analysisMenu;
-    }
-
-    const lowercasedQuery = query.toLowerCase();
-
-    return analysisMenu.reduce((acc, category) => {
-        const categoryNameMatches = category.field.toLowerCase().includes(lowercasedQuery);
-
-        const filteredMethods = category.methods?.filter(method =>
-            method.label.toLowerCase().includes(lowercasedQuery)
-        ) || [];
-
-        const filteredSubCategories = category.subCategories?.reduce((subAcc, sub) => {
-            const subCategoryNameMatches = sub.name.toLowerCase().includes(lowercasedQuery);
-            const subMethods = sub.methods.filter(method =>
-                method.label.toLowerCase().includes(lowercasedQuery)
-            );
-
-            if (subMethods.length > 0) {
-                subAcc.push({ ...sub, methods: subMethods });
-            } else if (subCategoryNameMatches) {
-                subAcc.push(sub);
-            }
-            return subAcc;
-        }, [] as NonNullable<typeof category.subCategories>);
-
-
-        if (categoryNameMatches || filteredMethods.length > 0 || (filteredSubCategories && filteredSubCategories.length > 0)) {
-            acc.push({
-                ...category,
-                methods: categoryNameMatches ? category.methods : filteredMethods,
-                subCategories: categoryNameMatches ? category.subCategories : filteredSubCategories,
-            });
-        }
-
-        return acc;
-    }, [] as typeof analysisMenu);
-};
-
 export default function StatisticaApp() {
   const [data, setData] = useState<DataSet>([]);
   const [allHeaders, setAllHeaders] = useState<string[]>([]);
@@ -589,7 +545,47 @@ export default function StatisticaApp() {
     )
   };
 
-  const filteredMenu = useMemo(() => getFilteredMenu(searchQuery), [searchQuery]);
+  const filteredMenu = useMemo(() => {
+    if (!searchQuery) {
+      return analysisMenu;
+    }
+
+    const lowercasedQuery = searchQuery.toLowerCase();
+    
+    return analysisMenu.map(category => {
+      const categoryNameMatches = category.field.toLowerCase().includes(lowercasedQuery);
+      
+      const filteredMethods = category.methods?.filter(method => 
+        method.label.toLowerCase().includes(lowercasedQuery)
+      );
+
+      const filteredSubCategories = category.subCategories
+        ?.map(sub => {
+          const subCategoryNameMatches = sub.name.toLowerCase().includes(lowercasedQuery);
+          const subMethods = sub.methods.filter(method => 
+            method.label.toLowerCase().includes(lowercasedQuery)
+          );
+          if (subMethods.length > 0 || subCategoryNameMatches) {
+            return {
+              ...sub,
+              methods: subCategoryNameMatches ? sub.methods : subMethods,
+            };
+          }
+          return null;
+        })
+        .filter((sub): sub is NonNullable<typeof sub> => sub !== null);
+
+      if (categoryNameMatches || (filteredMethods && filteredMethods.length > 0) || (filteredSubCategories && filteredSubCategories.length > 0)) {
+        return {
+          ...category,
+          methods: categoryNameMatches ? category.methods : filteredMethods,
+          subCategories: categoryNameMatches ? category.subCategories : filteredSubCategories,
+        };
+      }
+      return null;
+    }).filter((category): category is NonNullable<typeof category> => category !== null);
+  }, [searchQuery]);
+
 
   return (
     <SidebarProvider>
@@ -767,3 +763,4 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
