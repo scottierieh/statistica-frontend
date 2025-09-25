@@ -79,6 +79,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             MANOVA is used to determine whether there are any statistically significant differences between the means of two or more independent groups on a combination of two or more dependent variables. It's more powerful than running multiple separate ANOVAs because it accounts for the correlations between the dependent variables and reduces the risk of Type I errors (false positives).
                         </p>
                     </div>
+                    <div className="flex justify-center">
+                        {manovaExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(manovaExample)}>
+                                <Users className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{manovaExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{manovaExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -107,20 +118,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                     <strong>Effect Size (Pillai's Trace or Partial η²):</strong> These metrics indicate the magnitude of the difference between groups.
                                 </li>
                             </ul>
-                        </div>
-                    </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
-                        <div className="flex justify-center">
-                           {manovaExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(manovaExample)}>
-                                    <Users className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{manovaExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{manovaExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
                 </CardContent>

@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,7 +18,6 @@ import { ScrollArea } from '../ui/scroll-area';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Label } from '../ui/label';
-import React from 'react';
 
 
 interface AnovaRow {
@@ -81,7 +80,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             ANCOVA is used to test the main and interaction effects of categorical variables on a continuous dependent variable, while controlling for the effect of other continuous variables (covariates). It increases statistical power by reducing the within-group error variance and helps to eliminate confounding variables. For example, when comparing the test scores of students under different teaching methods, you could use their 'prior knowledge' score as a covariate to statistically remove its effect.
                         </p>
                     </div>
-
+                    <div className="flex justify-center">
+                        {ancovaExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ancovaExample)}>
+                                <BookOpen className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{ancovaExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{ancovaExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -116,20 +125,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                     <strong>Partial Eta-Squared (η²p):</strong> An effect size measure indicating the proportion of variance explained by a given variable, after controlling for other variables.
                                 </li>
                             </ul>
-                        </div>
-                    </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
-                        <div className="flex justify-center">
-                            {ancovaExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ancovaExample)}>
-                                    <BookOpen className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{ancovaExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{ancovaExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
                 </CardContent>

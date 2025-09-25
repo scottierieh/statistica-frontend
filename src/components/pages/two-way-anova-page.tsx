@@ -118,6 +118,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             Two-Way ANOVA extends One-Way ANOVA by allowing you to test the effects of two independent factors simultaneously. This is powerful because it not only reveals the main effect of each factor but also uncovers if there is an **interaction effect** between them. An interaction means the effect of one factor depends on the level of the other, providing deeper insights than running separate one-way tests.
                         </p>
                     </div>
+                    <div className="flex justify-center">
+                        {anovaExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(anovaExample)}>
+                                <BarChartIcon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{anovaExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{anovaExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -149,20 +160,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                     <strong>Post-Hoc Tests:</strong> If the interaction is significant, these tests are performed to identify which specific group combinations are different from each other.
                                 </li>
                             </ul>
-                        </div>
-                    </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
-                        <div className="flex justify-center">
-                            {anovaExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(anovaExample)}>
-                                    <BarChartIcon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{anovaExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{anovaExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
                 </CardContent>
