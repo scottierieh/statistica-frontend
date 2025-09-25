@@ -25,6 +25,15 @@ def _to_native_type(obj):
     return obj
 
 def perform_adf_test(series):
+    # Ensure series is not empty and has enough data
+    if len(series) < 4:
+        return {
+            'adf_statistic': None,
+            'p_value': None,
+            'critical_values': {},
+            'is_stationary': None,
+            'error': 'Not enough data points to perform test.'
+        }
     result = adfuller(series)
     return {
         'adf_statistic': result[0],
@@ -44,19 +53,25 @@ def main():
             raise ValueError("Missing required parameters: data, timeCol, or valueCol")
 
         df = pd.DataFrame(data)
+        
+        if time_col not in df.columns or value_col not in df.columns:
+            raise ValueError(f"Columns '{time_col}' or '{value_col}' not found in data.")
+
+        # --- Improved Data Handling ---
         df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
-        df = df.dropna(subset=[time_col, value_col]).set_index(time_col).sort_index()
+        df[value_col] = pd.to_numeric(df[value_col], errors='coerce')
+        
+        # Create a clean series for analysis
+        series = df[[time_col, value_col]].copy().dropna().set_index(time_col)[value_col].sort_index()
 
-        if len(df) < 4:
-            raise ValueError("Not enough data to perform stationarity test.")
-
-        series = df[value_col]
+        if len(series) < 4:
+            raise ValueError("Not enough valid data points to perform stationarity test after cleaning.")
 
         # --- Original Series ---
         original_test = perform_adf_test(series)
         
         plt.figure(figsize=(10, 4))
-        plt.plot(series, label=f"Original: {value_col}", color="blue")
+        plt.plot(series.index, series.values, label=f"Original: {value_col}", color="blue")
         plt.title("Original Time Series")
         plt.legend()
         plt.grid(True, linestyle='--', alpha=0.6)
@@ -70,7 +85,7 @@ def main():
         diff_test = perform_adf_test(diff_series)
 
         plt.figure(figsize=(10, 4))
-        plt.plot(diff_series, label=f"1st Difference", color="green")
+        plt.plot(diff_series.index, diff_series.values, label=f"1st Difference", color="green")
         plt.title("1st Differenced Time Series")
         plt.legend()
         plt.grid(True, linestyle='--', alpha=0.6)
