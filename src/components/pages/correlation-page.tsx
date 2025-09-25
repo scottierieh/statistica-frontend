@@ -84,6 +84,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         <p className="max-w-3xl mx-auto text-muted-foreground">
                             Correlation analysis is a fundamental statistical method used to understand how variables move in relation to one another. It helps identify patterns in data, informs predictive modeling, and guides further investigation. A positive correlation means variables increase together, a negative correlation means one increases as the other decreases, and a zero correlation indicates no linear relationship.
                         </p>
+                        <div className="mt-6 flex justify-center">
+                           {corrExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(corrExample)}>
+                                    <corrExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{corrExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{corrExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
@@ -128,8 +139,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {corrExample && <Button variant="outline" onClick={() => onLoadExample(corrExample)}>Load Sample Iris Data</Button>}
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
@@ -476,4 +486,3 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
     </div>
   );
 }
-
