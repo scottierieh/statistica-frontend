@@ -72,7 +72,7 @@ def main():
 
         # Generate forecast
         exog_forecast = None
-        if exog_data is not None:
+        if exog_data is not None and not exog_data.empty:
              # Simple forecasting for exog: assume last value persists
              last_exog_values = exog_data.iloc[-1]
              
@@ -93,7 +93,37 @@ def main():
         forecast_df.index.name = 'forecast_date'
 
         # Generate diagnostic plots
-        fig = model_fit.plot_diagnostics(figsize=(15, 12))
+        fig = plt.figure(constrained_layout=True, figsize=(15, 12))
+        gs = fig.add_gridspec(3, 2)
+        
+        # Standardized residual
+        ax1 = fig.add_subplot(gs[0, 0])
+        model_fit.plot_diagnostics(fig=fig, axes=[ax1], lags=30, show_header=False)
+        ax1.set_title("Standardized Residual")
+
+        # Histogram plus estimated density
+        ax2 = fig.add_subplot(gs[0, 1])
+        residuals = model_fit.resid
+        residuals.plot(kind='kde', ax=ax2)
+        ax2.set_title("Histogram plus Estimated Density")
+
+        # Normal Q-Q
+        ax3 = fig.add_subplot(gs[1, 0])
+        from statsmodels.graphics.gofplots import qqplot
+        qqplot(residuals, line='s', ax=ax3)
+        ax3.set_title("Normal Q-Q")
+
+        # Correlogram
+        ax4 = fig.add_subplot(gs[1, 1])
+        from statsmodels.graphics.tsaplots import plot_acf
+        plot_acf(residuals, ax=ax4, lags=30)
+        ax4.set_title("Correlogram")
+        
+        # Residuals over time
+        ax5 = fig.add_subplot(gs[2, :])
+        residuals.plot(ax=ax5)
+        ax5.set_title("Residuals over Time")
+
         plt.tight_layout()
         buf = io.BytesIO()
         plt.savefig(buf, format='png')
@@ -109,6 +139,8 @@ def main():
                 'caption': getattr(table, 'title', None),
                 'data': table_data
             })
+            
+        residuals_desc = residuals.describe().to_dict()
 
         response = {
             'results': {
@@ -116,7 +148,8 @@ def main():
                 'aic': model_fit.aic,
                 'bic': model_fit.bic,
                 'hqic': model_fit.hqic,
-                'forecast': forecast_df.reset_index().to_dict('records')
+                'forecast': forecast_df.reset_index().to_dict('records'),
+                'residuals_summary': residuals_desc,
             },
             'plot': f"data:image/png;base64,{plot_image}"
         }
@@ -130,5 +163,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    
