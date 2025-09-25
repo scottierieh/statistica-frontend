@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -122,6 +123,7 @@ import TopicModelingPage from './pages/topic-modeling-page';
 import BinomialTestPage from './pages/binomial-test-page';
 import StationarityPage from './pages/stationarity-page';
 import LjungBoxPage from './pages/ljung-box-page';
+import ArchLmTestPage from './pages/arch-lm-test-page';
 
 
 type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | 'classifier-comparison' | string;
@@ -185,6 +187,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'binomial-test': BinomialTestPage,
     'stationarity-tests': StationarityPage,
     'ljung-box': LjungBoxPage,
+    'arch-lm-test': ArchLmTestPage,
 };
 
 const analysisMenu = [
@@ -328,7 +331,7 @@ const analysisMenu = [
         name: 'Residual diagnostics',
         methods: [
           { id: 'ljung-box', label: 'Ljung-Box Test' },
-          { id: 'arch-test', label: 'ARCH-LM Test', implemented: false },
+          { id: 'arch-lm-test', label: 'ARCH-LM Test' },
         ]
       },
       {
