@@ -57,14 +57,13 @@ def main():
         if time_col not in df.columns or value_col not in df.columns:
             raise ValueError(f"Columns '{time_col}' or '{value_col}' not found in data.")
 
-        # --- Improved Data Handling ---
+        # --- Improved Data Handling based on user feedback ---
         df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
+        df.dropna(subset=[time_col, value_col], inplace=True)
         df[value_col] = pd.to_numeric(df[value_col], errors='coerce')
-        
-        df = df.dropna(subset=[time_col, value_col])
-        df = df.set_index(time_col).sort_index()
+        df.dropna(subset=[value_col], inplace=True)
 
-        series = df[value_col]
+        series = df.set_index(time_col)[value_col].copy()
 
 
         if len(series) < 4:
@@ -121,3 +120,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
