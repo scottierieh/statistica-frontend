@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -48,6 +49,17 @@ const OneSampleIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, o
                             This test is used to check if the average of a sample is statistically different from a population mean or a theoretical value. For example, you could test if the average IQ score of a group of students is different from the national average of 100.
                         </p>
                     </div>
+                    <div className="flex justify-center">
+                           {ttestExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
+                                    <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{ttestExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                    </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -76,20 +88,6 @@ const OneSampleIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, o
                                     <strong>Cohen's d:</strong> Measures the size of the difference. A value around 0.2 is small, 0.5 is medium, and 0.8 is large.
                                 </li>
                             </ul>
-                        </div>
-                    </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
-                        <div className="flex justify-center">
-                           {ttestExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
-                                    <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{ttestExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
                 </CardContent>
@@ -124,6 +122,17 @@ const IndependentSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () =
                             This test is ideal for A/B testing or comparing outcomes between a control group and a treatment group. For instance, you could use it to see if a new website design (Group A) leads to more time on site than the old design (Group B).
                         </p>
                     </div>
+                    <div className="flex justify-center">
+                           {ttestExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
+                                    <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{ttestExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                    </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -140,20 +149,6 @@ const IndependentSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () =
                                 <li><strong>p-value:</strong> A value less than 0.05 indicates a significant difference in the means of the two groups.</li>
                                 <li><strong>Cohen's d:</strong> This is the effect size. A larger value indicates a more substantial difference between the groups.</li>
                             </ul>
-                        </div>
-                    </div>
-                    <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
-                        <div className="flex justify-center">
-                           {ttestExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
-                                    <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{ttestExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
                 </CardContent>
@@ -188,6 +183,17 @@ const PairedSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () => voi
                             This test is used for "before-and-after" scenarios or matched-pairs designs. For example, you can use it to test if a training program had a significant effect on employee performance by comparing their scores before and after the training.
                         </p>
                     </div>
+                     <div className="flex justify-center">
+                           {ttestExample && (
+                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
+                                    <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{ttestExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
+                                    </div>
+                                </Card>
+                            )}
+                        </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -204,20 +210,6 @@ const PairedSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () => voi
                                 <li><strong>p-value:</strong> If less than 0.05, there is a significant mean difference between the two paired measurements.</li>
                                 <li><strong>Mean Difference & CI:</strong> Shows the average difference and the 95% confidence interval. If the CI does not contain zero, the result is significant.</li>
                             </ul>
-                        </div>
-                    </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Load Example Data</h3>
-                        <div className="flex justify-center">
-                           {ttestExample && (
-                                <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ttestExample)}>
-                                    <ttestExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                    <div>
-                                        <h4 className="font-semibold">{ttestExample.name}</h4>
-                                        <p className="text-xs text-muted-foreground">{ttestExample.description}</p>
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     </div>
                 </CardContent>
@@ -554,4 +546,3 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
         </div>
     );
 }
-
