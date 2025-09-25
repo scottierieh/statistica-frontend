@@ -1,3 +1,4 @@
+
 import sys
 import json
 import pandas as pd
@@ -23,8 +24,8 @@ def fit_and_evaluate(model_name, model_func, train, test):
         model_fit = model_func(train).fit()
         forecast = model_fit.forecast(steps=len(test))
         rmse = np.sqrt(mean_squared_error(test, forecast))
-        aic = model_fit.aic
-        bic = model_fit.bic
+        aic = getattr(model_fit, 'aic', None)
+        bic = getattr(model_fit, 'bic', None)
         return {
             "Model": model_name,
             "AIC": aic,
