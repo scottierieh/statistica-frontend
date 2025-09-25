@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -415,3 +416,4 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
         </div>
     );
 }
+

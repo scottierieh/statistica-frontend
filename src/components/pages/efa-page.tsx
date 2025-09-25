@@ -111,7 +111,7 @@ const InterpretationDisplay = ({ results }: { results: EfaResults | undefined })
 
     const formattedInterpretation = useMemo(() => {
         return results.full_interpretation
-            .replace(/\n/g, '<br />')
+            .replace(/\\n/g, '<br />')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     }, [results.full_interpretation]);
 
@@ -405,7 +405,7 @@ export default function EfaPage({ data, numericHeaders, onLoadExample }: EfaPage
                                     <dt className="font-medium">Bartlett's Test of Sphericity</dt>
                                     <dd>
                                         <span className="font-mono">
-                                            χ² ≈ {results.adequacy.bartlett_statistic?.toFixed(2) ?? 'N/A'}, p {'< .001' ?? results.adequacy.bartlett_p_value?.toFixed(3)}
+                                            χ² ≈ {results.adequacy.bartlett_statistic?.toFixed(2) ?? 'N/A'}, p {results.adequacy.bartlett_p_value < 0.001 ? '< .001' : results.adequacy.bartlett_p_value?.toFixed(3) ?? 'N/A'}
                                         </span>
                                         {results.adequacy.bartlett_significant ? <Badge>Significant</Badge> : <Badge variant="secondary">Not Significant</Badge>}
                                     </dd>
