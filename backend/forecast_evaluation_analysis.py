@@ -28,9 +28,9 @@ def fit_and_evaluate(model_name, model_func, train, test):
         bic = getattr(model_fit, 'bic', None)
         return {
             "Model": model_name,
-            "AIC": aic,
-            "BIC": bic,
-            "RMSE": rmse
+            "AIC": _to_native_type(aic),
+            "BIC": _to_native_type(bic),
+            "RMSE": _to_native_type(rmse)
         }
     except Exception as e:
         return {
@@ -85,3 +85,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
