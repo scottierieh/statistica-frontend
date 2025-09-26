@@ -39,6 +39,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { LineChart, Line, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '../ui/date-range-picker';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import VanWestendorpPage from '@/components/pages/van-westendorp-page';
@@ -2762,7 +2763,7 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         warning: <ShieldAlert className="text-yellow-500" />,
         opportunity: <Lightbulb className="text-blue-500" />,
         excellent: <Award className="text-green-500" />,
-    }
+    };
     return (
         <Card>
             <CardHeader className="flex flex-row items-start gap-4">
@@ -2832,3 +2833,6 @@ function pearsonCorrelation(x: (number | undefined)[], y: (number | undefined)[]
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 type QuestionLogic = { questionId: number; paths: LogicPath[] };
+
+
+    
