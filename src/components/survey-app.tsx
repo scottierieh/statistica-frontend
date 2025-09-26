@@ -1466,6 +1466,51 @@ const TextAnalysisDisplay = ({ tableData, varName }: { tableData: any[], varName
     );
 };
 
+const KPICard: React.FC<{ title: string; value: string; status: 'excellent' | 'good' | 'warning' | 'poor' }> = ({ title, value, status }) => {
+    const statusClasses = {
+        excellent: 'text-green-600',
+        good: 'text-green-500',
+        warning: 'text-yellow-600',
+        poor: 'text-red-600',
+    };
+    return (
+        <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className={`text-2xl font-bold ${statusClasses[status]}`}>{value}</div>
+            </CardContent>
+        </Card>
+    );
+};
+
+const InsightCard: React.FC<{ insight: { type: 'critical' | 'warning' | 'opportunity' | 'excellent', title: string, text: string, actions: string }}> = ({ insight }) => {
+    const ICONS = {
+        critical: <AlertTriangle className="text-red-500" />,
+        warning: <ShieldAlert className="text-yellow-500" />,
+        opportunity: <Lightbulb className="text-blue-500" />,
+        excellent: <Award className="text-green-500" />,
+    }
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-start gap-4">
+                {ICONS[insight.type]}
+                <div>
+                    <CardTitle className="text-base">{insight.title}</CardTitle>
+                    <CardDescription>{insight.text}</CardDescription>
+                </div>
+            </CardHeader>
+            <CardFooter>
+                 <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                    <MoveRight className="w-4 h-4"/>
+                    <span>{insight.actions}</span>
+                </div>
+            </CardFooter>
+        </Card>
+    );
+};
+
 const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
     if (!data) return null;
     const { kpiData, insights } = data;
@@ -2369,7 +2414,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
 
     return (
-        <div className="max-w-7xl mx-auto p-4 md:p-8 bg-gradient-to-br from-background to-slate-50">
+        <div className="w-full mx-auto p-4 md:p-8 bg-gradient-to-br from-background to-slate-50">
              <header className="mb-8 flex justify-between items-center">
                  <div>
                      <h1 className="text-3xl font-bold">General Survey</h1>
