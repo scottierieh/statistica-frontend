@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -964,11 +965,11 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, in
     };
     
     const comparisonChartData = useMemo(() => {
-        if (!comparisonData) return [];
+        if (!comparisonData?.tableData) return [];
         return tableData.map(d => ({
             name: d.name,
             Overall: d.percentage,
-            Group: comparisonData.table.find((cd: any) => cd.name === d.name)?.percentage || 0
+            Group: comparisonData.tableData.find((cd: any) => cd.name === d.name)?.percentage || 0
         }));
     }, [comparisonData, tableData]);
 
@@ -1430,14 +1431,38 @@ const KPICard: React.FC<{ title: string; value: string; status: 'excellent' | 'g
     );
 };
 
-interface InsightCardProps {
+const InsightCard: React.FC<{
     insight: {
         type: 'critical' | 'warning' | 'opportunity' | 'excellent';
         title: string;
         text: string;
         actions: string;
     };
-}
+}> = ({ insight }) => {
+    const ICONS = {
+        critical: <AlertTriangle className="text-red-500" />,
+        warning: <ShieldAlert className="text-yellow-500" />,
+        opportunity: <Lightbulb className="text-blue-500" />,
+        excellent: <Award className="text-green-500" />,
+    };
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-start gap-4">
+                {ICONS[insight.type]}
+                <div>
+                    <CardTitle className="text-base">{insight.title}</CardTitle>
+                    <CardDescription>{insight.text}</CardDescription>
+                </div>
+            </CardHeader>
+            <CardFooter>
+                 <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                    <MoveRight className="w-4 h-4"/>
+                    <span>{insight.actions}</span>
+                </div>
+            </CardFooter>
+        </Card>
+    );
+};
 
 
 const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
@@ -1807,6 +1832,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     insights = [
                         `The average response is <strong>${stats.mean.toFixed(2)}</strong>.`,
                         `Responses range from <strong>${stats.min}</strong> to <strong>${stats.max}</strong>.`,
+                        `The standard deviation of <strong>${stats.stdDev.toFixed(2)}</strong> indicates the spread of the data.`
                     ];
                     break;
                 }
@@ -1823,6 +1849,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     };
                     insights = [
                         `Average rating is <strong>${avgRating.toFixed(2)} / ${question.scale?.length || 5}</strong>.`,
+                        `The most common rating given was <strong>${getMode(ratings)} star(s)</strong>.`,
+                        `<strong>${((ratings.filter(r => r >= 4).length / ratings.length) * 100).toFixed(1)}%</strong> of users gave a high rating (4 or 5 stars).`
                     ];
                     break;
                 }
@@ -2645,7 +2673,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 survey.questions.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, qIndex: number) => {
                                     const analysisData = getAnalysisDataForQuestion(q.id, filterKey !== 'All' && filterValue ? {filterKey, filterValue} : null);
                                     
-                                    if (analysisData.noData) return null;
+                                    if (!analysisData || analysisData.overall?.noData) return null;
                                     
                                     const questionComponents: { [key: string]: React.ComponentType<any> } = {
                                         single: ChoiceAnalysisDisplay,
@@ -2668,7 +2696,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                     insightsData={analysisData.overall?.insights}
                                                     varName={`${qIndex + 1}. ${q.title}`} 
                                                     question={q}
-                                                    comparisonData={analysisData.group ? { ...analysisData.group, filterValue } : null}
+                                                    comparisonData={analysisData.group?.noData ? null : { ...analysisData.group, filterValue }}
                                                 />
                                             ) : (
                                                 <p className="text-muted-foreground">Analysis for this question type is not yet implemented.</p>
@@ -2779,8 +2807,14 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         </div>
     );
 }
-
-const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
+const InsightCard: React.FC<{
+    insight: {
+        type: 'critical' | 'warning' | 'opportunity' | 'excellent';
+        title: string;
+        text: string;
+        actions: string;
+    };
+}> = ({ insight }) => {
     const ICONS = {
         critical: <AlertTriangle className="text-red-500" />,
         warning: <ShieldAlert className="text-yellow-500" />,
