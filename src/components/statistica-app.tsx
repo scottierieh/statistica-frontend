@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -80,6 +81,8 @@ import ReliabilityPage from './pages/reliability-page';
 import VisualizationPage from './pages/visualization-page';
 import DiscriminantPage from './pages/discriminant-page';
 import EfaPage from './pages/efa-page';
+import CfaPage from './pages/cfa-page';
+import SemPage from './pages/sem-page';
 import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
 import NonParametricPage from './pages/nonparametric-page';
@@ -148,6 +151,8 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
     efa: EfaPage,
+    cfa: CfaPage,
+    sem: SemPage,
     mediation: MediationPage,
     moderation: ModerationPage,
     'mann-whitney': NonParametricPage,
