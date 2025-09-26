@@ -11,8 +11,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight, Building, Hospital, Landmark, GraduationCap, BarChart as BarChartIcon } from 'lucide-react';
-import { Table as DndTable } from '@/components/ui/table';
-import { Select as DndSelect, SelectTrigger as DndSelectTrigger, SelectValue as DndSelectValue, SelectContent as DndSelectContent, SelectItem as DndSelectItem } from '@/components/ui/select';
 import { produce } from 'immer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -51,6 +49,8 @@ import dynamic from 'next/dynamic';
 import Papa from 'papaparse';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
 
@@ -1908,12 +1908,12 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
 
     const removeLogicPath = (questionId: number, pathId: number) => {
-        setSurvey(produce((draft: any) => {
-            const existingLogicIndex = draft.logic.findIndex((l: any) => l.questionId === questionId);
-            if (existingLogicIndex > -1) {
-                draft.logic[existingLogicIndex].paths = draft.logic[existingLogicIndex].paths.filter((p: any) => p.id !== pathId);
-            }
-        }));
+      setSurvey(produce((draft: any) => {
+        const logicIndex = draft.logic.findIndex((l: any) => l.questionId === questionId);
+        if (logicIndex > -1) {
+          draft.logic[logicIndex].paths = draft.logic[logicIndex].paths.filter((p: any) => p.id !== pathId);
+        }
+      }));
     };
     
     const handleDragEnd = (event: DragEndEvent) => {
