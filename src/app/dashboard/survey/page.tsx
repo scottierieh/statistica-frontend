@@ -19,8 +19,15 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { ClipboardList, History, LayoutTemplate, PlusCircle } from 'lucide-react';
 import SurveyApp from '@/components/survey-app';
 import Link from 'next/link';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
+import { addDays } from 'date-fns';
+import { Switch } from '@/components/ui/switch';
 
-type SurveySection = 'survey' | 'history' | 'templates';
+type SurveySection = 'survey' | 'history' | 'templates' | 'setting';
 
 function SurveyHistory() {
   const [savedSurveys, setSavedSurveys] = useState<any[]>([]);
@@ -64,7 +71,7 @@ function SurveyHistory() {
                             Here are your saved survey designs. Click on a survey to continue editing.
                         </CardDescription>
                     </div>
-                    <Button asChild>
+                     <Button asChild>
                         <Link href={`/dashboard/survey?id=${Date.now()}`}><PlusCircle className="mr-2 h-4 w-4" /> Create New Survey</Link>
                     </Button>
                 </div>
@@ -105,6 +112,47 @@ function SurveyHistory() {
   );
 }
 
+function SurveySettings() {
+    const [date, setDate] = useState<DateRange | undefined>({
+        from: new Date(),
+        to: addDays(new Date(), 20),
+    });
+
+    return (
+         <Card className="w-full max-w-2xl mx-auto">
+            <CardHeader>
+              <CardTitle>Survey Settings</CardTitle>
+              <CardDescription>Manage general settings and configurations for your survey.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-2">
+                    <Label htmlFor="survey-title">Survey Title</Label>
+                    <Input id="survey-title" placeholder="Enter survey title" />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="survey-description">Survey Description</Label>
+                    <Textarea id="survey-description" placeholder="Enter a short description" />
+                </div>
+                <div className="space-y-2">
+                    <Label>Response Period</Label>
+                    <DatePickerWithRange date={date} onDateChange={setDate} />
+                </div>
+                 <div className="flex items-center space-x-2">
+                    <Switch id="limit-responses" />
+                    <Label htmlFor="limit-responses">Limit to one response per person</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Switch id="allow-edit" />
+                    <Label htmlFor="allow-edit">Allow respondents to edit after submission</Label>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button>Save Settings</Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
 
 export default function SurveyPage() {
   const [activeSection, setActiveSection] = useState<SurveySection>('survey');
@@ -115,6 +163,8 @@ export default function SurveyPage() {
         return <SurveyApp />;
       case 'history':
         return <SurveyHistory />;
+      case 'setting':
+        return <SurveySettings />;
       case 'templates':
         return (
           <Card className="w-full max-w-2xl mx-auto text-center">
@@ -162,6 +212,15 @@ export default function SurveyPage() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
+                 <SidebarMenuButton
+                  onClick={() => setActiveSection('setting')}
+                  isActive={activeSection === 'setting'}
+                >
+                  <Settings />
+                  <span>Setting</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => setActiveSection('templates')}
                   isActive={activeSection === 'templates'}
@@ -188,3 +247,4 @@ export default function SurveyPage() {
     </SidebarProvider>
   );
 }
+
