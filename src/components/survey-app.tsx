@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight, Building, Hospital, Landmark, GraduationCap, BarChart as BarChartIcon } from 'lucide-react';
+import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight, Building, Hospital, Landmark, GraduationCap, BarChart as BarChartIcon, BarChart2, ClipboardList, Settings, LayoutDashboard } from 'lucide-react';
 import { produce } from 'immer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -21,7 +21,7 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, Trash2, ArrowLeft, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Eye, Shuffle, FileText, Save, Info, Link as LinkIcon, QrCode, Download, Copy, Users, EyeIcon, TrendingUp, Laptop, Palette, Grid3x3, ThumbsUp, MessageSquareQuote, Target, Sparkles, ImageIcon, Smartphone, Tablet, Monitor, FileDown, Share2, Phone, Mail, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, X, ChevronDown, Settings, LayoutDashboard, Filter, BarChart2, ClipboardList } from 'lucide-react';
+import { GripVertical, Plus, Trash2, ArrowLeft, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Eye, Shuffle, FileText, Save, Info, Link as LinkIcon, QrCode, Download, Copy, Users, EyeIcon, TrendingUp, Laptop, Palette, Grid3x3, ThumbsUp, MessageSquareQuote, Target, Sparkles, ImageIcon, Smartphone, Tablet, Monitor, FileDown, Share2, Phone, Mail, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, X, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -920,13 +920,15 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            {question.columns.map((col: string, colIndex: number) => (
-                                <TableCell key={colIndex} className="text-center">
-                                    <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                                <>
+                                {question.columns.map((col: string, colIndex: number) => (
+                                    <TableCell key={colIndex} className="text-center">
                                         <RadioGroupItem value={col}/>
-                                    </RadioGroup>
-                                </TableCell>
-                            ))}
+                                    </TableCell>
+                                ))}
+                                </>
+                            </RadioGroup>
                             {!isPreview && <TableCell></TableCell>}
                         </TableRow>
                     ))}
@@ -953,10 +955,10 @@ const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
     const deleteItem = (index: number) => {
         onUpdate?.(produce(question, (draft: any) => { draft.items.splice(index, 1); }));
     };
-
+    
     return (
         <div className={cn("p-4", cardClassName)}>
-            <div className="flex justify-between items-start mb-4">
+             <div className="flex justify-between items-start mb-4">
                  <div className="flex-1">
                     <Input placeholder="Enter Likert scale title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0" readOnly={isPreview} />
                     {question.required && <span className="text-destructive text-xs">* Required</span>}
@@ -979,12 +981,7 @@ const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                         <TableHead className="w-1/3">Statement</TableHead>
                         {question.scale?.map((col: string, colIndex: number) => (
                             <TableHead key={colIndex} className="text-center text-xs w-[100px] group relative">
-                                <Input 
-                                    value={col} 
-                                    onChange={(e) => handleScaleChange(colIndex, e.target.value)} 
-                                    readOnly={isPreview}
-                                    className="border-none text-center bg-transparent focus:ring-0 p-0"
-                                />
+                                {isPreview ? col : <Input value={col} onChange={e => handleScaleChange(colIndex, e.target.value)} className="border-none text-center bg-transparent focus:ring-0 p-0" />}
                             </TableHead>
                         ))}
                     </TableRow>
@@ -1000,13 +997,15 @@ const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            {question.scale.map((scalePoint: string, colIndex: number) => (
-                                <TableCell key={colIndex} className="text-center">
-                                    <RadioGroup value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
+                            <RadioGroup asChild value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
+                                <div className="contents">
+                                {question.scale.map((scalePoint: string, colIndex: number) => (
+                                    <TableCell key={colIndex} className="text-center">
                                         <RadioGroupItem value={scalePoint}/>
-                                    </RadioGroup>
-                                </TableCell>
-                            ))}
+                                    </TableCell>
+                                ))}
+                                </div>
+                            </RadioGroup>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -1092,7 +1091,7 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
     );
 };
   
-const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, individualAnswer }: { chartData: any, tableData: any[], insightsData: string[], varName: string, individualAnswer?: string | string[] }) => {
     const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'treemap'>('hbar');
 
     const plotLayout = useMemo(() => {
@@ -1120,6 +1119,12 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
         const percentages = tableData.map((d: any) => parseFloat(d.percentage));
         const labels = tableData.map((d: any) => d.name);
         const counts = tableData.map((d: any) => d.count);
+        
+        let markerColors = COLORS;
+        if (individualAnswer) {
+             markerColors = labels.map(label => Array.isArray(individualAnswer) ? (individualAnswer.includes(label) ? '#ff6347' : COLORS[0]) : (label === individualAnswer ? '#ff6347' : COLORS[0]));
+        }
+
 
         if (chartType === 'pie') {
             return [{
@@ -1127,7 +1132,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                 labels: labels,
                 type: 'pie',
                 hole: 0.4,
-                marker: { colors: COLORS },
+                marker: { colors: markerColors },
                 textinfo: 'label+percent',
                 textposition: 'inside',
             }];
@@ -1139,7 +1144,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                 parents: Array(labels.length).fill(""),
                 values: counts,
                 textinfo: 'label+value+percent root',
-                marker: {colors: COLORS}
+                marker: {colors: markerColors}
             }];
         }
         return [{
@@ -1147,11 +1152,11 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
             x: chartType === 'hbar' ? percentages : labels,
             type: 'bar',
             orientation: chartType === 'hbar' ? 'h' : 'v',
-            marker: { color: COLORS[0] },
+            marker: { color: markerColors },
             text: percentages.map((p: number) => `${p.toFixed(1)}%`),
             textposition: 'auto',
         }];
-    }, [chartType, tableData]);
+    }, [chartType, tableData, individualAnswer]);
 
     return (
         <AnalysisDisplayShell varName={varName}>
@@ -1198,7 +1203,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     );
 };
   
-const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question }: { chartData: any, tableData: any, insightsData: string[], varName: string, question: any }) => {
+const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question, individualAnswer }: { chartData: any, tableData: any, insightsData: string[], varName: string, question: any, individualAnswer?: number }) => {
     return (
         <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -1209,6 +1214,12 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, qu
                      <CardContent className="flex flex-col items-center justify-center min-h-[300px] gap-4">
                         <StarDisplay rating={chartData.avg} total={question.scale?.length || 5} />
                         <p className="text-2xl font-bold">{chartData.avg.toFixed(2)} <span className="text-base font-normal text-muted-foreground">/ {question.scale?.length || 5}</span></p>
+                         {individualAnswer !== undefined && (
+                            <div className="mt-4 border-t pt-4 w-full text-center">
+                                <p className="text-sm text-muted-foreground">Selected Respondent's Rating</p>
+                                <p className="text-xl font-bold text-primary">{individualAnswer}</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
                  <div className="space-y-4">
@@ -1246,7 +1257,7 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, qu
     );
 };
 
-const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
+const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName, individualAnswer }: { chartData: any, tableData: any, insightsData: string[], varName: string, individualAnswer?: number }) => {
     return (
       <AnalysisDisplayShell varName={varName}>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -1261,6 +1272,25 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                                 autosize: true,
                                 margin: { t: 40, b: 40, l: 40, r: 20 },
                                 bargap: 0.1,
+                                shapes: individualAnswer !== undefined ? [{
+                                    type: 'line',
+                                    x0: individualAnswer,
+                                    x1: individualAnswer,
+                                    y0: 0,
+                                    y1: 1,
+                                    yref: 'paper',
+                                    line: { color: 'hsl(var(--destructive))', width: 2, dash: 'dash' }
+                                }] : [],
+                                annotations: individualAnswer !== undefined ? [{
+                                    x: individualAnswer,
+                                    y: 0.95,
+                                    yref: 'paper',
+                                    text: 'Selected',
+                                    showarrow: true,
+                                    arrowhead: 4,
+                                    ax: 0,
+                                    ay: -30
+                                }] : []
                             }}
                             style={{ width: '100%', height: '100%' }}
                             config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
@@ -1305,7 +1335,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     );
   };
 
-const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
+const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName, individualAnswer }: { chartData: any, tableData: any[], insightsData: string[], varName: string, individualAnswer?: {best?: string, worst?: string} }) => {
     return (
        <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -1342,7 +1372,7 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
                                 </TableHeader>
                                 <TableBody>
                                     {tableData.map(item => (
-                                        <TableRow key={item.name}>
+                                        <TableRow key={item.name} className={cn((individualAnswer?.best === item.name || individualAnswer?.worst === item.name) && 'bg-primary/10')}>
                                             <TableCell>{item.name}</TableCell>
                                             <TableCell className="text-right">{item.best}</TableCell>
                                             <TableCell className="text-right">{item.worst}</TableCell>
@@ -1367,7 +1397,7 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
     );
 };
 
-const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
+const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName, individualAnswer }: { chartData: any, tableData: any, insightsData: string[], varName: string, individualAnswer?: number }) => {
     return (
         <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -1390,6 +1420,16 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
                                     <span>Passives</span>
                                     <span>Promoters</span>
                                 </div>
+                                {individualAnswer !== undefined && (
+                                    <div className="relative h-4 mt-2">
+                                        <div className="absolute top-0 h-full" style={{ left: `${individualAnswer * 10}%`, transform: 'translateX(-50%)' }}>
+                                            <div className="relative">
+                                                <div className="w-0.5 h-4 bg-primary" />
+                                                <div className="absolute -top-6 -left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground text-xs px-1 rounded">You</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </CardContent>
@@ -1734,10 +1774,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
 
     
-    const getAnalysisDataForQuestion = (questionId: number, filter: {filterKey: string, filterValue: string | null} | null) => {
+    const getAnalysisDataForQuestion = (questionId: number, filter: {filterKey: string, filterValue: string | null} | null, selectedRespondent?: string | null) => {
         const question = survey.questions.find((q: any) => q.id === questionId);
         if (!question) {
-            return { noData: true, chartData: null, tableData: null, insights: [] };
+            return { noData: true, chartData: null, tableData: null, insights: [], individualAnswer: null };
         }
         
         let targetResponses = responses;
@@ -1751,7 +1791,15 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         const allAnswers = targetResponses.map(r => r.answers ? r.answers[question.id] : undefined).filter(a => a !== undefined && a !== null && a !== '');
         
         if (allAnswers.length === 0) {
-            return { noData: true, chartData: null, tableData: null, insights: ["No responses yet."] };
+            return { noData: true, chartData: null, tableData: null, insights: ["No responses yet."], individualAnswer: null };
+        }
+
+        let individualAnswer: any = null;
+        if (selectedRespondent) {
+            const respondentData = responses.find(r => r.id === selectedRespondent);
+            if (respondentData) {
+                individualAnswer = respondentData.answers[questionId];
+            }
         }
     
         let chartData: any = {};
@@ -1876,9 +1924,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                 break;
             }
             default:
-                return { noData: true, chartData: null, tableData: null, insights: [] };
+                return { noData: true, chartData: null, tableData: null, insights: [], individualAnswer: null };
         }
-        return { chartData, tableData, insights };
+        return { chartData, tableData, insights, individualAnswer };
     };
     
     const addQuestion = (type: string) => {
@@ -1953,12 +2001,12 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
 
     const removeLogicPath = (questionId: number, pathId: number) => {
-      setSurvey(produce((draft: any) => {
-        const logicIndex = draft.logic.findIndex((l: any) => l.questionId === questionId);
-        if (logicIndex > -1) {
-          draft.logic[logicIndex].paths = draft.logic[logicIndex].paths.filter((p: any) => p.id !== pathId);
-        }
-      }));
+        setSurvey(produce((draft: any) => {
+            const logicIndex = draft.logic.findIndex((l: any) => l.questionId === questionId);
+            if (logicIndex > -1) {
+              draft.logic[logicIndex].paths = draft.logic[logicIndex].paths.filter((p: any) => p.id !== pathId);
+            }
+        }));
     };
     
     const handleDragEnd = (event: DragEndEvent) => {
@@ -2283,6 +2331,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     
     const [filterKey, setFilterKey] = useState<string>('All');
     const [filterValue, setFilterValue] = useState<string | null>(null);
+    const [selectedRespondent, setSelectedRespondent] = useState<string | null>(null);
     const demographicQuestions = survey.questions.filter((q:any) => q.type === 'single' || q.type === 'dropdown');
 
     useEffect(() => {
@@ -2304,7 +2353,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         matrix: MatrixQuestion,
         likert: LikertQuestion,
     };
-
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-8 bg-gradient-to-br from-background to-slate-50">
             <input type="file" ref={fileInputRef} onChange={handleQuestionImageFileChange} className="hidden" accept="image/*" />
@@ -2581,7 +2629,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                     </div>
                                                 ) : (
                                                     survey.questions.map((q: any) => {
-                                                        const QuestionComponent = questionComponents[q.type];
+                                                          const QuestionComponent = questionComponents[q.type];
                                                           if (!QuestionComponent) return null;
                                                         return (
                                                             <SortableCard key={q.id} id={q.id}>
@@ -2611,24 +2659,36 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                      <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Detailed Analysis</CardTitle>
-                             <div className="flex items-center gap-2">
-                                <Label htmlFor="filter-key">Filter by</Label>
-                                <Select value={filterKey} onValueChange={(v) => {setFilterKey(v); setFilterValue(null);}}>
-                                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="All">All Respondents</SelectItem>
-                                        {demographicQuestions.map((q:any) => <SelectItem key={q.id} value={q.title}>{q.title}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                {filterKey !== 'All' && (
-                                    <Select value={filterValue || ''} onValueChange={(v) => setFilterValue(v === 'All' ? null : v)}>
-                                        <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select value..."/></SelectTrigger>
+                             <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <Label htmlFor="filter-key">Filter by</Label>
+                                    <Select value={filterKey} onValueChange={(v) => {setFilterKey(v); setFilterValue(null);}}>
+                                        <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="All">All</SelectItem>
-                                            {(survey.questions.find((q:any) => q.title === filterKey)?.options || []).map((opt:string) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                            <SelectItem value="All">All Respondents</SelectItem>
+                                            {demographicQuestions.map((q:any) => <SelectItem key={q.id} value={q.title}>{q.title}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
-                                )}
+                                    {filterKey !== 'All' && (
+                                        <Select value={filterValue || ''} onValueChange={(v) => setFilterValue(v === 'All' ? null : v)}>
+                                            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select value..."/></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="All">All</SelectItem>
+                                                {(survey.questions.find((q:any) => q.title === filterKey)?.options || []).map((opt:string) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Label htmlFor="respondent-select">Compare Respondent</Label>
+                                    <Select value={selectedRespondent || ''} onValueChange={(v) => setSelectedRespondent(v === 'none' ? null : v)}>
+                                        <SelectTrigger className="w-[180px]"><SelectValue placeholder="None"/></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">None</SelectItem>
+                                            {responses.map(r => <SelectItem key={r.id} value={r.id}>{r.id}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-8">
@@ -2641,7 +2701,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 </TableHeader>
                                 <TableBody>
                                     {responses.map(r => (
-                                        <TableRow key={r.id}>
+                                        <TableRow key={r.id} className={cn(selectedRespondent === r.id && "bg-primary/10")}>
                                             <TableCell>{r.id}</TableCell>
                                             <TableCell>{new Date(r.submittedAt).toLocaleString()}</TableCell>
                                         </TableRow>
@@ -2654,25 +2714,15 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 </div>
                             ) : (
                                 survey.questions.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, qIndex: number) => {
-                                    const { noData, chartData, tableData, insights } = getAnalysisDataForQuestion(q.id, filterKey !== 'All' && filterValue ? {filterKey, filterValue} : null);
+                                    const { noData, chartData, tableData, insights, individualAnswer } = getAnalysisDataForQuestion(q.id, filterKey !== 'All' && filterValue ? {filterKey, filterValue} : null, selectedRespondent);
                                     if (noData) return null;
                                     
-                                    const questionComponents: { [key: string]: React.ComponentType<any> } = {
-                                        single: ChoiceAnalysisDisplay,
-                                        multiple: ChoiceAnalysisDisplay,
-                                        dropdown: ChoiceAnalysisDisplay,
-                                        text: TextAnalysisDisplay,
-                                        rating: RatingAnalysisDisplay,
-                                        number: NumberAnalysisDisplay,
-                                        nps: NPSAnalysisDisplay,
-                                        'best-worst': BestWorstAnalysisDisplay,
-                                      };
                                       const AnalysisComponent = questionComponents[q.type];
 
                                     return (
                                         <div key={`analysis-${q.id}`}>
                                             {AnalysisComponent ? (
-                                                <AnalysisComponent chartData={chartData} tableData={tableData} insightsData={insights} varName={`${qIndex + 1}. ${q.title}`} question={q} />
+                                                <AnalysisComponent chartData={chartData} tableData={tableData} insightsData={insights} varName={`${qIndex + 1}. ${q.title}`} question={q} individualAnswer={individualAnswer} />
                                             ) : (
                                                 <p className="text-muted-foreground">Analysis for this question type is not yet implemented.</p>
                                             )}
@@ -2698,7 +2748,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 <DndContext sensors={sensors} onDragEnd={handleDashboardDragEnd}>
                                     <div className="relative w-[1000px] h-[800px] bg-muted/50 rounded-lg border overflow-hidden">
                                         {analysisItems.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, i: number) => {
-                                            const { noData, chartData } = getAnalysisDataForQuestion(q.id, null);
+                                            const { noData, chartData } = getAnalysisDataForQuestion(q.id, null, null);
                                             if (noData) return null;
                                             
                                              const ChartComponent = () => {
@@ -2893,3 +2943,5 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
+
+
