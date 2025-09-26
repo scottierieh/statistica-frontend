@@ -45,6 +45,56 @@ interface SemPageProps {
     onLoadExample: (example: any) => void;
 }
 
+const IntroPage = ({ onStart }: { onStart: () => void }) => {
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Network size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Structural Equation Modeling (SEM)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
+                        Test complex relationships between observed and latent variables simultaneously.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use SEM?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                           Structural Equation Modeling is a powerful multivariate statistical technique that allows researchers to test and estimate causal relationships. It combines aspects of factor analysis and multiple regression to model complex networks of variables, both observed (directly measured) and latent (unobserved constructs).
+                        </p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Define Measurement Model:</strong> Specify which observed variables (indicators) measure which latent variables (factors).</li>
+                                <li><strong>Define Structural Model:</strong> Specify the hypothesized causal paths between the latent variables.</li>
+                                <li><strong>Run Analysis:</strong> The tool will estimate all paths simultaneously and provide overall model fit indices.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Model Fit Indices:</strong> Check if the overall model fits your data. Look for CFI/TLI > .90 and RMSEA/SRMR < .08.</li>
+                                <li><strong>Path Coefficients:</strong> Standardized path coefficients represent the strength of the relationships. Significant p-values indicate meaningful paths.</li>
+                                <li><strong>Direct & Indirect Effects:</strong> SEM allows you to decompose the total effect of one variable on another into direct and indirect (mediated) paths.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
+
 const SemSetup = ({ numericHeaders, onRun, isLoading }: { numericHeaders: string[], onRun: (spec: any) => void, isLoading: boolean }) => {
     const [measurementModel, setMeasurementModel] = useState<{[key: string]: string[]}>({ 'Latent1': [], 'Latent2': [] });
     const [structuralModel, setStructuralModel] = useState<{from: string, to: string}[]>([{from: 'Latent1', to: 'Latent2'}]);
@@ -121,9 +171,15 @@ const SemSetup = ({ numericHeaders, onRun, isLoading }: { numericHeaders: string
 
 export default function SemPage({ data, numericHeaders, onLoadExample }: SemPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
 
+    useEffect(() => {
+        setAnalysisResult(null);
+        setView(data.length > 0 ? 'main' : 'intro');
+    }, [data]);
+    
     const handleAnalysis = async (modelSpec: any) => {
         setIsLoading(true);
         setAnalysisResult(null);
@@ -148,19 +204,8 @@ export default function SemPage({ data, numericHeaders, onLoadExample }: SemPage
     
     const canRun = data.length > 0 && numericHeaders.length > 0;
 
-    if (!canRun) {
-        return (
-             <div className="flex flex-1 items-center justify-center h-full">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Structural Equation Modeling (SEM)</CardTitle>
-                        <CardDescription>
-                           This complex analysis requires a dataset with multiple numeric variables.
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
-            </div>
-        );
+    if (!canRun || view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} />;
     }
     
     return (

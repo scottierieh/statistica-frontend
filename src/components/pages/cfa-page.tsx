@@ -44,7 +44,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </div>
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">Confirmatory Factor Analysis (CFA)</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
                         Test how well a pre-specified factor structure fits your observed data.
                     </CardDescription>
                 </CardHeader>
@@ -57,12 +57,13 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                      <div className="flex justify-center">
                         {cfaExample && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm">
                                 <cfaExample.icon className="mx-auto h-8 w-8 text-primary"/>
                                 <div>
                                     <h4 className="font-semibold">{cfaExample.name}</h4>
                                     <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
                                 </div>
+                                <Button onClick={() => onLoadExample(cfaExample)} size="sm" className="mt-2">Load Example</Button>
                             </Card>
                         )}
                     </div>
@@ -142,7 +143,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
-    if (!canRun) {
+    if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
@@ -186,4 +187,3 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         </div>
     );
 }
-
