@@ -24,7 +24,6 @@ import {
     FileSearch,
     MoveRight
 } from 'lucide-react';
-import { produce } from 'immer';
 import { exampleDatasets } from '@/lib/example-datasets';
 
 // 샘플 데이터 생성 함수
@@ -71,7 +70,7 @@ const generateCFAData = (nSamples = 300) => {
     return data;
 };
 
-// CFA 계산 함수들
+// CFA 계산 함수들 (간단화된 시뮬레이션)
 const calculateCorrelationMatrix = (data: any[], variables: string[]) => {
     const n = data.length;
     const correlations: { [key: string]: { [key: string]: number } } = {};
@@ -105,7 +104,6 @@ const calculateCFA = (data: any[], modelSpec: { [key: string]: string[] }) => {
     const allVariables = Object.values(modelSpec).flat();
     const correlationMatrix = calculateCorrelationMatrix(data, allVariables);
     
-    // Simple CFA estimation simulation
     const factorLoadings: { [key: string]: { [key: string]: number } } = {};
     const fitIndices: { [key: string]: number } = {};
     const reliability: { [key: string]: any } = {};
@@ -116,7 +114,6 @@ const calculateCFA = (data: any[], modelSpec: { [key: string]: string[] }) => {
         
         if (items.length === 0) return;
         
-        // 각 문항의 요인부하량 계산 (상관계수 기반 근사)
         items.forEach(item => {
             const avgCorrelation = items
                 .filter(otherItem => otherItem !== item)
@@ -126,7 +123,6 @@ const calculateCFA = (data: any[], modelSpec: { [key: string]: string[] }) => {
             factorLoadings[factor][item] = Math.min(0.95, Math.max(0.3, avgCorrelation + 0.2 + Math.random() * 0.2));
         });
         
-        // 신뢰도 계산 (Cronbach's Alpha 근사)
         const loadings = Object.values(factorLoadings[factor]);
         const sumLoadings = loadings.reduce((a, b) => a + b, 0);
         const sumSquaredLoadings = loadings.reduce((a, b) => a + b * b, 0);
@@ -141,7 +137,6 @@ const calculateCFA = (data: any[], modelSpec: { [key: string]: string[] }) => {
         };
     });
     
-    // 적합도 지수 계산 (시뮬레이션)
     const numFactors = Object.keys(modelSpec).filter(f => modelSpec[f].length > 0).length;
     const numItems = allVariables.length;
     const complexity = numItems > 0 && numFactors > 0 ? numItems / numFactors : 1;
@@ -158,7 +153,8 @@ const calculateCFA = (data: any[], modelSpec: { [key: string]: string[] }) => {
     return { factorLoadings, fitIndices, reliability };
 };
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void; }) => {
+    const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -181,6 +177,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             of a set of variables. It's crucial for scale validation and theory testing.
                         </p>
                     </div>
+                     {cfaExample && (
+                         <div className="flex justify-center">
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
+                                <BrainCircuit className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{cfaExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
+                                </div>
+                            </Card>
+                        </div>
+                    )}
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-xl flex items-center gap-2">
@@ -204,8 +211,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    <Button variant="outline" onClick={onLoadExample}>Load Sample Data</Button>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>
                         Start Analysis <MoveRight className="ml-2 w-5 h-5"/>
                     </Button>
@@ -215,9 +221,8 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
-
-export default function CompleteCFAComponent() {
-    const [view, setView] = useState('main'); // Default to main view
+export default function CfaPage() {
+    const [view, setView] = useState('main');
     const [data, setData] = useState<any[]>([]);
     const [modelSpec, setModelSpec] = useState<{ [key: string]: string[] }>({
         'Cognitive Ability': [],
@@ -575,43 +580,6 @@ export default function CompleteCFAComponent() {
                     </CardContent>
                 </Card>
             </div>
-
-            {data.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Data Preview</CardTitle>
-                        <CardDescription>First 5 rows of your dataset</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b">
-                                        {Object.keys(data[0]).slice(0, 8).map(header => (
-                                            <th key={header} className="text-left p-2 font-medium">
-                                                {header}
-                                            </th>
-                                        ))}
-                                        {Object.keys(data[0]).length > 8 && <th className="text-left p-2">...</th>}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {data.slice(0, 5).map((row, idx) => (
-                                        <tr key={idx} className="border-b">
-                                            {Object.values(row).slice(0, 8).map((value, valueIdx) => (
-                                                <td key={valueIdx} className="p-2">
-                                                    {typeof value === 'number' ? value.toFixed(2) : value as any}
-                                                </td>
-                                            ))}
-                                            {Object.values(row).length > 8 && <td className="p-2">...</td>}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
         </div>
     );
 }
