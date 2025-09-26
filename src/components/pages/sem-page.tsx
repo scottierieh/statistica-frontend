@@ -1,11 +1,12 @@
 
+
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Network, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Bot } from 'lucide-react';
+import { Sigma, Loader2, Network, HelpCircle, MoveRight, Settings, FileSearch, BarChart as BarChartIcon, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Skeleton } from '../ui/skeleton';
 import Image from 'next/image';
@@ -15,8 +16,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 
 
+interface SemPageProps {
+    data: DataSet;
+    allHeaders: string[];
+    onLoadExample: (example: any) => void;
+}
+
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const semExample = exampleDatasets.find(d => d.id === 'sem-satisfaction');
+    
+    const handleLoadExampleClick = () => {
+        if (semExample) {
+            onLoadExample(semExample);
+        }
+    };
+
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -40,7 +54,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                      <div className="flex justify-center">
                         {semExample && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(semExample)}>
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={handleLoadExampleClick}>
                                 <semExample.icon className="mx-auto h-8 w-8 text-primary"/>
                                 <div>
                                     <h4 className="font-semibold">{semExample.name}</h4>
@@ -79,12 +93,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
 };
 
 
-interface SemPageProps {
-    data: DataSet;
-    allHeaders: string[];
-    onLoadExample: (example: any) => void;
-}
-
 export default function SemPage({ data, allHeaders, onLoadExample }: SemPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
@@ -93,6 +101,15 @@ export default function SemPage({ data, allHeaders, onLoadExample }: SemPageProp
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     
     const canRun = useMemo(() => data.length > 0 && allHeaders.length > 0, [data, allHeaders]);
+
+    const handleLoadExample = useCallback((example: ExampleDataSet) => {
+        onLoadExample(example);
+        setView('main');
+    }, [onLoadExample]);
+    
+    useEffect(() => {
+        setView(canRun ? 'main' : 'intro');
+    }, [canRun]);
 
     const handleAnalysis = useCallback(async () => {
         setIsLoading(true);
@@ -143,12 +160,8 @@ export default function SemPage({ data, allHeaders, onLoadExample }: SemPageProp
 
     }, [data, modelSyntax, toast]);
     
-    useEffect(() => {
-        setView(canRun ? 'main' : 'intro');
-    }, [canRun]);
-    
     if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExample} />;
     }
 
     const results = analysisResult?.results;
