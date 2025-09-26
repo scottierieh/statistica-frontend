@@ -5,7 +5,7 @@ import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Network, HelpCircle, MoveRight, Settings, FileSearch, BarChart } from 'lucide-react';
+import { Sigma, Loader2, Network, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Bot } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Skeleton } from '../ui/skeleton';
 import Image from 'next/image';
@@ -160,6 +160,9 @@ export default function SemPage({ data, allHeaders, onLoadExample }: SemPageProp
                         <CardTitle className="font-headline">SEM Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
+                    <CardDescription>
+                        Define your model using lavaan-style syntax and ensure all observed variables are in your dataset.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Label htmlFor="model-syntax">Model Syntax</Label>
