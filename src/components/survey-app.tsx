@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -49,6 +50,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { addDays } from 'date-fns';
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
 
@@ -1641,6 +1643,12 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
           coordinateGetter: sortableKeyboardCoordinates,
         })
     );
+
+    const [openCategories, setOpenCategories] = useState<string[]>([]);
+
+    const toggleCategory = (category: string) => {
+        setOpenCategories(prev => prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]);
+    };
     
     useEffect(() => {
         if (template === 'retail' && !loadedTemplate) {
@@ -2435,230 +2443,254 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
              </header>
  
              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                 <TabsList className="grid w-full grid-cols-4">
-                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
-                     <TabsTrigger value="setting"><Settings className="mr-2" />Setting</TabsTrigger>
-                     <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
-                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
-                 </TabsList>
+                <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
+                    <TabsTrigger value="setting"><Settings className="mr-2" />Setting</TabsTrigger>
+                    <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
+                    <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
+                </TabsList>
                  <TabsContent value="design">
-                     <div className="grid md:grid-cols-12 gap-6 mt-4">
-                         <div className="md:col-span-3">
-                             <Card>
-                                 <CardHeader>
-                                     <CardTitle className="text-lg">Toolbox</CardTitle>
-                                 </CardHeader>
-                                 <CardContent className="space-y-2">
-                                      {Object.entries(questionTypeCategories).map(([category, types]) => (
-                                         <div key={category}>
-                                             <h3 className="text-sm font-semibold text-muted-foreground px-2 my-2">{category}</h3>
-                                             {types.map((type) => (
-                                                 <div key={type.id} className="group relative">
-                                                     <Button
-                                                         variant="ghost"
-                                                         className="w-full justify-start h-12 text-base"
-                                                         onClick={() => addQuestion(type.id)}
-                                                     >
-                                                         <type.icon className={cn("w-6 h-6 mr-3", type.color)} /> 
-                                                         <span className="flex-1 text-left">{type.label}</span>
-                                                     </Button>
-                                                 </div>
-                                             ))}
-                                         </div>
-                                     ))}
-                                     <Separator className="my-4" />
-                                     <h3 className="text-sm font-semibold text-muted-foreground px-2 mt-4">OPTIONS</h3>
-                                     <Dialog>
-                                         <DialogTrigger asChild>
-                                             <Button variant="ghost" className="w-full justify-start">
-                                                 <Shuffle className="w-5 h-5 mr-2" /> Question Logic
-                                             </Button>
-                                         </DialogTrigger>
-                                         <DialogContent className="max-w-2xl">
-                                             <DialogHeader>
-                                                 <DialogTitle>Question Logic</DialogTitle>
-                                                 <DialogDescription>
-                                                     Define paths to guide users through the survey based on their answers.
-                                                 </DialogDescription>
-                                             </DialogHeader>
-                                             <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
-                                                 {survey.questions.filter((q: any) => q.type !== 'description' && q.options).length === 0 ? (
-                                                     <div className="flex justify-center items-center h-48 border-2 border-dashed rounded-lg">
-                                                         <p className="text-muted-foreground text-center">Add some questions with options<br />to start building logic paths.</p>
-                                                     </div>
-                                                 ) : (
-                                                     survey.questions.filter((q: any) => q.type !== 'description' && q.options).map((q: any) => {
-                                                         const questionLogic = survey.logic.find((l: any) => l.questionId === q.id);
-                                                         return (
-                                                             <Card key={q.id}>
-                                                                 <CardHeader>
-                                                                     <CardTitle className="text-lg">{q.title}</CardTitle>
-                                                                 </CardHeader>
-                                                                 <CardContent className="space-y-4">
-                                                                     {questionLogic && questionLogic.paths.map((path: any) => (
-                                                                         <div key={path.id} className="flex items-center gap-2">
-                                                                             <Label>When answer is</Label>
-                                                                             <Select>
-                                                                                 <SelectTrigger className="w-[150px]">
-                                                                                     <SelectValue placeholder="Select option" />
-                                                                                 </SelectTrigger>
-                                                                                 <SelectContent>
-                                                                                     {q.options.map((opt: string) => (
-                                                                                         <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                                                                     ))}
-                                                                                 </SelectContent>
-                                                                             </Select>
-                                                                             <MoveRight className="w-5 h-5" />
-                                                                             <Label>Jump to</Label>
-                                                                             <Select>
-                                                                                 <SelectTrigger className="w-[180px]">
-                                                                                     <SelectValue placeholder="Select question" />
-                                                                                 </SelectTrigger>
-                                                                                 <SelectContent>
-                                                                                     {survey.questions.filter((destQ: any) => destQ.id !== q.id && destQ.type !== 'description').map((destQ: any) => (
-                                                                                         <SelectItem key={destQ.id} value={destQ.id.toString()}>{destQ.title}</SelectItem>
-                                                                                     ))}
-                                                                                     <Separator />
-                                                                                     <SelectItem value="end">End of Survey</SelectItem>
-                                                                                 </SelectContent>
-                                                                             </Select>
-                                                                             <Button variant="ghost" size="icon" onClick={() => removeLogicPath(q.id, path.id)}>
-                                                                                 <Trash2 className="w-4 h-4 text-destructive"/>
-                                                                             </Button>
-                                                                         </div>
-                                                                     ))}
-                                                                     <Button variant="outline" size="sm" onClick={() => addLogicPath(q.id)}>
-                                                                         <PlusCircle className="mr-2 h-4 w-4" /> Add Logic Path
-                                                                     </Button>
-                                                                 </CardContent>
-                                                             </Card>
-                                                         )
-                                                     })
-                                                 )}
-                                             </div>
-                                         </DialogContent>
-                                     </Dialog>
-                                 </CardContent>
-                             </Card>
-                              <Card>
-                                 <CardHeader>
-                                      <CardTitle className="text-lg">Appearance</CardTitle>
-                                 </CardHeader>
-                                 <CardContent className="p-2 space-y-4">
-                                     <div>
-                                         <Label className="text-xs font-semibold mb-2 text-muted-foreground px-1">Survey Type</Label>
-                                         <Select onValueChange={handleTypeChange} value={survey.theme?.type || 'default'}>
-                                             <SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger>
-                                             <SelectContent>
-                                                 <SelectItem value="default">Default</SelectItem>
-                                                 <SelectItem value="type1">Type 1</SelectItem>
-                                                 <SelectItem value="type2">Type 2</SelectItem>
-                                             </SelectContent>
-                                         </Select>
-                                     </div>
-                                     <div>
-                                         <Label className="text-xs font-semibold mb-2 text-muted-foreground px-1">Page Transition</Label>
-                                         <Select onValueChange={(value) => setSurvey(produce((draft: any) => { draft.theme.transition = value; }))} value={survey.theme?.transition || 'slide'}>
-                                             <SelectTrigger><SelectValue placeholder="Select a transition" /></SelectTrigger>
-                                             <SelectContent>
-                                                 <SelectItem value="slide">Slide</SelectItem>
-                                                 <SelectItem value="fade">Fade</SelectItem>
-                                                 <SelectItem value="none">None</SelectItem>
-                                             </SelectContent>
-                                         </Select>
-                                     </div>
-                                 </CardContent>
-                              </Card>
+                    <div className="grid md:grid-cols-12 gap-6 mt-4">
+                        <div className="md:col-span-3">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Toolbox</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                     {Object.entries(questionTypeCategories).map(([category, types]) => (
+                                        <div key={category}>
+                                            <h3 className="text-sm font-semibold text-muted-foreground px-2 my-2">{category}</h3>
+                                            {types.map((type) => (
+                                                <div key={type.id} className="group relative">
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="w-full justify-start h-12 text-base"
+                                                        onClick={() => addQuestion(type.id)}
+                                                    >
+                                                        <type.icon className={cn("w-6 h-6 mr-3", type.color)} /> 
+                                                        <span className="flex-1 text-left">{type.label}</span>
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        </div>
+                        <div className="md:col-span-9">
+                            <div className="grid grid-cols-12 gap-6">
+                                <div className="col-span-12 lg:col-span-8">
+                                     <Card
+                                        className="min-h-[600px] bg-cover bg-center"
+                                        style={{ 
+                                            '--survey-primary-color': survey.theme?.primaryColor,
+                                            backgroundImage: survey.theme?.background ? `url(${survey.theme.background})` : 'none',
+                                        } as React.CSSProperties}
+                                    >
+                                        <CardContent className="p-4 md:p-8 space-y-6">
+                                            <div className={cn("p-4", cardStyle)}>
+                                                <div className="text-center mb-4">
+                                                    {survey.theme?.logo && (
+                                                        <div className="flex justify-center">
+                                                            <Image src={survey.theme.logo} alt="Survey Logo" width={120} height={120} className="max-h-24 w-auto object-contain" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor="survey-title">Survey Title</Label>
+                                                    <Input 
+                                                    id="survey-title" 
+                                                    placeholder="Enter your survey title" 
+                                                    className="text-2xl font-bold p-0 border-none focus:ring-0 focus-visible:ring-offset-0 bg-transparent" 
+                                                    value={survey.title}
+                                                    onChange={(e) => setSurvey(prev => ({...prev, title: e.target.value}))}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor="survey-description">Survey Description</Label>
+                                                    <Textarea 
+                                                    id="survey-description" 
+                                                    placeholder="Provide a short explanation for the purpose of this survey." 
+                                                    value={survey.description}
+                                                    onChange={(e) => setSurvey(prev => ({...prev, description: e.target.value}))}
+                                                    className="bg-transparent"
+                                                    />
+                                                    <p className="text-xs text-muted-foreground mt-1">You can add more specific explanations for individual questions.</p>
+                                                </div>
+                                                <Separator className="my-4" />
+                                                <div>
+                                                    {survey.theme?.headerImage && (
+                                                        <div className="relative w-full h-48 bg-muted rounded-md mb-2">
+                                                            <Image src={survey.theme.headerImage} alt="Header preview" fill objectFit="contain" className="p-2 rounded-md" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <DndContext 
+                                                sensors={sensors}
+                                                collisionDetection={closestCenter}
+                                                onDragEnd={handleDragEnd}
+                                            >
+                                                <SortableContext 
+                                                    items={survey.questions.map((q: any) => q.id)}
+                                                    strategy={verticalListSortingStrategy}
+                                                >
+                                                    <div className="space-y-4">
+                                                        {survey.questions.length === 0 ? (
+                                                            <div className="flex flex-col justify-center items-center h-96 border-2 border-dashed rounded-lg">
+                                                                <p className="text-muted-foreground mb-4">Add questions from the toolbox to get started.</p>
+                                                                <Button onClick={() => addQuestion('single')}>
+                                                                    <PlusCircle className="mr-2" /> Add Question
+                                                                </Button>
+                                                            </div>
+                                                        ) : (
+                                                            survey.questions.map((q: any) => {
+                                                                const QuestionComponent = questionComponents[q.type];
+                                                                if (!QuestionComponent) return null;
+                                                                return (
+                                                                    <SortableCard key={q.id} id={q.id}>
+                                                                        <QuestionComponent
+                                                                            question={q}
+                                                                            onDelete={deleteQuestion}
+                                                                            onUpdate={updateQuestion}
+                                                                            onImageUpload={triggerImageUpload}
+                                                                            cardClassName={cardStyle}
+                                                                        />
+                                                                    </SortableCard>
+                                                                )
+                                                            })
+                                                        )}
+                                                    </div>
+                                                </SortableContext>
+                                            </DndContext>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                                <div className="col-span-12 lg:col-span-4">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="text-lg">Design Settings</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                             <Collapsible open={openCategories.includes('Logic')} onOpenChange={() => toggleCategory('Logic')}>
+                                                <CollapsibleTrigger className="w-full">
+                                                    <div className="flex items-center gap-2 p-2 font-semibold text-sm rounded-md hover:bg-accent">
+                                                        <Shuffle className="w-5 h-5"/> Logic
+                                                        <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes('Logic') && 'rotate-180')}/>
+                                                    </div>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent className="p-2">
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="outline" className="w-full justify-start">
+                                                                <Shuffle className="w-4 h-4 mr-2" /> Question Logic
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="max-w-2xl">
+                                                             <DialogHeader>
+                                                                <DialogTitle>Question Logic</DialogTitle>
+                                                                <DialogDescription>
+                                                                    Define paths to guide users through the survey based on their answers.
+                                                                </DialogDescription>
+                                                            </DialogHeader>
+                                                            <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
+                                                                {survey.questions.filter((q: any) => q.type !== 'description' && q.options).length === 0 ? (
+                                                                    <div className="flex justify-center items-center h-48 border-2 border-dashed rounded-lg">
+                                                                        <p className="text-muted-foreground text-center">Add some questions with options<br />to start building logic paths.</p>
+                                                                    </div>
+                                                                ) : (
+                                                                    survey.questions.filter((q: any) => q.type !== 'description' && q.options).map((q: any) => {
+                                                                        const questionLogic = survey.logic.find((l: any) => l.questionId === q.id);
+                                                                        return (
+                                                                            <Card key={q.id}>
+                                                                                <CardHeader>
+                                                                                    <CardTitle className="text-lg">{q.title}</CardTitle>
+                                                                                </CardHeader>
+                                                                                <CardContent className="space-y-4">
+                                                                                    {questionLogic && questionLogic.paths.map((path: any) => (
+                                                                                        <div key={path.id} className="flex items-center gap-2">
+                                                                                            <Label>When answer is</Label>
+                                                                                            <Select>
+                                                                                                <SelectTrigger className="w-[150px]">
+                                                                                                    <SelectValue placeholder="Select option" />
+                                                                                                </SelectTrigger>
+                                                                                                <SelectContent>
+                                                                                                    {q.options.map((opt: string) => (
+                                                                                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                                                                    ))}
+                                                                                                </SelectContent>
+                                                                                            </Select>
+                                                                                            <MoveRight className="w-5 h-5" />
+                                                                                            <Label>Jump to</Label>
+                                                                                            <Select>
+                                                                                                <SelectTrigger className="w-[180px]">
+                                                                                                    <SelectValue placeholder="Select question" />
+                                                                                                </SelectTrigger>
+                                                                                                <SelectContent>
+                                                                                                    {survey.questions.filter((destQ: any) => destQ.id !== q.id && destQ.type !== 'description').map((destQ: any) => (
+                                                                                                        <SelectItem key={destQ.id} value={destQ.id.toString()}>{destQ.title}</SelectItem>
+                                                                                                    ))}
+                                                                                                    <Separator />
+                                                                                                    <SelectItem value="end">End of Survey</SelectItem>
+                                                                                                </SelectContent>
+                                                                                            </Select>
+                                                                                            <Button variant="ghost" size="icon" onClick={() => removeLogicPath(q.id, path.id)}>
+                                                                                                <Trash2 className="w-4 h-4 text-destructive"/>
+                                                                                            </Button>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                    <Button variant="outline" size="sm" onClick={() => addLogicPath(q.id)}>
+                                                                                        <PlusCircle className="mr-2 h-4 w-4" /> Add Logic Path
+                                                                                    </Button>
+                                                                                </CardContent>
+                                                                            </Card>
+                                                                        )
+                                                                    })
+                                                                )}
+                                                            </div>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                </CollapsibleContent>
+                                            </Collapsible>
+                                            <Collapsible open={openCategories.includes('Appearance')} onOpenChange={() => toggleCategory('Appearance')}>
+                                                <CollapsibleTrigger className="w-full">
+                                                    <div className="flex items-center gap-2 p-2 font-semibold text-sm rounded-md hover:bg-accent">
+                                                        <Palette className="w-5 h-5"/> Appearance
+                                                        <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes('Appearance') && 'rotate-180')}/>
+                                                    </div>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent className="p-2 space-y-4">
+                                                     <div>
+                                                        <Label className="text-xs font-semibold mb-2 text-muted-foreground px-1">Survey Type</Label>
+                                                        <Select onValueChange={handleTypeChange} value={survey.theme?.type || 'default'}>
+                                                            <SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="default">Default</SelectItem>
+                                                                <SelectItem value="type1">Type 1</SelectItem>
+                                                                <SelectItem value="type2">Type 2</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-xs font-semibold mb-2 text-muted-foreground px-1">Page Transition</Label>
+                                                        <Select onValueChange={(value) => setSurvey(produce((draft: any) => { draft.theme.transition = value; }))} value={survey.theme?.transition || 'slide'}>
+                                                            <SelectTrigger><SelectValue placeholder="Select a transition" /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="slide">Slide</SelectItem>
+                                                                <SelectItem value="fade">Fade</SelectItem>
+                                                                <SelectItem value="none">None</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </CollapsibleContent>
+                                            </Collapsible>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
                          </div>
-                         <div className="md:col-span-9">
-                              <Card
-                                 className="min-h-[600px] bg-cover bg-center"
-                                 style={{ 
-                                     '--survey-primary-color': survey.theme?.primaryColor,
-                                     backgroundImage: survey.theme?.background ? `url(${survey.theme.background})` : 'none',
-                                 } as React.CSSProperties}
-                             >
-                                 <CardContent className="p-4 md:p-8 space-y-6">
-                                      <div className={cn("p-4", cardStyle)}>
-                                         <div className="text-center mb-4">
-                                             {survey.theme?.logo && (
-                                                 <div className="flex justify-center">
-                                                     <Image src={survey.theme.logo} alt="Survey Logo" width={120} height={120} className="max-h-24 w-auto object-contain" />
-                                                 </div>
-                                             )}
-                                         </div>
-                                         <div>
-                                             <Label htmlFor="survey-title">Survey Title</Label>
-                                             <Input 
-                                             id="survey-title" 
-                                             placeholder="Enter your survey title" 
-                                             className="text-2xl font-bold p-0 border-none focus:ring-0 focus-visible:ring-offset-0 bg-transparent" 
-                                             value={survey.title}
-                                             onChange={(e) => setSurvey(prev => ({...prev, title: e.target.value}))}
-                                             />
-                                         </div>
-                                         <div>
-                                             <Label htmlFor="survey-description">Survey Description</Label>
-                                             <Textarea 
-                                             id="survey-description" 
-                                             placeholder="Provide a short explanation for the purpose of this survey." 
-                                             value={survey.description}
-                                             onChange={(e) => setSurvey(prev => ({...prev, description: e.target.value}))}
-                                             className="bg-transparent"
-                                             />
-                                             <p className="text-xs text-muted-foreground mt-1">You can add more specific explanations for individual questions.</p>
-                                         </div>
-                                         <Separator className="my-4" />
-                                          <div>
-                                             {survey.theme?.headerImage && (
-                                                 <div className="relative w-full h-48 bg-muted rounded-md mb-2">
-                                                     <Image src={survey.theme.headerImage} alt="Header preview" fill objectFit="contain" className="p-2 rounded-md" />
-                                                 </div>
-                                             )}
-                                         </div>
-                                     </div>
-                                     <DndContext 
-                                         sensors={sensors}
-                                         collisionDetection={closestCenter}
-                                         onDragEnd={handleDragEnd}
-                                     >
-                                         <SortableContext 
-                                             items={survey.questions.map((q: any) => q.id)}
-                                             strategy={verticalListSortingStrategy}
-                                         >
-                                             <div className="space-y-4">
-                                                 {survey.questions.length === 0 ? (
-                                                     <div className="flex flex-col justify-center items-center h-96 border-2 border-dashed rounded-lg">
-                                                         <p className="text-muted-foreground mb-4">Add questions from the toolbox to get started.</p>
-                                                         <Button onClick={() => addQuestion('single')}>
-                                                             <PlusCircle className="mr-2" /> Add Question
-                                                         </Button>
-                                                     </div>
-                                                 ) : (
-                                                     survey.questions.map((q: any) => {
-                                                           const QuestionComponent = questionComponents[q.type];
-                                                           if (!QuestionComponent) return null;
-                                                         return (
-                                                             <SortableCard key={q.id} id={q.id}>
-                                                                 <QuestionComponent
-                                                                     question={q}
-                                                                     onDelete={deleteQuestion}
-                                                                     onUpdate={updateQuestion}
-                                                                     onImageUpload={triggerImageUpload}
-                                                                     cardClassName={cardStyle}
-                                                                 />
-                                                             </SortableCard>
-                                                         )
-                                                     })
-                                                 )}
-                                             </div>
-                                         </SortableContext>
-                                     </DndContext>
-                                 </CardContent>
-                             </Card>
-                         </div>
-                     </div>
-                 </TabsContent>
+                    </div>
+                </TabsContent>
                  <TabsContent value="setting">
                      <p>Setting tab content goes here.</p>
                  </TabsContent>
@@ -2696,8 +2728,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                          </SelectContent>
                                      </Select>
                                  </div>
-                                  <Button variant="secondary" onClick={downloadResponsesCSV} disabled={responses.length === 0}><Download className="mr-2" /> Export CSV</Button>
-                             </div>
+                                   <Button variant="secondary" onClick={downloadResponsesCSV} disabled={responses.length === 0}><Download className="mr-2" /> Export CSV</Button>
+                              </div>
                          </CardHeader>
                          <CardContent className="space-y-8">
                              {responses.length === 0 ? (
