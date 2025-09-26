@@ -5,13 +5,15 @@ import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Network, HelpCircle, MoveRight, Settings, FileSearch } from 'lucide-react';
+import { Sigma, Loader2, Network, HelpCircle, MoveRight, Settings, FileSearch, BarChart } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Skeleton } from '../ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import Image from 'next/image';
 import { Textarea } from '../ui/textarea';
+import { Label } from '../ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
+
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const semExample = exampleDatasets.find(d => d.id === 'sem-satisfaction');
@@ -140,11 +142,11 @@ export default function SemPage({ data, allHeaders, onLoadExample }: SemPageProp
 
     }, [data, modelSyntax, toast]);
     
+    useEffect(() => {
+        setView(canRun ? 'main' : 'intro');
+    }, [canRun]);
+    
     if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
-
-    if (!canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
