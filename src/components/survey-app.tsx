@@ -1,79 +1,28 @@
 
-
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import {
-  ClipboardList,
-  LayoutDashboard,
-  BarChart2,
-  ArrowLeft,
-  CircleDot,
-  CheckSquare,
-  CaseSensitive,
-  Star,
-  PlusCircle,
-  Trash2,
-  Eye,
-  Shuffle,
-  FileText,
-  Save,
-  Info,
-  Link as LinkIcon,
-  QrCode,
-  Download,
-  Copy,
-  Users,
-  EyeIcon,
-  TrendingUp,
-  Laptop,
-  Palette,
-  Grid3x3,
-  ThumbsUp,
-  Sigma,
-  MessageSquareQuote,
-  Target,
-  Sparkles,
-  MoveRight,
-  ImageIcon,
-  GripVertical,
-  Smartphone,
-  Tablet,
-  Monitor,
-  Loader2,
-  FileDown,
-  Share2,
-  Phone,
-  Mail,
-  Award,
-  Frown,
-  Lightbulb,
-  AlertTriangle,
-  ShoppingCart,
-  ShieldCheck,
-  BeakerIcon,
-  ShieldAlert,
-  Move,
-  BarChart,
-  PieChart as PieChartIcon,
-  DollarSign,
-  ZoomIn,
-  ZoomOut,
-  AreaChart,
-  X,
-  ChevronDown,
-  Settings,
-} from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import type { DataSet } from '@/lib/stats';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight, Building, Hospital, Landmark, GraduationCap, BarChart as BarChartIcon } from 'lucide-react';
+import { Table as DndTable } from '@/components/ui/table';
+import { Select as DndSelect, SelectTrigger as DndSelectTrigger, SelectValue as DndSelectValue, SelectContent as DndSelectContent, SelectItem as DndSelectItem } from '@/components/ui/select';
+import { produce } from 'immer';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { ChartContainer, ChartTooltipContent } from '../ui/chart';
+import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell, PieChart, Pie } from 'recharts';
+import { Badge } from '../ui/badge';
+import { ScrollArea } from '../ui/scroll-area';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent, useDraggable } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical, Plus, Trash2, ArrowLeft, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Eye, Shuffle, FileText, Save, Info, Link as LinkIcon, QrCode, Download, Copy, Users, EyeIcon, TrendingUp, Laptop, Palette, Grid3x3, ThumbsUp, MessageSquareQuote, Target, Sparkles, ImageIcon, Smartphone, Tablet, Monitor, FileDown, Share2, Phone, Mail, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, X, ChevronDown, Settings, LayoutDashboard, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -87,28 +36,19 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, useDraggable } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import dynamic from 'next/dynamic';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import Papa from 'papaparse';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { ResponsiveContainer, BarChart as RechartsBarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar as RechartsBar, LineChart, Line, ScatterChart, Scatter, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell, PieChart, Pie } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
-import { produce } from 'immer';
+import { LineChart, Line, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '../ui/date-range-picker';
+import { useParams, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+import VanWestendorpPage from '@/components/pages/van-westendorp-page';
+import dynamic from 'next/dynamic';
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
-const VanWestendorpPage = dynamic(() => import('@/components/pages/van-westendorp-page'), { ssr: false });
 
 // Template Definition
 const ipaTemplate = {
@@ -995,6 +935,86 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
     );
 };
 
+const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, isPreview, cardClassName }: { question: any, answer: any, onAnswerChange?: (value: any) => void, onUpdate?: (q:any) => void, onDelete?: (id: number) => void, isPreview?: boolean, cardClassName?: string }) => {
+    const handleItemChange = (index: number, value: string) => {
+        onUpdate?.(produce(question, (draft: any) => { draft.items[index] = value; }));
+    };
+    const handleScaleChange = (index: number, value: string) => {
+        onUpdate?.(produce(question, (draft: any) => { draft.scale[index] = value; }));
+    };
+    const addItem = () => {
+        onUpdate?.(produce(question, (draft: any) => { draft.items.push(`New Statement`); }));
+    };
+    const deleteItem = (index: number) => {
+        onUpdate?.(produce(question, (draft: any) => { draft.items.splice(index, 1); }));
+    };
+
+    return (
+        <div className={cn("p-4", cardClassName)}>
+            <div className="flex justify-between items-start mb-4">
+                 <div className="flex-1">
+                    <Input placeholder="Enter Likert scale title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0" readOnly={isPreview} />
+                    {question.required && <span className="text-destructive text-xs">* Required</span>}
+                </div>
+                {!isPreview && (
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                          <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                          <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}>
+                            <Trash2 className="w-5 h-5 text-destructive" />
+                        </Button>
+                    </div>
+                )}
+            </div>
+             <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-1/3">Statement</TableHead>
+                        {question.scale?.map((col: string, colIndex: number) => (
+                            <TableHead key={colIndex} className="text-center text-xs w-[100px] group relative">
+                                <Input 
+                                    value={col} 
+                                    onChange={(e) => handleScaleChange(colIndex, e.target.value)} 
+                                    readOnly={isPreview}
+                                    className="border-none text-center bg-transparent focus:ring-0 p-0"
+                                />
+                            </TableHead>
+                        ))}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {(question.items || []).map((item: string, rowIndex: number) => (
+                         <TableRow key={rowIndex}>
+                            <TableCell className="group relative">
+                                {isPreview ? item : <Input value={item} onChange={e => handleItemChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
+                                {!isPreview && (
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 absolute top-1/2 -translate-y-1/2 right-0" onClick={() => deleteItem(rowIndex)}>
+                                        <Trash2 className="w-4 h-4 text-destructive"/>
+                                    </Button>
+                                )}
+                            </TableCell>
+                            <RadioGroup asChild value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
+                                <>
+                                {question.scale.map((scalePoint: string, colIndex: number) => (
+                                    <TableCell key={colIndex} className="text-center">
+                                        <RadioGroupItem value={scalePoint}/>
+                                    </TableCell>
+                                ))}
+                                </>
+                            </RadioGroup>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+            {!isPreview && (
+                <Button variant="link" size="sm" onClick={addItem}><PlusCircle className="mr-2"/> Add Statement</Button>
+            )}
+        </div>
+    );
+};
+
 
 // --- Helper Functions for Rating Analysis ---
 const mean = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
@@ -1576,7 +1596,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     const [loadedTemplate, setLoadedTemplate] = useState(false);
     
     const [dashboardPositions, setDashboardPositions] = useState<{ [key: string]: Position }>({});
-
     
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -1648,6 +1667,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         'Scale': [
             { id: 'rating', icon: Star, label: 'Rating', scale: ['1', '2', '3', '4', '5'], color: 'text-yellow-500' },
             { id: 'nps', icon: Share2, label: 'Net Promoter Score', color: 'text-sky-500' },
+            { id: 'likert', icon: BarChartIcon, label: 'Likert Scale', items: ['Statement 1'], scale: ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'], color: 'text-violet-500' },
         ],
         'Structure': [
              { id: 'description', icon: FileText, label: 'Description Block', color: 'text-gray-400' },
@@ -2453,7 +2473,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     </div>
                                     <div>
                                         <Label className="text-xs font-semibold mb-2 text-muted-foreground px-1">Page Transition</Label>
-                                        <Select onValueChange={(value) => setSurvey(prev => ({ ...prev, theme: { ...prev.theme, transition: value } }))} value={survey.theme?.transition || 'slide'}>
+                                        <Select onValueChange={(value) => setSurvey(produce((draft: any) => { draft.theme.transition = value; }))} value={survey.theme?.transition || 'slide'}>
                                             <SelectTrigger><SelectValue placeholder="Select a transition" /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="slide">Slide</SelectItem>
@@ -2543,7 +2563,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                             nps: NPSQuestion,
                                                             description: DescriptionBlock,
                                                             'best-worst': BestWorstQuestion,
-                                                            matrix: MatrixQuestion
+                                                            matrix: MatrixQuestion,
+                                                            likert: LikertQuestion,
                                                           };
                                                           const QuestionComponent = questionComponents[q.type];
                                                           if (!QuestionComponent) return null;
