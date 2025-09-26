@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ClipboardList, History, LayoutTemplate } from 'lucide-react';
+import { ClipboardList, History, LayoutTemplate, PlusCircle } from 'lucide-react';
 import SurveyApp from '@/components/survey-app';
 import Link from 'next/link';
 
@@ -57,10 +57,17 @@ function SurveyHistory() {
     <div className="space-y-4">
         <Card>
             <CardHeader>
-                <CardTitle>Survey History</CardTitle>
-                <CardDescription>
-                    Here are your saved survey designs. Click on a survey to continue editing. Your work is saved automatically in your browser.
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Survey History</CardTitle>
+                        <CardDescription>
+                            Here are your saved survey designs. Click on a survey to continue editing.
+                        </CardDescription>
+                    </div>
+                    <Button asChild>
+                        <Link href={`/dashboard/survey?id=${Date.now()}`}><PlusCircle className="mr-2 h-4 w-4" /> Create New Survey</Link>
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 {savedSurveys.length > 0 ? (
@@ -85,7 +92,7 @@ function SurveyHistory() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-12">
+                    <div className="text-center py-12 border-2 border-dashed rounded-lg">
                         <p className="text-muted-foreground">You have no saved surveys.</p>
                          <Button asChild variant="link">
                             <Link href={`/dashboard/survey?id=${Date.now()}`}>Start designing your first survey</Link>
