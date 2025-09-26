@@ -1002,15 +1002,13 @@ const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            <RadioGroup asChild value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
-                                <>
-                                {question.scale.map((scalePoint: string) => (
-                                    <TableCell key={scalePoint} className="text-center">
+                            {question.scale.map((scalePoint: string) => (
+                                <TableCell key={scalePoint} className="text-center">
+                                    <RadioGroup value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
                                         <RadioGroupItem value={scalePoint}/>
-                                    </TableCell>
-                                ))}
-                                </>
-                            </RadioGroup>
+                                    </RadioGroup>
+                                </TableCell>
+                            ))}
                         </TableRow>
                     ))}
                 </TableBody>
@@ -1023,20 +1021,66 @@ const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
 };
 
 
-const questionComponents: { [key: string]: React.ComponentType<any> } = {
-  single: SingleSelectionQuestion,
-  multiple: MultipleSelectionQuestion,
-  dropdown: DropdownQuestion,
-  text: TextQuestion,
-  rating: RatingQuestion,
-  number: NumberQuestion,
-  phone: PhoneQuestion,
-  email: EmailQuestion,
-  nps: NPSQuestion,
-  description: DescriptionBlock,
-  'best-worst': BestWorstQuestion,
-  matrix: MatrixQuestion,
-  likert: LikertQuestion,
+// --- Helper Functions for Rating Analysis ---
+const mean = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+
+const standardDeviation = (arr: number[]) => {
+    if (arr.length < 2) return 0;
+    const m = mean(arr);
+    const variance = arr.reduce((sum, val) => sum + Math.pow(val - m, 2), 0) / (arr.length - 1);
+    return Math.sqrt(variance);
+};
+
+const getMode = (arr: (string | number)[]): (string | number | null) => {
+    if (arr.length === 0) return null;
+    const counts: { [key: string]: number } = {};
+    arr.forEach(val => { 
+        const key = String(val);
+        counts[key] = (counts[key] || 0) + 1;
+    });
+    let mode: string | number | null = null;
+    let maxCount = 0;
+    Object.entries(counts).forEach(([val, count]) => {
+        if (count > maxCount) {
+            maxCount = count;
+            mode = isNaN(Number(val)) ? val : Number(val);
+        }
+    });
+    return mode;
+};
+
+const getMedian = (arr: number[]): number | null => {
+    if (arr.length === 0) return null;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+
+
+// New Star Display Component
+const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number, total?: number, size?: string }) => {
+    const fullStars = Math.floor(rating);
+    const partialStar = rating % 1;
+    const emptyStars = total - Math.ceil(rating);
+
+    return (
+        <div className="flex items-center">
+            {[...Array(fullStars)].map((_, i) => (
+                <Star key={`full-${i}`} className={cn(size, 'text-yellow-400 fill-yellow-400')} />
+            ))}
+            {partialStar > 0 && (
+                <div className="relative">
+                    <Star className={cn(size, 'text-yellow-400')} />
+                    <div className="absolute top-0 left-0 overflow-hidden" style={{ width: `${partialStar * 100}%` }}>
+                        <Star className={cn(size, 'text-yellow-400 fill-yellow-400')} />
+                    </div>
+                </div>
+            )}
+            {[...Array(emptyStars)].map((_, i) => (
+                <Star key={`empty-${i}`} className={cn(size, 'text-yellow-400')} />
+            ))}
+        </div>
+    );
 };
 
 const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode, varName: string}) => {
@@ -2817,3 +2861,4 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
+
