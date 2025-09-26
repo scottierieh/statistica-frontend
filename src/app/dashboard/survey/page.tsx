@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -16,7 +14,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ClipboardList, History, LayoutTemplate, PlusCircle } from 'lucide-react';
+import { ClipboardList, History, LayoutTemplate, PlusCircle, Settings } from 'lucide-react';
 import SurveyApp from '@/components/survey-app';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
@@ -247,4 +245,3 @@ export default function SurveyPage() {
     </SidebarProvider>
   );
 }
-
