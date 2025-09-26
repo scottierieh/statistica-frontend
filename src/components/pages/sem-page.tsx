@@ -88,7 +88,7 @@ interface SemPageProps {
 export default function SemPage({ data, allHeaders, onLoadExample }: SemPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
-    const [modelSyntax, setModelSyntax] = useState('Quality =~ sq1 + sq2 + sq3\nSatisfaction =~ sat1 + sat2 + sat3\nTrust =~ trust1 + trust2\nLoyalty =~ loy1 + loy2 + loy3\n\nSatisfaction ~ Quality\nTrust ~ Quality + Satisfaction\nLoyalty ~ Trust + Satisfaction');
+    const [modelSyntax, setModelSyntax] = useState('Quality =~ sq1 + sq2 + sq3\\nSatisfaction =~ sat1 + sat2 + sat3\\nTrust =~ trust1 + trust2\\nLoyalty =~ loy1 + loy2 + loy3\\n\\nSatisfaction ~ Quality\\nTrust ~ Quality + Satisfaction\\nLoyalty ~ Trust + Satisfaction');
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     
@@ -102,7 +102,7 @@ export default function SemPage({ data, allHeaders, onLoadExample }: SemPageProp
             const measurement_model: { [key: string]: string[] } = {};
             const structural_model: string[][] = [];
             
-            modelSyntax.split('\n').forEach(line => {
+            modelSyntax.split('\\n').forEach(line => {
                 line = line.trim();
                 if (line.includes('=~')) {
                     const [latent, indicators] = line.split('=~').map(s => s.trim());
