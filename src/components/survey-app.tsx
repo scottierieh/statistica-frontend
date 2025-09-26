@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -39,7 +38,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { LineChart, Line, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DateRange } from 'react-day-picker';
-import { DatePickerWithRange } from '../ui/date-range-picker';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import VanWestendorpPage from '@/components/pages/van-westendorp-page';
@@ -2569,9 +2568,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 <div className="col-span-12 lg:col-span-4">
                                     <Card>
                                         <CardHeader>
-                                            <CardTitle className="text-lg">Design Settings</CardTitle>
+                                            <CardTitle className="text-lg">Settings</CardTitle>
                                         </CardHeader>
-                                        <CardContent className="space-y-4">
+                                        <CardContent className="p-2 space-y-4">
                                              <Collapsible open={openCategories.includes('Logic')} onOpenChange={() => toggleCategory('Logic')}>
                                                 <CollapsibleTrigger className="w-full">
                                                     <div className="flex items-center gap-2 p-2 font-semibold text-sm rounded-md hover:bg-accent">
