@@ -31,9 +31,7 @@ interface FullAnalysisResponse {
     qq_plot: string;
 }
 
-
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
+const IntroPage = ({ onStart }: { onStart: () => void }) => {
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -54,18 +52,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         <p className="max-w-3xl mx-auto text-muted-foreground">
                             While EFA is for exploring potential underlying structures, CFA is a confirmatory technique used to test a specific hypothesis about the structure of a set of variables. It's a crucial step in scale validation and theory testing, allowing you to determine if your data aligns with a pre-defined model.
                         </p>
-                    </div>
-                     <div className="flex justify-center">
-                        {cfaExample && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm">
-                                <cfaExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{cfaExample.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
-                                </div>
-                                <Button onClick={() => onLoadExample(cfaExample)} size="sm" className="mt-2">Load Example</Button>
-                            </Card>
-                        )}
                     </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
@@ -93,6 +79,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
         </div>
     );
 };
+
 
 interface CfaPageProps {
     data: DataSet;
@@ -144,11 +131,11 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length > 0, [data, numericHeaders]);
 
     if (!canRun && view === 'main') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+        return <IntroPage onStart={() => setView('main')} />;
     }
     
     if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+        return <IntroPage onStart={() => setView('main')} />;
     }
 
     const results = analysisResult?.results;
