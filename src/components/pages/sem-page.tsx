@@ -23,13 +23,6 @@ interface SemPageProps {
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const semExample = exampleDatasets.find(d => d.id === 'sem-satisfaction');
-    
-    const handleLoadExampleClick = () => {
-        if (semExample) {
-            onLoadExample(semExample);
-        }
-    };
-
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -53,13 +46,15 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                      <div className="flex justify-center">
                         {semExample && (
-                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center w-full max-w-sm">
-                                <semExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{semExample.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{semExample.description}</p>
+                            <Card className="p-4 bg-muted/50 rounded-lg">
+                                <div className="flex flex-col items-center text-center gap-4">
+                                    <semExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{semExample.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{semExample.description}</p>
+                                    </div>
+                                    <Button onClick={() => onLoadExample(semExample)} size="sm">Load Sample Data</Button>
                                 </div>
-                                <Button onClick={handleLoadExampleClick} size="sm" className="mt-2 w-full">Load Example</Button>
                             </Card>
                         )}
                     </div>
@@ -160,7 +155,7 @@ export default function SemPage({ data, allHeaders, onLoadExample }: SemPageProp
 
     }, [data, modelSyntax, toast]);
     
-    if (view === 'intro') {
+    if (view === 'intro' || !canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExample} />;
     }
 
