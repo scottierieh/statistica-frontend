@@ -132,7 +132,7 @@ export default function SurveyPage() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <Sidebar>
+        <Sidebar collapsible="icon" expandOnHover={true}>
           <SidebarHeader>
             <div className="flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
