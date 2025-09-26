@@ -979,6 +979,11 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
         }];
     }, [chartType, tableData]);
 
+    const chartConfig = {
+      Overall: { label: 'Overall', color: 'hsl(var(--chart-1))' },
+      Group: { label: comparisonData?.filterValue || 'Group', color: 'hsl(var(--chart-2))' },
+    }
+
     return (
         <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -990,17 +995,19 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
                          {comparisonData ? (
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={comparisonChartData} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" unit="%" />
-                                    <YAxis type="category" dataKey="name" width={100} />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Legend />
-                                    <Bar dataKey="Overall" fill={COLORS[0]} />
-                                    <Bar dataKey="Group" fill={COLORS[1]} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <ChartContainer config={chartConfig} className="w-full h-[300px]">
+                                <ResponsiveContainer>
+                                    <BarChart data={comparisonChartData} layout="vertical">
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis type="number" unit="%" />
+                                        <YAxis type="category" dataKey="name" width={100} />
+                                        <Tooltip content={<ChartTooltipContent />} />
+                                        <Legend />
+                                        <Bar dataKey="Overall" fill="var(--color-Overall)" radius={4}/>
+                                        <Bar dataKey="Group" fill="var(--color-Group)" radius={4}/>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
                         ) : (
                              <Plot
                                 data={plotData}
@@ -1050,7 +1057,7 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, qu
                 </Card>
                  <div className="space-y-4">
                     <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics {comparisonData && `vs. ${comparisonData.filterValue}`}</CardTitle></CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
@@ -1362,6 +1369,8 @@ const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
         </div>
     );
 };
+
+type Position = { x: number; y: number };
 
 const KPICard: React.FC<{ title: string; value: string; status: 'excellent' | 'good' | 'warning' | 'poor' }> = ({ title, value, status }) => {
     const statusClasses = {
@@ -2658,7 +2667,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                             ) : (
                                 survey.questions.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, qIndex: number) => {
                                     const analysisData = getAnalysisDataForQuestion(q.id, null);
-                                    const comparisonData = filterKey !== 'All' && filterValue ? getAnalysisDataForQuestion(q.id, { filterKey, filterValue }) : null;
+                                    const comparisonAnalysisData = filterKey !== 'All' && filterValue ? getAnalysisDataForQuestion(q.id, { filterKey, filterValue }) : null;
+                                    
+                                    const comparisonChartData = comparisonAnalysisData?.noData ? null : comparisonAnalysisData;
                                     
                                     if (analysisData.noData) return null;
                                     
@@ -2683,7 +2694,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                     insightsData={analysisData.insights} 
                                                     varName={`${qIndex + 1}. ${q.title}`} 
                                                     question={q} 
-                                                    comparisonData={comparisonData}
+                                                    comparisonData={comparisonChartData}
                                                 />
                                             ) : (
                                                 <p className="text-muted-foreground">Analysis for this question type is not yet implemented.</p>
