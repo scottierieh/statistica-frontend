@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, BrainCircuit, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, BarChart as BarChartIcon } from 'lucide-react';
-import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -90,7 +90,7 @@ interface CfaPageProps {
 export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
-    const [modelSpec, setModelSpec] = useState<{[key: string]: string[]}>({
+    const [modelSpec, setModelSpec] = useState<{ [key: string]: string[] }>({
         'Latent1': [],
         'Latent2': [],
         'Latent3': []
