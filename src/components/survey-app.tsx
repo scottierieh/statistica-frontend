@@ -1,19 +1,16 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight, Building, Hospital, Landmark, GraduationCap, BarChart as BarChartIcon, BarChart2, ClipboardList, Settings, LayoutDashboard } from 'lucide-react';
 import { produce } from 'immer';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { ChartContainer, ChartTooltipContent } from '../ui/chart';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell, PieChart, Pie } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -21,7 +18,7 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, Trash2, ArrowLeft, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Eye, Shuffle, FileText, Save, Info, Link as LinkIcon, QrCode, Download, Copy, Users, EyeIcon, TrendingUp, Laptop, Palette, Grid3x3, ThumbsUp, MessageSquareQuote, Target, Sparkles, ImageIcon, Smartphone, Tablet, Monitor, FileDown, Share2, Phone, Mail, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, X, ChevronDown } from 'lucide-react';
+import { GripVertical, Plus, Trash2, ArrowLeft, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Eye, Shuffle, FileText, Save, Info, Link as LinkIcon, QrCode, Download, Copy, Users, EyeIcon, TrendingUp, Laptop, Palette, Grid3x3, ThumbsUp, MessageSquareQuote, Target, Sparkles, ImageIcon, Smartphone, Tablet, Monitor, FileDown, Share2, Phone, Mail, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, X, ChevronDown, Settings, LayoutDashboard, Filter, BarChart2, BarChart as BarChartLucide, ClipboardList, Sigma, Loader2, BookOpen } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -51,6 +48,7 @@ import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
 
@@ -835,6 +833,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
     );
 };
 
+
 const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, isPreview, cardClassName }: { question: any, answer: any, onAnswerChange?: (value: any) => void, onUpdate?: (q:any) => void, onDelete?: (id: number) => void, isPreview?: boolean, cardClassName?: string }) => {
     const handleItemChange = (index: number, value: string) => {
         onUpdate?.(produce(question, (draft: any) => { draft.items[index] = value; }));
@@ -890,9 +889,9 @@ const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            {question.scale.map((scalePoint: string, colIndex: number) => (
-                                <TableCell key={colIndex} className="text-center">
-                                    <RadioGroup value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
+                            {question.scale.map((scalePoint: string) => (
+                                <TableCell key={scalePoint} className="text-center">
+                                     <RadioGroup value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
                                         <RadioGroupItem value={scalePoint}/>
                                     </RadioGroup>
                                 </TableCell>
@@ -1011,10 +1010,12 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, in
         const labels = tableData.map((d: any) => d.name);
         const counts = tableData.map((d: any) => d.count);
         
-        let markerColors = COLORS;
-        if (individualAnswer) {
-             markerColors = labels.map(label => Array.isArray(individualAnswer) ? (individualAnswer.includes(label) ? '#ff6347' : COLORS[0]) : (label === individualAnswer ? '#ff6347' : COLORS[0]));
-        }
+        let markerColors = labels.map((label, i) => {
+            const isSelected = Array.isArray(individualAnswer)
+                ? individualAnswer.includes(label)
+                : label === individualAnswer;
+            return isSelected ? '#ff6347' : COLORS[i % COLORS.length];
+        });
 
 
         if (chartType === 'pie') {
@@ -1080,7 +1081,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, in
                         <CardContent className="max-h-[200px] overflow-y-auto">{
                             <Table>
                                 <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
-                                <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                                <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`} className={cn(((Array.isArray(individualAnswer) ? individualAnswer.includes(item.name) : item.name === individualAnswer)) && 'bg-primary/10')}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
                             </Table>
                         }</CardContent>
                     </Card>
@@ -1704,7 +1705,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         'Scale': [
             { id: 'rating', icon: Star, label: 'Rating', scale: ['1', '2', '3', '4', '5'], color: 'text-yellow-500' },
             { id: 'nps', icon: Share2, label: 'Net Promoter Score', color: 'text-sky-500' },
-            { id: 'likert', icon: BarChartIcon, label: 'Likert Scale', items: ['Statement 1'], scale: ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'], color: 'text-violet-500' },
+            { id: 'likert', icon: BarChartLucide, label: 'Likert Scale', items: ['Statement 1'], scale: ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'], color: 'text-violet-500' },
         ],
         'Structure': [
              { id: 'description', icon: FileText, label: 'Description Block', color: 'text-gray-400' },
@@ -1750,6 +1751,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     row[`${q.title} - Worst`] = answer ? answer.worst || '' : '';
                 } else if (Array.isArray(answer)) {
                     row[q.title] = answer.join(', ');
+                } else if (typeof answer === 'object' && answer !== null) {
+                    row[q.title] = JSON.stringify(answer);
                 } else {
                     row[q.title] = answer !== undefined ? answer : '';
                 }
@@ -2932,6 +2935,3 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
          </Card>
      );
  };
- 
- 
-
