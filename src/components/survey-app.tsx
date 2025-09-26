@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -50,6 +49,7 @@ import VanWestendorpPage from '@/components/pages/van-westendorp-page';
 import dynamic from 'next/dynamic';
 import Papa from 'papaparse';
 import Link from 'next/link';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
 
@@ -890,7 +890,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-1/3"></TableHead>
-                        {question.columns?.map((col: string, colIndex: number) => (
+                        {question.columns.map((col: string, colIndex: number) => (
                             <TableHead key={colIndex} className="text-center text-xs w-[80px] group relative">
                                 <Input 
                                     value={question.scale?.[colIndex] || col} 
@@ -2062,22 +2062,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                     </div>
                                                 ) : (
                                                     survey.questions.map((q: any) => {
-                                                        const questionComponents: { [key: string]: React.ComponentType<any> } = {
-                                                            single: SingleSelectionQuestion,
-                                                            multiple: MultipleSelectionQuestion,
-                                                            dropdown: DropdownQuestion,
-                                                            text: TextQuestion,
-                                                            rating: RatingQuestion,
-                                                            number: NumberQuestion,
-                                                            phone: PhoneQuestion,
-                                                            email: EmailQuestion,
-                                                            nps: NPSQuestion,
-                                                            description: DescriptionBlock,
-                                                            'best-worst': BestWorstQuestion,
-                                                            matrix: MatrixQuestion,
-                                                            likert: LikertQuestion,
-                                                          };
-                                                          const QuestionComponent = questionComponents[q.type];
+                                                        const QuestionComponent = questionComponents[q.type];
                                                           if (!QuestionComponent) return null;
                                                         return (
                                                             <SortableCard key={q.id} id={q.id}>
@@ -2109,13 +2094,22 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                             <CardTitle>Detailed Analysis</CardTitle>
                              <div className="flex items-center gap-2">
                                 <Label htmlFor="filter-key">Filter by</Label>
-                                <Select value={filterKey} onValueChange={(v) => {setFilterKey(v); }}>
+                                <Select value={filterKey} onValueChange={(v) => {setFilterKey(v); setFilterValue(null);}}>
                                     <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="All">All Respondents</SelectItem>
                                         {demographicQuestions.map((q:any) => <SelectItem key={q.id} value={q.title}>{q.title}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
+                                {filterKey !== 'All' && (
+                                    <Select value={filterValue || ''} onValueChange={(v) => setFilterValue(v === 'All' ? null : v)}>
+                                        <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select value..."/></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="All">All</SelectItem>
+                                            {(survey.questions.find((q:any) => q.title === filterKey)?.options || []).map((opt:string) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                )}
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-8">
@@ -2125,7 +2119,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 </div>
                             ) : (
                                 survey.questions.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, qIndex: number) => {
-                                    const { noData, chartData, tableData, insights } = getAnalysisDataForQuestion(q.id);
+                                    const { noData, chartData, tableData, insights } = getAnalysisDataForQuestion(q.id, filterKey !== 'All' && filterValue ? {filterKey, filterValue} : null);
                                     if (noData) return null;
                                     
                                     const questionComponents: { [key: string]: React.ComponentType<any> } = {
@@ -2169,7 +2163,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 <DndContext sensors={sensors} onDragEnd={handleDashboardDragEnd}>
                                     <div className="relative w-[1000px] h-[800px] bg-muted/50 rounded-lg border overflow-hidden">
                                         {analysisItems.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, i: number) => {
-                                            const { noData, chartData } = getAnalysisDataForQuestion(q.id);
+                                            const { noData, chartData } = getAnalysisDataForQuestion(q.id, null);
                                             if (noData) return null;
                                             
                                              const ChartComponent = () => {
