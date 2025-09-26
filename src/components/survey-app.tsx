@@ -997,15 +997,13 @@ const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            <RadioGroup asChild value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
-                                <div className="contents">
-                                {question.scale.map((scalePoint: string, colIndex: number) => (
-                                    <TableCell key={colIndex} className="text-center">
+                            {question.scale.map((scalePoint: string, colIndex: number) => (
+                                <TableCell key={colIndex} className="text-center">
+                                    <RadioGroup value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
                                         <RadioGroupItem value={scalePoint}/>
-                                    </TableCell>
-                                ))}
-                                </div>
-                            </RadioGroup>
+                                    </RadioGroup>
+                                </TableCell>
+                            ))}
                         </TableRow>
                     ))}
                 </TableBody>
@@ -1016,7 +1014,6 @@ const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
         </div>
     );
 };
-
 
 // --- Helper Functions for Rating Analysis ---
 const mean = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
@@ -1592,7 +1589,6 @@ function GeneralSurveyPageContentFromClient() {
     const surveyId = searchParams.get('id');
     const template = searchParams.get('template');
     
-    // We move state management into the child component that depends on the router.
     return <GeneralSurveyPageContent surveyId={surveyId as string} template={template} />;
 }
 
@@ -2071,11 +2067,11 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         const reader = new FileReader();
         reader.onloadend = () => {
             const imageUrl = reader.result as string;
-            setSurvey(prev => ({
-                ...prev,
-                questions: prev.questions.map((q: any) => 
-                    q.id === uploadingImageForQuestionId ? { ...q, imageUrl } : q
-                )
+            setSurvey(produce((draft: any) => {
+                const question = draft.questions.find((q: any) => q.id === uploadingImageForQuestionId);
+                if (question) {
+                    question.imageUrl = imageUrl;
+                }
             }));
             setUploadingImageForQuestionId(null);
         };
@@ -2153,23 +2149,22 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
 
     const handleTypeChange = (value: string) => {
-        setSurvey((prev: any) => {
-            const newTheme = { ...prev.theme, type: value };
+        setSurvey(produce((draft: any) => {
+            draft.theme.type = value;
             if (value === 'type1') {
-                newTheme.primaryColor = 'hsl(340 82% 52%)'; // Rose
-                newTheme.layout = 'modern';
+                draft.theme.primaryColor = 'hsl(340 82% 52%)'; // Rose
+                draft.theme.layout = 'modern';
                 setCardStyle('border rounded-lg bg-background/80 backdrop-blur-sm');
             } else if (value === 'type2') {
-                newTheme.primaryColor = 'hsl(142 76% 36%)'; // Forest
-                newTheme.layout = 'classic';
+                draft.theme.primaryColor = 'hsl(142 76% 36%)'; // Forest
+                draft.theme.layout = 'classic';
                 setCardStyle('bg-card');
             } else { // Default
-                newTheme.primaryColor = 'hsl(221.2 83.1% 60%)';
-                newTheme.layout = 'default';
+                draft.theme.primaryColor = 'hsl(221.2 83.1% 60%)';
+                draft.theme.layout = 'default';
                 setCardStyle('bg-card');
             }
-            return { ...prev, theme: newTheme };
-        });
+        }));
     };
     
     const performRetailAnalysis = (data: any[]) => {
@@ -2353,6 +2348,19 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         matrix: MatrixQuestion,
         likert: LikertQuestion,
     };
+    
+    const questionAnalysisComponents: { [key: string]: React.ComponentType<any> } = {
+        single: ChoiceAnalysisDisplay,
+        multiple: ChoiceAnalysisDisplay,
+        dropdown: ChoiceAnalysisDisplay,
+        text: TextAnalysisDisplay,
+        rating: RatingAnalysisDisplay,
+        number: NumberAnalysisDisplay,
+        nps: NPSAnalysisDisplay,
+        'best-worst': BestWorstAnalysisDisplay,
+    };
+
+
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-8 bg-gradient-to-br from-background to-slate-50">
             <input type="file" ref={fileInputRef} onChange={handleQuestionImageFileChange} className="hidden" accept="image/*" />
@@ -2659,7 +2667,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                      <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Detailed Analysis</CardTitle>
-                            <div className="flex items-center gap-4">
+                             <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2">
                                     <Label htmlFor="filter-key">Filter by</Label>
                                     <Select value={filterKey} onValueChange={(v) => {setFilterKey(v); setFilterValue(null);}}>
@@ -2702,7 +2710,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     const { noData, chartData, tableData, insights, individualAnswer } = getAnalysisDataForQuestion(q.id, filterKey !== 'All' && filterValue ? {filterKey, filterValue} : null, selectedRespondent);
                                     if (noData) return null;
                                     
-                                      const AnalysisComponent = questionComponents[q.type];
+                                      const AnalysisComponent = questionAnalysisComponents[q.type];
 
                                     return (
                                         <div key={`analysis-${q.id}`}>
@@ -2928,4 +2936,5 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
+
 
