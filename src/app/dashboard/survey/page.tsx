@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -87,7 +88,7 @@ function SurveyHistory() {
                     <div className="text-center py-12">
                         <p className="text-muted-foreground">You have no saved surveys.</p>
                          <Button asChild variant="link">
-                            <Link href="/dashboard/survey?id=1">Start designing your first survey</Link>
+                            <Link href={`/dashboard/survey?id=${Date.now()}`}>Start designing your first survey</Link>
                         </Button>
                     </div>
                 )}
