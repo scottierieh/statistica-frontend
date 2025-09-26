@@ -1002,8 +1002,8 @@ const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            {question.scale.map((scalePoint: string) => (
-                                <TableCell key={scalePoint} className="text-center">
+                            {question.scale.map((scalePoint: string, colIndex: number) => (
+                                <TableCell key={colIndex} className="text-center">
                                     <RadioGroup value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
                                         <RadioGroupItem value={scalePoint}/>
                                     </RadioGroup>
@@ -1916,6 +1916,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         if (type === 'matrix') {
             newQuestion.rows = ['Row 1', 'Row 2'];
         }
+        if (type === 'likert') {
+            newQuestion.items = ['Statement 1'];
+        }
         setSurvey((prev: any) => ({ ...prev, questions: [...prev.questions, newQuestion] }));
     };
 
@@ -2288,6 +2291,21 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         setAnalysisItems(survey.questions);
     }, [survey.questions]);
 
+    const questionComponents: { [key: string]: React.ComponentType<any> } = {
+        single: SingleSelectionQuestion,
+        multiple: MultipleSelectionQuestion,
+        dropdown: DropdownQuestion,
+        text: TextQuestion,
+        rating: RatingQuestion,
+        number: NumberQuestion,
+        phone: PhoneQuestion,
+        email: EmailQuestion,
+        nps: NPSQuestion,
+        description: DescriptionBlock,
+        'best-worst': BestWorstQuestion,
+        matrix: MatrixQuestion,
+        likert: LikertQuestion,
+    };
 
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-8 bg-gradient-to-br from-background to-slate-50">
@@ -2861,4 +2879,3 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
-
