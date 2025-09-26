@@ -920,15 +920,13 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                <>
-                                {question.columns.map((col: string, colIndex: number) => (
-                                    <TableCell key={colIndex} className="text-center">
+                            {question.columns.map((col: string, colIndex: number) => (
+                                <TableCell key={colIndex} className="text-center">
+                                    <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                         <RadioGroupItem value={col}/>
-                                    </TableCell>
-                                ))}
-                                </>
-                            </RadioGroup>
+                                    </RadioGroup>
+                                </TableCell>
+                            ))}
                             {!isPreview && <TableCell></TableCell>}
                         </TableRow>
                     ))}
@@ -2634,6 +2632,22 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-8">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Response ID</TableHead>
+                                        <TableHead>Submitted At</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {responses.map(r => (
+                                        <TableRow key={r.id}>
+                                            <TableCell>{r.id}</TableCell>
+                                            <TableCell>{new Date(r.submittedAt).toLocaleString()}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                             {responses.length === 0 ? (
                                 <div className="flex justify-center items-center h-64 border-2 border-dashed rounded-lg">
                                     <p className="text-muted-foreground">No responses yet. Share your survey to collect data!</p>
