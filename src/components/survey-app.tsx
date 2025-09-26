@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -835,80 +834,6 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
 };
 
 
-const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, isPreview, cardClassName }: { question: any, answer: any, onAnswerChange?: (value: any) => void, onUpdate?: (q:any) => void, onDelete?: (id: number) => void, isPreview?: boolean, cardClassName?: string }) => {
-    const handleItemChange = (index: number, value: string) => {
-        onUpdate?.(produce(question, (draft: any) => { draft.items[index] = value; }));
-    };
-    const handleScaleChange = (index: number, value: string) => {
-        onUpdate?.(produce(question, (draft: any) => { draft.scale[index] = value; }));
-    };
-    const addItem = () => {
-        onUpdate?.(produce(question, (draft: any) => { draft.items.push(`New Statement`); }));
-    };
-    const deleteItem = (index: number) => {
-        onUpdate?.(produce(question, (draft: any) => { draft.items.splice(index, 1); }));
-    };
-
-    return (
-        <div className={cn("p-4", cardClassName)}>
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                    <Input placeholder="Enter Likert scale title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0" readOnly={isPreview} />
-                    {question.required && <span className="text-destructive text-xs">* Required</span>}
-                </div>
-                {!isPreview && (
-                    <div className="flex items-center">
-                        <div className="flex items-center space-x-2 mr-2">
-                          <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
-                          <Label htmlFor={`required-${question.id}`}>Required</Label>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}>
-                            <Trash2 className="w-5 h-5 text-destructive" />
-                        </Button>
-                    </div>
-                )}
-            </div>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-1/3">Statement</TableHead>
-                        {question.scale?.map((col: string, colIndex: number) => (
-                            <TableHead key={colIndex} className="text-center text-xs w-[100px]">
-                                {isPreview ? col : <Input value={col} onChange={e => handleScaleChange(colIndex, e.target.value)} className="border-none text-center bg-transparent focus:ring-0 p-0" />}
-                            </TableHead>
-                        ))}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {(question.items || []).map((item: string, rowIndex: number) => (
-                        <TableRow key={rowIndex}>
-                            <TableCell className="group relative">
-                                {isPreview ? item : <Input value={item} onChange={e => handleItemChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
-                                {!isPreview && (
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 absolute top-1/2 -translate-y-1/2 right-0" onClick={() => deleteItem(rowIndex)}>
-                                        <Trash2 className="w-4 h-4 text-destructive"/>
-                                    </Button>
-                                )}
-                            </TableCell>
-                            {question.scale.map((scalePoint: string) => (
-                                <TableCell key={scalePoint} className="text-center">
-                                     <RadioGroup value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
-                                        <RadioGroupItem value={scalePoint}/>
-                                    </RadioGroup>
-                                </TableCell>
-                            ))}
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-            {!isPreview && (
-                <Button variant="link" size="sm" onClick={addItem}><PlusCircle className="mr-2"/> Add Statement</Button>
-            )}
-        </div>
-    );
-};
-
-
 // --- Helper Functions for Rating Analysis ---
 const mean = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
 
@@ -1494,6 +1419,7 @@ interface InsightCardProps {
     };
 }
 
+
 const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
     if (!data) return null;
     const { kpiData, insights } = data;
@@ -1606,7 +1532,7 @@ const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
 
 export default function SurveyApp() {
   return (
-    <Suspense fallback={<div className="flex-1 p-8 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto"/></div>}>
+    <Suspense fallback={<div className="p-8 text-center w-full"><Loader2 className="animate-spin h-8 w-8 mx-auto"/></div>}>
         <GeneralSurveyPageContentFromClient />
     </Suspense>
   )
@@ -2743,7 +2669,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 </div>
                             ) : (
                                 <DndContext sensors={sensors} onDragEnd={handleDashboardDragEnd}>
-                                    <div className="relative w-full bg-muted/50 rounded-lg border">
+                                    <div className="relative w-full min-h-[800px] bg-muted/50 rounded-lg border overflow-auto">
                                         {analysisItems.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, i: number) => {
                                             const { noData, chartData } = getAnalysisDataForQuestion(q.id, null);
                                             if (noData) return null;
@@ -2855,3 +2781,54 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
+
+const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position?: Position }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+
+    const style: React.CSSProperties = {
+        position: 'absolute',
+        width: 300,
+        height: 300,
+        top: position?.y || 0,
+        left: position?.x || 0,
+        transform: isDragging ? (transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined) : undefined,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style}>
+            <Card className="w-full h-full shadow-lg flex flex-col">
+                <div {...listeners} {...attributes} className="absolute top-2 right-2 p-1 cursor-grab bg-background/50 rounded-full">
+                    <Move className="w-4 h-4 text-muted-foreground"/>
+                </div>
+                {children}
+            </Card>
+        </div>
+    );
+};
+
+// This function needs to be defined if it's used for IPA analysis
+function pearsonCorrelation(x: (number | undefined)[], y: (number | undefined)[]): number {
+    const validPairs = x.map((val, i) => [val, y[i]]).filter(([val1, val2]) => val1 !== undefined && val2 !== undefined) as [number, number][];
+    if (validPairs.length < 2) return 0;
+    
+    const xs = validPairs.map(p => p[0]);
+    const ys = validPairs.map(p => p[1]);
+
+    const meanX = mean(xs);
+    const meanY = mean(ys);
+    const stdDevX = standardDeviation(xs);
+    const stdDevY = standardDeviation(ys);
+
+    if (stdDevX === 0 || stdDevY === 0) return 0;
+
+    let covariance = 0;
+    for (let i = 0; i < validPairs.length; i++) {
+        covariance += (xs[i] - meanX) * (ys[i] - meanY);
+    }
+    covariance /= (validPairs.length - 1);
+
+    return covariance / (stdDevX * stdDevY);
+}
+
+type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
+type QuestionLogic = { questionId: number; paths: LogicPath[] };
