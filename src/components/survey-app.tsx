@@ -908,29 +908,8 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
     );
 };
   
-const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, individualAnswer }: { chartData: any, tableData: any[], insightsData: string[], varName: string, individualAnswer?: string | string[] }) => {
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, individualAnswer, comparisonData }: { chartData: any, tableData: any[], insightsData: string[], varName: string, individualAnswer?: string | string[], comparisonData?: any }) => {
     const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'treemap'>('hbar');
-
-    const plotLayout = useMemo(() => {
-        const baseLayout = {
-            autosize: true,
-            margin: { t: 40, b: 40, l: 40, r: 20 },
-            xaxis: {
-                title: chartType === 'hbar' ? 'Percentage' : '',
-            },
-            yaxis: {
-                title: chartType === 'hbar' ? '' : 'Percentage',
-            },
-        };
-        if (chartType === 'hbar') {
-            baseLayout.yaxis = { autorange: 'reversed' as const };
-            baseLayout.margin.l = 120;
-        }
-        if (chartType === 'bar') {
-            (baseLayout.xaxis as any).tickangle = -45;
-        }
-        return baseLayout;
-    }, [chartType]);
 
     const plotData = useMemo(() => {
         const percentages = tableData.map((d: any) => parseFloat(d.percentage));
@@ -976,6 +955,22 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, in
             textposition: 'auto',
         }];
     }, [chartType, tableData, individualAnswer]);
+    
+    const plotLayout = {
+        autosize: true,
+        margin: { t: 40, b: 40, l: chartType === 'hbar' ? 120 : 40, r: 20 },
+        xaxis: { title: chartType === 'hbar' ? 'Percentage' : '' },
+        yaxis: { title: chartType === 'hbar' ? '' : 'Percentage', autorange: chartType === 'hbar' ? 'reversed' : undefined }
+    };
+    
+    const comparisonChartData = useMemo(() => {
+        if (!comparisonData) return [];
+        return tableData.map(d => ({
+            name: d.name,
+            Overall: d.percentage,
+            Group: comparisonData.table.find((cd: any) => cd.name === d.name)?.percentage || 0
+        }));
+    }, [comparisonData, tableData]);
 
     return (
         <AnalysisDisplayShell varName={varName}>
@@ -985,8 +980,8 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, in
                         <CardTitle className="text-base flex justify-between items-center">
                             Distribution
                              <div className="flex gap-1">
-                                <Button variant={chartType === 'hbar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('hbar')}><BarChart className="w-4 h-4 -rotate-90" /></Button>
-                                <Button variant={chartType === 'bar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('bar')}><BarChart className="w-4 h-4" /></Button>
+                                <Button variant={chartType === 'hbar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('hbar')}><BarChartLucide className="w-4 h-4 -rotate-90" /></Button>
+                                <Button variant={chartType === 'bar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('bar')}><BarChartLucide className="w-4 h-4" /></Button>
                                 <Button variant={chartType === 'pie' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('pie')}><PieChartIcon className="w-4 h-4" /></Button>
                                 <Button variant={chartType === 'treemap' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('treemap')}><Grid3x3 className="w-4 h-4" /></Button>
                             </div>
@@ -1017,12 +1012,34 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, in
                         <CardContent>{ <ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }</CardContent>
                     </Card>
                 </div>
+                 {comparisonData && (
+                    <Card className="xl:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="text-base">Overall vs. '{comparisonData.filterValue}' Group Comparison</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={{}} className="w-full h-80">
+                                <ResponsiveContainer>
+                                    <BarChart data={comparisonChartData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft' }} />
+                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`}/>} />
+                                        <Legend />
+                                        <Bar dataKey="Overall" fill={COLORS[0]} radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Group" fill={COLORS[1]} radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </AnalysisDisplayShell>
     );
 };
   
-const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question, individualAnswer }: { chartData: any, tableData: any, insightsData: string[], varName: string, question: any, individualAnswer?: number }) => {
+const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question, individualAnswer, comparisonData }: { chartData: any, tableData: any, insightsData: string[], varName: string, question: any, individualAnswer?: number, comparisonData?: any }) => {
     return (
         <AnalysisDisplayShell varName={varName}>
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -1049,15 +1066,16 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, qu
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Metric</TableHead>
-                                        <TableHead className="text-right">Value</TableHead>
+                                        <TableHead className="text-right">Overall</TableHead>
+                                        {comparisonData && <TableHead className="text-right">Group</TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <TableRow><TableCell>Average Rating</TableCell><TableCell className="text-right">{tableData.avg.toFixed(3)}</TableCell></TableRow>
-                                    <TableRow><TableCell>Median Rating</TableCell><TableCell className="text-right">{tableData.median}</TableCell></TableRow>
-                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{tableData.mode}</TableCell></TableRow>
-                                    <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell></TableRow>
-                                    <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{tableData.count}</TableCell></TableRow>
+                                    <TableRow><TableCell>Average Rating</TableCell><TableCell className="text-right">{tableData.avg.toFixed(3)}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.avg.toFixed(3)}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Median Rating</TableCell><TableCell className="text-right">{tableData.median}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.median}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{tableData.mode}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.mode}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.stdDev.toFixed(3)}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{tableData.count}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.count}</TableCell>}</TableRow>
                                 </TableBody>
                             </Table>
                         </CardContent>
@@ -1076,7 +1094,7 @@ const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, qu
     );
 };
 
-const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName, individualAnswer }: { chartData: any, tableData: any, insightsData: string[], varName: string, individualAnswer?: number }) => {
+const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName, individualAnswer, comparisonData }: { chartData: any, tableData: any, insightsData: string[], varName: string, individualAnswer?: number, comparisonData?: any }) => {
     return (
       <AnalysisDisplayShell varName={varName}>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -1125,17 +1143,18 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName, in
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Metric</TableHead>
-                                        <TableHead className="text-right">Value</TableHead>
+                                        <TableHead className="text-right">Overall</TableHead>
+                                        {comparisonData && <TableHead className="text-right">Group</TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{tableData.mean.toFixed(3)}</TableCell></TableRow>
-                                    <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{tableData.median}</TableCell></TableRow>
-                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{tableData.mode}</TableCell></TableRow>
-                                    <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell></TableRow>
-                                    <TableRow><TableCell>Minimum</TableCell><TableCell className="text-right">{tableData.min}</TableCell></TableRow>
-                                    <TableRow><TableCell>Maximum</TableCell><TableCell className="text-right">{tableData.max}</TableCell></TableRow>
-                                    <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{tableData.count}</TableCell></TableRow>
+                                    <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{tableData.mean.toFixed(3)}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.mean.toFixed(3)}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{tableData.median}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.median}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{tableData.mode}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.mode}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.stdDev.toFixed(3)}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Minimum</TableCell><TableCell className="text-right">{tableData.min}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.min}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Maximum</TableCell><TableCell className="text-right">{tableData.max}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.max}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{tableData.count}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.count}</TableCell>}</TableRow>
                                 </TableBody>
                             </Table>
                          </CardContent>
@@ -1725,152 +1744,148 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
 
     
-    const getAnalysisDataForQuestion = (questionId: number, filter: {filterKey: string, filterValue: string | null} | null) => {
+    const getAnalysisDataForQuestion = useCallback((questionId: number, filter: {filterKey: string, filterValue: string | null} | null) => {
         const question = survey.questions.find((q: any) => q.id === questionId);
-        if (!question) {
-            return { noData: true, chartData: null, tableData: null, insights: [] };
-        }
-        
-        let targetResponses = responses;
+        if (!question) return { noData: true };
+    
+        const calculateStats = (targetResponses: any[]) => {
+            const allAnswers = targetResponses.map(r => r.answers?.[questionId]).filter(a => a !== undefined && a !== null && a !== '');
+            if (allAnswers.length === 0) return { noData: true };
+    
+            let chartData: any = {};
+            let tableData: any = [];
+            let insights: string[] = [];
+    
+            switch (question.type) {
+                case 'single':
+                case 'multiple':
+                case 'dropdown': {
+                    const counts: { [key: string]: number } = {};
+                    (question.options || []).forEach((opt: string) => { counts[opt] = 0; });
+                    allAnswers.flat().forEach((ans: any) => { if (counts[ans] !== undefined) counts[ans]++; });
+                    
+                    tableData = Object.entries(counts).map(([name, count]) => ({
+                        name,
+                        count,
+                        percentage: allAnswers.length > 0 ? ((count / allAnswers.length) * 100) : 0
+                    })).sort((a,b) => b.count - a.count);
+    
+                    if (tableData.length > 0) {
+                        const mostSelected = tableData[0];
+                        insights = [
+                            `Most frequent answer: <strong>${mostSelected.name}</strong> (${mostSelected.count} responses, ${mostSelected.percentage.toFixed(1)}%).`,
+                            `A total of <strong>${allAnswers.length}</strong> responses were collected for this question.`
+                        ];
+                    }
+    
+                    chartData = tableData;
+                    break;
+                }
+                case 'text': {
+                    const textResponses = allAnswers.filter(a => typeof a === 'string' && a.trim() !== '');
+                    insights = [`Qualitative data collected.`];
+                    if (textResponses.length > 0) {
+                        insights.push(`First response: <strong>"${textResponses[0]}"</strong>.`);
+                    }
+                    chartData = {}; 
+                    tableData = textResponses;
+                    break;
+                }
+                case 'number': {
+                    const numberResponses = allAnswers.map(Number).filter(n => !isNaN(n));
+                    const stats = {
+                        mean: mean(numberResponses),
+                        median: getMedian(numberResponses) || 0,
+                        mode: getMode(numberResponses) || 0,
+                        stdDev: standardDeviation(numberResponses),
+                        min: Math.min(...numberResponses),
+                        max: Math.max(...numberResponses),
+                        count: numberResponses.length
+                    };
+                    chartData = { values: numberResponses };
+                    tableData = stats;
+                    insights = [
+                        `The average response is <strong>${stats.mean.toFixed(2)}</strong>.`,
+                        `Responses range from <strong>${stats.min}</strong> to <strong>${stats.max}</strong>.`,
+                    ];
+                    break;
+                }
+                 case 'rating': {
+                    const ratings = allAnswers.filter((a): a is number => typeof a === 'number');
+                    const avgRating = mean(ratings);
+                    chartData = { avg: avgRating, count: ratings.length };
+                    tableData = { 
+                        avg: avgRating, 
+                        median: getMedian(ratings) || 'N/A', 
+                        mode: getMode(ratings) || 'N/A',
+                        stdDev: standardDeviation(ratings),
+                        count: ratings.length 
+                    };
+                    insights = [
+                        `Average rating is <strong>${avgRating.toFixed(2)} / ${question.scale?.length || 5}</strong>.`,
+                    ];
+                    break;
+                }
+                case 'best-worst': {
+                    const bestCounts: { [key: string]: number } = {};
+                    const worstCounts: { [key: string]: number } = {};
+                    question.items.forEach((item: string) => { bestCounts[item] = 0; worstCounts[item] = 0; });
+    
+                    allAnswers.forEach(answer => {
+                        if (answer?.best) bestCounts[answer.best]++;
+                        if (answer?.worst) worstCounts[answer.worst]++;
+                    });
+                    
+                    tableData = question.items.map((item: string) => ({
+                        name: item, best: bestCounts[item], worst: worstCounts[item],
+                        score: (bestCounts[item] - worstCounts[item]),
+                    })).sort((a: any, b: any) => b.score - a.score);
+                    
+                    chartData = { y: tableData.map((d: any) => d.name).reverse(), x: tableData.map((d: any) => d.score).reverse(), orientation: 'h' };
+                    insights = [
+                        `Highest preference: <strong>${tableData[0].name}</strong>.`,
+                        `Lowest preference: <strong>${tableData[tableData.length-1].name}</strong>.`
+                    ];
+                    break;
+                }
+                 case 'nps': {
+                    const npsScores = allAnswers.map(Number).filter(n => !isNaN(n) && n >= 0 && n <= 10);
+                    const promoters = npsScores.filter(s => s >= 9).length;
+                    const passives = npsScores.filter(s => s >= 7 && s <= 8).length;
+                    const detractors = npsScores.filter(s => s <= 6).length;
+                    const total = npsScores.length;
+    
+                    const promotersP = total > 0 ? (promoters / total) * 100 : 0;
+                    const passivesP = total > 0 ? (passives / total) * 100 : 0;
+                    const detractorsP = total > 0 ? (detractors / total) * 100 : 0;
+                    
+                    const nps = promotersP - detractorsP;
+    
+                    chartData = { nps, promotersP, passivesP, detractorsP };
+                    tableData = { promoters, passives, detractors, promotersP, passivesP, detractorsP, nps };
+                    insights = [`The NPS score is <strong>${nps.toFixed(1)}</strong>.`];
+                    break;
+                }
+                default:
+                    return { noData: true };
+            }
+            return { chartData, tableData, insights };
+        };
+    
+        const overallData = calculateStats(responses);
+    
         if (filter && filter.filterValue) {
             const filterQuestion = survey.questions.find((q:any) => q.title === filter.filterKey);
-            if(filterQuestion) {
-                 targetResponses = responses.filter(r => r.answers[filterQuestion.id] === filter.filterValue);
-            }
-        }
-        
-        const allAnswers = targetResponses.map(r => r.answers ? r.answers[question.id] : undefined).filter(a => a !== undefined && a !== null && a !== '');
-        
-        if (allAnswers.length === 0) {
-            return { noData: true, chartData: null, tableData: null, insights: ["No responses yet."] };
+            if (!filterQuestion) return { overall: overallData };
+    
+            const filteredResponses = responses.filter(r => r.answers[filterQuestion.id] === filter.filterValue);
+            const groupData = calculateStats(filteredResponses);
+            
+            return { overall: overallData, group: groupData };
         }
     
-        let chartData: any = {};
-        let tableData: any = [];
-        let insights: string[] = [];
-
-        switch (question.type) {
-            case 'single':
-            case 'multiple':
-            case 'dropdown': {
-                const counts: { [key: string]: number } = {};
-                (question.options || []).forEach((opt: string) => { counts[opt] = 0; });
-                allAnswers.flat().forEach((ans: any) => { if (counts[ans] !== undefined) counts[ans]++; });
-                
-                tableData = Object.entries(counts).map(([name, count]) => ({
-                    name,
-                    count,
-                    percentage: responses.length > 0 ? ((count / allAnswers.length) * 100) : 0
-                })).sort((a,b) => b.count - a.count);
-
-                const mostSelected = tableData[0];
-                insights = [
-                    `Most frequent answer: <strong>${mostSelected.name}</strong> (${mostSelected.count} responses, ${mostSelected.percentage.toFixed(1)}%).`,
-                    `A total of <strong>${allAnswers.length}</strong> responses were collected for this question.`
-                ];
-
-                chartData = tableData;
-                break;
-            }
-            case 'text': {
-                const textResponses = allAnswers.filter(a => typeof a === 'string' && a.trim() !== '');
-
-                insights = [`Qualitative data collected.`];
-                if (textResponses.length > 0) {
-                    insights.push(`First response: <strong>"${textResponses[0]}"</strong>.`);
-                }
-
-                chartData = {}; 
-                tableData = textResponses;
-                break;
-            }
-            case 'number': {
-                const numberResponses = allAnswers.map(Number).filter(n => !isNaN(n));
-                const stats = {
-                    mean: mean(numberResponses),
-                    median: getMedian(numberResponses) || 0,
-                    mode: getMode(numberResponses) || 0,
-                    stdDev: standardDeviation(numberResponses),
-                    min: Math.min(...numberResponses),
-                    max: Math.max(...numberResponses),
-                    count: numberResponses.length
-                };
-                chartData = { values: numberResponses };
-                tableData = stats;
-                insights = [
-                    `The average response is <strong>${stats.mean.toFixed(2)}</strong>.`,
-                    `Responses range from <strong>${stats.min}</strong> to <strong>${stats.max}</strong>.`,
-                    `The standard deviation of <strong>${stats.stdDev.toFixed(2)}</strong> indicates the spread of the data.`
-                ];
-                break;
-            }
-             case 'rating': {
-                const ratings = allAnswers.filter((a): a is number => typeof a === 'number');
-                const avgRating = mean(ratings);
-                chartData = { avg: avgRating, count: ratings.length };
-                tableData = { 
-                    avg: avgRating, 
-                    median: getMedian(ratings) || 'N/A', 
-                    mode: getMode(ratings) || 'N/A',
-                    stdDev: standardDeviation(ratings),
-                    count: ratings.length 
-                };
-                insights = [
-                    `Average rating is <strong>${avgRating.toFixed(2)} / ${question.scale?.length || 5}</strong>.`,
-                    `The most common rating given was <strong>${getMode(ratings)} star(s)</strong>.`,
-                    `<strong>${((ratings.filter(r => r >= 4).length / ratings.length) * 100).toFixed(1)}%</strong> of users gave a high rating (4 or 5 stars).`
-                ];
-                break;
-            }
-            case 'best-worst': {
-                const bestCounts: { [key: string]: number } = {};
-                const worstCounts: { [key: string]: number } = {};
-                question.items.forEach((item: string) => { bestCounts[item] = 0; worstCounts[item] = 0; });
-
-                allAnswers.forEach(answer => {
-                    if (answer?.best) bestCounts[answer.best]++;
-                    if (answer?.worst) worstCounts[answer.worst]++;
-                });
-                
-                tableData = question.items.map((item: string) => ({
-                    name: item, best: bestCounts[item], worst: worstCounts[item],
-                    score: (bestCounts[item] - worstCounts[item]),
-                })).sort((a: any, b: any) => b.score - a.score);
-                
-                chartData = { y: tableData.map((d: any) => d.name).reverse(), x: tableData.map((d: any) => d.score).reverse(), orientation: 'h' };
-                insights = [
-                    `Highest preference: <strong>${tableData[0].name}</strong>.`,
-                    `Lowest preference: <strong>${tableData[tableData.length-1].name}</strong>.`
-                ];
-                break;
-            }
-             case 'nps': {
-                const npsScores = allAnswers.map(Number).filter(n => !isNaN(n) && n >= 0 && n <= 10);
-                const promoters = npsScores.filter(s => s >= 9).length;
-                const passives = npsScores.filter(s => s >= 7 && s <= 8).length;
-                const detractors = npsScores.filter(s => s <= 6).length;
-                const total = npsScores.length;
-
-                const promotersP = total > 0 ? (promoters / total) * 100 : 0;
-                const passivesP = total > 0 ? (passives / total) * 100 : 0;
-                const detractorsP = total > 0 ? (detractors / total) * 100 : 0;
-                
-                const nps = promotersP - detractorsP;
-
-                chartData = { nps, promotersP, passivesP, detractorsP };
-                tableData = { promoters, passives, detractors, promotersP, passivesP, detractorsP, nps };
-                insights = [
-                    `The overall NPS is <strong>${nps.toFixed(1)}</strong>.`,
-                    `<strong>${promotersP.toFixed(1)}%</strong> of respondents are Promoters.`,
-                    `<strong>${detractorsP.toFixed(1)}%</strong> of respondents are Detractors.`
-                ];
-                break;
-            }
-            default:
-                return { noData: true, chartData: null, tableData: null, insights: [] };
-        }
-        return { chartData, tableData, insights };
-    };
+        return { overall: overallData };
+    }, [survey.questions, responses]);
     
     const addQuestion = (type: string) => {
         let questionConfig;
@@ -2628,8 +2643,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 </div>
                             ) : (
                                 survey.questions.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, qIndex: number) => {
-                                    const { noData, chartData, tableData, insights } = getAnalysisDataForQuestion(q.id, filterKey !== 'All' && filterValue ? {filterKey, filterValue} : null);
-                                    if (noData) return null;
+                                    const analysisData = getAnalysisDataForQuestion(q.id, filterKey !== 'All' && filterValue ? {filterKey, filterValue} : null);
+                                    
+                                    if (analysisData.noData) return null;
                                     
                                     const questionComponents: { [key: string]: React.ComponentType<any> } = {
                                         single: ChoiceAnalysisDisplay,
@@ -2646,7 +2662,14 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     return (
                                         <div key={`analysis-${q.id}`}>
                                             {AnalysisComponent ? (
-                                                <AnalysisComponent chartData={chartData} tableData={tableData} insightsData={insights} varName={`${qIndex + 1}. ${q.title}`} question={q} />
+                                                <AnalysisComponent 
+                                                    chartData={analysisData.overall?.chartData} 
+                                                    tableData={analysisData.overall?.tableData} 
+                                                    insightsData={analysisData.overall?.insights}
+                                                    varName={`${qIndex + 1}. ${q.title}`} 
+                                                    question={q}
+                                                    comparisonData={analysisData.group ? { ...analysisData.group, filterValue } : null}
+                                                />
                                             ) : (
                                                 <p className="text-muted-foreground">Analysis for this question type is not yet implemented.</p>
                                             )}
@@ -2672,7 +2695,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                 <DndContext sensors={sensors} onDragEnd={handleDashboardDragEnd}>
                                     <div className="relative w-full min-h-[800px] bg-muted/50 rounded-lg border overflow-auto">
                                         {analysisItems.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, i: number) => {
-                                            const { noData, chartData } = getAnalysisDataForQuestion(q.id, null);
+                                            const { noData, chartData } = getAnalysisDataForQuestion(q.id, null)?.overall || {};
                                             if (noData) return null;
                                             
                                              const ChartComponent = () => {
