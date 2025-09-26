@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -940,6 +941,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
     );
 };
 
+
 const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, isPreview, cardClassName }: { question: any, answer: any, onAnswerChange?: (value: any) => void, onUpdate?: (q:any) => void, onDelete?: (id: number) => void, isPreview?: boolean, cardClassName?: string }) => {
     const handleItemChange = (index: number, value: string) => {
         onUpdate?.(produce(question, (draft: any) => { draft.items[index] = value; }));
@@ -1035,6 +1037,464 @@ const questionComponents: { [key: string]: React.ComponentType<any> } = {
   'best-worst': BestWorstQuestion,
   matrix: MatrixQuestion,
   likert: LikertQuestion,
+};
+
+const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode, varName: string}) => {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{varName}</CardTitle>
+        </CardHeader>
+        <CardContent>{children}</CardContent>
+      </Card>
+    );
+};
+  
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
+    const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'treemap'>('hbar');
+
+    const plotLayout = useMemo(() => {
+        const baseLayout = {
+            autosize: true,
+            margin: { t: 40, b: 40, l: 40, r: 20 },
+            xaxis: {
+                title: chartType === 'hbar' ? 'Percentage' : '',
+            },
+            yaxis: {
+                title: chartType === 'hbar' ? '' : 'Percentage',
+            },
+        };
+        if (chartType === 'hbar') {
+            baseLayout.yaxis = { autorange: 'reversed' as const };
+            baseLayout.margin.l = 120;
+        }
+        if (chartType === 'bar') {
+            (baseLayout.xaxis as any).tickangle = -45;
+        }
+        return baseLayout;
+    }, [chartType]);
+
+    const plotData = useMemo(() => {
+        const percentages = tableData.map((d: any) => parseFloat(d.percentage));
+        const labels = tableData.map((d: any) => d.name);
+        const counts = tableData.map((d: any) => d.count);
+
+        if (chartType === 'pie') {
+            return [{
+                values: percentages,
+                labels: labels,
+                type: 'pie',
+                hole: 0.4,
+                marker: { colors: COLORS },
+                textinfo: 'label+percent',
+                textposition: 'inside',
+            }];
+        }
+        if (chartType === 'treemap') {
+            return [{
+                type: 'treemap',
+                labels: labels,
+                parents: Array(labels.length).fill(""),
+                values: counts,
+                textinfo: 'label+value+percent root',
+                marker: {colors: COLORS}
+            }];
+        }
+        return [{
+            y: chartType === 'hbar' ? labels : percentages,
+            x: chartType === 'hbar' ? percentages : labels,
+            type: 'bar',
+            orientation: chartType === 'hbar' ? 'h' : 'v',
+            marker: { color: COLORS[0] },
+            text: percentages.map((p: number) => `${p.toFixed(1)}%`),
+            textposition: 'auto',
+        }];
+    }, [chartType, tableData]);
+
+    return (
+        <AnalysisDisplayShell varName={varName}>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base flex justify-between items-center">
+                            Distribution
+                             <div className="flex gap-1">
+                                <Button variant={chartType === 'hbar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('hbar')}><BarChart className="w-4 h-4 -rotate-90" /></Button>
+                                <Button variant={chartType === 'bar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('bar')}><BarChart className="w-4 h-4" /></Button>
+                                <Button variant={chartType === 'pie' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('pie')}><PieChartIcon className="w-4 h-4" /></Button>
+                                <Button variant={chartType === 'treemap' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('treemap')}><Grid3x3 className="w-4 h-4" /></Button>
+                            </div>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        <Plot
+                            data={plotData}
+                            layout={plotLayout}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            useResizeHandler
+                        />
+                    </CardContent>
+                </Card>
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                        <CardContent className="max-h-[200px] overflow-y-auto">{
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
+                                <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                            </Table>
+                        }</CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+                        <CardContent>{ <ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }</CardContent>
+                    </Card>
+                </div>
+            </div>
+        </AnalysisDisplayShell>
+    );
+};
+  
+const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question }: { chartData: any, tableData: any, insightsData: string[], varName: string, question: any }) => {
+    return (
+        <AnalysisDisplayShell varName={varName}>
+             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Average Rating</CardTitle>
+                    </CardHeader>
+                     <CardContent className="flex flex-col items-center justify-center min-h-[300px] gap-4">
+                        <StarDisplay rating={chartData.avg} total={question.scale?.length || 5} />
+                        <p className="text-2xl font-bold">{chartData.avg.toFixed(2)} <span className="text-base font-normal text-muted-foreground">/ {question.scale?.length || 5}</span></p>
+                    </CardContent>
+                </Card>
+                 <div className="space-y-4">
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Metric</TableHead>
+                                        <TableHead className="text-right">Value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow><TableCell>Average Rating</TableCell><TableCell className="text-right">{tableData.avg.toFixed(3)}</TableCell></TableRow>
+                                    <TableRow><TableCell>Median Rating</TableCell><TableCell className="text-right">{tableData.median}</TableCell></TableRow>
+                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{tableData.mode}</TableCell></TableRow>
+                                    <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell></TableRow>
+                                    <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{tableData.count}</TableCell></TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm list-disc pl-4">
+                                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </AnalysisDisplayShell>
+    );
+};
+
+const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
+    return (
+      <AnalysisDisplayShell varName={varName}>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Response Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        <Plot
+                            data={[{ x: chartData.values, type: 'histogram', marker: {color: COLORS[0]} }]}
+                            layout={{
+                                autosize: true,
+                                margin: { t: 40, b: 40, l: 40, r: 20 },
+                                bargap: 0.1,
+                            }}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            useResizeHandler
+                        />
+                    </CardContent>
+                </Card>
+                 <div className="space-y-4">
+                    <Card>
+                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                         <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Metric</TableHead>
+                                        <TableHead className="text-right">Value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{tableData.mean.toFixed(3)}</TableCell></TableRow>
+                                    <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{tableData.median}</TableCell></TableRow>
+                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{tableData.mode}</TableCell></TableRow>
+                                    <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell></TableRow>
+                                    <TableRow><TableCell>Minimum</TableCell><TableCell className="text-right">{tableData.min}</TableCell></TableRow>
+                                    <TableRow><TableCell>Maximum</TableCell><TableCell className="text-right">{tableData.max}</TableCell></TableRow>
+                                    <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{tableData.count}</TableCell></TableRow>
+                                </TableBody>
+                            </Table>
+                         </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+                        <CardContent>
+                             <ul className="space-y-2 text-sm list-disc pl-4">
+                                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+      </AnalysisDisplayShell>
+    );
+  };
+
+const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
+    return (
+       <AnalysisDisplayShell varName={varName}>
+             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Best-Worst Score</CardTitle>
+                    </CardHeader>
+                     <CardContent className="flex items-center justify-center min-h-[300px]">
+                        <Plot
+                            data={[{ ...chartData, type: 'bar', marker: { color: COLORS[1] } }]}
+                            layout={{
+                                autosize: true,
+                                margin: { t: 20, b: 40, l: 100, r: 20 },
+                                xaxis: { title: 'Best-Worst Score (Best count - Worst count)' },
+                            }}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            useResizeHandler
+                        />
+                    </CardContent>
+                </Card>
+                 <div className="space-y-4">
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                         <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Item</TableHead>
+                                        <TableHead className="text-right">Best Count</TableHead>
+                                        <TableHead className="text-right">Worst Count</TableHead>
+                                        <TableHead className="text-right">Net Score</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {tableData.map(item => (
+                                        <TableRow key={item.name}>
+                                            <TableCell>{item.name}</TableCell>
+                                            <TableCell className="text-right">{item.best}</TableCell>
+                                            <TableCell className="text-right">{item.worst}</TableCell>
+                                            <TableCell className="text-right font-bold">{item.score}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+                        <CardContent>
+                             <ul className="space-y-2 text-sm list-disc pl-4">
+                                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+       </AnalysisDisplayShell>
+    );
+};
+
+const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
+    return (
+        <AnalysisDisplayShell varName={varName}>
+             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Net Promoter Score</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        <div className="flex flex-col items-center justify-center h-full gap-4">
+                            <div className="text-7xl font-bold text-primary">{chartData.nps.toFixed(1)}</div>
+                            <p className="text-muted-foreground">Net Promoter Score</p>
+                            <div className="w-full pt-4">
+                                <div className="flex w-full h-8 rounded-full overflow-hidden">
+                                    <div className="bg-red-500" style={{ width: `${chartData.detractorsP}%` }} />
+                                    <div className="bg-yellow-400" style={{ width: `${chartData.passivesP}%` }} />
+                                    <div className="bg-green-500" style={{ width: `${chartData.promotersP}%` }} />
+                                </div>
+                                <div className="flex justify-between text-xs mt-1">
+                                    <span>Detractors</span>
+                                    <span>Passives</span>
+                                    <span>Promoters</span>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                 <div className="space-y-4">
+                    <Card>
+                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                         <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead className="text-right">Count</TableHead>
+                                        <TableHead className="text-right">Percentage</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow><TableCell>Promoters (9-10)</TableCell><TableCell className="text-right">{tableData.promoters}</TableCell><TableCell className="text-right">{tableData.promotersP.toFixed(1)}%</TableCell></TableRow>
+                                    <TableRow><TableCell>Passives (7-8)</TableCell><TableCell className="text-right">{tableData.passives}</TableCell><TableCell className="text-right">{tableData.passivesP.toFixed(1)}%</TableCell></TableRow>
+                                    <TableRow><TableCell>Detractors (0-6)</TableCell><TableCell className="text-right">{tableData.detractors}</TableCell><TableCell className="text-right">{tableData.detractorsP.toFixed(1)}%</TableCell></TableRow>
+                                    <TableRow className="font-bold border-t"><TableCell>NPS Score</TableCell><TableCell className="text-right" colSpan={2}>{tableData.nps.toFixed(1)}</TableCell></TableRow>
+                                </TableBody>
+                            </Table>
+                         </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm list-disc pl-4">
+                                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </AnalysisDisplayShell>
+    );
+};
+
+const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
+    if (!data) return null;
+    const { kpiData, insights } = data;
+    const kpiStatus = {
+        npsScore: kpiData.npsScore > 50 ? 'excellent' : kpiData.npsScore > 0 ? 'good' : 'poor',
+        avgSatisfaction: kpiData.avgSatisfaction > 4 ? 'excellent' : kpiData.avgSatisfaction > 3 ? 'good' : 'warning',
+        avgOrderValue: 'good',
+        repurchaseRate: kpiData.repurchaseRate > 50 ? 'excellent' : kpiData.repurchaseRate > 30 ? 'good' : 'warning',
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <KPICard title="NPS Score" value={kpiData.npsScore.toFixed(1)} status={kpiStatus.npsScore} />
+                <KPICard title="Avg Satisfaction" value={`${kpiData.avgSatisfaction.toFixed(2)} / 5`} status={kpiStatus.avgSatisfaction} />
+                <KPICard title="Avg Order Value" value={`$${kpiData.avgOrderValue.toFixed(2)}`} status={kpiStatus.avgOrderValue} />
+                <KPICard title="Repurchase Rate" value={`${kpiData.repurchaseRate.toFixed(1)}%`} status={kpiStatus.repurchaseRate} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {insights.map((insight: any, i: number) => <InsightCard key={i} insight={insight} />)}
+            </div>
+        </div>
+    )
+}
+
+
+const ServqualAnalyticsDashboard = ({ data }: { data: any }) => {
+    if (!data) return null;
+
+    const servqualChartConfig = {
+        expectation: { label: "Expectation", color: PALETTE[1] },
+        perception: { label: "Perception", color: PALETTE[0] },
+        gap: { label: "Gap", color: PALETTE[3] },
+    };
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>SERVQUAL Gap Scores by Dimension</CardTitle>
+                    <CardDescription>Negative gaps indicate perceptions fall short of expectations.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={servqualChartConfig} className="w-full h-96">
+                        <ResponsiveContainer>
+                            <RechartsBarChart data={data.dimensionScores}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" angle={-30} textAnchor="end" height={80} />
+                                <YAxis />
+                                <Tooltip content={<ChartTooltipContent />} />
+                                <Legend />
+                                <RechartsBar dataKey="expectation" fill="var(--color-expectation)" radius={4}/>
+                                <RechartsBar dataKey="perception" fill="var(--color-perception)" radius={4} />
+                                <RechartsBar dataKey="gap" fill="var(--color-gap)" radius={4} />
+                            </RechartsBarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
+    if (!ipaData) return null;
+    const { points, meanImportance, meanSatisfaction, quadrants } = ipaData;
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Importance-Performance Matrix</CardTitle>
+                </CardHeader>
+                <CardContent className="flex justify-center">
+                    <Plot
+                        data={[{
+                            x: points.map((p: any) => p.importance),
+                            y: points.map((p: any) => p.satisfaction),
+                            text: points.map((p: any) => p.name),
+                            mode: 'markers+text',
+                            textposition: 'top center',
+                            type: 'scatter',
+                            marker: { size: 12, color: COLORS[0] }
+                        }]}
+                        layout={{
+                            autosize: true,
+                            width: 600,
+                            height: 600,
+                            xaxis: { title: 'Derived Importance' },
+                            yaxis: { title: 'Stated Satisfaction' },
+                            shapes: [
+                                { type: 'line', x0: meanImportance, x1: meanImportance, y0: Math.min(...points.map((p:any) => p.satisfaction)) - 0.5, y1: Math.max(...points.map((p:any) => p.satisfaction)) + 0.5, line: { dash: 'dash', color: 'grey' } },
+                                { type: 'line', y0: meanSatisfaction, y1: meanSatisfaction, x0: Math.min(...points.map((p:any) => p.importance)) - 0.05, x1: Math.max(...points.map((p:any) => p.importance)) + 0.05, line: { dash: 'dash', color: 'grey' } }
+                            ],
+                            annotations: [
+                                { x: meanImportance, y: Math.max(...points.map((p:any) => p.satisfaction)) + 0.3, text: 'Keep Up Good Work', showarrow: false, xanchor: 'left'},
+                                { x: meanImportance, y: Math.min(...points.map((p:any) => p.satisfaction)) - 0.3, text: 'Concentrate Here', showarrow: false, xanchor: 'left', yanchor: 'top'},
+                                { x: Math.min(...points.map((p:any) => p.importance)) - 0.05, y: Math.max(...points.map((p:any) => p.satisfaction)) + 0.3, text: 'Possible Overkill', showarrow: false, xanchor: 'left'},
+                                { x: Math.min(...points.map((p:any) => p.importance)) - 0.05, y: Math.min(...points.map((p:any) => p.satisfaction)) - 0.3, text: 'Low Priority', showarrow: false, xanchor: 'left', yanchor: 'top'},
+                            ]
+                        }}
+                        style={{ width: '100%', height: '100%' }}
+                        useResizeHandler
+                    />
+                </CardContent>
+            </Card>
+        </div>
+    );
 };
 
 export default function SurveyApp() {
