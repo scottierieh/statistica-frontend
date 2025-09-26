@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
     Network, 
     Database, 
@@ -174,19 +175,23 @@ const calculateSEM = (data: any[], measurementModel: { [key: string]: string[] }
         };
     });
     
-    // 적합도 지수
+    // 적합도 지수 계산 (시뮬레이션)
+    const numFactors = Object.keys(measurementModel).filter(f => measurementModel[f].length > 0).length;
+    const numItems = Object.values(measurementModel).flat().length;
+    const complexity = numItems > 0 && numFactors > 0 ? numItems / numFactors : 1;
+    
     const fitIndices = {
         chi_square: Math.random() * 100 + 20,
-        df: Math.max(1, Object.keys(measurementModel).length * 2),
+        df: Math.max(1, numItems * (numItems + 1) / 2 - numItems * numFactors),
         p_value: Math.random() * 0.3 + 0.05,
-        rmsea: Math.max(0.02, 0.12 - Object.keys(measurementModel).length * 0.02 + Math.random() * 0.03),
-        cfi: Math.min(0.99, 0.75 + Object.keys(measurementModel).length * 0.04 + Math.random() * 0.08),
-        tli: Math.min(0.98, 0.73 + Object.keys(measurementModel).length * 0.04 + Math.random() * 0.08),
-        srmr: Math.max(0.02, 0.10 - Object.keys(measurementModel).length * 0.015 + Math.random() * 0.02),
-        gfi: Math.min(0.98, 0.80 + Object.keys(measurementModel).length * 0.03 + Math.random() * 0.06),
-        agfi: Math.min(0.97, 0.75 + Object.keys(measurementModel).length * 0.03 + Math.random() * 0.06),
-        nfi: Math.min(0.97, 0.78 + Object.keys(measurementModel).length * 0.03 + Math.random() * 0.07),
-        ifi: Math.min(0.98, 0.80 + Object.keys(measurementModel).length * 0.03 + Math.random() * 0.06)
+        rmsea: Math.max(0.02, 0.12 - complexity * 0.02 + Math.random() * 0.03),
+        cfi: Math.min(0.99, 0.75 + complexity * 0.05 + Math.random() * 0.1),
+        tli: Math.min(0.98, 0.73 + complexity * 0.04 + Math.random() * 0.08),
+        srmr: Math.max(0.02, 0.10 - complexity * 0.015 + Math.random() * 0.02),
+        gfi: Math.min(0.98, 0.80 + complexity * 0.03 + Math.random() * 0.06),
+        agfi: Math.min(0.97, 0.75 + complexity * 0.03 + Math.random() * 0.06),
+        nfi: Math.min(0.97, 0.78 + complexity * 0.03 + Math.random() * 0.07),
+        ifi: Math.min(0.98, 0.80 + complexity * 0.03 + Math.random() * 0.06)
     };
     
     return {
@@ -254,6 +259,29 @@ const IntroPage = ({ onStart }: { onStart: () => void }) => {
                             </ul>
                         </div>
                     </div>
+                    
+                    <div className="bg-gray-50 rounded-lg p-6">
+                        <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                            <Calculator className="text-green-600"/> Analysis Steps
+                        </h3>
+                        <div className="grid md:grid-cols-5 gap-4 text-sm">
+                            {[
+                                { num: 1, title: "Specification", desc: "Define models" },
+                                { num: 2, title: "Identification", desc: "Check parameters" },
+                                { num: 3, title: "Estimation", desc: "Calculate values" },
+                                { num: 4, title: "Evaluation", desc: "Assess fit" },
+                                { num: 5, title: "Modification", desc: "Improve model" }
+                            ].map(step => (
+                                <div key={step.num} className="flex flex-col items-center text-center">
+                                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold mb-2">
+                                        {step.num}
+                                    </div>
+                                    <span className="font-medium">{step.title}</span>
+                                    <span className="text-xs text-gray-500 mt-1">{step.desc}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-end p-6 bg-gray-50">
                     <Button size="lg" onClick={onStart} className="bg-green-600 hover:bg-green-700">
@@ -265,7 +293,7 @@ const IntroPage = ({ onStart }: { onStart: () => void }) => {
     );
 };
 
-export default function SemPage() {
+export default function SEMAnalysisComponent() {
     const [view, setView] = useState('main');
     const [data, setData] = useState<any[]>([]);
     const [datasetType, setDatasetType] = useState('academic');
@@ -274,13 +302,7 @@ export default function SemPage() {
     const [results, setResults] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [newLatentVar, setNewLatentVar] = useState('');
-    
-    // 이 컴포넌트는 클라이언트 측에서만 렌더링되도록 보장
-    if (typeof window === 'undefined') {
-        return null;
-    }
 
-    // 샘플 데이터 로드
     const loadSampleData = (type: string) => {
         let sampleData, defaultMeasurement, defaultStructural;
         
@@ -327,7 +349,7 @@ export default function SemPage() {
     }, [measurementModel]);
 
     const addLatentVariable = () => {
-        if (newLatentVar.trim() && !measurementModel[newLatentVar]) {
+        if (newLatentVar.trim() && !measurementModel[newLatentVar.trim()]) {
             setMeasurementModel(prev => ({
                 ...prev,
                 [newLatentVar.trim()]: []
@@ -368,7 +390,7 @@ export default function SemPage() {
         setResults(semResults);
         setIsLoading(false);
     };
-
+    
     if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} />;
     }
@@ -380,9 +402,14 @@ export default function SemPage() {
                     <h1 className="text-3xl font-bold text-gray-800">SEM Analysis</h1>
                     <p className="text-gray-600">Structural Equation Modeling</p>
                 </div>
-                <Button onClick={() => setView('intro')} variant="ghost">
-                    <Info className="w-4 h-4 mr-2" /> Help
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => loadSampleData(datasetType)}>
+                        Load Sample Data
+                    </Button>
+                    <Button onClick={() => setView('intro')} variant="ghost">
+                        <Info className="w-4 h-4 mr-2" /> Help
+                    </Button>
+                </div>
             </div>
 
             {data.length > 0 && (
@@ -390,7 +417,7 @@ export default function SemPage() {
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Dataset Loaded</AlertTitle>
                     <AlertDescription>
-                        {data.length} observations with {availableVariables.length} variables loaded.
+                        {data.length} observations with {availableVariables.length} variables loaded successfully.
                     </AlertDescription>
                 </Alert>
             )}
@@ -552,10 +579,17 @@ export default function SemPage() {
                                     <TabsTrigger value="structural">Structural</TabsTrigger>
                                     <TabsTrigger value="diagram">Diagram</TabsTrigger>
                                 </TabsList>
+                                <TabsContent value="fit" className="mt-4">
+                                    Content for Model Fit
+                                </TabsContent>
+                                <TabsContent value="measurement" className="mt-4">
+                                    Content for Measurement Model
+                                </TabsContent>
+                                <TabsContent value="structural" className="mt-4">
+                                    Content for Structural Model
+                                </TabsContent>
                                 <TabsContent value="diagram" className="mt-4">
-                                    <div className="bg-gray-50 rounded-lg p-6 min-h-64 flex items-center justify-center">
-                                        <p>Path diagram visualization coming soon.</p>
-                                    </div>
+                                     Content for Path Diagram
                                 </TabsContent>
                             </Tabs>
                         )}
@@ -572,4 +606,3 @@ export default function SemPage() {
         </div>
     );
 }
-
