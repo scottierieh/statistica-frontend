@@ -19,29 +19,118 @@ import {
   History,
   ClipboardList,
   LayoutTemplate,
-  Settings as SettingsIcon,
+  Plus,
   BarChart2,
-  LayoutDashboard
+  LayoutDashboard,
+  Edit,
+  Eye,
 } from 'lucide-react';
 import SurveyApp from '@/components/survey-app';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 type SurveySection = 'design' | 'history' | 'templates';
 
+// Mock data for survey history
+const mockSurveys = [
+    { id: '1', title: 'Customer Satisfaction Survey 2024', responses: 152, createdAt: '2024-07-15', status: 'Active' },
+    { id: '2', title: 'Employee Engagement Q2', responses: 88, createdAt: '2024-06-20', status: 'Closed' },
+    { id: '3', title: 'New Feature Feedback', responses: 341, createdAt: '2024-07-01', status: 'Active' },
+    { id: '4', title: 'Website Usability Test', responses: 56, createdAt: '2024-05-10', status: 'Draft' },
+];
+
+
+const SurveyHistory = () => {
+    const router = useRouter();
+
+    const handleNewSurvey = () => {
+        const newId = Date.now().toString();
+        router.push(`/dashboard/survey?id=${newId}`);
+    };
+
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Survey History</CardTitle>
+                    <CardDescription>View and manage your past and active surveys.</CardDescription>
+                </div>
+                <Button onClick={handleNewSurvey}>
+                    <Plus className="mr-2" /> New Survey
+                </Button>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Responses</TableHead>
+                            <TableHead>Created At</TableHead>
+                            <TableHead>Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {mockSurveys.map(survey => (
+                            <TableRow key={survey.id}>
+                                <TableCell className="font-medium">{survey.title}</TableCell>
+                                <TableCell><Badge variant={survey.status === 'Active' ? 'default' : 'secondary'}>{survey.status}</Badge></TableCell>
+                                <TableCell className="text-right">{survey.responses}</TableCell>
+                                <TableCell>{survey.createdAt}</TableCell>
+                                <TableCell className="flex gap-2">
+                                     <Link href={`/dashboard/survey?id=${survey.id}`}>
+                                        <Button variant="outline" size="icon">
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                    </Link>
+                                     <Link href={`/survey/view/general/${survey.id}`} target="_blank">
+                                        <Button variant="ghost" size="icon">
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
+                                    </Link>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
+};
+
+
 export default function SurveyPage() {
-  const [activeSection, setActiveSection] = useState<SurveySection>('design');
+  const searchParams = useSearchParams();
+  const surveyId = searchParams.get('id');
+
+  const [activeSection, setActiveSection] = useState<SurveySection>('history');
   
   const renderContent = () => {
-    switch (activeSection) {
-      case 'design':
+    if (surveyId) {
         return <SurveyApp />;
+    }
+    
+    switch (activeSection) {
       case 'history':
-        return <div className="p-8 text-center">History of surveys will be displayed here.</div>;
+        return <SurveyHistory />;
       case 'templates':
         return <div className="p-8 text-center">Survey templates will be available here.</div>;
       default:
-        return <SurveyApp />;
+        return <SurveyHistory />;
     }
   };
+
+  // Determine which section should be active based on URL
+  useEffect(() => {
+    if (surveyId) {
+      setActiveSection('design');
+    } else {
+      setActiveSection('history');
+    }
+  }, [surveyId]);
 
   return (
     <SidebarProvider>
@@ -61,24 +150,27 @@ export default function SurveyPage() {
                 <SidebarMenuButton
                   onClick={() => setActiveSection('design')}
                   isActive={activeSection === 'design'}
+                  disabled={!surveyId}
                 >
                   <LayoutDashboard />
                   <span>Design & Analysis</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveSection('history')}
-                  isActive={activeSection === 'history'}
-                >
-                  <History />
-                  <span>History</span>
-                </SidebarMenuButton>
+                <Link href="/dashboard/survey" className="w-full">
+                    <SidebarMenuButton
+                      isActive={activeSection === 'history' && !surveyId}
+                    >
+                      <History />
+                      <span>History</span>
+                    </SidebarMenuButton>
+                 </Link>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => setActiveSection('templates')}
                   isActive={activeSection === 'templates'}
+                  disabled
                 >
                   <LayoutTemplate />
                   <span>Templates</span>
