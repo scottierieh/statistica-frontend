@@ -4,12 +4,13 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { produce } from 'immer';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell, PieChart, Pie } from 'recharts';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +39,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { LineChart, Line, ReferenceLine, Label as RechartsLabel, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DateRange } from 'react-day-picker';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DatePickerWithRange } from '../ui/date-range-picker';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import VanWestendorpPage from '@/components/pages/van-westendorp-page';
@@ -48,7 +49,6 @@ import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addDays } from 'date-fns';
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
@@ -817,7 +817,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                             </TableCell>
                             {question.columns.map((col: string, colIndex: number) => (
                                 <TableCell key={colIndex} className="text-center">
-                                    <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                                     <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                         <RadioGroupItem value={col}/>
                                     </RadioGroup>
                                 </TableCell>
@@ -2769,7 +2769,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                  </div>
                              ) : (
                                  <DndContext sensors={sensors} onDragEnd={handleDashboardDragEnd}>
-                                     <div className="relative w-[1000px] h-[800px] bg-muted/50 rounded-lg border overflow-hidden">
+                                     <div className="relative w-full min-h-[800px] bg-muted/50 rounded-lg border overflow-auto">
                                          {analysisItems.filter((q: any) => q.type !== 'description' && q.type !== 'phone' && q.type !== 'email').map((q: any, i: number) => {
                                              const { noData, chartData } = getAnalysisDataForQuestion(q.id, null, null);
                                              if (noData) return null;
@@ -2852,14 +2852,14 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                      </TabsContent>
                  )}
              </Tabs>
-         </div>
-     );
- }
+        </div>
+    );
+}
  
- type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
- type QuestionLogic = { questionId: number; paths: LogicPath[] };
+type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
+type QuestionLogic = { questionId: number; paths: LogicPath[] };
  
- const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position?: Position }) => {
+const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position?: Position }) => {
      const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
  
      const style: React.CSSProperties = {
