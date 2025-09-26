@@ -78,6 +78,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
+
 interface SemPageProps {
     data: DataSet;
     allHeaders: string[];
