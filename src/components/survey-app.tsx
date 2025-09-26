@@ -921,13 +921,13 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                 )}
                             </TableCell>
                             <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                <>
+                                <div className="contents">
                                 {question.columns.map((col: string, colIndex: number) => (
                                     <TableCell key={colIndex} className="text-center">
                                         <RadioGroupItem value={col}/>
                                     </TableCell>
                                 ))}
-                                </>
+                                </div>
                             </RadioGroup>
                             {!isPreview && <TableCell></TableCell>}
                         </TableRow>
@@ -2659,7 +2659,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                      <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Detailed Analysis</CardTitle>
-                             <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2">
                                     <Label htmlFor="filter-key">Filter by</Label>
                                     <Select value={filterKey} onValueChange={(v) => {setFilterKey(v); setFilterValue(null);}}>
@@ -2689,25 +2689,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                         </SelectContent>
                                     </Select>
                                 </div>
+                                 <Button variant="secondary" onClick={downloadResponsesCSV} disabled={responses.length === 0}><Download className="mr-2" /> Export CSV</Button>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-8">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Response ID</TableHead>
-                                        <TableHead>Submitted At</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {responses.map(r => (
-                                        <TableRow key={r.id} className={cn(selectedRespondent === r.id && "bg-primary/10")}>
-                                            <TableCell>{r.id}</TableCell>
-                                            <TableCell>{new Date(r.submittedAt).toLocaleString()}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
                             {responses.length === 0 ? (
                                 <div className="flex justify-center items-center h-64 border-2 border-dashed rounded-lg">
                                     <p className="text-muted-foreground">No responses yet. Share your survey to collect data!</p>
@@ -2943,5 +2928,4 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
-
 
