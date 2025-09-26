@@ -433,110 +433,6 @@ const MultipleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete,
    );
 };
 
-const TextAnalysisDisplay = ({ tableData, varName }: { tableData: any[], varName: string; }) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [wordCloudImage, setWordCloudImage] = useState<string | null>(null);
-    const [frequencies, setFrequencies] = useState<{ word: string, count: number }[]>([]);
-    const [excludedWords, setExcludedWords] = useState<string[]>([]);
-
-    const generateCloud = useCallback(async (stopwords: string[]) => {
-        setIsLoading(true);
-        try {
-            const response = await fetch('/api/analysis/wordcloud', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: tableData.join('\n'),
-                    customStopwords: stopwords.join(',')
-                })
-            });
-            if (!response.ok) throw new Error('Failed to generate word cloud');
-            const result = await response.json();
-            if (result.plots?.wordcloud) {
-                setWordCloudImage(result.plots.wordcloud);
-                setFrequencies(Object.entries(result.frequencies).map(([word, count]) => ({ word, count: count as number })));
-            } else {
-                throw new Error('Word cloud image not found in response');
-            }
-        } catch (error) {
-            console.error("Word cloud generation failed", error);
-            setWordCloudImage(null);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [tableData]);
-
-    useEffect(() => {
-        if (tableData.length > 0) {
-            generateCloud(excludedWords);
-        } else {
-            setIsLoading(false);
-        }
-    }, [tableData, excludedWords, generateCloud]);
-    
-    const handleExcludeWord = (word: string) => {
-        if (!excludedWords.includes(word)) {
-            setExcludedWords([...excludedWords, word]);
-        }
-    };
-    
-    const handleRestoreWord = (word: string) => {
-        setExcludedWords(excludedWords.filter(w => w !== word));
-    }
-
-    return (
-        <AnalysisDisplayShell varName={varName}>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Word Cloud</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex items-center justify-center min-h-[300px]">
-                        {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={wordCloudImage} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
-                    </CardContent>
-                </Card>
-                <div className="space-y-4">
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base">Word Frequencies</CardTitle></CardHeader>
-                        <CardContent>
-                             <ScrollArea className="h-64">
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Word</TableHead><TableHead className="text-right">Count</TableHead><TableHead></TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {frequencies.map(({ word, count }) => (
-                                            <TableRow key={word}>
-                                                <TableCell>{word}</TableCell>
-                                                <TableCell className="text-right">{count}</TableCell>
-                                                <TableCell>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleExcludeWord(word)}>
-                                                        <Trash2 className="w-4 h-4 text-destructive"/>
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
-                    {excludedWords.length > 0 && (
-                        <Card>
-                            <CardHeader className="pb-2"><CardTitle className="text-base">Excluded Words</CardTitle></CardHeader>
-                            <CardContent className="flex flex-wrap gap-2">
-                                {excludedWords.map(word => (
-                                    <Badge key={word} variant="secondary" className="cursor-pointer" onClick={() => handleRestoreWord(word)}>
-                                        {word} <X className="ml-1 h-3 w-3" />
-                                    </Badge>
-                                ))}
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
-            </div>
-        </AnalysisDisplayShell>
-    );
-};
-
 const TextQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
   <div className={cn("p-4", cardClassName)}>
     <div className="flex justify-between items-start mb-4">
@@ -920,15 +816,13 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                <div className="contents">
-                                {question.columns.map((col: string, colIndex: number) => (
-                                    <TableCell key={colIndex} className="text-center">
+                            {question.columns.map((col: string, colIndex: number) => (
+                                <TableCell key={colIndex} className="text-center">
+                                    <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                         <RadioGroupItem value={col}/>
-                                    </TableCell>
-                                ))}
-                                </div>
-                            </RadioGroup>
+                                    </RadioGroup>
+                                </TableCell>
+                            ))}
                             {!isPreview && <TableCell></TableCell>}
                         </TableRow>
                     ))}
@@ -980,7 +874,7 @@ const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                     <TableRow>
                         <TableHead className="w-1/3">Statement</TableHead>
                         {question.scale?.map((col: string, colIndex: number) => (
-                            <TableHead key={colIndex} className="text-center text-xs w-[100px] group relative">
+                            <TableHead key={colIndex} className="text-center text-xs w-[100px]">
                                 {isPreview ? col : <Input value={col} onChange={e => handleScaleChange(colIndex, e.target.value)} className="border-none text-center bg-transparent focus:ring-0 p-0" />}
                             </TableHead>
                         ))}
