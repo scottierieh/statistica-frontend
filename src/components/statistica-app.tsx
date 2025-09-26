@@ -60,6 +60,7 @@ import {
   GitCommit,
   DollarSign,
   ThumbsUp,
+  ClipboardList,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -122,7 +123,6 @@ import StationarityPage from './pages/stationarity-page';
 import LjungBoxPage from './pages/ljung-box-page';
 import ArchLmTestPage from './pages/arch-lm-test-page';
 import ForecastEvaluationPage from './pages/forecast-evaluation-page';
-import SemPage from './pages/sem-page';
 import ConjointAnalysisPage from './pages/conjoint-analysis-page';
 import CbcAnalysisPage from './pages/cbc-analysis-page';
 import IpaPage from './pages/ipa-page';
@@ -135,7 +135,7 @@ import AhpPage from './pages/ahp-page';
 import DeaPage from './pages/dea-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
 import NonlinearProgrammingPage from './pages/nonlinear-programming-page';
-
+import SemPage from './pages/sem-page';
 
 type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | 'classifier-comparison' | string;
 
@@ -169,6 +169,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     'logistic-regression': LogisticRegressionPage,
     glm: GlmPage,
     'mixed-model': MixedModelPage,
+    'rm-anova-pingouin': MixedModelPage,
     kmeans: KMeansPage,
     kmedoids: KMedoidsPage,
     hdbscan: HdbscanPage,
