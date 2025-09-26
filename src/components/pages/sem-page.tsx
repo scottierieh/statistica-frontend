@@ -133,7 +133,7 @@ export default function SemPage({ data, allHeaders, onLoadExample }: SemPageProp
             if (result.error) throw new Error(result.error);
             setAnalysisResult(result);
 
-        } catch(e: any) {
+        } catch (e: any) {
             console.error('SEM error:', e);
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
