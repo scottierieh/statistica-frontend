@@ -13,11 +13,11 @@ import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight,
 import { Table as DndTable } from '@/components/ui/table';
 import { Select as DndSelect, SelectTrigger as DndSelectTrigger, SelectValue as DndSelectValue, SelectContent as DndSelectContent, SelectItem as DndSelectItem } from '@/components/ui/select';
 import { produce } from 'immer';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { ChartContainer, ChartTooltipContent } from '../ui/chart';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell, PieChart, Pie } from 'recharts';
-import { Badge } from '../ui/badge';
-import { ScrollArea } from '../ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -47,6 +47,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import VanWestendorpPage from '@/components/pages/van-westendorp-page';
 import dynamic from 'next/dynamic';
+import Papa from 'papaparse';
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
 
@@ -916,13 +917,15 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            {question.columns.map((col: string, colIndex: number) => (
-                                <TableCell key={colIndex} className="text-center">
-                                    <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                                <>
+                                {question.columns.map((col: string, colIndex: number) => (
+                                    <TableCell key={colIndex} className="text-center">
                                         <RadioGroupItem value={col}/>
-                                    </RadioGroup>
-                                </TableCell>
-                            ))}
+                                    </TableCell>
+                                ))}
+                                </>
+                            </RadioGroup>
                             {!isPreview && <TableCell></TableCell>}
                         </TableRow>
                     ))}
@@ -934,6 +937,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
         </div>
     );
 };
+
 
 const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, isPreview, cardClassName }: { question: any, answer: any, onAnswerChange?: (value: any) => void, onUpdate?: (q:any) => void, onDelete?: (id: number) => void, isPreview?: boolean, cardClassName?: string }) => {
     const handleItemChange = (index: number, value: string) => {
@@ -997,8 +1001,8 @@ const LikertQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                             </TableCell>
                             <RadioGroup asChild value={answer?.[item]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[item] = value; }))}>
                                 <>
-                                {question.scale.map((scalePoint: string, colIndex: number) => (
-                                    <TableCell key={colIndex} className="text-center">
+                                {question.scale.map((scalePoint: string) => (
+                                    <TableCell key={scalePoint} className="text-center">
                                         <RadioGroupItem value={scalePoint}/>
                                     </TableCell>
                                 ))}
@@ -1731,13 +1735,21 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     };
 
     
-    const getAnalysisDataForQuestion = (questionId: number) => {
+    const getAnalysisDataForQuestion = (questionId: number, filter: {filterKey: string, filterValue: string | null} | null) => {
         const question = survey.questions.find((q: any) => q.id === questionId);
         if (!question) {
             return { noData: true, chartData: null, tableData: null, insights: [] };
         }
         
-        const allAnswers = responses.map(r => r.answers ? r.answers[question.id] : undefined).filter(a => a !== undefined && a !== null && a !== '');
+        let targetResponses = responses;
+        if (filter && filter.filterValue) {
+            const filterQuestion = survey.questions.find((q:any) => q.title === filter.filterKey);
+            if(filterQuestion) {
+                 targetResponses = responses.filter(r => r.answers[filterQuestion.id] === filter.filterValue);
+            }
+        }
+        
+        const allAnswers = targetResponses.map(r => r.answers ? r.answers[question.id] : undefined).filter(a => a !== undefined && a !== null && a !== '');
         
         if (allAnswers.length === 0) {
             return { noData: true, chartData: null, tableData: null, insights: ["No responses yet."] };
@@ -2596,9 +2608,16 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                      <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Detailed Analysis</CardTitle>
-                            <CardDescription>
-                                A question-by-question breakdown of survey responses.
-                            </CardDescription>
+                             <div className="flex items-center gap-2">
+                                <Label htmlFor="filter-key">Filter by</Label>
+                                <Select value={filterKey} onValueChange={(v) => {setFilterKey(v); }}>
+                                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="All">All Respondents</SelectItem>
+                                        {demographicQuestions.map((q:any) => <SelectItem key={q.id} value={q.title}>{q.title}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </CardHeader>
                         <CardContent className="space-y-8">
                             {responses.length === 0 ? (
@@ -2846,3 +2865,5 @@ const InsightCard: React.FC<InsightCardProps> = ({ insight }) => {
         </Card>
     );
 };
+
+
