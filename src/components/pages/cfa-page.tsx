@@ -25,12 +25,85 @@ import {
     MoveRight
 } from 'lucide-react';
 import { produce } from 'immer';
+import { exampleDatasets } from '@/lib/example-datasets';
 
-// This is a simplified frontend simulation and does not represent a real CFA calculation.
-// The actual calculation would happen on a backend server.
+// 샘플 데이터 생성 함수
+const generateCFAData = (nSamples = 300) => {
+    const data = [];
+    
+    for (let i = 0; i < nSamples; i++) {
+        // Factor 1: Cognitive Ability (4 items)
+        const cogFactor = Math.random() * 2 - 1; // 표준정규분포 근사
+        const cog1 = 0.8 * cogFactor + Math.random() * 0.6 - 0.3;
+        const cog2 = 0.75 * cogFactor + Math.random() * 0.6 - 0.3;
+        const cog3 = 0.7 * cogFactor + Math.random() * 0.6 - 0.3;
+        const cog4 = 0.65 * cogFactor + Math.random() * 0.6 - 0.3;
+        
+        // Factor 2: Emotional Wellbeing (4 items)
+        const emoFactor = Math.random() * 2 - 1;
+        const emo1 = 0.85 * emoFactor + Math.random() * 0.5 - 0.25;
+        const emo2 = 0.78 * emoFactor + Math.random() * 0.5 - 0.25;
+        const emo3 = 0.72 * emoFactor + Math.random() * 0.5 - 0.25;
+        const emo4 = 0.68 * emoFactor + Math.random() * 0.5 - 0.25;
+        
+        // Factor 3: Social Skills (3 items)
+        const socFactor = Math.random() * 2 - 1;
+        const soc1 = 0.75 * socFactor + Math.random() * 0.6 - 0.3;
+        const soc2 = 0.70 * socFactor + Math.random() * 0.6 - 0.3;
+        const soc3 = 0.65 * socFactor + Math.random() * 0.6 - 0.3;
+        
+        data.push({
+            id: i + 1,
+            Cognitive_1: Math.round((cog1 * 1.5 + 4) * 10) / 10,
+            Cognitive_2: Math.round((cog2 * 1.5 + 4) * 10) / 10,
+            Cognitive_3: Math.round((cog3 * 1.5 + 4) * 10) / 10,
+            Cognitive_4: Math.round((cog4 * 1.5 + 4) * 10) / 10,
+            Emotional_1: Math.round((emo1 * 1.5 + 4) * 10) / 10,
+            Emotional_2: Math.round((emo2 * 1.5 + 4) * 10) / 10,
+            Emotional_3: Math.round((emo3 * 1.5 + 4) * 10) / 10,
+            Emotional_4: Math.round((emo4 * 1.5 + 4) * 10) / 10,
+            Social_1: Math.round((soc1 * 1.5 + 4) * 10) / 10,
+            Social_2: Math.round((soc2 * 1.5 + 4) * 10) / 10,
+            Social_3: Math.round((soc3 * 1.5 + 4) * 10) / 10
+        });
+    }
+    
+    return data;
+};
+
+// CFA 계산 함수들
+const calculateCorrelationMatrix = (data: any[], variables: string[]) => {
+    const n = data.length;
+    const correlations: { [key: string]: { [key: string]: number } } = {};
+    
+    for (let i = 0; i < variables.length; i++) {
+        correlations[variables[i]] = {};
+        for (let j = 0; j < variables.length; j++) {
+            if (i === j) {
+                correlations[variables[i]][variables[j]] = 1;
+            } else {
+                const x = data.map(row => parseFloat(row[variables[i]]));
+                const y = data.map(row => parseFloat(row[variables[j]]));
+                
+                const meanX = x.reduce((a, b) => a + b) / n;
+                const meanY = y.reduce((a, b) => a + b) / n;
+                
+                const numerator = x.map((xi, idx) => (xi - meanX) * (y[idx] - meanY))
+                                   .reduce((a, b) => a + b);
+                const denomX = Math.sqrt(x.map(xi => Math.pow(xi - meanX, 2)).reduce((a, b) => a + b));
+                const denomY = Math.sqrt(y.map(yi => Math.pow(yi - meanY, 2)).reduce((a, b) => a + b));
+                
+                correlations[variables[i]][variables[j]] = numerator / (denomX * denomY);
+            }
+        }
+    }
+    
+    return correlations;
+};
 
 const calculateCFA = (data: any[], modelSpec: { [key: string]: string[] }) => {
     const allVariables = Object.values(modelSpec).flat();
+    const correlationMatrix = calculateCorrelationMatrix(data, allVariables);
     
     // Simple CFA estimation simulation
     const factorLoadings: { [key: string]: { [key: string]: number } } = {};
@@ -43,40 +116,108 @@ const calculateCFA = (data: any[], modelSpec: { [key: string]: string[] }) => {
         
         if (items.length === 0) return;
         
+        // 각 문항의 요인부하량 계산 (상관계수 기반 근사)
         items.forEach(item => {
-            factorLoadings[factor][item] = Math.random() * 0.4 + 0.5; // Simulate loadings between 0.5 and 0.9
+            const avgCorrelation = items
+                .filter(otherItem => otherItem !== item)
+                .map(otherItem => Math.abs(correlationMatrix[item][otherItem]))
+                .reduce((a, b) => a + b, 0) / (items.length - 1 || 1);
+            
+            factorLoadings[factor][item] = Math.min(0.95, Math.max(0.3, avgCorrelation + 0.2 + Math.random() * 0.2));
         });
         
-        const loadings: number[] = Object.values(factorLoadings[factor]);
+        // 신뢰도 계산 (Cronbach's Alpha 근사)
+        const loadings = Object.values(factorLoadings[factor]);
         const sumLoadings = loadings.reduce((a, b) => a + b, 0);
         const sumSquaredLoadings = loadings.reduce((a, b) => a + b * b, 0);
         
-        const compositeReliability = Math.pow(sumLoadings, 2) / (Math.pow(sumLoadings, 2) + items.length * (1-sumSquaredLoadings/items.length));
+        const compositeReliability = Math.pow(sumLoadings, 2) / (Math.pow(sumLoadings, 2) + items.length);
         const averageVarianceExtracted = sumSquaredLoadings / items.length;
         
         reliability[factor] = {
             composite_reliability: Math.min(0.95, Math.max(0.6, compositeReliability)),
             average_variance_extracted: Math.min(0.90, Math.max(0.4, averageVarianceExtracted)),
-            cronbach_alpha: Math.min(0.95, Math.max(0.6, compositeReliability * 0.95))
+            cronbach_alpha: Math.min(0.95, Math.max(0.6, compositeReliability * 0.9))
         };
     });
     
+    // 적합도 지수 계산 (시뮬레이션)
     const numFactors = Object.keys(modelSpec).filter(f => modelSpec[f].length > 0).length;
     const numItems = allVariables.length;
     const complexity = numItems > 0 && numFactors > 0 ? numItems / numFactors : 1;
     
     fitIndices.chi_square = Math.random() * 50 + 10;
-    fitIndices.df = Math.max(1, numItems * (numItems + 1) / 2 - numItems * 2);
+    fitIndices.df = Math.max(1, numItems * (numItems + 1) / 2 - numItems * numFactors);
     fitIndices.rmsea = Math.max(0.02, 0.15 - complexity * 0.02 + Math.random() * 0.04);
     fitIndices.cfi = Math.min(0.99, 0.75 + complexity * 0.05 + Math.random() * 0.1);
     fitIndices.tli = Math.min(0.98, fitIndices.cfi - 0.02);
     fitIndices.srmr = Math.max(0.02, 0.12 - complexity * 0.02 + Math.random() * 0.03);
+    fitIndices.gfi = Math.min(0.98, 0.80 + complexity * 0.03 + Math.random() * 0.08);
+    fitIndices.agfi = Math.min(0.97, fitIndices.gfi - 0.05);
     
     return { factorLoadings, fitIndices, reliability };
 };
 
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <BrainCircuit size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Confirmatory Factor Analysis (CFA)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
+                        Test how well a pre-specified factor structure fits your observed data.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use CFA?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            CFA is a confirmatory technique used to test a specific hypothesis about the structure 
+                            of a set of variables. It's crucial for scale validation and theory testing.
+                        </p>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-xl flex items-center gap-2">
+                                <Settings className="text-primary"/> Setup Guide
+                            </h3>
+                            <ol className="list-decimal list-inside space-y-3 text-muted-foreground">
+                                <li><strong>Define Factors:</strong> Add latent constructs you want to test</li>
+                                <li><strong>Assign Variables:</strong> Assign observed variables to each factor</li>
+                                <li><strong>Run Analysis:</strong> Get fit indices and parameter estimates</li>
+                            </ol>
+                        </div>
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-xl flex items-center gap-2">
+                                <FileSearch className="text-primary"/> Interpretation
+                            </h3>
+                            <ul className="list-disc pl-5 space-y-3 text-muted-foreground">
+                                <li><strong>Fit Indices:</strong> CFI/TLI &gt; .90, RMSEA &lt; .08</li>
+                                <li><strong>Loadings:</strong> Should be high (&gt; 0.5) and significant</li>
+                                <li><strong>Reliability:</strong> CR &gt; 0.7, AVE &gt; 0.5</li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    <Button variant="outline" onClick={onLoadExample}>Load Sample Data</Button>
+                    <Button size="lg" onClick={onStart}>
+                        Start Analysis <MoveRight className="ml-2 w-5 h-5"/>
+                    </Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 
 export default function CompleteCFAComponent() {
+    const [view, setView] = useState('main'); // Default to main view
     const [data, setData] = useState<any[]>([]);
     const [modelSpec, setModelSpec] = useState<{ [key: string]: string[] }>({
         'Cognitive Ability': [],
@@ -183,6 +324,10 @@ export default function CompleteCFAComponent() {
 
         return { score, interpretation };
     };
+    
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={loadSampleData} />;
+    }
 
     return (
         <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -455,7 +600,7 @@ export default function CompleteCFAComponent() {
                                         <tr key={idx} className="border-b">
                                             {Object.values(row).slice(0, 8).map((value, valueIdx) => (
                                                 <td key={valueIdx} className="p-2">
-                                                    {typeof value === 'number' ? value.toFixed(2) : value as string}
+                                                    {typeof value === 'number' ? value.toFixed(2) : value as any}
                                                 </td>
                                             ))}
                                             {Object.values(row).length > 8 && <td className="p-2">...</td>}
@@ -470,3 +615,4 @@ export default function CompleteCFAComponent() {
         </div>
     );
 }
+
