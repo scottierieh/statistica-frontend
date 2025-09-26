@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -14,10 +14,89 @@ import {
   SidebarMenu
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { ClipboardList, History, LayoutTemplate } from 'lucide-react';
 import SurveyApp from '@/components/survey-app';
+import Link from 'next/link';
 
 type SurveySection = 'survey' | 'history' | 'templates';
+
+function SurveyHistory() {
+  const [savedSurveys, setSavedSurveys] = useState<any[]>([]);
+
+  useEffect(() => {
+    const keys = Object.keys(localStorage);
+    const surveyKeys = keys.filter(key => key.match(/^\d+$/) && !key.endsWith('_responses') && !key.endsWith('_views'));
+    
+    const surveys = surveyKeys.map(key => {
+      try {
+        const item = localStorage.getItem(key);
+        if (item) {
+          const parsed = JSON.parse(item);
+          // Add a createdDate if it doesn't exist for sorting
+          if (!parsed.createdDate) {
+            parsed.createdDate = new Date().toISOString();
+          }
+          return parsed;
+        }
+      } catch (e) {
+        console.error(`Could not parse survey with key: ${key}`);
+        return null;
+      }
+      return null;
+    }).filter(s => s !== null);
+
+    // Sort by most recently created
+    surveys.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
+
+    setSavedSurveys(surveys);
+  }, []);
+
+  return (
+    <div className="space-y-4">
+        <Card>
+            <CardHeader>
+                <CardTitle>Survey History</CardTitle>
+                <CardDescription>
+                    Here are your saved survey designs. Click on a survey to continue editing. Your work is saved automatically in your browser.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {savedSurveys.length > 0 ? (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {savedSurveys.map(survey => (
+                            <Card key={survey.id}>
+                                <CardHeader>
+                                    <CardTitle className="truncate">{survey.title}</CardTitle>
+                                    <CardDescription>
+                                        Last saved: {new Date(survey.createdDate).toLocaleString()}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground line-clamp-2">{survey.description || "No description."}</p>
+                                </CardContent>
+                                <CardFooter>
+                                     <Button asChild className="w-full">
+                                        <Link href={`/dashboard/survey?id=${survey.id}`}>Edit Survey</Link>
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-12">
+                        <p className="text-muted-foreground">You have no saved surveys.</p>
+                         <Button asChild variant="link">
+                            <Link href="/dashboard/survey?id=1">Start designing your first survey</Link>
+                        </Button>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    </div>
+  );
+}
+
 
 export default function SurveyPage() {
   const [activeSection, setActiveSection] = useState<SurveySection>('survey');
@@ -27,14 +106,7 @@ export default function SurveyPage() {
       case 'survey':
         return <SurveyApp />;
       case 'history':
-        return (
-          <Card className="w-full max-w-2xl mx-auto text-center">
-            <CardHeader>
-              <CardTitle>Survey History</CardTitle>
-              <CardDescription>This section is under construction. View past surveys and their results here soon!</CardDescription>
-            </CardHeader>
-          </Card>
-        );
+        return <SurveyHistory />;
       case 'templates':
         return (
           <Card className="w-full max-w-2xl mx-auto text-center">
