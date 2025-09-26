@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,11 +13,11 @@ import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight,
 import { Table as DndTable } from '@/components/ui/table';
 import { Select as DndSelect, SelectTrigger as DndSelectTrigger, SelectValue as DndSelectValue, SelectContent as DndSelectContent, SelectItem as DndSelectItem } from '@/components/ui/select';
 import { produce } from 'immer';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { ChartContainer, ChartTooltipContent } from './ui/chart';
 import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell, PieChart, Pie } from 'recharts';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from './ui/badge';
+import { ScrollArea } from './ui/scroll-area';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -2282,6 +2282,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     
     const [analysisItems, setAnalysisItems] = useState(survey.questions);
     
+    const [filterKey, setFilterKey] = useState<string>('All');
+    const [filterValue, setFilterValue] = useState<string | null>(null);
+    const demographicQuestions = survey.questions.filter((q:any) => q.type === 'single' || q.type === 'dropdown');
+
     useEffect(() => {
         setAnalysisItems(survey.questions);
     }, [survey.questions]);
