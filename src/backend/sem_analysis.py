@@ -1,5 +1,4 @@
 
-
 import sys
 import json
 import numpy as np
@@ -14,6 +13,7 @@ import warnings
 import io
 import base64
 import semopy
+import os
 
 warnings.filterwarnings('ignore')
 
@@ -76,6 +76,7 @@ class SEMAnalysis:
         
         stats_results = semopy.calc_stats(m)
         fit_indices = stats_results.T.to_dict().get('Value', {})
+        estimates = semopy.inspect(m)
 
         # Get factor scores and mean components
         factor_scores_df = pd.DataFrame()
@@ -92,52 +93,13 @@ class SEMAnalysis:
             'model_spec': model_spec,
             'n_observations': len(model_data_std),
             'fit_indices': fit_indices,
+            'estimates': estimates.to_dict('records'),
             'factor_scores': factor_scores_df.to_dict('records'),
             'mean_components': mean_components,
             'model': m
         }
         
         return self.results[model_name]
-
-    def plot_sem_results(self, model_name):
-        if model_name not in self.results or not self.results[model_name].get('model'):
-             return None
-             
-        m = self.results[model_name]['model']
-        
-        try:
-            # semopy.semplot saves file to disk, so we need to handle this
-            temp_filename = "sem_plot.png"
-            g = semopy.semplot(m, temp_filename, plot_stats=True)
-            
-            buf = io.BytesIO()
-            with open(temp_filename, 'rb') as f:
-                buf.write(f.read())
-            buf.seek(0)
-            
-            img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-            return f"data:image/png;base64,{img_base64}"
-        except Exception as e:
-            print(f"Warning: semplot failed with error: {e}. A fallback plot will be generated.", file=sys.stderr)
-            return self._fallback_plot(self.results[model_name])
-
-
-    def _fallback_plot(self, sem_results):
-        fig, ax = plt.subplots(1, 1, figsize=(10, 8))
-        ax.axis('off')
-        
-        model_spec = sem_results['model_spec']
-        text_content = model_spec['desc']
-        
-        ax.text(0.5, 0.5, text_content, ha='center', va='center', fontsize=12, family='monospace', bbox=dict(boxstyle="round,pad=1", fc="wheat", alpha=0.5))
-        ax.set_title("SEM Path Diagram (Text Representation)", fontsize=14)
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight')
-        plt.close(fig)
-        buf.seek(0)
-        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
-        
 
 def main():
     try:
@@ -157,14 +119,13 @@ def main():
         
         sem.specify_model('user_model', measurement_model, structural_model)
         results = sem.run_sem('user_model')
-        plot_image = sem.plot_sem_results('user_model')
-
-        # Clean up results for JSON
+        
+        # Clean up results for JSON by removing the model object
         del results['model']
 
         response = {
             'results': results,
-            'plot': plot_image
+            'plot': None
         }
         
         print(json.dumps(response, default=_to_native_type))
@@ -175,4 +136,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

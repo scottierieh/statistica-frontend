@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -69,160 +70,6 @@ interface FullAnalysisResponse {
     plot: string | null;
 }
 
-// SEM Diagram Component
-const SEMDiagram = ({ measurementModel, structuralModel, results }: { measurementModel: any, structuralModel: any, results: any }) => {
-    const svgRef = useRef<SVGSVGElement>(null);
-
-    useEffect(() => {
-        if (!svgRef.current || Object.keys(measurementModel).length === 0) return;
-
-        const svg = svgRef.current;
-        const width = 800;
-        const height = 600;
-        
-        svg.innerHTML = '';
-        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-
-        const latentVars = Object.keys(measurementModel);
-        const latentPositions: { [key: string]: { x: number, y: number } } = {};
-        
-        latentVars.forEach((latent, idx) => {
-            const angle = (idx / latentVars.length) * 2 * Math.PI - Math.PI/2;
-            const radius = 180;
-            latentPositions[latent] = {
-                x: width/2 + Math.cos(angle) * radius,
-                y: height/2 + Math.sin(angle) * radius
-            };
-        });
-
-        const observedPositions: { [key: string]: { x: number, y: number } } = {};
-        Object.keys(measurementModel).forEach(latent => {
-            const indicators = measurementModel[latent];
-            const latentPos = latentPositions[latent];
-            
-            indicators.forEach((indicator, idx) => {
-                const angle = (idx / indicators.length) * Math.PI - Math.PI/2;
-                const distance = 80;
-                observedPositions[indicator] = {
-                    x: latentPos.x + Math.cos(angle) * distance,
-                    y: latentPos.y + Math.sin(angle) * distance
-                };
-            });
-        });
-
-        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        marker.setAttribute('id', 'arrowhead');
-        marker.setAttribute('markerWidth', '10');
-        marker.setAttribute('markerHeight', '7');
-        marker.setAttribute('refX', '9');
-        marker.setAttribute('refY', '3.5');
-        marker.setAttribute('orient', 'auto');
-        
-        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
-        polygon.setAttribute('fill', '#2563eb');
-        
-        marker.appendChild(polygon);
-        defs.appendChild(marker);
-        svg.appendChild(defs);
-
-        structuralModel.forEach((path: { from: string; to: string; }) => {
-            const fromPos = latentPositions[path.from];
-            const toPos = latentPositions[path.to];
-            
-            if (fromPos && toPos) { 
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', String(fromPos.x));
-                line.setAttribute('y1', String(fromPos.y));
-                line.setAttribute('x2', String(toPos.x));
-                line.setAttribute('y2', String(toPos.y));
-                line.setAttribute('stroke', '#2563eb');
-                line.setAttribute('stroke-width', '3');
-                line.setAttribute('marker-end', 'url(#arrowhead)');
-                svg.appendChild(line);
-            }
-        });
-
-        Object.keys(measurementModel).forEach(latent => {
-            const indicators = measurementModel[latent];
-            const latentPos = latentPositions[latent];
-            
-            indicators.forEach((indicator: string) => {
-                const indicatorPos = observedPositions[indicator];
-                
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', String(latentPos.x));
-                line.setAttribute('y1', String(latentPos.y));
-                line.setAttribute('x2', String(indicatorPos.x));
-                line.setAttribute('y2', String(indicatorPos.y));
-                line.setAttribute('stroke', '#6b7280');
-                line.setAttribute('stroke-width', '2');
-                svg.appendChild(line);
-            });
-        });
-
-        Object.keys(observedPositions).forEach(indicator => {
-            const pos = observedPositions[indicator];
-            
-            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rect.setAttribute('x', String(pos.x - 25));
-            rect.setAttribute('y', String(pos.y - 15));
-            rect.setAttribute('width', '50');
-            rect.setAttribute('height', '30');
-            rect.setAttribute('fill', '#f3f4f6');
-            rect.setAttribute('stroke', '#6b7280');
-            rect.setAttribute('stroke-width', '2');
-            rect.setAttribute('rx', '5');
-            
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', String(pos.x));
-            text.setAttribute('y', String(pos.y + 5));
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('font-size', '10');
-            text.setAttribute('font-weight', 'bold');
-            text.setAttribute('fill', '#374151');
-            text.textContent = indicator.split('_').pop() || indicator;
-            
-            svg.appendChild(rect);
-            svg.appendChild(text);
-        });
-
-        Object.keys(latentPositions).forEach(latent => {
-            const pos = latentPositions[latent];
-            
-            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            circle.setAttribute('cx', String(pos.x));
-            circle.setAttribute('cy', String(pos.y));
-            circle.setAttribute('r', '35');
-            circle.setAttribute('fill', '#dbeafe');
-            circle.setAttribute('stroke', '#2563eb');
-            circle.setAttribute('stroke-width', '3');
-            
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', String(pos.x));
-            text.setAttribute('y', String(pos.y + 5));
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('font-size', '11');
-            text.setAttribute('font-weight', 'bold');
-            text.setAttribute('fill', '#1e40af');
-            text.textContent = latent.split('_').slice(-1)[0] || latent;
-            
-            svg.appendChild(circle);
-            svg.appendChild(text);
-        });
-
-    }, [measurementModel, structuralModel, results]);
-
-    return (
-        <div className="w-full">
-            <div className="border rounded-lg bg-white overflow-hidden">
-                <svg ref={svgRef} className="w-full h-96" style={{ minHeight: '400px' }}></svg>
-            </div>
-        </div>
-    );
-};
-
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (type: string) => void; }) => {
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
@@ -290,24 +137,36 @@ export default function SEMAnalysisComponent() {
     const [newPath, setNewPath] = useState<{ from: string, to: string }>({ from: '', to: '' });
 
     const loadSampleData = useCallback((type: string) => {
-        let sampleData: any[], defaultMeasurement: any, defaultStructural: any[];
+        let sampleDataCsv: string | undefined;
+        let defaultMeasurement: any, defaultStructural: any[];
         
         if (type === 'academic') {
-            sampleData = exampleDatasets.find(d => d.id === 'sem-satisfaction')?.data.split('\n').slice(1).map(line => {
-                const [sq1,sq2,sq3,sat1,sat2,sat3,trust1,trust2,loy1,loy2,loy3] = line.split(',');
-                return {sq1: +sq1, sq2: +sq2, sq3: +sq3, sat1: +sat1, sat2: +sat2, sat3: +sat3, trust1: +trust1, trust2: +trust2, loy1: +loy1, loy2: +loy2, loy3: +loy3};
-            }) || [];
+            sampleDataCsv = exampleDatasets.find(d => d.id === 'sem-satisfaction')?.data;
             defaultMeasurement = { 'Motivation': ['Motivation_1', 'Motivation_2', 'Motivation_3'], 'Efficacy': ['Efficacy_1', 'Efficacy_2', 'Efficacy_3'], 'Achievement': ['Achievement_1', 'Achievement_2', 'Achievement_3'] };
             defaultStructural = [ { from: 'Motivation', to: 'Efficacy' }, { from: 'Motivation', to: 'Achievement' }, { from: 'Efficacy', to: 'Achievement' } ];
         } else { // organizational
-            sampleData = exampleDatasets.find(d => d.id === 'cfa-psych-constructs')?.data.split('\n').slice(1).map(line => {
-                 const [cog1,cog2,cog3,cog4,emo1,emo2,emo3,soc1,soc2,soc3,soc4] = line.split(',');
-                return {cog1: +cog1, cog2: +cog2, cog3: +cog3, cog4: +cog4, emo1: +emo1, emo2: +emo2, emo3: +emo3, soc1: +soc1, soc2: +soc2, soc3: +soc3, soc4: +soc4};
-            }) || [];
+            sampleDataCsv = exampleDatasets.find(d => d.id === 'cfa-psych-constructs')?.data;
             defaultMeasurement = { 'Leadership': ['Leadership_1', 'Leadership_2'], 'Job_Satisfaction': ['Job_Satisfaction_1', 'Job_Satisfaction_2'], 'Organizational_Commitment': ['Commitment_1', 'Commitment_2'], 'Job_Performance': ['Performance_1', 'Performance_2'] };
             defaultStructural = [ { from: 'Leadership', to: 'Job_Satisfaction' }, { from: 'Job_Satisfaction', to: 'Organizational_Commitment' }, { from: 'Organizational_Commitment', to: 'Job_Performance' } ];
         }
-        
+
+        if (!sampleDataCsv) {
+            toast({ title: "Error", description: "Sample data not found."});
+            return;
+        }
+
+        const parsedData = sampleDataCsv.trim().split('\n').map(line => {
+            const values = line.split(',');
+            const headers = Object.keys(defaultMeasurement).flatMap(k => defaultMeasurement[k]).concat(Object.keys(defaultMeasurement).flatMap(k => defaultMeasurement[k].map(v => v.split('_')[0])));
+             const row: { [key: string]: number } = {};
+            values.forEach((val, i) => {
+                const header = headers[i] || `var${i+1}`;
+                 row[header] = +val;
+            });
+            return row;
+        }).filter(row => Object.values(row).some(val => !isNaN(val)));
+
+
         setData(sampleData);
         setMeasurementModel(defaultMeasurement);
         setStructuralModel(defaultStructural);
@@ -476,34 +335,27 @@ export default function SEMAnalysisComponent() {
                     <CardContent>
                         {isLoading && <div className="text-center py-8"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" /><p className="text-gray-600">Running SEM analysis...</p></div>}
                         {results && !isLoading && (
-                            <Tabs defaultValue="diagram" className="w-full">
+                            <Tabs defaultValue="fit" className="w-full">
                                 <TabsList className="grid w-full grid-cols-3">
-                                    <TabsTrigger value="diagram">Path Diagram</TabsTrigger>
                                     <TabsTrigger value="fit">Model Fit</TabsTrigger>
                                     <TabsTrigger value="estimates">Estimates</TabsTrigger>
+                                    <TabsTrigger value="scores">Factor Scores</TabsTrigger>
                                 </TabsList>
-                                
-                                <TabsContent value="diagram" className="mt-4">
-                                     {results.plot ? (
-                                        <Image src={results.plot} alt="SEM Path Diagram" width={800} height={600} className="w-full rounded-md border" />
-                                     ) : (
-                                        <SEMDiagram measurementModel={measurementModel} structuralModel={structuralModel} results={results} />
-                                     )}
-                                </TabsContent>
                                 
                                 <TabsContent value="fit" className="mt-4">
                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Index</TableHead><TableHead>Value</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {Object.entries(results.results.fit_indices).map(([key, value]) => (
-                                                <TableRow key={key}>
-                                                    <TableCell>{key.replace(/_/g, ' ').toUpperCase()}</TableCell>
-                                                    <TableCell>{typeof value === 'number' ? (value as number).toFixed(3) : value as any}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
+                                      <TableHeader><TableRow><TableHead>Index</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
+                                      <TableBody>
+                                        {Object.entries(results.results.fit_indices).map(([key, value]) => (
+                                            <TableRow key={key}>
+                                                <TableCell>{key.replace(/_/g, ' ').toUpperCase()}</TableCell>
+                                                <TableCell className="text-right font-mono">{typeof value === 'number' ? (value as number).toFixed(3) : value as any}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                      </TableBody>
                                     </Table>
                                 </TabsContent>
+                                
                                 <TabsContent value="estimates" className="mt-4">
                                      <Table>
                                         <TableHeader><TableRow><TableHead>lval</TableHead><TableHead>op</TableHead><TableHead>rval</TableHead><TableHead className="text-right">Estimate</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
@@ -519,6 +371,16 @@ export default function SEMAnalysisComponent() {
                                             ))}
                                         </TableBody>
                                     </Table>
+                                </TabsContent>
+                                <TabsContent value="scores" className="mt-4">
+                                     <Table>
+                                        <TableHeader><TableRow>{Object.keys(results.results.mean_components).map(key => <TableHead key={key}>{key}</TableHead>)}</TableRow></TableHeader>
+                                        <TableBody>
+                                          <TableRow>
+                                            {Object.values(results.results.mean_components).map((val, i) => <TableCell key={i} className="font-mono">{val.toFixed(3)}</TableCell>)}
+                                          </TableRow>
+                                        </TableBody>
+                                     </Table>
                                 </TabsContent>
                             </Tabs>
                         )}
