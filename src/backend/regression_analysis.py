@@ -7,9 +7,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
-from sklearn.model_selection import train_test_split, cross_val_score, KFold
-from sklearn.linear_model import (LinearRegression, Ridge, Lasso, ElasticNet, 
-                                 HuberRegressor, RANSACRegressor)
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import (LinearRegression)
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import io
@@ -142,6 +141,8 @@ class RegressionAnalysis:
             raise ValueError(f"Target variable '{target_variable}' not found in data")
         
         self.sanitized_cols = {col: re.sub(r'[^A-Za-z0-9_]', '_', col) for col in self.data.columns}
+        self.original_names = {v: k for k, v in self.sanitized_cols.items()}
+        
         self.data.rename(columns=self.sanitized_cols, inplace=True)
         self.target_variable_clean = self.sanitized_cols[target_variable]
         
@@ -177,150 +178,121 @@ class RegressionAnalysis:
         adj_r2 = 1 - (1 - r2) * (n - 1) / (n - n_features - 1) if (n - n_features - 1) > 0 else 0
         return {'mse': mse, 'rmse': rmse, 'mae': mae, 'r2': r2, 'adj_r2': adj_r2}
 
-    def _calculate_diagnostics(self, X, y_true, y_pred, sm_model, sklearn_model, original_feature_names):
-        residuals = y_true - y_pred
+    def _calculate_diagnostics(self, X, sm_model):
+        residuals = sm_model.resid
         diagnostics = {}
-        
-        original_to_sanitized = {v: k for k, v in self.sanitized_cols.items()}
         
         def clean_name(name):
              name = re.sub(r'Q\("([^"]+)"\)', r'\1', name.strip())
-             return original_to_sanitized.get(name, name)
+             return self.original_names.get(name, name)
 
-        if HAS_STATSMODELS and sm_model:
-            summary_obj = sm_model.summary()
-            summary_data = []
-            for table in summary_obj.tables:
-                table_data = [list(row) for row in table.data]
-                if table_data and len(table_data) > 1 and 'coef' in table_data[0]:
-                    for row in table_data[1:]:
-                        if row and row[0]:
-                             row[0] = clean_name(row[0])
+        summary_obj = sm_model.summary()
+        summary_data = []
+        for table in summary_obj.tables:
+            table_data = [list(row) for row in table.data]
+            if table_data and len(table_data) > 1 and 'coef' in table_data[0][1]:
+                for row in table_data[1:]:
+                    if row and row[0]:
+                         row[0] = clean_name(row[0])
 
-                summary_data.append({'caption': getattr(table, 'title', None), 'data': table_data})
-            diagnostics['model_summary_data'] = summary_data
+            summary_data.append({'caption': getattr(table, 'title', None), 'data': table_data})
+        diagnostics['model_summary_data'] = summary_data
 
-            diagnostics['f_statistic'] = sm_model.fvalue
-            diagnostics['f_pvalue'] = sm_model.f_pvalue
-            diagnostics['df_model'] = sm_model.df_model
-            diagnostics['df_resid'] = sm_model.df_resid
-            
-            diagnostics['coefficient_tests'] = {
-                'params': {clean_name(k): v for k, v in sm_model.params.to_dict().items()},
-                'pvalues': {clean_name(k): v for k, v in sm_model.pvalues.to_dict().items()},
-                'bse': {clean_name(k): v for k, v in sm_model.bse.to_dict().items()},
-                'tvalues': {clean_name(k): v for k, v in sm_model.tvalues.to_dict().items()},
-            }
-            diagnostics['durbin_watson'] = durbin_watson(residuals) if len(residuals) > 1 else None
-            
-            try:
-                 if X.shape[1] > 1:
-                    vif_data = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
-                    vif = {clean_name(X.columns[i]): vif_data[i] for i in range(X.shape[1])}
-                    diagnostics['vif'] = vif
-                 else:
-                     diagnostics['vif'] = {}
-            except Exception: diagnostics['vif'] = {}
-            
-            jb_stat, jb_p, _, _ = jarque_bera(residuals)
-            sw_stat, sw_p = stats.shapiro(residuals)
-            diagnostics['normality_tests'] = {
-                'jarque_bera': {'statistic': jb_stat, 'p_value': jb_p},
-                'shapiro_wilk': {'statistic': sw_stat, 'p_value': sw_p}
-            }
-            
-            bp_stat, bp_p, _, _ = het_breuschpagan(residuals, sm_model.model.exog)
-            diagnostics['heteroscedasticity_tests'] = {'breusch_pagan': {'statistic': bp_stat, 'p_value': bp_p}}
-        else:
-            diagnostics = self._basic_diagnostics(X, y_true, y_pred, sklearn_model, original_feature_names)
-        return diagnostics
-    
-    def _basic_diagnostics(self, X, y_true, y_pred, sklearn_model, original_feature_names):
-        diagnostics = {}
-        residuals = y_true - y_pred
-        try:
-            sw_stat, sw_p = stats.shapiro(residuals)
-            diagnostics['normality_tests'] = {'shapiro_wilk': {'statistic': sw_stat, 'p_value': sw_p}}
-        except:
-            diagnostics['normality_tests'] = {}
+        diagnostics['f_statistic'] = sm_model.fvalue
+        diagnostics['f_pvalue'] = sm_model.f_pvalue
+        diagnostics['df_model'] = sm_model.df_model
+        diagnostics['df_resid'] = sm_model.df_resid
         
         diagnostics['coefficient_tests'] = {
-            'params': {'const': sklearn_model.intercept_, **dict(zip(original_feature_names, sklearn_model.coef_))},
-            'pvalues': {}, 'bse': {}, 'tvalues': {}
+            'params': {clean_name(k): v for k, v in sm_model.params.to_dict().items()},
+            'pvalues': {clean_name(k): v for k, v in sm_model.pvalues.to_dict().items()},
+            'bse': {clean_name(k): v for k, v in sm_model.bse.to_dict().items()},
+            'tvalues': {clean_name(k): v for k, v in sm_model.tvalues.to_dict().items()},
         }
+        diagnostics['durbin_watson'] = durbin_watson(residuals) if len(residuals) > 1 else None
+        
+        try:
+             if X.shape[1] > 1:
+                vif_data = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+                vif = {clean_name(X.columns[i]): vif_data[i] for i in range(X.shape[1])}
+                diagnostics['vif'] = vif
+             else:
+                 diagnostics['vif'] = {}
+        except Exception: diagnostics['vif'] = {}
+        
+        jb_stat, jb_p, _, _ = jarque_bera(residuals)
+        sw_stat, sw_p = stats.shapiro(residuals)
+        diagnostics['normality_tests'] = {
+            'jarque_bera': {'statistic': jb_stat, 'p_value': jb_p},
+            'shapiro_wilk': {'statistic': sw_stat, 'p_value': sw_p}
+        }
+        
+        bp_stat, bp_p, _, _ = het_breuschpagan(residuals, sm_model.model.exog)
+        diagnostics['heteroscedasticity_tests'] = {'breusch_pagan': {'statistic': bp_stat, 'p_value': bp_p}}
+        
         return diagnostics
     
-    def _generate_interpretation(self, metrics, diagnostics, model_name, target_variable, features):
-        model_type_str = model_name.replace('_', ' ').title()
+    def _generate_interpretation(self, metrics, stepwise_log):
+        r2 = metrics['r2']
         
-        feature_list = ", ".join(f"'{f}'" for f in features)
-        interpretation = f"A {model_type_str} regression was run to predict '{target_variable}' from {len(features)} feature(s).\n"
+        interpretation = ""
+        if stepwise_log:
+             interpretation += f"Stepwise selection resulted in {len(stepwise_log)} steps.\n"
 
-        adj_r2 = metrics.get('adj_r2')
-        f_stat = diagnostics.get('f_statistic')
-        f_pvalue = diagnostics.get('f_pvalue')
+        if r2 > 0.8:
+            interpretation += "The model shows a **Good Fit**. "
+        elif r2 > 0.5:
+            interpretation += "The model shows a **Moderate Fit**. "
+        else:
+            interpretation += "**Weak Fit**. "
         
-        if adj_r2 is not None:
-             interpretation += f"The model explained {adj_r2*100:.1f}% of the variance in the target variable (*R*²adj = {adj_r2:.3f}). "
-        
-        if all(v is not None for v in [f_stat, f_pvalue]):
-            p_val_str = f"p < .001" if f_pvalue < 0.001 else f"p = {f_pvalue:.3f}"
-            model_sig_str = "statistically significant" if f_pvalue < self.alpha else "not statistically significant"
-            interpretation += f"The overall model was {model_sig_str}, *F*({diagnostics.get('df_model', 'N/A')}, {diagnostics.get('df_resid', 'N/A')}) = {f_stat:.2f}, {p_val_str}.\n"
-        
+        interpretation += f"It explains {(r2 * 100):.1f}% of the variance in the target variable."
+
         return interpretation.strip()
 
     def run(self, model_type, **kwargs):
+        if not HAS_STATSMODELS:
+            raise ImportError("Statsmodels library is required for this analysis but is not installed.")
+
         features = kwargs.get('features')
         selection_method = kwargs.get('selectionMethod', 'none')
-        predict_x = kwargs.get('predict_x')
         
         X_selected = self.X[self._get_clean_feature_names(features)]
         
         stepwise_log = []
-        if HAS_STATSMODELS and selection_method != 'none':
+        if selection_method != 'none':
             final_features, stepwise_log = perform_stepwise_selection(X_selected, self.y, method=selection_method)
             if not final_features: raise ValueError("No features were selected by the stepwise method.")
             X_selected = X_selected[final_features]
 
         X_scaled = self._scale_data(X_selected, standardize=True)
         
-        sklearn_model = LinearRegression() # Default
-        original_features = list(X_selected.columns)
-        X_to_diagnose = X_scaled
+        X_final = X_scaled
         
         if model_type == 'polynomial':
             degree = kwargs.get('degree', 2)
             poly = PolynomialFeatures(degree=degree, include_bias=False)
             X_poly = poly.fit_transform(X_scaled)
             poly_feature_names = poly.get_feature_names_out(X_scaled.columns)
-            X_to_diagnose = pd.DataFrame(X_poly, columns=poly_feature_names, index=X_scaled.index)
-            sklearn_model.fit(X_to_diagnose, self.y)
-            original_features = list(poly_feature_names)
-        else:
-            sklearn_model.fit(X_scaled, self.y)
+            X_final = pd.DataFrame(X_poly, columns=poly_feature_names, index=X_scaled.index)
+        
+        X_with_const = sm.add_constant(X_final)
+        sm_model = sm.OLS(self.y, X_with_const).fit()
+        
+        y_pred = sm_model.predict(X_with_const)
 
-        y_pred = sklearn_model.predict(X_to_diagnose)
-
-        metrics = self._calculate_metrics(self.y, y_pred, X_to_diagnose.shape[1])
-
-        sm_model = None
-        if HAS_STATSMODELS:
-            X_with_const = sm.add_constant(X_to_diagnose)
-            try:
-                sm_model = sm.OLS(self.y, X_with_const).fit()
-            except: pass
-
-        diagnostics = self._calculate_diagnostics(pd.DataFrame(X_to_diagnose), self.y, y_pred, sm_model, sklearn_model, original_features)
+        metrics = self._calculate_metrics(self.y, y_pred, X_final.shape[1])
+        diagnostics = self._calculate_diagnostics(X_final, sm_model)
+        
+        original_feature_names = [self.original_names.get(col, col) for col in X_final.columns]
         
         results = {
             'metrics': {'all_data': metrics},
             'diagnostics': diagnostics,
             'stepwise_log': stepwise_log,
-            'interpretation': self._generate_interpretation(metrics, diagnostics, model_type, self.target_variable, original_features)
+            'interpretation': self._generate_interpretation(metrics, stepwise_log)
         }
         
-        # Plotting uses all data now
         self.y_true_plot, self.y_pred_plot = self.y, y_pred
 
         return results
@@ -346,11 +318,10 @@ class RegressionAnalysis:
         ax.set_title('Q-Q Plot (Normality Check)'); ax.grid(True, alpha=0.3)
         
         ax = axes[1, 1]
-        sqrt_abs_residuals = np.sqrt(np.abs(residuals / np.std(residuals))) if np.std(residuals) > 0 else np.zeros_like(residuals)
-        ax.scatter(self.y_pred_plot, sqrt_abs_residuals, alpha=0.6)
-        z = np.polyfit(self.y_pred_plot, sqrt_abs_residuals, 1)
-        p = np.poly1d(z)
-        ax.plot(sorted(self.y_pred_plot), p(sorted(self.y_pred_plot)), "r--", alpha=0.8)
+        std_resid = residuals / np.std(residuals) if np.std(residuals) > 0 else np.zeros_like(residuals)
+        sqrt_abs_std_resid = np.sqrt(np.abs(std_resid))
+        ax.scatter(self.y_pred_plot, sqrt_abs_std_resid, alpha=0.6)
+        sns.regplot(x=self.y_pred_plot, y=sqrt_abs_std_resid, scatter=False, lowess=True, line_kws={'color': 'red', 'lw': 2}, ax=ax)
         ax.set_xlabel('Fitted Values'); ax.set_ylabel('√|Standardized Residuals|')
         ax.set_title('Scale-Location Plot'); ax.grid(True, alpha=0.3)
 
