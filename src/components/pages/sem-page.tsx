@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { 
     Network, 
     GitBranch, 
@@ -29,14 +28,12 @@ import {
     BookOpen,
     Users
 } from 'lucide-react';
-import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { produce } from 'immer';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { cfaData } from '@/lib/example-datasets/cfa-data';
-import { semData } from '@/lib/example-datasets/sem-data';
+import Image from 'next/image';
 
 // --- Type Definitions ---
 interface ModelSpec {
@@ -61,178 +58,15 @@ interface SemResults {
     model_spec: { desc: string; measurement_model: { [key: string]: string[] } };
     n_observations: number;
     fit_indices: FitIndices;
+    estimates: any[];
     factor_scores: any[];
     mean_components: {[key: string]: number}
-    estimates?: any; // semopy's inspect() output
 }
 
 interface FullAnalysisResponse {
     results: SemResults;
-    // plot is no longer sent from backend
+    plot: string | null;
 }
-
-// SEM 다이어그램 컴포넌트
-const SEMDiagram = ({ measurementModel, structuralModel, results }: { measurementModel: any, structuralModel: any, results: FullAnalysisResponse | null }) => {
-    const svgRef = useRef<SVGSVGElement>(null);
-
-    useEffect(() => {
-        if (!svgRef.current || Object.keys(measurementModel).length === 0) return;
-
-        const svg = svgRef.current;
-        const width = 800;
-        const height = 600;
-        
-        svg.innerHTML = ''; // Clear previous diagram
-        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-
-        const latentVars = Object.keys(measurementModel);
-        const latentPositions: { [key: string]: { x: number, y: number } } = {};
-        
-        latentVars.forEach((latent, idx) => {
-            const angle = (idx / latentVars.length) * 2 * Math.PI - Math.PI/2;
-            const radius = 180;
-            latentPositions[latent] = {
-                x: width/2 + Math.cos(angle) * radius,
-                y: height/2 + Math.sin(angle) * radius
-            };
-        });
-
-        const observedPositions: { [key: string]: { x: number, y: number } } = {};
-        Object.keys(measurementModel).forEach(latent => {
-            const indicators = measurementModel[latent];
-            const latentPos = latentPositions[latent];
-            const indicatorAngleOffset = (Math.atan2(latentPos.y - height / 2, latentPos.x - width / 2));
-            
-            indicators.forEach((indicator, idx) => {
-                const angle = indicatorAngleOffset + (idx - (indicators.length-1)/2) * 0.4;
-                const distance = 90;
-                observedPositions[indicator] = {
-                    x: latentPos.x + Math.cos(angle) * distance,
-                    y: latentPos.y + Math.sin(angle) * distance
-                };
-            });
-        });
-
-        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        marker.setAttribute('id', 'arrowhead');
-        marker.setAttribute('markerWidth', '10');
-        marker.setAttribute('markerHeight', '7');
-        marker.setAttribute('refX', '9');
-        marker.setAttribute('refY', '3.5');
-        marker.setAttribute('orient', 'auto');
-        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
-        polygon.setAttribute('fill', '#2563eb');
-        marker.appendChild(polygon);
-        defs.appendChild(marker);
-        svg.appendChild(defs);
-
-        // Structural Paths
-        structuralModel.forEach((path: {from: string, to: string}) => {
-            const fromPos = latentPositions[path.from];
-            const toPos = latentPositions[path.to];
-            
-            if (fromPos && toPos) {
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                const dx = toPos.x - fromPos.x;
-                const dy = toPos.y - fromPos.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                const unitDx = dx/dist;
-                const unitDy = dy/dist;
-                
-                line.setAttribute('x1', String(fromPos.x + unitDx * 35));
-                line.setAttribute('y1', String(fromPos.y + unitDy * 35));
-                line.setAttribute('x2', String(toPos.x - unitDx * 35));
-                line.setAttribute('y2', String(toPos.y - unitDy * 35));
-                line.setAttribute('stroke', '#2563eb');
-                line.setAttribute('stroke-width', '2.5');
-                line.setAttribute('marker-end', 'url(#arrowhead)');
-                svg.appendChild(line);
-            }
-        });
-
-        // Measurement Paths
-        Object.keys(measurementModel).forEach(latent => {
-            const indicators = measurementModel[latent];
-            const latentPos = latentPositions[latent];
-            
-            indicators.forEach(indicator => {
-                const indicatorPos = observedPositions[indicator];
-                const dx = indicatorPos.x - latentPos.x;
-                const dy = indicatorPos.y - latentPos.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                const unitDx = dx/dist;
-                const unitDy = dy/dist;
-
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', String(latentPos.x + unitDx * 35));
-                line.setAttribute('y1', String(latentPos.y + unitDy * 35));
-                line.setAttribute('x2', String(indicatorPos.x - unitDx * 25));
-                line.setAttribute('y2', String(indicatorPos.y - unitDy * 15));
-                line.setAttribute('stroke', '#6b7280');
-                line.setAttribute('stroke-width', '1.5');
-                svg.appendChild(line);
-            });
-        });
-
-        // Observed Variable Nodes
-        Object.keys(observedPositions).forEach(indicator => {
-            const pos = observedPositions[indicator];
-            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rect.setAttribute('x', String(pos.x - 25));
-            rect.setAttribute('y', String(pos.y - 15));
-            rect.setAttribute('width', '50');
-            rect.setAttribute('height', '30');
-            rect.setAttribute('fill', '#f3f4f6');
-            rect.setAttribute('stroke', '#6b7280');
-            rect.setAttribute('stroke-width', '1.5');
-            rect.setAttribute('rx', '2');
-            svg.appendChild(rect);
-
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', String(pos.x));
-            text.setAttribute('y', String(pos.y + 4));
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('font-size', '10');
-            text.textContent = indicator.replace(/_/g, ' ').substring(0, 10);
-            svg.appendChild(text);
-        });
-
-        // Latent Variable Nodes
-        Object.keys(latentPositions).forEach(latent => {
-            const pos = latentPositions[latent];
-            const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-            ellipse.setAttribute('cx', String(pos.x));
-            ellipse.setAttribute('cy', String(pos.y));
-            ellipse.setAttribute('rx', '35');
-            ellipse.setAttribute('ry', '35');
-            ellipse.setAttribute('fill', '#dbeafe');
-            ellipse.setAttribute('stroke', '#2563eb');
-            ellipse.setAttribute('stroke-width', '2');
-            svg.appendChild(ellipse);
-
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', String(pos.x));
-            text.setAttribute('y', String(pos.y + 4));
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('font-size', '11');
-            text.setAttribute('font-weight', '600');
-            text.setAttribute('fill', '#1e40af');
-            text.textContent = latent;
-            svg.appendChild(text);
-        });
-
-    }, [measurementModel, structuralModel, results]);
-
-    return (
-        <div className="w-full">
-            <div className="border rounded-lg bg-white overflow-hidden">
-                <svg ref={svgRef} className="w-full h-auto" style={{ minHeight: '500px' }}></svg>
-            </div>
-        </div>
-    );
-};
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (type: string) => void; }) => {
     return (
@@ -301,38 +135,58 @@ export default function SEMAnalysisComponent() {
     const [newPath, setNewPath] = useState<{ from: string, to: string }>({ from: '', to: '' });
     const { toast } = useToast();
 
-    // Sample Data Generation
+    // Sample data generation functions
     const generateSEMData = (nSamples = 500) => {
-        const data = [];
-        for (let i = 0; i < nSamples; i++) {
-            const motivation = Math.random() * 2 - 1;
-            const efficacy = 0.6 * motivation + Math.random() * 0.8 - 0.4;
-            const achievement = 0.5 * motivation + 0.7 * efficacy + Math.random() * 0.6 - 0.3;
-            data.push({ id: i + 1, Motivation_1: Math.max(1, Math.min(7, Math.round((0.8 * motivation + Math.random() * 0.6 - 0.3) * 1.5 + 4))), Motivation_2: Math.max(1, Math.min(7, Math.round((0.75 * motivation + Math.random() * 0.6 - 0.3) * 1.5 + 4))), Motivation_3: Math.max(1, Math.min(7, Math.round((0.7 * motivation + Math.random() * 0.6 - 0.3) * 1.5 + 4))), Efficacy_1: Math.max(1, Math.min(7, Math.round((0.85 * efficacy + Math.random() * 0.5 - 0.25) * 1.5 + 4))), Efficacy_2: Math.max(1, Math.min(7, Math.round((0.78 * efficacy + Math.random() * 0.5 - 0.25) * 1.5 + 4))), Efficacy_3: Math.max(1, Math.min(7, Math.round((0.72 * efficacy + Math.random() * 0.5 - 0.25) * 1.5 + 4))), Achievement_1: Math.max(1, Math.min(7, Math.round((0.9 * achievement + Math.random() * 0.4 - 0.2) * 1.5 + 4))), Achievement_2: Math.max(1, Math.min(7, Math.round((0.82 * achievement + Math.random() * 0.4 - 0.2) * 1.5 + 4))), Achievement_3: Math.max(1, Math.min(7, Math.round((0.76 * achievement + Math.random() * 0.4 - 0.2) * 1.5 + 4))) });
-        }
-        return data;
+      const data = [];
+      for (let i = 0; i < nSamples; i++) {
+        const motivation = Math.random() * 4 + 1; // 1-5
+        const efficacy = 0.6 * motivation + (Math.random() * 2) + 1; // 1-5
+        const achievement = 0.4 * motivation + 0.5 * efficacy + (Math.random() * 1.5) + 1; // 1-5
+        data.push({
+            Motivation_1: parseFloat((0.8 * motivation + Math.random() * 0.5).toFixed(1)),
+            Motivation_2: parseFloat((0.75 * motivation + Math.random() * 0.5).toFixed(1)),
+            Motivation_3: parseFloat((0.7 * motivation + Math.random() * 0.5).toFixed(1)),
+            Efficacy_1: parseFloat((0.85 * efficacy + Math.random() * 0.5).toFixed(1)),
+            Efficacy_2: parseFloat((0.78 * efficacy + Math.random() * 0.5).toFixed(1)),
+            Efficacy_3: parseFloat((0.72 * efficacy + Math.random() * 0.5).toFixed(1)),
+            Achievement_1: parseFloat((0.9 * achievement + Math.random() * 0.5).toFixed(1)),
+            Achievement_2: parseFloat((0.82 * achievement + Math.random() * 0.5).toFixed(1)),
+            Achievement_3: parseFloat((0.76 * achievement + Math.random() * 0.5).toFixed(1)),
+        });
+      }
+      return data;
     };
+
     const generateOrganizationalSEMData = (nSamples = 400) => {
         const data = [];
         for (let i = 0; i < nSamples; i++) {
-            const leadership = Math.random() * 2 - 1;
-            const jobSatisfaction = 0.7 * leadership + Math.random() * 0.7 - 0.35;
-            const commitment = 0.5 * leadership + 0.6 * jobSatisfaction + Math.random() * 0.6 - 0.3;
-            const performance = 0.4 * jobSatisfaction + 0.8 * commitment + Math.random() * 0.5 - 0.25;
-            data.push({ id: i + 1, Leadership_1: Math.max(1, Math.min(7, Math.round((0.85 * leadership + Math.random() * 0.5 - 0.25) * 1.5 + 4))), Leadership_2: Math.max(1, Math.min(7, Math.round((0.78 * leadership + Math.random() * 0.5 - 0.25) * 1.5 + 4))), Leadership_3: Math.max(1, Math.min(7, Math.round((0.72 * leadership + Math.random() * 0.5 - 0.25) * 1.5 + 4))), Job_Satisfaction_1: Math.max(1, Math.min(7, Math.round((0.82 * jobSatisfaction + Math.random() * 0.6 - 0.3) * 1.5 + 4))), Job_Satisfaction_2: Math.max(1, Math.min(7, Math.round((0.75 * jobSatisfaction + Math.random() * 0.6 - 0.3) * 1.5 + 4))), Job_Satisfaction_3: Math.max(1, Math.min(7, Math.round((0.69 * jobSatisfaction + Math.random() * 0.6 - 0.3) * 1.5 + 4))), Commitment_1: Math.max(1, Math.min(7, Math.round((0.88 * commitment + Math.random() * 0.4 - 0.2) * 1.5 + 4))), Commitment_2: Math.max(1, Math.min(7, Math.round((0.81 * commitment + Math.random() * 0.4 - 0.2) * 1.5 + 4))), Commitment_3: Math.max(1, Math.min(7, Math.round((0.74 * commitment + Math.random() * 0.4 - 0.2) * 1.5 + 4))), Performance_1: Math.max(1, Math.min(7, Math.round((0.86 * performance + Math.random() * 0.5 - 0.25) * 1.5 + 4))), Performance_2: Math.max(1, Math.min(7, Math.round((0.79 * performance + Math.random() * 0.5 - 0.25) * 1.5 + 4))) });
+            const leadership = Math.random() * 4 + 1;
+            const jobSatisfaction = 0.7 * leadership + Math.random() * 2 + 1;
+            const commitment = 0.5 * leadership + 0.6 * jobSatisfaction + Math.random() * 1.5 + 1;
+            const performance = 0.4 * jobSatisfaction + 0.8 * commitment + Math.random() * 1 + 1;
+            data.push({
+                Leadership_1: parseFloat((0.85 * leadership + Math.random()).toFixed(1)),
+                Leadership_2: parseFloat((0.78 * leadership + Math.random()).toFixed(1)),
+                Job_Satisfaction_1: parseFloat((0.82 * jobSatisfaction + Math.random()).toFixed(1)),
+                Job_Satisfaction_2: parseFloat((0.75 * jobSatisfaction + Math.random()).toFixed(1)),
+                Organizational_Commitment_1: parseFloat((0.88 * commitment + Math.random()).toFixed(1)),
+                Organizational_Commitment_2: parseFloat((0.81 * commitment + Math.random()).toFixed(1)),
+                Job_Performance_1: parseFloat((0.86 * performance + Math.random()).toFixed(1)),
+                Job_Performance_2: parseFloat((0.79 * performance + Math.random()).toFixed(1)),
+            });
         }
         return data;
     };
-
+    
     const loadSampleData = useCallback((type: string) => {
         let sampleData, defaultMeasurement, defaultStructural;
         if (type === 'academic') {
             sampleData = generateSEMData(500);
-            defaultMeasurement = { 'Learning_Motivation': ['Motivation_1', 'Motivation_2', 'Motivation_3'], 'Self_Efficacy': ['Efficacy_1', 'Efficacy_2', 'Efficacy_3'], 'Academic_Achievement': ['Achievement_1', 'Achievement_2', 'Achievement_3'] };
-            defaultStructural = [ { from: 'Learning_Motivation', to: 'Self_Efficacy' }, { from: 'Learning_Motivation', to: 'Academic_Achievement' }, { from: 'Self_Efficacy', to: 'Academic_Achievement' } ];
+            defaultMeasurement = { 'Motivation': ['Motivation_1', 'Motivation_2', 'Motivation_3'], 'Efficacy': ['Efficacy_1', 'Efficacy_2', 'Efficacy_3'], 'Achievement': ['Achievement_1', 'Achievement_2', 'Achievement_3'] };
+            defaultStructural = [ { from: 'Motivation', to: 'Efficacy' }, { from: 'Motivation', to: 'Achievement' }, { from: 'Efficacy', to: 'Achievement' } ];
         } else {
             sampleData = generateOrganizationalSEMData(400);
-            defaultMeasurement = { 'Leadership': ['Leadership_1', 'Leadership_2', 'Leadership_3'], 'Job_Satisfaction': ['Job_Satisfaction_1', 'Job_Satisfaction_2', 'Job_Satisfaction_3'], 'Organizational_Commitment': ['Commitment_1', 'Commitment_2', 'Commitment_3'], 'Job_Performance': ['Performance_1', 'Performance_2'] };
+            defaultMeasurement = { 'Leadership': ['Leadership_1', 'Leadership_2'], 'Job_Satisfaction': ['Job_Satisfaction_1', 'Job_Satisfaction_2'], 'Organizational_Commitment': ['Commitment_1', 'Commitment_2'], 'Job_Performance': ['Performance_1', 'Performance_2'] };
             defaultStructural = [ { from: 'Leadership', to: 'Job_Satisfaction' }, { from: 'Job_Satisfaction', to: 'Organizational_Commitment' }, { from: 'Organizational_Commitment', to: 'Job_Performance' } ];
         }
         setData(sampleData);
@@ -423,7 +277,9 @@ export default function SEMAnalysisComponent() {
                 <Alert>
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Dataset Loaded</AlertTitle>
-                    <AlertDescription>{data.length} observations with {availableVariables.length} variables loaded.</AlertDescription>
+                    <AlertDescription>
+                        {data.length} observations with {availableVariables.length} variables loaded.
+                    </AlertDescription>
                 </Alert>
             )}
 
@@ -491,7 +347,17 @@ export default function SEMAnalysisComponent() {
                     </CardContent>
                     <CardFooter>
                         <Button onClick={runSEMAnalysis} disabled={isLoading || data.length === 0} className="w-full">
-                            {isLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Running SEM...</> : <><PlayCircle className="w-4 h-4 mr-2" /> Run SEM Analysis</>}
+                            {isLoading ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                    Running SEM...
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <PlayCircle className="w-4 h-4 mr-2" />
+                                    Run SEM Analysis
+                                </div>
+                            )}
                         </Button>
                     </CardFooter>
                 </Card>
@@ -502,14 +368,17 @@ export default function SEMAnalysisComponent() {
                         {isLoading && <div className="text-center py-8"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" /><p className="text-gray-600">Running SEM analysis...</p></div>}
                         {results && !isLoading && (
                             <Tabs defaultValue="diagram" className="w-full">
-                                <TabsList className="grid w-full grid-cols-3">
+                                <TabsList className="grid w-full grid-cols-4">
                                     <TabsTrigger value="diagram">Path Diagram</TabsTrigger>
                                     <TabsTrigger value="fit">Model Fit</TabsTrigger>
+                                    <TabsTrigger value="estimates">Estimates</TabsTrigger>
                                     <TabsTrigger value="scores">Factor Scores</TabsTrigger>
                                 </TabsList>
+                                
                                 <TabsContent value="diagram" className="mt-4">
-                                     <SEMDiagram measurementModel={measurementModel} structuralModel={structuralModel} results={results} />
+                                     <Image src={results.plot!} alt="SEM Path Diagram" width={800} height={600} className="w-full rounded-md border" />
                                 </TabsContent>
+                                
                                 <TabsContent value="fit" className="mt-4">
                                     <Table>
                                         <TableHeader><TableRow><TableHead>Index</TableHead><TableHead>Value</TableHead></TableRow></TableHeader>
@@ -517,13 +386,29 @@ export default function SEMAnalysisComponent() {
                                             {Object.entries(results.results.fit_indices).map(([key, value]) => (
                                                 <TableRow key={key}>
                                                     <TableCell>{key.replace(/_/g, ' ').toUpperCase()}</TableCell>
-                                                    <TableCell>{(value as number).toFixed(3)}</TableCell>
+                                                    <TableCell>{typeof value === 'number' ? value.toFixed(3) : value}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
                                 </TabsContent>
-                                 <TabsContent value="scores" className="mt-4">
+                                <TabsContent value="estimates" className="mt-4">
+                                     <Table>
+                                        <TableHeader><TableRow><TableHead>lval</TableHead><TableHead>op</TableHead><TableHead>rval</TableHead><TableHead className="text-right">Estimate</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {results.results.estimates.map((est, i) => (
+                                                <TableRow key={i}>
+                                                    <TableCell>{est.lval}</TableCell>
+                                                    <TableCell>{est.op}</TableCell>
+                                                    <TableCell>{est.rval}</TableCell>
+                                                    <TableCell className="text-right font-mono">{est.Estimate?.toFixed(3)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{est['p-value'] < 0.001 ? '<.001' : est['p-value']?.toFixed(3)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TabsContent>
+                                <TabsContent value="scores" className="mt-4">
                                     <Table>
                                         <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Mean Factor Score</TableHead></TableRow></TableHeader>
                                         <TableBody>

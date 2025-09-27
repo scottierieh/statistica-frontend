@@ -1,5 +1,4 @@
 
-
 import sys
 import json
 import numpy as np
@@ -77,6 +76,7 @@ class SEMAnalysis:
         
         stats_results = semopy.calc_stats(m)
         fit_indices = stats_results.T.to_dict().get('Value', {})
+        estimates = semopy.inspect(m)
 
         # Get factor scores and mean components
         factor_scores_df = pd.DataFrame()
@@ -93,6 +93,7 @@ class SEMAnalysis:
             'model_spec': model_spec,
             'n_observations': len(model_data_std),
             'fit_indices': fit_indices,
+            'estimates': estimates.to_dict('records'),
             'factor_scores': factor_scores_df.to_dict('records'),
             'mean_components': mean_components,
             'model': m
@@ -112,16 +113,16 @@ class SEMAnalysis:
             g = semopy.semplot(m, temp_filename, plot_stats=True)
             
             buf = io.BytesIO()
-            with open(temp_filename, 'rb') as f:
-                buf.write(f.read())
-            buf.seek(0)
-            
-            # Clean up the created file
             if os.path.exists(temp_filename):
+                with open(temp_filename, 'rb') as f:
+                    buf.write(f.read())
+                buf.seek(0)
+                # Clean up the created file
                 os.remove(temp_filename)
-            
-            img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-            return f"data:image/png;base64,{img_base64}"
+                img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+                return f"data:image/png;base64,{img_base64}"
+            else:
+                 return self._fallback_plot(self.results[model_name])
         except Exception as e:
             # Fallback plot generation if semplot fails (e.g., graphviz not installed on system)
             print(f"Warning: semplot failed with error: {e}. A fallback plot will be generated.", file=sys.stderr)
@@ -176,8 +177,4 @@ def main():
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()
+        print(json.dumps({"error": str(e)}
