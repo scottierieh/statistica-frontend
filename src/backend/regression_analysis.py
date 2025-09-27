@@ -288,22 +288,21 @@ class RegressionAnalysis:
         sklearn_model = LinearRegression() # Default
         original_features = list(X_selected.columns)
         X_to_diagnose = X_scaled
-
+        
         if model_type == 'polynomial':
             degree = kwargs.get('degree', 2)
             poly = PolynomialFeatures(degree=degree, include_bias=False)
             X_poly = poly.fit_transform(X_scaled)
             poly_feature_names = poly.get_feature_names_out(X_scaled.columns)
-            X_poly_df = pd.DataFrame(X_poly, columns=poly_feature_names, index=X_scaled.index)
-            sklearn_model.fit(X_poly_df, self.y)
-            y_pred = sklearn_model.predict(X_poly_df)
-            metrics = self._calculate_metrics(self.y, y_pred, X_poly_df.shape[1])
+            X_to_diagnose = pd.DataFrame(X_poly, columns=poly_feature_names, index=X_scaled.index)
+            sklearn_model.fit(X_to_diagnose, self.y)
             original_features = list(poly_feature_names)
-            X_to_diagnose = X_poly_df
         else:
             sklearn_model.fit(X_scaled, self.y)
-            y_pred = sklearn_model.predict(X_scaled)
-            metrics = self._calculate_metrics(self.y, y_pred, X_scaled.shape[1])
+
+        y_pred = sklearn_model.predict(X_to_diagnose)
+
+        metrics = self._calculate_metrics(self.y, y_pred, X_to_diagnose.shape[1])
 
         sm_model = None
         if HAS_STATSMODELS:
@@ -381,6 +380,5 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 
