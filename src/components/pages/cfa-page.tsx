@@ -20,7 +20,8 @@ import {
     HelpCircle,
     Loader2,
     X as XIcon,
-    BarChart,
+    BarChart as BarChartIcon,
+    Users,
 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
@@ -72,9 +73,14 @@ interface FullAnalysisResponse {
     qq_plot?: string | null;
 }
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
+interface IntroPageProps {
+  onStart: () => void;
+  onLoadExample: () => void;
+}
 
+const IntroPage: React.FC<IntroPageProps> = ({ onStart, onLoadExample }) => {
+    const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
+    
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -98,7 +104,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                     <div className="flex justify-center">
                         {cfaExample && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={onLoadExample}>
                                 <BrainCircuit className="mx-auto h-8 w-8 text-primary"/>
                                 <div>
                                     <h4 className="font-semibold">{cfaExample.name}</h4>
@@ -120,10 +126,10 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>Model Fit Indices:</strong> These are crucial for evaluating your model. Good fit is generally indicated by CFI/TLI > .90, and RMSEA/SRMR < .08.
+                                    <strong>Model Fit Indices:</strong> These are crucial for evaluating your model. Good fit is generally indicated by CFI/TLI &gt; .90, and RMSEA/SRMR &lt; .08.
                                 </li>
                                 <li>
-                                    <strong>Factor Loadings:</strong> Standardized estimates showing the correlation between an item and its factor. Values > 0.5 (and ideally > 0.7) are considered strong.
+                                    <strong>Factor Loadings:</strong> Standardized estimates showing the correlation between an item and its factor. Values &gt; 0.5 (and ideally &gt; 0.7) are considered strong.
                                 </li>
                                 <li>
                                     <strong>Convergent & Discriminant Validity:</strong> Check if items for the same factor are highly related (convergent) and if different factors are distinct from one another (discriminant).
@@ -210,11 +216,19 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         setFileName('');
     };
 
+    const handleLoadExampleData = () => {
+        const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
+        if (cfaExample) {
+            processAndSetData(cfaExample.data, cfaExample.name);
+            setView('main');
+        }
+    }
+
     useEffect(() => {
         if (canRun) {
              const autoFactors: { [key: string]: string[] } = {};
              localNumericHeaders.forEach(h => {
-                const baseName = h.replace(/[\d_]+$/, ''); // Remove trailing numbers and underscores
+                const baseName = h.replace(/[_\\d]+$/, ''); // Remove trailing numbers and underscores
                 if (!autoFactors[baseName]) autoFactors[baseName] = [];
                 autoFactors[baseName].push(h);
              });
@@ -302,14 +316,9 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
             setIsLoading(false);
         }
     }, [localData, modelSpec, toast]);
-    
-    const handleLoadExample = (example: ExampleDataSet) => {
-        processAndSetData(example.data, example.name);
-        setView('main');
-    };
 
     if (view === 'intro' || !canRun) {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExample} />;
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
     }
     
     const isGoodFit = results?.results?.fit_indices?.cfi && results.results.fit_indices.cfi > 0.9 && results.results.fit_indices.rmsea && results.results.fit_indices.rmsea < 0.08;
@@ -318,7 +327,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
-                <DataPreview data={localData} fileName={fileName} headers={localAllHeaders} onDownload={() => {}} onClearData={handleClearData} />
+                <DataPreview data={localData} fileName={fileName} headers={localAllHeaders} onDownload={() => unparseData({ headers: localAllHeaders, data: localData})} onClearData={handleClearData} />
             </div>
              <Card>
                 <CardHeader>
@@ -422,7 +431,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
                                                     <TableCell className="text-right font-mono">{est.Estimate?.toFixed(3)}</TableCell>
                                                     <TableCell className="text-right font-mono">{est.Std_Err?.toFixed(3)}</TableCell>
                                                     <TableCell className="text-right font-mono">{est.z_value?.toFixed(2)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{est.p_value < 0.001 ? '<.001' : est.p_value?.toFixed(3)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{est.p_value < 0.001 ? '&lt;.001' : est.p_value?.toFixed(3)}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -437,6 +446,3 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
     );
 }
 
-  
-
-    
