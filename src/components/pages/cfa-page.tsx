@@ -37,6 +37,7 @@ import DataUploader from '../data-uploader';
 import DataPreview from '../data-preview';
 import { parseData, unparseData } from '@/lib/stats';
 import * as XLSX from 'xlsx';
+import { Checkbox } from '../ui/checkbox';
 
 
 interface CfaFitIndices {
@@ -128,10 +129,10 @@ const IntroPage: React.FC<IntroPageProps> = ({ onStart, onLoadExample }) => {
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>Model Fit Indices:</strong> These are crucial for evaluating your model. Good fit is generally indicated by CFI/TLI &gt; .90, and RMSEA/SRMR &lt; .08.
+                                    <strong>Model Fit Indices:</strong> These are crucial for evaluating your model. Good fit is generally indicated by CFI/TLI > .90, and RMSEA/SRMR < .08.
                                 </li>
                                 <li>
-                                    <strong>Factor Loadings:</strong> Standardized estimates showing the correlation between an item and its factor. Values &gt; 0.5 (and ideally &gt; 0.7) are considered strong.
+                                    <strong>Factor Loadings:</strong> Standardized estimates showing the correlation between an item and its factor. Values > 0.5 (and ideally > 0.7) are considered strong.
                                 </li>
                                 <li>
                                     <strong>Convergent & Discriminant Validity:</strong> Check if items for the same factor are highly related (convergent) and if different factors are distinct from one another (discriminant).
@@ -266,18 +267,19 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         });
     };
 
-    const assignVariable = (factorName: string, variable: string) => {
-        setModelSpec(prev => produce(prev, draft => {
-            draft[factorName].push(variable);
+    const assignVariableToFactor = (variable: string, factorName: string | null) => {
+        setModelSpec(produce(draft => {
+            // Remove variable from any factor it might already be in
+            for (const key in draft) {
+                draft[key] = draft[key].filter(v => v !== variable);
+            }
+            // Add to the new factor if one is selected
+            if (factorName && draft[factorName]) {
+                draft[factorName].push(variable);
+            }
         }));
     };
-
-    const removeVariable = (factorName: string, variable: string) => {
-        setModelSpec(prev => produce(prev, draft => {
-            draft[factorName] = draft[factorName].filter(v => v !== variable);
-        }));
-    };
-
+    
     const runAnalysis = useCallback(async () => {
         if (Object.values(modelSpec).some(items => items.length === 0)) {
             toast({ title: "Model Error", description: "Each factor must have at least one assigned variable.", variant: "destructive" });
@@ -324,51 +326,79 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
     }
     
     const isGoodFit = results?.results?.fit_indices?.cfi && results.results.fit_indices.cfi > 0.9 && results.results.fit_indices.rmsea && results.results.fit_indices.rmsea < 0.08;
+    const factorForVariable = (variable: string) => Object.keys(modelSpec).find(f => modelSpec[f].includes(variable));
+
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
-                <DataPreview data={localData} fileName={fileName} headers={localAllHeaders} onDownload={() => unparseData({ headers: localAllHeaders, data: localData})} onClearData={handleClearData} />
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">1. Data Loading</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
+                    <DataPreview data={localData} fileName={fileName} headers={localAllHeaders} onDownload={() => unparseData({ headers: localAllHeaders, data: localData})} onClearData={handleClearData} />
+                </CardContent>
+            </Card>
+
              <Card>
                 <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">CFA Model Specification</CardTitle>
-                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
-                    </div>
-                    <CardDescription>Define latent factors and assign observed variables.</CardDescription>
+                    <CardTitle className="font-headline">2. Define Latent Variables (Factors)</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex gap-2">
+                     <div className="flex gap-2">
                         <Input
-                            placeholder="New factor name..."
+                            placeholder="New factor name (e.g., Satisfaction)"
                             value={newFactorName}
                             onChange={(e) => setNewFactorName(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && addFactor()}
                         />
-                        <Button onClick={addFactor} size="sm"><Plus className="w-4 h-4" /></Button>
+                        <Button onClick={addFactor}><Plus className="w-4 h-4 mr-2" /> Add Factor</Button>
                     </div>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="flex gap-2 flex-wrap">
                         {Object.keys(modelSpec).map(factorName => (
-                            <Card key={factorName} className="p-3 bg-muted/50">
-                                <div className="flex justify-between items-center mb-2">
-                                    <h4 className="font-semibold text-sm">{factorName}</h4>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFactor(factorName)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                                </div>
-                                <div className="min-h-12 border border-dashed rounded-md p-2 space-y-1">
-                                    {modelSpec[factorName].map(variable => (
-                                        <div key={variable} className="flex justify-between items-center bg-background p-1 rounded text-xs">
-                                            <span>{variable}</span>
-                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeVariable(factorName, variable)}><XIcon className="w-3 h-3" /></Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </Card>
+                            <div key={factorName} className="flex items-center gap-1 p-2 rounded-md bg-muted">
+                                <span className="font-semibold text-sm">{factorName}</span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFactor(factorName)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                            </div>
                         ))}
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end">
+             </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">3. Assign Measurement Variables</CardTitle>
+                </CardHeader>
+                 <CardContent>
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Assigned Factor</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {localNumericHeaders.map(variable => (
+                                <TableRow key={variable}>
+                                    <TableCell>{variable}</TableCell>
+                                    <TableCell>
+                                        <Select
+                                            value={factorForVariable(variable) || ''}
+                                            onValueChange={(factor) => assignVariableToFactor(variable, factor === 'none' ? null : factor)}
+                                        >
+                                            <SelectTrigger className="w-[200px]">
+                                                <SelectValue placeholder="Unassigned" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Unassigned</SelectItem>
+                                                {Object.keys(modelSpec).map(f => (
+                                                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                 </CardContent>
+                  <CardFooter className="flex justify-end">
                     <Button onClick={runAnalysis} disabled={isLoading || Object.keys(modelSpec).length === 0}>
                         {isLoading ? <Loader2 className="animate-spin mr-2" /> : <PlayCircle className="mr-2"/>} Run CFA
                     </Button>
@@ -428,4 +458,3 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         </div>
     );
 }
-
