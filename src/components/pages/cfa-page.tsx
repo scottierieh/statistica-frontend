@@ -12,14 +12,15 @@ import {
     Trash2,
     PlayCircle,
     AlertTriangle,
-    CheckCircle,
+    CheckCircle2,
     Bot,
     Settings,
     FileSearch,
     MoveRight,
     HelpCircle,
     Loader2,
-    X as XIcon
+    X as XIcon,
+    BarChart,
 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
@@ -60,6 +61,9 @@ interface CfaResults {
     fit_indices: CfaFitIndices;
     estimates: CfaEstimate[];
     interpretation: string;
+    model: any; 
+    factor_scores: any[];
+    mean_components: any;
 }
 
 interface FullAnalysisResponse {
@@ -92,7 +96,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             Unlike Exploratory Factor Analysis (EFA) which discovers underlying structures, CFA is a confirmatory technique used to test a specific hypothesis about the structure of a set of variables. It's crucial for validating psychological scales, confirming theoretical models, and ensuring your measurement instrument works as intended.
                         </p>
                     </div>
-                     <div className="flex justify-center">
+                    <div className="flex justify-center">
                         {cfaExample && (
                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
                                 <BrainCircuit className="mx-auto h-8 w-8 text-primary"/>
@@ -391,7 +395,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
             {results && (
                  <div className="space-y-4">
                      <Alert variant={isGoodFit ? 'default' : 'destructive'}>
-                        {isGoodFit ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                        {isGoodFit ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                         <AlertTitle>{isGoodFit ? "Good Model Fit" : "Poor Model Fit"}</AlertTitle>
                         <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.results.interpretation.replace(/\n/g, '<br/>')}} />
                     </Alert>
@@ -432,3 +436,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         </div>
     );
 }
+
+  
+
+    
