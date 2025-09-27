@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, FlaskConical, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users, Repeat, TestTube, Columns } from 'lucide-react';
+import { Sigma, Loader2, FlaskConical, AlertTriangle, CheckCircle2, HelpCircle, MoveRight, Settings, FileSearch, BarChart, Users, Repeat, TestTube, Columns, Handshake } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Label } from '../ui/label';
@@ -18,7 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Checkbox } from '../ui/checkbox';
 import { Badge } from '../ui/badge';
 
-type TestType = 'mann_whitney' | 'wilcoxon' | 'kruskal_wallis' | 'friedman' | 'mcnemar';
+type TestType = 'mann_whitney' | 'wilcoxon' | 'kruskal_wallis' | 'friedman' | 'mcnemar' | 'rm_anova';
 
 const IntroPage = ({ testType, onStart, onLoadExample }: { testType: TestType, onStart: () => void, onLoadExample: (e: any) => void }) => {
     const intros = {
@@ -41,7 +41,7 @@ const IntroPage = ({ testType, onStart, onLoadExample }: { testType: TestType, o
             icon: Repeat,
             title: "Wilcoxon Signed-Rank Test",
             description: "Compare two related or matched samples to assess if their population mean ranks differ. It is the non-parametric alternative to the paired-samples t-test.",
-            why: "Use this test for 'before-and-after' studies or when comparing two measurements taken from the same subject. For example, testing if a training program significantly changed employee performance scores.",
+            why: "Use this test for 'before-and-after' studies or when comparing two measurements from the same subject. For example, testing if a training program significantly changed employee performance scores.",
             setup: [
                 { title: 'Variable 1 (e.g., Pre-test)', text: 'Select the numeric variable for the first measurement.' },
                 { title: 'Variable 2 (e.g., Post-test)', text: 'Select the numeric variable for the second, paired measurement.' },
@@ -62,7 +62,7 @@ const IntroPage = ({ testType, onStart, onLoadExample }: { testType: TestType, o
                 { title: 'Value Variable', text: 'Choose the numeric or ordinal variable you want to compare across the groups.' },
             ],
             interpretation: [
-                { title: 'H-statistic & p-value', text: 'A significant p-value (< 0.05) indicates that at least one group is different from the others. It does not specify which groups differ.' },
+                { title: 'H-statistic & p-value', text: 'A significant p-value (&lt; 0.05) indicates that at least one group is different from the others. It does not specify which groups differ.' },
                 { title: 'Effect Size (Epsilon-squared)', text: 'Measures the proportion of variance in the ranks explained by the group membership.' },
             ],
             exampleId: 'nonparametric-suite'
@@ -76,7 +76,7 @@ const IntroPage = ({ testType, onStart, onLoadExample }: { testType: TestType, o
                 { title: 'Select 3+ Variables', text: 'Choose three or more numeric variables that represent the repeated measures or related conditions.' },
             ],
             interpretation: [
-                { title: 'Chi-squared Statistic & p-value', text: 'A significant p-value (< 0.05) indicates that there is a significant difference among the repeated measures.' },
+                { title: 'Chi-squared Statistic & p-value', text: 'A significant p-value (&lt; 0.05) indicates that there is a significant difference among the repeated measures.' },
                 { title: 'Kendall\'s W', text: 'Measures the effect size, indicating the level of agreement (concordance) among the rankings of the different conditions.' },
             ],
             exampleId: 'nonparametric-suite'
@@ -92,9 +92,27 @@ const IntroPage = ({ testType, onStart, onLoadExample }: { testType: TestType, o
             ],
             interpretation: [
                 { title: 'Contingency Table', text: 'Focus on the off-diagonal cells (b and c), which represent the subjects who changed their status.' },
-                { title: 'p-value', text: 'A significant p-value (< 0.05) indicates that there was a significant marginal change in proportions between the two time points.' },
+                { title: 'p-value', text: 'A significant p-value (&lt; 0.05) indicates that there was a significant marginal change in proportions between the two time points.' },
             ],
-            exampleId: 'nonparametric-suite'
+            exampleId: 'mcnemar-test'
+        },
+        rm_anova: {
+            icon: Repeat,
+            title: "Repeated Measures ANOVA",
+            description: "Analyze within-subjects designs, where the same subjects are measured multiple times, and test for differences across conditions or time points.",
+            why: "This test is powerful for longitudinal studies, pre-test/post-test designs, or experiments where participants are exposed to multiple conditions. It increases statistical power by controlling for individual differences between subjects, making it easier to detect the true effect of your intervention or the change over time.",
+             setup: [
+                { title: 'Load Data', text: 'Your data should be in "wide" format, with each row representing a subject and each repeated measure in a separate column.' },
+                { title: 'Subject Variable', text: 'Select the column that uniquely identifies each subject or participant.' },
+                { title: 'Within-Subjects Factors', text: 'Select two or more numeric columns that represent the repeated measurements (e.g., \'Week 1\', \'Week 2\', \'Week 3\').' },
+                { title: 'Between-Subjects Factor (Optional)', text: 'Select a categorical variable that splits the subjects into groups (e.g., \'Control\', \'Treatment\').' }
+            ],
+            interpretation: [
+                { title: 'Sphericity (Mauchly\'s Test)', text: 'If this test is significant (p &lt; .05), the assumption of sphericity is violated. You should rely on the corrected p-values (Greenhouse-Geisser or Huynh-Feldt).' },
+                { title: 'Main Effects & Interactions', text: 'A significant p-value for the within-subjects factor indicates a change over time. A significant interaction effect means the change over time differs between your between-subjects groups.' },
+                { title: 'Effect Size (η²p)', text: 'Partial eta-squared indicates the proportion of variance explained by a factor.' },
+            ],
+            exampleId: 'rm-anova'
         }
     };
 
