@@ -65,22 +65,26 @@ class SEMAnalysis:
         model_spec = self.models[model_name]
         all_observed = list(set(ind for sublist in model_spec['measurement_model'].values() for ind in sublist))
         
-        model_data = self.data[all_observed].copy()
+        model_data = self.data[all_observed].copy().dropna()
+        if model_data.empty:
+            raise ValueError("No valid data for the specified variables after dropping NaNs.")
+            
         model_data_std = pd.DataFrame(self.scaler.fit_transform(model_data), columns=model_data.columns)
 
         m = semopy.Model(model_spec['desc'])
         m.fit(model_data_std)
         
-        stats = semopy.calc_stats(m)
-        fit_indices = stats.T.to_dict()['Value']
+        stats_results = semopy.calc_stats(m)
+        fit_indices = stats_results.T.to_dict().get('Value', {})
 
-        # Get factor scores
+        # Get factor scores and mean components
+        factor_scores_df = pd.DataFrame()
+        mean_components = {}
         try:
-            factor_scores = m.predict_factors(model_data_std)
-            mean_components = factor_scores.mean().to_dict()
-        except Exception:
-            factor_scores = pd.DataFrame()
-            mean_components = {}
+            factor_scores_df = m.predict_factors(model_data_std)
+            mean_components = factor_scores_df.mean().to_dict()
+        except Exception as e:
+            print(f"Warning: Could not predict factor scores. Error: {e}", file=sys.stderr)
 
 
         self.results[model_name] = {
@@ -88,7 +92,7 @@ class SEMAnalysis:
             'model_spec': model_spec,
             'n_observations': len(model_data_std),
             'fit_indices': fit_indices,
-            'factor_scores': factor_scores.to_dict('records'),
+            'factor_scores': factor_scores_df.to_dict('records'),
             'mean_components': mean_components,
             'model': m
         }
@@ -102,19 +106,19 @@ class SEMAnalysis:
         m = self.results[model_name]['model']
         
         try:
-            g = semopy.semplot(m, "sem_plot.png", plot_stats=True)
+            # semopy.semplot saves file to disk, so we need to handle this
+            temp_filename = "sem_plot.png"
+            g = semopy.semplot(m, temp_filename, plot_stats=True)
             
-            # Since semplot saves a file, we need to read it back into a buffer.
             buf = io.BytesIO()
-            with open("sem_plot.png", 'rb') as f:
+            with open(temp_filename, 'rb') as f:
                 buf.write(f.read())
             buf.seek(0)
             
             img_base64 = base64.b64encode(buf.read()).decode('utf-8')
             return f"data:image/png;base64,{img_base64}"
         except Exception as e:
-            # Fallback if graphviz is not installed or fails
-            print(f"Warning: semplot failed with error: {e}. A basic plot will be generated.", file=sys.stderr)
+            print(f"Warning: semplot failed with error: {e}. A fallback plot will be generated.", file=sys.stderr)
             return self._fallback_plot(self.results[model_name])
 
 
@@ -170,3 +174,5 @@ def main():
         sys.exit(1)
 
 if __name__ == '__main__':
+    main()
+

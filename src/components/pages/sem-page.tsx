@@ -1,7 +1,7 @@
 
 
 'use client';
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,12 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
     Network, 
-    Database, 
-    GitBranch, 
     BarChart3, 
     Target, 
     TrendingUp,
@@ -28,97 +25,51 @@ import {
     ArrowRight,
     Eye,
     Calculator,
-    Loader2
+    Loader2,
+    Bot,
+    BrainCircuit,
+    Settings,
+    FileSearch
 } from 'lucide-react';
 import { exampleDatasets } from '@/lib/example-datasets';
-import { ScrollArea } from '../ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import Image from 'next/image';
 
-// SEM용 샘플 데이터 생성
-const generateSEMData = (nSamples = 500) => {
-    const data = [];
-    
-    for (let i = 0; i < nSamples; i++) {
-        const motivation = Math.random() * 2 - 1; // 표준정규분포 근사
-        const efficacy = 0.6 * motivation + Math.random() * 0.8 - 0.4;
-        const achievement = 0.5 * motivation + 0.7 * efficacy + Math.random() * 0.6 - 0.3;
-        
-        const mot1 = 0.8 * motivation + Math.random() * 0.6 - 0.3;
-        const mot2 = 0.75 * motivation + Math.random() * 0.6 - 0.3;
-        const mot3 = 0.7 * motivation + Math.random() * 0.6 - 0.3;
-        
-        const eff1 = 0.85 * efficacy + Math.random() * 0.5 - 0.25;
-        const eff2 = 0.78 * efficacy + Math.random() * 0.5 - 0.25;
-        const eff3 = 0.72 * efficacy + Math.random() * 0.5 - 0.25;
-        
-        const ach1 = 0.9 * achievement + Math.random() * 0.4 - 0.2;
-        const ach2 = 0.82 * achievement + Math.random() * 0.4 - 0.2;
-        const ach3 = 0.76 * achievement + Math.random() * 0.4 - 0.2;
-        
-        data.push({
-            id: i + 1,
-            Motivation_1: Math.max(1, Math.min(7, Math.round(mot1 * 1.5 + 4))),
-            Motivation_2: Math.max(1, Math.min(7, Math.round(mot2 * 1.5 + 4))),
-            Motivation_3: Math.max(1, Math.min(7, Math.round(mot3 * 1.5 + 4))),
-            Efficacy_1: Math.max(1, Math.min(7, Math.round(eff1 * 1.5 + 4))),
-            Efficacy_2: Math.max(1, Math.min(7, Math.round(eff2 * 1.5 + 4))),
-            Efficacy_3: Math.max(1, Math.min(7, Math.round(eff3 * 1.5 + 4))),
-            Achievement_1: Math.max(1, Math.min(7, Math.round(ach1 * 1.5 + 4))),
-            Achievement_2: Math.max(1, Math.min(7, Math.round(ach2 * 1.5 + 4))),
-            Achievement_3: Math.max(1, Math.min(7, Math.round(ach3 * 1.5 + 4)))
-        });
-    }
-    
-    return data;
-};
+// --- Type Definitions ---
+interface ModelSpec {
+    measurement_model: { [key: string]: string[] };
+    structural_model: { from: string; to: string }[];
+}
 
-// 조직심리학 SEM 데이터
-const generateOrganizationalSEMData = (nSamples = 400) => {
-    const data = [];
-    
-    for (let i = 0; i < nSamples; i++) {
-        const leadership = Math.random() * 2 - 1;
-        const jobSatisfaction = 0.7 * leadership + Math.random() * 0.7 - 0.35;
-        const commitment = 0.5 * leadership + 0.6 * jobSatisfaction + Math.random() * 0.6 - 0.3;
-        const performance = 0.4 * jobSatisfaction + 0.8 * commitment + Math.random() * 0.5 - 0.25;
-        
-        const lead1 = 0.85 * leadership + Math.random() * 0.5 - 0.25;
-        const lead2 = 0.78 * leadership + Math.random() * 0.5 - 0.25;
-        const lead3 = 0.72 * leadership + Math.random() * 0.5 - 0.25;
-        
-        const sat1 = 0.82 * jobSatisfaction + Math.random() * 0.6 - 0.3;
-        const sat2 = 0.75 * jobSatisfaction + Math.random() * 0.6 - 0.3;
-        const sat3 = 0.69 * jobSatisfaction + Math.random() * 0.6 - 0.3;
-        
-        const com1 = 0.88 * commitment + Math.random() * 0.4 - 0.2;
-        const com2 = 0.81 * commitment + Math.random() * 0.4 - 0.2;
-        const com3 = 0.74 * commitment + Math.random() * 0.4 - 0.2;
-        
-        const perf1 = 0.86 * performance + Math.random() * 0.5 - 0.25;
-        const perf2 = 0.79 * performance + Math.random() * 0.5 - 0.25;
-        
-        data.push({
-            id: i + 1,
-            Leadership_1: Math.max(1, Math.min(7, Math.round(lead1 * 1.5 + 4))),
-            Leadership_2: Math.max(1, Math.min(7, Math.round(lead2 * 1.5 + 4))),
-            Leadership_3: Math.max(1, Math.min(7, Math.round(lead3 * 1.5 + 4))),
-            Job_Satisfaction_1: Math.max(1, Math.min(7, Math.round(sat1 * 1.5 + 4))),
-            Job_Satisfaction_2: Math.max(1, Math.min(7, Math.round(sat2 * 1.5 + 4))),
-            Job_Satisfaction_3: Math.max(1, Math.min(7, Math.round(sat3 * 1.5 + 4))),
-            Commitment_1: Math.max(1, Math.min(7, Math.round(com1 * 1.5 + 4))),
-            Commitment_2: Math.max(1, Math.min(7, Math.round(com2 * 1.5 + 4))),
-            Commitment_3: Math.max(1, Math.min(7, Math.round(com3 * 1.5 + 4))),
-            Performance_1: Math.max(1, Math.min(7, Math.round(perf1 * 1.5 + 4))),
-            Performance_2: Math.max(1, Math.min(7, Math.round(perf2 * 1.5 + 4)))
-        });
-    }
-    
-    return data;
-};
+interface FitIndices {
+    chi_square: number;
+    df: number;
+    rmsea: number;
+    cfi: number;
+    tli: number;
+    srmr: number;
+    gfi: number;
+    agfi: number;
+    [key: string]: number;
+}
 
+interface SemResults {
+    model_name: string;
+    model_spec: { desc: string; measurement_model: { [key: string]: string[] } };
+    n_observations: number;
+    fit_indices: FitIndices;
+    factor_scores: { [key: string]: number }[];
+    mean_components: { [key: string]: number };
+}
+
+interface FullAnalysisResponse {
+    results: SemResults;
+    plot: string;
+}
+
+// --- Intro Page Component ---
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (type: string) => void; }) => {
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
@@ -135,7 +86,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
-                     <div className="text-center">
+                    <div className="text-center">
                         <h2 className="text-2xl font-semibold mb-4">Why Use SEM?</h2>
                         <p className="max-w-4xl mx-auto text-muted-foreground">
                             SEM combines factor analysis and path analysis to test complex theoretical models. 
@@ -143,7 +94,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </p>
                     </div>
                     
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Card className="cursor-pointer hover:shadow-md" onClick={() => onLoadExample('academic')}>
                             <CardHeader><CardTitle className="text-lg">Academic Achievement Model</CardTitle></CardHeader>
                             <CardContent><p className="text-sm text-muted-foreground">Test a model where Motivation and Self-Efficacy predict Academic Achievement.</p></CardContent>
@@ -164,20 +115,63 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
+// --- Main Page Component ---
 export default function SEMAnalysisComponent() {
     const [view, setView] = useState('intro');
     const [data, setData] = useState<any[]>([]);
     const [datasetType, setDatasetType] = useState('academic');
     const [measurementModel, setMeasurementModel] = useState<{ [key: string]: string[] }>({});
     const [structuralModel, setStructuralModel] = useState<{ from: string, to: string }[]>([]);
-    const [results, setResults] = useState<any>(null);
+    const [results, setResults] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [newLatentVar, setNewLatentVar] = useState('');
     const [newPath, setNewPath] = useState<{ from: string, to: string }>({ from: '', to: '' });
 
     const { toast } = useToast();
 
-    // 샘플 데이터 로드
+    // Sample Data Generation
+    const generateSEMData = (nSamples = 500) => {
+        const data = [];
+        for (let i = 0; i < nSamples; i++) {
+            const motivation = Math.random() * 2 - 1; // 표준정규분포 근사
+            const efficacy = 0.6 * motivation + Math.random() * 0.8 - 0.4;
+            const achievement = 0.5 * motivation + 0.7 * efficacy + Math.random() * 0.6 - 0.3;
+            const mot1 = 0.8 * motivation + Math.random() * 0.6 - 0.3;
+            const mot2 = 0.75 * motivation + Math.random() * 0.6 - 0.3;
+            const mot3 = 0.7 * motivation + Math.random() * 0.6 - 0.3;
+            const eff1 = 0.85 * efficacy + Math.random() * 0.5 - 0.25;
+            const eff2 = 0.78 * efficacy + Math.random() * 0.5 - 0.25;
+            const eff3 = 0.72 * efficacy + Math.random() * 0.5 - 0.25;
+            const ach1 = 0.9 * achievement + Math.random() * 0.4 - 0.2;
+            const ach2 = 0.82 * achievement + Math.random() * 0.4 - 0.2;
+            const ach3 = 0.76 * achievement + Math.random() * 0.4 - 0.2;
+            data.push({ id: i + 1, Motivation_1: Math.max(1, Math.min(7, Math.round(mot1 * 1.5 + 4))), Motivation_2: Math.max(1, Math.min(7, Math.round(mot2 * 1.5 + 4))), Motivation_3: Math.max(1, Math.min(7, Math.round(mot3 * 1.5 + 4))), Efficacy_1: Math.max(1, Math.min(7, Math.round(eff1 * 1.5 + 4))), Efficacy_2: Math.max(1, Math.min(7, Math.round(eff2 * 1.5 + 4))), Efficacy_3: Math.max(1, Math.min(7, Math.round(eff3 * 1.5 + 4))), Achievement_1: Math.max(1, Math.min(7, Math.round(ach1 * 1.5 + 4))), Achievement_2: Math.max(1, Math.min(7, Math.round(ach2 * 1.5 + 4))), Achievement_3: Math.max(1, Math.min(7, Math.round(ach3 * 1.5 + 4))) });
+        }
+        return data;
+    };
+    const generateOrganizationalSEMData = (nSamples = 400) => {
+        const data = [];
+        for (let i = 0; i < nSamples; i++) {
+            const leadership = Math.random() * 2 - 1;
+            const jobSatisfaction = 0.7 * leadership + Math.random() * 0.7 - 0.35;
+            const commitment = 0.5 * leadership + 0.6 * jobSatisfaction + Math.random() * 0.6 - 0.3;
+            const performance = 0.4 * jobSatisfaction + 0.8 * commitment + Math.random() * 0.5 - 0.25;
+            const lead1 = 0.85 * leadership + Math.random() * 0.5 - 0.25;
+            const lead2 = 0.78 * leadership + Math.random() * 0.5 - 0.25;
+            const lead3 = 0.72 * leadership + Math.random() * 0.5 - 0.25;
+            const sat1 = 0.82 * jobSatisfaction + Math.random() * 0.6 - 0.3;
+            const sat2 = 0.75 * jobSatisfaction + Math.random() * 0.6 - 0.3;
+            const sat3 = 0.69 * jobSatisfaction + Math.random() * 0.6 - 0.3;
+            const com1 = 0.88 * commitment + Math.random() * 0.4 - 0.2;
+            const com2 = 0.81 * commitment + Math.random() * 0.4 - 0.2;
+            const com3 = 0.74 * commitment + Math.random() * 0.4 - 0.2;
+            const perf1 = 0.86 * performance + Math.random() * 0.5 - 0.25;
+            const perf2 = 0.79 * performance + Math.random() * 0.5 - 0.25;
+            data.push({ id: i + 1, Leadership_1: Math.max(1, Math.min(7, Math.round(lead1 * 1.5 + 4))), Leadership_2: Math.max(1, Math.min(7, Math.round(lead2 * 1.5 + 4))), Leadership_3: Math.max(1, Math.min(7, Math.round(lead3 * 1.5 + 4))), Job_Satisfaction_1: Math.max(1, Math.min(7, Math.round(sat1 * 1.5 + 4))), Job_Satisfaction_2: Math.max(1, Math.min(7, Math.round(sat2 * 1.5 + 4))), Job_Satisfaction_3: Math.max(1, Math.min(7, Math.round(sat3 * 1.5 + 4))), Commitment_1: Math.max(1, Math.min(7, Math.round(com1 * 1.5 + 4))), Commitment_2: Math.max(1, Math.min(7, Math.round(com2 * 1.5 + 4))), Commitment_3: Math.max(1, Math.min(7, Math.round(com3 * 1.5 + 4))), Performance_1: Math.max(1, Math.min(7, Math.round(perf1 * 1.5 + 4))), Performance_2: Math.max(1, Math.min(7, Math.round(perf2 * 1.5 + 4))) });
+        }
+        return data;
+    };
+
     const loadSampleData = useCallback((type: string) => {
         let sampleData, defaultMeasurement, defaultStructural;
         
@@ -215,26 +209,18 @@ export default function SEMAnalysisComponent() {
         setView('main');
         toast({title: "Sample Data Loaded", description: `Loaded the ${type} dataset.`});
     }, [toast]);
-    
-    // 변수 목록
+
     const availableVariables = useMemo(() => {
         if (data.length === 0) return [];
         return Object.keys(data[0]).filter(key => key !== 'id' && typeof data[0][key] === 'number');
     }, [data]);
 
-    const usedVariables = useMemo(() => {
-        return Object.values(measurementModel).flat();
-    }, [measurementModel]);
-
+    const usedVariables = useMemo(() => Object.values(measurementModel).flat(), [measurementModel]);
     const latentVariables = useMemo(() => Object.keys(measurementModel), [measurementModel]);
 
-    // 잠재변수 관리
     const addLatentVariable = () => {
         if (newLatentVar.trim() && !measurementModel[newLatentVar.trim()]) {
-            setMeasurementModel(prev => ({
-                ...prev,
-                [newLatentVar.trim()]: []
-            }));
+            setMeasurementModel(prev => ({ ...prev, [newLatentVar.trim()]: [] }));
             setNewLatentVar('');
         }
     };
@@ -245,23 +231,15 @@ export default function SEMAnalysisComponent() {
             delete newModel[latentVar];
             return newModel;
         });
-        setStructuralModel(prev => 
-            prev.filter(path => path.from !== latentVar && path.to !== latentVar)
-        );
+        setStructuralModel(prev => prev.filter(path => path.from !== latentVar && path.to !== latentVar));
     };
 
     const assignVariable = (latentVar: string, variable: string) => {
-        setMeasurementModel(prev => ({
-            ...prev,
-            [latentVar]: [...prev[latentVar], variable]
-        }));
+        setMeasurementModel(prev => ({ ...prev, [latentVar]: [...prev[latentVar], variable] }));
     };
 
     const removeVariable = (latentVar: string, variable: string) => {
-        setMeasurementModel(prev => ({
-            ...prev,
-            [latentVar]: prev[latentVar].filter(v => v !== variable)
-        }));
+        setMeasurementModel(prev => ({ ...prev, [latentVar]: prev[latentVar].filter(v => v !== variable) }));
     };
 
     const addStructuralPath = () => {
@@ -303,6 +281,24 @@ export default function SEMAnalysisComponent() {
         }
     }, [data, measurementModel, structuralModel, toast]);
 
+    const interpretFit = (fitIndices: FitIndices) => {
+        const { rmsea, cfi, srmr } = fitIndices;
+        let interpretation: string[] = [];
+
+        if (rmsea < 0.05) interpretation.push("RMSEA indicates excellent fit.");
+        else if (rmsea < 0.08) interpretation.push("RMSEA indicates acceptable fit.");
+        else interpretation.push("RMSEA indicates poor fit.");
+
+        if (cfi > 0.95) interpretation.push("CFI indicates excellent fit.");
+        else if (cfi > 0.90) interpretation.push("CFI indicates acceptable fit.");
+        else interpretation.push("CFI indicates poor fit.");
+
+        if (srmr < 0.08) interpretation.push("SRMR indicates good fit.");
+        else interpretation.push("SRMR indicates poor fit.");
+
+        return interpretation;
+    };
+    
     if (view === 'intro') {
         return <IntroPage onStart={() => {
             setData([]);
@@ -374,7 +370,6 @@ export default function SEMAnalysisComponent() {
                                 ))}
                             </div>
                         </div>
-
                         <div className="space-y-3">
                             <Label className="font-semibold">Structural Paths</Label>
                              <div className="flex items-center gap-2">
@@ -405,7 +400,6 @@ export default function SEMAnalysisComponent() {
                         </Button>
                     </CardFooter>
                 </Card>
-                
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -413,7 +407,7 @@ export default function SEMAnalysisComponent() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {isLoading && <div className="text-center py-8"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" /><p>Running SEM analysis...</p></div>}
+                        {isLoading && <div className="text-center py-8"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" /><p>Running SEM...</p></div>}
                         {results && !isLoading && (
                             <Tabs defaultValue="diagram" className="w-full">
                                 <TabsList className="grid w-full grid-cols-3">
@@ -425,15 +419,35 @@ export default function SEMAnalysisComponent() {
                                     {results.plot ? <Image src={results.plot} alt="SEM Path Diagram" width={500} height={400} className="w-full rounded-md border" /> : <p>Could not generate diagram.</p>}
                                 </TabsContent>
                                 <TabsContent value="fit" className="mt-4">
-                                     <div className="grid grid-cols-2 gap-2 text-sm">
-                                        {Object.entries(results.results.fit_indices).map(([key, value]) => (
-                                            <div key={key} className="flex justify-between p-1 bg-muted/50 rounded"><span>{key}</span><span className="font-mono">{typeof value === 'number' ? value.toFixed(3) : value}</span></div>
+                                    <div className="space-y-3">
+                                        <h4 className="font-semibold">Fit Indices</h4>
+                                        {results.results.fit_indices && Object.entries(results.results.fit_indices).map(([index, value]) => (
+                                            <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                                <span className="font-medium">{index.replace(/_/g, ' ').toUpperCase()}</span>
+                                                <Badge variant="secondary">{typeof value === 'number' ? (value as number).toFixed(3) : value as any}</Badge>
+                                            </div>
                                         ))}
+                                    </div>
+                                    <div className="p-4 bg-blue-50 rounded mt-4">
+                                        <h5 className="font-semibold mb-2">Interpretation</h5>
+                                        <ul className="text-sm space-y-1">
+                                            {interpretFit(results.results.fit_indices).map((item, idx) => (
+                                                <li key={idx} className="flex items-center gap-2">
+                                                    {item.includes('Excellent') ? 
+                                                        <CheckCircle className="w-3 h-3 text-green-600" /> :
+                                                        item.includes('Acceptable') ?
+                                                        <AlertTriangle className="w-3 h-3 text-yellow-600" /> :
+                                                        <AlertTriangle className="w-3 h-3 text-red-600" />
+                                                    }
+                                                    {item}
+                                                </li>
+                                            ))}
+                                        </ul>
                                     </div>
                                 </TabsContent>
                                  <TabsContent value="scores" className="mt-4">
                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Mean</TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Mean Factor Score</TableHead></TableRow></TableHeader>
                                         <TableBody>
                                         {results.results.mean_components && Object.entries(results.results.mean_components).map(([factor, mean]) => (
                                             <TableRow key={factor}>
