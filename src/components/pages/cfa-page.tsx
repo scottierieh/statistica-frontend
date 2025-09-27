@@ -191,6 +191,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         setIsUploading(true);
         try {
             const { headers, data: newData, numericHeaders: newNumHeaders } = parseData(content);
+            if (newData.length === 0) throw new Error("No data found in file.");
             setLocalData(newData);
             setLocalAllHeaders(headers);
             setLocalNumericHeaders(newNumHeaders);
@@ -460,3 +461,4 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         </div>
     );
 }
+
