@@ -473,4 +473,3 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         </div>
     );
 }
-
