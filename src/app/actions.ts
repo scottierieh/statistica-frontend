@@ -3,7 +3,6 @@
 'use server';
 import { generateDataVisualization, GenerateDataVisualizationInput } from "@/ai/flows/generate-data-visualization";
 import { generateSummaryReport, GenerateSummaryReportInput } from "@/ai/flows/generate-summary-report";
-import { interpretCfa, InterpretCfaInput } from "@/ai/flows/interpret-cfa";
 import { interpretFrequency, InterpretFrequencyInput } from "@/ai/flows/interpret-frequency";
 import { interpretClustering, InterpretClusteringInput } from "@/ai/flows/interpret-clustering";
 
@@ -27,16 +26,6 @@ export async function getSummaryReport(input: GenerateSummaryReportInput) {
     }
 }
 
-export async function getCfaInterpretation(input: InterpretCfaInput) {
-    try {
-        const result = await interpretCfa(input);
-        return { success: true, interpretation: result.interpretation };
-    } catch (error) {
-        console.error(error);
-        return { success: false, error: "Failed to generate CFA interpretation." };
-    }
-}
-
 export async function getFrequencyInterpretation(input: InterpretFrequencyInput) {
     try {
         const result = await interpretFrequency(input);
@@ -56,4 +45,3 @@ export async function getClusteringInterpretation(input: InterpretClusteringInpu
         return { success: false, error: "Failed to generate Clustering interpretation." };
     }
 }
-
