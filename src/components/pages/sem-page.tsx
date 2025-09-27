@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,8 +26,16 @@ import {
     Trash2,
     ArrowRight,
     Eye,
-    Calculator
+    Calculator,
+    BrainCircuit,
+    Settings,
+    FileSearch,
+    BarChart,
+    Building,
+    Users,
+    Star
 } from 'lucide-react';
+import Papa from 'papaparse';
 
 // SEM용 샘플 데이터 생성
 const generateSEMData = (nSamples = 500) => {
@@ -198,232 +206,61 @@ const calculateSEM = (data, measurementModel, structuralModel) => {
     };
 };
 
-// SEM 다이어그램 컴포넌트
-const SEMDiagram = ({ measurementModel, structuralModel, results }) => {
-    const svgRef = React.useRef(null);
-
-    React.useEffect(() => {
-        if (!svgRef.current || Object.keys(measurementModel).length === 0) return;
-
-        const svg = svgRef.current;
-        const width = 800;
-        const height = 600;
-        
-        svg.innerHTML = '';
-        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-
-        // 잠재변수 위치
-        const latentVars = Object.keys(measurementModel);
-        const latentPositions = {};
-        
-        latentVars.forEach((latent, idx) => {
-            const angle = (idx / latentVars.length) * 2 * Math.PI - Math.PI/2;
-            const radius = 180;
-            latentPositions[latent] = {
-                x: width/2 + Math.cos(angle) * radius,
-                y: height/2 + Math.sin(angle) * radius
-            };
-        });
-
-        // 관측변수 위치
-        const observedPositions = {};
-        Object.keys(measurementModel).forEach(latent => {
-            const indicators = measurementModel[latent];
-            const latentPos = latentPositions[latent];
-            
-            indicators.forEach((indicator, idx) => {
-                const angle = (idx / indicators.length) * Math.PI - Math.PI/2;
-                const distance = 80;
-                observedPositions[indicator] = {
-                    x: latentPos.x + Math.cos(angle) * distance,
-                    y: latentPos.y + Math.sin(angle) * distance
-                };
-            });
-        });
-
-        // 화살표 마커
-        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        marker.setAttribute('id', 'arrowhead');
-        marker.setAttribute('markerWidth', '10');
-        marker.setAttribute('markerHeight', '7');
-        marker.setAttribute('refX', '9');
-        marker.setAttribute('refY', '3.5');
-        marker.setAttribute('orient', 'auto');
-        
-        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
-        polygon.setAttribute('fill', '#2563eb');
-        
-        marker.appendChild(polygon);
-        defs.appendChild(marker);
-        svg.appendChild(defs);
-
-        // 구조경로
-        structuralModel.forEach(path => {
-            const fromPos = latentPositions[path.from];
-            const toPos = latentPositions[path.to];
-            
-            if (fromPos && toPos) {
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', fromPos.x);
-                line.setAttribute('y1', fromPos.y);
-                line.setAttribute('x2', toPos.x);
-                line.setAttribute('y2', toPos.y);
-                line.setAttribute('stroke', '#2563eb');
-                line.setAttribute('stroke-width', '3');
-                line.setAttribute('marker-end', 'url(#arrowhead)');
-                svg.appendChild(line);
-            }
-        });
-
-        // 측정경로
-        Object.keys(measurementModel).forEach(latent => {
-            const indicators = measurementModel[latent];
-            const latentPos = latentPositions[latent];
-            
-            indicators.forEach(indicator => {
-                const indicatorPos = observedPositions[indicator];
-                
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', latentPos.x);
-                line.setAttribute('y1', latentPos.y);
-                line.setAttribute('x2', indicatorPos.x);
-                line.setAttribute('y2', indicatorPos.y);
-                line.setAttribute('stroke', '#6b7280');
-                line.setAttribute('stroke-width', '2');
-                svg.appendChild(line);
-            });
-        });
-
-        // 관측변수 노드
-        Object.keys(observedPositions).forEach(indicator => {
-            const pos = observedPositions[indicator];
-            
-            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rect.setAttribute('x', pos.x - 25);
-            rect.setAttribute('y', pos.y - 15);
-            rect.setAttribute('width', '50');
-            rect.setAttribute('height', '30');
-            rect.setAttribute('fill', '#f3f4f6');
-            rect.setAttribute('stroke', '#6b7280');
-            rect.setAttribute('stroke-width', '2');
-            rect.setAttribute('rx', '5');
-            
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', pos.x);
-            text.setAttribute('y', pos.y + 5);
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('font-size', '10');
-            text.setAttribute('font-weight', 'bold');
-            text.setAttribute('fill', '#374151');
-            text.textContent = indicator.split('_').pop();
-            
-            svg.appendChild(rect);
-            svg.appendChild(text);
-        });
-
-        // 잠재변수 노드
-        Object.keys(latentPositions).forEach(latent => {
-            const pos = latentPositions[latent];
-            
-            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            circle.setAttribute('cx', pos.x);
-            circle.setAttribute('cy', pos.y);
-            circle.setAttribute('r', '35');
-            circle.setAttribute('fill', '#dbeafe');
-            circle.setAttribute('stroke', '#2563eb');
-            circle.setAttribute('stroke-width', '3');
-            
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', pos.x);
-            text.setAttribute('y', pos.y + 5);
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('font-size', '11');
-            text.setAttribute('font-weight', 'bold');
-            text.setAttribute('fill', '#1e40af');
-            text.textContent = latent.split('_').slice(-1)[0];
-            
-            svg.appendChild(circle);
-            svg.appendChild(text);
-        });
-
-    }, [measurementModel, structuralModel, results]);
-
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (type: 'academic' | 'organizational') => void }) => {
     return (
-        <div className="w-full">
-            <div className="border rounded-lg bg-white overflow-hidden">
-                <svg ref={svgRef} className="w-full h-96" style={{ minHeight: '400px' }}></svg>
-            </div>
-        </div>
-    );
-};
-
-const IntroPage = ({ onStart }) => {
-    return (
-        <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-5xl shadow-lg">
-                <CardHeader className="text-center p-8 bg-gradient-to-r from-green-50 to-teal-50">
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
                     <div className="flex justify-center items-center gap-3 mb-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-100 text-green-600">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                             <Network size={36} />
                         </div>
                     </div>
-                    <CardTitle className="text-4xl font-bold text-gray-800">
-                        Structural Equation Modeling (SEM)
-                    </CardTitle>
-                    <CardDescription className="text-xl pt-2 text-gray-600 max-w-4xl mx-auto">
-                        Analyze complex relationships between latent and observed variables
+                    <CardTitle className="font-headline text-4xl font-bold">Structural Equation Modeling (SEM)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
+                        Analyze complex relationships between observed and latent variables by combining factor analysis and multiple regression.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-8 px-8 py-8">
+                <CardContent className="space-y-10 px-8 py-10">
                     <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">What is SEM?</h2>
-                        <p className="max-w-4xl mx-auto text-gray-600">
-                            SEM combines factor analysis and path analysis to test complex theoretical models. 
-                            It examines measurement models and structural relationships simultaneously.
+                        <h2 className="text-2xl font-semibold mb-4">Why Use SEM?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            SEM is a versatile statistical technique that allows researchers to test complex theoretical models. It simultaneously models relationships between multiple independent and dependent variables, both observed and unobserved (latent), providing a more holistic view of the data's structure than running separate analyses.
                         </p>
                     </div>
-                    
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-xl flex items-center gap-2">
-                                <Target className="text-green-600"/> Measurement Model
-                            </h3>
-                            <ul className="list-disc pl-5 space-y-2 text-gray-600">
-                                <li>Factor loadings</li>
-                                <li>Reliability assessment</li>
-                                <li>Validity evaluation</li>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Load Data:</strong> Start with one of the sample datasets, like the Academic Motivation model or the Organizational Behavior model.</li>
+                                <li><strong>Specify Measurement Model:</strong> Define your latent variables (constructs) and assign their corresponding observed variables (indicators, e.g., survey items).</li>
+                                <li><strong>Specify Structural Model:</strong> Define the hypothesized causal paths between your latent variables.</li>
+                                <li><strong>Run Analysis:</strong> The tool will estimate all paths and provide model fit indices to evaluate how well your theory fits the data.</li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Model Fit Indices:</strong> Check values like CFI, TLI (>0.90) and RMSEA, SRMR (<0.08) to assess if your model is a good fit for the data.</li>
+                                <li><strong>Path Coefficients:</strong> Standardized coefficients indicate the strength and direction of relationships between variables. Significant p-values suggest a reliable path.</li>
+                                <li><strong>Factor Loadings:</strong> Ensure all indicators load strongly and significantly onto their intended latent factor, confirming your measurement model.</li>
                             </ul>
                         </div>
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-xl flex items-center gap-2">
-                                <GitBranch className="text-green-600"/> Structural Model
-                            </h3>
-                            <ul className="list-disc pl-5 space-y-2 text-gray-600">
-                                <li>Path coefficients</li>
-                                <li>Direct effects</li>
-                                <li>Indirect effects</li>
-                                <li>R² values</li>
-                            </ul>
-                        </div>
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-xl flex items-center gap-2">
-                                <BarChart3 className="text-green-600"/> Model Evaluation
-                            </h3>
-                            <ul className="list-disc pl-5 space-y-2 text-gray-600">
-                                <li>Fit indices (RMSEA, CFI, TLI)</li>
-                                <li>Modification indices</li>
-                                <li>Parameter significance</li>
-                                <li>Model comparison</li>
-                            </ul>
+                    </div>
+                     <div className="space-y-6">
+                        <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><BrainCircuit className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Psychology</h4><p className="text-xs text-muted-foreground">Testing theories of personality and intelligence.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Building className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Management</h4><p className="text-xs text-muted-foreground">Modeling job satisfaction and performance.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Star className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Marketing</h4><p className="text-xs text-muted-foreground">Understanding brand loyalty and purchase intent.</p></div></div>
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Users className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Sociology</h4><p className="text-xs text-muted-foreground">Analyzing social support and well-being models.</p></div></div>
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-gray-50">
-                    <Button size="lg" onClick={onStart} className="bg-green-600 hover:bg-green-700">
-                        Start SEM Analysis <MoveRight className="ml-2 w-5 h-5"/>
-                    </Button>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    <Button variant="outline" onClick={() => onLoadExample('academic')}>Load Academic Example</Button>
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
@@ -531,9 +368,14 @@ export default function SEMAnalysisComponent() {
         setResults(semResults);
         setIsLoading(false);
     };
+    
+    const handleStart = () => {
+        loadSampleData('academic');
+        setView('main');
+    }
 
     if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} />;
+        return <IntroPage onStart={handleStart} onLoadExample={loadSampleData} />;
     }
 
     return (
@@ -901,15 +743,27 @@ export default function SEMAnalysisComponent() {
                     <TabsContent value="diagram" className="space-y-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg">Interactive Path Diagram</CardTitle>
-                                <CardDescription>Conceptual visualization of your SEM model structure</CardDescription>
+                                <CardTitle className="text-lg">Path Diagram</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <SEMDiagram 
-                                    measurementModel={measurementModel}
-                                    structuralModel={structuralModel}
-                                    results={results}
-                                />
+                                <div className="bg-gray-50 rounded-lg p-6 min-h-64 flex items-center justify-center">
+                                    <div className="text-center">
+                                        <Eye className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                        <p className="text-gray-600">Conceptual path diagram</p>
+                                        <div className="mt-4 text-left space-y-2">
+                                            <div className="text-sm font-medium">Latent Variables:</div>
+                                            {Object.keys(measurementModel).map(latent => (
+                                                <div key={latent} className="text-xs">
+                                                    <strong>{latent}</strong>: {measurementModel[latent].join(', ')}
+                                                </div>
+                                            ))}
+                                            <div className="text-sm font-medium mt-3">Structural Paths:</div>
+                                            {structuralModel.map((path, idx) => (
+                                                <div key={idx} className="text-xs">{path.from} → {path.to}</div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
