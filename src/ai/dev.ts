@@ -15,7 +15,6 @@
  * - interpretReliability: Interprets reliability analysis metrics like Cronbach's Alpha.
  * - interpretCorrelation: Explains the meaning and strength of correlation matrices.
  * - interpretCrosstab: Analyzes and interprets crosstabulation and Chi-squared test results.
- * - interpretCfa: Delivers insights on Confirmatory Factor Analysis outcomes.
  * - interpretFrequency: Summarizes and interprets frequency distribution tables.
  */
 
@@ -27,6 +26,5 @@ import '@/ai/flows/generate-data-visualization.ts';
 import '@/ai/flows/interpret-reliability.ts';
 import '@/ai/flows/interpret-correlation.ts';
 import '@/ai/flows/interpret-crosstab.ts';
-import '@/ai/flows/interpret-cfa.ts';
 import '@/ai/flows/interpret-frequency.ts';
 import '@/ai/flows/interpret-clustering.ts';

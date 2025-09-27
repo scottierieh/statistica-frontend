@@ -1,4 +1,3 @@
-Cython
 pandas
 numpy
 scipy
@@ -15,5 +14,4 @@ scikit-learn-extra
 hdbscan
 pingouin
 qrcode
-semopy==1.2.4
-graphviz
+Cython
