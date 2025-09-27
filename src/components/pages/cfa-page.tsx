@@ -23,7 +23,8 @@ import {
     X as XIcon,
     Users,
     Building,
-    Star
+    Star,
+    Move
 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +38,11 @@ import DataUploader from '../data-uploader';
 import DataPreview from '../data-preview';
 import { parseData, unparseData } from '@/lib/stats';
 import * as XLSX from 'xlsx';
+import { Checkbox } from '../ui/checkbox';
+import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, KeyboardSensor, closestCenter } from '@dnd-kit/core';
+import { useSortable, SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
 
 interface CfaFitIndices {
     chi_square?: number;
@@ -71,7 +77,12 @@ interface FullAnalysisResponse {
     plot: string | null;
 }
 
-const ExampleCard: React.FC<{ example: ExampleDataSet, onLoad: (e: ExampleDataSet) => void }> = ({ example, onLoad }) => {
+interface ExampleCardProps {
+    example: ExampleDataSet;
+    onLoad: (e: ExampleDataSet) => void;
+}
+
+const ExampleCard: React.FC<ExampleCardProps> = ({ example, onLoad }) => {
     const Icon = example.icon;
     return (
         <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoad(example)}>
@@ -110,7 +121,7 @@ const IntroPage: React.FC<{ onStart: () => void; onLoadExample: (e: any) => void
                     </div>
                     <div className="flex justify-center">
                         {cfaExample && (
-                            <ExampleCard example={cfaExample} onLoad={onLoadExample} />
+                             <ExampleCard example={cfaExample} onLoad={onLoadExample} />
                         )}
                     </div>
                     <div className="grid md:grid-cols-2 gap-8">
@@ -320,10 +331,14 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
     const isGoodFit = results?.results?.fit_indices?.cfi && results.results.fit_indices.cfi > 0.9 && results.results.fit_indices.rmsea && results.results.fit_indices.rmsea < 0.08;
     const factorForVariable = (variable: string) => Object.keys(modelSpec).find(f => modelSpec[f].includes(variable));
     
-    if (!canRun || view === 'intro') {
+    if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
     }
 
+    if (!canRun) {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
+    }
+    
     return (
         <div className="space-y-6">
             <Card>
@@ -449,3 +464,5 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         </div>
     );
 }
+
+  
