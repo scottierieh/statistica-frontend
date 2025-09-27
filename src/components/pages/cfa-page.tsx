@@ -24,7 +24,8 @@ import {
     FileSearch,
     MoveRight,
     HelpCircle,
-    Eye
+    Eye,
+    Bot
 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
@@ -70,13 +71,15 @@ interface FullAnalysisResponse {
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
+    const Icon = cfaExample?.icon || BrainCircuit;
+
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
                 <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
                     <div className="flex justify-center items-center gap-3 mb-4">
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <BrainCircuit size={36} />
+                           {Icon && <Icon size={36} />}
                         </div>
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">Confirmatory Factor Analysis (CFA)</CardTitle>
@@ -94,7 +97,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                      <div className="flex justify-center">
                         {cfaExample && (
                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
-                                <cfaExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <Icon className="mx-auto h-8 w-8 text-primary"/>
                                 <div>
                                     <h4 className="font-semibold">{cfaExample.name}</h4>
                                     <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
@@ -115,10 +118,10 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>Model Fit Indices:</strong> These are crucial for evaluating your model. Good fit is generally indicated by CFI/TLI > .90, and RMSEA/SRMR < .08.
+                                    <strong>Model Fit Indices:</strong> These are crucial for evaluating your model. Good fit is generally indicated by CFI/TLI &gt; .90, and RMSEA/SRMR &lt; .08.
                                 </li>
                                 <li>
-                                    <strong>Factor Loadings:</strong> Standardized estimates showing the correlation between an item and its factor. Values > 0.5 (and ideally > 0.7) are considered strong.
+                                    <strong>Factor Loadings:</strong> Standardized estimates showing the correlation between an item and its factor. Values &gt; 0.5 (and ideally &gt; 0.7) are considered strong.
                                 </li>
                                 <li>
                                     <strong>Convergent & Discriminant Validity:</strong> Check if items for the same factor are highly related (convergent) and if different factors are distinct from one another (discriminant).
@@ -368,3 +371,4 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         </div>
     );
 }
+
