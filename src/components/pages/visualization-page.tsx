@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Box, GanttChart, Dot, Heater } from 'lucide-react';
+import { AreaChart, LineChart as LineChartIcon, ScatterChart as ScatterIcon, BarChart as BarChartIcon, PieChart as PieChartIcon, Box, GanttChart, Dot, Heater, HelpCircle, MoveRight, Settings, FileSearch } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DataSet } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,91 @@ import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { ScrollArea } from '../ui/scroll-area';
+
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: ExampleDataSet) => void }) => {
+    const vizExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('visuals'));
+
+    return (
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                    <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <BarChartIcon size={36} />
+                        </div>
+                    </div>
+                    <CardTitle className="font-headline text-4xl font-bold">Data Visualization</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Create a variety of charts and graphs to explore and present your data effectively.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why is Data Visualization Important?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            Data visualization translates complex datasets into easily digestible visual formats. It helps you identify trends, patterns, and outliers that might be missed in raw data, making it an essential tool for exploratory data analysis, communication, and storytelling.
+                        </p>
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {vizExamples.map((ex) => {
+                            const Icon = ex.icon;
+                            return (
+                                <Card key={ex.id} className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => onLoadExample(ex)}>
+                                    <Icon className="mx-auto h-8 w-8 text-primary"/>
+                                    <div>
+                                        <h4 className="font-semibold">{ex.name}</h4>
+                                        <p className="text-xs text-muted-foreground">{ex.description}</p>
+                                    </div>
+                                </Card>
+                            )
+                        })}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Upload Data:</strong> Provide a dataset in a common format like CSV or Excel.
+                                </li>
+                                <li>
+                                    <strong>Select Chart Type:</strong> Choose a chart from one of the categories (Distribution, Relationship, Categorical).
+                                </li>
+                                <li>
+                                    <strong>Configure Variables:</strong> Map the columns from your data to the chart's required axes (e.g., X-Axis, Y-Axis, Group).
+                                </li>
+                                <li>
+                                    <strong>Generate Chart:</strong> The tool will instantly create the selected visualization based on your configuration.
+                                </li>
+                            </ol>
+                        </div>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Chart Selection Tips</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Histogram/Density Plot:</strong> To see the distribution of a single numeric variable.
+                                </li>
+                                <li>
+                                    <strong>Bar Chart:</strong> To compare counts of different categories.
+                                </li>
+                                <li>
+                                    <strong>Scatter Plot:</strong> To examine the relationship between two numeric variables.
+                                </li>
+                                 <li>
+                                    <strong>Box Plot:</strong> To compare the distribution of a numeric variable across different groups.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
+};
+
 
 interface VisualizationPageProps {
   data: DataSet;
@@ -43,6 +128,7 @@ const ChartRenderer = ({ plotData }: { plotData: string | null }) => {
 
 export default function VisualizationPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: VisualizationPageProps) {
   const {toast} = useToast();
+  const [view, setView] = useState('intro');
   const [activeCategory, setActiveCategory] = useState('distribution');
   const [activeChart, setActiveChart] = useState<string | null>(null);
 
@@ -82,7 +168,8 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
     setPieValueCol(undefined);
     setAnalysisResult(null);
     setActiveChart(null);
-  }, [data, numericHeaders, categoricalHeaders]);
+    setView(canRun ? 'main' : 'intro');
+  }, [data, numericHeaders, categoricalHeaders, canRun]);
 
   const handleRunAnalysis = useCallback(async (chartType: string) => {
     setActiveChart(chartType);
@@ -154,42 +241,13 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
 
   }, [data, toast, distColumn, barColumn, scatterX, scatterY, scatterTrend, scatterGroup, bubbleX, bubbleY, bubbleZ, pieNameCol, pieValueCol, groupedBarCategory1, groupedBarCategory2, groupedBarValue, heatmapVars]);
 
-   if (!canRun) {
-      const vizExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('visuals'));
-      return (
-        <div className="flex flex-1 items-center justify-center">
-            <Card className="w-full max-w-2xl text-center">
-                <CardHeader>
-                    <CardTitle className="font-headline">Data Visualization</CardTitle>
-                    <CardDescription>To visualize data, you need to upload a file. Try one of our example datasets.</CardDescription>
-                </CardHeader>
-                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {vizExamples.map((ex) => {
-                            const Icon = ex.icon;
-                            return (
-                            <Card key={ex.id} className="text-left hover:shadow-md transition-shadow">
-                                <CardHeader className="flex flex-row items-start gap-4 space-y-0 pb-4">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-                                        <Icon className="h-6 w-6 text-secondary-foreground" />
-                                    </div>
-                                    <div>
-                                        <CardTitle className="text-base font-semibold">{ex.name}</CardTitle>
-                                        <CardDescription className="text-xs">{ex.description}</CardDescription>
-                                    </div>
-                                </CardHeader>
-                                <CardFooter>
-                                    <Button onClick={() => onLoadExample(ex)} className="w-full" size="sm">Load this data</Button>
-                                </CardFooter>
-                            </Card>
-                            )
-                        })}
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-      )
-  }
+   if (!canRun && view === 'main') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
 
   const chartTypes = {
       distribution: [
@@ -216,7 +274,10 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Visualization Builder</CardTitle>
+            <div className="flex justify-between items-center">
+                <CardTitle>Visualization Builder</CardTitle>
+                <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+            </div>
           <CardDescription>Select a chart type and the corresponding variables to generate a visualization.</CardDescription>
         </CardHeader>
         <CardContent>
