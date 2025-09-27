@@ -5,13 +5,11 @@ import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
 import { stressSupportData } from "./example-datasets/stress-support-data";
-import { cfaData } from "./example-datasets/cfa-data";
 import { nonparametricData } from "./example-datasets/nonparametric-data";
 import { customerSegmentsData } from "./example-datasets/customer-segments";
 import { manovaData } from "./example-datasets/manova-data";
 import { tTestData } from "./example-datasets/t-test-data";
 import { regressionData } from "./example-datasets/regression-data";
-import { semData } from "./example-datasets/sem-data";
 import { conjointSmartphoneData } from "./example-datasets/conjoint-smartphone-data";
 import { ipaRestaurantData } from "./example-datasets/ipa-restaurant-data";
 import { admissionData } from "./example-datasets/admission-data";
@@ -236,14 +234,6 @@ export const exampleDatasets: ExampleDataSet[] = [
         data: conjointSmartphoneData
     },
     {
-        id: 'sem-satisfaction',
-        name: 'Customer Satisfaction Model',
-        description: 'Quality, satisfaction, trust, and loyalty data for SEM.',
-        icon: Network,
-        analysisTypes: ['stats', 'reliability', 'sem'],
-        data: semData,
-    },
-    {
         id: 't-test-suite',
         name: 'T-Test Suite',
         description: 'Data for one-sample, independent, and paired t-tests.',
@@ -275,14 +265,7 @@ export const exampleDatasets: ExampleDataSet[] = [
         analysisTypes: ['stats', 'hca', 'kmeans', 'correlation', 'pca', 'kmedoids','dbscan','hdbscan','mds'],
         data: customerSegmentsData,
     },
-    {
-        id: 'cfa-psych-constructs',
-        name: 'Psychological Constructs',
-        description: 'Cognitive, Emotional, and Social items. Ideal for CFA.',
-        icon: BrainCircuit,
-        analysisTypes: ['stats', 'reliability', 'efa'],
-        data: cfaData,
-    },
+
     {
         id: 'stress-support',
         name: 'Stress & Social Support',
