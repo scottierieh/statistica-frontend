@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,8 @@ import {
     X as XIcon,
     BarChart as BarChartIcon,
     Users,
+    Building,
+    Star
 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +37,7 @@ import DataUploader from '../data-uploader';
 import DataPreview from '../data-preview';
 import { parseData, unparseData } from '@/lib/stats';
 import * as XLSX from 'xlsx';
+import { Badge } from '@/components/ui/badge';
 
 
 interface CfaFitIndices {
@@ -445,4 +448,3 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         </div>
     );
 }
-
