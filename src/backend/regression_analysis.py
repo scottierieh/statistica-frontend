@@ -132,6 +132,9 @@ class RegressionAnalysis:
         self.results = {}
         self.scaler = StandardScaler()
         
+        if not HAS_STATSMODELS:
+            raise ImportError("Statsmodels library is required for this analysis but is not installed.")
+
         if target_variable not in self.data.columns:
             raise ValueError(f"Target variable '{target_variable}' not found in data")
         
@@ -260,9 +263,6 @@ class RegressionAnalysis:
         return interpretation.strip()
 
     def run(self, model_type, **kwargs):
-        if not HAS_STATSMODELS:
-            raise ImportError("Statsmodels library is required for this analysis but is not installed.")
-
         features = kwargs.get('features')
         selection_method = kwargs.get('selectionMethod', 'none')
         
@@ -361,3 +361,5 @@ if __name__ == '__main__':
 
 
 
+
+    
