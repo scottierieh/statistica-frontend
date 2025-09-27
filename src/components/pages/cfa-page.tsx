@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import {
     BrainCircuit,
     Plus,
@@ -20,7 +21,6 @@ import {
     HelpCircle,
     Loader2,
     X as XIcon,
-    BarChart as BarChartIcon,
     Users,
     Building,
     Star
@@ -37,7 +37,6 @@ import DataUploader from '../data-uploader';
 import DataPreview from '../data-preview';
 import { parseData, unparseData } from '@/lib/stats';
 import * as XLSX from 'xlsx';
-import { Badge } from '@/components/ui/badge';
 
 
 interface CfaFitIndices {
@@ -340,52 +339,33 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
                     </div>
                     <CardDescription>Define latent factors and assign observed variables.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        <div className="flex gap-2">
-                            <Input
-                                placeholder="New factor name..."
-                                value={newFactorName}
-                                onChange={(e) => setNewFactorName(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && addFactor()}
-                            />
-                            <Button onClick={addFactor} size="sm"><Plus className="w-4 h-4" /></Button>
-                        </div>
-                        <ScrollArea className="h-72">
-                        <div className="space-y-3">
-                            {Object.keys(modelSpec).map(factorName => (
-                                <Card key={factorName} className="p-3 bg-muted/50">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h4 className="font-semibold text-sm">{factorName}</h4>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFactor(factorName)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                                    </div>
-                                    <div className="min-h-12 border border-dashed rounded-md p-2 space-y-1">
-                                        {modelSpec[factorName].map(variable => (
-                                            <div key={variable} className="flex justify-between items-center bg-background p-1 rounded text-xs">
-                                                <span>{variable}</span>
-                                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeVariable(factorName, variable)}><Trash2 className="w-3 h-3" /></Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </Card>
-                            ))}
-                        </div>
-                        </ScrollArea>
+                <CardContent className="space-y-4">
+                    <div className="flex gap-2">
+                        <Input
+                            placeholder="New factor name..."
+                            value={newFactorName}
+                            onChange={(e) => setNewFactorName(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && addFactor()}
+                        />
+                        <Button onClick={addFactor} size="sm"><Plus className="w-4 h-4" /></Button>
                     </div>
-                     <div>
-                        <Label>Available Variables</Label>
-                         <ScrollArea className="h-96 border rounded-md p-2 mt-2">
-                             <div className="flex flex-wrap gap-1">
-                                {availableVariables.map(variable => (
-                                    <Badge key={variable} variant="secondary" className="cursor-pointer" onClick={() => {
-                                        const firstFactor = Object.keys(modelSpec)[0];
-                                        if (firstFactor) assignVariable(firstFactor, variable);
-                                    }}>
-                                        {variable}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </ScrollArea>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Object.keys(modelSpec).map(factorName => (
+                            <Card key={factorName} className="p-3 bg-muted/50">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="font-semibold text-sm">{factorName}</h4>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFactor(factorName)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                                </div>
+                                <div className="min-h-12 border border-dashed rounded-md p-2 space-y-1">
+                                    {modelSpec[factorName].map(variable => (
+                                        <div key={variable} className="flex justify-between items-center bg-background p-1 rounded text-xs">
+                                            <span>{variable}</span>
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeVariable(factorName, variable)}><XIcon className="w-3 h-3" /></Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </Card>
+                        ))}
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
@@ -416,7 +396,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
                             <Card className="md:col-span-2">
                                 <CardHeader><CardTitle>Path Diagram</CardTitle></CardHeader>
                                 <CardContent>
-                                    <Image src={results.plot} alt="CFA Path Diagram" width={1200} height={800} className="w-full rounded-md border" />
+                                    <Image src={results.plot} alt="CFA Path Diagram" width={1200} height={800} className="w-full rounded-md border bg-white" />
                                 </CardContent>
                             </Card>
                         )}
@@ -448,3 +428,4 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         </div>
     );
 }
+
