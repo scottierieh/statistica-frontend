@@ -157,16 +157,12 @@ class RegressionAnalysis:
     def _get_clean_feature_names(self, features):
         return [self.sanitized_cols.get(f, f) for f in features if self.sanitized_cols.get(f, f) in self.X.columns]
     
-    def _split_and_scale(self, X_selected, test_size, standardize):
-        X_train, X_test, y_train, y_test = train_test_split(X_selected, self.y, test_size=test_size, random_state=42)
-        
+    def _scale_data(self, X_selected, standardize):
         if standardize:
-            X_train_scaled = pd.DataFrame(self.scaler.fit_transform(X_train), columns=X_train.columns, index=X_train.index)
-            X_test_scaled = pd.DataFrame(self.scaler.transform(X_test), columns=X_test.columns, index=X_test.index)
+            X_scaled = pd.DataFrame(self.scaler.fit_transform(X_selected), columns=X_selected.columns, index=X_selected.index)
         else:
-            X_train_scaled, X_test_scaled = X_train, X_test
-            
-        return X_train_scaled, X_test_scaled, y_train, y_test
+            X_scaled = X_selected
+        return X_scaled
 
     def _calculate_metrics(self, y_true, y_pred, n_features):
         n = len(y_true)
@@ -242,28 +238,26 @@ class RegressionAnalysis:
         diagnostics['normality_tests'] = {'shapiro_wilk': {'statistic': sw_stat, 'p_value': sw_p}}
         return diagnostics
     
-    def _generate_interpretation(self, train_metrics, test_metrics, stepwise_log):
-        train_r2, test_r2 = train_metrics['r2'], test_metrics['r2']
-        r2_diff = train_r2 - test_r2
+    def _generate_interpretation(self, metrics, stepwise_log):
+        r2 = metrics['r2']
         
         interpretation = ""
         if stepwise_log:
              interpretation += f"Stepwise selection resulted in {len(stepwise_log)} steps.\n"
 
-        if train_r2 > 0.8 and r2_diff < 0.2:
-            interpretation += "The model shows a **Good Fit**. Both training and testing R-squared scores are high and close, indicating good generalization."
-        elif train_r2 > 0.7 and r2_diff > 0.3:
-            interpretation += "**Overfitting Warning**. The model performs significantly better on training data than on test data. This suggests it may not perform well on unseen data. Consider simplifying the model or using regularization."
-        elif train_r2 < 0.5 and test_r2 < 0.5:
-            interpretation += "**Underfitting Possible**. Both R-squared scores are low, suggesting the model is too simple to capture the data's underlying patterns."
+        if r2 > 0.8:
+            interpretation += "The model shows a **Good Fit**. "
+        elif r2 > 0.5:
+            interpretation += "The model shows a **Moderate Fit**. "
         else:
-            interpretation += "The model's performance is moderate. Review metrics and residuals to assess its sufficiency for your needs."
+            interpretation += "**Weak Fit**. "
+        
+        interpretation += f"It explains {(r2 * 100):.1f}% of the variance in the target variable."
 
         return interpretation.strip()
 
     def run(self, model_type, **kwargs):
         features = kwargs.get('features')
-        test_size = kwargs.get('test_size', 0.2)
         selection_method = kwargs.get('selectionMethod', 'none')
         predict_x = kwargs.get('predict_x')
         
@@ -275,41 +269,38 @@ class RegressionAnalysis:
             if not final_features: raise ValueError("No features were selected by the stepwise method.")
             X_selected = X_selected[final_features]
 
-        X_train, X_test, y_train, y_test = self._split_and_scale(X_selected, test_size, standardize=True)
+        X_scaled = self._scale_data(X_selected, standardize=True)
         
         model = LinearRegression() # Default
         if model_type == 'polynomial':
             degree = kwargs.get('degree', 2)
             poly = PolynomialFeatures(degree=degree, include_bias=False)
-            X_train = poly.fit_transform(X_train)
-            X_test = poly.transform(X_test)
+            X_scaled = poly.fit_transform(X_scaled)
         
-        model.fit(X_train, y_train)
+        model.fit(X_scaled, self.y)
 
-        y_pred_train = model.predict(X_train)
-        y_pred_test = model.predict(X_test)
+        y_pred = model.predict(X_scaled)
 
-        train_metrics = self._calculate_metrics(y_train, y_pred_train, X_train.shape[1])
-        test_metrics = self._calculate_metrics(y_test, y_pred_test, X_train.shape[1])
+        metrics = self._calculate_metrics(self.y, y_pred, X_scaled.shape[1])
 
         sm_model = None
         if HAS_STATSMODELS:
-            X_with_const = sm.add_constant(X_train)
+            X_with_const = sm.add_constant(X_scaled)
             try:
-                sm_model = sm.OLS(y_train, X_with_const).fit()
+                sm_model = sm.OLS(self.y, X_with_const).fit()
             except: pass
 
-        diagnostics = self._calculate_diagnostics(X_train, y_train, y_pred_train, sm_model)
+        diagnostics = self._calculate_diagnostics(pd.DataFrame(X_scaled), self.y, y_pred, sm_model)
         
         results = {
-            'metrics': {'train': train_metrics, 'test': test_metrics},
+            'metrics': {'all_data': metrics},
             'diagnostics': diagnostics,
             'stepwise_log': stepwise_log,
-            'interpretation': self._generate_interpretation(train_metrics, test_metrics, stepwise_log)
+            'interpretation': self._generate_interpretation(metrics, stepwise_log)
         }
         
-        # Plotting uses test data
-        self.y_true_plot, self.y_pred_plot = y_test, y_pred_test
+        # Plotting uses all data now
+        self.y_true_plot, self.y_pred_plot = self.y, y_pred
 
         return results
 
@@ -322,7 +313,7 @@ class RegressionAnalysis:
         ax.scatter(self.y_true_plot, self.y_pred_plot, alpha=0.6)
         ax.plot([self.y_true_plot.min(), self.y_true_plot.max()], [self.y_true_plot.min(), self.y_true_plot.max()], 'r--', lw=2)
         ax.set_xlabel('Actual Values'); ax.set_ylabel('Predicted Values')
-        ax.set_title(f"Test Set: Actual vs Predicted")
+        ax.set_title(f"Actual vs Predicted")
         ax.grid(True, alpha=0.3)
         
         ax = axes[0, 1]
@@ -336,6 +327,9 @@ class RegressionAnalysis:
         ax = axes[1, 1]
         sqrt_abs_residuals = np.sqrt(np.abs(residuals / np.std(residuals))) if np.std(residuals) > 0 else np.zeros_like(residuals)
         ax.scatter(self.y_pred_plot, sqrt_abs_residuals, alpha=0.6)
+        z = np.polyfit(self.y_pred_plot, sqrt_abs_residuals, 1)
+        p = np.poly1d(z)
+        ax.plot(sorted(self.y_pred_plot), p(sorted(self.y_pred_plot)), "r--", alpha=0.8)
         ax.set_xlabel('Fitted Values'); ax.set_ylabel('√|Standardized Residuals|')
         ax.set_title('Scale-Location Plot'); ax.grid(True, alpha=0.3)
 

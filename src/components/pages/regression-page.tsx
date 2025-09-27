@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -31,8 +32,7 @@ interface RegressionResultsData {
     model_type: string;
     features: string[];
     metrics: {
-        train: RegressionMetrics;
-        test: RegressionMetrics;
+        all_data: RegressionMetrics;
     };
     diagnostics: {
         f_statistic?: number;
@@ -306,7 +306,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     // States for different models
     const [simpleFeatureVar, setSimpleFeatureVar] = useState<string | undefined>(numericHeaders[0]);
     const [multipleFeatureVars, setMultipleFeatureVars] = useState<string[]>(numericHeaders.slice(0, numericHeaders.length - 1));
-    const [testSize, setTestSize] = useState(0.2);
     
     // Simple regression prediction state
     const [predictXValue, setPredictXValue] = useState<number | ''>('');
@@ -345,7 +344,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         }
 
         let features: string[] = [];
-        let params: any = { data, targetVar, modelType, selectionMethod, test_size: testSize };
+        let params: any = { data, targetVar, modelType, selectionMethod, test_size: 0 };
 
         switch (modelType) {
             case 'simple':
@@ -404,7 +403,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         } finally {
             setIsLoading(false);
         }
-    }, [data, targetVar, modelType, simpleFeatureVar, multipleFeatureVars, polyDegree, selectionMethod, toast, testSize]);
+    }, [data, targetVar, modelType, simpleFeatureVar, multipleFeatureVars, polyDegree, selectionMethod, toast]);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
     
@@ -536,10 +535,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {renderSetupUI()}
-                     <div className='pt-4'>
-                        <Label>Test Set Size: {Math.round(testSize*100)}%</Label>
-                        <Slider value={[testSize]} onValueChange={v => setTestSize(v[0])} min={0.1} max={0.5} step={0.05} />
-                    </div>
                     <div className="flex justify-end mt-4">
                         <Button onClick={() => handleAnalysis()} disabled={getAnalysisButtonDisabled()}>
                             {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
@@ -552,54 +547,32 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 
             {analysisResult && results && (
                 <div className="space-y-4">
-                    {modelType === 'simple' && (
-                        <Card>
-                             <CardHeader>
-                                <CardTitle className="font-headline">Prediction Simulation</CardTitle>
-                                <CardDescription>Enter a value for '{simpleFeatureVar}' to predict '{targetVar}'.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex items-center gap-4">
-                                <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${simpleFeatureVar}`}/>
-                                <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === '' || isLoading}>Predict</Button>
-                            </CardContent>
-                            {predictedYValue !== null && (
-                                <CardFooter>
-                                    <p className="text-lg">Predicted '{targetVar}': <strong className="font-bold text-primary">{predictedYValue.toFixed(2)}</strong></p>
-                                </CardFooter>
-                            )}
-                        </Card>
-                    )}
-
                     <InterpretationDisplay interpretation={results.interpretation} f_pvalue={results.diagnostics.f_pvalue} />
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Train vs. Test Performance</CardTitle>
+                            <CardTitle>Model Fit</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Metric</TableHead>
-                                        <TableHead className="text-right">Train Score</TableHead>
-                                        <TableHead className="text-right">Test Score</TableHead>
+                                        <TableHead className="text-right">Score</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     <TableRow>
                                         <TableCell>R-squared</TableCell>
-                                        <TableCell className="text-right font-mono">{results.metrics.train.r2.toFixed(4)}</TableCell>
-                                        <TableCell className="text-right font-mono">{results.metrics.test.r2.toFixed(4)}</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.all_data.r2.toFixed(4)}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Adjusted R-squared</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.all_data.adj_r2.toFixed(4)}</TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>RMSE</TableCell>
-                                        <TableCell className="text-right font-mono">{results.metrics.train.rmse.toFixed(3)}</TableCell>
-                                        <TableCell className="text-right font-mono">{results.metrics.test.rmse.toFixed(3)}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>MAE</TableCell>
-                                        <TableCell className="text-right font-mono">{results.metrics.train.mae.toFixed(3)}</TableCell>
-                                        <TableCell className="text-right font-mono">{results.metrics.test.mae.toFixed(3)}</TableCell>
+                                        <TableCell className="text-right font-mono">{results.metrics.all_data.rmse.toFixed(3)}</TableCell>
                                     </TableRow>
                                 </TableBody>
                             </Table>
