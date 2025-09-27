@@ -73,7 +73,6 @@ import { useToast } from '@/hooks/use-toast';
 import { getSummaryReport } from '@/app/actions';
 import DescriptiveStatsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
-import PartialCorrelationPage from './pages/partial-correlation-page';
 import AnovaPage from './pages/anova-page';
 import AncovaPage from './pages/ancova-page';
 import ManovaPage from './pages/manova-page';
@@ -143,7 +142,6 @@ type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-a
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
     correlation: CorrelationPage,
-    'partial-correlation': PartialCorrelationPage,
     'one-way-anova': AnovaPage,
     'two-way-anova': TwoWayAnovaPage,
     ancova: AncovaPage,
