@@ -16,3 +16,4 @@ pingouin
 qrcode
 semopy
 graphviz
+Cython
