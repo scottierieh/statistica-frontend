@@ -236,7 +236,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
     const handleLoadExampleData = () => {
         const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
         if (cfaExample) {
-            processAndSetData(cfaExample.data, cfaExample.name);
+            onLoadExample(cfaExample);
             setView('main');
         }
     }
