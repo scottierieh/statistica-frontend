@@ -82,20 +82,6 @@ interface IntroPageProps {
   onLoadExample: () => void;
 }
 
-const ExampleCard: React.FC<{ example: ExampleDataSet | undefined; onLoadExample: () => void; }> = ({ example, onLoadExample }) => {
-    if (!example) return null;
-    const Icon = example.icon || BrainCircuit;
-    return (
-        <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={onLoadExample}>
-            <Icon className="mx-auto h-8 w-8 text-primary"/>
-            <div>
-                <h4 className="font-semibold">{example.name}</h4>
-                <p className="text-xs text-muted-foreground">{example.description}</p>
-            </div>
-        </Card>
-    );
-};
-
 const IntroPage: React.FC<IntroPageProps> = ({ onStart, onLoadExample }) => {
     const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
 
@@ -128,7 +114,15 @@ const IntroPage: React.FC<IntroPageProps> = ({ onStart, onLoadExample }) => {
                         </p>
                     </div>
                     <div className="flex justify-center">
-                         <ExampleCard example={cfaExample} onLoadExample={onLoadExample} />
+                        {cfaExample && (
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={onLoadExample}>
+                                <cfaExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{cfaExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
                     </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
@@ -238,6 +232,11 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
         if (cfaExample) {
             onLoadExample(cfaExample);
+            setModelSpec({
+                'Cognitive': ['cog1', 'cog2', 'cog3', 'cog4'],
+                'Emotional': ['emo1', 'emo2', 'emo3'],
+                'Social': ['soc1', 'soc2', 'soc3', 'soc4']
+            });
             setView('main');
         }
     }
@@ -304,7 +303,6 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
                 body: JSON.stringify({
                     data: localData,
                     modelSpec,
-                    modelName: "cfa_user_model"
                 })
             });
 
@@ -330,135 +328,137 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         }
     }, [localData, modelSpec, toast]);
     
+    let content;
     if (view === 'intro' || !canRun) {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
-    }
-    
-    const isGoodFit = results?.results?.fit_indices?.cfi && results.results.fit_indices.cfi > 0.9 && results.results.fit_indices.rmsea && results.results.fit_indices.rmsea < 0.08;
-    const factorForVariable = (variable: string) => Object.keys(modelSpec).find(f => modelSpec[f].includes(variable));
+        content = <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
+    } else {
+        const isGoodFit = results?.results?.fit_indices?.cfi && results.results.fit_indices.cfi > 0.9 && results.results.fit_indices.rmsea && results.results.fit_indices.rmsea < 0.08;
+        const factorForVariable = (variable: string) => Object.keys(modelSpec).find(f => modelSpec[f].includes(variable));
+        content = (
+            <div className="space-y-6">
+                <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="font-headline">1. Data</CardTitle>
+                            <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
+                        <DataPreview data={localData} fileName={fileName} headers={localAllHeaders} onDownload={() => unparseData({ headers: localAllHeaders, data: localData})} onClearData={handleClearData} />
+                    </CardContent>
+                </Card>
 
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">2. Define Latent Variables (Factors)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex gap-2">
+                        <Input
+                            placeholder="New factor name (e.g., Satisfaction)"
+                            value={newFactorName}
+                            onChange={(e) => setNewFactorName(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && addFactor()}
+                        />
+                        <Button onClick={addFactor}><Plus className="w-4 h-4 mr-2" /> Add Factor</Button>
+                    </CardContent>
+                 </Card>
 
-    return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">1. Data</CardTitle>
-                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
-                    </div>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
-                    <DataPreview data={localData} fileName={fileName} headers={localAllHeaders} onDownload={() => unparseData({ headers: localAllHeaders, data: localData})} onClearData={handleClearData} />
-                </CardContent>
-            </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">3. Assign Measurement Variables</CardTitle>
+                    </CardHeader>
+                     <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {Object.keys(modelSpec).map(factorName => (
+                                <Card key={factorName} className="flex flex-col">
+                                    <CardHeader className="flex-row items-center justify-between py-2">
+                                        <CardTitle className="text-base">{factorName}</CardTitle>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFactor(factorName)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                                    </CardHeader>
+                                    <CardContent className="flex-1">
+                                        <ScrollArea className="h-48 border rounded-md p-2">
+                                            <div className="space-y-2">
+                                                {localNumericHeaders.map(variable => (
+                                                    <div key={variable} className="flex items-center space-x-2">
+                                                        <Checkbox 
+                                                            id={`${factorName}-${variable}`} 
+                                                            checked={modelSpec[factorName]?.includes(variable)}
+                                                            onCheckedChange={(checked) => assignVariableToFactor(variable, checked ? factorName : null)}
+                                                            disabled={!!factorForVariable(variable) && !modelSpec[factorName]?.includes(variable)}
+                                                        />
+                                                        <Label htmlFor={`${factorName}-${variable}`} className="text-sm font-normal">{variable}</Label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                     </CardContent>
+                      <CardFooter className="flex justify-end">
+                        <Button onClick={runAnalysis} disabled={isLoading || Object.keys(modelSpec).length === 0}>
+                            {isLoading ? <Loader2 className="animate-spin mr-2" /> : <PlayCircle className="w-4 h-4 mr-2" />} Run CFA
+                        </Button>
+                    </CardFooter>
+                </Card>
 
-             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">2. Define Latent Variables (Factors)</CardTitle>
-                </CardHeader>
-                <CardContent className="flex gap-2">
-                    <Input
-                        placeholder="New factor name (e.g., Satisfaction)"
-                        value={newFactorName}
-                        onChange={(e) => setNewFactorName(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && addFactor()}
-                    />
-                    <Button onClick={addFactor}><Plus className="w-4 h-4 mr-2" /> Add Factor</Button>
-                </CardContent>
-             </Card>
+                 {isLoading && (
+                    <Card>
+                        <CardContent className="p-6 text-center">
+                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                            <p className="mt-2 text-muted-foreground">Running Confirmatory Factor Analysis...</p>
+                        </CardContent>
+                    </Card>
+                )}
 
-             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">3. Assign Measurement Variables</CardTitle>
-                </CardHeader>
-                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {Object.keys(modelSpec).map(factorName => (
-                            <Card key={factorName} className="flex flex-col">
-                                <CardHeader className="flex-row items-center justify-between py-2">
-                                    <CardTitle className="text-base">{factorName}</CardTitle>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFactor(factorName)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                                </CardHeader>
-                                <CardContent className="flex-1">
-                                    <ScrollArea className="h-48 border rounded-md p-2">
-                                        <div className="space-y-2">
-                                            {localNumericHeaders.map(variable => (
-                                                <div key={variable} className="flex items-center space-x-2">
-                                                    <Checkbox 
-                                                        id={`${factorName}-${variable}`} 
-                                                        checked={modelSpec[factorName]?.includes(variable)}
-                                                        onCheckedChange={(checked) => assignVariableToFactor(variable, checked ? factorName : null)}
-                                                        disabled={!!factorForVariable(variable) && !modelSpec[factorName]?.includes(variable)}
-                                                    />
-                                                    <Label htmlFor={`${factorName}-${variable}`} className="text-sm font-normal">{variable}</Label>
-                                                </div>
-                                            ))}
-                                        </div>
+                {results && (
+                     <div className="space-y-4">
+                         <Alert variant={isGoodFit ? 'default' : 'destructive'}>
+                            {isGoodFit ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                            <AlertTitle>{isGoodFit ? "Good Model Fit" : "Poor Model Fit"}</AlertTitle>
+                            <AlertDescription className="whitespace-pre-wrap">
+                              Based on standard fit indices (e.g., CFI > .90, RMSEA < .08), this model appears to be a {isGoodFit ? 'good' : 'poor'} fit for the data. Review the detailed indices and estimates below.
+                            </AlertDescription>
+                        </Alert>
+                        <div className="grid md:grid-cols-2 gap-4">
+                             {results.plot && (
+                                <Card className="md:col-span-2">
+                                    <CardHeader><CardTitle>Path Diagram</CardTitle></CardHeader>
+                                    <CardContent>
+                                        <Image src={`data:image/png;base64,${results.plot}`} alt="CFA Path Diagram" width={1200} height={800} className="w-full rounded-md border bg-white" />
+                                    </CardContent>
+                                </Card>
+                            )}
+                            <Card className="md:col-span-2">
+                                <CardHeader><CardTitle>Parameter Estimates</CardTitle></CardHeader>
+                                <CardContent>
+                                    <ScrollArea className="h-80">
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>Path</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Estimate</TableHead><TableHead className="text-right">Std. Err</TableHead><TableHead className="text-right">z-value</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {results.results.estimates.map((est, i) => (
+                                                    <TableRow key={i}>
+                                                        <TableCell>{est.lval} {est.op} {est.rval}</TableCell>
+                                                        <TableCell>{est.op === '=~' ? 'Loading' : est.op === '~' ? 'Path' : 'Covariance'}</TableCell>
+                                                        <TableCell className="text-right font-mono">{est.Estimate?.toFixed(3)}</TableCell>
+                                                        <TableCell className="text-right font-mono">{est.Std_Err?.toFixed(3)}</TableCell>
+                                                        <TableCell className="text-right font-mono">{est.z_value?.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right font-mono">{est.p_value < 0.001 ? '<.001' : est.p_value?.toFixed(3)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
                                     </ScrollArea>
                                 </CardContent>
                             </Card>
-                        ))}
+                        </div>
                     </div>
-                 </CardContent>
-                  <CardFooter className="flex justify-end">
-                    <Button onClick={runAnalysis} disabled={isLoading || Object.keys(modelSpec).length === 0}>
-                        {isLoading ? <Loader2 className="animate-spin mr-2" /> : <PlayCircle className="mr-2"/>} Run CFA
-                    </Button>
-                </CardFooter>
-            </Card>
+                )}
+            </div>
+        );
+    }
 
-             {isLoading && (
-                <Card>
-                    <CardContent className="p-6 text-center">
-                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                        <p className="mt-2 text-muted-foreground">Running Confirmatory Factor Analysis...</p>
-                    </CardContent>
-                </Card>
-            )}
-
-            {results && (
-                 <div className="space-y-4">
-                     <Alert variant={isGoodFit ? 'default' : 'destructive'}>
-                        {isGoodFit ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                        <AlertTitle>{isGoodFit ? "Good Model Fit" : "Poor Model Fit"}</AlertTitle>
-                        <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.results.interpretation.replace(/\n/g, '<br/>')}} />
-                    </Alert>
-                    <div className="grid md:grid-cols-2 gap-4">
-                         {results.plot && (
-                            <Card className="md:col-span-2">
-                                <CardHeader><CardTitle>Path Diagram</CardTitle></CardHeader>
-                                <CardContent>
-                                    <Image src={results.plot} alt="CFA Path Diagram" width={1200} height={800} className="w-full rounded-md border bg-white" />
-                                </CardContent>
-                            </Card>
-                        )}
-                        <Card className="md:col-span-2">
-                            <CardHeader><CardTitle>Parameter Estimates</CardTitle></CardHeader>
-                            <CardContent>
-                                <ScrollArea className="h-80">
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Path</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Estimate</TableHead><TableHead className="text-right">Std. Err</TableHead><TableHead className="text-right">z-value</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {results.results.estimates.map((est, i) => (
-                                                <TableRow key={i}>
-                                                    <TableCell>{est.lval} {est.op} {est.rval}</TableCell>
-                                                    <TableCell>{est.op === '=~' ? 'Loading' : est.op === '~' ? 'Path' : 'Covariance'}</TableCell>
-                                                    <TableCell className="text-right font-mono">{est.Estimate?.toFixed(3)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{est.Std_Err?.toFixed(3)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{est.z_value?.toFixed(2)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{est.p_value < 0.001 ? '&lt;.001' : est.p_value?.toFixed(3)}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </ScrollArea>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
+    return content;
 }
-
