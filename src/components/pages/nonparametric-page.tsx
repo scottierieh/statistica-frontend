@@ -16,6 +16,7 @@ import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Checkbox } from '../ui/checkbox';
+import { Badge } from '../ui/badge';
 
 type TestType = 'mann_whitney' | 'wilcoxon' | 'kruskal_wallis' | 'friedman' | 'mcnemar';
 
@@ -206,7 +207,7 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
     }, [data, categoricalHeaders]);
 
     useEffect(() => {
-        // Reset states when data changes
+        // Reset state when data changes
         setMwGroupCol(binaryCategoricalHeaders[0]);
         setMwValueCol(numericHeaders[0]);
         setWxVar1(numericHeaders[0]);
@@ -381,14 +382,12 @@ export default function NonParametricPage({ data, numericHeaders, categoricalHea
         )
     };
     
-    if (view === 'intro') {
-        return <IntroPage testType={activeTest} onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    const IntroComponent = IntroPage;
+
+    if (!canRun || view === 'intro') {
+         return <IntroComponent testType={activeTest} onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
-    if (!canRun) {
-        return <IntroPage testType={activeTest} onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
-    
     const renderSetupUI = () => {
       switch(activeTest) {
         case 'mann_whitney':
