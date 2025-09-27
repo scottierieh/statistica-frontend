@@ -1,7 +1,7 @@
 
 
 'use client';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import { 
     Network, 
     BarChart3, 
@@ -29,13 +29,17 @@ import {
     Bot,
     BrainCircuit,
     Settings,
-    FileSearch
+    FileSearch,
+    BookOpen,
+    Users
 } from 'lucide-react';
 import { exampleDatasets } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import Image from 'next/image';
+import { produce } from 'immer';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 // --- Type Definitions ---
 interface ModelSpec {
@@ -96,12 +100,22 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Card className="cursor-pointer hover:shadow-md" onClick={() => onLoadExample('academic')}>
-                            <CardHeader><CardTitle className="text-lg">Academic Achievement Model</CardTitle></CardHeader>
-                            <CardContent><p className="text-sm text-muted-foreground">Test a model where Motivation and Self-Efficacy predict Academic Achievement.</p></CardContent>
+                            <CardHeader className="flex flex-row items-center gap-4">
+                                <BookOpen className="w-8 h-8 text-primary"/>
+                                <div>
+                                    <CardTitle className="text-lg">Academic Achievement Model</CardTitle>
+                                    <CardDescription className="text-sm">Test a model where Motivation and Self-Efficacy predict Academic Achievement.</CardDescription>
+                                </div>
+                            </CardHeader>
                         </Card>
                          <Card className="cursor-pointer hover:shadow-md" onClick={() => onLoadExample('organizational')}>
-                            <CardHeader><CardTitle className="text-lg">Organizational Behavior Model</CardTitle></CardHeader>
-                            <CardContent><p className="text-sm text-muted-foreground">Analyze how Leadership impacts Job Satisfaction, which in turn affects Commitment and Performance.</p></CardContent>
+                            <CardHeader className="flex flex-row items-center gap-4">
+                                <Users className="w-8 h-8 text-primary"/>
+                                <div>
+                                    <CardTitle className="text-lg">Organizational Behavior Model</CardTitle>
+                                    <CardDescription className="text-sm">Analyze how Leadership impacts Job Satisfaction, which in turn affects Commitment and Performance.</CardDescription>
+                                </div>
+                            </CardHeader>
                         </Card>
                     </div>
                 </CardContent>
@@ -133,7 +147,7 @@ export default function SEMAnalysisComponent() {
     const generateSEMData = (nSamples = 500) => {
         const data = [];
         for (let i = 0; i < nSamples; i++) {
-            const motivation = Math.random() * 2 - 1; // 표준정규분포 근사
+            const motivation = Math.random() * 2 - 1;
             const efficacy = 0.6 * motivation + Math.random() * 0.8 - 0.4;
             const achievement = 0.5 * motivation + 0.7 * efficacy + Math.random() * 0.6 - 0.3;
             const mot1 = 0.8 * motivation + Math.random() * 0.6 - 0.3;
@@ -239,7 +253,9 @@ export default function SEMAnalysisComponent() {
     };
 
     const removeVariable = (latentVar: string, variable: string) => {
-        setMeasurementModel(prev => ({ ...prev, [latentVar]: prev[latentVar].filter(v => v !== variable) }));
+        setMeasurementModel(produce(draft => {
+            draft[latentVar] = draft[latentVar].filter(v => v !== variable);
+        }));
     };
 
     const addStructuralPath = () => {
@@ -396,10 +412,21 @@ export default function SEMAnalysisComponent() {
                     </CardContent>
                     <CardFooter>
                         <Button onClick={runSEMAnalysis} disabled={isLoading || data.length === 0} className="w-full">
-                            {isLoading ? <><Loader2 className="mr-2 animate-spin" />Running SEM...</> : <><PlayCircle className="w-4 h-4 mr-2" />Run SEM Analysis</>}
+                            {isLoading ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Running SEM...
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <PlayCircle className="w-4 h-4" />
+                                    Run SEM Analysis
+                                </div>
+                            )}
                         </Button>
                     </CardFooter>
                 </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -407,7 +434,7 @@ export default function SEMAnalysisComponent() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {isLoading && <div className="text-center py-8"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" /><p>Running SEM...</p></div>}
+                        {isLoading && <div className="text-center py-8"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" /><p>Running SEM analysis...</p></div>}
                         {results && !isLoading && (
                             <Tabs defaultValue="diagram" className="w-full">
                                 <TabsList className="grid w-full grid-cols-3">
