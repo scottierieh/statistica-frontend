@@ -3,14 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
-// Note: This is a placeholder for a dedicated CFA script.
-// It will be aliased to the SEM script for now.
-
+// CFA is a specific type of SEM, so we can use the SEM script.
+// The key difference is that the structural model is empty for a pure CFA.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const pythonExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python');
-    // Using sem_analysis.py as it contains CFA logic
     const scriptPath = path.resolve(process.cwd(), 'backend', 'sem_analysis.py');
 
     const pythonProcess = spawn(pythonExecutable, [scriptPath]);
@@ -26,15 +24,14 @@ export async function POST(req: NextRequest) {
       error += data.toString();
     });
 
-    // Remap CFA terminology to SEM for the script
+    // For CFA, the structural model is empty.
     const semBody = {
       data: body.data,
       modelSpec: {
         measurement_model: body.modelSpec,
-        structural_model: [] // No structural paths for CFA
-      },
-      modelName: "cfa_model"
-    }
+        structural_model: []
+      }
+    };
 
     pythonProcess.stdin.write(JSON.stringify(semBody));
     pythonProcess.stdin.end();
@@ -70,3 +67,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
+
+    

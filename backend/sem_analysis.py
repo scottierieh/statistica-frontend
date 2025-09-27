@@ -3,19 +3,39 @@ import sys
 import json
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy import stats, optimize
-from scipy.stats import chi2, multivariate_normal, norm
-from sklearn.preprocessing import StandardScaler
-from sklearn.covariance import EmpiricalCovariance
+import scipy.stats as stats
+from scipy.stats import chi2
 import warnings
-import io
-import base64
-import semopy
-import os
+
+# 전문 SEM 패키지
+try:
+    import semopy
+    HAS_SEMOPY = True
+except ImportError:
+    HAS_SEMOPY = False
+
+# 요인분석 전문 패키지
+try:
+    from factor_analyzer import FactorAnalyzer
+    from factor_analyzer.factor_analyzer import calculate_kmo, calculate_bartlett_sphericity
+    HAS_FACTOR_ANALYZER = True
+except ImportError:
+    HAS_FACTOR_ANALYZER = False
+
+# 통계 분석 패키지
+try:
+    import pingouin as pg
+    HAS_PINGOUIN = True
+except ImportError:
+    HAS_PINGOUIN = False
+
+# 추가 통계 패키지
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import statsmodels.api as sm
 
 warnings.filterwarnings('ignore')
+
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -30,156 +50,179 @@ def _to_native_type(obj):
         return bool(obj)
     return obj
 
-class SEMAnalysis:
-    """
-    Comprehensive Structural Equation Modeling System
-    Integrates measurement and structural models for complex path analysis
-    """
+class ProfessionalSEM:
+    """전문 패키지 기반 SEM 분석 클래스"""
     
-    def __init__(self, data, alpha=0.05):
+    def __init__(self, data):
         self.data = data.copy()
-        self.alpha = alpha
+        self.measurement_model = {}
+        self.structural_model = []
+        self.sem_model = None
         self.results = {}
-        self.models = {}
-        self.scaler = StandardScaler()
         
-        numeric_cols = data.select_dtypes(include=[np.number]).columns
-        self.data = data[numeric_cols]
+    def add_latent_variable(self, name, indicators):
+        """잠재변수와 측정변수 정의"""
+        self.measurement_model[name] = indicators
+        
+    def add_structural_path(self, from_var, to_var):
+        """구조모형 경로 추가"""
+        self.structural_model.append((from_var, to_var))
     
-    def specify_model(self, model_name, measurement_model_dict, structural_model_list=None):
+    def check_data_adequacy(self):
+        """전문 패키지를 활용한 데이터 적절성 검정"""
+        all_indicators = []
+        for indicators in self.measurement_model.values():
+            all_indicators.extend(indicators)
         
-        desc = ""
-        for factor, indicators in measurement_model_dict.items():
-            desc += f"{factor} =~ {' + '.join(indicators)}\n"
-        if structural_model_list:
-            for path in structural_model_list:
-                desc += f"{path['to']} ~ {path['from']}\n"
-
-        self.models[model_name] = {'desc': desc, 'measurement_model': measurement_model_dict}
-        return self.models[model_name]
-    
-    def run_sem(self, model_name):
-        if model_name not in self.models:
-            raise ValueError(f"Model '{model_name}' not found.")
+        data_subset = self.data[all_indicators].dropna()
         
-        model_spec = self.models[model_name]
-        all_observed = list(set(ind for sublist in model_spec['measurement_model'].values() for ind in sublist))
-        
-        model_data = self.data[all_observed].copy().dropna()
-        if model_data.empty:
-            raise ValueError("No valid data for the specified variables after dropping NaNs.")
-            
-        model_data_std = pd.DataFrame(self.scaler.fit_transform(model_data), columns=model_data.columns)
-
-        m = semopy.Model(model_spec['desc'])
-        m.fit(model_data_std)
-        
-        stats_results = semopy.calc_stats(m)
-        fit_indices = stats_results.T.to_dict().get('Value', {})
-        estimates = semopy.inspect(m)
-        
-        # Rename p-value column to be consistent
-        if 'p-value' in estimates.columns:
-            estimates.rename(columns={'p-value': 'p_value'}, inplace=True)
-
-
-        # Get factor scores and mean components
-        factor_scores_df = pd.DataFrame()
-        mean_components = {}
-        try:
-            factor_scores_df = m.predict_factors(model_data_std)
-            mean_components = factor_scores_df.mean().to_dict()
-        except Exception as e:
-            print(f"Warning: Could not predict factor scores. Error: {e}", file=sys.stderr)
-
-
-        self.results[model_name] = {
-            'model_name': model_name,
-            'model_spec': model_spec,
-            'n_observations': len(model_data_std),
-            'fit_indices': fit_indices,
-            'estimates': estimates.to_dict('records'),
-            'factor_scores': factor_scores_df.to_dict('records'),
-            'mean_components': mean_components,
-            'model': m
+        adequacy_results = {
+            'sample_size': len(data_subset),
+            'variables': len(all_indicators),
         }
         
-        return self.results[model_name]
-
-    def plot_sem_results(self, model_name):
-        if model_name not in self.results or not self.results[model_name].get('model'):
-             return None
-             
-        m = self.results[model_name]['model']
+        if HAS_FACTOR_ANALYZER:
+            kmo_all, kmo_model = calculate_kmo(data_subset)
+            adequacy_results.update({
+                'kmo_overall': kmo_model,
+            })
+            
+            chi_square_value, p_value = calculate_bartlett_sphericity(data_subset)
+            adequacy_results.update({
+                'bartlett_chi2': chi_square_value,
+                'bartlett_p': p_value,
+            })
+        else:
+            adequacy_results.update(self._alternative_adequacy_tests(data_subset))
+        
+        return adequacy_results
+    
+    def _alternative_adequacy_tests(self, data_subset):
+        """factor_analyzer 없을 때 대안 검정"""
+        corr_matrix = data_subset.corr()
         
         try:
-            # semopy.semplot saves file to disk, so we need to handle this
-            temp_filename = "sem_plot.png"
-            g = semopy.semplot(m, temp_filename, plot_stats=True)
+            inv_corr = np.linalg.pinv(corr_matrix)
+            partial_corr = np.zeros_like(corr_matrix)
+            for i in range(len(corr_matrix)):
+                for j in range(len(corr_matrix)):
+                    if i != j:
+                        partial_corr[i, j] = -inv_corr[i, j] / np.sqrt(inv_corr[i, i] * inv_corr[j, j])
             
-            buf = io.BytesIO()
-            if os.path.exists(temp_filename):
-                with open(temp_filename, 'rb') as f:
-                    buf.write(f.read())
-                buf.seek(0)
-                # Clean up the created file
-                os.remove(temp_filename)
-                img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-                return f"data:image/png;base64,{img_base64}"
-            else:
-                 return self._fallback_plot(self.results[model_name])
+            msa_sum = np.sum(corr_matrix.values**2) - np.sum(np.diag(corr_matrix)**2)
+            partial_sum = np.sum(partial_corr**2) - np.sum(np.diag(partial_corr)**2)
+            kmo_approx = msa_sum / (msa_sum + partial_sum) if msa_sum + partial_sum != 0 else 0
+        except:
+            kmo_approx = 0
+
+        n = len(data_subset)
+        p = len(data_subset.columns)
+        det_corr = np.linalg.det(corr_matrix)
+        chi2_value = -(n - 1 - (2*p + 5)/6) * np.log(det_corr) if det_corr > 0 else 0
+        df = p * (p - 1) / 2
+        p_value = 1 - chi2.cdf(chi2_value, df) if df > 0 else 1.0
+        
+        return { 'kmo_overall': kmo_approx, 'bartlett_chi2': chi2_value, 'bartlett_p': p_value }
+
+    def run_sem_analysis(self):
+        """semopy를 활용한 구조모형 분석"""
+        if not HAS_SEMOPY:
+            return self._alternative_structural_analysis()
+        
+        model_syntax = self._generate_model_syntax()
+        
+        try:
+            model = semopy.Model(model_syntax)
+            results = model.fit(self.data)
+            
+            fit_indices = self._extract_fit_indices(results)
+            parameter_estimates = self._extract_parameter_estimates(results)
+            
+            self.results = {
+                'fit_indices': fit_indices,
+                'parameter_estimates': parameter_estimates,
+                'convergence': results.success,
+            }
+            return self.results
+            
         except Exception as e:
-            # Fallback plot generation if semplot fails (e.g., graphviz not installed on system)
-            print(f"Warning: semplot failed with error: {e}. A fallback plot will be generated.", file=sys.stderr)
-            return self._fallback_plot(self.results[model_name])
-
-
-    def _fallback_plot(self, sem_results):
-        fig, ax = plt.subplots(1, 1, figsize=(10, 8))
-        ax.axis('off')
+            return self._alternative_structural_analysis(error=str(e))
+    
+    def _generate_model_syntax(self):
+        """semopy 모델 문법 생성"""
+        syntax_lines = ["# 측정모형"]
+        for factor, indicators in self.measurement_model.items():
+            syntax_lines.append(f"{factor} =~ {' + '.join(indicators)}")
         
-        model_spec = sem_results['model_spec']
-        text_content = model_spec['desc']
+        if self.structural_model:
+            syntax_lines.append("\n# 구조모형")
+            for from_var, to_var in self.structural_model:
+                syntax_lines.append(f"{to_var} ~ {from_var}")
         
-        ax.text(0.5, 0.5, text_content, ha='center', va='center', fontsize=12, family='monospace', bbox=dict(boxstyle="round,pad=1", fc="wheat", alpha=0.5))
-        ax.set_title("SEM Path Diagram (Text Representation)", fontsize=14)
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight')
-        plt.close(fig)
-        buf.seek(0)
-        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
-        
-
+        return '\n'.join(syntax_lines)
+    
+    def _extract_fit_indices(self, results):
+        """적합도 지수 추출"""
+        try:
+            stats = results.stats
+            return {
+                'chi_square': stats.get('chi2'),
+                'df': stats.get('dof'),
+                'p_value': stats.get('chi2_pvalue'),
+                'cfi': stats.get('cfi'),
+                'tli': stats.get('tli'),
+                'rmsea': stats.get('rmsea'),
+                'srmr': stats.get('srmr'),
+                'aic': stats.get('aic'),
+                'bic': stats.get('bic'),
+            }
+        except:
+            return {'error': 'Failed to extract fit indices'}
+    
+    def _extract_parameter_estimates(self, results):
+        """모수 추정치 추출"""
+        try:
+            params = results.inspect()
+            params.rename(columns={'p-value': 'p_value'}, inplace=True)
+            return params.to_dict('records')
+        except:
+            return {'error': 'Failed to extract parameter estimates'}
+            
+    def _alternative_structural_analysis(self, error=None):
+        """대안 구조모형 분석 (semopy 없을 때)"""
+        return {
+            'error': error or 'semopy가 필요합니다. pip install semopy로 설치하세요.',
+            'alternative': '단순 회귀분석 결과로 대체할 수 있습니다.'
+        }
+    
 def main():
     try:
         payload = json.load(sys.stdin)
         data = payload.get('data')
-        model_spec_data = payload.get('modelSpec')
+        model_spec = payload.get('modelSpec')
         
-        if not all([data, model_spec_data]):
+        if not all([data, model_spec]):
             raise ValueError("Missing 'data' or 'modelSpec'")
 
         df = pd.DataFrame(data)
         
-        sem = SEMAnalysis(df)
+        sem = ProfessionalSEM(df)
+        sem.measurement_model = model_spec.get('measurement_model', {})
+        sem.structural_model = model_spec.get('structural_model', [])
         
-        measurement_model = model_spec_data.get('measurement_model')
-        structural_model = model_spec_data.get('structural_model')
+        analysis_results = sem.run_sem_analysis()
         
-        sem.specify_model('user_model', measurement_model, structural_model)
-        results = sem.run_sem('user_model')
-        plot_image = sem.plot_sem_results('user_model')
+        # Add adequacy checks to the final results
+        analysis_results['adequacy'] = sem.check_data_adequacy()
+        
+        response = { 'results': analysis_results }
+        
+        # Plotting is handled in a separate step or is part of a larger component in frontend
+        if HAS_SEMOPY and 'error' not in analysis_results:
+             # This part for plot generation can be tricky as it saves to file.
+             # We might need a fallback or handle it differently.
+             pass
 
-        # Clean up results for JSON
-        if 'model' in results:
-            del results['model']
-
-        response = {
-            'results': results,
-            'plot': plot_image
-        }
-        
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
@@ -188,3 +231,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
