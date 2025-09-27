@@ -1,5 +1,5 @@
 numpy==1.26.4
-pandas
+pandas==2.2.0
 scipy==1.10.1
 scikit-learn
 matplotlib
@@ -16,4 +16,6 @@ factor-analyzer
 skl2onnx
 onnx
 onnxruntime
+sklearn-extra
 semopy
+Cython
