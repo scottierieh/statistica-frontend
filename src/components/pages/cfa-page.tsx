@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     BrainCircuit,
     Plus,
@@ -77,29 +78,35 @@ interface FullAnalysisResponse {
     plot: string | null;
 }
 
+const ExampleCard: React.FC<{ example: ExampleDataSet; onLoad: (e: ExampleDataSet) => void; }> = ({ example, onLoad }) => {
+    const Icon = example.icon;
+    return (
+        <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoad(example)}>
+            <Icon className="mx-auto h-8 w-8 text-primary"/>
+            <div>
+                <h4 className="font-semibold">{example.name}</h4>
+                <p className="text-xs text-muted-foreground">{example.description}</p>
+            </div>
+        </Card>
+    );
+};
+
+
 const IntroPage: React.FC<{ onStart: () => void; onLoadExample: (e: any) => void; }> = ({ onStart, onLoadExample }) => {
     const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
 
+    const PsychologyIcon = BrainCircuit;
+    const ManagementIcon = Building;
+    const MarketingIcon = Star;
+    const SociologyIcon = Users;
+
     const iconMap: { [key: string]: React.FC<any> } = {
-        Psychology: BrainCircuit,
-        Management: Building,
-        Marketing: Star,
-        Sociology: Users,
+        Psychology: PsychologyIcon,
+        Management: ManagementIcon,
+        Marketing: MarketingIcon,
+        Sociology: SociologyIcon,
     };
     
-    const ExampleCard: React.FC<{ example: ExampleDataSet; onLoad: (e: ExampleDataSet) => void; }> = ({ example, onLoad }) => {
-        const Icon = example.icon;
-        return (
-            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoad(example)}>
-                <Icon className="mx-auto h-8 w-8 text-primary"/>
-                <div>
-                    <h4 className="font-semibold">{example.name}</h4>
-                    <p className="text-xs text-muted-foreground">{example.description}</p>
-                </div>
-            </Card>
-        );
-    };
-
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -233,7 +240,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
     const handleLoadExampleData = () => {
         const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
         if (cfaExample) {
-            processAndSetData(cfaExample.data, cfaExample.name);
+            onLoadExample(cfaExample);
             setModelSpec({
                 'Cognitive': ['cog1', 'cog2', 'cog3', 'cog4'],
                 'Emotional': ['emo1', 'emo2', 'emo3'],
@@ -333,7 +340,11 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
     const isGoodFit = results?.results?.fit_indices?.cfi && results.results.fit_indices.cfi > 0.9 && results.results.fit_indices.rmsea && results.results.fit_indices.rmsea < 0.08;
     const factorForVariable = (variable: string) => Object.keys(modelSpec).find(f => modelSpec[f].includes(variable));
     
-    if (view === 'intro' || !canRun) {
+    if (view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
+    }
+
+    if (!canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
     }
 
