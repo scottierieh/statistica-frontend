@@ -10,7 +10,6 @@ wordcloud
 nltk
 networkx
 plotly
-scikit-learn-extra
 hdbscan
 pingouin
 qrcode

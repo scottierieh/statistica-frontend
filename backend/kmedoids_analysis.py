@@ -232,7 +232,7 @@ class KMedoidsAnalysis:
                 range_vals = max_vals - min_vals
                 range_vals[range_vals == 0] = 1 # Avoid division by zero
                 
-                medoids_norm = (medoids_df - min_vals) / range_vals
+                medoids_norm = (medoids_df[self.feature_cols] - min_vals) / range_vals
                 
                 angles = np.linspace(0, 2 * np.pi, len(self.feature_cols), endpoint=False).tolist()
                 angles += angles[:1]
@@ -285,3 +285,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
