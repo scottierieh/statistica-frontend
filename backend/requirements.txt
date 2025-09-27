@@ -15,5 +15,4 @@ hdbscan
 pingouin
 qrcode
 Pillow
-
-    
+semopy
