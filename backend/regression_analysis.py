@@ -1,5 +1,4 @@
 
-
 import sys
 import json
 import numpy as np
@@ -132,16 +131,12 @@ class RegressionAnalysis:
         self.results = {}
         self.scaler = StandardScaler()
         
-        if target_variable not in self.data.columns:
-            raise ValueError(f"Target variable '{target_variable}' not found in data")
-        
         self.sanitized_cols = {col: re.sub(r'[^A-Za-z0-9_]', '_', col) for col in self.data.columns}
         self.original_names = {v: k for k, v in self.sanitized_cols.items()}
         
         self.data.rename(columns=self.sanitized_cols, inplace=True)
         self.target_variable_clean = self.sanitized_cols[target_variable]
         
-        # Ensure target is numeric and drop rows with NaN in target
         self.data[self.target_variable_clean] = pd.to_numeric(self.data[self.target_variable_clean], errors='coerce')
         self.data.dropna(subset=[self.target_variable_clean], inplace=True)
 
@@ -149,7 +144,6 @@ class RegressionAnalysis:
         
         X_to_process = self.data.drop(columns=[self.target_variable_clean])
         
-        # Coerce all potential features to numeric where possible
         for col in X_to_process.columns:
              X_to_process[col] = pd.to_numeric(X_to_process[col], errors='coerce')
 
@@ -162,7 +156,6 @@ class RegressionAnalysis:
         else:
             self.X = numeric_features
         
-        # Align X and y after potential row drops
         self.X, self.y = self.X.align(self.y, join='inner', axis=0)
 
     def _get_clean_feature_names(self, features):
@@ -196,8 +189,7 @@ class RegressionAnalysis:
         summary_data = []
         for table in summary_obj.tables:
             table_data = [list(row) for row in table.data]
-            # Clean coefficient names in the second table
-            if table_data and len(table_data) > 1 and 'coef' in str(table_data[0]):
+            if table_data and len(table_data) > 1 and any('coef' in str(h).lower() for h in table_data[0]):
                 for row in table_data[1:]:
                     if row and row[0]:
                          row[0] = clean_name(row[0])
@@ -261,7 +253,7 @@ class RegressionAnalysis:
 
     def run(self, model_type, **kwargs):
         if not HAS_STATSMODELS:
-            raise ImportError("Statsmodels library is required for this analysis but is not installed.")
+            raise ImportError("Statsmodels library is required for this analysis but is not installed in the environment.")
 
         features = kwargs.get('features')
         selection_method = kwargs.get('selectionMethod', 'none')
@@ -270,7 +262,7 @@ class RegressionAnalysis:
         y_aligned, X_selected = self.y.align(X_selected, join='inner', axis=0)
 
         stepwise_log = []
-        if selection_method != 'none':
+        if selection_method != 'none' and selection_method != 'enter':
             final_features, stepwise_log = perform_stepwise_selection(X_selected, y_aligned, method=selection_method)
             if not final_features: raise ValueError("No features were selected by the stepwise method.")
             X_selected = X_selected[final_features]
@@ -341,6 +333,10 @@ class RegressionAnalysis:
 def main():
     try:
         payload = json.load(sys.stdin)
+        
+        if not HAS_STATSMODELS:
+             raise ImportError("Statsmodels library is required for this analysis but is not installed in the environment.")
+
         reg_analysis = RegressionAnalysis(payload['data'], payload['targetVar'])
         results = reg_analysis.run(payload['modelType'], **payload)
 
@@ -358,5 +354,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
