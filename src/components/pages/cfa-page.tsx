@@ -22,138 +22,53 @@ import {
     Info,
     Settings,
     FileSearch,
-    MoveRight
+    MoveRight,
+    HelpCircle,
+    Eye
 } from 'lucide-react';
-import { exampleDatasets } from '@/lib/example-datasets';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '../ui/skeleton';
+import { ScrollArea } from '../ui/scroll-area';
+import { produce } from 'immer';
+import Image from 'next/image';
+import type { DataSet } from '@/lib/stats';
 
-// 샘플 데이터 생성 함수
-const generateCFAData = (nSamples = 300) => {
-    const data = [];
-    
-    for (let i = 0; i < nSamples; i++) {
-        // Factor 1: Cognitive Ability (4 items)
-        const cogFactor = Math.random() * 2 - 1; // 표준정규분포 근사
-        const cog1 = 0.8 * cogFactor + Math.random() * 0.6 - 0.3;
-        const cog2 = 0.75 * cogFactor + Math.random() * 0.6 - 0.3;
-        const cog3 = 0.7 * cogFactor + Math.random() * 0.6 - 0.3;
-        const cog4 = 0.65 * cogFactor + Math.random() * 0.6 - 0.3;
-        
-        // Factor 2: Emotional Wellbeing (4 items)
-        const emoFactor = Math.random() * 2 - 1;
-        const emo1 = 0.85 * emoFactor + Math.random() * 0.5 - 0.25;
-        const emo2 = 0.78 * emoFactor + Math.random() * 0.5 - 0.25;
-        const emo3 = 0.72 * emoFactor + Math.random() * 0.5 - 0.25;
-        const emo4 = 0.68 * emoFactor + Math.random() * 0.5 - 0.25;
-        
-        // Factor 3: Social Skills (3 items)
-        const socFactor = Math.random() * 2 - 1;
-        const soc1 = 0.75 * socFactor + Math.random() * 0.6 - 0.3;
-        const soc2 = 0.70 * socFactor + Math.random() * 0.6 - 0.3;
-        const soc3 = 0.65 * socFactor + Math.random() * 0.6 - 0.3;
-        
-        data.push({
-            id: i + 1,
-            Cognitive_1: Math.round((cog1 * 1.5 + 4) * 10) / 10,
-            Cognitive_2: Math.round((cog2 * 1.5 + 4) * 10) / 10,
-            Cognitive_3: Math.round((cog3 * 1.5 + 4) * 10) / 10,
-            Cognitive_4: Math.round((cog4 * 1.5 + 4) * 10) / 10,
-            Emotional_1: Math.round((emo1 * 1.5 + 4) * 10) / 10,
-            Emotional_2: Math.round((emo2 * 1.5 + 4) * 10) / 10,
-            Emotional_3: Math.round((emo3 * 1.5 + 4) * 10) / 10,
-            Emotional_4: Math.round((emo4 * 1.5 + 4) * 10) / 10,
-            Social_1: Math.round((soc1 * 1.5 + 4) * 10) / 10,
-            Social_2: Math.round((soc2 * 1.5 + 4) * 10) / 10,
-            Social_3: Math.round((soc3 * 1.5 + 4) * 10) / 10
-        });
-    }
-    
-    return data;
-};
 
-// CFA 계산 함수들 (간단화된 시뮬레이션)
-const calculateCorrelationMatrix = (data: any[], variables: string[]) => {
-    const n = data.length;
-    const correlations: { [key: string]: { [key: string]: number } } = {};
-    
-    for (let i = 0; i < variables.length; i++) {
-        correlations[variables[i]] = {};
-        for (let j = 0; j < variables.length; j++) {
-            if (i === j) {
-                correlations[variables[i]][variables[j]] = 1;
-            } else {
-                const x = data.map(row => parseFloat(row[variables[i]]));
-                const y = data.map(row => parseFloat(row[variables[j]]));
-                
-                const meanX = x.reduce((a, b) => a + b) / n;
-                const meanY = y.reduce((a, b) => a + b) / n;
-                
-                const numerator = x.map((xi, idx) => (xi - meanX) * (y[idx] - meanY))
-                                   .reduce((a, b) => a + b);
-                const denomX = Math.sqrt(x.map(xi => Math.pow(xi - meanX, 2)).reduce((a, b) => a + b));
-                const denomY = Math.sqrt(y.map(yi => Math.pow(yi - meanY, 2)).reduce((a, b) => a + b));
-                
-                correlations[variables[i]][variables[j]] = numerator / (denomX * denomY);
-            }
-        }
-    }
-    
-    return correlations;
-};
+interface CfaFitIndices {
+    chi_square?: number;
+    df?: number;
+    p_value?: number;
+    cfi?: number;
+    tli?: number;
+    rmsea?: number;
+    srmr?: number;
+}
+interface CfaEstimate {
+    lval: string;
+    op: string;
+    rval: string;
+    Estimate: number;
+    Std_Err: number;
+    z_value: number;
+    p_value: number;
+}
 
-const calculateCFA = (data: any[], modelSpec: { [key: string]: string[] }) => {
-    const allVariables = Object.values(modelSpec).flat();
-    const correlationMatrix = calculateCorrelationMatrix(data, allVariables);
-    
-    const factorLoadings: { [key: string]: { [key: string]: number } } = {};
-    const fitIndices: { [key: string]: number } = {};
-    const reliability: { [key: string]: any } = {};
-    
-    Object.keys(modelSpec).forEach(factor => {
-        factorLoadings[factor] = {};
-        const items = modelSpec[factor];
-        
-        if (items.length === 0) return;
-        
-        items.forEach(item => {
-            const avgCorrelation = items
-                .filter(otherItem => otherItem !== item)
-                .map(otherItem => Math.abs(correlationMatrix[item][otherItem]))
-                .reduce((a, b) => a + b, 0) / (items.length - 1 || 1);
-            
-            factorLoadings[factor][item] = Math.min(0.95, Math.max(0.3, avgCorrelation + 0.2 + Math.random() * 0.2));
-        });
-        
-        const loadings = Object.values(factorLoadings[factor]);
-        const sumLoadings = loadings.reduce((a, b) => a + b, 0);
-        const sumSquaredLoadings = loadings.reduce((a, b) => a + b * b, 0);
-        
-        const compositeReliability = Math.pow(sumLoadings, 2) / (Math.pow(sumLoadings, 2) + items.length);
-        const averageVarianceExtracted = sumSquaredLoadings / items.length;
-        
-        reliability[factor] = {
-            composite_reliability: Math.min(0.95, Math.max(0.6, compositeReliability)),
-            average_variance_extracted: Math.min(0.90, Math.max(0.4, averageVarianceExtracted)),
-            cronbach_alpha: Math.min(0.95, Math.max(0.6, compositeReliability * 0.9))
-        };
-    });
-    
-    const numFactors = Object.keys(modelSpec).filter(f => modelSpec[f].length > 0).length;
-    const numItems = allVariables.length;
-    const complexity = numItems > 0 && numFactors > 0 ? numItems / numFactors : 1;
-    
-    fitIndices.chi_square = Math.random() * 50 + 10;
-    fitIndices.df = Math.max(1, numItems * (numItems + 1) / 2 - numItems * numFactors);
-    fitIndices.rmsea = Math.max(0.02, 0.15 - complexity * 0.02 + Math.random() * 0.04);
-    fitIndices.cfi = Math.min(0.99, 0.75 + complexity * 0.05 + Math.random() * 0.1);
-    fitIndices.tli = Math.min(0.98, fitIndices.cfi - 0.02);
-    fitIndices.srmr = Math.max(0.02, 0.12 - complexity * 0.02 + Math.random() * 0.03);
-    fitIndices.gfi = Math.min(0.98, 0.80 + complexity * 0.03 + Math.random() * 0.08);
-    fitIndices.agfi = Math.min(0.97, fitIndices.gfi - 0.05);
-    
-    return { factorLoadings, fitIndices, reliability };
-};
+interface CfaResults {
+    model_name: string;
+    n_observations: number;
+    fit_indices: CfaFitIndices;
+    estimates: CfaEstimate[];
+    interpretation: string;
+}
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void; }) => {
+interface FullAnalysisResponse {
+    results: CfaResults;
+    plot: string | null;
+    qq_plot?: string | null;
+}
+
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
@@ -166,91 +81,97 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">Confirmatory Factor Analysis (CFA)</CardTitle>
                     <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
-                        Test how well a pre-specified factor structure fits your observed data.
+                        Test how well a pre-specified factor structure fits your observed data, providing a powerful tool for theory validation.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
                     <div className="text-center">
                         <h2 className="text-2xl font-semibold mb-4">Why Use CFA?</h2>
                         <p className="max-w-3xl mx-auto text-muted-foreground">
-                            CFA is a confirmatory technique used to test a specific hypothesis about the structure 
-                            of a set of variables. It's crucial for scale validation and theory testing.
+                            Unlike Exploratory Factor Analysis (EFA) which discovers underlying structures, CFA is a confirmatory technique used to test a specific hypothesis about the structure of a set of variables. It's crucial for validating psychological scales, confirming theoretical models, and ensuring your measurement instrument works as intended.
                         </p>
                     </div>
-                     {cfaExample && (
-                         <div className="flex justify-center">
+                     <div className="flex justify-center">
+                        {cfaExample && (
                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
-                                <BrainCircuit className="mx-auto h-8 w-8 text-primary"/>
+                                <cfaExample.icon className="mx-auto h-8 w-8 text-primary"/>
                                 <div>
                                     <h4 className="font-semibold">{cfaExample.name}</h4>
                                     <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
                                 </div>
                             </Card>
-                        </div>
-                    )}
+                        )}
+                    </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
-                            <h3 className="font-semibold text-xl flex items-center gap-2">
-                                <Settings className="text-primary"/> Setup Guide
-                            </h3>
-                            <ol className="list-decimal list-inside space-y-3 text-muted-foreground">
-                                <li><strong>Define Factors:</strong> Add latent constructs you want to test</li>
-                                <li><strong>Assign Variables:</strong> Assign observed variables to each factor</li>
-                                <li><strong>Run Analysis:</strong> Get fit indices and parameter estimates</li>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Define Factors:</strong> Create latent variables (constructs) that you hypothesize exist in your data (e.g., 'Cognitive Ability').</li>
+                                <li><strong>Assign Items:</strong> Assign your observed variables (e.g., survey questions) to the corresponding latent factor they are supposed to measure.</li>
+                                <li><strong>Run Analysis:</strong> The tool will estimate the model and provide fit indices to evaluate how well your hypothesized model fits the actual data.</li>
                             </ol>
                         </div>
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-xl flex items-center gap-2">
-                                <FileSearch className="text-primary"/> Interpretation
-                            </h3>
-                            <ul className="list-disc pl-5 space-y-3 text-muted-foreground">
-                                <li><strong>Fit Indices:</strong> CFI/TLI &gt; .90, RMSEA &lt; .08</li>
-                                <li><strong>Loadings:</strong> Should be high (&gt; 0.5) and significant</li>
-                                <li><strong>Reliability:</strong> CR &gt; 0.7, AVE &gt; 0.5</li>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>Model Fit Indices:</strong> These are crucial for evaluating your model. Good fit is generally indicated by CFI/TLI > .90, and RMSEA/SRMR < .08.
+                                </li>
+                                <li>
+                                    <strong>Factor Loadings:</strong> Standardized estimates showing the correlation between an item and its factor. Values > 0.5 (and ideally > 0.7) are considered strong.
+                                </li>
+                                <li>
+                                    <strong>Convergent & Discriminant Validity:</strong> Check if items for the same factor are highly related (convergent) and if different factors are distinct from one another (discriminant).
+                                </li>
                             </ul>
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>
-                        Start Analysis <MoveRight className="ml-2 w-5 h-5"/>
-                    </Button>
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
     );
 };
 
-export default function CfaPage() {
-    const [view, setView] = useState('main');
-    const [data, setData] = useState<any[]>([]);
-    const [modelSpec, setModelSpec] = useState<{ [key: string]: string[] }>({
-        'Cognitive Ability': [],
-        'Emotional Wellbeing': [],
-        'Social Skills': []
-    });
-    const [results, setResults] = useState<any>(null);
+
+interface CfaPageProps {
+    data: DataSet;
+    numericHeaders: string[];
+    onLoadExample: (example: ExampleDataSet) => void;
+}
+
+export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPageProps) {
+    const [view, setView] = useState('intro');
+    const [modelSpec, setModelSpec] = useState<{ [key: string]: string[] }>({});
+    const [results, setResults] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [newFactorName, setNewFactorName] = useState('');
+    const { toast } = useToast();
 
-    const loadSampleData = () => {
-        const sampleData = generateCFAData(300);
-        setData(sampleData);
-        setModelSpec({
-            'Cognitive Ability': ['Cognitive_1', 'Cognitive_2', 'Cognitive_3', 'Cognitive_4'],
-            'Emotional Wellbeing': ['Emotional_1', 'Emotional_2', 'Emotional_3', 'Emotional_4'],
-            'Social Skills': ['Social_1', 'Social_2', 'Social_3']
-        });
-    };
+    const canRun = useMemo(() => data.length > 0, [data]);
+
+     useEffect(() => {
+        if (!canRun) {
+            setView('intro');
+        } else {
+             const autoFactors: { [key: string]: string[] } = {};
+             numericHeaders.forEach(h => {
+                const baseName = h.split('_')[0].split(' ')[0];
+                if (!autoFactors[baseName]) autoFactors[baseName] = [];
+                autoFactors[baseName].push(h);
+             });
+             setModelSpec(autoFactors);
+        }
+        setResults(null);
+     }, [data, numericHeaders, canRun]);
 
     const availableVariables = useMemo(() => {
         if (data.length === 0) return [];
-        return Object.keys(data[0]).filter(key => key !== 'id' && typeof data[0][key] === 'number');
-    }, [data]);
-
-    const usedVariables = useMemo(() => {
-        return Object.values(modelSpec).flat();
-    }, [modelSpec]);
+        const usedVariables = Object.values(modelSpec).flat();
+        return numericHeaders.filter(key => !usedVariables.includes(key));
+    }, [data, modelSpec, numericHeaders]);
 
     const addFactor = () => {
         if (newFactorName.trim() && !modelSpec[newFactorName.trim()]) {
@@ -271,105 +192,76 @@ export default function CfaPage() {
     };
 
     const assignVariable = (factorName: string, variable: string) => {
-        setModelSpec(prev => ({
-            ...prev,
-            [factorName]: [...prev[factorName], variable]
+        setModelSpec(prev => produce(prev, draft => {
+            draft[factorName].push(variable);
         }));
     };
 
     const removeVariable = (factorName: string, variable: string) => {
-        setModelSpec(prev => ({
-            ...prev,
-            [factorName]: prev[factorName].filter(v => v !== variable)
+        setModelSpec(prev => produce(prev, draft => {
+            draft[factorName] = draft[factorName].filter(v => v !== variable);
         }));
     };
 
-    const runAnalysis = async () => {
+    const runAnalysis = useCallback(async () => {
+        if (Object.values(modelSpec).some(items => items.length === 0)) {
+            toast({ title: "Model Error", description: "Each factor must have at least one assigned variable.", variant: "destructive" });
+            return;
+        }
+
         setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const analysisResults = calculateCFA(data, modelSpec);
-        setResults(analysisResults);
-        setIsLoading(false);
-    };
+        setResults(null);
+        try {
+             const response = await fetch('/api/analysis/cfa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    data,
+                    modelSpec,
+                    modelName: "cfa_user_model"
+                })
+            });
 
-    const interpretFit = (fitIndices: any) => {
-        const { rmsea, cfi, srmr } = fitIndices;
-        let score = 0;
-        let interpretation = [];
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server error: ${errorText}`);
+            }
 
-        if (rmsea < 0.05) { 
-            score += 2; 
-            interpretation.push("RMSEA: Excellent fit"); 
-        } else if (rmsea < 0.08) { 
-            score += 1; 
-            interpretation.push("RMSEA: Acceptable fit"); 
-        } else {
-            interpretation.push("RMSEA: Poor fit");
+            const result = await response.json();
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            setResults(result);
+
+        } catch (error: any) {
+             toast({
+                title: "CFA Analysis Failed",
+                description: error.message,
+                variant: "destructive"
+            });
+        } finally {
+            setIsLoading(false);
         }
-
-        if (cfi > 0.95) { 
-            score += 2; 
-            interpretation.push("CFI: Excellent fit"); 
-        } else if (cfi > 0.90) { 
-            score += 1; 
-            interpretation.push("CFI: Acceptable fit"); 
-        } else {
-            interpretation.push("CFI: Poor fit");
-        }
-
-        if (srmr < 0.05) { 
-            score += 2; 
-            interpretation.push("SRMR: Excellent fit"); 
-        } else if (srmr < 0.08) { 
-            score += 1; 
-            interpretation.push("SRMR: Acceptable fit"); 
-        } else {
-            interpretation.push("SRMR: Poor fit");
-        }
-
-        return { score, interpretation };
-    };
+    }, [data, modelSpec, toast]);
     
-    if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={loadSampleData} />;
+    if (view === 'intro' || !canRun) {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
+    
+    const isGoodFit = results?.results?.fit_indices?.cfi && results.results.fit_indices.cfi > 0.9 && results.results.fit_indices.rmsea && results.results.fit_indices.rmsea < 0.08;
 
     return (
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-800">CFA Analysis</h1>
-                    <p className="text-gray-600">Configure your measurement model and test its fit</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={loadSampleData}>
-                        Load Sample Data
-                    </Button>
-                </div>
-            </div>
-
-            {data.length > 0 && (
-                <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>Data Loaded</AlertTitle>
-                    <AlertDescription>
-                        {data.length} observations with {availableVariables.length} variables loaded successfully.
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            <div className="grid lg:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Target className="w-5 h-5" />
-                            Model Specification
-                        </CardTitle>
-                        <CardDescription>
-                            Define your latent factors and assign observed variables
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+        <div className="space-y-6">
+             <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">CFA Model Specification</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
+                    <CardDescription>Define latent factors and assign observed variables.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
                         <div className="flex gap-2">
                             <Input
                                 placeholder="New factor name..."
@@ -377,210 +269,102 @@ export default function CfaPage() {
                                 onChange={(e) => setNewFactorName(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && addFactor()}
                             />
-                            <Button onClick={addFactor} size="sm">
-                                <Plus className="w-4 h-4" />
-                            </Button>
+                            <Button onClick={addFactor} size="sm"><Plus className="w-4 h-4" /></Button>
                         </div>
-                        <div className="space-y-4">
+                        <ScrollArea className="h-72">
+                        <div className="space-y-3">
                             {Object.keys(modelSpec).map(factorName => (
-                                <Card key={factorName} className="p-4">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <h4 className="font-semibold">{factorName}</h4>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => removeFactor(factorName)}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                <Card key={factorName} className="p-3 bg-muted/50">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h4 className="font-semibold text-sm">{factorName}</h4>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFactor(factorName)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                                     </div>
-                                    <div className="space-y-2 mb-3">
+                                    <div className="min-h-12 border border-dashed rounded-md p-2 space-y-1">
                                         {modelSpec[factorName].map(variable => (
-                                            <div key={variable} className="flex justify-between items-center bg-blue-50 p-2 rounded">
-                                                <span className="text-sm">{variable}</span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => removeVariable(factorName, variable)}
-                                                >
-                                                    <Trash2 className="w-3 h-3" />
-                                                </Button>
+                                            <div key={variable} className="flex justify-between items-center bg-background p-1 rounded text-xs">
+                                                <span>{variable}</span>
+                                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeVariable(factorName, variable)}><Trash2 className="w-3 h-3" /></Button>
                                             </div>
                                         ))}
-                                    </div>
-                                    <div className="border-t pt-3">
-                                        <Label className="text-xs text-gray-500">Available variables:</Label>
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                            {availableVariables
-                                                .filter(v => !usedVariables.includes(v))
-                                                .map(variable => (
-                                                <Badge
-                                                    key={variable}
-                                                    variant="outline"
-                                                    className="cursor-pointer hover:bg-blue-100"
-                                                    onClick={() => assignVariable(factorName, variable)}
-                                                >
-                                                    {variable}
-                                                </Badge>
-                                            ))}
-                                        </div>
                                     </div>
                                 </Card>
                             ))}
                         </div>
-                    </CardContent>
-                    <CardFooter>
-                        <Button 
-                            onClick={runAnalysis} 
-                            disabled={isLoading || data.length === 0 || usedVariables.length < 3}
-                            className="w-full"
-                        >
-                            {isLoading ? (
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    Running Analysis...
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <PlayCircle className="w-4 h-4" />
-                                    Run CFA Analysis
-                                </div>
-                            )}
-                        </Button>
-                    </CardFooter>
-                </Card>
+                        </ScrollArea>
+                    </div>
+                     <div>
+                        <Label>Available Variables</Label>
+                         <ScrollArea className="h-96 border rounded-md p-2 mt-2">
+                             <div className="flex flex-wrap gap-1">
+                                {availableVariables.map(variable => (
+                                    <Badge key={variable} variant="secondary" className="cursor-pointer" onClick={() => {
+                                        const firstFactor = Object.keys(modelSpec)[0];
+                                        if (firstFactor) assignVariable(firstFactor, variable);
+                                    }}>
+                                        {variable}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                    <Button onClick={runAnalysis} disabled={isLoading || Object.keys(modelSpec).length === 0}>
+                        {isLoading ? <Loader2 className="animate-spin mr-2" /> : <PlayCircle className="mr-2"/>} Run CFA
+                    </Button>
+                </CardFooter>
+            </Card>
 
+             {isLoading && (
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <BarChart3 className="w-5 h-5" />
-                            Analysis Results
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoading && (
-                            <div className="space-y-4">
-                                <div className="text-center py-8">
-                                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                                    <p className="text-gray-600">Running CFA analysis...</p>
-                                </div>
-                                <Progress value={33} />
-                            </div>
-                        )}
-
-                        {results && !isLoading && (
-                            <Tabs defaultValue="fit" className="w-full">
-                                <TabsList className="grid w-full grid-cols-3">
-                                    <TabsTrigger value="fit">Model Fit</TabsTrigger>
-                                    <TabsTrigger value="loadings">Factor Loadings</TabsTrigger>
-                                    <TabsTrigger value="reliability">Reliability</TabsTrigger>
-                                </TabsList>
-                                
-                                <TabsContent value="fit" className="space-y-4 mt-4">
-                                    <div className="space-y-3">
-                                        <h4 className="font-semibold">Fit Indices</h4>
-                                        {Object.entries(results.fitIndices).map(([index, value]) => (
-                                            <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                                <span className="font-medium">{index.replace('_', ' ').toUpperCase()}</span>
-                                                <Badge variant={
-                                                    (index === 'rmsea' && (value as number) < 0.08) ||
-                                                    (index === 'cfi' && (value as number) > 0.90) ||
-                                                    (index === 'tli' && (value as number) > 0.90) ||
-                                                    (index === 'srmr' && (value as number) < 0.08) ||
-                                                    (index === 'gfi' && (value as number) > 0.90)
-                                                    ? 'default' : 'destructive'
-                                                }>
-                                                    {typeof value === 'number' ? (value as number).toFixed(3) : value as any}
-                                                </Badge>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    
-                                    <div className="p-4 bg-blue-50 rounded">
-                                        <h5 className="font-semibold mb-2">Interpretation</h5>
-                                        <ul className="text-sm space-y-1">
-                                            {interpretFit(results.fitIndices).interpretation.map((item, idx) => (
-                                                <li key={idx} className="flex items-center gap-2">
-                                                    {item.includes('Excellent') ? 
-                                                        <CheckCircle className="w-3 h-3 text-green-600" /> :
-                                                        item.includes('Acceptable') ?
-                                                        <AlertTriangle className="w-3 h-3 text-yellow-600" /> :
-                                                        <AlertTriangle className="w-3 h-3 text-red-600" />
-                                                    }
-                                                    {item}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </TabsContent>
-                                
-                                <TabsContent value="loadings" className="space-y-4 mt-4">
-                                    {Object.entries(results.factorLoadings).map(([factor, loadings]: [string, any]) => (
-                                        <div key={factor}>
-                                            <h4 className="font-semibold mb-2">{factor}</h4>
-                                            <div className="space-y-2">
-                                                {Object.entries(loadings).map(([variable, loading]) => (
-                                                    <div key={variable} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                                        <span>{variable}</span>
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-20 bg-gray-200 rounded-full h-2">
-                                                                <div 
-                                                                    className="bg-blue-600 h-2 rounded-full"
-                                                                    style={{ width: `${Math.abs(loading as number) * 100}%` }}
-                                                                />
-                                                            </div>
-                                                            <Badge variant={Math.abs(loading as number) > 0.5 ? 'default' : 'secondary'}>
-                                                                {(loading as number).toFixed(3)}
-                                                            </Badge>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </TabsContent>
-                                
-                                <TabsContent value="reliability" className="space-y-4 mt-4">
-                                    {Object.entries(results.reliability).map(([factor, stats]: [string, any]) => (
-                                        <Card key={factor} className="p-4">
-                                            <h4 className="font-semibold mb-3">{factor}</h4>
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between">
-                                                    <span>Composite Reliability</span>
-                                                    <Badge variant={stats.composite_reliability > 0.7 ? 'default' : 'destructive'}>
-                                                        {stats.composite_reliability.toFixed(3)}
-                                                    </Badge>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span>Average Variance Extracted</span>
-                                                    <Badge variant={stats.average_variance_extracted > 0.5 ? 'default' : 'destructive'}>
-                                                        {stats.average_variance_extracted.toFixed(3)}
-                                                    </Badge>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span>Cronbach&apos;s Alpha</span>
-                                                    <Badge variant={stats.cronbach_alpha > 0.7 ? 'default' : 'destructive'}>
-                                                        {stats.cronbach_alpha.toFixed(3)}
-                                                    </Badge>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    ))}
-                                </TabsContent>
-                            </Tabs>
-                        )}
-
-                        {!results && !isLoading && (
-                            <div className="text-center py-12 text-gray-500">
-                                <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                                <p>Configure your model and run analysis to see results</p>
-                                <p className="text-sm mt-2">Load sample data to get started quickly</p>
-                            </div>
-                        )}
+                    <CardContent className="p-6 text-center">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                        <p className="mt-2 text-muted-foreground">Running Confirmatory Factor Analysis...</p>
                     </CardContent>
                 </Card>
-            </div>
+            )}
+
+            {results && (
+                 <div className="space-y-4">
+                     <Alert variant={isGoodFit ? 'default' : 'destructive'}>
+                        {isGoodFit ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                        <AlertTitle>{isGoodFit ? "Good Model Fit" : "Poor Model Fit"}</AlertTitle>
+                        <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.results.interpretation.replace(/\n/g, '<br/>')}} />
+                    </Alert>
+                    <div className="grid md:grid-cols-2 gap-4">
+                         {results.plot && (
+                            <Card className="md:col-span-2">
+                                <CardHeader><CardTitle>Path Diagram</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Image src={results.plot} alt="CFA Path Diagram" width={1200} height={800} className="w-full rounded-md border" />
+                                </CardContent>
+                            </Card>
+                        )}
+                        <Card className="md:col-span-2">
+                            <CardHeader><CardTitle>Parameter Estimates</CardTitle></CardHeader>
+                            <CardContent>
+                                <ScrollArea className="h-80">
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Path</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Estimate</TableHead><TableHead className="text-right">Std. Err</TableHead><TableHead className="text-right">z-value</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {results.results.estimates.map((est, i) => (
+                                                <TableRow key={i}>
+                                                    <TableCell>{est.lval} {est.op} {est.rval}</TableCell>
+                                                    <TableCell>{est.op === '=~' ? 'Loading' : est.op === '~' ? 'Path' : 'Covariance'}</TableCell>
+                                                    <TableCell className="text-right font-mono">{est.Estimate?.toFixed(3)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{est.Std_Err?.toFixed(3)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{est.z_value?.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{est.p_value < 0.001 ? '<.001' : est.p_value?.toFixed(3)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
-
