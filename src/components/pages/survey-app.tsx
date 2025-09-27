@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -913,15 +911,23 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
     const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'treemap'>('hbar');
 
     const comparisonChartData = useMemo(() => {
-        if (!comparisonData || !comparisonData.tableData) return tableData.map(d => ({ name: d.name, value: d.percentage }));
+        if (!comparisonData || !comparisonData.tableData) {
+            return tableData.map(d => ({ name: d.name, Overall: parseFloat(d.percentage) }));
+        }
+        
         const combined = new Map();
-        tableData.forEach(d => combined.set(d.name, { name: d.name, Overall: d.percentage }));
-        comparisonData.tableData.forEach((d:any) => {
-            if(combined.has(d.name)) combined.get(d.name).Group = d.percentage;
-            else combined.set(d.name, { name: d.name, Group: d.percentage});
-        })
+        tableData.forEach(d => combined.set(d.name, { name: d.name, Overall: parseFloat(d.percentage) }));
+        
+        comparisonData.tableData.forEach((d: any) => {
+            if (combined.has(d.name)) {
+                combined.get(d.name).Group = parseFloat(d.percentage);
+            } else {
+                combined.set(d.name, { name: d.name, Group: parseFloat(d.percentage) });
+            }
+        });
 
-        return Array.from(combined.values());
+        return Array.from(combined.values()).map(d => ({...d, Group: d.Group || 0, Overall: d.Overall || 0}));
+
     }, [comparisonData, tableData]);
 
     const plotLayout = useMemo(() => {
