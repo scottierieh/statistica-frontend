@@ -15,5 +15,5 @@ scikit-learn-extra
 hdbscan
 pingouin
 qrcode
-semopy==2.3.10
+semopy==1.2.4
 graphviz
