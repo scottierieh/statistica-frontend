@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,24 +39,66 @@ import { produce } from 'immer';
 import Image from 'next/image';
 import type { DataSet } from '@/lib/stats';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+interface CfaFitIndices {
+    chi_square?: number;
+    df?: number;
+    p_value?: number;
+    cfi?: number;
+    tli?: number;
+    rmsea?: number;
+    srmr?: number;
+}
+interface CfaEstimate {
+    lval: string;
+    op: string;
+    rval: string;
+    Estimate: number;
+    Std_Err: number;
+    z_value: number;
+    p_value: number;
+}
+
+interface CfaResults {
+    fit_indices: CfaFitIndices;
+    parameter_estimates: CfaEstimate[];
+    adequacy: {
+        kmo_overall?: number;
+        bartlett_p?: number;
+    };
+}
 
 interface SemResults {
-    model_name: string;
-    n_observations: number;
-    fit_indices: any;
-    estimates: any[];
-    interpretation: string;
+    fit_indices: CfaFitIndices;
+    parameter_estimates: CfaEstimate[];
+    adequacy: {};
+    convergence: boolean;
+    warning?: string;
     model: any; 
-    factor_scores: any[];
-    mean_components: any;
 }
+
 
 interface FullAnalysisResponse {
     results: SemResults;
     plot: string | null;
 }
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (type: 'academic') => void }) => {
+const ExampleCard: React.FC<{ example: ExampleDataSet; onLoad: (e: ExampleDataSet) => void; }> = ({ example, onLoad }) => {
+    const Icon = example.icon;
+    return (
+        <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoad(example)}>
+            <Icon className="mx-auto h-8 w-8 text-primary"/>
+            <div>
+                <h4 className="font-semibold">{example.name}</h4>
+                <p className="text-xs text-muted-foreground">{example.description}</p>
+            </div>
+        </Card>
+    );
+};
+
+
+const IntroPage: React.FC<{ onStart: () => void; onLoadExample: (type: 'academic') => void; }> = ({ onStart, onLoadExample }) => {
     
     const PsychologyIcon = BrainCircuit;
     const ManagementIcon = Building;
@@ -69,7 +111,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
         Marketing: MarketingIcon,
         Sociology: SociologyIcon,
     };
-
+    
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -316,7 +358,7 @@ export default function SemPage({ data, onLoadExample }: SemPageProps) {
                                     <Table>
                                         <TableHeader><TableRow><TableHead>Path</TableHead><TableHead>Estimate</TableHead><TableHead>Std.Err</TableHead><TableHead>z-value</TableHead><TableHead>p-value</TableHead></TableRow></TableHeader>
                                         <TableBody>
-                                            {results.results.estimates.map((est, i) => (
+                                            {results.results.parameter_estimates.map((est, i) => (
                                                 <TableRow key={i}>
                                                     <TableCell>{est.lval} {est.op} {est.rval}</TableCell>
                                                     <TableCell className="font-mono">{est.Estimate?.toFixed(3)}</TableCell>
@@ -337,4 +379,3 @@ export default function SemPage({ data, onLoadExample }: SemPageProps) {
         </div>
     );
 }
-
