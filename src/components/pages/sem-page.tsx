@@ -1,6 +1,7 @@
 
+
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,15 +27,22 @@ import {
     Trash2,
     ArrowRight,
     Eye,
-    Calculator
+    Calculator,
+    Loader2
 } from 'lucide-react';
+import { exampleDatasets } from '@/lib/example-datasets';
+import { ScrollArea } from '../ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '../ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import Image from 'next/image';
 
 // SEM용 샘플 데이터 생성
 const generateSEMData = (nSamples = 500) => {
     const data = [];
     
     for (let i = 0; i < nSamples; i++) {
-        const motivation = Math.random() * 2 - 1;
+        const motivation = Math.random() * 2 - 1; // 표준정규분포 근사
         const efficacy = 0.6 * motivation + Math.random() * 0.8 - 0.4;
         const achievement = 0.5 * motivation + 0.7 * efficacy + Math.random() * 0.6 - 0.3;
         
@@ -111,121 +119,44 @@ const generateOrganizationalSEMData = (nSamples = 400) => {
     return data;
 };
 
-// 상관계수 계산
-const calculateCorrelation = (data: any[], var1: string, var2: string) => {
-    if (!data || data.length === 0) return 0;
-    const values1 = data.map(row => parseFloat(row[var1]));
-    const values2 = data.map(row => parseFloat(row[var2]));
-    const n = values1.length;
-    
-    const mean1 = values1.reduce((sum, val) => sum + val, 0) / n;
-    const mean2 = values2.reduce((sum, val) => sum + val, 0) / n;
-    
-    const numerator = values1.reduce((sum, val, idx) => sum + (val - mean1) * (values2[idx] - mean2), 0);
-    const denom1 = Math.sqrt(values1.reduce((sum, val) => sum + Math.pow(val - mean1, 2), 0));
-    const denom2 = Math.sqrt(values2.reduce((sum, val) => sum + Math.pow(val - mean2, 2), 0));
-    
-    if(denom1 === 0 || denom2 === 0) return 0;
-    return numerator / (denom1 * denom2);
-};
-
-// SEM 분석 함수들 (시뮬레이션)
-const calculateSEM = (data: any[], measurementModel: { [key: string]: string[] }, structuralModel: { from: string, to: string }[]) => {
-    const measurementResults: { [key: string]: any } = {};
-    
-    // 측정모형 분석
-    Object.keys(measurementModel).forEach(latentVar => {
-        const indicators = measurementModel[latentVar];
-        if (indicators.length === 0) return;
-        
-        const loadings: { [key: string]: number } = {};
-        indicators.forEach(indicator => {
-            const correlations = indicators
-                .filter(other => other !== indicator)
-                .map(other => calculateCorrelation(data, indicator, other));
-            
-            const avgCorrelation = correlations.length > 0 ? correlations.reduce((sum, corr) => sum + Math.abs(corr), 0) / correlations.length : 0;
-            loadings[indicator] = Math.min(0.95, Math.max(0.4, avgCorrelation + 0.2 + Math.random() * 0.3));
-        });
-        
-        const loadingValues = Object.values(loadings);
-        const sumLoadings = loadingValues.reduce((sum, loading) => sum + loading, 0);
-        const sumSquaredLoadings = loadingValues.reduce((sum, loading) => sum + loading * loading, 0);
-        
-        const n_items = loadingValues.length;
-        const cr_denominator = Math.pow(sumLoadings, 2) + n_items * (1 - sumSquaredLoadings / n_items);
-
-        const reliability = {
-            composite_reliability: cr_denominator > 0 ? Math.pow(sumLoadings, 2) / cr_denominator : 0,
-            average_variance_extracted: n_items > 0 ? sumSquaredLoadings / n_items : 0,
-            cronbach_alpha: 0
-        };
-        reliability.cronbach_alpha = reliability.composite_reliability * (0.9 + Math.random() * 0.1);
-        
-        measurementResults[latentVar] = {
-            factor_loadings: loadings,
-            reliability: reliability
-        };
-    });
-    
-    // 구조모형 분석
-    const structuralResults: { [key: string]: any } = {};
-    structuralModel.forEach(path => {
-        const pathCoefficient = 0.3 + Math.random() * 0.5;
-        structuralResults[`${path.from}_to_${path.to}`] = {
-            path_coefficient: pathCoefficient,
-            t_value: Math.abs(pathCoefficient) / (0.05 + Math.random() * 0.1),
-            p_value: Math.max(0.001, 0.5 - Math.abs(pathCoefficient) * 0.6),
-            significant: Math.abs(pathCoefficient) > 0.1 && Math.random() > 0.2
-        };
-    });
-    
-    // 적합도 지수 계산
-    const numFactors = Object.keys(measurementModel).filter(f => measurementModel[f].length > 0).length;
-    const numItems = Object.values(measurementModel).flat().length;
-    const complexity = numItems > 0 && numFactors > 0 ? numItems / numFactors : 1;
-    
-    const fitIndices = {
-        chi_square: Math.random() * 100 + 20,
-        df: Math.max(1, numItems * (numItems + 1) / 2 - numItems * 2), // Simplified DF
-        p_value: Math.random() * 0.3 + 0.05,
-        rmsea: Math.max(0.02, 0.12 - complexity * 0.02 + Math.random() * 0.03),
-        cfi: Math.min(0.99, 0.75 + complexity * 0.05 + Math.random() * 0.1),
-        tli: Math.min(0.98, 0.73 + complexity * 0.04 + Math.random() * 0.08),
-        srmr: Math.max(0.02, 0.10 - complexity * 0.015 + Math.random() * 0.02),
-    };
-    
-    return {
-        measurement_model: measurementResults,
-        structural_model: structuralResults,
-        fit_indices: fitIndices,
-        modification_indices: []
-    };
-};
-
-const IntroPage = ({ onStart }: { onStart: () => void; }) => {
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (type: string) => void; }) => {
     return (
-        <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-5xl shadow-lg">
-                <CardHeader className="text-center p-8 bg-gradient-to-r from-green-50 to-teal-50">
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
                     <div className="flex justify-center items-center gap-3 mb-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-100 text-green-600">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                             <Network size={36} />
                         </div>
                     </div>
-                    <CardTitle className="text-4xl font-bold text-gray-800">
-                        Structural Equation Modeling (SEM)
-                    </CardTitle>
-                    <CardDescription className="text-xl pt-2 text-gray-600 max-w-4xl mx-auto">
+                    <CardTitle className="font-headline text-4xl font-bold">Structural Equation Modeling (SEM)</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
                         Analyze complex relationships between latent and observed variables to test theoretical models.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-8 px-8 py-8">
-                    {/* ... (rest of intro content) ... */}
+                <CardContent className="space-y-10 px-8 py-10">
+                     <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use SEM?</h2>
+                        <p className="max-w-4xl mx-auto text-muted-foreground">
+                            SEM combines factor analysis and path analysis to test complex theoretical models. 
+                            It examines measurement models (how well observed variables represent latent constructs) and structural relationships (the paths between constructs) simultaneously.
+                        </p>
+                    </div>
+                    
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card className="cursor-pointer hover:shadow-md" onClick={() => onLoadExample('academic')}>
+                            <CardHeader><CardTitle className="text-lg">Academic Achievement Model</CardTitle></CardHeader>
+                            <CardContent><p className="text-sm text-muted-foreground">Test a model where Motivation and Self-Efficacy predict Academic Achievement.</p></CardContent>
+                        </Card>
+                         <Card className="cursor-pointer hover:shadow-md" onClick={() => onLoadExample('organizational')}>
+                            <CardHeader><CardTitle className="text-lg">Organizational Behavior Model</CardTitle></CardHeader>
+                            <CardContent><p className="text-sm text-muted-foreground">Analyze how Leadership impacts Job Satisfaction, which in turn affects Commitment and Performance.</p></CardContent>
+                        </Card>
+                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-gray-50">
-                    <Button size="lg" onClick={onStart} className="bg-green-600 hover:bg-green-700">
-                        Start SEM Analysis <MoveRight className="ml-2 w-5 h-5"/>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>
+                        Start New Analysis <MoveRight className="ml-2 w-5 h-5"/>
                     </Button>
                 </CardFooter>
             </Card>
@@ -234,7 +165,7 @@ const IntroPage = ({ onStart }: { onStart: () => void; }) => {
 };
 
 export default function SEMAnalysisComponent() {
-    const [view, setView] = useState('main');
+    const [view, setView] = useState('intro');
     const [data, setData] = useState<any[]>([]);
     const [datasetType, setDatasetType] = useState('academic');
     const [measurementModel, setMeasurementModel] = useState<{ [key: string]: string[] }>({});
@@ -242,8 +173,12 @@ export default function SEMAnalysisComponent() {
     const [results, setResults] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [newLatentVar, setNewLatentVar] = useState('');
+    const [newPath, setNewPath] = useState<{ from: string, to: string }>({ from: '', to: '' });
 
-    const loadSampleData = (type: string) => {
+    const { toast } = useToast();
+
+    // 샘플 데이터 로드
+    const loadSampleData = useCallback((type: string) => {
         let sampleData, defaultMeasurement, defaultStructural;
         
         if (type === 'academic') {
@@ -277,12 +212,11 @@ export default function SEMAnalysisComponent() {
         setMeasurementModel(defaultMeasurement);
         setStructuralModel(defaultStructural);
         setDatasetType(type);
-    };
+        setView('main');
+        toast({title: "Sample Data Loaded", description: `Loaded the ${type} dataset.`});
+    }, [toast]);
     
-    React.useEffect(() => {
-        loadSampleData('academic');
-    }, []);
-
+    // 변수 목록
     const availableVariables = useMemo(() => {
         if (data.length === 0) return [];
         return Object.keys(data[0]).filter(key => key !== 'id' && typeof data[0][key] === 'number');
@@ -292,6 +226,9 @@ export default function SEMAnalysisComponent() {
         return Object.values(measurementModel).flat();
     }, [measurementModel]);
 
+    const latentVariables = useMemo(() => Object.keys(measurementModel), [measurementModel]);
+
+    // 잠재변수 관리
     const addLatentVariable = () => {
         if (newLatentVar.trim() && !measurementModel[newLatentVar.trim()]) {
             setMeasurementModel(prev => ({
@@ -326,17 +263,54 @@ export default function SEMAnalysisComponent() {
             [latentVar]: prev[latentVar].filter(v => v !== variable)
         }));
     };
-    
-    const runSEMAnalysis = async () => {
+
+    const addStructuralPath = () => {
+        if(newPath.from && newPath.to && newPath.from !== newPath.to) {
+            if(!structuralModel.find(p => p.from === newPath.from && p.to === newPath.to)) {
+                setStructuralModel(prev => [...prev, newPath]);
+                setNewPath({ from: '', to: '' });
+            }
+        }
+    }
+
+    const runSEMAnalysis = useCallback(async () => {
         setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 2500));
-        const semResults = calculateSEM(data, measurementModel, structuralModel);
-        setResults(semResults);
-        setIsLoading(false);
-    };
+        setResults(null);
+        try {
+            const response = await fetch('/api/analysis/sem', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    data,
+                    modelSpec: {
+                        measurement_model: measurementModel,
+                        structural_model: structuralModel
+                    }
+                })
+            });
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+            }
+            const result = await response.json();
+            if (result.error) throw new Error(result.error);
+            setResults(result);
+            toast({ title: "Analysis Complete" });
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [data, measurementModel, structuralModel, toast]);
 
     if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} />;
+        return <IntroPage onStart={() => {
+            setData([]);
+            setMeasurementModel({});
+            setStructuralModel([]);
+            setResults(null);
+            setView('main');
+        }} onLoadExample={loadSampleData} />;
     }
 
     return (
@@ -346,14 +320,9 @@ export default function SEMAnalysisComponent() {
                     <h1 className="text-3xl font-bold text-gray-800">SEM Analysis</h1>
                     <p className="text-gray-600">Structural Equation Modeling</p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => loadSampleData(datasetType)}>
-                        Reload Sample Data
-                    </Button>
-                    <Button onClick={() => setView('intro')} variant="ghost">
-                        <Info className="w-4 h-4 mr-2" /> Help
-                    </Button>
-                </div>
+                <Button onClick={() => setView('intro')} variant="ghost">
+                    <Info className="w-4 h-4 mr-2" /> Help
+                </Button>
             </div>
 
             {data.length > 0 && (
@@ -361,7 +330,7 @@ export default function SEMAnalysisComponent() {
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Dataset Loaded</AlertTitle>
                     <AlertDescription>
-                        {data.length} observations with {availableVariables.length} variables loaded successfully.
+                        {data.length} observations with {availableVariables.length} variables loaded.
                     </AlertDescription>
                 </Alert>
             )}
@@ -375,38 +344,30 @@ export default function SEMAnalysisComponent() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Sample Dataset</Label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <Button variant={datasetType === 'academic' ? 'default' : 'outline'} onClick={() => loadSampleData('academic')} size="sm">Academic Model</Button>
-                                <Button variant={datasetType === 'organizational' ? 'default' : 'outline'} onClick={() => loadSampleData('organizational')} size="sm">Organizational</Button>
-                            </div>
-                        </div>
-
                         <div className="space-y-3">
                             <Label className="font-semibold">Measurement Model</Label>
-                            <div className="flex gap-2">
+                             <div className="flex gap-2">
                                 <Input placeholder="New latent variable..." value={newLatentVar} onChange={(e) => setNewLatentVar(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addLatentVariable()} />
                                 <Button onClick={addLatentVariable} size="sm"><Plus className="w-4 h-4" /></Button>
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                                 {Object.keys(measurementModel).map(latentVar => (
                                     <Card key={latentVar} className="p-3">
                                         <div className="flex justify-between items-center mb-2">
                                             <h4 className="font-medium text-sm">{latentVar}</h4>
-                                            <Button variant="ghost" size="sm" onClick={() => removeLatentVariable(latentVar)}><Trash2 className="w-3 h-3" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeLatentVariable(latentVar)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
                                         </div>
                                         <div className="space-y-1 mb-2">
                                             {measurementModel[latentVar].map(variable => (
                                                 <div key={variable} className="flex justify-between items-center bg-green-50 p-1 rounded text-xs">
                                                     <span>{variable}</span>
-                                                    <Button variant="ghost" size="sm" onClick={() => removeVariable(latentVar, variable)}><Trash2 className="w-2 h-2" /></Button>
+                                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeVariable(latentVar, variable)}><Trash2 className="w-2 h-2" /></Button>
                                                 </div>
                                             ))}
                                         </div>
                                         <div className="flex flex-wrap gap-1">
                                             {availableVariables.filter(v => !usedVariables.includes(v)).map(variable => (
-                                                <Badge key={variable} variant="outline" className="cursor-pointer hover:bg-green-100 text-xs" onClick={() => assignVariable(latentVar, variable)}>{variable}</Badge>
+                                                <Badge key={variable} variant="secondary" className="cursor-pointer hover:bg-green-100 text-xs" onClick={() => assignVariable(latentVar, variable)}>{variable}</Badge>
                                             ))}
                                         </div>
                                     </Card>
@@ -416,11 +377,23 @@ export default function SEMAnalysisComponent() {
 
                         <div className="space-y-3">
                             <Label className="font-semibold">Structural Paths</Label>
-                            <div className="space-y-1">
+                             <div className="flex items-center gap-2">
+                                <Select value={newPath.from} onValueChange={v => setNewPath(p => ({...p, from: v}))}>
+                                    <SelectTrigger><SelectValue placeholder="From"/></SelectTrigger>
+                                    <SelectContent>{latentVariables.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <ArrowRight className="w-4 h-4" />
+                                <Select value={newPath.to} onValueChange={v => setNewPath(p => ({...p, to: v}))}>
+                                    <SelectTrigger><SelectValue placeholder="To"/></SelectTrigger>
+                                    <SelectContent>{latentVariables.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <Button size="sm" onClick={addStructuralPath}><Plus className="w-4 h-4"/></Button>
+                            </div>
+                            <div className="space-y-1 max-h-32 overflow-y-auto pr-2">
                                 {structuralModel.map((path, idx) => (
                                     <div key={idx} className="flex items-center justify-between bg-blue-50 p-2 rounded text-sm">
                                         <span>{path.from} → {path.to}</span>
-                                        <Button variant="ghost" size="sm" onClick={() => setStructuralModel(prev => prev.filter((_, i) => i !== idx))}><Trash2 className="w-3 h-3" /></Button>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setStructuralModel(prev => prev.filter((_, i) => i !== idx))}><Trash2 className="w-3 h-3 text-destructive" /></Button>
                                     </div>
                                 ))}
                             </div>
@@ -428,58 +401,48 @@ export default function SEMAnalysisComponent() {
                     </CardContent>
                     <CardFooter>
                         <Button onClick={runSEMAnalysis} disabled={isLoading || data.length === 0} className="w-full">
-                            {isLoading ? <div className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Running SEM...</div> : <div className="flex items-center gap-2"><PlayCircle className="w-4 h-4" />Run SEM Analysis</div>}
+                            {isLoading ? <><Loader2 className="mr-2 animate-spin" />Running SEM...</> : <><PlayCircle className="w-4 h-4 mr-2" />Run SEM Analysis</>}
                         </Button>
                     </CardFooter>
                 </Card>
-
+                
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" />Analysis Results</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5" /> Analysis Results
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {isLoading && (
-                            <div className="text-center py-8">
-                                <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                                <p className="text-gray-600">Running SEM analysis...</p>
-                                <Progress value={66} className="mt-4" />
-                            </div>
-                        )}
+                        {isLoading && <div className="text-center py-8"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" /><p>Running SEM analysis...</p></div>}
                         {results && !isLoading && (
-                             <Tabs defaultValue="fit" className="w-full">
+                            <Tabs defaultValue="diagram" className="w-full">
                                 <TabsList className="grid w-full grid-cols-3">
+                                    <TabsTrigger value="diagram">Path Diagram</TabsTrigger>
                                     <TabsTrigger value="fit">Model Fit</TabsTrigger>
-                                    <TabsTrigger value="measurement">Measurement</TabsTrigger>
-                                    <TabsTrigger value="structural">Structural</TabsTrigger>
+                                    <TabsTrigger value="scores">Factor Scores</TabsTrigger>
                                 </TabsList>
-                                <TabsContent value="fit" className="space-y-4 mt-4">
-                                    {Object.entries(results.fit_indices).map(([key, value]) => (
-                                        <div key={key} className="flex justify-between p-2 bg-gray-50 rounded">
-                                            <span className="font-medium text-sm">{key.replace('_', ' ').toUpperCase()}</span>
-                                            <Badge>{typeof value === 'number' ? value.toFixed(3) : value}</Badge>
-                                        </div>
-                                    ))}
+                                <TabsContent value="diagram" className="mt-4">
+                                    {results.plot ? <Image src={results.plot} alt="SEM Path Diagram" width={500} height={400} className="w-full rounded-md border" /> : <p>Could not generate diagram.</p>}
                                 </TabsContent>
-                                <TabsContent value="measurement" className="space-y-4 mt-4">
-                                    {Object.entries(results.measurement_model).map(([factor, result]) => (
-                                        <Card key={factor}><CardHeader><CardTitle>{factor}</CardTitle></CardHeader>
-                                        <CardContent>
-                                            <h5 className="font-medium mb-2">Factor Loadings</h5>
-                                            {Object.entries(result.factor_loadings).map(([item, loading]) => <p key={item}>{item}: {loading.toFixed(3)}</p>)}
-                                            <h5 className="font-medium mt-4 mb-2">Reliability</h5>
-                                            <p>CR: {result.reliability.composite_reliability.toFixed(3)}</p>
-                                            <p>AVE: {result.reliability.average_variance_extracted.toFixed(3)}</p>
-                                        </CardContent></Card>
-                                    ))}
+                                <TabsContent value="fit" className="mt-4">
+                                     <div className="grid grid-cols-2 gap-2 text-sm">
+                                        {Object.entries(results.results.fit_indices).map(([key, value]) => (
+                                            <div key={key} className="flex justify-between p-1 bg-muted/50 rounded"><span>{key}</span><span className="font-mono">{typeof value === 'number' ? value.toFixed(3) : value}</span></div>
+                                        ))}
+                                    </div>
                                 </TabsContent>
-                                <TabsContent value="structural" className="space-y-4 mt-4">
-                                    {Object.entries(results.structural_model).map(([path, result]) => (
-                                        <Card key={path}><CardHeader><CardTitle>{path.replace('_to_', ' -> ')}</CardTitle></CardHeader>
-                                        <CardContent>
-                                            <p>Path Coefficient: {result.path_coefficient.toFixed(3)}</p>
-                                            <p>p-value: {result.p_value.toFixed(3)}</p>
-                                        </CardContent></Card>
-                                    ))}
+                                 <TabsContent value="scores" className="mt-4">
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Mean</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                        {results.results.mean_components && Object.entries(results.results.mean_components).map(([factor, mean]) => (
+                                            <TableRow key={factor}>
+                                                <TableCell>{factor}</TableCell>
+                                                <TableCell className="text-right font-mono">{(mean as number).toFixed(4)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        </TableBody>
+                                    </Table>
                                 </TabsContent>
                             </Tabs>
                         )}
@@ -495,3 +458,4 @@ export default function SEMAnalysisComponent() {
         </div>
     );
 }
+
