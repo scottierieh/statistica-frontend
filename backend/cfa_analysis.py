@@ -4,13 +4,16 @@ import sys
 import json
 import numpy as np
 import pandas as pd
-from scipy import stats, optimize, linalg
+from scipy import stats, optimize
 from scipy.stats import chi2, norm
 import warnings
 import matplotlib.pyplot as plt
 import io
 import base64
 import math
+import semopy
+import os
+
 
 warnings.filterwarnings('ignore')
 
@@ -66,411 +69,84 @@ class ConfirmatoryFactorAnalysis:
         self.models[model_name] = model_spec
         return model_spec
     
-    def run_cfa(self, model_name, estimator='ml', standardized=True, bootstrap=None, missing='listwise'):
+    def run_cfa(self, model_name):
         if model_name not in self.models:
             raise ValueError(f"Model '{model_name}' not found. Use specify_model() first.")
         
         model_spec = self.models[model_name]
-        indicators = model_spec['indicators']
-        data_subset = self.data[indicators].copy().dropna()
         
-        n_obs_used = len(data_subset)
-        if n_obs_used < len(indicators) * 2:
-            warnings.warn(f"Small sample size: {n_obs_used} for {len(indicators)} indicators")
+        desc = ""
+        for factor, indicators in model_spec['factor_structure'].items():
+            desc += f"{factor} =~ {' + '.join(indicators)}\n"
         
-        sample_cov = data_subset.cov()
+        m = semopy.Model(desc)
         
-        param_setup = self._setup_parameters(model_spec, indicators)
+        all_observed_vars = [item for sublist in model_spec['factor_structure'].values() for item in sublist]
         
-        estimation_results = self._estimate_ml(sample_cov, param_setup, model_spec, n_obs_used)
+        model_data = self.data[all_observed_vars].copy().dropna()
+        if model_data.empty:
+            raise ValueError("No valid data after dropping rows with missing values.")
+
+        m.fit(model_data)
         
-        implied_cov = self._calculate_implied_covariance(estimation_results['parameters'])
-        
-        fit_indices = self._calculate_fit_indices(
-            sample_cov, implied_cov, estimation_results.get('chi_square', 0), 
-            estimation_results.get('df', 1), n_obs_used, len(indicators)
-        )
-        
-        std_solution = self._calculate_standardized_solution(estimation_results['parameters'], implied_cov, model_spec) if standardized else None
-        
-        reliability = self._calculate_reliability(std_solution, param_setup, model_spec) if std_solution else {}
-        
-        discriminant_validity = self._calculate_discriminant_validity(reliability, std_solution) if reliability and std_solution else {}
-        
-        residuals = (sample_cov - implied_cov).values.flatten()
-        
-        cfa_results = {
+        estimates = semopy.inspect(m)
+        if 'p-value' in estimates.columns:
+            estimates.rename(columns={'p-value': 'p_value'}, inplace=True)
+            
+        fit_indices = semopy.calc_stats(m).T.to_dict().get('Value', {})
+
+        self.results[model_name] = {
             'model_name': model_name,
-            'model_spec': model_spec,
-            'n_observations': n_obs_used,
-            'parameters': estimation_results['parameters'],
-            'standardized_solution': std_solution,
+            'n_observations': len(model_data),
             'fit_indices': fit_indices,
-            'reliability': reliability,
-            'discriminant_validity': discriminant_validity,
-            'convergence': estimation_results.get('convergence', False),
-            'interpretation': self._generate_interpretation(fit_indices, reliability, discriminant_validity, std_solution, n_obs_used),
-            'residuals': residuals.tolist()
+            'estimates': estimates.to_dict('records'),
+            'model_spec': model_spec,
+            'model': m # Store the model object for plotting
         }
         
-        self.results[model_name] = cfa_results
-        return cfa_results
+        return self.results[model_name]
 
-    def _setup_parameters(self, model_spec, indicators):
-        n_vars = len(indicators)
-        factors = model_spec['factors']
-        n_factors = len(factors)
+    def plot_cfa_results(self, model_name):
+        if model_name not in self.results or not self.results[model_name].get('model'):
+             return None
+             
+        m = self.results[model_name]['model']
         
-        lambda_free = np.zeros((n_vars, n_factors), dtype=bool)
-        lambda_start = np.zeros((n_vars, n_factors))
-        
-        indicator_factor_map = {ind: fac for fac, inds in model_spec['factor_structure'].items() for ind in inds}
-
-        for i, indicator in enumerate(indicators):
-            if indicator in indicator_factor_map:
-                factor = indicator_factor_map[indicator]
-                j = factors.index(factor)
-                
-                first_indicator = model_spec['factor_structure'][factor][0]
-                if indicator == first_indicator:
-                    lambda_start[i, j] = 1.0
-                    lambda_free[i, j] = False
-                else:
-                    lambda_start[i, j] = 0.8
-                    lambda_free[i, j] = True
-        
-        phi_free = ~np.eye(n_factors, dtype=bool)
-        phi_start = np.eye(n_factors) * 0.3 + np.eye(n_factors)
-        np.fill_diagonal(phi_free, False)
-
-
-        theta_free = np.eye(n_vars, dtype=bool)
-        theta_start = np.eye(n_vars) * 0.5
-        for var1, var2 in model_spec.get('error_covariances', []):
-            if var1 in indicators and var2 in indicators:
-                i1, i2 = indicators.index(var1), indicators.index(var2)
-                theta_start[i1, i2] = theta_start[i2, i1] = 0.1
-                theta_free[i1, i2] = theta_free[i2, i1] = True
-
-        return {
-            'indicators': indicators, 'factors': factors,
-            'lambda_free': lambda_free, 'lambda_start': lambda_start,
-            'phi_free': phi_free, 'phi_start': phi_start,
-            'theta_free': theta_free, 'theta_start': theta_start,
-            'n_vars': n_vars, 'n_factors': n_factors
-        }
-
-    def _estimate_ml(self, sample_cov, param_setup, model_spec, n_obs):
-        def ml_objective(params):
-            param_matrices = self._unpack_parameters(params, param_setup)
-            implied_cov = self._calculate_implied_covariance(param_matrices)
-            try:
-                log_det_implied = np.log(linalg.det(implied_cov))
-                trace_term = np.trace(sample_cov @ linalg.inv(implied_cov))
-                fit_value = log_det_implied + trace_term
-                return fit_value if not np.isnan(fit_value) else 1e8
-            except (linalg.LinAlgError, ValueError):
-                return 1e8
-        
-        start_params = self._pack_parameters(param_setup)
-        result = optimize.minimize(ml_objective, start_params, method='L-BFGS-B', options={'maxiter': 500, 'disp': False})
-        
-        final_params_matrix = self._unpack_parameters(result.x, param_setup)
-        df = self._calculate_degrees_of_freedom(param_setup)
-        
-        return {
-            'parameters': final_params_matrix,
-            'chi_square': (n_obs - 1) * result.fun,
-            'df': df, 'convergence': result.success,
-        }
-
-    def _pack_parameters(self, param_setup):
-        return np.concatenate([
-            param_setup['lambda_start'][param_setup['lambda_free']],
-            param_setup['phi_start'][param_setup['phi_free']],
-            param_setup['theta_start'][param_setup['theta_free']]
-        ])
-
-    def _unpack_parameters(self, params, param_setup):
-        matrices = {'lambda': param_setup['lambda_start'].copy(), 'phi': param_setup['phi_start'].copy(), 'theta': param_setup['theta_start'].copy()}
-        param_idx = 0
-        for key in ['lambda', 'phi', 'theta']:
-            free_mask = param_setup[f'{key}_free']
-            n_free = np.sum(free_mask)
-            
-            # Ensure slicing doesn't go out of bounds
-            end_idx = param_idx + n_free
-            if end_idx > len(params):
-                # Handle cases where optimization fails and returns fewer params
-                n_free = len(params) - param_idx
-                if n_free <= 0: continue
-            
-            param_values = params[param_idx : param_idx + n_free]
-            
-            # Ensure the number of values matches the number of free parameters
-            if len(param_values) == np.sum(free_mask):
-                matrices[key][free_mask] = param_values
-            
-            param_idx += n_free
-
-            if key in ['phi', 'theta']:
-                matrices[key] = (matrices[key] + matrices[key].T) / 2
-        return matrices
-
-    def _calculate_implied_covariance(self, parameters):
-        Lambda, Phi, Theta = parameters['lambda'], parameters['phi'], parameters['theta']
-        return Lambda @ Phi @ Lambda.T + Theta
-
-    def _calculate_degrees_of_freedom(self, param_setup):
-        n_vars = param_setup['n_vars']
-        n_sample_stats = n_vars * (n_vars + 1) // 2
-        n_free_params = sum(np.sum(param_setup[f'{k}_free']) for k in ['lambda', 'phi', 'theta'])
-        return n_sample_stats - n_free_params
-    
-    def _calculate_baseline_chi_square(self, sample_cov, n_obs):
         try:
-            n_vars = sample_cov.shape[0]
-            log_det_sample = np.linalg.slogdet(sample_cov)[1]
-            log_det_diag = np.sum(np.log(np.diag(sample_cov)))
-            return (n_obs - 1) * (log_det_diag - log_det_sample)
-        except:
-            return np.inf
-
-    def _calculate_fit_indices(self, sample_cov, implied_cov, chi_square, df, n_obs, n_vars):
-        S = sample_cov.values
-        
-        baseline_chi_square = self._calculate_baseline_chi_square(S, n_obs)
-        baseline_df = n_vars * (n_vars - 1) // 2
-
-        cfi = 1.0
-        if baseline_df > df and baseline_chi_square > chi_square:
-            cfi_val = 1 - max(0, chi_square - df) / max(0, baseline_chi_square - baseline_df)
-            cfi = cfi_val if not np.isnan(cfi_val) else 1.0
-
-        tli = 1.0
-        if baseline_df > 0 and df > 0:
-            if baseline_chi_square / baseline_df > 1e-8:
-                tli_num = (baseline_chi_square / baseline_df) - (chi_square / df)
-                tli_den = (baseline_chi_square / baseline_df) - 1
-                if tli_den > 0:
-                    tli_val = tli_num / tli_den
-                    tli = tli_val if not np.isnan(tli_val) else 1.0
-        
-        rmsea = np.sqrt(max(0, (chi_square - df) / (df * (n_obs - 1)))) if df > 0 else 0.0
-        
-        S_diag_inv = linalg.inv(np.diag(np.sqrt(np.diag(S))))
-        std_residuals = S_diag_inv @ (S - implied_cov) @ S_diag_inv
-        srmr = np.sqrt(np.sum(std_residuals[np.triu_indices(n_vars, k=1)]**2) / (n_vars * (n_vars + 1) / 2))
-        
-        return {
-            'chi_square': chi_square, 'df': df, 'p_value': 1 - chi2.cdf(chi_square, df) if df > 0 else 1.0,
-            'cfi': cfi, 'tli': tli, 'rmsea': rmsea, 'srmr': srmr
-        }
-
-    def _calculate_standardized_solution(self, parameters, implied_cov, model_spec):
-        Lambda, Phi = parameters['lambda'], parameters['phi']
-        std_devs = np.sqrt(np.diag(implied_cov))
-        
-        # Check for zero std devs to avoid division by zero
-        if np.any(std_devs == 0):
-            warnings.warn("Zero variance detected in implied covariance matrix. Standardization may be inaccurate.")
-            std_devs[std_devs == 0] = 1
-        
-        # Standardized Loadings
-        factor_std_devs = np.sqrt(np.diag(Phi))
-        std_lambda = Lambda * (factor_std_devs / std_devs[:, np.newaxis])
-        
-        # Factor Correlations
-        D_inv = np.diag(1 / factor_std_devs)
-        std_phi = D_inv @ Phi @ D_inv
-        
-        # R-squared (communalities for standardized variables)
-        r_squared_dict = {}
-        for i, indicator in enumerate(model_spec['indicators']):
-            r_squared_dict[indicator] = np.sum(std_lambda[i, :]**2)
-
-
-        return {
-            'loadings': {f'{model_spec["factors"][j]}_{model_spec["indicators"][i]}': std_lambda[i, j] for i in range(std_lambda.shape[0]) for j in range(std_lambda.shape[1]) if std_lambda[i, j] != 0},
-            'factor_correlations': std_phi, 
-            'r_squared': r_squared_dict
-        }
-
-
-    def _calculate_reliability(self, std_solution, param_setup, model_spec):
-        reliability = {}
-        if not std_solution:
-            return reliability
+            temp_filename = "cfa_plot.png"
+            semopy.semplot(m, temp_filename, plot_stats=True)
             
-        loadings = std_solution['loadings']
-
-        for factor_idx, (factor_name, indicators) in enumerate(model_spec['factor_structure'].items()):
-            factor_loadings = []
-            for indicator in indicators:
-                key = f"{factor_name}_{indicator}"
-                if key in loadings:
-                    factor_loadings.append(loadings[key])
-            
-            factor_loadings = np.array(factor_loadings)
-            if len(factor_loadings) == 0: continue
-
-            sum_loadings = np.sum(factor_loadings)
-            sum_loadings_sq = sum_loadings ** 2
-            
-            # Error variance is 1 - communality (which is sum of squared loadings for that item)
-            item_communalities = []
-            for indicator in indicators:
-                r_sq = std_solution['r_squared'].get(indicator, 0)
-                item_communalities.append(r_sq)
-            
-            sum_error_vars = np.sum(1 - np.array(item_communalities))
-
-            if (sum_loadings_sq + sum_error_vars) > 0:
-                cr = sum_loadings_sq / (sum_loadings_sq + sum_error_vars)
+            buf = io.BytesIO()
+            if os.path.exists(temp_filename):
+                with open(temp_filename, 'rb') as f:
+                    buf.write(f.read())
+                buf.seek(0)
+                os.remove(temp_filename)
+                img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+                return f"data:image/png;base64,{img_base64}"
             else:
-                cr = 0.0
-
-            ave = np.mean(factor_loadings**2) if len(factor_loadings) > 0 else 0.0
+                 return self._fallback_plot(self.results[model_name])
+        except Exception as e:
+            print(f"Warning: semplot failed with error: {e}. A fallback plot will be generated.", file=sys.stderr)
+            return self._fallback_plot(self.results[model_name])
             
-            reliability[factor_name] = {'composite_reliability': cr, 'average_variance_extracted': ave}
-            
-        return reliability
-
-    
-    def _calculate_discriminant_validity(self, reliability, std_solution):
-        factors = list(reliability.keys())
-        n_factors = len(factors)
-        if n_factors < 2:
-            return {'message': 'Discriminant validity requires at least two factors.'}
-
-        # Fornell-Larcker criterion
-        sqrt_aves = {factor: np.sqrt(rel['average_variance_extracted']) for factor, rel in reliability.items()}
-        correlations = std_solution['factor_correlations']
+    def _fallback_plot(self, sem_results):
+        fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+        ax.axis('off')
         
-        fornell_larcker_matrix = pd.DataFrame(index=factors, columns=factors, dtype=float)
-        for i, f1 in enumerate(factors):
-            for j, f2 in enumerate(factors):
-                if i == j:
-                    fornell_larcker_matrix.loc[f1, f2] = sqrt_aves.get(f1, np.nan)
-                else:
-                    fornell_larcker_matrix.loc[f1, f2] = correlations[i, j]
+        model_spec = sem_results['model_spec']
+        text_content = ""
+        for factor, indicators in model_spec['factor_structure'].items():
+            text_content += f"{factor} =~ {' + '.join(indicators)}\n"
 
-        return {
-            'fornell_larcker_criterion': fornell_larcker_matrix.to_dict('index')
-        }
+        ax.text(0.5, 0.5, text_content, ha='center', va='center', fontsize=12, family='monospace', bbox=dict(boxstyle="round,pad=1", fc="wheat", alpha=0.5))
+        ax.set_title("CFA Path Diagram (Text Representation)", fontsize=14)
 
-    def _generate_interpretation(self, fit_indices, reliability, discriminant_validity, std_solution, n_obs):
-        interp = ""
-
-        # Model Fit
-        p_val = fit_indices.get('p_value', 1)
-        p_val_text = f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
-        
-        fit_assessment = "an acceptable"
-        if fit_indices.get('cfi',0) > 0.95 and fit_indices.get('rmsea', 1) < 0.06 and fit_indices.get('srmr', 1) < 0.08:
-            fit_assessment = "an excellent"
-        elif fit_indices.get('cfi',0) < 0.90 or fit_indices.get('rmsea', 1) > 0.08 or fit_indices.get('srmr', 1) > 0.08:
-            fit_assessment = "a poor"
-        
-        interp += (
-            f"A confirmatory factor analysis (CFA) was conducted to examine the factorial validity of the measurement model. The hypothesized model demonstrated {fit_assessment} fit to the data, χ²(df = {fit_indices.get('df', 0):.0f}, N={n_obs}) = {fit_indices.get('chi_square', 0):.2f}, {p_val_text}, CFI = {fit_indices.get('cfi', 0):.2f}, TLI = {fit_indices.get('tli', 0):.2f}, RMSEA = {fit_indices.get('rmsea', 0):.3f}, SRMR = {fit_indices.get('srmr', 0):.3f}.\n\n"
-        )
-        
-        # Convergent Validity
-        if std_solution and reliability:
-            all_loadings_ok = all(ld >= 0.5 for ld in std_solution.get('loadings', {}).values())
-            all_cr_ok = all(r.get('composite_reliability', 0) > 0.7 for r in reliability.values())
-            all_ave_ok = all(r.get('average_variance_extracted', 0) > 0.5 for r in reliability.values())
-
-            convergent_text = "Convergent validity was "
-            if all_loadings_ok and all_cr_ok and all_ave_ok:
-                convergent_text += "strongly supported by the factor loadings, Composite Reliability (CR) values, and Average Variance Extracted (AVE) values."
-            else:
-                convergent_text += "showed mixed support."
-            
-            interp += convergent_text + "\n"
-
-            cr_vals = [f"{k} ({v['composite_reliability']:.2f})" for k, v in reliability.items()]
-            ave_vals = [f"{k} ({v['average_variance_extracted']:.2f})" for k, v in reliability.items()]
-            interp += f"All Composite Reliability (CR) values ({', '.join(cr_vals)}) were above the recommended threshold of 0.70. "
-            interp += f"Similarly, the Average Variance Extracted (AVE) values ({', '.join(ave_vals)}) exceeded the 0.50 cutoff, confirming that each construct explains a substantial amount of variance in its indicators.\n\n"
-
-
-        # Discriminant Validity
-        if discriminant_validity and 'fornell_larcker_criterion' in discriminant_validity:
-            interp += "Discriminant validity was established using the Fornell-Larcker criterion. For each factor, the square root of its AVE was greater than its correlation with any other factor, indicating that each construct is distinct from the others.\n\n"
-
-        # Conclusion
-        interp += "In conclusion, the measurement model demonstrates strong convergent and discriminant validity. Model fit indices are generally acceptable, suggesting the model represents the data well."
-        
-        return interp.strip()
-
-
-    def plot_cfa_results(self, cfa_results):
-        # First figure for Reliability and Factor Correlations
-        fig1, axes1 = plt.subplots(1, 2, figsize=(14, 6))
-        fig1.suptitle(f'CFA Results: {cfa_results["model_name"]}', fontsize=16, fontweight='bold')
-        
-        # Reliability Plot
-        reliability = cfa_results.get('reliability', {})
-        ax_rel = axes1[0]
-        if reliability:
-            factors = list(reliability.keys())
-            cr_values = [r['composite_reliability'] for r in reliability.values()]
-            ave_values = [r['average_variance_extracted'] for r in reliability.values()]
-            
-            x = np.arange(len(factors))
-            width = 0.35
-            ax_rel.bar(x - width/2, cr_values, width, label='Composite Reliability (CR)', color='skyblue')
-            ax_rel.bar(x + width/2, ave_values, width, label='Avg. Variance Extracted (AVE)', color='salmon')
-            ax_rel.axhline(0.7, color='grey', linestyle='--', label='CR Threshold (0.7)')
-            ax_rel.axhline(0.5, color='black', linestyle=':', label='AVE Threshold (0.5)')
-            ax_rel.set_ylabel('Value')
-            ax_rel.set_title('Reliability & Convergent Validity')
-            ax_rel.set_xticks(x)
-            ax_rel.set_xticklabels(factors, rotation=45, ha="right")
-            ax_rel.legend()
-            ax_rel.grid(True, axis='y', linestyle='--', alpha=0.6)
-
-        # Factor Correlations Plot
-        ax_corr = axes1[1]
-        std_sol = cfa_results.get('standardized_solution')
-        if std_sol and std_sol['factor_correlations'] is not None:
-            corr_df = pd.DataFrame(std_sol['factor_correlations'],
-                                   index=cfa_results['model_spec']['factors'],
-                                   columns=cfa_results['model_spec']['factors'])
-            
-            mask = np.triu(np.ones_like(corr_df, dtype=bool))
-            
-            import seaborn as sns
-            sns.heatmap(corr_df, annot=True, fmt=".2f", cmap='coolwarm', ax=ax_corr, mask=mask, vmin=-1, vmax=1)
-            ax_corr.set_title('Factor Correlation Matrix')
-
-        plt.tight_layout(rect=[0, 0, 1, 0.96])
-        buf1 = io.BytesIO()
-        plt.savefig(buf1, format='png')
-        plt.close(fig1)
-        buf1.seek(0)
-        main_plot_img = base64.b64encode(buf1.read()).decode('utf-8')
-        
-        # Second figure for Q-Q Plot
-        fig2, ax2 = plt.subplots(1, 1, figsize=(7, 6))
-        residuals = cfa_results.get('residuals')
-        if residuals:
-            stats.probplot(residuals, dist="norm", plot=ax2)
-            ax2.set_title('Q-Q Plot of Residuals')
-            ax2.grid(True, alpha=0.3)
-        else:
-            ax2.text(0.5, 0.5, 'Residuals not available.', ha='center', va='center')
-        
-        plt.tight_layout()
-        buf2 = io.BytesIO()
-        plt.savefig(buf2, format='png')
-        plt.close(fig2)
-        buf2.seek(0)
-        qq_plot_img = base64.b64encode(buf2.read()).decode('utf-8')
-        
-        return f"data:image/png;base64,{main_plot_img}", f"data:image/png;base64,{qq_plot_img}"
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        plt.close(fig)
+        buf.seek(0)
+        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
 
 
 def main():
@@ -488,15 +164,17 @@ def main():
         
         cfa.specify_model(model_name, model_spec_data)
         results = cfa.run_cfa(model_name)
-        plot_image, qq_plot_image = cfa.plot_cfa_results(results)
+        plot_image = cfa.plot_cfa_results(model_name)
+        
+        # Don't serialize the model object
+        if 'model' in results:
+            del results['model']
 
         response = {
             'results': results,
-            'plot': plot_image,
-            'qq_plot': qq_plot_image
+            'plot': plot_image
         }
         
-        # Clean the final response to ensure JSON compatibility
         cleaned_response = json.loads(json.dumps(response, default=_to_native_type))
         print(json.dumps(cleaned_response))
 
