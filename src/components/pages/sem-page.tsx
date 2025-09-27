@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -26,7 +25,8 @@ import {
     Settings,
     FileSearch,
     BookOpen,
-    Users
+    Users,
+    X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
@@ -34,8 +34,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { produce } from 'immer';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import Image from 'next/image';
+import { exampleDatasets } from '@/lib/example-datasets';
 
-// --- Type Definitions ---
+// Type Definitions
 interface ModelSpec {
     measurement_model: { [key: string]: string[] };
     structural_model: { from: string; to: string }[];
@@ -67,6 +68,160 @@ interface FullAnalysisResponse {
     results: SemResults;
     plot: string | null;
 }
+
+// SEM Diagram Component
+const SEMDiagram = ({ measurementModel, structuralModel, results }: { measurementModel: any, structuralModel: any, results: any }) => {
+    const svgRef = useRef<SVGSVGElement>(null);
+
+    useEffect(() => {
+        if (!svgRef.current || Object.keys(measurementModel).length === 0) return;
+
+        const svg = svgRef.current;
+        const width = 800;
+        const height = 600;
+        
+        svg.innerHTML = '';
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+        const latentVars = Object.keys(measurementModel);
+        const latentPositions: { [key: string]: { x: number, y: number } } = {};
+        
+        latentVars.forEach((latent, idx) => {
+            const angle = (idx / latentVars.length) * 2 * Math.PI - Math.PI/2;
+            const radius = 180;
+            latentPositions[latent] = {
+                x: width/2 + Math.cos(angle) * radius,
+                y: height/2 + Math.sin(angle) * radius
+            };
+        });
+
+        const observedPositions: { [key: string]: { x: number, y: number } } = {};
+        Object.keys(measurementModel).forEach(latent => {
+            const indicators = measurementModel[latent];
+            const latentPos = latentPositions[latent];
+            
+            indicators.forEach((indicator, idx) => {
+                const angle = (idx / indicators.length) * Math.PI - Math.PI/2;
+                const distance = 80;
+                observedPositions[indicator] = {
+                    x: latentPos.x + Math.cos(angle) * distance,
+                    y: latentPos.y + Math.sin(angle) * distance
+                };
+            });
+        });
+
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', 'arrowhead');
+        marker.setAttribute('markerWidth', '10');
+        marker.setAttribute('markerHeight', '7');
+        marker.setAttribute('refX', '9');
+        marker.setAttribute('refY', '3.5');
+        marker.setAttribute('orient', 'auto');
+        
+        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
+        polygon.setAttribute('fill', '#2563eb');
+        
+        marker.appendChild(polygon);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+
+        structuralModel.forEach((path: { from: string; to: string; }) => {
+            const fromPos = latentPositions[path.from];
+            const toPos = latentPositions[path.to];
+            
+            if (fromPos && toPos) { 
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', String(fromPos.x));
+                line.setAttribute('y1', String(fromPos.y));
+                line.setAttribute('x2', String(toPos.x));
+                line.setAttribute('y2', String(toPos.y));
+                line.setAttribute('stroke', '#2563eb');
+                line.setAttribute('stroke-width', '3');
+                line.setAttribute('marker-end', 'url(#arrowhead)');
+                svg.appendChild(line);
+            }
+        });
+
+        Object.keys(measurementModel).forEach(latent => {
+            const indicators = measurementModel[latent];
+            const latentPos = latentPositions[latent];
+            
+            indicators.forEach((indicator: string) => {
+                const indicatorPos = observedPositions[indicator];
+                
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', String(latentPos.x));
+                line.setAttribute('y1', String(latentPos.y));
+                line.setAttribute('x2', String(indicatorPos.x));
+                line.setAttribute('y2', String(indicatorPos.y));
+                line.setAttribute('stroke', '#6b7280');
+                line.setAttribute('stroke-width', '2');
+                svg.appendChild(line);
+            });
+        });
+
+        Object.keys(observedPositions).forEach(indicator => {
+            const pos = observedPositions[indicator];
+            
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', String(pos.x - 25));
+            rect.setAttribute('y', String(pos.y - 15));
+            rect.setAttribute('width', '50');
+            rect.setAttribute('height', '30');
+            rect.setAttribute('fill', '#f3f4f6');
+            rect.setAttribute('stroke', '#6b7280');
+            rect.setAttribute('stroke-width', '2');
+            rect.setAttribute('rx', '5');
+            
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', String(pos.x));
+            text.setAttribute('y', String(pos.y + 5));
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-size', '10');
+            text.setAttribute('font-weight', 'bold');
+            text.setAttribute('fill', '#374151');
+            text.textContent = indicator.split('_').pop() || indicator;
+            
+            svg.appendChild(rect);
+            svg.appendChild(text);
+        });
+
+        Object.keys(latentPositions).forEach(latent => {
+            const pos = latentPositions[latent];
+            
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', String(pos.x));
+            circle.setAttribute('cy', String(pos.y));
+            circle.setAttribute('r', '35');
+            circle.setAttribute('fill', '#dbeafe');
+            circle.setAttribute('stroke', '#2563eb');
+            circle.setAttribute('stroke-width', '3');
+            
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', String(pos.x));
+            text.setAttribute('y', String(pos.y + 5));
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-size', '11');
+            text.setAttribute('font-weight', 'bold');
+            text.setAttribute('fill', '#1e40af');
+            text.textContent = latent.split('_').slice(-1)[0] || latent;
+            
+            svg.appendChild(circle);
+            svg.appendChild(text);
+        });
+
+    }, [measurementModel, structuralModel, results]);
+
+    return (
+        <div className="w-full">
+            <div className="border rounded-lg bg-white overflow-hidden">
+                <svg ref={svgRef} className="w-full h-96" style={{ minHeight: '400px' }}></svg>
+            </div>
+        </div>
+    );
+};
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (type: string) => void; }) => {
     return (
@@ -124,75 +279,38 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
 };
 
 export default function SEMAnalysisComponent() {
+    const { toast } = useToast();
     const [view, setView] = useState('intro');
     const [data, setData] = useState<any[]>([]);
-    const [datasetType, setDatasetType] = useState('academic');
     const [measurementModel, setMeasurementModel] = useState<{ [key: string]: string[] }>({});
     const [structuralModel, setStructuralModel] = useState<{ from: string, to: string }[]>([]);
     const [results, setResults] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [newLatentVar, setNewLatentVar] = useState('');
     const [newPath, setNewPath] = useState<{ from: string, to: string }>({ from: '', to: '' });
-    const { toast } = useToast();
 
-    // Sample data generation functions
-    const generateSEMData = (nSamples = 500) => {
-      const data = [];
-      for (let i = 0; i < nSamples; i++) {
-        const motivation = Math.random() * 4 + 1; // 1-5
-        const efficacy = 0.6 * motivation + (Math.random() * 2) + 1; // 1-5
-        const achievement = 0.4 * motivation + 0.5 * efficacy + (Math.random() * 1.5) + 1; // 1-5
-        data.push({
-            Motivation_1: parseFloat((0.8 * motivation + Math.random() * 0.5).toFixed(1)),
-            Motivation_2: parseFloat((0.75 * motivation + Math.random() * 0.5).toFixed(1)),
-            Motivation_3: parseFloat((0.7 * motivation + Math.random() * 0.5).toFixed(1)),
-            Efficacy_1: parseFloat((0.85 * efficacy + Math.random() * 0.5).toFixed(1)),
-            Efficacy_2: parseFloat((0.78 * efficacy + Math.random() * 0.5).toFixed(1)),
-            Efficacy_3: parseFloat((0.72 * efficacy + Math.random() * 0.5).toFixed(1)),
-            Achievement_1: parseFloat((0.9 * achievement + Math.random() * 0.5).toFixed(1)),
-            Achievement_2: parseFloat((0.82 * achievement + Math.random() * 0.5).toFixed(1)),
-            Achievement_3: parseFloat((0.76 * achievement + Math.random() * 0.5).toFixed(1)),
-        });
-      }
-      return data;
-    };
-
-    const generateOrganizationalSEMData = (nSamples = 400) => {
-        const data = [];
-        for (let i = 0; i < nSamples; i++) {
-            const leadership = Math.random() * 4 + 1;
-            const jobSatisfaction = 0.7 * leadership + Math.random() * 2 + 1;
-            const commitment = 0.5 * leadership + 0.6 * jobSatisfaction + Math.random() * 1.5 + 1;
-            const performance = 0.4 * jobSatisfaction + 0.8 * commitment + Math.random() * 1 + 1;
-            data.push({
-                Leadership_1: parseFloat((0.85 * leadership + Math.random()).toFixed(1)),
-                Leadership_2: parseFloat((0.78 * leadership + Math.random()).toFixed(1)),
-                Job_Satisfaction_1: parseFloat((0.82 * jobSatisfaction + Math.random()).toFixed(1)),
-                Job_Satisfaction_2: parseFloat((0.75 * jobSatisfaction + Math.random()).toFixed(1)),
-                Organizational_Commitment_1: parseFloat((0.88 * commitment + Math.random()).toFixed(1)),
-                Organizational_Commitment_2: parseFloat((0.81 * commitment + Math.random()).toFixed(1)),
-                Job_Performance_1: parseFloat((0.86 * performance + Math.random()).toFixed(1)),
-                Job_Performance_2: parseFloat((0.79 * performance + Math.random()).toFixed(1)),
-            });
-        }
-        return data;
-    };
-    
     const loadSampleData = useCallback((type: string) => {
-        let sampleData, defaultMeasurement, defaultStructural;
+        let sampleData: any[], defaultMeasurement: any, defaultStructural: any[];
+        
         if (type === 'academic') {
-            sampleData = generateSEMData(500);
+            sampleData = exampleDatasets.find(d => d.id === 'sem-satisfaction')?.data.split('\n').slice(1).map(line => {
+                const [sq1,sq2,sq3,sat1,sat2,sat3,trust1,trust2,loy1,loy2,loy3] = line.split(',');
+                return {sq1: +sq1, sq2: +sq2, sq3: +sq3, sat1: +sat1, sat2: +sat2, sat3: +sat3, trust1: +trust1, trust2: +trust2, loy1: +loy1, loy2: +loy2, loy3: +loy3};
+            }) || [];
             defaultMeasurement = { 'Motivation': ['Motivation_1', 'Motivation_2', 'Motivation_3'], 'Efficacy': ['Efficacy_1', 'Efficacy_2', 'Efficacy_3'], 'Achievement': ['Achievement_1', 'Achievement_2', 'Achievement_3'] };
             defaultStructural = [ { from: 'Motivation', to: 'Efficacy' }, { from: 'Motivation', to: 'Achievement' }, { from: 'Efficacy', to: 'Achievement' } ];
-        } else {
-            sampleData = generateOrganizationalSEMData(400);
+        } else { // organizational
+            sampleData = exampleDatasets.find(d => d.id === 'cfa-psych-constructs')?.data.split('\n').slice(1).map(line => {
+                 const [cog1,cog2,cog3,cog4,emo1,emo2,emo3,soc1,soc2,soc3,soc4] = line.split(',');
+                return {cog1: +cog1, cog2: +cog2, cog3: +cog3, cog4: +cog4, emo1: +emo1, emo2: +emo2, emo3: +emo3, soc1: +soc1, soc2: +soc2, soc3: +soc3, soc4: +soc4};
+            }) || [];
             defaultMeasurement = { 'Leadership': ['Leadership_1', 'Leadership_2'], 'Job_Satisfaction': ['Job_Satisfaction_1', 'Job_Satisfaction_2'], 'Organizational_Commitment': ['Commitment_1', 'Commitment_2'], 'Job_Performance': ['Performance_1', 'Performance_2'] };
             defaultStructural = [ { from: 'Leadership', to: 'Job_Satisfaction' }, { from: 'Job_Satisfaction', to: 'Organizational_Commitment' }, { from: 'Organizational_Commitment', to: 'Job_Performance' } ];
         }
+        
         setData(sampleData);
         setMeasurementModel(defaultMeasurement);
         setStructuralModel(defaultStructural);
-        setDatasetType(type);
         setView('main');
         toast({title: "Sample Data Loaded", description: `Loaded the ${type} dataset.`});
     }, [toast]);
@@ -305,7 +423,7 @@ export default function SEMAnalysisComponent() {
                                             {measurementModel[latentVar].map(variable => (
                                                 <div key={variable} className="flex justify-between items-center bg-green-50 p-1 rounded text-xs">
                                                     <span>{variable}</span>
-                                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeVariable(latentVar, variable)}><Trash2 className="w-2 h-2" /></Button>
+                                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeVariable(latentVar, variable)}><X className="w-3 h-3" /></Button>
                                                 </div>
                                             ))}
                                         </div>
@@ -347,17 +465,8 @@ export default function SEMAnalysisComponent() {
                     </CardContent>
                     <CardFooter>
                         <Button onClick={runSEMAnalysis} disabled={isLoading || data.length === 0} className="w-full">
-                            {isLoading ? (
-                                <div className="flex items-center gap-2">
-                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                    Running SEM...
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <PlayCircle className="w-4 h-4 mr-2" />
-                                    Run SEM Analysis
-                                </div>
-                            )}
+                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <PlayCircle className="w-4 h-4 mr-2" />}
+                            {isLoading ? 'Running SEM...' : 'Run SEM Analysis'}
                         </Button>
                     </CardFooter>
                 </Card>
@@ -368,15 +477,18 @@ export default function SEMAnalysisComponent() {
                         {isLoading && <div className="text-center py-8"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" /><p className="text-gray-600">Running SEM analysis...</p></div>}
                         {results && !isLoading && (
                             <Tabs defaultValue="diagram" className="w-full">
-                                <TabsList className="grid w-full grid-cols-4">
+                                <TabsList className="grid w-full grid-cols-3">
                                     <TabsTrigger value="diagram">Path Diagram</TabsTrigger>
                                     <TabsTrigger value="fit">Model Fit</TabsTrigger>
                                     <TabsTrigger value="estimates">Estimates</TabsTrigger>
-                                    <TabsTrigger value="scores">Factor Scores</TabsTrigger>
                                 </TabsList>
                                 
                                 <TabsContent value="diagram" className="mt-4">
-                                     <Image src={results.plot!} alt="SEM Path Diagram" width={800} height={600} className="w-full rounded-md border" />
+                                     {results.plot ? (
+                                        <Image src={results.plot} alt="SEM Path Diagram" width={800} height={600} className="w-full rounded-md border" />
+                                     ) : (
+                                        <SEMDiagram measurementModel={measurementModel} structuralModel={structuralModel} results={results} />
+                                     )}
                                 </TabsContent>
                                 
                                 <TabsContent value="fit" className="mt-4">
@@ -386,7 +498,7 @@ export default function SEMAnalysisComponent() {
                                             {Object.entries(results.results.fit_indices).map(([key, value]) => (
                                                 <TableRow key={key}>
                                                     <TableCell>{key.replace(/_/g, ' ').toUpperCase()}</TableCell>
-                                                    <TableCell>{typeof value === 'number' ? value.toFixed(3) : value}</TableCell>
+                                                    <TableCell>{typeof value === 'number' ? (value as number).toFixed(3) : value as any}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -408,19 +520,6 @@ export default function SEMAnalysisComponent() {
                                         </TableBody>
                                     </Table>
                                 </TabsContent>
-                                <TabsContent value="scores" className="mt-4">
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead className="text-right">Mean Factor Score</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                        {results.results.mean_components && Object.entries(results.results.mean_components).map(([factor, mean]) => (
-                                            <TableRow key={factor}>
-                                                <TableCell>{factor}</TableCell>
-                                                <TableCell className="text-right font-mono">{(mean as number).toFixed(4)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                        </TableBody>
-                                    </Table>
-                                </TabsContent>
                             </Tabs>
                         )}
                         {!results && !isLoading && <div className="text-center py-12 text-gray-500"><p>Configure your SEM model and run analysis</p></div>}
@@ -430,4 +529,3 @@ export default function SEMAnalysisComponent() {
         </div>
     );
 }
-
