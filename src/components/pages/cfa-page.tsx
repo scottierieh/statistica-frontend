@@ -25,7 +25,9 @@ import {
     MoveRight,
     HelpCircle,
     Eye,
-    Bot
+    Bot,
+    Loader2,
+    X as XIcon
 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
@@ -79,7 +81,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                 <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
                     <div className="flex justify-center items-center gap-3 mb-4">
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                           {Icon && <Icon size={36} />}
+                           <Icon size={36} />
                         </div>
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">Confirmatory Factor Analysis (CFA)</CardTitle>
@@ -226,8 +228,8 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Server error: ${errorText}`);
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
 
             const result = await response.json();
@@ -247,8 +249,13 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         }
     }, [data, modelSpec, toast]);
     
+    const handleLoadExample = (example: ExampleDataSet) => {
+        onLoadExample(example);
+        setView('main');
+    };
+
     if (view === 'intro' || !canRun) {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExample} />;
     }
     
     const isGoodFit = results?.results?.fit_indices?.cfi && results.results.fit_indices.cfi > 0.9 && results.results.fit_indices.rmsea && results.results.fit_indices.rmsea < 0.08;
@@ -371,4 +378,3 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         </div>
     );
 }
-
