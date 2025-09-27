@@ -77,6 +77,11 @@ class SEMAnalysis:
         stats_results = semopy.calc_stats(m)
         fit_indices = stats_results.T.to_dict().get('Value', {})
         estimates = semopy.inspect(m)
+        
+        # Rename p-value column to be consistent
+        if 'p-value' in estimates.columns:
+            estimates.rename(columns={'p-value': 'p_value'}, inplace=True)
+
 
         # Get factor scores and mean components
         factor_scores_df = pd.DataFrame()
@@ -101,6 +106,51 @@ class SEMAnalysis:
         
         return self.results[model_name]
 
+    def plot_sem_results(self, model_name):
+        if model_name not in self.results or not self.results[model_name].get('model'):
+             return None
+             
+        m = self.results[model_name]['model']
+        
+        try:
+            # semopy.semplot saves file to disk, so we need to handle this
+            temp_filename = "sem_plot.png"
+            g = semopy.semplot(m, temp_filename, plot_stats=True)
+            
+            buf = io.BytesIO()
+            if os.path.exists(temp_filename):
+                with open(temp_filename, 'rb') as f:
+                    buf.write(f.read())
+                buf.seek(0)
+                # Clean up the created file
+                os.remove(temp_filename)
+                img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+                return f"data:image/png;base64,{img_base64}"
+            else:
+                 return self._fallback_plot(self.results[model_name])
+        except Exception as e:
+            # Fallback plot generation if semplot fails (e.g., graphviz not installed on system)
+            print(f"Warning: semplot failed with error: {e}. A fallback plot will be generated.", file=sys.stderr)
+            return self._fallback_plot(self.results[model_name])
+
+
+    def _fallback_plot(self, sem_results):
+        fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+        ax.axis('off')
+        
+        model_spec = sem_results['model_spec']
+        text_content = model_spec['desc']
+        
+        ax.text(0.5, 0.5, text_content, ha='center', va='center', fontsize=12, family='monospace', bbox=dict(boxstyle="round,pad=1", fc="wheat", alpha=0.5))
+        ax.set_title("SEM Path Diagram (Text Representation)", fontsize=14)
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        plt.close(fig)
+        buf.seek(0)
+        return f"data:image/png;base64,{base64.b64encode(buf.read()).decode('utf-8')}"
+        
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -119,13 +169,15 @@ def main():
         
         sem.specify_model('user_model', measurement_model, structural_model)
         results = sem.run_sem('user_model')
-        
-        # Clean up results for JSON by removing the model object
-        del results['model']
+        plot_image = sem.plot_sem_results('user_model')
+
+        # Clean up results for JSON
+        if 'model' in results:
+            del results['model']
 
         response = {
             'results': results,
-            'plot': None
+            'plot': plot_image
         }
         
         print(json.dumps(response, default=_to_native_type))
