@@ -18,4 +18,3 @@ factor-analyzer
 skl2onnx
 onnx
 onnxruntime
-Cython
