@@ -71,7 +71,20 @@ interface FullAnalysisResponse {
     plot: string | null;
 }
 
-const IntroPage: React.FC<{ onStart: () => void; onLoadExample: () => void; }> = ({ onStart, onLoadExample }) => {
+const ExampleCard: React.FC<{ example: ExampleDataSet, onLoad: (e: ExampleDataSet) => void }> = ({ example, onLoad }) => {
+    const Icon = example.icon;
+    return (
+        <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoad(example)}>
+            <Icon className="mx-auto h-8 w-8 text-primary"/>
+            <div>
+                <h4 className="font-semibold">{example.name}</h4>
+                <p className="text-xs text-muted-foreground">{example.description}</p>
+            </div>
+        </Card>
+    );
+};
+
+const IntroPage: React.FC<{ onStart: () => void; onLoadExample: (e: any) => void; }> = ({ onStart, onLoadExample }) => {
     const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
 
     return (
@@ -97,13 +110,7 @@ const IntroPage: React.FC<{ onStart: () => void; onLoadExample: () => void; }> =
                     </div>
                     <div className="flex justify-center">
                         {cfaExample && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={onLoadExample}>
-                                <cfaExample.icon className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{cfaExample.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
-                                </div>
-                            </Card>
+                            <ExampleCard example={cfaExample} onLoad={onLoadExample} />
                         )}
                     </div>
                     <div className="grid md:grid-cols-2 gap-8">
@@ -313,7 +320,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
     const isGoodFit = results?.results?.fit_indices?.cfi && results.results.fit_indices.cfi > 0.9 && results.results.fit_indices.rmsea && results.results.fit_indices.rmsea < 0.08;
     const factorForVariable = (variable: string) => Object.keys(modelSpec).find(f => modelSpec[f].includes(variable));
     
-    if (view === 'intro' || !canRun) {
+    if (!canRun || view === 'intro') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
     }
 
@@ -442,5 +449,3 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         </div>
     );
 }
-
-    
