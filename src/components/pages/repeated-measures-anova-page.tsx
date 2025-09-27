@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,10 @@ import {
     AlertTriangle,
     CheckSquare,
     Upload,
-    FileText
+    FileText,
+    Settings,
+    FileSearch,
+    HelpCircle
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
@@ -605,59 +608,55 @@ const DescriptiveStats = ({ descriptives }: { descriptives: any }) => {
 
 const IntroPage = ({ onStart }: { onStart: () => void }) => {
     return (
-        <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-4xl shadow-lg">
-                <CardHeader className="text-center p-8 bg-gradient-to-r from-blue-50 to-purple-50">
-                    <div className="flex justify-center items-center gap-3 mb-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                     <div className="flex justify-center items-center gap-3 mb-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                             <Repeat size={36} />
                         </div>
                     </div>
-                    <CardTitle className="text-4xl font-bold text-gray-800">
-                        Repeated Measures ANOVA
-                    </CardTitle>
-                    <CardDescription className="text-xl pt-2 text-gray-600 max-w-4xl mx-auto">
-                        Analyze within-subjects designs with Greenhouse-Geisser and Huynh-Feldt corrections
+                    <CardTitle className="font-headline text-4xl font-bold">Repeated Measures ANOVA</CardTitle>
+                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
+                        Analyze within-subjects designs, where the same subjects are measured multiple times, and test for differences across conditions or time points.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-8 px-8 py-8">
-                     <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-xl flex items-center gap-2">
-                                <Users className="text-blue-600"/> Same Participants
-                            </h3>
-                            <ul className="list-disc pl-5 space-y-2 text-gray-600">
-                                <li>Longitudinal studies</li>
-                                <li>Pre-post interventions</li>
-                                <li>Learning curves</li>
-                            </ul>
+                <CardContent className="space-y-10 px-8 py-10">
+                    <div className="text-center">
+                        <h2 className="text-2xl font-semibold mb-4">Why Use Repeated Measures ANOVA?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                            This test is powerful for longitudinal studies, pre-test/post-test designs, or experiments where participants are exposed to multiple conditions. It increases statistical power by controlling for individual differences between subjects, making it easier to detect the true effect of your intervention or the change over time.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                                <li><strong>Load Data:</strong> Your data should be in "wide" format, with each row representing a subject and each repeated measure in a separate column.</li>
+                                <li><strong>Subject Variable:</strong> Select the column that uniquely identifies each subject or participant.</li>
+                                <li><strong>Within-Subjects Factors:</strong> Select two or more numeric columns that represent the repeated measurements (e.g., 'Week 1', 'Week 2', 'Week 3').</li>
+                                <li><strong>Run Analysis:</strong> The tool will automatically perform the ANOVA and check for sphericity, applying corrections if necessary.</li>
+                            </ol>
                         </div>
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-xl flex items-center gap-2">
-                                <Calendar className="text-blue-600"/> Multiple Timepoints
-                            </h3>
-                            <ul className="list-disc pl-5 space-y-2 text-gray-600">
-                                <li>Treatment effects over time</li>
-                                <li>Skill development</li>
-                                <li>Recovery patterns</li>
-                            </ul>
-                        </div>
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-xl flex items-center gap-2">
-                                <LineChart className="text-blue-600"/> Sphericity Corrections
-                            </h3>
-                            <ul className="list-disc pl-5 space-y-2 text-gray-600">
-                                <li>Mauchly's test</li>
-                                <li>Greenhouse-Geisser</li>
-                                <li>Huynh-Feldt</li>
+                         <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li>
+                                    <strong>F-statistic & p-value:</strong> These determine if there is a significant difference across the conditions.
+                                </li>
+                                <li>
+                                    <strong>Sphericity (Mauchly's Test):</strong> This tests a key assumption of RM-ANOVA. If sphericity is violated (p &lt; .05), you should rely on the corrected p-values (Greenhouse-Geisser or Huynh-Feldt).
+                                </li>
+                                 <li>
+                                    <strong>Effect Size (η²p):</strong> Partial eta-squared indicates the proportion of variance in the outcome explained by the within-subjects factor.
+                                </li>
                             </ul>
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-gray-50">
-                    <Button size="lg" onClick={onStart} className="bg-blue-600 hover:bg-blue-700">
-                        Start RM-ANOVA <MoveRight className="ml-2 w-5 h-5"/>
-                    </Button>
+                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
+                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
@@ -752,25 +751,7 @@ export default function RepeatedANOVAComponent() {
 
     return (
         <div className="max-w-7xl mx-auto p-6 space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Repeated Measures ANOVA</h1>
-                    <p className="text-gray-600">Within-subjects analysis with sphericity corrections</p>
-                </div>
-            </div>
-
-            {data.length > 0 && (
-                <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>Dataset Loaded</AlertTitle>
-                    <AlertDescription>
-                        {data.length} participants with {availableVariables.length} variables loaded 
-                        {dataSource === 'uploaded' ? ' from uploaded file' : ' from sample data'}.
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            <div className="grid lg:grid-cols-2 gap-6">
+             <div className="grid lg:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
