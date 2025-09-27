@@ -36,6 +36,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { produce } from 'immer';
 import Image from 'next/image';
 import type { DataSet } from '@/lib/stats';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 
 interface CfaFitIndices {
@@ -378,3 +379,4 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         </div>
     );
 }
+
