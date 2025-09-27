@@ -1,4 +1,3 @@
-
 import sys
 import json
 import numpy as np
@@ -119,7 +118,7 @@ class SEMAnalysis:
                 buf.seek(0)
                 # Clean up the created file
                 os.remove(temp_filename)
-                img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+                img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
                 return f"data:image/png;base64,{img_base64}"
             else:
                  return self._fallback_plot(self.results[model_name])

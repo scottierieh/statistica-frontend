@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { 
     Network, 
     GitBranch, 
@@ -36,6 +37,7 @@ import { produce } from 'immer';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import Image from 'next/image';
 import { exampleDatasets } from '@/lib/example-datasets';
+import Papa from 'papaparse';
 
 // Type Definitions
 interface ModelSpec {
@@ -129,6 +131,7 @@ export default function SEMAnalysisComponent() {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
     const [data, setData] = useState<any[]>([]);
+    const [datasetType, setDatasetType] = useState('academic');
     const [measurementModel, setMeasurementModel] = useState<{ [key: string]: string[] }>({});
     const [structuralModel, setStructuralModel] = useState<{ from: string, to: string }[]>([]);
     const [results, setResults] = useState<FullAnalysisResponse | null>(null);
@@ -155,21 +158,13 @@ export default function SEMAnalysisComponent() {
             return;
         }
 
-        const parsedData = sampleDataCsv.trim().split('\n').map(line => {
-            const values = line.split(',');
-            const headers = Object.keys(defaultMeasurement).flatMap(k => defaultMeasurement[k]).concat(Object.keys(defaultMeasurement).flatMap(k => defaultMeasurement[k].map(v => v.split('_')[0])));
-             const row: { [key: string]: number } = {};
-            values.forEach((val, i) => {
-                const header = headers[i] || `var${i+1}`;
-                 row[header] = +val;
-            });
-            return row;
-        }).filter(row => Object.values(row).some(val => !isNaN(val)));
+        const parsed = Papa.parse(sampleDataCsv, { header: true, dynamicTyping: true, skipEmptyLines: true });
+        const sampleData = parsed.data;
 
-
-        setData(sampleData);
+        setData(sampleData as any[]);
         setMeasurementModel(defaultMeasurement);
         setStructuralModel(defaultStructural);
+        setDatasetType(type);
         setView('main');
         toast({title: "Sample Data Loaded", description: `Loaded the ${type} dataset.`});
     }, [toast]);
@@ -266,10 +261,12 @@ export default function SEMAnalysisComponent() {
                     <CardContent className="space-y-4">
                         <div className="space-y-3">
                             <Label className="font-semibold">Measurement Model</Label>
+                            
                             <div className="flex gap-2">
                                 <Input placeholder="New latent variable..." value={newLatentVar} onChange={(e) => setNewLatentVar(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addLatentVariable()} />
                                 <Button onClick={addLatentVariable} size="sm"><Plus className="w-4 h-4" /></Button>
                             </div>
+
                             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                                 {Object.keys(measurementModel).map(latentVar => (
                                     <Card key={latentVar} className="p-3">
@@ -334,28 +331,16 @@ export default function SEMAnalysisComponent() {
                     <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" /> Analysis Results</CardTitle></CardHeader>
                     <CardContent>
                         {isLoading && <div className="text-center py-8"><Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" /><p className="text-gray-600">Running SEM analysis...</p></div>}
+                        
                         {results && !isLoading && (
-                            <Tabs defaultValue="fit" className="w-full">
-                                <TabsList className="grid w-full grid-cols-3">
-                                    <TabsTrigger value="fit">Model Fit</TabsTrigger>
-                                    <TabsTrigger value="estimates">Estimates</TabsTrigger>
-                                    <TabsTrigger value="scores">Factor Scores</TabsTrigger>
+                             <Tabs defaultValue="diagram" className="w-full">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="diagram">Path Diagram</TabsTrigger>
+                                    <TabsTrigger value="estimates">Estimates & Fit</TabsTrigger>
                                 </TabsList>
-                                
-                                <TabsContent value="fit" className="mt-4">
-                                    <Table>
-                                      <TableHeader><TableRow><TableHead>Index</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
-                                      <TableBody>
-                                        {Object.entries(results.results.fit_indices).map(([key, value]) => (
-                                            <TableRow key={key}>
-                                                <TableCell>{key.replace(/_/g, ' ').toUpperCase()}</TableCell>
-                                                <TableCell className="text-right font-mono">{typeof value === 'number' ? (value as number).toFixed(3) : value as any}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
+                                <TabsContent value="diagram" className="mt-4">
+                                     {results.plot && <Image src={results.plot} alt="SEM Path Diagram" width={800} height={600} className="w-full rounded-md border"/>}
                                 </TabsContent>
-                                
                                 <TabsContent value="estimates" className="mt-4">
                                      <Table>
                                         <TableHeader><TableRow><TableHead>lval</TableHead><TableHead>op</TableHead><TableHead>rval</TableHead><TableHead className="text-right">Estimate</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
@@ -372,18 +357,9 @@ export default function SEMAnalysisComponent() {
                                         </TableBody>
                                     </Table>
                                 </TabsContent>
-                                <TabsContent value="scores" className="mt-4">
-                                     <Table>
-                                        <TableHeader><TableRow>{Object.keys(results.results.mean_components).map(key => <TableHead key={key}>{key}</TableHead>)}</TableRow></TableHeader>
-                                        <TableBody>
-                                          <TableRow>
-                                            {Object.values(results.results.mean_components).map((val, i) => <TableCell key={i} className="font-mono">{val.toFixed(3)}</TableCell>)}
-                                          </TableRow>
-                                        </TableBody>
-                                     </Table>
-                                </TabsContent>
                             </Tabs>
                         )}
+
                         {!results && !isLoading && <div className="text-center py-12 text-gray-500"><p>Configure your SEM model and run analysis</p></div>}
                     </CardContent>
                 </Card>
@@ -391,3 +367,4 @@ export default function SEMAnalysisComponent() {
         </div>
     );
 }
+
