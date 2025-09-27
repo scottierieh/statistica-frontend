@@ -238,8 +238,11 @@ class RegressionAnalysis:
     def _basic_diagnostics(self, X, y_true, y_pred, sklearn_model, original_feature_names):
         diagnostics = {}
         residuals = y_true - y_pred
-        sw_stat, sw_p = stats.shapiro(residuals)
-        diagnostics['normality_tests'] = {'shapiro_wilk': {'statistic': sw_stat, 'p_value': sw_p}}
+        try:
+            sw_stat, sw_p = stats.shapiro(residuals)
+            diagnostics['normality_tests'] = {'shapiro_wilk': {'statistic': sw_stat, 'p_value': sw_p}}
+        except:
+            diagnostics['normality_tests'] = {}
         
         diagnostics['coefficient_tests'] = {
             'params': {'const': sklearn_model.intercept_, **dict(zip(original_feature_names, sklearn_model.coef_))},
@@ -283,6 +286,9 @@ class RegressionAnalysis:
         X_scaled = self._scale_data(X_selected, standardize=True)
         
         sklearn_model = LinearRegression() # Default
+        original_features = list(X_selected.columns)
+        X_to_diagnose = X_scaled
+
         if model_type == 'polynomial':
             degree = kwargs.get('degree', 2)
             poly = PolynomialFeatures(degree=degree, include_bias=False)
@@ -292,14 +298,12 @@ class RegressionAnalysis:
             sklearn_model.fit(X_poly_df, self.y)
             y_pred = sklearn_model.predict(X_poly_df)
             metrics = self._calculate_metrics(self.y, y_pred, X_poly_df.shape[1])
-            original_features = list(X_poly_df.columns)
+            original_features = list(poly_feature_names)
             X_to_diagnose = X_poly_df
         else:
             sklearn_model.fit(X_scaled, self.y)
             y_pred = sklearn_model.predict(X_scaled)
             metrics = self._calculate_metrics(self.y, y_pred, X_scaled.shape[1])
-            original_features = list(X_selected.columns)
-            X_to_diagnose = X_scaled
 
         sm_model = None
         if HAS_STATSMODELS:
@@ -317,6 +321,7 @@ class RegressionAnalysis:
             'interpretation': self._generate_interpretation(metrics, diagnostics, model_type, self.target_variable, original_features)
         }
         
+        # Plotting uses all data now
         self.y_true_plot, self.y_pred_plot = self.y, y_pred
 
         return results
@@ -376,5 +381,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
