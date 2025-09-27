@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,10 +26,9 @@ import {
     AlertTriangle,
     CheckSquare,
     Upload,
-    FileText
+    FileText,
+    HelpCircle
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-
 
 // Parse CSV file
 const parseCSV = (csvText: string) => {
@@ -52,24 +51,6 @@ const parseCSV = (csvText: string) => {
     
     return data;
 };
-
-const downloadSampleCSV = () => {
-    const sampleCSV = `Subject,Group,Pre_Test,Mid_Test,Post_Test
-S01,Control,55,58,57
-S02,Control,60,62,61
-S03,Treatment,65,72,78
-S04,Treatment,68,75,82
-S05,Control,62,65,66
-`;
-    const blob = new Blob([sampleCSV], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', 'rm_anova_sample.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
 
 // File upload component
 const FileUpload = ({ onDataLoaded, isLoading }: { onDataLoaded: (data: any[], source: string) => void, isLoading: boolean }) => {
@@ -191,6 +172,22 @@ const FileUpload = ({ onDataLoaded, isLoading }: { onDataLoaded: (data: any[], s
         </div>
     );
 };
+const downloadSampleCSV = () => {
+    const sampleCSV = `Subject,Group,Pre_Test,Mid_Test,Post_Test
+S01,Control,55,58,57
+S02,Control,60,62,61
+S03,Treatment,65,72,78
+S04,Treatment,68,75,82
+S05,Control,62,65,66
+`;
+    const blob = new Blob([sampleCSV], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', 'rm_anova_sample.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 const generateRepeatedMeasuresData = (scenario: string, nSubjects: number) => {
     const data = [];
     
@@ -761,261 +758,139 @@ export default function RepeatedANOVAComponent() {
         setResults(anovaResults);
         setIsLoading(false);
     };
-
+    
     if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} />;
     }
 
     return (
         <div className="max-w-7xl mx-auto p-6 space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Repeated Measures ANOVA</h1>
-                    <p className="text-gray-600">Within-subjects analysis with sphericity corrections</p>
-                </div>
-                <Button onClick={() => setView('intro')} variant="ghost">
-                    <Info className="w-4 h-4 mr-2" /> Help
-                </Button>
-            </div>
-
-            {data.length > 0 && (
-                <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>Dataset Loaded</AlertTitle>
-                    <AlertDescription>
-                        {data.length} participants with {availableVariables.length} variables loaded 
-                        {dataSource === 'uploaded' ? ' from uploaded file' : ' from sample data'}.
-                    </AlertDescription>
-                </Alert>
-            )}
-
-            <div className="grid lg:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Target className="w-5 h-5" />
-                            Data & Analysis Setup
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {/* Data Loading Section */}
-                        <div className="space-y-4">
-                            <Label className="text-base font-semibold">Load Data</Label>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        Data & Analysis Setup
+                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5" /></Button>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {/* Data Loading Section */}
+                    <div className="space-y-4">
+                        <Label className="text-base font-semibold">Load Data</Label>
+                        
+                        <Tabs defaultValue="upload" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="upload">Upload CSV</TabsTrigger>
+                                <TabsTrigger value="sample">Sample Data</TabsTrigger>
+                            </TabsList>
                             
-                            <Tabs defaultValue="upload" className="w-full">
-                                <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="upload">Upload CSV</TabsTrigger>
-                                    <TabsTrigger value="sample">Sample Data</TabsTrigger>
-                                </TabsList>
-                                
-                                <TabsContent value="upload" className="space-y-3">
-                                    <FileUpload 
-                                        onDataLoaded={handleDataUpload} 
-                                        isLoading={isLoading}
-                                    />
-                                </TabsContent>
-                                
-                                <TabsContent value="sample" className="space-y-3">
-                                    <div className="grid gap-2">
-                                        {Object.entries(scenarios).map(([key, scenario]) => (
-                                            <Button
-                                                key={key}
-                                                variant="outline"
-                                                onClick={() => loadSampleData(key as keyof typeof scenarios)}
-                                                className="text-left justify-start h-auto p-3"
-                                            >
-                                                <div>
-                                                    <div className="font-medium">{scenario.name}</div>
-                                                    <div className="text-sm text-gray-500">{scenario.description}</div>
-                                                </div>
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </TabsContent>
-                            </Tabs>
-                        </div>
-
-                        {/* Variable Selection */}
-                        {data.length > 0 && (
-                            <div className="space-y-4 border-t pt-4">
-                                <Label className="text-base font-semibold">Variable Selection</Label>
-                                
-                                <div>
-                                    <Label>Subject Variable</Label>
-                                    <Select value={subjectVariable} onValueChange={setSubjectVariable}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select subject identifier" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {Object.keys(data[0]).map(variable => (
-                                                <SelectItem key={variable} value={variable}>
-                                                    {variable}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div>
-                                    <Label>Within-Subjects Factors ({withinFactors.length} selected)</Label>
-                                    <div className="mt-2 space-y-2">
-                                        {withinFactors.map((factor, idx) => (
-                                            <div key={idx} className="flex items-center gap-2">
-                                                <Badge variant="default">{factor}</Badge>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setWithinFactors(prev => 
-                                                        prev.filter((_, i) => i !== idx)
-                                                    )}
-                                                >
-                                                    ×
-                                                </Button>
+                            <TabsContent value="upload" className="space-y-3">
+                                <FileUpload 
+                                    onDataLoaded={handleDataUpload} 
+                                    isLoading={isLoading}
+                                />
+                            </TabsContent>
+                            
+                            <TabsContent value="sample" className="space-y-3">
+                                <div className="grid gap-2">
+                                    {Object.entries(scenarios).map(([key, scenario]) => (
+                                        <Button
+                                            key={key}
+                                            variant="outline"
+                                            onClick={() => loadSampleData(key as keyof typeof scenarios)}
+                                            className="text-left justify-start h-auto p-3"
+                                        >
+                                            <div>
+                                                <div className="font-medium">{scenario.name}</div>
+                                                <div className="text-sm text-gray-500">{scenario.description}</div>
                                             </div>
+                                        </Button>
+                                    ))}
+                                </div>
+                            </TabsContent>
+                        </Tabs>
+                    </div>
+
+                    {/* Variable Selection */}
+                    {data.length > 0 && (
+                        <div className="space-y-4 border-t pt-4">
+                            <Label className="text-base font-semibold">Variable Selection</Label>
+                            
+                            <div>
+                                <Label>Subject Variable</Label>
+                                <Select value={subjectVariable} onValueChange={setSubjectVariable}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select subject identifier" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.keys(data[0]).map(variable => (
+                                            <SelectItem key={variable} value={variable}>
+                                                {variable}
+                                            </SelectItem>
                                         ))}
-                                    </div>
-                                    
-                                    <Select onValueChange={(value) => 
-                                        setWithinFactors(prev => 
-                                            prev.includes(value) ? prev : [...prev, value]
-                                        )
-                                    }>
-                                        <SelectTrigger className="mt-2">
-                                            <SelectValue placeholder="Add factor" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {availableVariables
-                                                .filter(v => !withinFactors.includes(v) && v !== subjectVariable)
-                                                .map(variable => (
-                                                <SelectItem key={variable} value={variable}>
-                                                    {variable}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                    </SelectContent>
+                                </Select>
                             </div>
-                        )}
-                    </CardContent>
-                    <CardFooter>
-                        <Button 
-                            onClick={runAnalysis}
-                            disabled={isLoading || data.length === 0 || withinFactors.length < 2}
-                            className="w-full"
-                        >
-                            {isLoading ? (
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    Running Analysis...
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <PlayCircle className="w-4 h-4" />
-                                    Run RM-ANOVA
-                                </div>
-                            )}
-                        </Button>
-                    </CardFooter>
-                </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5" />
-                            Analysis Results
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoading && (
-                            <div className="text-center py-8">
-                                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                                <p className="text-gray-600">Running repeated measures ANOVA...</p>
-                                <Progress value={66} className="mt-4" />
-                            </div>
-                        )}
-
-                        {results && !isLoading && (
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-3 bg-blue-50 rounded">
-                                        <div className="text-sm text-blue-600 font-medium">F-statistic</div>
-                                        <div className="text-xl font-bold">{results.main_effect.f_value.toFixed(3)}</div>
-                                    </div>
-                                    <div className="p-3 bg-green-50 rounded">
-                                        <div className="text-sm text-green-600 font-medium">p-value</div>
-                                        <div className="text-xl font-bold">
-                                            <Badge variant={results.main_effect.significant ? 'default' : 'secondary'}>
-                                                {results.main_effect.p_value.toFixed(3)}
-                                            </Badge>
+                            <div>
+                                <Label>Within-Subjects Factors ({withinFactors.length} selected)</Label>
+                                <div className="mt-2 space-y-2">
+                                    {withinFactors.map((factor, idx) => (
+                                        <div key={idx} className="flex items-center gap-2">
+                                            <Badge variant="default">{factor}</Badge>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setWithinFactors(prev => 
+                                                    prev.filter((_, i) => i !== idx)
+                                                )}
+                                            >
+                                                ×
+                                            </Button>
                                         </div>
-                                    </div>
+                                    ))}
                                 </div>
                                 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-3 bg-purple-50 rounded">
-                                        <div className="text-sm text-purple-600 font-medium">Effect Size (η²p)</div>
-                                        <div className="text-xl font-bold">{results.main_effect.partial_eta_squared.toFixed(3)}</div>
-                                    </div>
-                                    <div className="p-3 bg-orange-50 rounded">
-                                        <div className="text-sm text-orange-600 font-medium">Sphericity</div>
-                                        <div className="text-xl font-bold">
-                                            <Badge variant={results.sphericity.violated ? 'destructive' : 'default'}>
-                                                {results.sphericity.violated ? 'Violated' : 'OK'}
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {results.main_effect.significant && (
-                                    <Alert>
-                                        <CheckCircle className="h-4 w-4" />
-                                        <AlertTitle>Significant Main Effect</AlertTitle>
-                                        <AlertDescription>
-                                            There is a statistically significant difference between the repeated measures conditions.
-                                        </AlertDescription>
-                                    </Alert>
-                                )}
+                                <Select onValueChange={(value) => 
+                                    setWithinFactors(prev => 
+                                        prev.includes(value) ? prev : [...prev, value]
+                                    )
+                                }>
+                                    <SelectTrigger className="mt-2">
+                                        <SelectValue placeholder="Add factor" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableVariables
+                                            .filter(v => !withinFactors.includes(v) && v !== subjectVariable)
+                                            .map(variable => (
+                                            <SelectItem key={variable} value={variable}>
+                                                {variable}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                    <Button 
+                        onClick={runAnalysis}
+                        disabled={isLoading || data.length === 0 || withinFactors.length < 2}
+                    >
+                        {isLoading ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                Running Analysis...
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <PlayCircle className="w-4 h-4" />
+                                Run RM-ANOVA
                             </div>
                         )}
-
-                        {!results && !isLoading && (
-                            <div className="text-center py-12 text-gray-500">
-                                <Repeat className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                                <p>Configure your analysis and run RM-ANOVA</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-
-            {results && !isLoading && (
-                <Tabs defaultValue="anova" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="anova">ANOVA Table</TabsTrigger>
-                        <TabsTrigger value="descriptives">Descriptives</TabsTrigger>
-                        <TabsTrigger value="sphericity">Sphericity</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="anova" className="space-y-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>ANOVA Summary Table</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ANOVATable results={results} />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    
-                    <TabsContent value="descriptives" className="space-y-4">
-                        <DescriptiveStats descriptives={results.descriptives} />
-                    </TabsContent>
-                    
-                    <TabsContent value="sphericity" className="space-y-4">
-                        <SphericityTest sphericity={results.sphericity} />
-                    </TabsContent>
-                </Tabs>
-            )}
+                    </Button>
+                </CardFooter>
+            </Card>
 
             {data.length > 0 && (
                 <Card>
@@ -1041,7 +916,7 @@ export default function RepeatedANOVAComponent() {
                                 <tbody>
                                     {data.slice(0, 5).map((row, idx) => (
                                         <tr key={idx} className="border-b">
-                                            {Object.values(row).slice(0, 8).map((value, valueIdx) => (
+                                            {Object.values(row).slice(0, 8).map((value: any, valueIdx) => (
                                                 <td key={valueIdx} className="p-2">
                                                     {value}
                                                 </td>
@@ -1053,6 +928,90 @@ export default function RepeatedANOVAComponent() {
                         </div>
                     </CardContent>
                 </Card>
+            )}
+
+            {results && !isLoading && (
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5" />
+                                Analysis Results
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid lg:grid-cols-2 gap-6">
+                                <div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-3 bg-blue-50 rounded">
+                                            <div className="text-sm text-blue-600 font-medium">F-statistic</div>
+                                            <div className="text-xl font-bold">{results.main_effect.f_value.toFixed(3)}</div>
+                                        </div>
+                                        <div className="p-3 bg-green-50 rounded">
+                                            <div className="text-sm text-green-600 font-medium">p-value</div>
+                                            <div className="text-xl font-bold">
+                                                <Badge variant={results.main_effect.significant ? 'default' : 'secondary'}>
+                                                    {results.main_effect.p_value.toFixed(3)}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 mt-4">
+                                        <div className="p-3 bg-purple-50 rounded">
+                                            <div className="text-sm text-purple-600 font-medium">Effect Size (η²p)</div>
+                                            <div className="text-xl font-bold">{results.main_effect.partial_eta_squared.toFixed(3)}</div>
+                                        </div>
+                                        <div className="p-3 bg-orange-50 rounded">
+                                            <div className="text-sm text-orange-600 font-medium">Sphericity</div>
+                                            <div className="text-xl font-bold">
+                                                <Badge variant={results.sphericity.violated ? 'destructive' : 'default'}>
+                                                    {results.sphericity.violated ? 'Violated' : 'OK'}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {results.main_effect.significant && (
+                                    <Alert>
+                                        <CheckCircle className="h-4 w-4" />
+                                        <AlertTitle>Significant Main Effect</AlertTitle>
+                                        <AlertDescription>
+                                            There is a statistically significant difference between the repeated measures conditions.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Tabs defaultValue="anova" className="w-full">
+                        <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="anova">ANOVA Table</TabsTrigger>
+                            <TabsTrigger value="descriptives">Descriptives</TabsTrigger>
+                            <TabsTrigger value="sphericity">Sphericity</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="anova" className="space-y-4">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>ANOVA Summary Table</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ANOVATable results={results} />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        
+                        <TabsContent value="descriptives" className="space-y-4">
+                            <DescriptiveStats descriptives={results.descriptives} />
+                        </TabsContent>
+                        
+                        <TabsContent value="sphericity" className="space-y-4">
+                            <SphericityTest sphericity={results.sphericity} />
+                        </TabsContent>
+                    </Tabs>
+                </div>
             )}
         </div>
     );
