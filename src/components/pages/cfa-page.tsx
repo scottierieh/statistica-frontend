@@ -23,7 +23,8 @@ import {
     X as XIcon,
     Users,
     Building,
-    Star
+    Star,
+    Sigma
 } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { useToast } from '@/hooks/use-toast';
@@ -81,9 +82,24 @@ interface IntroPageProps {
   onLoadExample: () => void;
 }
 
+const ExampleCard: React.FC<{ example: ExampleDataSet | undefined; onLoadExample: () => void; }> = ({ example, onLoadExample }) => {
+    if (!example) return null;
+    const Icon = example.icon || BrainCircuit;
+    return (
+        <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={onLoadExample}>
+            <Icon className="mx-auto h-8 w-8 text-primary"/>
+            <div>
+                <h4 className="font-semibold">{example.name}</h4>
+                <p className="text-xs text-muted-foreground">{example.description}</p>
+            </div>
+        </Card>
+    );
+};
+
+
 const IntroPage: React.FC<IntroPageProps> = ({ onStart, onLoadExample }) => {
     const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
-    
+
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -106,15 +122,7 @@ const IntroPage: React.FC<IntroPageProps> = ({ onStart, onLoadExample }) => {
                         </p>
                     </div>
                     <div className="flex justify-center">
-                        {cfaExample && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={onLoadExample}>
-                                <BrainCircuit className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{cfaExample.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
-                                </div>
-                            </Card>
-                        )}
+                         <ExampleCard example={cfaExample} onLoadExample={onLoadExample} />
                     </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
@@ -243,12 +251,6 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         setResults(null);
      }, [localData, localNumericHeaders, canRun]);
 
-    const availableVariables = useMemo(() => {
-        if (localData.length === 0) return [];
-        const usedVariables = Object.values(modelSpec).flat();
-        return localNumericHeaders.filter(key => !usedVariables.includes(key));
-    }, [localData, modelSpec, localNumericHeaders]);
-
     const addFactor = () => {
         if (newFactorName.trim() && !modelSpec[newFactorName.trim()]) {
             setModelSpec(prev => ({
@@ -320,7 +322,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
             setIsLoading(false);
         }
     }, [localData, modelSpec, toast]);
-
+    
     if (view === 'intro' || !canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
     }
@@ -333,7 +335,10 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">1. Data Loading</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">1. Data</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
@@ -345,24 +350,14 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
                 <CardHeader>
                     <CardTitle className="font-headline">2. Define Latent Variables (Factors)</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="flex gap-2">
-                        <Input
-                            placeholder="New factor name (e.g., Satisfaction)"
-                            value={newFactorName}
-                            onChange={(e) => setNewFactorName(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && addFactor()}
-                        />
-                        <Button onClick={addFactor}><Plus className="w-4 h-4 mr-2" /> Add Factor</Button>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                        {Object.keys(modelSpec).map(factorName => (
-                            <div key={factorName} className="flex items-center gap-1 p-2 rounded-md bg-muted">
-                                <span className="font-semibold text-sm">{factorName}</span>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFactor(factorName)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                            </div>
-                        ))}
-                    </div>
+                <CardContent className="flex gap-2">
+                    <Input
+                        placeholder="New factor name (e.g., Satisfaction)"
+                        value={newFactorName}
+                        onChange={(e) => setNewFactorName(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && addFactor()}
+                    />
+                    <Button onClick={addFactor}><Plus className="w-4 h-4 mr-2" /> Add Factor</Button>
                 </CardContent>
              </Card>
 
@@ -371,32 +366,33 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
                     <CardTitle className="font-headline">3. Assign Measurement Variables</CardTitle>
                 </CardHeader>
                  <CardContent>
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Assigned Factor</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                            {localNumericHeaders.map(variable => (
-                                <TableRow key={variable}>
-                                    <TableCell>{variable}</TableCell>
-                                    <TableCell>
-                                        <Select
-                                            value={factorForVariable(variable) || ''}
-                                            onValueChange={(factor) => assignVariableToFactor(variable, factor === 'none' ? null : factor)}
-                                        >
-                                            <SelectTrigger className="w-[200px]">
-                                                <SelectValue placeholder="Unassigned" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">Unassigned</SelectItem>
-                                                {Object.keys(modelSpec).map(f => (
-                                                    <SelectItem key={f} value={f}>{f}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {Object.keys(modelSpec).map(factorName => (
+                            <Card key={factorName} className="flex flex-col">
+                                <CardHeader className="flex-row items-center justify-between py-2">
+                                    <CardTitle className="text-base">{factorName}</CardTitle>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFactor(factorName)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                                </CardHeader>
+                                <CardContent className="flex-1">
+                                    <ScrollArea className="h-48 border rounded-md p-2">
+                                        <div className="space-y-2">
+                                            {localNumericHeaders.map(variable => (
+                                                <div key={variable} className="flex items-center space-x-2">
+                                                    <Checkbox 
+                                                        id={`${factorName}-${variable}`} 
+                                                        checked={modelSpec[factorName]?.includes(variable)}
+                                                        onCheckedChange={(checked) => assignVariableToFactor(variable, checked ? factorName : null)}
+                                                        disabled={!!factorForVariable(variable) && !modelSpec[factorName]?.includes(variable)}
+                                                    />
+                                                    <Label htmlFor={`${factorName}-${variable}`} className="text-sm font-normal">{variable}</Label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
                  </CardContent>
                   <CardFooter className="flex justify-end">
                     <Button onClick={runAnalysis} disabled={isLoading || Object.keys(modelSpec).length === 0}>
