@@ -66,7 +66,7 @@ interface CfaResults {
     fit_indices: CfaFitIndices;
     estimates: CfaEstimate[];
     interpretation: string;
-    model: any; 
+    model: any;
     factor_scores: any[];
     mean_components: any;
 }
@@ -96,9 +96,15 @@ const ExampleCard: React.FC<{ example: ExampleDataSet | undefined; onLoadExample
     );
 };
 
-
 const IntroPage: React.FC<IntroPageProps> = ({ onStart, onLoadExample }) => {
     const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
+
+    const iconMap: { [key: string]: React.FC<any> } = {
+        Psychology: BrainCircuit,
+        Management: Building,
+        Marketing: Star,
+        Sociology: Users,
+    };
 
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
