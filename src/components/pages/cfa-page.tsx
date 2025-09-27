@@ -6,26 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { 
-    BrainCircuit, 
-    Plus, 
-    Trash2, 
-    PlayCircle, 
-    BarChart3, 
-    Target, 
-    TrendingUp,
+import {
+    BrainCircuit,
+    Plus,
+    Trash2,
+    PlayCircle,
     AlertTriangle,
     CheckCircle,
-    Info,
+    Bot,
     Settings,
     FileSearch,
     MoveRight,
     HelpCircle,
-    Eye,
-    Bot,
     Loader2,
     X as XIcon
 } from 'lucide-react';
@@ -37,6 +29,10 @@ import { produce } from 'immer';
 import Image from 'next/image';
 import type { DataSet } from '@/lib/stats';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import DataUploader from '../data-uploader';
+import DataPreview from '../data-preview';
+import { parseData, unparseData } from '@/lib/stats';
+import * as XLSX from 'xlsx';
 
 
 interface CfaFitIndices {
@@ -74,7 +70,6 @@ interface FullAnalysisResponse {
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
-    const Icon = cfaExample?.icon || BrainCircuit;
 
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
@@ -82,7 +77,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                 <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
                     <div className="flex justify-center items-center gap-3 mb-4">
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                           <Icon size={36} />
+                            <BrainCircuit size={36} />
                         </div>
                     </div>
                     <CardTitle className="font-headline text-4xl font-bold">Confirmatory Factor Analysis (CFA)</CardTitle>
@@ -100,7 +95,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                      <div className="flex justify-center">
                         {cfaExample && (
                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
-                                <Icon className="mx-auto h-8 w-8 text-primary"/>
+                                <BrainCircuit className="mx-auto h-8 w-8 text-primary"/>
                                 <div>
                                     <h4 className="font-semibold">{cfaExample.name}</h4>
                                     <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
@@ -121,10 +116,10 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>Model Fit Indices:</strong> These are crucial for evaluating your model. Good fit is generally indicated by CFI/TLI &gt; .90, and RMSEA/SRMR &lt; .08.
+                                    <strong>Model Fit Indices:</strong> These are crucial for evaluating your model. Good fit is generally indicated by CFI/TLI > .90, and RMSEA/SRMR < .08.
                                 </li>
                                 <li>
-                                    <strong>Factor Loadings:</strong> Standardized estimates showing the correlation between an item and its factor. Values &gt; 0.5 (and ideally &gt; 0.7) are considered strong.
+                                    <strong>Factor Loadings:</strong> Standardized estimates showing the correlation between an item and its factor. Values > 0.5 (and ideally > 0.7) are considered strong.
                                 </li>
                                 <li>
                                     <strong>Convergent & Discriminant Validity:</strong> Check if items for the same factor are highly related (convergent) and if different factors are distinct from one another (discriminant).
@@ -144,40 +139,94 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
 
 interface CfaPageProps {
     data: DataSet;
+    allHeaders: string[];
     numericHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
-export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPageProps) {
+export default function CfaPage({ data: initialData, numericHeaders: initialNumericHeaders, allHeaders: initialAllHeaders, onLoadExample }: CfaPageProps) {
     const [view, setView] = useState('intro');
     const [modelSpec, setModelSpec] = useState<{ [key: string]: string[] }>({});
     const [results, setResults] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [newFactorName, setNewFactorName] = useState('');
     const { toast } = useToast();
+    
+    const [isUploading, setIsUploading] = useState(false);
+    const [fileName, setFileName] = useState('');
+    const [localData, setLocalData] = useState<DataSet>(initialData);
+    const [localNumericHeaders, setLocalNumericHeaders] = useState<string[]>(initialNumericHeaders);
+    const [localAllHeaders, setLocalAllHeaders] = useState<string[]>(initialAllHeaders);
 
-    const canRun = useMemo(() => data.length > 0, [data]);
-
-     useEffect(() => {
-        if (!canRun) {
-            setView('intro');
+    const canRun = useMemo(() => localData.length > 0, [localData]);
+    
+    const processAndSetData = useCallback((content: string, name: string) => {
+        setIsUploading(true);
+        try {
+            const { headers, data: newData, numericHeaders: newNumHeaders } = parseData(content);
+            setLocalData(newData);
+            setLocalAllHeaders(headers);
+            setLocalNumericHeaders(newNumHeaders);
+            setFileName(name);
+            toast({ title: 'Success', description: `Loaded "${name}" with ${newData.length} rows.`});
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: 'File Error', description: error.message });
+        } finally {
+            setIsUploading(false);
+        }
+    }, [toast]);
+    
+    const handleFileSelected = useCallback((file: File) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const content = e.target?.result;
+            if(content) {
+                 if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                    const workbook = XLSX.read(content, { type: 'binary' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const csv = XLSX.utils.sheet_to_csv(worksheet);
+                    processAndSetData(csv, file.name);
+                 } else {
+                    processAndSetData(content as string, file.name);
+                 }
+            }
+        };
+        if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+             reader.readAsBinaryString(file);
         } else {
+            reader.readAsText(file);
+        }
+    }, [processAndSetData]);
+
+    const handleClearData = () => {
+        setLocalData([]);
+        setLocalAllHeaders([]);
+        setLocalNumericHeaders([]);
+        setFileName('');
+    };
+
+    useEffect(() => {
+        if (canRun) {
              const autoFactors: { [key: string]: string[] } = {};
-             numericHeaders.forEach(h => {
-                const baseName = h.split('_')[0].split(' ')[0];
+             localNumericHeaders.forEach(h => {
+                const baseName = h.replace(/[\d_]+$/, ''); // Remove trailing numbers and underscores
                 if (!autoFactors[baseName]) autoFactors[baseName] = [];
                 autoFactors[baseName].push(h);
              });
              setModelSpec(autoFactors);
+             setView('main');
+        } else {
+            setView('intro');
         }
         setResults(null);
-     }, [data, numericHeaders, canRun]);
+     }, [localData, localNumericHeaders, canRun]);
 
     const availableVariables = useMemo(() => {
-        if (data.length === 0) return [];
+        if (localData.length === 0) return [];
         const usedVariables = Object.values(modelSpec).flat();
-        return numericHeaders.filter(key => !usedVariables.includes(key));
-    }, [data, modelSpec, numericHeaders]);
+        return localNumericHeaders.filter(key => !usedVariables.includes(key));
+    }, [localData, modelSpec, localNumericHeaders]);
 
     const addFactor = () => {
         if (newFactorName.trim() && !modelSpec[newFactorName.trim()]) {
@@ -222,7 +271,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    data,
+                    data: localData,
                     modelSpec,
                     modelName: "cfa_user_model"
                 })
@@ -248,10 +297,10 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         } finally {
             setIsLoading(false);
         }
-    }, [data, modelSpec, toast]);
+    }, [localData, modelSpec, toast]);
     
     const handleLoadExample = (example: ExampleDataSet) => {
-        onLoadExample(example);
+        processAndSetData(example.data, example.name);
         setView('main');
     };
 
@@ -263,6 +312,10 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
 
     return (
         <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DataUploader onFileSelected={handleFileSelected} loading={isUploading} />
+                <DataPreview data={localData} fileName={fileName} headers={localAllHeaders} onDownload={() => {}} onClearData={handleClearData} />
+            </div>
              <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
@@ -379,4 +432,3 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         </div>
     );
 }
-
