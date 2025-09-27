@@ -27,7 +27,10 @@ import {
     CheckSquare,
     Upload,
     FileText,
-    HelpCircle
+    HelpCircle,
+    BarChart as BarChartIcon,
+    Settings,
+    FileSearch,
 } from 'lucide-react';
 
 // Parse CSV file
@@ -172,22 +175,6 @@ const FileUpload = ({ onDataLoaded, isLoading }: { onDataLoaded: (data: any[], s
         </div>
     );
 };
-const downloadSampleCSV = () => {
-    const sampleCSV = `Subject,Group,Pre_Test,Mid_Test,Post_Test
-S01,Control,55,58,57
-S02,Control,60,62,61
-S03,Treatment,65,72,78
-S04,Treatment,68,75,82
-S05,Control,62,65,66
-`;
-    const blob = new Blob([sampleCSV], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', 'rm_anova_sample.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
 const generateRepeatedMeasuresData = (scenario: string, nSubjects: number) => {
     const data = [];
     
@@ -622,53 +609,62 @@ const IntroPage = ({ onStart }: { onStart: () => void; }) => {
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
+                <CardHeader className="text-center p-8 bg-gradient-to-r from-blue-50 to-purple-50">
                     <div className="flex justify-center items-center gap-3 mb-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
                             <Repeat size={36} />
                         </div>
                     </div>
-                    <CardTitle className="font-headline text-4xl font-bold">Repeated Measures ANOVA</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-3xl mx-auto">
-                        Analyze within-subjects designs by comparing means across three or more conditions for the same group of subjects.
+                    <CardTitle className="text-4xl font-bold text-gray-800">
+                        Repeated Measures ANOVA
+                    </CardTitle>
+                    <CardDescription className="text-xl pt-2 text-gray-600 max-w-4xl mx-auto">
+                        Analyze within-subjects designs with Greenhouse-Geisser and Huynh-Feldt corrections
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use Repeated Measures ANOVA?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">
-                            This test is ideal for longitudinal studies or experiments where the same subjects are measured multiple times. By accounting for the fact that measurements from the same subject are related, it provides more statistical power to detect differences across conditions compared to a standard ANOVA. It also controls for individual differences between subjects.
-                        </p>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
-                                <li><strong>Data Format:</strong> Your data should be in 'wide' format, where each row is a subject and each repeated measure is in a separate column.</li>
-                                <li><strong>Subject Variable:</strong> Select the column that uniquely identifies each participant or subject.</li>
-                                <li><strong>Within-Subjects Factors:</strong> Choose the multiple numeric columns that represent the different time points or conditions (e.g., 'Week 1', 'Week 2', 'Week 3').</li>
-                                <li><strong>Run Analysis:</strong> The tool will perform the RM-ANOVA and check the crucial assumption of sphericity.</li>
-                            </ol>
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-xl flex items-center gap-2">
+                                <Users className="text-blue-600"/> Same Participants
+                            </h3>
+                            <ul className="list-disc pl-5 space-y-2 text-gray-600">
+                                <li>Longitudinal studies</li>
+                                <li>Pre-post interventions</li>
+                                <li>Learning curves</li>
+                            </ul>
                         </div>
-                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Mauchly's Test for Sphericity:</strong> This tests a key assumption. If the p-value is less than 0.05, the assumption is violated, and you must use the 'corrected' p-values (Greenhouse-Geisser or Huynh-Feldt).</li>
-                                <li><strong>Main Effect:</strong> A significant p-value for the 'Condition' indicates that there is a statistically significant difference in the mean scores across the time points or conditions.</li>
-                                 <li><strong>Effect Size (η²p):</strong> Partial eta-squared indicates the proportion of variance explained by the within-subjects factor.</li>
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-xl flex items-center gap-2">
+                                <Calendar className="text-blue-600"/> Multiple Timepoints
+                            </h3>
+                            <ul className="list-disc pl-5 space-y-2 text-gray-600">
+                                <li>Treatment effects over time</li>
+                                <li>Skill development</li>
+                                <li>Recovery patterns</li>
+                            </ul>
+                        </div>
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-xl flex items-center gap-2">
+                                <LineChart className="text-blue-600"/> Sphericity Corrections
+                            </h3>
+                            <ul className="list-disc pl-5 space-y-2 text-gray-600">
+                                <li>Mauchly's test</li>
+                                <li>Greenhouse-Geisser</li>
+                                <li>Huynh-Feldt</li>
                             </ul>
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                <CardFooter className="flex justify-end p-6 bg-gray-50">
+                    <Button size="lg" onClick={onStart} className="bg-blue-600 hover:bg-blue-700">
+                        Start RM-ANOVA <MoveRight className="ml-2 w-5 h-5"/>
+                    </Button>
                 </CardFooter>
             </Card>
         </div>
     );
 };
-
 
 export default function RepeatedANOVAComponent() {
     const [view, setView] = useState('intro');
@@ -758,81 +754,223 @@ export default function RepeatedANOVAComponent() {
         <div className="max-w-7xl mx-auto p-6 space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Data & Analysis Setup</h1>
+                    <h1 className="text-3xl font-bold text-gray-800">Repeated Measures ANOVA</h1>
+                    <p className="text-gray-600">Within-subjects analysis with sphericity corrections</p>
                 </div>
-                 <Button onClick={() => setView('intro')} variant="ghost">
+                <Button onClick={() => setView('intro')} variant="ghost">
                     <Info className="w-4 h-4 mr-2" /> Help
                 </Button>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Target className="w-5 h-5" />
-                        Analysis Results
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isLoading && (
-                        <div className="text-center py-8">
-                            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                            <p className="text-gray-600">Running repeated measures ANOVA...</p>
-                            <Progress value={66} className="mt-4" />
-                        </div>
-                    )}
+            {data.length > 0 && (
+                <Alert>
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertTitle>Dataset Loaded</AlertTitle>
+                    <AlertDescription>
+                        {data.length} participants with {availableVariables.length} variables loaded 
+                        {dataSource === 'uploaded' ? ' from uploaded file' : ' from sample data'}.
+                    </AlertDescription>
+                </Alert>
+            )}
 
-                    {results && !isLoading && (
+            <div className="grid lg:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Target className="w-5 h-5" />
+                            Data & Analysis Setup
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* Data Loading Section */}
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-3 bg-blue-50 rounded">
-                                    <div className="text-sm text-blue-600 font-medium">F-statistic</div>
-                                    <div className="text-xl font-bold">{results.main_effect.f_value.toFixed(3)}</div>
-                                </div>
-                                <div className="p-3 bg-green-50 rounded">
-                                    <div className="text-sm text-green-600 font-medium">p-value</div>
-                                    <div className="text-xl font-bold">
-                                        <Badge variant={results.main_effect.significant ? 'default' : 'secondary'}>
-                                            {results.main_effect.p_value.toFixed(3)}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </div>
+                            <Label className="text-base font-semibold">Load Data</Label>
                             
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-3 bg-purple-50 rounded">
-                                    <div className="text-sm text-purple-600 font-medium">Effect Size (η²p)</div>
-                                    <div className="text-xl font-bold">{results.main_effect.partial_eta_squared.toFixed(3)}</div>
-                                </div>
-                                <div className="p-3 bg-orange-50 rounded">
-                                    <div className="text-sm text-orange-600 font-medium">Sphericity</div>
-                                    <div className="text-xl font-bold">
-                                        <Badge variant={results.sphericity.violated ? 'destructive' : 'default'}>
-                                            {results.sphericity.violated ? 'Violated' : 'OK'}
-                                        </Badge>
+                            <Tabs defaultValue="upload" className="w-full">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="upload">Upload CSV</TabsTrigger>
+                                    <TabsTrigger value="sample">Sample Data</TabsTrigger>
+                                </TabsList>
+                                
+                                <TabsContent value="upload" className="space-y-3">
+                                    <FileUpload 
+                                        onDataLoaded={handleDataUpload} 
+                                        isLoading={isLoading}
+                                    />
+                                </TabsContent>
+                                
+                                <TabsContent value="sample" className="space-y-3">
+                                    <div className="grid gap-2">
+                                        {Object.entries(scenarios).map(([key, scenario]) => (
+                                            <Button
+                                                key={key}
+                                                variant="outline"
+                                                onClick={() => loadSampleData(key as keyof typeof scenarios)}
+                                                className="text-left justify-start h-auto p-3"
+                                            >
+                                                <div>
+                                                    <div className="font-medium">{scenario.name}</div>
+                                                    <div className="text-sm text-gray-500">{scenario.description}</div>
+                                                </div>
+                                            </Button>
+                                        ))}
                                     </div>
+                                </TabsContent>
+                            </Tabs>
+                        </div>
+
+                        {/* Variable Selection */}
+                        {data.length > 0 && (
+                            <div className="space-y-4 border-t pt-4">
+                                <Label className="text-base font-semibold">Variable Selection</Label>
+                                
+                                <div>
+                                    <Label>Subject Variable</Label>
+                                    <Select value={subjectVariable} onValueChange={setSubjectVariable}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select subject identifier" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.keys(data[0]).map(variable => (
+                                                <SelectItem key={variable} value={variable}>
+                                                    {variable}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div>
+                                    <Label>Within-Subjects Factors ({withinFactors.length} selected)</Label>
+                                    <div className="mt-2 space-y-2">
+                                        {withinFactors.map((factor, idx) => (
+                                            <div key={idx} className="flex items-center gap-2">
+                                                <Badge variant="default">{factor}</Badge>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setWithinFactors(prev => 
+                                                        prev.filter((_, i) => i !== idx)
+                                                    )}
+                                                >
+                                                    ×
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    
+                                    <Select onValueChange={(value) => 
+                                        setWithinFactors(prev => 
+                                            prev.includes(value) ? prev : [...prev, value]
+                                        )
+                                    }>
+                                        <SelectTrigger className="mt-2">
+                                            <SelectValue placeholder="Add factor" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {availableVariables
+                                                .filter(v => !withinFactors.includes(v) && v !== subjectVariable)
+                                                .map(variable => (
+                                                <SelectItem key={variable} value={variable}>
+                                                    {variable}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
-
-                            {results.main_effect.significant && (
-                                <Alert>
-                                    <CheckCircle className="h-4 w-4" />
-                                    <AlertTitle>Significant Main Effect</AlertTitle>
-                                    <AlertDescription>
-                                        There is a statistically significant difference between the repeated measures conditions.
-                                    </AlertDescription>
-                                </Alert>
+                        )}
+                    </CardContent>
+                    <CardFooter>
+                        <Button 
+                            onClick={runAnalysis}
+                            disabled={isLoading || data.length === 0 || withinFactors.length < 2}
+                            className="w-full"
+                        >
+                            {isLoading ? (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    Running Analysis...
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <PlayCircle className="w-4 h-4" />
+                                    Run RM-ANOVA
+                                </div>
                             )}
-                        </div>
-                    )}
+                        </Button>
+                    </CardFooter>
+                </Card>
 
-                    {!results && !isLoading && (
-                        <div className="text-center py-12 text-gray-500">
-                            <Repeat className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                            <p>Configure your analysis and run RM-ANOVA</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5" />
+                            Analysis Results
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoading && (
+                            <div className="text-center py-8">
+                                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                                <p className="text-gray-600">Running repeated measures ANOVA...</p>
+                                <Progress value={66} className="mt-4" />
+                            </div>
+                        )}
+
+                        {results && !isLoading && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-3 bg-blue-50 rounded">
+                                        <div className="text-sm text-blue-600 font-medium">F-statistic</div>
+                                        <div className="text-xl font-bold">{results.main_effect.f_value.toFixed(3)}</div>
+                                    </div>
+                                    <div className="p-3 bg-green-50 rounded">
+                                        <div className="text-sm text-green-600 font-medium">p-value</div>
+                                        <div className="text-xl font-bold">
+                                            <Badge variant={results.main_effect.significant ? 'default' : 'secondary'}>
+                                                {results.main_effect.p_value.toFixed(3)}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-3 bg-purple-50 rounded">
+                                        <div className="text-sm text-purple-600 font-medium">Effect Size (η²p)</div>
+                                        <div className="text-xl font-bold">{results.main_effect.partial_eta_squared.toFixed(3)}</div>
+                                    </div>
+                                    <div className="p-3 bg-orange-50 rounded">
+                                        <div className="text-sm text-orange-600 font-medium">Sphericity</div>
+                                        <div className="text-xl font-bold">
+                                            <Badge variant={results.sphericity.violated ? 'destructive' : 'default'}>
+                                                {results.sphericity.violated ? 'Violated' : 'OK'}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {results.main_effect.significant && (
+                                    <Alert>
+                                        <CheckCircle className="h-4 w-4" />
+                                        <AlertTitle>Significant Main Effect</AlertTitle>
+                                        <AlertDescription>
+                                            There is a statistically significant difference between the repeated measures conditions.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                            </div>
+                        )}
+
+                        {!results && !isLoading && (
+                            <div className="text-center py-12 text-gray-500">
+                                <Repeat className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                                <p>Configure your analysis and run RM-ANOVA</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
 
             {results && !isLoading && (
                 <Tabs defaultValue="anova" className="w-full">
@@ -904,4 +1042,3 @@ export default function RepeatedANOVAComponent() {
     );
 }
 
-```
