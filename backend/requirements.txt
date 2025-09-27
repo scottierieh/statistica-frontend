@@ -1,3 +1,4 @@
+Cython
 pandas
 numpy
 scipy
@@ -16,4 +17,3 @@ pingouin
 qrcode
 semopy
 graphviz
-Cython
