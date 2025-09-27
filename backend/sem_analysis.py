@@ -13,6 +13,7 @@ import warnings
 import io
 import base64
 import semopy
+import os
 
 warnings.filterwarnings('ignore')
 
@@ -114,9 +115,14 @@ class SEMAnalysis:
                 buf.write(f.read())
             buf.seek(0)
             
+            # Clean up the created file
+            if os.path.exists(temp_filename):
+                os.remove(temp_filename)
+            
             img_base64 = base64.b64encode(buf.read()).decode('utf-8')
             return f"data:image/png;base64,{img_base64}"
         except Exception as e:
+            # Fallback plot generation if semplot fails (e.g., graphviz not installed on system)
             print(f"Warning: semplot failed with error: {e}. A fallback plot will be generated.", file=sys.stderr)
             return self._fallback_plot(self.results[model_name])
 
@@ -174,5 +180,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    

@@ -16,3 +16,4 @@ pingouin
 qrcode
 Pillow
 semopy
+graphviz
