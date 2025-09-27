@@ -26,12 +26,9 @@ import {
     AlertTriangle,
     CheckSquare,
     Upload,
-    FileText,
-    HelpCircle,
-    BarChart as BarChartIcon,
-    Settings,
-    FileSearch,
+    FileText
 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 // Parse CSV file
 const parseCSV = (csvText: string) => {
@@ -46,7 +43,8 @@ const parseCSV = (csvText: string) => {
             headers.forEach((header, idx) => {
                 const value = values[idx];
                 // Try to parse as number, keep as string if it fails
-                row[header] = isNaN(Number(value)) || value === '' ? value : parseFloat(value);
+                const num = parseFloat(value);
+                row[header] = isNaN(num) || value.trim() === '' ? value : num;
             });
             data.push(row);
         }
@@ -605,10 +603,10 @@ const DescriptiveStats = ({ descriptives }: { descriptives: any }) => {
     );
 };
 
-const IntroPage = ({ onStart }: { onStart: () => void; }) => {
+const IntroPage = ({ onStart }: { onStart: () => void }) => {
     return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
+        <div className="flex flex-1 items-center justify-center p-4">
+            <Card className="w-full max-w-4xl shadow-lg">
                 <CardHeader className="text-center p-8 bg-gradient-to-r from-blue-50 to-purple-50">
                     <div className="flex justify-center items-center gap-3 mb-4">
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
@@ -622,8 +620,8 @@ const IntroPage = ({ onStart }: { onStart: () => void; }) => {
                         Analyze within-subjects designs with Greenhouse-Geisser and Huynh-Feldt corrections
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="grid md:grid-cols-3 gap-6">
+                <CardContent className="space-y-8 px-8 py-8">
+                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-4">
                             <h3 className="font-semibold text-xl flex items-center gap-2">
                                 <Users className="text-blue-600"/> Same Participants
@@ -704,6 +702,7 @@ export default function RepeatedANOVAComponent() {
         );
         setSubjectVariable(subjectCol || 'Subject');
         setWithinFactors(scenarios[selectedScenario].factors);
+        setView('main');
     };
 
     const handleDataUpload = (uploadedData: any[], source: string) => {
@@ -722,6 +721,7 @@ export default function RepeatedANOVAComponent() {
         // Clear previous factors for uploaded data
         setWithinFactors([]);
         setResults(null);
+        setView('main');
     };
 
     const availableVariables = useMemo(() => {
@@ -757,9 +757,6 @@ export default function RepeatedANOVAComponent() {
                     <h1 className="text-3xl font-bold text-gray-800">Repeated Measures ANOVA</h1>
                     <p className="text-gray-600">Within-subjects analysis with sphericity corrections</p>
                 </div>
-                <Button onClick={() => setView('intro')} variant="ghost">
-                    <Info className="w-4 h-4 mr-2" /> Help
-                </Button>
             </div>
 
             {data.length > 0 && (
@@ -782,7 +779,6 @@ export default function RepeatedANOVAComponent() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {/* Data Loading Section */}
                         <div className="space-y-4">
                             <Label className="text-base font-semibold">Load Data</Label>
                             
@@ -819,7 +815,6 @@ export default function RepeatedANOVAComponent() {
                             </Tabs>
                         </div>
 
-                        {/* Variable Selection */}
                         {data.length > 0 && (
                             <div className="space-y-4 border-t pt-4">
                                 <Label className="text-base font-semibold">Variable Selection</Label>
@@ -1042,3 +1037,19 @@ export default function RepeatedANOVAComponent() {
     );
 }
 
+const downloadSampleCSV = () => {
+    const data = generateRepeatedMeasuresData('cognitive', 20);
+    const headers = Object.keys(data[0]);
+    const csv = [
+        headers.join(','),
+        ...data.map(row => headers.map(header => row[header]).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', 'rm_anova_sample.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
