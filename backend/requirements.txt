@@ -1,10 +1,11 @@
+Cython
 pandas
 numpy
 scipy
 scikit-learn
 matplotlib
 seaborn
-statsmodels
+statsmodels==0.14.2
 lifelines
 wordcloud
 nltk
@@ -14,4 +15,3 @@ scikit-learn-extra
 hdbscan
 pingouin
 qrcode
-Cython
