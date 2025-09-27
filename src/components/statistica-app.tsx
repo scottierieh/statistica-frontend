@@ -80,6 +80,7 @@ import ReliabilityPage from './pages/reliability-page';
 import VisualizationPage from './pages/visualization-page';
 import DiscriminantPage from './pages/discriminant-page';
 import EfaPage from './pages/efa-page';
+import CfaPage from './pages/cfa-page';
 import MediationPage from './pages/mediation-page';
 import ModerationPage from './pages/moderation-page';
 import NonParametricPage from './pages/nonparametric-page';
@@ -149,6 +150,7 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
     efa: EfaPage,
+    cfa: CfaPage,
     sem: SemPage,
     mediation: MediationPage,
     moderation: ModerationPage,
@@ -276,7 +278,6 @@ const analysisMenu = [
         name: 'Correlation',
         methods: [ 
             { id: 'correlation', label: 'Correlation Analysis' },
-            { id: 'partial-correlation', label: 'Partial Correlation' }
         ]
       },
       {
@@ -719,4 +720,6 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
+
 
