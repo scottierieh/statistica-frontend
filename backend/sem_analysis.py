@@ -4,9 +4,11 @@ import json
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-import statsmodels.api as sm
+import semopy
 import warnings
+import os
+import io
+import base64
 
 warnings.filterwarnings('ignore')
 
@@ -23,7 +25,11 @@ def _to_native_type(obj):
         return bool(obj)
     return obj
 
-class SemAnalysis:
+class SEMAnalysis:
+    """
+    Comprehensive Structural Equation Modeling System using the semopy library.
+    """
+    
     def __init__(self, data, measurement_model, structural_model):
         self.data = pd.DataFrame(data)
         self.measurement_model = measurement_model
@@ -39,56 +45,67 @@ class SemAnalysis:
         scaler = StandardScaler()
         self.data_scaled = pd.DataFrame(scaler.fit_transform(self.data_clean), columns=all_indicators)
 
-    def run(self):
-        # 1. Create factor scores from the measurement model using PCA
-        factor_scores = pd.DataFrame(index=self.data_scaled.index)
-        measurement_estimates = []
-
+    def _build_model_description(self):
+        desc = ""
+        # Measurement model part
         for factor, indicators in self.measurement_model.items():
-            if not all(ind in self.data_scaled.columns for ind in indicators):
-                raise ValueError(f"One or more indicators for factor '{factor}' not found in the data.")
-            
-            if len(indicators) > 1:
-                pca = PCA(n_components=1)
-                factor_scores[factor] = pca.fit_transform(self.data_scaled[indicators]).flatten()
-                
-                # Store loadings as measurement estimates
-                for i, indicator in enumerate(indicators):
-                    measurement_estimates.append({
-                        'lval': factor, 'op': '=~', 'rval': indicator,
-                        'Estimate': pca.components_[0, i], 'p_value': 0.0 # p-values are not standard for PCA loadings
-                    })
-            elif len(indicators) == 1:
-                factor_scores[factor] = self.data_scaled[indicators[0]]
-                measurement_estimates.append({
-                    'lval': factor, 'op': '=~', 'rval': indicators[0],
-                    'Estimate': 1.0, 'p_value': 0.0
-                })
-
-        # 2. Run path analysis on the factor scores (structural model)
-        structural_estimates = []
+            desc += f"{factor} =~ {' + '.join(indicators)}\n"
+        # Structural model part
         for path in self.structural_model:
-            from_var, to_var = path['from'], path['to']
-            if from_var in factor_scores.columns and to_var in factor_scores.columns:
-                X = sm.add_constant(factor_scores[from_var])
-                model = sm.OLS(factor_scores[to_var], X).fit()
-                
-                structural_estimates.append({
-                    'lval': to_var, 'op': '~', 'rval': from_var,
-                    'Estimate': model.params[from_var],
-                    'Std_Err': model.bse[from_var],
-                    'z_value': model.tvalues[from_var],
-                    'p_value': model.pvalues[from_var]
-                })
+            desc += f"{path['to']} ~ {path['from']}\n"
+        return desc
+
+    def run(self):
+        model_desc = self._build_model_description()
+        if not model_desc:
+            raise ValueError("Model specification is empty.")
+
+        model = semopy.Model(model_desc)
+        
+        try:
+            res = model.fit(data=self.data_scaled)
+        except Exception as e:
+            raise ValueError(f"Failed to fit SEM model. Please check model specification. Original error: {e}")
+
+        stats = semopy.calc_stats(model)
+        estimates = semopy.inspect(model)
+        
+        # Rename for consistency if needed
+        if 'p-value' in estimates.columns:
+            estimates.rename(columns={'p-value': 'p_value'}, inplace=True)
+            
+        fit_indices = stats.T.to_dict().get('Value', {})
 
         self.results = {
-            'fit_indices': {'chi_square': None, 'df': None, 'p_value': None, 'rmsea': None, 'cfi': None, 'tli': None},
-            'parameter_estimates': measurement_estimates + structural_estimates,
-            'adequacy': {},
-            'convergence': True,
-            'warning': "This is a simplified SEM using PCA for factor scores and OLS for path analysis. Fit indices are not available."
+            'fit_indices': fit_indices,
+            'parameter_estimates': estimates.to_dict('records'),
+            'convergence': res.x is not None,
+            'model_description': model_desc,
+            'model_object': model # Keep model object for plotting
         }
         return self.results
+
+    def plot_graph(self):
+        if not self.results.get('model_object'):
+            return None
+            
+        model = self.results['model_object']
+        
+        try:
+            temp_filename = "sem_plot.png"
+            semopy.semplot(model, temp_filename, plot_stats=True)
+            
+            if os.path.exists(temp_filename):
+                with open(temp_filename, 'rb') as f:
+                    img_bytes = f.read()
+                os.remove(temp_filename)
+                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+                return f"data:image/png;base64,{img_base64}"
+            else:
+                return None
+        except Exception as e:
+            print(f"Warning: semplot failed with error: {e}. Graphviz might not be installed.", file=sys.stderr)
+            return None
 
 
 def main():
@@ -103,10 +120,15 @@ def main():
         measurement_model = model_spec.get('measurement_model', {})
         structural_model = model_spec.get('structural_model', [])
 
-        sem_analyzer = SemAnalysis(data, measurement_model, structural_model)
+        sem_analyzer = SEMAnalysis(data, measurement_model, structural_model)
         analysis_results = sem_analyzer.run()
+        plot_image = sem_analyzer.plot_graph()
         
-        response = {'results': analysis_results, 'plot': None}
+        # Remove non-serializable model object before sending response
+        if 'model_object' in analysis_results:
+            del analysis_results['model_object']
+        
+        response = {'results': analysis_results, 'plot': plot_image}
         
         print(json.dumps(response, default=_to_native_type))
 
@@ -117,4 +139,3 @@ def main():
 if __name__ == '__main__':
     main()
 
-    

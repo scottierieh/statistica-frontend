@@ -10,13 +10,11 @@ wordcloud
 nltk
 networkx
 plotly
-hdbscan
 pingouin
 qrcode
 factor-analyzer
 skl2onnx
 onnx
 onnxruntime
+semopy
 Cython
-
-    
