@@ -30,7 +30,8 @@ import {
     Settings,
     FileSearch,
     HelpCircle,
-    Loader2
+    Loader2,
+    Sigma,
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
