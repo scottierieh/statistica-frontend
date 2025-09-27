@@ -85,11 +85,16 @@ interface IntroPageProps {
 const IntroPage: React.FC<IntroPageProps> = ({ onStart, onLoadExample }) => {
     const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
 
+    const PsychologyIcon = BrainCircuit;
+    const ManagementIcon = Building;
+    const MarketingIcon = Star;
+    const SociologyIcon = Users;
+
     const iconMap: { [key: string]: React.FC<any> } = {
-        Psychology: BrainCircuit,
-        Management: Building,
-        Marketing: Star,
-        Sociology: Users,
+        Psychology: PsychologyIcon,
+        Management: ManagementIcon,
+        Marketing: MarketingIcon,
+        Sociology: SociologyIcon,
     };
 
     return (
@@ -156,7 +161,6 @@ const IntroPage: React.FC<IntroPageProps> = ({ onStart, onLoadExample }) => {
         </div>
     );
 };
-
 
 interface CfaPageProps {
     data: DataSet;
@@ -328,12 +332,13 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         }
     }, [localData, modelSpec, toast]);
     
+    const isGoodFit = results?.results?.fit_indices?.cfi && results.results.fit_indices.cfi > 0.9 && results.results.fit_indices.rmsea && results.results.fit_indices.rmsea < 0.08;
+    const factorForVariable = (variable: string) => Object.keys(modelSpec).find(f => modelSpec[f].includes(variable));
+
     let content;
-    if (view === 'intro' || !canRun) {
+    if (!canRun || view === 'intro') {
         content = <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExampleData} />;
     } else {
-        const isGoodFit = results?.results?.fit_indices?.cfi && results.results.fit_indices.cfi > 0.9 && results.results.fit_indices.rmsea && results.results.fit_indices.rmsea < 0.08;
-        const factorForVariable = (variable: string) => Object.keys(modelSpec).find(f => modelSpec[f].includes(variable));
         content = (
             <div className="space-y-6">
                 <Card>
@@ -349,7 +354,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
                     </CardContent>
                 </Card>
 
-                 <Card>
+                <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">2. Define Latent Variables (Factors)</CardTitle>
                     </CardHeader>
@@ -362,13 +367,13 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
                         />
                         <Button onClick={addFactor}><Plus className="w-4 h-4 mr-2" /> Add Factor</Button>
                     </CardContent>
-                 </Card>
+                </Card>
 
-                 <Card>
+                <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">3. Assign Measurement Variables</CardTitle>
                     </CardHeader>
-                     <CardContent>
+                    <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {Object.keys(modelSpec).map(factorName => (
                                 <Card key={factorName} className="flex flex-col">
@@ -396,15 +401,15 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
                                 </Card>
                             ))}
                         </div>
-                     </CardContent>
-                      <CardFooter className="flex justify-end">
+                    </CardContent>
+                    <CardFooter className="flex justify-end">
                         <Button onClick={runAnalysis} disabled={isLoading || Object.keys(modelSpec).length === 0}>
                             {isLoading ? <Loader2 className="animate-spin mr-2" /> : <PlayCircle className="w-4 h-4 mr-2" />} Run CFA
                         </Button>
                     </CardFooter>
                 </Card>
 
-                 {isLoading && (
+                {isLoading && (
                     <Card>
                         <CardContent className="p-6 text-center">
                             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
@@ -414,16 +419,16 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
                 )}
 
                 {results && (
-                     <div className="space-y-4">
-                         <Alert variant={isGoodFit ? 'default' : 'destructive'}>
+                    <div className="space-y-4">
+                        <Alert variant={isGoodFit ? 'default' : 'destructive'}>
                             {isGoodFit ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                             <AlertTitle>{isGoodFit ? "Good Model Fit" : "Poor Model Fit"}</AlertTitle>
                             <AlertDescription className="whitespace-pre-wrap">
-                              Based on standard fit indices (e.g., CFI > .90, RMSEA < .08), this model appears to be a {isGoodFit ? 'good' : 'poor'} fit for the data. Review the detailed indices and estimates below.
+                            Based on standard fit indices (e.g., CFI > .90, RMSEA < .08), this model appears to be a {isGoodFit ? 'good' : 'poor'} fit for the data. Review the detailed indices and estimates below.
                             </AlertDescription>
                         </Alert>
                         <div className="grid md:grid-cols-2 gap-4">
-                             {results.plot && (
+                            {results.plot && (
                                 <Card className="md:col-span-2">
                                     <CardHeader><CardTitle>Path Diagram</CardTitle></CardHeader>
                                     <CardContent>
