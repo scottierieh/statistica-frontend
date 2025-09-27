@@ -14,8 +14,9 @@ scikit-learn-extra
 hdbscan
 pingouin
 qrcode
-semopy==0.5.4
+semopy
 factor-analyzer
 skl2onnx
 onnx
 onnxruntime
+Cython
