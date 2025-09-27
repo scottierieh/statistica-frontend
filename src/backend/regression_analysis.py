@@ -197,7 +197,7 @@ class RegressionAnalysis:
         for table in summary_obj.tables:
             table_data = [list(row) for row in table.data]
             # Clean coefficient names in the second table
-            if table_data and len(table_data) > 1 and any('coef' in h.lower() for h in table_data[0]):
+            if table_data and len(table_data) > 1 and any('coef' in str(h).lower() for h in table_data[0]):
                 for row in table_data[1:]:
                     if row and row[0]:
                          row[0] = clean_name(row[0])
@@ -260,6 +260,9 @@ class RegressionAnalysis:
         return interpretation.strip()
 
     def run(self, model_type, **kwargs):
+        if not HAS_STATSMODELS:
+            raise ImportError("Statsmodels library is required for this analysis but is not installed.")
+
         features = kwargs.get('features')
         selection_method = kwargs.get('selectionMethod', 'none')
         
@@ -268,8 +271,6 @@ class RegressionAnalysis:
 
         stepwise_log = []
         if selection_method != 'none':
-            if not HAS_STATSMODELS:
-                raise ImportError("Stepwise selection requires the 'statsmodels' library.")
             final_features, stepwise_log = perform_stepwise_selection(X_selected, y_aligned, method=selection_method)
             if not final_features: raise ValueError("No features were selected by the stepwise method.")
             X_selected = X_selected[final_features]
