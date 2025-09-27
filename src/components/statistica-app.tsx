@@ -136,8 +136,10 @@ import DeaPage from './pages/dea-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
 import NonlinearProgrammingPage from './pages/nonlinear-programming-page';
 import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
+import CfaPage from './pages/cfa-page';
+import SemPage from './pages/sem-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | 'classifier-comparison' | string;
+type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | 'classifier-comparison' | string;
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
     stats: DescriptiveStatsPage,
@@ -150,6 +152,8 @@ const analysisPages: Record<string, React.ComponentType<any>> = {
     reliability: ReliabilityPage,
     discriminant: DiscriminantPage,
     efa: EfaPage,
+    cfa: CfaPage,
+    sem: SemPage,
     mediation: MediationPage,
     moderation: ModerationPage,
     'mann-whitney': NonParametricPage,
@@ -326,6 +330,8 @@ const analysisMenu = [
     methods: [
        { id: 'reliability', label: 'Reliability Analysis' },
        { id: 'efa', label: 'Exploratory Factor Analysis (EFA)' },
+       { id: 'cfa', label: 'Confirmatory Factor Analysis (CFA)' },
+       { id: 'sem', label: 'Structural Equation Modeling (SEM)' },
        { id: 'mediation', label: 'Mediation Analysis' },
        { id: 'moderation', label: 'Moderation Analysis' },
     ]

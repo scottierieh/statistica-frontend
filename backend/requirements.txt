@@ -15,3 +15,8 @@ scikit-learn-extra
 hdbscan
 pingouin
 qrcode
+semopy
+factor-analyzer
+skl2onnx
+onnx
+onnxruntime

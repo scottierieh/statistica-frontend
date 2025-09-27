@@ -8,13 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-    Network, 
-    GitBranch, 
-    BarChart3, 
-    Target, 
+import {
+    Network,
+    GitBranch,
+    BarChart3,
+    Target,
     TrendingUp,
     AlertTriangle,
     CheckCircle,
@@ -24,18 +22,23 @@ import {
     Plus,
     Trash2,
     ArrowRight,
-    Eye,
-    Calculator,
-    BrainCircuit,
-    Building,
-    Star,
-    Users,
     Settings,
     FileSearch,
-    BarChart as BarChartIcon
+    BrainCircuit,
+    Users,
+    Star,
+    Building,
+    HelpCircle,
+    Loader2
 } from 'lucide-react';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '../ui/skeleton';
+import { ScrollArea } from '../ui/scroll-area';
+import { produce } from 'immer';
 import Image from 'next/image';
-
+import type { DataSet } from '@/lib/stats';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface SemResults {
     model_name: string;
@@ -53,7 +56,8 @@ interface FullAnalysisResponse {
     plot: string | null;
 }
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (type: 'academic' | 'organizational') => void }) => {
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (type: 'academic') => void }) => {
+    
     const PsychologyIcon = BrainCircuit;
     const ManagementIcon = Building;
     const MarketingIcon = Star;
@@ -145,19 +149,42 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
-export default function SEMAnalysisComponent() {
-    const [view, setView] = useState('main'); // Set to 'main' to skip intro for now
-    const [data, setData] = useState<any[]>([]);
-    const [datasetType, setDatasetType] = useState('academic');
+
+interface SemPageProps {
+    data: DataSet;
+    onLoadExample: (example: ExampleDataSet) => void;
+}
+
+export default function SemPage({ data, onLoadExample }: SemPageProps) {
+    const [view, setView] = useState('intro');
     const [measurementModel, setMeasurementModel] = useState<Record<string, string[]>>({});
     const [structuralModel, setStructuralModel] = useState<{ from: string; to: string }[]>([]);
-    const [results, setResults] = useState<any>(null);
+    const [results, setResults] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [newLatentVar, setNewLatentVar] = useState('');
     const [pathFrom, setPathFrom] = useState('');
     const [pathTo, setPathTo] = useState('');
+    const { toast } = useToast();
 
-    const runSEMAnalysis = useCallback(async () => {
+    const addLatentVariable = () => {
+        if (newLatentVar.trim() && !measurementModel[newLatentVar]) {
+            setMeasurementModel(prev => ({
+                ...prev,
+                [newLatentVar.trim()]: []
+            }));
+            setNewLatentVar('');
+        }
+    };
+    
+    const addStructuralPath = () => {
+        if (pathFrom && pathTo && pathFrom !== pathTo) {
+            setStructuralModel(prev => [...prev, { from: pathFrom, to: pathTo }]);
+            setPathFrom('');
+            setPathTo('');
+        }
+    };
+    
+    const runAnalysis = useCallback(async () => {
         setIsLoading(true);
         try {
             const response = await fetch('/api/analysis/sem', {
@@ -176,162 +203,138 @@ export default function SEMAnalysisComponent() {
             if (result.error) throw new Error(result.error);
             setResults(result);
         } catch (error: any) {
-            console.error(error);
+            toast({ title: 'Error', description: error.message, variant: 'destructive' });
         } finally {
             setIsLoading(false);
         }
-    }, [data, measurementModel, structuralModel]);
+    }, [data, measurementModel, structuralModel, toast]);
 
-    const addLatentVariable = () => {
-        if (newLatentVar.trim() && !measurementModel[newLatentVar]) {
-            setMeasurementModel(prev => ({
-                ...prev,
-                [newLatentVar.trim()]: []
-            }));
-            setNewLatentVar('');
+    const handleLoadExample = () => {
+        const semExample = exampleDatasets.find(d => d.id === 'sem-satisfaction');
+        if (semExample) {
+            onLoadExample(semExample);
+            setMeasurementModel({
+                'Quality': ['sq1', 'sq2', 'sq3'],
+                'Satisfaction': ['sat1', 'sat2', 'sat3'],
+                'Trust': ['trust1', 'trust2'],
+                'Loyalty': ['loy1', 'loy2', 'loy3']
+            });
+            setStructuralModel([
+                { from: 'Quality', to: 'Satisfaction' },
+                { from: 'Satisfaction', to: 'Trust' },
+                { from: 'Trust', to: 'Loyalty' }
+            ]);
+            setView('main');
         }
     };
-
-    const addStructuralPath = () => {
-        if (pathFrom && pathTo && pathFrom !== pathTo) {
-            setStructuralModel(prev => [...prev, { from: pathFrom, to: pathTo }]);
-            setPathFrom('');
-            setPathTo('');
-        }
-    };
     
-    // Auto-load sample data on component mount for demonstration
-    useEffect(() => {
-        // Mock data loading
-        const sampleData = [ { "id": 1, "Motivation_1": 4, "Motivation_2": 5, "Motivation_3": 5, "Efficacy_1": 4, "Efficacy_2": 4, "Efficacy_3": 3, "Achievement_1": 4, "Achievement_2": 4, "Achievement_3": 4 }];
-        const defaultMeasurement = {
-            'Learning_Motivation': ['Motivation_1', 'Motivation_2', 'Motivation_3'],
-            'Self_Efficacy': ['Efficacy_1', 'Efficacy_2', 'Efficacy_3'],
-            'Academic_Achievement': ['Achievement_1', 'Achievement_2', 'Achievement_3']
-        };
-        const defaultStructural = [
-            { from: 'Learning_Motivation', to: 'Self_Efficacy' },
-            { from: 'Learning_Motivation', to: 'Academic_Achievement' },
-            { from: 'Self_Efficacy', to: 'Academic_Achievement' }
-        ];
-        setData(sampleData);
-        setMeasurementModel(defaultMeasurement);
-        setStructuralModel(defaultStructural);
-    }, []);
-    
-     const usedVariables = useMemo(() => {
-        return Object.values(measurementModel).flat();
-    }, [measurementModel]);
-    
-    const availableVariables = useMemo(() => {
-        if (data.length === 0) return [];
-        return Object.keys(data[0]).filter(key => key !== 'id' && typeof data[0][key] === 'number' && !usedVariables.includes(key));
-    }, [data, usedVariables]);
-
     if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={() => {}} />;
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExample} />;
     }
-    
-    return (
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-800">SEM Analysis</h1>
-                    <p className="text-gray-600">Structural Equation Modeling</p>
-                </div>
-            </div>
 
-            <div className="grid lg:grid-cols-2 gap-6">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Network className="w-5 h-5" />
-                            Model Specification
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline">Structural Equation Modeling</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-3">
                             <Label className="font-semibold">Measurement Model (Factors)</Label>
                             <div className="flex gap-2">
-                                <Input
-                                    placeholder="New latent variable..."
-                                    value={newLatentVar}
-                                    onChange={(e) => setNewLatentVar(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && addLatentVariable()}
-                                />
+                                <Input placeholder="New latent variable..." value={newLatentVar} onChange={(e) => setNewLatentVar(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addLatentVariable()} />
                                 <Button onClick={addLatentVariable} size="sm"><Plus className="w-4 h-4" /></Button>
                             </div>
-                            <div className="space-y-2">
-                                {Object.keys(measurementModel).map(latentVar => (
-                                    <div key={latentVar}>
-                                        <div className="font-medium text-sm">{latentVar}</div>
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                             {measurementModel[latentVar].map(variable => (
-                                                <Badge key={variable} variant="secondary">{variable}</Badge>
-                                             ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                            <ScrollArea className="h-40 border rounded-lg p-2">
+                                {Object.keys(measurementModel).length === 0 ? <p className="text-muted-foreground text-sm p-2">Add latent variables to begin.</p> :
+                                Object.keys(measurementModel).map(lv => (
+                                    <div key={lv} className="mb-2"><Badge>{lv}</Badge> <span className="text-xs text-muted-foreground">{measurementModel[lv].join(', ')}</span></div>
+                                ))
+                                }
+                            </ScrollArea>
                         </div>
-
                         <div className="space-y-3">
                             <Label className="font-semibold">Structural Model (Paths)</Label>
-                            <div className="grid grid-cols-2 gap-2">
+                             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                                <Select onValueChange={setPathFrom} value={pathFrom}><SelectTrigger><SelectValue placeholder="From..." /></SelectTrigger><SelectContent>{Object.keys(measurementModel).map(lv => <SelectItem key={lv} value={lv}>{lv}</SelectItem>)}</SelectContent></Select>
+                               <ArrowRight className="w-4 h-4 text-muted-foreground" />
                                <Select onValueChange={setPathTo} value={pathTo}><SelectTrigger><SelectValue placeholder="To..." /></SelectTrigger><SelectContent>{Object.keys(measurementModel).map(lv => <SelectItem key={lv} value={lv}>{lv}</SelectItem>)}</SelectContent></Select>
                             </div>
                             <Button onClick={addStructuralPath} size="sm" className="w-full">Add Path</Button>
+                             <ScrollArea className="h-24 border rounded-lg p-2">
+                                {structuralModel.map((path, i) => <div key={i}>{path.from} → {path.to}</div>)}
+                            </ScrollArea>
                         </div>
-                    </CardContent>
-                    <CardFooter>
-                         <Button 
-                            onClick={runSEMAnalysis} 
-                            disabled={isLoading || data.length === 0}
-                            className="w-full"
-                        >
-                            {isLoading ? <Loader2 className="animate-spin mr-2"/> : <PlayCircle className="w-4 h-4 mr-2" />}
-                            Run SEM Analysis
-                        </Button>
-                    </CardFooter>
-                </Card>
-                
-                 {results && !isLoading && (
-                    <Tabs defaultValue="diagram" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="diagram">Path Diagram</TabsTrigger>
-                            <TabsTrigger value="fit">Model Fit</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="diagram">
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                    <Button onClick={runAnalysis} disabled={isLoading}>
+                        {isLoading ? <Loader2 className="animate-spin mr-2"/> : <PlayCircle className="w-4 h-4 mr-2" />}
+                        Run SEM Analysis
+                    </Button>
+                </CardFooter>
+            </Card>
+            
+            {isLoading && <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto"/> <p>Running SEM...</p></CardContent></Card>}
+
+            {results && (
+                <Tabs defaultValue="diagram" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="diagram">Path Diagram</TabsTrigger>
+                        <TabsTrigger value="fit">Model Fit & Estimates</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="diagram" className="mt-4">
+                        <Card>
+                            <CardContent className="p-4">
+                                {results.plot ? <Image src={`data:image/png;base64,${results.plot}`} alt="SEM Path Diagram" width={1000} height={800} className="w-full rounded-md border bg-white" /> : "Path diagram could not be generated."}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                     <TabsContent value="fit" className="mt-4">
+                        <div className="space-y-4">
                             <Card>
-                                <CardHeader><CardTitle>Path Diagram</CardTitle></CardHeader>
-                                <CardContent>
-                                    {results.plot ? (
-                                        <Image src={results.plot} alt="SEM Path Diagram" width={800} height={600} className="w-full h-auto rounded-md border bg-white" />
-                                    ) : (
-                                        <div className="text-center text-muted-foreground p-8">Path diagram could not be generated. Please ensure Graphviz is installed on the server.</div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                        <TabsContent value="fit">
-                             <Card>
                                 <CardHeader><CardTitle>Model Fit Indices</CardTitle></CardHeader>
                                 <CardContent>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                    {Object.entries(results.fit_indices).map(([key, value]) => (
-                                        <div key={key} className="flex justify-between p-2 rounded-md bg-muted/50">
-                                            <span className="font-medium text-muted-foreground">{key.toUpperCase()}</span>
-                                            <span className="font-mono">{(value as number).toFixed(3)}</span>
-                                        </div>
-                                    ))}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                        {Object.entries(results.results.fit_indices).slice(0, 8).map(([key, value]) => (
+                                            <div key={key} className="p-2 bg-muted rounded-md">
+                                                <div className="font-semibold text-muted-foreground">{key.toUpperCase()}</div>
+                                                <div className="text-lg font-mono">{(value as number)?.toFixed(3)}</div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </CardContent>
                             </Card>
-                        </TabsContent>
-                    </Tabs>
-                )}
-            </div>
+                             <Card>
+                                <CardHeader><CardTitle>Parameter Estimates</CardTitle></CardHeader>
+                                <CardContent>
+                                    <ScrollArea className="h-80">
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Path</TableHead><TableHead>Estimate</TableHead><TableHead>Std.Err</TableHead><TableHead>z-value</TableHead><TableHead>p-value</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {results.results.estimates.map((est, i) => (
+                                                <TableRow key={i}>
+                                                    <TableCell>{est.lval} {est.op} {est.rval}</TableCell>
+                                                    <TableCell className="font-mono">{est.Estimate?.toFixed(3)}</TableCell>
+                                                    <TableCell className="font-mono">{est.Std_Err?.toFixed(3)}</TableCell>
+                                                    <TableCell className="font-mono">{est.z_value?.toFixed(2)}</TableCell>
+                                                    <TableCell className="font-mono">{est.p_value < 0.001 ? '<.001' : est.p_value?.toFixed(3)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                    </ScrollArea>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+                </Tabs>
+            )}
         </div>
     );
 }
+
