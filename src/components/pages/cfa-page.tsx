@@ -98,6 +98,13 @@ const ExampleCard: React.FC<ExampleCardProps> = ({ example, onLoad }) => {
 const IntroPage: React.FC<{ onStart: () => void; onLoadExample: (e: any) => void; }> = ({ onStart, onLoadExample }) => {
     const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
 
+    const iconMap: { [key: string]: React.FC<any> } = {
+        Psychology: BrainCircuit,
+        Management: Building,
+        Marketing: Star,
+        Sociology: Users,
+    };
+
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -119,11 +126,11 @@ const IntroPage: React.FC<{ onStart: () => void; onLoadExample: (e: any) => void
                             Unlike Exploratory Factor Analysis (EFA) which discovers underlying structures, CFA is a confirmatory technique used to test a specific hypothesis about the structure of a set of variables. It's crucial for validating psychological scales, confirming theoretical models, and ensuring your measurement instrument works as intended.
                         </p>
                     </div>
-                    <div className="flex justify-center">
-                        {cfaExample && (
-                             <ExampleCard example={cfaExample} onLoad={onLoadExample} />
-                        )}
-                    </div>
+                    {cfaExample && (
+                        <div className="flex justify-center">
+                            <ExampleCard example={cfaExample} onLoad={onLoadExample} />
+                        </div>
+                    )}
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
@@ -231,7 +238,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
     const handleLoadExampleData = () => {
         const cfaExample = exampleDatasets.find(d => d.id === 'cfa-psych-constructs');
         if (cfaExample) {
-            onLoadExample(cfaExample);
+            processAndSetData(cfaExample.data, cfaExample.name);
             setModelSpec({
                 'Cognitive': ['cog1', 'cog2', 'cog3', 'cog4'],
                 'Emotional': ['emo1', 'emo2', 'emo3'],
@@ -239,7 +246,7 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
             });
             setView('main');
         }
-    }
+    };
 
     useEffect(() => {
         if (canRun) {
@@ -464,5 +471,3 @@ export default function CfaPage({ data: initialData, numericHeaders: initialNume
         </div>
     );
 }
-
-  
