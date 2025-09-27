@@ -177,4 +177,8 @@ def main():
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
-        print(json.dumps({"error": str(e)}
+        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == '__main__':
+    main()
