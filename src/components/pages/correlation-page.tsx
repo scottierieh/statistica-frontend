@@ -152,7 +152,7 @@ const InterpretationDisplay = ({ title, body }: { title: string, body: string })
 
     const formattedBody = useMemo(() => {
         return body
-            .replace(/\n/g, '<br />')
+            .replace(/\\n/g, '<br />')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<i>$1</i>');
     }, [body]);

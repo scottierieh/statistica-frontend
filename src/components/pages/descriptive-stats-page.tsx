@@ -534,4 +534,3 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
     );
 }
 
-    
