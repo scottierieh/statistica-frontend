@@ -505,8 +505,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         stdError: results.diagnostics!.coefficient_tests!.bse?.[key],
         tValue: results.diagnostics!.coefficient_tests!.tvalues?.[key],
         pValue: results.diagnostics!.coefficient_tests!.pvalues?.[key],
-        ci_lower: results.diagnostics!.coefficient_tests!.conf_int?.[key]?.[0],
-        ci_upper: results.diagnostics!.coefficient_tests!.conf_int?.[key]?.[1]
     })) : [];
 
     return (
@@ -575,7 +573,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                         <TableHead className="text-right">Std. Error</TableHead>
                                         <TableHead className="text-right">t-value</TableHead>
                                         <TableHead className="text-right">p-value</TableHead>
-                                        <TableHead className="text-right">95% CI</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -585,8 +582,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                             <TableCell className="text-right font-mono">{row.coefficient?.toFixed(4) ?? 'N/A'}</TableCell>
                                             <TableCell className="text-right font-mono">{row.stdError?.toFixed(4) ?? 'N/A'}</TableCell>
                                             <TableCell className="text-right font-mono">{row.tValue?.toFixed(3) ?? 'N/A'}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '&lt;.001' : row.pValue?.toFixed(4) ?? 'N/A'} {getSignificanceStars(row.pValue)}</TableCell>
-                                            <TableCell className="text-right font-mono">{`[${row.ci_lower?.toFixed(3)}, ${row.ci_upper?.toFixed(3)}]`}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.pValue?.toFixed(4)} {getSignificanceStars(row.pValue)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -627,4 +623,3 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     );
 }
-
