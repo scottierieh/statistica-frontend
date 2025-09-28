@@ -1,7 +1,5 @@
 
-
 'use client';
-
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -806,7 +804,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {(question.rows || []).map((row: string, rowIndex: number) => (
+                     {(question.rows || []).map((row: string, rowIndex: number) => (
                          <TableRow key={rowIndex}>
                             <TableCell className="group relative">
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
@@ -825,7 +823,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                             ))}
                             {!isPreview && <TableCell></TableCell>}
                         </TableRow>
-                    ))}
+                     ))}
                 </TableBody>
             </Table>
             {!isPreview && (
@@ -1185,16 +1183,12 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
 };
 
 const NPSAnalysisDisplay = ({ chartData, tableData, varName, comparisonData }: { chartData: any, tableData: any, varName: string, comparisonData: any }) => {
+    if (!chartData || !chartData.scoreCounts) return null;
     const npsGroupData = [
       { name: 'Detractors', value: tableData.detractors, percentage: tableData.detractorsP, fill: 'hsl(var(--destructive))' },
       { name: 'Passives', value: tableData.passives, percentage: tableData.passivesP, fill: 'hsl(var(--muted-foreground))' },
       { name: 'Promoters', value: tableData.promoters, percentage: tableData.promotersP, fill: 'hsl(var(--chart-2))' },
     ];
-  
-    const npsScoreDistribution = Object.entries(tableData.scoreCounts).map(([score, count]) => ({
-      score: Number(score),
-      count: count as number,
-    }));
   
     return (
       <AnalysisDisplayShell varName={varName}>
@@ -1202,7 +1196,7 @@ const NPSAnalysisDisplay = ({ chartData, tableData, varName, comparisonData }: {
           <Card className="flex flex-col items-center justify-center p-6 text-center">
             <CardDescription>Net Promoter Score</CardDescription>
             <CardTitle className="text-7xl font-bold text-primary my-2">{chartData.nps.toFixed(1)}</CardTitle>
-            <div className="w-full mt-4">
+            <ChartContainer config={{ percentage: { label: 'Percentage' } }} className="w-full h-10 mt-4">
               <ResponsiveContainer width="100%" height={40}>
                 <BarChart layout="vertical" data={npsGroupData} stackOffset="expand">
                   <YAxis type="category" dataKey="name" hide />
@@ -1225,12 +1219,12 @@ const NPSAnalysisDisplay = ({ chartData, tableData, varName, comparisonData }: {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-              <div className="flex justify-between text-xs text-muted-foreground mt-2">
+            </ChartContainer>
+              <div className="flex justify-between text-xs text-muted-foreground mt-2 w-full">
                 <span>Detractors ({tableData.detractorsP.toFixed(1)}%)</span>
                 <span>Passives ({tableData.passivesP.toFixed(1)}%)</span>
                 <span>Promoters ({tableData.promotersP.toFixed(1)}%)</span>
               </div>
-            </div>
           </Card>
   
           <Card>
@@ -1568,19 +1562,6 @@ function pearsonCorrelation(x: (number | undefined)[], y: (number | undefined)[]
     return covariance / (stdDevX * stdDevY);
 }
 
-const SurveyApp = () => {
-    return (
-        <Suspense fallback={<div className="flex-1 p-8 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto"/></div>}>
-            <GeneralSurveyPageContentFromClient />
-        </Suspense>
-      )
-}
-
-export default SurveyApp;
-
-type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
-
-
 const CrosstabAnalysisDisplay = ({ responses, survey }: { responses: any[], survey: any }) => {
     const { toast } = useToast();
     const [rowVarId, setRowVarId] = useState<number | undefined>();
@@ -1702,6 +1683,150 @@ const CrosstabAnalysisDisplay = ({ responses, survey }: { responses: any[], surv
         </Card>
     );
 };
+
+const CategoricalToScaleAnalysis = ({ responses, survey }: { responses: any[], survey: any }) => {
+    const { toast } = useToast();
+    const [selectedVarId, setSelectedVarId] = useState<number | undefined>();
+    const [scaleMap, setScaleMap] = useState<{ [key: string]: number }>({});
+    const [analysisData, setAnalysisData] = useState<any>(null);
+
+    const categoricalQuestions = useMemo(() => {
+        return survey.questions.filter((q: any) => (q.type === 'single' || q.type === 'dropdown' || q.type === 'rating') && q.options?.length > 0 || q.scale?.length > 0);
+    }, [survey.questions]);
+
+    useEffect(() => {
+        if (categoricalQuestions.length > 0) {
+            const firstQuestion = categoricalQuestions[0];
+            setSelectedVarId(firstQuestion.id);
+            const initialMap: { [key: string]: number } = {};
+            (firstQuestion.options || firstQuestion.scale).forEach((opt: string, i: number) => {
+                initialMap[opt] = i + 1;
+            });
+            setScaleMap(initialMap);
+        }
+    }, [categoricalQuestions]);
+
+    const handleVarChange = (id: number) => {
+        setSelectedVarId(id);
+        const question = categoricalQuestions.find(q => q.id === id);
+        if (question) {
+            const initialMap: { [key: string]: number } = {};
+            (question.options || question.scale).forEach((opt: string, i: number) => {
+                initialMap[opt] = i + 1;
+            });
+            setScaleMap(initialMap);
+        }
+        setAnalysisData(null);
+    };
+
+    const handleScaleValueChange = (option: string, value: string) => {
+        const numValue = parseInt(value, 10);
+        setScaleMap(prev => ({
+            ...prev,
+            [option]: isNaN(numValue) ? 0 : numValue,
+        }));
+    };
+
+    const runConversionAnalysis = () => {
+        if (!selectedVarId) return;
+
+        const convertedData = responses
+            .map(r => scaleMap[r.answers[selectedVarId]])
+            .filter((v): v is number => typeof v === 'number');
+
+        if (convertedData.length === 0) {
+            toast({ title: "No data to analyze", variant: "destructive" });
+            return;
+        }
+
+        const stats = {
+            mean: mean(convertedData),
+            median: getMedian(convertedData) || 0,
+            mode: getMode(convertedData) || 0,
+            stdDev: standardDeviation(convertedData),
+            min: Math.min(...convertedData),
+            max: Math.max(...convertedData),
+            count: convertedData.length
+        };
+        const insights = generateNumericInsights(stats);
+        setAnalysisData({
+            chartData: { values: convertedData },
+            tableData: stats,
+            insightsData: insights
+        });
+    };
+    
+    const selectedQuestion = categoricalQuestions.find(q => q.id === selectedVarId);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><TrendingUp/> Categorical to Scale Conversion</CardTitle>
+                <CardDescription>Convert a categorical variable to a numeric scale for descriptive analysis.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <Label>Select Categorical Variable</Label>
+                        <Select value={String(selectedVarId)} onValueChange={v => handleVarChange(Number(v))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{categoricalQuestions.map((q: any) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}</SelectContent>
+                        </Select>
+                        {selectedQuestion && (
+                            <div className="mt-4 space-y-2">
+                                <h4 className="font-semibold">Assign Numeric Values</h4>
+                                <ScrollArea className="h-48 border rounded p-2">
+                                {(selectedQuestion.options || selectedQuestion.scale).map((opt: string) => (
+                                    <div key={opt} className="flex items-center gap-2 mb-2">
+                                        <Label className="flex-1">{opt}</Label>
+                                        <Input
+                                            type="number"
+                                            value={scaleMap[opt] ?? ''}
+                                            onChange={e => handleScaleValueChange(opt, e.target.value)}
+                                            className="w-24"
+                                        />
+                                    </div>
+                                ))}
+                                </ScrollArea>
+                            </div>
+                        )}
+                    </div>
+                     <div>
+                        {analysisData ? (
+                            <NumberAnalysisDisplay
+                                chartData={analysisData.chartData}
+                                tableData={analysisData.tableData}
+                                insightsData={analysisData.insightsData}
+                                varName={`Converted: ${selectedQuestion?.title}`}
+                                comparisonData={null}
+                            />
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/50 rounded-lg">
+                                <p>Analysis results will appear here.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </CardContent>
+            <CardFooter>
+                 <Button onClick={runConversionAnalysis} disabled={!selectedVarId}>Convert & Analyze</Button>
+            </CardFooter>
+        </Card>
+    )
+};
+
+
+const SurveyApp = () => {
+    return (
+        <Suspense fallback={<div className="flex-1 p-8 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto"/></div>}>
+            <GeneralSurveyPageContentFromClient />
+        </Suspense>
+      )
+}
+
+export default SurveyApp;
+
+type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
 
 function GeneralSurveyPageContentFromClient() {
     const searchParams = useSearchParams();
@@ -2835,15 +2960,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     </Card>
                 </TabsContent>
                 <TabsContent value="advanced-analysis">
-                     <Card className="mt-4">
-                        <CardHeader>
-                            <CardTitle>Advanced Analysis</CardTitle>
-                            <CardDescription>Perform deeper statistical analysis on your survey data.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <CrosstabAnalysisDisplay responses={responses} survey={survey} />
-                        </CardContent>
-                    </Card>
+                    <div className="space-y-4 mt-4">
+                        <CrosstabAnalysisDisplay responses={responses} survey={survey} />
+                        <CategoricalToScaleAnalysis responses={responses} survey={survey} />
+                    </div>
                 </TabsContent>
                  <TabsContent value="dashboard">
                     <Card className="mt-4">
