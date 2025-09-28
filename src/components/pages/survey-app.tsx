@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -11,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { produce } from 'immer';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell, PieChart, Pie } from 'recharts';
 import { Badge } from '@/components/ui/badge';
@@ -910,66 +908,25 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
 };
   
 const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, comparisonData }: { chartData: any, tableData: any[], insightsData: string[], varName: string, comparisonData: any }) => {
-    const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'treemap'>('hbar');
-
-    const comparisonChartData = useMemo(() => {
-        if (!comparisonData || !comparisonData.tableData) {
-            return tableData.map(d => ({ name: d.name, value: d.percentage }));
-        }
-        return tableData.map(d => ({
-            name: d.name,
-            Overall: d.percentage,
-            Group: comparisonData.tableData.find((cd: any) => cd.name === d.name)?.percentage || 0
-        }));
-    }, [comparisonData, tableData]);
-
-    const plotLayout = useMemo(() => {
-        const baseLayout = {
-            autosize: true,
-            margin: { t: 40, b: 40, l: 40, r: 20 },
-            xaxis: {
-                title: chartType === 'hbar' ? 'Percentage' : '',
-            },
-            yaxis: {
-                title: chartType === 'hbar' ? '' : 'Percentage',
-            },
-        };
-        if (chartType === 'hbar') {
-            baseLayout.yaxis = { autorange: 'reversed' as const };
-            baseLayout.margin.l = 120;
-        }
-        if (chartType === 'bar') {
-            (baseLayout.xaxis as any).tickangle = -45;
-        }
-        return baseLayout;
-    }, [chartType]);
+    const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'donut'>('hbar');
 
     const plotData = useMemo(() => {
         const percentages = tableData.map((d: any) => parseFloat(d.percentage));
         const labels = tableData.map((d: any) => d.name);
         const counts = tableData.map((d: any) => d.count);
 
-        if (chartType === 'pie') {
+        if (chartType === 'pie' || chartType === 'donut') {
             return [{
                 values: percentages,
                 labels: labels,
                 type: 'pie',
-                hole: 0.4,
+                hole: chartType === 'donut' ? 0.4 : 0,
                 marker: { colors: COLORS },
                 textinfo: 'label+percent',
                 textposition: 'inside',
             }];
         }
-        if (chartType === 'treemap') {
-            return [{
-                type: 'treemap',
-                labels: labels,
-                parents: Array(labels.length).fill(""),
-                values: counts,
-                textinfo: 'label+value+percent root',
-                marker: {colors: COLORS}
-            }];
-        }
+
         return [{
             y: chartType === 'hbar' ? labels : percentages,
             x: chartType === 'hbar' ? percentages : labels,
@@ -980,6 +937,19 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
             textposition: 'auto',
         }];
     }, [chartType, tableData]);
+    
+    const plotLayout = useMemo(() => {
+        const baseLayout = {
+            autosize: true,
+            margin: { t: 40, b: 40, l: 40, r: 20 },
+            xaxis: { title: chartType === 'hbar' ? 'Percentage' : '' },
+            yaxis: { title: chartType === 'hbar' ? '' : 'Percentage' },
+        };
+        if (chartType === 'hbar') baseLayout.yaxis = { autorange: 'reversed' as const };
+        if (chartType === 'bar') (baseLayout.xaxis as any).tickangle = -45;
+        return baseLayout;
+    }, [chartType]);
+
 
     const chartConfig = {
       Overall: { label: 'Overall', color: 'hsl(var(--chart-1))' },
@@ -989,48 +959,42 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
     return (
         <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <Card>
+                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base flex justify-between items-center">
-                            Distribution {comparisonData && `vs. ${comparisonData.filterValue}`}
+                             Distribution {comparisonData && `vs. ${comparisonData.filterValue}`}
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="flex items-center justify-center min-h-[300px]">
-                         {comparisonData ? (
-                            <ChartContainer config={chartConfig} className="w-full h-[300px]">
-                                <ResponsiveContainer>
-                                    <BarChart data={comparisonChartData} layout="vertical">
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis type="number" unit="%" />
-                                        <YAxis type="category" dataKey="name" width={100} />
-                                        <Tooltip content={<ChartTooltipContent />} />
-                                        <Legend />
-                                        <Bar dataKey="Overall" fill="var(--color-Overall)" radius={4}/>
-                                        <Bar dataKey="Group" fill="var(--color-Group)" radius={4}/>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        ) : (
-                             <Plot
+                    <CardContent className="flex flex-col items-center justify-center min-h-[300px]">
+                         <Tabs value={chartType} onValueChange={(value) => setChartType(value as any)} className="w-full mb-4">
+                            <TabsList className="grid w-full grid-cols-4">
+                                <TabsTrigger value="hbar"><BarChartLucide className="w-4 h-4 transform -rotate-90" /></TabsTrigger>
+                                <TabsTrigger value="bar"><BarChartLucide className="w-4 h-4" /></TabsTrigger>
+                                <TabsTrigger value="pie"><PieChartIcon className="w-4 h-4" /></TabsTrigger>
+                                <TabsTrigger value="donut"><PieChartIcon className="w-4 h-4" /></TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                        <div className="w-full h-full">
+                           <Plot
                                 data={plotData}
                                 layout={plotLayout}
                                 style={{ width: '100%', height: '100%' }}
                                 config={{ displayModeBar: false }}
                                 useResizeHandler
                             />
-                        )}
+                        </div>
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        <Card>
                            <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
-                           <CardContent className="max-h-[200px] overflow-y-auto">{
+                           <CardContent className="max-h-[200px] overflow-y-auto">
                                <Table>
-                                   <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
+                                   <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
                                    <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
                                </Table>
-                           }</CardContent>
+                           </CardContent>
                        </Card>
                        {comparisonData && (
                            <Card>
@@ -1223,81 +1187,237 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
     );
 };
 
-const NPSAnalysisDisplay = ({ tableData }: { tableData: any }) => {
+const NPSAnalysisDisplay = ({ tableData, varName, comparisonData }: { tableData: any, varName: string, comparisonData: any }) => {
     const { nps, promoters, passives, detractors, promotersP, passivesP, detractorsP } = tableData;
 
-    const distributionData = Object.entries(tableData.distribution).map(([score, count]) => ({ score: parseInt(score), count: count as number }));
-    const getColor = (score: number) => {
-        if (score >= 9) return 'hsl(var(--chart-2))'; // Promoters
-        if (score >= 7) return 'hsl(var(--chart-3))'; // Passives
-        return 'hsl(var(--chart-5))'; // Detractors
+    return (
+        <AnalysisDisplayShell varName={varName}>
+             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Net Promoter Score {comparisonData && `vs. ${comparisonData.filterValue}`}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        <div className="flex flex-col items-center justify-center h-full gap-4">
+                            <div className="flex gap-4">
+                                <div className="text-center">
+                                    <div className="text-5xl font-bold text-primary">{nps.toFixed(1)}</div>
+                                    <p className="text-muted-foreground text-sm">Overall NPS</p>
+                                </div>
+                                {comparisonData && (
+                                     <div className="text-center">
+                                        <div className="text-5xl font-bold">{comparisonData.chartData.nps.toFixed(1)}</div>
+                                        <p className="text-muted-foreground text-sm">{comparisonData.filterValue} NPS</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                 <div className="space-y-4">
+                    <Card>
+                         <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                         <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead className="text-right">Count</TableHead>
+                                        <TableHead className="text-right">Percentage</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow><TableCell>Promoters (9-10)</TableCell><TableCell className="text-right">{promoters}</TableCell><TableCell className="text-right">{promotersP.toFixed(1)}%</TableCell></TableRow>
+                                    <TableRow><TableCell>Passives (7-8)</TableCell><TableCell className="text-right">{passives}</TableCell><TableCell className="text-right">{passivesP.toFixed(1)}%</TableCell></TableRow>
+                                    <TableRow><TableCell>Detractors (0-6)</TableCell><TableCell className="text-right">{detractors}</TableCell><TableCell className="text-right">{detractorsP.toFixed(1)}%</TableCell></TableRow>
+                                    <TableRow className="font-bold border-t"><TableCell>NPS Score</TableCell><TableCell className="text-right" colSpan={2}>{nps.toFixed(1)}</TableCell></TableRow>
+                                </TableBody>
+                            </Table>
+                         </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </AnalysisDisplayShell>
+    );
+};
+
+const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
+    if (!data) return null;
+    const { kpiData, insights } = data;
+    const kpiStatus = {
+        npsScore: kpiData.npsScore > 50 ? 'excellent' : kpiData.npsScore > 0 ? 'good' : 'poor',
+        avgSatisfaction: kpiData.avgSatisfaction > 4 ? 'excellent' : kpiData.avgSatisfaction > 3 ? 'good' : 'warning',
+        avgOrderValue: 'good',
+        repurchaseRate: kpiData.repurchaseRate > 50 ? 'excellent' : kpiData.repurchaseRate > 30 ? 'good' : 'warning',
     };
-    
-    const stackedBarData = [
-        { name: 'Responses', detractors: detractors, passives: passives, promoters: promoters }
-    ];
-    const totalResponses = detractors + passives + promoters;
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Net Promoter Score (NPS) Analysis</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div className="p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">NPS Score</p>
-                        <p className="text-3xl font-bold text-primary">{nps.toFixed(2)}</p>
-                    </div>
-                     <div className="p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Promoters (9-10)</p>
-                        <p className="text-3xl font-bold text-green-600">{promotersP.toFixed(1)}%</p>
-                    </div>
-                     <div className="p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Passives (7-8)</p>
-                        <p className="text-3xl font-bold text-yellow-500">{passivesP.toFixed(1)}%</p>
-                    </div>
-                     <div className="p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Detractors (0-6)</p>
-                        <p className="text-3xl font-bold text-red-600">{detractorsP.toFixed(1)}%</p>
-                    </div>
-                </div>
+        <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <KPICard title="NPS Score" value={kpiData.npsScore.toFixed(1)} status={kpiStatus.npsScore} />
+                <KPICard title="Avg Satisfaction" value={`${kpiData.avgSatisfaction.toFixed(2)} / 5`} status={kpiStatus.avgSatisfaction} />
+                <KPICard title="Avg Order Value" value={`$${kpiData.avgOrderValue.toFixed(2)}`} status={kpiStatus.avgOrderValue} />
+                <KPICard title="Repurchase Rate" value={`${kpiData.repurchaseRate.toFixed(1)}%`} status={kpiStatus.repurchaseRate} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {insights.map((insight: any, i: number) => <InsightCard key={i} insight={insight} />)}
+            </div>
+        </div>
+    )
+}
 
-                <div>
-                    <h4 className="font-semibold text-center mb-2">Response Distribution</h4>
-                     <ChartContainer config={{}} className="w-full h-64">
+
+const ServqualAnalyticsDashboard = ({ data }: { data: any }) => {
+    if (!data) return null;
+
+    const servqualChartConfig = {
+        expectation: { label: "Expectation", color: COLORS[1] },
+        perception: { label: "Perception", color: COLORS[0] },
+        gap: { label: "Gap", color: COLORS[3] },
+    };
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>SERVQUAL Gap Scores by Dimension</CardTitle>
+                    <CardDescription>Negative gaps indicate perceptions fall short of expectations.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={servqualChartConfig} className="w-full h-96">
                         <ResponsiveContainer>
-                            <RechartsBarChart data={distributionData} margin={{ top: 20 }}>
+                            <RechartsBarChart data={data.dimensionScores}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="score" />
+                                <XAxis dataKey="name" angle={-30} textAnchor="end" height={80} />
                                 <YAxis />
                                 <Tooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="count" name="Responses">
-                                    {distributionData.map((entry) => (
-                                        <Cell key={`cell-${entry.score}`} fill={getColor(entry.score)} />
-                                    ))}
-                                </Bar>
+                                <Legend />
+                                <RechartsBar dataKey="expectation" fill="var(--color-expectation)" radius={4}/>
+                                <RechartsBar dataKey="perception" fill="var(--color-perception)" radius={4} />
+                                <RechartsBar dataKey="gap" fill="var(--color-gap)" radius={4} />
                             </RechartsBarChart>
                         </ResponsiveContainer>
                     </ChartContainer>
-                </div>
-                 <div>
-                    <h4 className="font-semibold text-center mb-2">Respondent Groups</h4>
-                     <ChartContainer config={{}} className="w-full h-24">
-                        <ResponsiveContainer>
-                           <RechartsBarChart layout="vertical" data={stackedBarData} stackOffset="expand">
-                                <XAxis type="number" hide domain={[0,1]}/>
-                                <YAxis type="category" dataKey="name" hide />
-                                <Tooltip content={<ChartTooltipContent formatter={(value, name, props) => `${(props.payload[name] / totalResponses * 100).toFixed(1)}%`}/>} />
-                                <RechartsBar dataKey="detractors" fill="hsl(var(--chart-5))" stackId="a" />
-                                <RechartsBar dataKey="passives" fill="hsl(var(--chart-3))" stackId="a" />
-                                <RechartsBar dataKey="promoters" fill="hsl(var(--chart-2))" stackId="a" />
-                           </RechartsBarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
+    if (!ipaData) return null;
+    const { points, meanImportance, meanSatisfaction, quadrants } = ipaData;
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Importance-Performance Matrix</CardTitle>
+                </CardHeader>
+                <CardContent className="flex justify-center">
+                    <Plot
+                        data={[{
+                            x: points.map((p: any) => p.importance),
+                            y: points.map((p: any) => p.satisfaction),
+                            text: points.map((p: any) => p.name),
+                            mode: 'markers+text',
+                            textposition: 'top center',
+                            type: 'scatter',
+                            marker: { size: 12, color: COLORS[0] }
+                        }]}
+                        layout={{
+                            autosize: true,
+                            width: 600,
+                            height: 600,
+                            xaxis: { title: 'Derived Importance' },
+                            yaxis: { title: 'Stated Satisfaction' },
+                            shapes: [
+                                { type: 'line', x0: meanImportance, x1: meanImportance, y0: Math.min(...points.map((p:any) => p.satisfaction)) - 0.5, y1: Math.max(...points.map((p:any) => p.satisfaction)) + 0.5, line: { dash: 'dash', color: 'grey' } },
+                                { type: 'line', y0: meanSatisfaction, y1: meanSatisfaction, x0: Math.min(...points.map((p:any) => p.importance)) - 0.05, x1: Math.max(...points.map((p:any) => p.importance)) + 0.05, line: { dash: 'dash', color: 'grey' } }
+                            ],
+                            annotations: [
+                                { x: meanImportance, y: Math.max(...points.map((p:any) => p.satisfaction)) + 0.3, text: 'Keep Up Good Work', showarrow: false, xanchor: 'left'},
+                                { x: meanImportance, y: Math.min(...points.map((p:any) => p.satisfaction)) - 0.3, text: 'Concentrate Here', showarrow: false, xanchor: 'left', yanchor: 'top'},
+                                { x: Math.min(...points.map((p:any) => p.importance)) - 0.05, y: Math.max(...points.map((p:any) => p.satisfaction)) + 0.3, text: 'Possible Overkill', showarrow: false, xanchor: 'left'},
+                                { x: Math.min(...points.map((p:any) => p.importance)) - 0.05, y: Math.min(...points.map((p:any) => p.satisfaction)) - 0.3, text: 'Low Priority', showarrow: false, xanchor: 'left', yanchor: 'top'},
+                            ]
+                        }}
+                        style={{ width: '100%', height: '100%' }}
+                        useResizeHandler
+                    />
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+type Position = { x: number; y: number };
+
+const KPICard: React.FC<{ title: string; value: string; status: 'excellent' | 'good' | 'warning' | 'poor' }> = ({ title, value, status }) => {
+    const statusClasses = {
+        excellent: 'text-green-600',
+        good: 'text-green-500',
+        warning: 'text-yellow-600',
+        poor: 'text-red-600',
+    };
+    return (
+        <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className={`text-2xl font-bold ${statusClasses[status]}`}>{value}</div>
             </CardContent>
         </Card>
+    );
+};
+
+const InsightCard: React.FC<{ insight: { type: 'critical' | 'warning' | 'opportunity' | 'excellent'; title: string; text: string; actions: string; } }> = ({ insight }) => {
+    const ICONS = {
+        critical: <AlertTriangle className="text-red-500" />,
+        warning: <ShieldAlert className="text-yellow-500" />,
+        opportunity: <Lightbulb className="text-blue-500" />,
+        excellent: <Award className="text-green-500" />,
+    }
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-start gap-4">
+                {ICONS[insight.type]}
+                <div>
+                    <CardTitle className="text-base">{insight.title}</CardTitle>
+                    <CardDescription>{insight.text}</CardDescription>
+                </div>
+            </CardHeader>
+            <CardFooter>
+                 <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                    <MoveRight className="w-4 h-4"/>
+                    <span>{insight.actions}</span>
+                </div>
+            </CardFooter>
+        </Card>
+    );
+};
+const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position?: Position }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+
+    const style: React.CSSProperties = {
+        position: 'absolute',
+        width: 300,
+        height: 300,
+        top: position?.y || 0,
+        left: position?.x || 0,
+        transform: isDragging ? (transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined) : undefined,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style}>
+            <Card className="w-full h-full shadow-lg flex flex-col">
+                <div {...listeners} {...attributes} className="absolute top-2 right-2 p-1 cursor-grab bg-background/50 rounded-full">
+                    <Move className="w-4 h-4 text-muted-foreground"/>
+                </div>
+                {children}
+            </Card>
+        </div>
     );
 };
 
@@ -1756,13 +1876,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                 
                 const nps = promotersP - detractorsP;
 
-                const distribution = Array.from({length: 11}, (_, i) => i).reduce((acc: any, score) => {
-                    acc[score] = npsScores.filter(s => s === score).length;
-                    return acc;
-                }, {});
-
-                chartData = { nps, promotersP, passivesP, detractorsP, distribution };
-                tableData = { promoters, passives, detractors, promotersP, passivesP, detractorsP, nps, distribution };
+                chartData = { nps, promotersP, passivesP, detractorsP };
+                tableData = { promoters, passives, detractors, promotersP, passivesP, detractorsP, nps };
                 insights = [
                     `The overall NPS is <strong>${nps.toFixed(1)}</strong>.`,
                     `<strong>${promotersP.toFixed(1)}%</strong> of respondents are Promoters.`,
