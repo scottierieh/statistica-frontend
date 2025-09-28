@@ -1,5 +1,7 @@
+
 'use client';
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -491,63 +493,63 @@ const NumberQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload
 );
 
 const PhoneQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
-  <div className={cn("p-4", cardClassName)}>
-    <div className="flex justify-between items-start mb-4">
-      <div className="flex-1">
-          <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
-          {question.required && <span className="text-destructive text-xs">* Required</span>}
+    <div className={cn("p-4", cardClassName)}>
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex-1">
+            <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
+            {question.required && <span className="text-destructive text-xs">* Required</span>}
+        </div>
+        {!isPreview && (
+            <div className="flex items-center">
+                 <div className="flex items-center space-x-2 mr-2">
+                    <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                    <Label htmlFor={`required-${question.id}`}>Required</Label>
+                 </div>
+                 <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
+                    <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                </Button>
+                <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+            </div>
+        )}
       </div>
-      {!isPreview && (
-          <div className="flex items-center">
-               <div className="flex items-center space-x-2 mr-2">
-                  <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
-                  <Label htmlFor={`required-${question.id}`}>Required</Label>
-               </div>
-               <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
-                  <ImageIcon className="w-5 h-5 text-muted-foreground" />
-              </Button>
-              <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
-          </div>
-      )}
+        {question.imageUrl && (
+            <div className="my-4">
+                <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
+            </div>
+        )}
+      <Input type="tel" placeholder="User enters a phone number..." disabled />
     </div>
-      {question.imageUrl && (
-          <div className="my-4">
-              <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
-          </div>
-      )}
-    <Input type="tel" placeholder="User enters a phone number..." disabled />
-  </div>
 );
 
 const EmailQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => (
-  <div className={cn("p-4", cardClassName)}>
-    <div className="flex justify-between items-start mb-4">
-      <div className="flex-1">
-          <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
-          {question.required && <span className="text-destructive text-xs">* Required</span>}
+    <div className={cn("p-4", cardClassName)}>
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex-1">
+            <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
+            {question.required && <span className="text-destructive text-xs">* Required</span>}
+        </div>
+        {!isPreview && (
+            <div className="flex items-center">
+                 <div className="flex items-center space-x-2 mr-2">
+                    <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                    <Label htmlFor={`required-${question.id}`}>Required</Label>
+                 </div>
+                 <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
+                    <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                </Button>
+                <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+            </div>
+        )}
       </div>
-      {!isPreview && (
-          <div className="flex items-center">
-               <div className="flex items-center space-x-2 mr-2">
-                  <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
-                  <Label htmlFor={`required-${question.id}`}>Required</Label>
-               </div>
-               <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
-                  <ImageIcon className="w-5 h-5 text-muted-foreground" />
-              </Button>
-              <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
-          </div>
-      )}
+        {question.imageUrl && (
+            <div className="my-4">
+                <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
+            </div>
+        )}
+      <Input type="email" placeholder="User enters an email address..." disabled />
     </div>
-      {question.imageUrl && (
-          <div className="my-4">
-              <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
-          </div>
-      )}
-    <Input type="email" placeholder="User enters an email address..." disabled />
-  </div>
 );
 
 const RatingQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer: number; onAnswerChange: (value: number) => void; onDelete?: (id: number) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => {
@@ -906,65 +908,32 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
     );
 };
   
-const ChoiceAnalysisDisplay = ({ tableData, insightsData, varName, comparisonData }: { tableData: any[], insightsData: string[], varName: string, comparisonData: any }) => {
+const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, comparisonData }: { chartData: any, tableData: any[], insightsData: string[], varName: string, comparisonData: any }) => {
     const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'donut'>('hbar');
 
-    const plotData = useMemo(() => {
-        const percentages = tableData.map((d: any) => parseFloat(d.percentage));
-        const labels = tableData.map((d: any) => d.name);
-        const counts = tableData.map((d: any) => d.count);
-        const hasComparison = !!comparisonData;
-
-        if (chartType === 'pie' || chartType === 'donut') {
-            return [{
-                values: percentages,
-                labels: labels,
-                type: 'pie',
-                hole: chartType === 'donut' ? 0.4 : 0,
-                marker: { colors: COLORS },
-                textinfo: 'label+percent',
-                textposition: 'inside',
-            }];
+    const comparisonChartData = useMemo(() => {
+        if (!comparisonData || !comparisonData.tableData) {
+            return tableData.map(d => ({ name: d.name, value: d.percentage }));
         }
+        return tableData.map(d => ({
+            name: d.name,
+            Overall: d.percentage,
+            Group: comparisonData.tableData.find((cd: any) => cd.name === d.name)?.percentage || 0
+        }));
+    }, [comparisonData, tableData]);
 
-        if (hasComparison) {
-            return [
-                { y: labels, x: percentages, type: 'bar', orientation: 'h', name: 'Overall', marker: { color: COLORS[0] } },
-                { y: labels, x: comparisonData.tableData.map((d: any) => parseFloat(d.percentage)), type: 'bar', orientation: 'h', name: comparisonData.filterValue, marker: { color: COLORS[1] } }
-            ];
-        }
-
-        return [{
-            y: chartType === 'hbar' ? labels : percentages,
-            x: chartType === 'hbar' ? percentages : labels,
-            type: 'bar',
-            orientation: chartType === 'hbar' ? 'h' : 'v',
-            marker: { color: COLORS[0] },
-            text: percentages.map((p: number) => `${p.toFixed(1)}%`),
-            textposition: 'auto',
-        }];
-    }, [chartType, tableData, comparisonData]);
-
-    const plotLayout = useMemo(() => {
-        const hasComparison = !!comparisonData;
-        const baseLayout = {
-            autosize: true,
-            margin: { t: 40, b: 40, l: 120, r: 20 },
-            barmode: hasComparison ? 'group' : 'stack',
-            yaxis: { autorange: 'reversed' as const, automargin: true },
-            xaxis: { title: hasComparison ? 'Percentage' : '' },
-            showlegend: hasComparison,
-        };
-        return baseLayout;
-    }, [comparisonData]);
+    const chartConfig = {
+      Overall: { label: 'Overall', color: 'hsl(var(--chart-1))' },
+      Group: { label: comparisonData?.filterValue || 'Group', color: 'hsl(var(--chart-2))' },
+    };
 
     return (
         <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                 <Card>
+                <Card>
                     <CardHeader>
                         <CardTitle className="text-base flex justify-between items-center">
-                            Distribution
+                            Distribution {comparisonData && `vs. ${comparisonData.filterValue}`}
                         </CardTitle>
                         <Tabs value={chartType} onValueChange={(value) => setChartType(value as any)} className="w-full mt-2">
                             <TabsList className="grid w-full grid-cols-4">
@@ -975,14 +944,54 @@ const ChoiceAnalysisDisplay = ({ tableData, insightsData, varName, comparisonDat
                             </TabsList>
                         </Tabs>
                     </CardHeader>
-                    <CardContent className="flex flex-col items-center justify-center min-h-[300px]">
-                       <Plot
-                            data={plotData}
-                            layout={plotLayout}
-                            style={{ width: '100%', height: '300px' }}
-                            config={{ displayModeBar: false }}
-                            useResizeHandler
-                        />
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        {chartType === 'pie' || chartType === 'donut' ? (
+                            <ChartContainer config={chartConfig} className="w-full h-[300px]">
+                                <ResponsiveContainer>
+                                    <PieChart>
+                                        <Pie data={tableData} dataKey="percentage" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={chartType === 'donut' ? 60 : 0} label={p => `${p.name} (${p.percentage.toFixed(1)}%)`}>
+                                            {tableData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                        </Pie>
+                                        <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(1)}%`} />} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        ) : comparisonData ? (
+                            <ChartContainer config={chartConfig} className="w-full h-[300px]">
+                                <ResponsiveContainer>
+                                    <BarChart data={comparisonChartData} layout="vertical">
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis type="number" unit="%" />
+                                        <YAxis type="category" dataKey="name" width={100} />
+                                        <Tooltip content={<ChartTooltipContent />} />
+                                        <Legend />
+                                        <Bar dataKey="Overall" fill="var(--color-Overall)" radius={4}/>
+                                        <Bar dataKey="Group" fill="var(--color-Group)" radius={4}/>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        ) : (
+                            <ChartContainer config={{ value: { label: 'Percentage' } }} className="w-full h-[300px]">
+                                <ResponsiveContainer>
+                                     <BarChart data={tableData.map(d => ({...d, value: d.percentage}))} layout={chartType === 'hbar' ? 'vertical' : 'horizontal'}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        {chartType === 'hbar' ? (
+                                            <>
+                                                <XAxis type="number" unit="%" />
+                                                <YAxis type="category" dataKey="name" width={100} />
+                                            </>
+                                        ) : (
+                                            <>
+                                                <XAxis dataKey="name" />
+                                                <YAxis unit="%" />
+                                            </>
+                                        )}
+                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
+                                        <Bar dataKey="value" fill={COLORS[0]} radius={4} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        )}
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
@@ -1187,16 +1196,14 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
     );
 };
 
-const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
-    const { nps, promoters, passives, detractors, promotersP, passivesP, detractorsP, scoreCounts } = tableData;
-  
+const NPSAnalysisDisplay = ({ chartData, tableData, varName, comparisonData }: { chartData: any, tableData: any, varName: string, comparisonData: any }) => {
     const npsGroupData = [
-      { name: 'Detractors', value: detractors, percentage: detractorsP, fill: 'hsl(var(--destructive))' },
-      { name: 'Passives', value: passives, percentage: passivesP, fill: 'hsl(var(--muted-foreground))' },
-      { name: 'Promoters', value: promoters, percentage: promotersP, fill: 'hsl(var(--chart-2))' },
+      { name: 'Detractors', value: tableData.detractors, percentage: tableData.detractorsP, fill: 'hsl(var(--destructive))' },
+      { name: 'Passives', value: tableData.passives, percentage: tableData.passivesP, fill: 'hsl(var(--muted-foreground))' },
+      { name: 'Promoters', value: tableData.promoters, percentage: tableData.promotersP, fill: 'hsl(var(--chart-2))' },
     ];
   
-    const npsScoreDistribution = Object.entries(scoreCounts).map(([score, count]) => ({
+    const npsScoreDistribution = Object.entries(tableData.scoreCounts).map(([score, count]) => ({
       score: Number(score),
       count: count as number,
     }));
@@ -1206,7 +1213,7 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="flex flex-col items-center justify-center p-6 text-center">
             <CardDescription>Net Promoter Score</CardDescription>
-            <CardTitle className="text-7xl font-bold text-primary my-2">{nps.toFixed(1)}</CardTitle>
+            <CardTitle className="text-7xl font-bold text-primary my-2">{chartData.nps.toFixed(1)}</CardTitle>
             <div className="w-full mt-4">
               <ResponsiveContainer width="100%" height={40}>
                 <BarChart layout="vertical" data={npsGroupData} stackOffset="expand">
@@ -1231,9 +1238,9 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
                 </BarChart>
               </ResponsiveContainer>
               <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                <span>Detractors ({detractorsP.toFixed(1)}%)</span>
-                <span>Passives ({passivesP.toFixed(1)}%)</span>
-                <span>Promoters ({promotersP.toFixed(1)}%)</span>
+                <span>Detractors ({tableData.detractorsP.toFixed(1)}%)</span>
+                <span>Passives ({tableData.passivesP.toFixed(1)}%)</span>
+                <span>Promoters ({tableData.promotersP.toFixed(1)}%)</span>
               </div>
             </div>
           </Card>
@@ -1243,7 +1250,7 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
               <CardTitle className="text-base">Score Distribution</CardTitle>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={{ count: { label: 'Count' } }} className="w-full h-[200px]">
+              <ChartContainer config={{ count: { label: 'Count' } }} className="w-full h-[250px]">
                 <ResponsiveContainer>
                   <BarChart data={npsScoreDistribution}>
                     <CartesianGrid vertical={false} />
@@ -1263,7 +1270,7 @@ const NPSAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { c
         </div>
       </AnalysisDisplayShell>
     );
-  };
+};
   
 const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
     if (!data) return null;
