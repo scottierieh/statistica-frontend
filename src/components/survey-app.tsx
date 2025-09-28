@@ -1197,7 +1197,7 @@ const NPSAnalysisDisplay = ({ chartData, tableData, varName, comparisonData }: {
           <Card className="flex flex-col items-center justify-center p-6 text-center">
             <CardDescription>Net Promoter Score</CardDescription>
             <CardTitle className="text-7xl font-bold text-primary my-2">{chartData.nps.toFixed(1)}</CardTitle>
-            <div className="w-full mt-4">
+            <ChartContainer config={{ percentage: { label: 'Percentage' } }} className="w-full h-10 mt-4">
               <ResponsiveContainer width="100%" height={40}>
                 <BarChart layout="vertical" data={npsGroupData} stackOffset="expand">
                   <YAxis type="category" dataKey="name" hide />
@@ -1220,12 +1220,12 @@ const NPSAnalysisDisplay = ({ chartData, tableData, varName, comparisonData }: {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-              <div className="flex justify-between text-xs text-muted-foreground mt-2">
+            </ChartContainer>
+              <div className="flex justify-between text-xs text-muted-foreground mt-2 w-full">
                 <span>Detractors ({tableData.detractorsP.toFixed(1)}%)</span>
                 <span>Passives ({tableData.passivesP.toFixed(1)}%)</span>
                 <span>Promoters ({tableData.promotersP.toFixed(1)}%)</span>
               </div>
-            </div>
           </Card>
   
           <Card>
@@ -2938,4 +2938,3 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         </div>
     );
 }
-
