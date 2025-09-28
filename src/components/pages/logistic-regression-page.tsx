@@ -34,6 +34,9 @@ interface LogisticRegressionResults {
     };
     coefficients: { [key: string]: number };
     odds_ratios: { [key: string]: number };
+    odds_ratios_ci: { [key: string]: { '2.5%': number, '97.5%': number } };
+    p_values: { [key: string]: number };
+    model_summary: any;
     roc_data: {
         fpr: number[];
         tpr: number[];
@@ -41,13 +44,20 @@ interface LogisticRegressionResults {
     };
     dependent_classes: string[];
     interpretation: string;
-    model_summary: any;
 }
 
 interface FullAnalysisResponse {
     results: LogisticRegressionResults;
     plot: string;
 }
+
+const getSignificanceStars = (p: number | undefined) => {
+    if (p === undefined || p === null) return '';
+    if (p < 0.001) return '***';
+    if (p < 0.01) return '**';
+    if (p < 0.05) return '*';
+    return '';
+};
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const admissionExample = exampleDatasets.find(d => d.id === 'admission-data');
@@ -100,7 +110,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </div>
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
                                     <strong>Odds Ratios:</strong> This is a key output. An odds ratio greater than 1 means the predictor increases the odds of the outcome occurring. A value less than 1 means it decreases the odds.
                                 </li>
@@ -292,14 +302,29 @@ export default function LogisticRegressionPage({ data, numericHeaders, allHeader
                     <Card>
                         <CardHeader><CardTitle>Coefficients & Odds Ratios</CardTitle></CardHeader>
                         <CardContent>
-                             <Table>
-                                <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Coefficient</TableHead><TableHead className="text-right">Odds Ratio</TableHead></TableRow></TableHeader>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Variable</TableHead>
+                                        <TableHead className="text-right">Coefficient</TableHead>
+                                        <TableHead className="text-right">Odds Ratio</TableHead>
+                                        <TableHead className="text-right">95% CI</TableHead>
+                                        <TableHead className="text-right">p-value</TableHead>
+                                    </TableRow>
+                                </TableHeader>
                                 <TableBody>
                                     {Object.entries(results.coefficients).map(([variable, coeff]) => (
                                         <TableRow key={variable}>
                                             <TableCell>{variable}</TableCell>
                                             <TableCell className="text-right font-mono">{coeff.toFixed(4)}</TableCell>
                                             <TableCell className="text-right font-mono">{results.odds_ratios[variable].toFixed(4)}</TableCell>
+                                            <TableCell className="text-right font-mono">
+                                                [{results.odds_ratios_ci[variable]['2.5%'].toFixed(3)}, {results.odds_ratios_ci[variable]['97.5%'].toFixed(3)}]
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono">
+                                                {results.p_values[variable] < 0.001 ? '<.001' : results.p_values[variable].toFixed(4)}
+                                                {getSignificanceStars(results.p_values[variable])}
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
