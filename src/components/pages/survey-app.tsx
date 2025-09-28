@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -930,7 +931,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
     return (
         <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <Card>
+                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base flex justify-between items-center">
                             Distribution {comparisonData && `vs. ${comparisonData.filterValue}`}
@@ -995,31 +996,18 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card>
-                            <CardHeader className="pb-2"><CardTitle className="text-base">Overall Statistics</CardTitle></CardHeader>
-                            <CardContent className="max-h-[200px] overflow-y-auto">
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
-                                    <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                         {comparisonData && (
-                            <Card>
-                                <CardHeader className="pb-2"><CardTitle className="text-base">Group Statistics ({comparisonData.filterValue})</CardTitle></CardHeader>
-                                <CardContent className="max-h-[200px] overflow-y-auto">
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
-                                        <TableBody>{comparisonData.tableData.map((item:any, index:number) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-                     <Card>
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                        <CardContent className="max-h-[200px] overflow-y-auto">{
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
+                                <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                            </Table>
+                        }</CardContent>
+                    </Card>
+                    <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
-                        <CardContent><ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul></CardContent>
+                        <CardContent>{ <ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }</CardContent>
                     </Card>
                 </div>
             </div>
@@ -1252,14 +1240,14 @@ const NPSAnalysisDisplay = ({ chartData, tableData, varName, comparisonData }: {
             <CardContent>
               <ChartContainer config={{ count: { label: 'Count' } }} className="w-full h-[250px]">
                 <ResponsiveContainer>
-                  <BarChart data={npsScoreDistribution}>
+                  <BarChart data={Object.entries(chartData.scoreCounts).map(([score, count]) => ({score: Number(score), count: count as number}))}>
                     <CartesianGrid vertical={false} />
                     <XAxis dataKey="score" />
                     <YAxis />
                     <Tooltip cursor={{fill: 'hsl(var(--muted))'}} content={<ChartTooltipContent />} />
                     <Bar dataKey="count" fill="hsl(var(--primary))" radius={2}>
-                        {npsScoreDistribution.map((entry) => (
-                            <Cell key={`cell-${entry.score}`} fill={entry.score >= 9 ? 'hsl(var(--chart-2))' : entry.score <= 6 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />
+                        {Object.entries(chartData.scoreCounts).map(([score, count]) => (
+                            <Cell key={`cell-${score}`} fill={Number(score) >= 9 ? 'hsl(var(--chart-2))' : Number(score) <= 6 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />
                         ))}
                     </Bar>
                   </BarChart>
@@ -1591,6 +1579,129 @@ const SurveyApp = () => {
 export default SurveyApp;
 
 type LogicPath = { id: number; fromOption: string; toQuestion: number | 'end' };
+
+
+const CrosstabAnalysisDisplay = ({ responses, survey }: { responses: any[], survey: any }) => {
+    const { toast } = useToast();
+    const [rowVarId, setRowVarId] = useState<number | undefined>();
+    const [colVarId, setColVarId] = useState<number | undefined>();
+    const [crosstabResult, setCrosstabResult] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const categoricalQuestions = useMemo(() => {
+        return survey.questions.filter((q: any) => q.type === 'single' || q.type === 'dropdown');
+    }, [survey.questions]);
+
+    useEffect(() => {
+        if (categoricalQuestions.length > 0) setRowVarId(categoricalQuestions[0].id);
+        if (categoricalQuestions.length > 1) setColVarId(categoricalQuestions[1].id);
+    }, [categoricalQuestions]);
+
+    const runCrosstabAnalysis = useCallback(async () => {
+        if (!rowVarId || !colVarId) {
+            toast({ title: "Please select two variables", variant: "destructive" });
+            return;
+        }
+
+        const rowQuestion = survey.questions.find((q:any) => q.id === rowVarId);
+        const colQuestion = survey.questions.find((q:any) => q.id === colVarId);
+
+        if(!rowQuestion || !colQuestion) return;
+
+        const analysisData = responses.map(r => ({
+            [rowQuestion.title]: r.answers[rowVarId],
+            [colQuestion.title]: r.answers[colVarId],
+        })).filter(r => r[rowQuestion.title] && r[colQuestion.title]);
+
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/analysis/crosstab', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    data: analysisData,
+                    rowVar: rowQuestion.title,
+                    colVar: colQuestion.title,
+                })
+            });
+            if (!response.ok) throw new Error("Crosstab analysis failed");
+            const result = await response.json();
+            setCrosstabResult(result);
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [rowVarId, colVarId, responses, survey.questions, toast]);
+    
+    const { results } = crosstabResult || {};
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Grid3x3/> Cross-Tabulation Analysis</CardTitle>
+                <CardDescription>Analyze the relationship between two single-choice questions.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <Label>Primary Variable (Rows)</Label>
+                        <Select value={String(rowVarId)} onValueChange={v => setRowVarId(Number(v))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{categoricalQuestions.map((q: any) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                     <div>
+                        <Label>Secondary Variable (Columns)</Label>
+                        <Select value={String(colVarId)} onValueChange={v => setColVarId(Number(v))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{categoricalQuestions.filter((q:any) => q.id !== rowVarId).map((q: any) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                 <Button onClick={runCrosstabAnalysis} disabled={isLoading || !rowVarId || !colVarId}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sigma className="mr-2 h-4 w-4" />}
+                    Run Analysis
+                </Button>
+                {isLoading && <Skeleton className="w-full h-48 mt-4"/>}
+                {results && (
+                     <div className="mt-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>{results.row_var} \ {results.col_var}</TableHead>
+                                    {results.col_levels.map((c: string) => <TableHead key={c} className="text-right">{c}</TableHead>)}
+                                    <TableHead className="text-right font-bold">Total</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {results.row_levels.map((r: string) => {
+                                    const rowTotal = results.col_levels.reduce((sum: number, c: string) => sum + (results.contingency_table[c]?.[r] || 0), 0);
+                                    return (
+                                        <TableRow key={r}>
+                                            <TableHead>{r}</TableHead>
+                                            {results.col_levels.map((c: string) => {
+                                                const count = results.contingency_table[c]?.[r] || 0;
+                                                const percent = rowTotal > 0 ? (count / rowTotal * 100).toFixed(1) : 0;
+                                                return <TableCell key={c} className="text-right">{count} ({percent}%)</TableCell>
+                                            })}
+                                            <TableCell className="text-right font-bold">{rowTotal}</TableCell>
+                                        </TableRow>
+                                    )
+                                })}
+                            </TableBody>
+                        </Table>
+                         <p className="text-sm mt-4">
+                            <strong>Chi-Squared Test:</strong> χ² = {results.chi_squared.statistic.toFixed(2)}, 
+                            p = {results.chi_squared.p_value.toFixed(3)}, 
+                            Cramer's V = {results.cramers_v.toFixed(3)}
+                        </p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
 
 function GeneralSurveyPageContentFromClient() {
     const searchParams = useSearchParams();
@@ -2410,10 +2521,11 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             </header>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="design"><ClipboardList className="mr-2" />Design</TabsTrigger>
                     <TabsTrigger value="setting"><Settings className="mr-2" />Setting</TabsTrigger>
                     <TabsTrigger value="analysis"><BarChart2 className="mr-2" />Analysis</TabsTrigger>
+                    <TabsTrigger value="advanced-analysis"><BeakerIcon className="mr-2" />Advanced Analysis</TabsTrigger>
                     <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2" />Dashboard</TabsTrigger>
                 </TabsList>
                 <TabsContent value="design">
@@ -2719,6 +2831,17 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     );
                                 })
                             )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="advanced-analysis">
+                     <Card className="mt-4">
+                        <CardHeader>
+                            <CardTitle>Advanced Analysis</CardTitle>
+                            <CardDescription>Perform deeper statistical analysis on your survey data.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <CrosstabAnalysisDisplay responses={responses} survey={survey} />
                         </CardContent>
                     </Card>
                 </TabsContent>
