@@ -1,3 +1,5 @@
+
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -910,6 +912,28 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
 const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, comparisonData }: { chartData: any, tableData: any[], insightsData: string[], varName: string, comparisonData: any }) => {
     const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'donut'>('hbar');
 
+    const plotLayout = useMemo(() => {
+        const baseLayout = {
+            autosize: true,
+            margin: { t: 40, b: 40, l: 40, r: 20 },
+            xaxis: {
+                title: chartType === 'hbar' ? 'Percentage' : '',
+            },
+            yaxis: {
+                title: chartType === 'hbar' ? '' : 'Percentage',
+            },
+            showlegend: false,
+        };
+        if (chartType === 'hbar') {
+            baseLayout.yaxis = { autorange: 'reversed' as const };
+            baseLayout.margin.l = 120;
+        }
+        if (chartType === 'bar') {
+            (baseLayout.xaxis as any).tickangle = -45;
+        }
+        return baseLayout;
+    }, [chartType]);
+
     const plotData = useMemo(() => {
         const percentages = tableData.map((d: any) => parseFloat(d.percentage));
         const labels = tableData.map((d: any) => d.name);
@@ -926,7 +950,6 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                 textposition: 'inside',
             }];
         }
-
         return [{
             y: chartType === 'hbar' ? labels : percentages,
             x: chartType === 'hbar' ? percentages : labels,
@@ -937,19 +960,6 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
             textposition: 'auto',
         }];
     }, [chartType, tableData]);
-    
-    const plotLayout = useMemo(() => {
-        const baseLayout = {
-            autosize: true,
-            margin: { t: 40, b: 40, l: 40, r: 20 },
-            xaxis: { title: chartType === 'hbar' ? 'Percentage' : '' },
-            yaxis: { title: chartType === 'hbar' ? '' : 'Percentage' },
-        };
-        if (chartType === 'hbar') baseLayout.yaxis = { autorange: 'reversed' as const };
-        if (chartType === 'bar') (baseLayout.xaxis as any).tickangle = -45;
-        return baseLayout;
-    }, [chartType]);
-
 
     const chartConfig = {
       Overall: { label: 'Overall', color: 'hsl(var(--chart-1))' },
@@ -962,7 +972,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                  <Card>
                     <CardHeader>
                         <CardTitle className="text-base flex justify-between items-center">
-                             Distribution {comparisonData && `vs. ${comparisonData.filterValue}`}
+                            Distribution {comparisonData && `vs. ${comparisonData.filterValue}`}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col items-center justify-center min-h-[300px]">
@@ -986,28 +996,27 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <Card>
-                           <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                     <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                        <CardContent className="max-h-[200px] overflow-y-auto">
+                           <Table>
+                               <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
+                               <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                           </Table>
+                        </CardContent>
+                    </Card>
+
+                    {comparisonData && (
+                        <Card>
+                           <CardHeader className="pb-2"><CardTitle className="text-base">Group Statistics ({comparisonData.filterValue})</CardTitle></CardHeader>
                            <CardContent className="max-h-[200px] overflow-y-auto">
                                <Table>
-                                   <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
-                                   <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                                   <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
+                                   <TableBody>{comparisonData.tableData.map((item:any, index:number) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
                                </Table>
                            </CardContent>
                        </Card>
-                       {comparisonData && (
-                           <Card>
-                               <CardHeader className="pb-2"><CardTitle className="text-base">Group Statistics ({comparisonData.filterValue})</CardTitle></CardHeader>
-                               <CardContent className="max-h-[200px] overflow-y-auto">
-                                   <Table>
-                                       <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
-                                       <TableBody>{comparisonData.tableData.map((item:any, index:number) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
-                                   </Table>
-                               </CardContent>
-                           </Card>
-                       )}
-                   </div>
+                    )}
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
                         <CardContent>{ <ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }</CardContent>
