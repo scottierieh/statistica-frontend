@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -17,52 +16,17 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import {
-  Calculator,
   FileText,
   Loader2,
-  Link2,
+  UploadCloud,
+  File,
   BarChart2,
-  Sigma,
+  Calculator,
   ChevronDown,
-  PieChart,
-  Bot,
-  BrainCircuit,
-  Presentation,
-  Network,
-  FlaskConical,
-  ShieldCheck,
-  Users,
-  TrendingUp,
-  Binary,
-  Copy,
-  BarChart,
-  Columns,
-  Target,
-  Component,
-  HeartPulse,
-  Feather,
-  GitBranch,
-  Smile,
-  Scaling,
-  AreaChart,
-  LineChart,
-  Layers,
-  Map,
-  Repeat,
-  ScanSearch,
-  Atom,
-  MessagesSquare,
-  Share2,
-  GitCommit,
-  DollarSign,
-  ThumbsUp,
-  ClipboardList,
-  Handshake
+  HelpCircle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -72,286 +36,77 @@ import {
 } from '@/lib/stats';
 import { useToast } from '@/hooks/use-toast';
 import { getSummaryReport } from '@/app/actions';
-import DescriptiveStatsPage from './pages/descriptive-stats-page';
-import CorrelationPage from './pages/correlation-page';
-import AnovaPage from './pages/anova-page';
-import AncovaPage from './pages/ancova-page';
-import ManovaPage from './pages/manova-page';
-import ReliabilityPage from './pages/reliability-page';
-import VisualizationPage from './pages/visualization-page';
-import DiscriminantPage from './pages/discriminant-page';
-import EfaPage from './pages/efa-page';
-import MediationPage from './pages/mediation-page';
-import ModerationPage from './pages/moderation-page';
-import NonParametricPage from './pages/nonparametric-page';
-import HcaPage from './pages/hca-page';
-import TTestPage from './pages/t-test-page';
-import RegressionPage from './pages/regression-page';
-import LogisticRegressionPage from './pages/logistic-regression-page';
-import GlmPage from './pages/glm-page';
-import MixedModelPage from './pages/mixed-model-page';
-import KMeansPage from './pages/kmeans-page';
-import KMedoidsPage from './pages/kmedoids-page';
-import HdbscanPage from './pages/hdbscan-page';
-import FrequencyAnalysisPage from './pages/frequency-analysis-page';
-import CrosstabPage from './pages/crosstab-page';
-import PcaPage from './pages/pca-page';
-import SurvivalAnalysisPage from './pages/survival-analysis-page';
-import WordCloudPage from './pages/wordcloud-page';
-import GbmPage from './pages/gbm-page';
-import SentimentAnalysisPage from './pages/sentiment-analysis-page';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
 import { cn } from '@/lib/utils';
-import TwoWayAnovaPage from './pages/two-way-anova-page';
-import MetaAnalysisPage from './pages/meta-analysis-page';
-import TrendAnalysisPage from './pages/trend-analysis-page';
-import SeasonalDecompositionPage from './pages/seasonal-decomposition-page';
-import NormalityTestPage from './pages/normality-test-page';
-import HomogeneityTestPage from './pages/homogeneity-test-page';
-import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
-import ArimaPage from './pages/arima-page';
-import AcfPacfPage from './pages/acf-pacf-page';
-import MdsPage from './pages/mds-page';
-import DbscanPage from './pages/dbscan-page';
-import NonlinearRegressionPage from './pages/nonlinear-regression-page';
-import SnaPage from './pages/sna-page';
-import TopicModelingPage from './pages/topic-modeling-page';
-import BinomialTestPage from './pages/binomial-test-page';
-import StationarityPage from './pages/stationarity-page';
-import LjungBoxPage from './pages/ljung-box-page';
-import ArchLmTestPage from './pages/arch-lm-test-page';
-import ForecastEvaluationPage from './pages/forecast-evaluation-page';
-import ConjointAnalysisPage from './pages/conjoint-analysis-page';
-import CbcAnalysisPage from './pages/cbc-analysis-page';
-import IpaPage from './pages/ipa-page';
-import DidPage from './pages/did-page';
-import DelphiPage from './pages/delphi-page';
-import VanWestendorpPage from './pages/van-westendorp-page';
-import GaborGrangerPage from './pages/gabor-granger-page';
-import MaxDiffPage from './pages/maxdiff-page';
-import AhpPage from './pages/ahp-page';
-import DeaPage from './pages/dea-page';
-import TransportationProblemPage from './pages/transportation-problem-page';
-import NonlinearProgrammingPage from './pages/nonlinear-programming-page';
-import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
 
-type AnalysisType = 'stats' | 'correlation' | 'partial-correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'cfa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | 'classifier-comparison' | string;
+// Dynamically import pages to prevent build issues if they are not ready
+const DescriptiveStatisticsPage = dynamic(() => import('./pages/descriptive-stats-page'), { ssr: false });
+const TTestPage = dynamic(() => import('./pages/t-test-page'), { ssr: false });
+const AnovaPage = dynamic(() => import('./pages/anova-page'), { ssr: false });
+const TwoWayAnovaPage = dynamic(() => import('./pages/two-way-anova-page'), { ssr: false });
+const CorrelationPage = dynamic(() => import('./pages/correlation-page'), { ssr: false });
+const RegressionPage = dynamic(() => import('./pages/regression-page'), { ssr: false });
+const LogisticRegressionPage = dynamic(() => import('./pages/logistic-regression-page'), { ssr: false });
+const ReliabilityPage = dynamic(() => import('./pages/reliability-page'), { ssr: false });
+const CrosstabPage = dynamic(() => import('./pages/crosstab-page'), { ssr: false });
+const FrequencyAnalysisPage = dynamic(() => import('./pages/frequency-analysis-page'), { ssr: false });
+const AncovaPage = dynamic(() => import('./pages/ancova-page'), { ssr: false });
+const ManovaPage = dynamic(() => import('./pages/manova-page'), { ssr: false });
+const MediationPage = dynamic(() => import('./pages/mediation-page'), { ssr: false });
+const ModerationPage = dynamic(() => import('./pages/moderation-page'), { ssr: false });
+const EfaPage = dynamic(() => import('./pages/efa-page'), { ssr: false });
+const CfaPage = dynamic(() => import('./pages/cfa-page'), { ssr: false });
+const SemPage = dynamic(() => import('./pages/sem-page'), { ssr: false });
+const GlmPage = dynamic(() => import('./pages/glm-page'), { ssr: false });
+const NormalityTestPage = dynamic(() => import('./pages/normality-test-page'), { ssr: false });
+const HomogeneityTestPage = dynamic(() => import('./pages/homogeneity-test-page'), { ssr: false });
+const NonParametricPage = dynamic(() => import('./pages/nonparametric-page'), { ssr: false });
+
+type AnalysisType =
+  | 'descriptive-stats' | 'correlation' | 't-test-one-sample' | 't-test-independent' | 't-test-paired'
+  | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'rm-anova'
+  | 'regression-simple' | 'regression-multiple' | 'regression-polynomial' | 'logistic-regression' | 'glm'
+  | 'reliability' | 'efa' | 'cfa' | 'sem' | 'mediation' | 'moderation'
+  | 'frequency' | 'crosstab' | 'normality-test' | 'homogeneity-test'
+  | 'nonparametric-mann-whitney' | 'nonparametric-wilcoxon' | 'nonparametric-kruskal-wallis' | 'nonparametric-friedman' | 'nonparametric-mcnemar';
+
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
-    stats: DescriptiveStatsPage,
-    correlation: CorrelationPage,
-    'one-way-anova': AnovaPage,
-    'two-way-anova': TwoWayAnovaPage,
-    ancova: AncovaPage,
-    manova: ManovaPage,
-    reliability: ReliabilityPage,
-    discriminant: DiscriminantPage,
-    efa: EfaPage,
-    mediation: MediationPage,
-    moderation: ModerationPage,
-    'mann-whitney': NonParametricPage,
-    'wilcoxon': NonParametricPage,
-    'kruskal-wallis': NonParametricPage,
-    'friedman': NonParametricPage,
-    'mcnemar': NonParametricPage,
-    'rm-anova': RepeatedMeasuresAnovaPage,
-    hca: HcaPage,
-    'regression-simple': RegressionPage,
-    'regression-multiple': RegressionPage,
-    'regression-polynomial': RegressionPage,
-    'regression-ridge': RegressionPage,
-    'regression-lasso': RegressionPage,
-    'regression-elasticnet': RegressionPage,
-    'logistic-regression': LogisticRegressionPage,
-    glm: GlmPage,
-    'mixed-model': MixedModelPage,
-    'rm-anova-pingouin': MixedModelPage,
-    kmeans: KMeansPage,
-    kmedoids: KMedoidsPage,
-    hdbscan: HdbscanPage,
-    dbscan: DbscanPage,
-    frequency: FrequencyAnalysisPage,
-    crosstab: CrosstabPage,
-    pca: PcaPage,
-    survival: SurvivalAnalysisPage,
-    wordcloud: WordCloudPage,
-    visuals: VisualizationPage,
-    gbm: GbmPage,
-    sentiment: SentimentAnalysisPage,
-    'meta-analysis': MetaAnalysisPage,
-    'trend-analysis': TrendAnalysisPage,
-    'seasonal-decomposition': SeasonalDecompositionPage,
-    normality: NormalityTestPage,
-    homogeneity: HomogeneityTestPage,
-    'moving-average': ExponentialSmoothingPage,
-    'exponential-smoothing': ExponentialSmoothingPage,
-    autoregressive: ArimaPage,
-    'acf-pacf': AcfPacfPage,
-    mds: MdsPage,
-    'nonlinear-regression': NonlinearRegressionPage,
-    sna: SnaPage,
-    'topic-modeling': TopicModelingPage,
-    't-test-one-sample': TTestPage,
-    't-test-independent': TTestPage,
-    't-test-paired': TTestPage,
-    'binomial-test': BinomialTestPage,
-    'stationarity-tests': StationarityPage,
-    'ljung-box': LjungBoxPage,
-    'arch-lm-test': ArchLmTestPage,
-    'forecast-eval': ForecastEvaluationPage,
-    'conjoint': ConjointAnalysisPage,
-    'cbc': CbcAnalysisPage,
-    'ipa': IpaPage,
-    'did': DidPage,
-    'delphi': DelphiPage,
-    'van-westendorp': VanWestendorpPage,
-    'gabor-granger': GaborGrangerPage,
-    'maxdiff': MaxDiffPage,
-    'ahp': AhpPage,
-    'dea': DeaPage,
-    'transportation-problem': TransportationProblemPage,
-    'nonlinear-programming': NonlinearProgrammingPage,
+  'descriptive-stats': DescriptiveStatisticsPage,
+  'correlation': CorrelationPage,
+  't-test-one-sample': TTestPage,
+  't-test-independent': TTestPage,
+  't-test-paired': TTestPage,
+  'one-way-anova': AnovaPage,
+  'two-way-anova': TwoWayAnovaPage,
+  'ancova': AncovaPage,
+  'manova': ManovaPage,
+  'rm-anova': NonParametricPage,
+  'regression-simple': RegressionPage,
+  'regression-multiple': RegressionPage,
+  'regression-polynomial': RegressionPage,
+  'logistic-regression': LogisticRegressionPage,
+  'glm': GlmPage,
+  'reliability': ReliabilityPage,
+  'efa': EfaPage,
+  'cfa': CfaPage,
+  'sem': SemPage,
+  'mediation': MediationPage,
+  'moderation': ModerationPage,
+  'frequency': FrequencyAnalysisPage,
+  'crosstab': CrosstabPage,
+  'normality-test': NormalityTestPage,
+  'homogeneity-test': HomogeneityTestPage,
+  'nonparametric-mann-whitney': NonParametricPage,
+  'nonparametric-wilcoxon': NonParametricPage,
+  'nonparametric-kruskal-wallis': NonParametricPage,
+  'nonparametric-friedman': NonParametricPage,
+  'nonparametric-mcnemar': NonParametricPage,
 };
 
-const analysisMenu = [
-  {
-    field: 'Exploratory Data Analysis (EDA)',
-    icon: BarChart,
-    methods: [
-      { id: 'stats', label: 'Descriptive Statistics' },
-      { id: 'frequency', label: 'Frequency Analysis' },
-      { id: 'normality', label: 'Normality Test' },
-      { id: 'homogeneity', label: 'Homogeneity Test' },
-    ]
-  },
-  {
-    field: 'Hypothesis Testing',
-    icon: Sigma,
-    subCategories: [
-      {
-        name: 'Proportion Tests',
-        methods: [
-           { id: 'binomial-test', label: 'Binomial Test' },
-        ]
-      },
-      {
-        name: 'T-Test',
-        methods: [
-          { id: 't-test-one-sample', label: 'One-Sample T-Test' },
-          { id: 't-test-independent', label: 'Independent Samples T-Test' },
-          { id: 't-test-paired', label: 'Paired Samples T-Test' },
-        ]
-      },
-      {
-        name: 'ANOVA',
-        methods: [
-            { id: 'one-way-anova', label: 'One-Way ANOVA' },
-            { id: 'two-way-anova', label: 'Two-Way ANOVA' },
-            { id: 'ancova', label: 'ANCOVA' },
-            { id: 'manova', label: 'MANOVA' },
-            { id: 'rm-anova', label: 'Repeated Measures ANOVA'},
-        ]
-      },
-      {
-        name: 'Non-Parametric Tests',
-        methods: [
-          { id: 'crosstab', label: 'Chi-squared Test' },
-          { id: 'mann-whitney', label: 'Mann-Whitney U Test' },
-          { id: 'wilcoxon', label: 'Wilcoxon Signed-Rank' },
-          { id: 'kruskal-wallis', label: 'Kruskal-Wallis Test' },
-          { id: 'friedman', label: 'Friedman Test' },
-          { id: 'mcnemar', label: "McNemar's Test" },
-        ]
-      },
-    ]
-  },
-  {
-    field: 'Correlation / Regression',
-    icon: Link2,
-    subCategories: [
-      {
-        name: 'Correlation',
-        methods: [ 
-            { id: 'correlation', label: 'Correlation Analysis' },
-        ]
-      },
-      {
-        name: 'Linear Models',
-        methods: [
-            { id: 'regression-multiple', label: 'Multiple Linear Regression' },
-            { id: 'regression-polynomial', label: 'Polynomial Regression' },
-            { id: 'nonlinear-regression', label: 'Nonlinear Regression' },
-            { id: 'mixed-model', label: 'Mixed Effects Model'},
-        ]
-      },
-       {
-        name: 'Regularized Models',
-        methods: [
-            { id: 'regression-ridge', label: 'Ridge Regression' },
-            { id: 'regression-lasso', label: 'Lasso Regression' },
-            { id: 'regression-elasticnet', label: 'Elastic Net Regression' },
-        ]
-      },
-      {
-        name: 'Categorical Outcome',
-        methods: [
-            { id: 'logistic-regression', label: 'Logistic Regression' },
-            { id: 'glm', label: 'Generalized Linear Models (GLM)' },
-        ]
-      },
-    ]
-  },
-   {
-    field: 'Clustering / Dimension Reduction',
-    icon: Users,
-    methods: [
-      { id: 'kmeans', label: 'K-Means Clustering' },
-      { id: 'kmedoids', label: 'K-Medoids Clustering' },
-      { id: 'hca', label: 'Hierarchical Clustering' },
-      { id: 'dbscan', label: 'DBSCAN Clustering' },
-      { id: 'hdbscan', label: 'HDBSCAN Clustering' },
-      { id: 'discriminant', label: 'Discriminant Analysis' },
-      { id: 'pca', label: 'Principal Component Analysis (PCA)' },
-      { id: 'mds', label: 'Multidimensional Scaling (MDS)' },
-    ]
-  },
-  {
-    field: 'Factor Analysis',
-    icon: BrainCircuit,
-    methods: [
-       { id: 'reliability', label: 'Reliability Analysis' },
-       { id: 'efa', label: 'Exploratory Factor Analysis (EFA)' },
-       { id: 'mediation', label: 'Mediation Analysis' },
-       { id: 'moderation', label: 'Moderation Analysis' },
-    ]
-  },
-  {
-    field: 'Time Series Analysis',
-    icon: TrendingUp,
-    methods: [
-        { id: 'trend-analysis', label: 'Time Series Plot' },
-        { id: 'seasonal-decomposition', label: 'Decomposition' },
-        { id: 'stationarity-tests', label: 'Stationarity Tests' },
-        { id: 'acf-pacf', label: 'ACF/PACF Plots' },
-        { id: 'ljung-box', label: 'Ljung-Box Test' },
-        { id: 'arch-lm-test', label: 'ARCH-LM Test' },
-        { id: 'exponential-smoothing', label: 'Exponential Smoothing'},
-        { id: 'autoregressive', label: 'ARIMA-family Models' },
-        { id: 'forecast-eval', label: 'Model Evaluation' },
-    ]
-  },
-  {
-    field: 'Text Analysis',
-    icon: Feather,
-    methods: [
-       { id: 'wordcloud', label: 'Word Cloud' },
-       { id: 'sentiment', label: 'Sentiment Analysis' },
-       { id: 'topic-modeling', label: 'Topic Modeling' },
-    ]
-  }
-];
 
 export default function StatisticaApp() {
   const [data, setData] = useState<DataSet>([]);
@@ -362,10 +117,11 @@ export default function StatisticaApp() {
   const [report, setReport] = useState<{ title: string, content: string } | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('stats');
-  
+  const [activeAnalysis, setActiveAnalysis] = useState<AnalysisType>('descriptive-stats');
+  const [openCategories, setOpenCategories] = useState<string[]>(['Descriptive Statistics']);
+
   const { toast } = useToast();
-  
+
   const processData = useCallback((content: string, name: string) => {
     setIsUploading(true);
     try {
@@ -392,7 +148,7 @@ export default function StatisticaApp() {
         setIsUploading(false);
       }
   }, [toast]);
-  
+
   const handleFileSelected = useCallback((file: File) => {
     setIsUploading(true);
     const reader = new FileReader();
@@ -436,14 +192,9 @@ export default function StatisticaApp() {
   };
 
   const handleLoadExampleData = (example: ExampleDataSet) => {
-    if (example.id === 'meta-analysis' || example.id === 'ahp') {
-        setActiveAnalysis(example.id);
-        toast({title: example.name, description: 'This analysis requires manual data entry. An example has been pre-filled for you.'});
-        return;
-    }
     processData(example.data, example.name);
     if(example.recommendedAnalysis) {
-      setActiveAnalysis(example.recommendedAnalysis);
+      setActiveAnalysis(example.recommendedAnalysis as AnalysisType);
     }
   };
 
@@ -458,7 +209,7 @@ export default function StatisticaApp() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName.replace(/\.[^/.]+$/, "") + ".csv" || 'statistica_data.csv';
+      a.download = fileName.replace(/\.[^/.]+$/, "") + ".csv" || 'data.csv';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -476,43 +227,33 @@ export default function StatisticaApp() {
     }
     setIsGeneratingReport(true);
     const statsString = `Columns in the loaded data: ${allHeaders.join(', ')}`;
-    const vizString = "Visualizations for the loaded data.";
+    const vizString = "Statistical visualizations for the loaded data.";
 
     const result = await getSummaryReport({ statistics: statsString, visualizations: vizString });
     if (result.success && result.report) {
-      setReport({ title: 'Summary Report', content: result.report });
+      setReport({ title: 'Statistical Analysis Report', content: result.report });
     } else {
       toast({ variant: 'destructive', title: 'Failed to generate report', description: result.error });
     }
     setIsGeneratingReport(false);
   };
-
+  
   const downloadReport = () => {
     if (!report) return;
     const blob = new Blob([report.content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'statistica_report.txt';
+    a.download = 'statistical_report.txt';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-  
-  const pageKey = Object.keys(analysisPages).find(key => activeAnalysis.startsWith(key.split('-')[0])) || 'stats';
-  
-  const ActivePageComponent = analysisPages[pageKey] || DescriptiveStatsPage;
 
   const hasData = data.length > 0;
+  const ActivePageComponent = analysisPages[activeAnalysis] || DescriptiveStatisticsPage;
   
-  const [openCategories, setOpenCategories] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    setOpenCategories(analysisMenu.map(c => c.field).concat(analysisMenu.flatMap(c => c.subCategories?.map(sc => sc.name) ?? [])));
-  }, []);
-
   const toggleCategory = (category: string) => {
     setOpenCategories(prev => 
       prev.includes(category) 
@@ -521,32 +262,15 @@ export default function StatisticaApp() {
     )
   };
   
-  const filteredMenu = useMemo(() => {
-    if (!searchTerm) {
-        return analysisMenu;
-    }
-    
-    const lowercasedFilter = searchTerm.toLowerCase();
-    
-    return analysisMenu.map(category => {
-        const filteredMethods = category.methods?.filter(method => 
-            method.label.toLowerCase().includes(lowercasedFilter)
-        ) || [];
-        
-        const filteredSubCategories = category.subCategories?.map(sub => {
-            const filteredSubMethods = sub.methods.filter(method =>
-                method.label.toLowerCase().includes(lowercasedFilter)
-            );
-            return filteredSubMethods.length > 0 ? { ...sub, methods: filteredSubMethods } : null;
-        }).filter((sub): sub is Exclude<typeof sub, null> => sub !== null) || [];
-        
-        if (filteredMethods.length > 0 || filteredSubCategories.length > 0) {
-            return { ...category, methods: filteredMethods, subCategories: filteredSubCategories };
-        }
-        
-        return null;
-    }).filter((category): category is Exclude<typeof category, null> => category !== null);
-  }, [searchTerm]);
+  const menuCategories = [
+      { name: 'Descriptive Statistics', children: [ { id: 'descriptive-stats', label: 'Summary Statistics' }, { id: 'frequency', label: 'Frequency Analysis' } ]},
+      { name: 'Assumption Tests', children: [ { id: 'normality-test', label: 'Normality Test' }, { id: 'homogeneity-test', label: 'Homogeneity of Variance' }]},
+      { name: 'Group Comparison', children: [ { id: 't-test-one-sample', label: 'One-Sample T-Test'}, { id: 't-test-independent', label: 'Independent Samples T-Test' }, { id: 't-test-paired', label: 'Paired Samples T-Test' }, { id: 'one-way-anova', label: 'One-Way ANOVA' }, { id: 'two-way-anova', label: 'Two-Way ANOVA' }, { id: 'ancova', label: 'ANCOVA' }, { id: 'manova', label: 'MANOVA' }, { id: 'rm-anova', label: 'Repeated Measures ANOVA' }]},
+      { name: 'Non-Parametric Tests', children: [ { id: 'nonparametric-mann-whitney', label: 'Mann-Whitney U Test' }, { id: 'nonparametric-wilcoxon', label: 'Wilcoxon Signed-Rank' }, { id: 'nonparametric-kruskal-wallis', label: 'Kruskal-Wallis H Test' }, { id: 'nonparametric-friedman', label: 'Friedman Test' }, { id: 'nonparametric-mcnemar', label: "McNemar's Test" }]},
+      { name: 'Correlation & Regression', children: [ { id: 'correlation', label: 'Correlation' }, { id: 'regression-simple', label: 'Simple Linear Regression' }, { id: 'regression-multiple', label: 'Multiple Linear Regression' }, { id: 'regression-polynomial', label: 'Polynomial Regression' }, { id: 'logistic-regression', label: 'Logistic Regression' }, { id: 'glm', label: 'Generalized Linear Models (GLM)' }]},
+      { name: 'Scale & Latent Variable', children: [ { id: 'reliability', label: 'Reliability (Cronbach\'s Alpha)' }, { id: 'efa', label: 'Exploratory Factor Analysis' }, { id: 'cfa', label: 'Confirmatory Factor Analysis' }, { id: 'sem', label: 'Structural Equation Modeling' }]},
+      { name: 'Causal & Effect', children: [ { id: 'mediation', label: 'Mediation Analysis' }, { id: 'moderation', label: 'Moderation Analysis' }]},
+  ];
 
   return (
     <SidebarProvider>
@@ -566,94 +290,30 @@ export default function StatisticaApp() {
               />
             </div>
           </SidebarHeader>
-          <SidebarContent className="flex flex-col gap-2 p-2">
+          <SidebarContent>
             <SidebarMenu>
-                <SidebarMenuItem>
-                    <SidebarMenuButton
-                        onClick={() => {
-                            window.open('/dashboard/survey?id=1', '_blank');
-                        }}
-                        isActive={activeAnalysis === 'survey'}
-                    >
-                        <ClipboardList />
-                        <span>Survey Tool</span>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                    <SidebarMenuButton
-                    onClick={() => setActiveAnalysis('visuals')}
-                    isActive={activeAnalysis === 'visuals'}
-                    >
-                    <Presentation />
-                    <span>Visualizations</span>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            </SidebarMenu>
-            
-            <div className="flex-1 overflow-y-auto">
-              {analysisMenu.map((category) => {
-                if (!category) return null;
-                const Icon = category.icon;
-                const isOpen = openCategories.includes(category.field);
-
-                return (
-                  <Collapsible key={category.field} open={isOpen} onOpenChange={() => toggleCategory(category.field)}>
-                    <CollapsibleTrigger className="w-full">
-                      <div className={cn("flex items-center gap-2 rounded-md p-2 text-sm font-medium hover:bg-sidebar-accent hover:text-sidebar-accent-foreground", isOpen && "bg-sidebar-accent text-sidebar-accent-foreground")}>
-                        <Icon className="h-4 w-4" />
-                        <span>{category.field}</span>
-                        <ChevronDown className={cn("h-4 w-4 ml-auto transition-transform", isOpen ? "rotate-180" : "")} />
-                      </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-4 py-1">
-                      <SidebarMenu>
-                        {category.methods?.map(method => (
-                          <SidebarMenuItem key={method.id}>
-                              <SidebarMenuButton
-                                  onClick={() => {
-                                      setActiveAnalysis(method.id as AnalysisType)
-                                  }}
-                                  isActive={activeAnalysis === method.id}
-                                  disabled={(method as any).implemented === false}
-                                  className="justify-start w-full h-8 text-sm"
-                              >
-                                  <span>{method.label}</span>
-                              </SidebarMenuButton>
-                          </SidebarMenuItem>
-                          )
-                        )}
-                        {category.subCategories?.map(sub => (
-                           <Collapsible key={sub.name} open={openCategories.includes(sub.name)} onOpenChange={() => toggleCategory(sub.name)}>
-                             <CollapsibleTrigger className="w-full">
-                               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground py-1">
-                                  <span>{sub.name}</span>
-                                  <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", openCategories.includes(sub.name) ? 'rotate-180' : '')} />
-                               </div>
-                             </CollapsibleTrigger>
-                             <CollapsibleContent className="pl-6 py-1">
-                                <SidebarMenu>
-                                  {sub.methods.map((method) => (
-                                    <SidebarMenuItem key={`${sub.name}-${method.id}`}>
-                                      <SidebarMenuButton
-                                          onClick={() => setActiveAnalysis(method.id as AnalysisType)}
-                                          isActive={activeAnalysis === method.id}
-                                          disabled={(method as any).implemented === false}
-                                          className="justify-start w-full h-8 text-sm"
-                                      >
-                                          <span>{method.label}</span>
-                                      </SidebarMenuButton>
+                 {menuCategories.map(category => (
+                    <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
+                        <CollapsibleTrigger asChild>
+                            <Button variant="ghost" className="w-full justify-start text-base px-2">
+                                {category.name}
+                                <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", openCategories.includes(category.name) && 'rotate-180')}/>
+                            </Button>
+                        </CollapsibleTrigger>
+                         <CollapsibleContent>
+                            <SidebarMenu>
+                                {category.children.map(item => (
+                                    <SidebarMenuItem key={item.id}>
+                                        <SidebarMenuButton onClick={() => setActiveAnalysis(item.id as AnalysisType)} isActive={activeAnalysis === item.id}>
+                                            {item.label}
+                                        </SidebarMenuButton>
                                     </SidebarMenuItem>
-                                  ))}
-                                </SidebarMenu>
-                             </CollapsibleContent>
-                           </Collapsible>
-                        ))}
-                      </SidebarMenu>
-                    </CollapsibleContent>
-                  </Collapsible>
-                )
-              })}
-            </div>
+                                ))}
+                            </SidebarMenu>
+                        </CollapsibleContent>
+                    </Collapsible>
+                 ))}
+            </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
             <Button onClick={handleGenerateReport} disabled={isGeneratingReport || !hasData} className="w-full">
@@ -671,7 +331,7 @@ export default function StatisticaApp() {
                 <div />
             </header>
             
-            {hasData && activeAnalysis !== 'stats' && activeAnalysis !== 'wordcloud' && activeAnalysis !== 'sentiment' && activeAnalysis !== 'meta-analysis' && activeAnalysis !== 'ahp' && activeAnalysis !== 'transportation-problem' && activeAnalysis !== 'nonlinear-programming' && (
+            {hasData && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
@@ -682,25 +342,23 @@ export default function StatisticaApp() {
             )}
             
             <ActivePageComponent 
-                key={activeAnalysis}
-                activeAnalysis={activeAnalysis} 
-                data={data}
-                allHeaders={allHeaders}
-                numericHeaders={numericHeaders}
-                categoricalHeaders={categoricalHeaders}
+                data={data} 
+                allHeaders={allHeaders} 
+                numericHeaders={numericHeaders} 
+                categoricalHeaders={categoricalHeaders} 
                 onLoadExample={handleLoadExampleData}
-               />
-
+                activeAnalysis={activeAnalysis}
+            />
           </div>
         </SidebarInset>
       </div>
-      
+
       <Dialog open={!!report} onOpenChange={(open) => !open && setReport(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="font-headline">{report?.title}</DialogTitle>
             <DialogDescription>
-              An AI-generated summary of your data analysis.
+              An AI-generated summary of your statistical analysis.
             </DialogDescription>
           </DialogHeader>
           <div className="prose prose-sm dark:prose-invert max-h-[60vh] overflow-y-auto rounded-md border p-4 whitespace-pre-wrap">
@@ -715,12 +373,4 @@ export default function StatisticaApp() {
   );
 }
 
-
-
-
-
-
-
-
-
-
+    
