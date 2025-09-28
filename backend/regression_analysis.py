@@ -183,7 +183,7 @@ class RegressionAnalysis:
         diagnostics = {}
         
         def clean_name(name):
-             name = re.sub(r'Q\("([^"]+)"\)', r'\1', name.strip())
+             name = re.sub(r'Q\("([^"]+)"\)', r'\\1', name.strip())
              return self.original_names.get(name, name)
 
         summary_obj = sm_model.summary()
@@ -239,7 +239,7 @@ class RegressionAnalysis:
         
         interpretation = ""
         if stepwise_log:
-             interpretation += f"Stepwise selection resulted in {len(stepwise_log)} steps.\n"
+             interpretation += f"Stepwise selection resulted in {len(stepwise_log)} steps.\\n"
 
         if r2 > 0.8:
             interpretation += "The model shows a **Good Fit**. "
