@@ -112,7 +112,7 @@ class KMedoidsAnalysis:
             'n_clusters': n_clusters,
             'inertia': inertia,
             'medoids': self.cluster_data.iloc[medoid_indices].to_dict('records'),
-            'medoids_indices': medoid_indices.tolist(),
+            'medoid_indices': medoid_indices.tolist(),
             'labels': self.cluster_labels.tolist()
         }
         
