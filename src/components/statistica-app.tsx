@@ -280,7 +280,6 @@ const analysisMenu = [
       {
         name: 'Linear Models',
         methods: [
-            { id: 'regression-simple', label: 'Simple Linear Regression' },
             { id: 'regression-multiple', label: 'Multiple Linear Regression' },
             { id: 'regression-polynomial', label: 'Polynomial Regression' },
             { id: 'nonlinear-regression', label: 'Nonlinear Regression' },
@@ -715,6 +714,7 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
+
 
 
 
