@@ -913,7 +913,9 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
     const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'donut'>('hbar');
 
     const comparisonChartData = useMemo(() => {
-        if (!comparisonData || !comparisonData.tableData) return tableData.map(d => ({ name: d.name, value: d.percentage }));
+        if (!comparisonData || !comparisonData.tableData) {
+            return tableData.map(d => ({ name: d.name, value: d.percentage }));
+        }
         return tableData.map(d => ({
             name: d.name,
             Overall: d.percentage,
@@ -1183,6 +1185,7 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
 };
 
 const NPSAnalysisDisplay = ({ chartData, tableData, varName, comparisonData }: { chartData: any, tableData: any, varName: string, comparisonData: any }) => {
+    if (!chartData || !chartData.scoreCounts) return null;
     const npsGroupData = [
       { name: 'Detractors', value: tableData.detractors, percentage: tableData.detractorsP, fill: 'hsl(var(--destructive))' },
       { name: 'Passives', value: tableData.passives, percentage: tableData.passivesP, fill: 'hsl(var(--muted-foreground))' },
@@ -1888,8 +1891,12 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                 
                 const nps = promotersP - detractorsP;
 
-                chartData = { nps, promotersP, passivesP, detractorsP };
-                tableData = { promoters, passives, detractors, promotersP, passivesP, detractorsP, nps };
+                const scoreCounts: {[key: number]: number} = {};
+                for(let i=0; i<=10; i++) scoreCounts[i] = 0;
+                npsScores.forEach(s => scoreCounts[s]++);
+
+                chartData = { nps, promotersP, passivesP, detractorsP, scoreCounts };
+                tableData = { promoters, passives, detractors, promotersP, passivesP, detractorsP, nps, scoreCounts };
                 insights = [
                     `The overall NPS is <strong>${nps.toFixed(1)}</strong>.`,
                     `<strong>${promotersP.toFixed(1)}%</strong> of respondents are Promoters.`,
@@ -2701,7 +2708,15 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     </Card>
                 </TabsContent>
                 <TabsContent value="advanced-analysis">
-                    <p className="p-8 text-center">Advanced analysis features will be available here.</p>
+                     <Card className="mt-4">
+                        <CardHeader>
+                            <CardTitle>Advanced Analysis</CardTitle>
+                            <CardDescription>Perform deeper statistical analysis on your survey data.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <CrosstabAnalysisDisplay responses={responses} survey={survey} />
+                        </CardContent>
+                    </Card>
                 </TabsContent>
                  <TabsContent value="dashboard">
                     <Card className="mt-4">
