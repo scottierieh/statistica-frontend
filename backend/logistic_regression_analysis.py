@@ -126,17 +126,16 @@ class LogisticRegressionAnalysis:
         
         params = self.model_fit.params
         conf = self.model_fit.conf_int()
-        conf['Odds Ratio'] = params
-        conf.columns = ['2.5%', '97.5%', 'Odds Ratio']
-        conf = np.exp(conf)
-
-        self.results['metrics'] = {
-            'accuracy': accuracy,
-            'confusion_matrix': cm.tolist(),
-            'classification_report': class_report
-        }
-        self.results['coefficients'] = dict(zip(['const'] + self.feature_names, self.model_fit.params))
-        self.results['odds_ratios'] = dict(zip(['const'] + self.feature_names, conf['Odds Ratio']))
+        conf.columns = ['2.5%', '97.5%']
+        
+        odds_ratios = np.exp(params)
+        odds_ratios_ci = np.exp(conf)
+        
+        self.results['metrics'] = { 'accuracy': accuracy, 'confusion_matrix': cm.tolist(), 'classification_report': class_report }
+        self.results['coefficients'] = dict(zip(['const'] + self.feature_names, params))
+        self.results['odds_ratios'] = dict(zip(odds_ratios.index, odds_ratios.values))
+        self.results['odds_ratios_ci'] = odds_ratios_ci.to_dict('index')
+        self.results['p_values'] = dict(zip(self.model_fit.pvalues.index, self.model_fit.pvalues.values))
         
         fpr, tpr, _ = roc_curve(y_true, y_prob)
         roc_auc = auc(fpr, tpr)
@@ -145,13 +144,9 @@ class LogisticRegressionAnalysis:
         self.results['dependent_classes'] = self.dependent_classes
         
         self.results['model_summary'] = {
-            'llf': self.model_fit.llf,
-            'llnull': self.model_fit.llnull,
-            'llr': self.model_fit.llr,
-            'llr_pvalue': self.model_fit.llr_pvalue,
-            'prsquared': self.model_fit.prsquared,
-            'df_model': self.model_fit.df_model,
-            'df_resid': self.model_fit.df_resid
+            'llf': self.model_fit.llf, 'llnull': self.model_fit.llnull, 'llr': self.model_fit.llr,
+            'llr_pvalue': self.model_fit.llr_pvalue, 'prsquared': self.model_fit.prsquared,
+            'df_model': self.model_fit.df_model, 'df_resid': self.model_fit.df_resid
         }
     
     def _generate_interpretation(self):
@@ -163,29 +158,52 @@ class LogisticRegressionAnalysis:
         p_val = summary['llr_pvalue']
         pseudo_r2 = summary['prsquared']
         accuracy = res['metrics']['accuracy']
-        
-        interpretation = f"A logistic regression was performed to ascertain the effects of {len(self.independent_vars)} predictors on the likelihood that respondents would be classified as one group or another in '{self.dependent_var}'.\n\n"
 
+        # Introduction
+        interpretation = (
+            f"A logistic regression was performed to ascertain the effects of {', '.join(self.independent_vars)} "
+            f"on the likelihood of '{self.dependent_var}'.\n"
+        )
+        
+        # Model Significance
         model_sig_text = "statistically significant" if p_val < 0.05 else "not statistically significant"
         p_val_text = f"p < .001" if p_val < 0.001 else f"p = {p_val:.3f}"
-        interpretation += f"The logistic regression model was {model_sig_text}, χ²({df:.0f}, N = {len(self.clean_data)}) = {chi2:.3f}, {p_val_text}. "
+        interpretation += (
+            f"The logistic regression model was {model_sig_text}, χ²({df:.0f}, N = {len(self.clean_data)}) = {chi2:.2f}, {p_val_text}. "
+        )
+
+        # Variance and Accuracy
+        interpretation += (
+            f"The model explained {pseudo_r2*100:.1f}% (Pseudo R²) of the variance in {self.dependent_var} "
+            f"and correctly classified {accuracy*100:.1f}% of cases.\n\n"
+        )
         
-        interpretation += f"The model explained {pseudo_r2*100:.1f}% (Pseudo R²) of the variance in {self.dependent_var} and correctly classified {accuracy*100:.1f}% of cases.\n\n"
-        
+        # Coefficients
         odds_ratios = res['odds_ratios']
-        p_values = self.model_fit.pvalues
+        odds_ratios_ci = res['odds_ratios_ci']
+        p_values = res['p_values']
         
-        sig_preds = []
+        sig_preds_info = []
+        nonsig_preds = []
+
         for var in self.feature_names:
             p = p_values.get(var)
             if p is not None and p < 0.05:
                 odds = odds_ratios.get(var)
-                if odds is not None:
-                     change_text = f"{odds:.2f} times as likely" if odds > 1 else f"{(1-odds)*100:.1f}% less likely"
-                     sig_preds.append(f"'{var.replace('_', ' ')}' was associated with a {change_text} to be in the target group")
+                ci = odds_ratios_ci.get(var)
+                if odds is not None and ci is not None:
+                     sig_preds_info.append(
+                         f"increasing {var.replace('_', ' ')} was associated with an increase in the likelihood of being in the target group "
+                         f"(OR={odds:.2f}, 95%CI [{ci['2.5%']:.2f}, {ci['97.5%']:.2f}])"
+                     )
+            else:
+                nonsig_preds.append(var.replace('_', ' '))
 
-        if sig_preds:
-            interpretation += "Of the predictor variables, " + ", and ".join(sig_preds) + "."
+        if sig_preds_info:
+            interpretation += "Of the predictor variables, " + ", and ".join(sig_preds_info) + ".\n"
+        
+        if nonsig_preds:
+            interpretation += f"The variables {', '.join(nonsig_preds)} were not significantly associated with the outcome."
 
         self.results['interpretation'] = interpretation.strip()
 
@@ -245,6 +263,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
