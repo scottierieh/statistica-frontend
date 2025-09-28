@@ -870,6 +870,81 @@ const getMedian = (arr: number[]): number | null => {
     return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
+const generateNumericInsights = (stats: ReturnType<typeof getNumericStats>) => {
+    const insights: string[] = [];
+    if (isNaN(stats.mean)) return ["Not enough data for insights."];
+
+    const skewness = stats.mean - stats.median;
+    const skewThreshold = stats.stdDev * 0.2;
+    if (Math.abs(skewness) > skewThreshold) {
+        insights.push(`The mean (<strong>${stats.mean.toFixed(2)}</strong>) is ${skewness > 0 ? 'higher' : 'lower'} than the median (<strong>${stats.median.toFixed(2)}</strong>), suggesting the data is <strong>${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong>.`);
+    } else {
+        insights.push(`The data appears to be roughly <strong>symmetrical</strong>, as the mean and median are very close.`);
+    }
+
+    if (stats.stdDev > 0) {
+      const cv = (stats.stdDev / Math.abs(stats.mean)) * 100;
+      if (cv > 30) {
+          insights.push(`The standard deviation (<strong>${stats.stdDev.toFixed(2)}</strong>) is relatively high compared to the mean, indicating <strong>high variability</strong> in the data.`);
+      } else {
+          insights.push(`The data shows <strong>low to moderate variability</strong> with a standard deviation of <strong>${stats.stdDev.toFixed(2)}</strong>.`);
+      }
+    }
+    
+    return insights;
+};
+
+const generateCategoricalInsights = (stats: ReturnType<typeof getCategoricalStats>) => {
+    if (stats.length === 0) return ["Not enough data for insights."];
+    const mode = stats[0];
+    return [`The most frequent category is <strong>"${mode.name}"</strong>, appearing in <strong>${mode.percentage}%</strong> of cases.`];
+};
+
+const getNumericStats = (data: number[]) => {
+    if (data.length === 0) return { count: 0, mean: NaN, stdDev: NaN, min: NaN, q1: NaN, median: NaN, q3: NaN, max: NaN, mode: NaN };
+    
+    const sortedData = [...data].sort((a, b) => a - b);
+    const sum = data.reduce((acc, val) => acc + val, 0);
+    const meanVal = sum / data.length;
+    const stdDevVal = Math.sqrt(data.reduce((acc, val) => acc + (val - meanVal) ** 2, 0) / (data.length > 1 ? data.length - 1 : 1));
+
+    const q1 = getQuantile(sortedData, 0.25);
+    const medianVal = getQuantile(sortedData, 0.5);
+    const q3 = getQuantile(sortedData, 0.75);
+
+    const counts: { [key: string]: number } = {};
+    data.forEach(val => {
+      const key = String(val);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    let modeVal: number | null = null;
+    let maxCount = 0;
+    Object.entries(counts).forEach(([val, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        modeVal = parseFloat(val);
+      }
+    });
+
+
+    return {
+        count: data.length, mean: meanVal, stdDev: stdDevVal, min: sortedData[0], q1, median: medianVal, q3, max: sortedData[data.length - 1], mode: modeVal,
+    };
+};
+
+const getCategoricalStats = (data: (string | number)[]) => {
+    if (data.length === 0) return [];
+    const counts: { [key: string]: number } = {};
+    data.forEach(val => {
+        const key = String(val);
+        counts[key] = (counts[key] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+        .map(([value, count]) => ({ name: value, count, percentage: ((count / data.length) * 100).toFixed(1) }))
+        .sort((a, b) => b.count - a.count);
+};
+
 
 // New Star Display Component
 const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number, total?: number, size?: string }) => {
@@ -911,21 +986,76 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
 const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, comparisonData }: { chartData: any, tableData: any[], insightsData: string[], varName: string, comparisonData: any }) => {
     const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'donut'>('hbar');
 
-    const comparisonChartData = useMemo(() => {
-        if (!comparisonData || !comparisonData.tableData) {
-            return tableData.map(d => ({ name: d.name, value: d.percentage }));
+    const plotLayout = useMemo(() => {
+        const baseLayout = {
+            autosize: true,
+            margin: { t: 40, b: 40, l: 40, r: 20 },
+            xaxis: { title: chartType === 'hbar' ? 'Percentage' : '' },
+            yaxis: { title: chartType === 'hbar' ? '' : 'Percentage' },
+            legend: { orientation: "h", yanchor: "bottom", y: 1.02, xanchor: "right", x: 1 }
+        };
+        if (chartType === 'hbar') {
+            baseLayout.yaxis = { autorange: 'reversed' as const };
+            baseLayout.margin.l = 120; // More space for labels
         }
-        return tableData.map(d => ({
-            name: d.name,
-            Overall: d.percentage,
-            Group: comparisonData.tableData.find((cd: any) => cd.name === d.name)?.percentage || 0
-        }));
-    }, [comparisonData, tableData]);
+        if (chartType === 'bar') {
+            (baseLayout.xaxis as any).tickangle = -45;
+        }
+        return baseLayout;
+    }, [chartType]);
+    
+    const plotData = useMemo(() => {
+        const percentages = tableData.map(d => parseFloat(d.percentage));
+        const labels = tableData.map(d => d.name);
+        const counts = tableData.map(d => d.count);
 
-    const chartConfig = {
-      Overall: { label: 'Overall', color: 'hsl(var(--chart-1))' },
-      Group: { label: comparisonData?.filterValue || 'Group', color: 'hsl(var(--chart-2))' },
-    };
+        if (chartType === 'pie' || chartType === 'donut') {
+            return [{
+                values: percentages,
+                labels: labels,
+                type: 'pie',
+                hole: chartType === 'donut' ? 0.4 : 0,
+                marker: { colors: COLORS },
+                textinfo: 'label+percent',
+                textposition: 'inside',
+            }];
+        }
+        
+        const baseTrace = {
+            y: chartType === 'hbar' ? labels : percentages,
+            x: chartType === 'hbar' ? percentages : labels,
+            type: 'bar' as const,
+            orientation: chartType === 'hbar' ? 'h' : 'v' as 'h' | 'v',
+            text: percentages.map(p => `${p.toFixed(1)}%`),
+            textposition: 'auto' as const,
+            hoverinfo: 'x+y' as const,
+        };
+        
+        if (comparisonData) {
+            const groupPercentages = comparisonData.tableData.map((d: any) => parseFloat(d.percentage));
+            const groupLabels = comparisonData.tableData.map((d: any) => d.name);
+
+            // Align data
+            const alignedGroupPercentages = labels.map(label => {
+                const index = groupLabels.indexOf(label);
+                return index !== -1 ? groupPercentages[index] : 0;
+            });
+            
+            return [
+                { ...baseTrace, name: 'Overall', marker: { color: 'hsl(var(--chart-1))' } },
+                {
+                    ...baseTrace,
+                    name: comparisonData.filterValue || 'Group',
+                    x: chartType === 'hbar' ? alignedGroupPercentages : labels,
+                    y: chartType === 'hbar' ? labels : alignedGroupPercentages,
+                    text: alignedGroupPercentages.map(p => `${p.toFixed(1)}%`),
+                    marker: { color: 'hsl(var(--chart-2))' }
+                }
+            ];
+        }
+
+        return [{ ...baseTrace, marker: { color: 'hsl(var(--chart-1))' } }];
+    }, [chartType, tableData, comparisonData]);
 
     return (
         <AnalysisDisplayShell varName={varName}>
@@ -945,53 +1075,13 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                         </Tabs>
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
-                        {chartType === 'pie' || chartType === 'donut' ? (
-                            <ChartContainer config={chartConfig} className="w-full h-[300px]">
-                                <ResponsiveContainer>
-                                    <PieChart>
-                                        <Pie data={tableData} dataKey="percentage" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={chartType === 'donut' ? 60 : 0} label={p => `${p.name} (${p.percentage.toFixed(1)}%)`}>
-                                            {tableData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                        </Pie>
-                                        <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(1)}%`} />} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        ) : comparisonData ? (
-                            <ChartContainer config={chartConfig} className="w-full h-[300px]">
-                                <ResponsiveContainer>
-                                    <BarChart data={comparisonChartData} layout="vertical">
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis type="number" unit="%" />
-                                        <YAxis type="category" dataKey="name" width={100} />
-                                        <Tooltip content={<ChartTooltipContent />} />
-                                        <Legend />
-                                        <Bar dataKey="Overall" fill="var(--color-Overall)" radius={4}/>
-                                        <Bar dataKey="Group" fill="var(--color-Group)" radius={4}/>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        ) : (
-                            <ChartContainer config={{ value: { label: 'Percentage' } }} className="w-full h-[300px]">
-                                <ResponsiveContainer>
-                                     <BarChart data={tableData.map(d => ({...d, value: d.percentage}))} layout={chartType === 'hbar' ? 'vertical' : 'horizontal'}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        {chartType === 'hbar' ? (
-                                            <>
-                                                <XAxis type="number" unit="%" />
-                                                <YAxis type="category" dataKey="name" width={100} />
-                                            </>
-                                        ) : (
-                                            <>
-                                                <XAxis dataKey="name" />
-                                                <YAxis unit="%" />
-                                            </>
-                                        )}
-                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
-                                        <Bar dataKey="value" fill={COLORS[0]} radius={4} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        )}
+                        <Plot
+                            data={plotData}
+                            layout={plotLayout}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: false }}
+                            useResizeHandler
+                        />
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
