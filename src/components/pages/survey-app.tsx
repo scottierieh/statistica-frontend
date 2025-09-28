@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -923,52 +922,6 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
         }));
     }, [comparisonData, tableData]);
 
-    const plotLayout = useMemo(() => {
-        const baseLayout = {
-            autosize: true,
-            margin: { t: 40, b: 40, l: 40, r: 20 },
-            xaxis: {
-                title: chartType === 'hbar' ? 'Percentage' : '',
-            },
-            yaxis: {
-                title: chartType === 'hbar' ? '' : 'Percentage',
-            },
-        };
-        if (chartType === 'hbar') {
-            baseLayout.yaxis = { autorange: 'reversed' as const };
-            baseLayout.margin.l = 120;
-        }
-        if (chartType === 'bar') {
-            (baseLayout.xaxis as any).tickangle = -45;
-        }
-        return baseLayout;
-    }, [chartType]);
-
-    const plotData = useMemo(() => {
-        const percentages = tableData.map((d: any) => parseFloat(d.percentage));
-        const labels = tableData.map((d: any) => d.name);
-        if (chartType === 'pie' || chartType === 'donut') {
-            return [{
-                values: percentages,
-                labels: labels,
-                type: 'pie',
-                hole: chartType === 'donut' ? 0.4 : 0,
-                marker: { colors: COLORS },
-                textinfo: 'label+percent',
-                textposition: 'inside',
-            }];
-        }
-        return [{
-            y: chartType === 'hbar' ? labels : percentages,
-            x: chartType === 'hbar' ? percentages : labels,
-            type: 'bar',
-            orientation: chartType === 'hbar' ? 'h' : 'v',
-            marker: { color: COLORS[0] },
-            text: percentages.map((p: number) => `${p.toFixed(1)}%`),
-            textposition: 'auto',
-        }];
-    }, [chartType, tableData]);
-
     const chartConfig = {
       Overall: { label: 'Overall', color: 'hsl(var(--chart-1))' },
       Group: { label: comparisonData?.filterValue || 'Group', color: 'hsl(var(--chart-2))' },
@@ -977,7 +930,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
     return (
         <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                 <Card>
+                <Card>
                     <CardHeader>
                         <CardTitle className="text-base flex justify-between items-center">
                             Distribution {comparisonData && `vs. ${comparisonData.filterValue}`}
@@ -992,7 +945,18 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                         </Tabs>
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
-                         {comparisonData ? (
+                        {chartType === 'pie' || chartType === 'donut' ? (
+                            <ChartContainer config={chartConfig} className="w-full h-[300px]">
+                                <ResponsiveContainer>
+                                    <PieChart>
+                                        <Pie data={tableData} dataKey="percentage" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={chartType === 'donut' ? 60 : 0} label={p => `${p.name} (${p.percentage.toFixed(1)}%)`}>
+                                            {tableData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                        </Pie>
+                                        <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(1)}%`} />} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        ) : comparisonData ? (
                             <ChartContainer config={chartConfig} className="w-full h-[300px]">
                                 <ResponsiveContainer>
                                     <BarChart data={comparisonChartData} layout="vertical">
@@ -1007,29 +971,55 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                                 </ResponsiveContainer>
                             </ChartContainer>
                         ) : (
-                             <Plot
-                                data={plotData}
-                                layout={plotLayout}
-                                style={{ width: '100%', height: '100%' }}
-                                config={{ scrollZoom: true, displayModeBar: false }}
-                                useResizeHandler
-                            />
+                            <ChartContainer config={{ value: { label: 'Percentage' } }} className="w-full h-[300px]">
+                                <ResponsiveContainer>
+                                     <BarChart data={tableData.map(d => ({...d, value: d.percentage}))} layout={chartType === 'hbar' ? 'vertical' : 'horizontal'}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        {chartType === 'hbar' ? (
+                                            <>
+                                                <XAxis type="number" unit="%" />
+                                                <YAxis type="category" dataKey="name" width={100} />
+                                            </>
+                                        ) : (
+                                            <>
+                                                <XAxis dataKey="name" />
+                                                <YAxis unit="%" />
+                                            </>
+                                        )}
+                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
+                                        <Bar dataKey="value" fill={COLORS[0]} radius={4} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
                         )}
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
-                        <CardContent className="max-h-[200px] overflow-y-auto">{
-                            <Table>
-                                <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
-                                <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
-                            </Table>
-                        }</CardContent>
-                    </Card>
-                    <Card>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader className="pb-2"><CardTitle className="text-base">Overall Statistics</CardTitle></CardHeader>
+                            <CardContent className="max-h-[200px] overflow-y-auto">
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
+                                    <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                         {comparisonData && (
+                            <Card>
+                                <CardHeader className="pb-2"><CardTitle className="text-base">Group Statistics ({comparisonData.filterValue})</CardTitle></CardHeader>
+                                <CardContent className="max-h-[200px] overflow-y-auto">
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
+                                        <TableBody>{comparisonData.tableData.map((item:any, index:number) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
-                        <CardContent>{ <ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }</CardContent>
+                        <CardContent><ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul></CardContent>
                     </Card>
                 </div>
             </div>
@@ -1106,7 +1096,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                                 bargap: 0.1,
                             }}
                             style={{ width: '100%', height: '100%' }}
-                            config={{ scrollZoom: true, displayModeBar: false }}
+                            config={{ displayModeBar: false }}
                             useResizeHandler
                         />
                     </CardContent>
@@ -1161,7 +1151,7 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
                                 xaxis: { title: 'Best-Worst Score (Best count - Worst count)' },
                             }}
                             style={{ width: '100%', height: '100%' }}
-                            config={{ scrollZoom: true, displayModeBar: false }}
+                            config={{ displayModeBar: false }}
                             useResizeHandler
                         />
                     </CardContent>
@@ -1207,67 +1197,81 @@ const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName 
 };
 
 const NPSAnalysisDisplay = ({ chartData, tableData, varName, comparisonData }: { chartData: any, tableData: any, varName: string, comparisonData: any }) => {
-    if (!chartData || !tableData) return null;
-
-    const { gaugeFig, distributionFig, config } = chartData;
-    const { nps, promoters, passives, detractors, promotersP, passivesP, detractorsP } = tableData;
-
+    const npsGroupData = [
+      { name: 'Detractors', value: tableData.detractors, percentage: tableData.detractorsP, fill: 'hsl(var(--destructive))' },
+      { name: 'Passives', value: tableData.passives, percentage: tableData.passivesP, fill: 'hsl(var(--muted-foreground))' },
+      { name: 'Promoters', value: tableData.promoters, percentage: tableData.promotersP, fill: 'hsl(var(--chart-2))' },
+    ];
+  
+    const npsScoreDistribution = Object.entries(tableData.scoreCounts).map(([score, count]) => ({
+      score: Number(score),
+      count: count as number,
+    }));
+  
     return (
-        <AnalysisDisplayShell varName={varName}>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Net Promoter Score</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex items-center justify-center min-h-[400px]">
-                        <Plot
-                            data={gaugeFig.data}
-                            layout={gaugeFig.layout}
-                            config={config}
-                            style={{ width: '100%', height: '100%' }}
-                            useResizeHandler
-                        />
-                    </CardContent>
-                </Card>
-                <div className="space-y-4">
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base">NPS Distribution</CardTitle></CardHeader>
-                        <CardContent>
-                            <Plot
-                                data={distributionFig.data}
-                                layout={distributionFig.layout}
-                                config={config}
-                                style={{ width: '100%', height: '300px' }}
-                                useResizeHandler
-                            />
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
-                        <CardContent>
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Category</TableHead>
-                                        <TableHead className="text-right">Count</TableHead>
-                                        <TableHead className="text-right">Percentage</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow><TableCell>Promoters (9-10)</TableCell><TableCell className="text-right">{promoters}</TableCell><TableCell className="text-right">{promotersP.toFixed(1)}%</TableCell></TableRow>
-                                    <TableRow><TableCell>Passives (7-8)</TableCell><TableCell className="text-right">{passives}</TableCell><TableCell className="text-right">{passivesP.toFixed(1)}%</TableCell></TableRow>
-                                    <TableRow><TableCell>Detractors (0-6)</TableCell><TableCell className="text-right">{detractors}</TableCell><TableCell className="text-right">{detractorsP.toFixed(1)}%</TableCell></TableRow>
-                                    <TableRow className="font-bold border-t"><TableCell>NPS Score</TableCell><TableCell className="text-right" colSpan={2}>{nps.toFixed(1)}</TableCell></TableRow>
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                </div>
+      <AnalysisDisplayShell varName={varName}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="flex flex-col items-center justify-center p-6 text-center">
+            <CardDescription>Net Promoter Score</CardDescription>
+            <CardTitle className="text-7xl font-bold text-primary my-2">{chartData.nps.toFixed(1)}</CardTitle>
+            <div className="w-full mt-4">
+              <ResponsiveContainer width="100%" height={40}>
+                <BarChart layout="vertical" data={npsGroupData} stackOffset="expand">
+                  <YAxis type="category" dataKey="name" hide />
+                  <XAxis type="number" hide domain={[0, 100]} />
+                  <Tooltip
+                    cursor={false}
+                    content={<ChartTooltipContent 
+                      indicator="dot"
+                      formatter={(value, name, item) => (
+                        <div className="flex flex-col">
+                            <span>{item.payload.name}: {item.payload.value} ({item.payload.percentage.toFixed(1)}%)</span>
+                        </div>
+                      )}
+                    />}
+                  />
+                  <Bar dataKey="percentage" stackId="a" radius={[4, 4, 4, 4]}>
+                    {npsGroupData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                <span>Detractors ({tableData.detractorsP.toFixed(1)}%)</span>
+                <span>Passives ({tableData.passivesP.toFixed(1)}%)</span>
+                <span>Promoters ({tableData.promotersP.toFixed(1)}%)</span>
+              </div>
             </div>
-        </AnalysisDisplayShell>
+          </Card>
+  
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Score Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={{ count: { label: 'Count' } }} className="w-full h-[250px]">
+                <ResponsiveContainer>
+                  <BarChart data={npsScoreDistribution}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis dataKey="score" />
+                    <YAxis />
+                    <Tooltip cursor={{fill: 'hsl(var(--muted))'}} content={<ChartTooltipContent />} />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={2}>
+                        {npsScoreDistribution.map((entry) => (
+                            <Cell key={`cell-${entry.score}`} fill={entry.score >= 9 ? 'hsl(var(--chart-2))' : entry.score <= 6 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />
+                        ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+      </AnalysisDisplayShell>
     );
 };
-
+  
 const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
     if (!data) return null;
     const { kpiData, insights } = data;
@@ -1371,7 +1375,6 @@ const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
                         }}
                         style={{ width: '100%', height: '100%' }}
                         useResizeHandler
-                        config={{scrollZoom: true}}
                     />
                 </CardContent>
             </Card>
@@ -1903,61 +1906,18 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                 const detractorsP = total > 0 ? (detractors / total) * 100 : 0;
                 
                 const nps = promotersP - detractorsP;
-
-                 // Plotly gauge chart
-                const gaugeFig = {
-                    data: [{
-                        type: "indicator",
-                        mode: "gauge+number",
-                        value: nps,
-                        domain: { x: [0, 1], y: [0, 1] },
-                        title: { text: "<b>Net Promoter Score</b>", font: { size: 20 } },
-                        gauge: {
-                            axis: { range: [-100, 100], tickwidth: 1, tickcolor: "darkblue" },
-                            bar: { color: nps >= 50 ? "#00cc96" : nps >= 0 ? "#ffa15a" : "#ef553b" },
-                            steps: [
-                                { range: [-100, 0], color: "#ffcccc" },
-                                { range: [0, 50], color: "#ffffcc" },
-                                { range: [50, 100], color: "#ccffcc" }
-                            ],
-                        }
-                    }],
-                    layout: {
-                        width: 300, height: 250, margin: { t: 50, r: 25, l: 25, b: 25 },
-                        font: { color: "hsl(var(--foreground))", family: "Arial" },
-                        plot_bgcolor: 'rgba(0,0,0,0)', paper_bgcolor: 'rgba(0,0,0,0)'
-                    }
-                };
-
-                // Plotly distribution bar chart
-                const distributionFig = {
-                    data: [{
-                        x: ['Detractors<br>(0-6)', 'Passives<br>(7-8)', 'Promoters<br>(9-10)'],
-                        y: [detractorsP, passivesP, promotersP],
-                        type: 'bar',
-                        marker: { color: ['#ef553b', '#ffa15a', '#00cc96'] },
-                        text: [`${detractors} (${detractorsP.toFixed(1)}%)`, `${passives} (${passivesP.toFixed(1)}%)`, `${promoters} (${promotersP.toFixed(1)}%)`],
-                        textposition: 'auto', textfont: { color: 'white', size: 12 }
-                    }],
-                    layout: {
-                        title: { text: '<b>NPS Distribution</b>', font: { size: 18 } },
-                        yaxis: { title: 'Percentage (%)', range: [0, Math.max(detractorsP, passivesP, promotersP) + 10] },
-                        width: 400, height: 300, margin: { t: 50, r: 25, l: 50, b: 50 },
-                        plot_bgcolor: 'rgba(240,240,240,0.8)', paper_bgcolor: 'rgba(0,0,0,0)'
-                    }
-                };
                 
-                const config = {
-                    scrollZoom: true,
-                    displayModeBar: true,
-                    displaylogo: false,
-                    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
-                    responsive: true
-                };
+                const scoreCounts: {[key: number]: number} = {};
+                for(let i=0; i<=10; i++) scoreCounts[i] = 0;
+                npsScores.forEach(s => scoreCounts[s]++);
 
-                chartData = { gaugeFig, distributionFig, config };
-                tableData = { promoters, passives, detractors, promotersP, passivesP, detractorsP, nps };
-                insights = [`The overall NPS is <strong>${nps.toFixed(1)}</strong>.`];
+                chartData = { nps, promotersP, passivesP, detractorsP, scoreCounts };
+                tableData = { promoters, passives, detractors, promotersP, passivesP, detractorsP, nps, scoreCounts };
+                insights = [
+                    `The overall NPS is <strong>${nps.toFixed(1)}</strong>.`,
+                    `<strong>${promotersP.toFixed(1)}%</strong> of respondents are Promoters.`,
+                    `<strong>${detractorsP.toFixed(1)}%</strong> of respondents are Detractors.`
+                ];
                 break;
             }
             default:
@@ -2783,9 +2743,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                              const ChartComponent = () => {
                                                 switch (q.type) {
                                                     case 'single': case 'multiple': case 'dropdown':
-                                                        return <Plot data={[{ values: chartData.map((d: any) => d.count), labels: chartData.map((d: any) => d.name), type: 'pie', hole: .4, marker: { colors: COLORS } }]} layout={{ autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 }, legend: {orientation: 'h'} }} style={{ width: '100%', height: '100%' }} useResizeHandler config={{scrollZoom: true}} />;
+                                                        return <Plot data={[{ values: chartData.map((d: any) => d.count), labels: chartData.map((d: any) => d.name), type: 'pie', hole: .4, marker: { colors: COLORS } }]} layout={{ autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 }, legend: {orientation: 'h'} }} style={{ width: '100%', height: '100%' }} useResizeHandler/>;
                                                     case 'number':
-                                                        return <Plot data={[{ x: chartData.values, type: 'histogram', marker: {color: COLORS[0]} }]} layout={{ autosize: true, margin: { t: 40, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '100%' }} useResizeHandler config={{scrollZoom: true}} />;
+                                                        return <Plot data={[{ x: chartData.values, type: 'histogram', marker: {color: COLORS[0]} }]} layout={{ autosize: true, margin: { t: 40, b: 40, l: 40, r: 20 }, bargap: 0.1 }} style={{ width: '100%', height: '100%' }} useResizeHandler/>;
                                                     case 'rating':
                                                         return <div className="flex flex-col items-center gap-2"><StarDisplay rating={chartData.avg} total={q.scale?.length || 5} /><p>{chartData.avg.toFixed(2)} / {q.scale?.length || 5}</p></div>;
                                                     case 'nps':
@@ -2861,5 +2821,3 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         </div>
     );
 }
-
-    
