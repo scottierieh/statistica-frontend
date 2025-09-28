@@ -198,7 +198,6 @@ class RegressionAnalysis:
             summary_data.append({'caption': getattr(table, 'title', None), 'data': table_data})
         diagnostics['model_summary_data'] = summary_data
 
-        # Add ANOVA table
         try:
             anova_table = sm.stats.anova_lm(sm_model, typ=2)
             diagnostics['anova_table'] = anova_table.reset_index().rename(columns={'index': 'Source'}).to_dict('records')
@@ -226,8 +225,8 @@ class RegressionAnalysis:
                  diagnostics['vif'] = {}
         except Exception: diagnostics['vif'] = {}
         
-        jb_stat, jb_p, _, _ = jarque_bera(residuals)
-        sw_stat, sw_p = stats.shapiro(residuals)
+        jb_stat, jb_p, _, _ = jarque_bera(residuals) if len(residuals) > 2 else (np.nan, np.nan, np.nan, np.nan)
+        sw_stat, sw_p = stats.shapiro(residuals) if len(residuals) > 2 else (np.nan, np.nan)
         diagnostics['normality_tests'] = {
             'jarque_bera': {'statistic': jb_stat, 'p_value': jb_p},
             'shapiro_wilk': {'statistic': sw_stat, 'p_value': sw_p}
@@ -242,44 +241,47 @@ class RegressionAnalysis:
         return diagnostics
     
     def _generate_interpretation(self, metrics, diagnostics, stepwise_log):
-        # Introduction
+        if not diagnostics:
+            return "Could not generate interpretation because model diagnostics failed."
+            
         target_var_orig = self.original_names.get(self.target_variable_clean, self.target_variable_clean)
         feature_names_orig = [self.original_names.get(f, f) for f in self.X_final.columns]
         
         intro = f"A regression analysis was conducted to examine the relationship between the independent variable(s) ({', '.join(feature_names_orig)}) and the dependent variable ('{target_var_orig}').\n"
 
-        # Assumption Checks
         normality_p = diagnostics.get('normality_tests', {}).get('shapiro_wilk', {}).get('p_value', 1)
         homoscedasticity_p = diagnostics.get('heteroscedasticity_tests', {}).get('breusch_pagan', {}).get('p_value', 1)
         dw = diagnostics.get('durbin_watson', 2)
         
         assumptions = "Key assumptions were checked. "
-        if normality_p > 0.05:
-            assumptions += "Residuals appeared to be normally distributed. "
-        else:
-            assumptions += "Residuals were not normally distributed (p < .05), which may affect the validity of p-values. "
+        if normality_p is not None and not math.isnan(normality_p):
+            if normality_p > 0.05: assumptions += "Residuals appeared to be normally distributed. "
+            else: assumptions += "Residuals were not normally distributed (p < .05), which may affect the validity of p-values. "
             
-        if homoscedasticity_p > 0.05:
-            assumptions += "Homoscedasticity was met. "
-        else:
-            assumptions += "Homoscedasticity was not met (p < .05), suggesting variance is not constant. "
-            
-        if 1.5 < dw < 2.5:
-             assumptions += "Independence of residuals is likely met (Durbin-Watson ≈ 2)."
-        else:
-             assumptions += "There may be autocorrelation in the residuals (Durbin-Watson is not close to 2)."
+        if homoscedasticity_p is not None and not math.isnan(homoscedasticity_p):
+            if homoscedasticity_p > 0.05: assumptions += "Homoscedasticity was met. "
+            else: assumptions += "Homoscedasticity was not met (p < .05), suggesting variance is not constant. "
+        
+        if dw is not None and not math.isnan(dw):
+            if 1.5 < dw < 2.5: assumptions += "Independence of residuals is likely met (Durbin-Watson ≈ 2)."
+            else: assumptions += "There may be autocorrelation in the residuals (Durbin-Watson is not close to 2)."
         assumptions += "\n"
 
-        # Model Significance (ANOVA)
         f_stat = diagnostics.get('f_statistic', 0)
         f_pvalue = diagnostics.get('f_pvalue', 1)
-        df_model = diagnostics.get('anova_table', [{'df': 0}])[0].get('df', 0)
-        df_resid = diagnostics.get('anova_table', [{'df': 0}])[1].get('df', 0)
         
-        model_sig_text = f"The overall regression model was statistically significant (F({df_model:.0f}, {df_resid:.0f}) = {f_stat:.2f}, p < .001), " if f_pvalue < 0.001 else f"The overall regression model was {'statistically significant' if f_pvalue < 0.05 else 'not statistically significant'} (F({df_model:.0f}, {df_resid:.0f}) = {f_stat:.2f}, p = {f_pvalue:.3f}), "
-        model_sig_text += "suggesting that the predictor(s) collectively contribute to predicting the dependent variable.\n"
+        df_model = 0
+        df_resid = 0
+        anova_table = diagnostics.get('anova_table')
+        if anova_table and len(anova_table) > 1:
+            df_model = anova_table[0].get('df', 0)
+            df_resid = anova_table[1].get('df', 0)
         
-        # Regression Equation and Coefficients
+        model_sig_text = ""
+        if f_pvalue is not None and not math.isnan(f_pvalue):
+            model_sig_text = f"The overall regression model was statistically significant (F({df_model:.0f}, {df_resid:.0f}) = {f_stat:.2f}, p < .001), " if f_pvalue < 0.001 else f"The overall regression model was {'statistically significant' if f_pvalue < 0.05 else 'not statistically significant'} (F({df_model:.0f}, {df_resid:.0f}) = {f_stat:.2f}, p = {f_pvalue:.3f}), "
+            model_sig_text += "suggesting that the predictor(s) collectively contribute to predicting the dependent variable.\n"
+        
         coeffs = diagnostics.get('coefficient_tests', {}).get('params', {})
         p_values = diagnostics.get('coefficient_tests', {}).get('pvalues', {})
         
@@ -292,15 +294,14 @@ class RegressionAnalysis:
         coeff_interp = ""
         for name, value in slopes.items():
             p_val = p_values.get(name, 1.0)
-            sig_text = "significant" if p_val < 0.05 else "not significant"
-            direction = "increase" if value > 0 else "decrease"
-            coeff_interp += f"- The coefficient for '{name}' was {value:.3f}. This was statistically {sig_text} (p = {p_val:.3f}). This indicates that for a one-unit increase in '{name}', '{target_var_orig}' is predicted to {direction} by {abs(value):.3f} units.\n"
+            if p_val is not None and not math.isnan(p_val):
+                sig_text = "significant" if p_val < 0.05 else "not significant"
+                direction = "increase" if value > 0 else "decrease"
+                coeff_interp += f"- The coefficient for '{name}' was {value:.3f}. This was statistically {sig_text} (p = {p_val:.3f}). This indicates that for a one-unit increase in '{name}', '{target_var_orig}' is predicted to {direction} by {abs(value):.3f} units.\n"
 
-        # R-squared
         r2 = metrics['r2']
         r2_text = f"The R-squared value of {r2:.3f} indicates that {(r2*100):.1f}% of the variability in '{target_var_orig}' can be explained by the linear relationship with the predictor(s).\n"
         
-        # Conclusion
         conclusion = "In conclusion, the model provides a significant explanation of the variance in the target variable, with several predictors showing a clear impact. Practical significance should be considered based on the magnitude of the coefficients and the R-squared value."
 
         return intro + assumptions + model_sig_text + equation + coeff_interp + r2_text + conclusion
