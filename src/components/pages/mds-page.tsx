@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -264,4 +265,3 @@ export default function MdsPage({ data, numericHeaders, categoricalHeaders, onLo
         </div>
     );
 }
-

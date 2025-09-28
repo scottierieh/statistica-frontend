@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -7,10 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, DollarSign, Info } from 'lucide-react';
+import { Sigma, Loader2, DollarSign, Info, Brain, LineChart, AlertTriangle, HelpCircle, MoveRight } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Input } from '../ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import dynamic from 'next/dynamic';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
@@ -44,6 +47,7 @@ const StatCard = ({ title, value, unit = '$' }: { title: string, value: number |
 
 export default function VanWestendorpPage({ data, numericHeaders, onLoadExample }: VanWestendorpPageProps) {
     const { toast } = useToast();
+    const [view, setView] = useState('intro');
     const [tooCheapCol, setTooCheapCol] = useState<string | undefined>();
     const [cheapCol, setCheapCol] = useState<string | undefined>();
     const [expensiveCol, setExpensiveCol] = useState<string | undefined>();
@@ -53,6 +57,15 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
     const [isLoading, setIsLoading] = useState(false);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 4, [data, numericHeaders]);
+    
+    useEffect(() => {
+        setTooCheapCol(numericHeaders.find(h => h.toLowerCase().includes('toocheap')));
+        setCheapCol(numericHeaders.find(h => h.toLowerCase().includes('cheap')));
+        setExpensiveCol(numericHeaders.find(h => h.toLowerCase().includes('expensive')));
+        setTooExpensiveCol(numericHeaders.find(h => h.toLowerCase().includes('tooexpensive')));
+        setAnalysisResult(null);
+        setView(canRun ? 'main' : 'intro');
+    }, [data, numericHeaders, canRun]);
 
     const handleAnalysis = useCallback(async () => {
         if (!tooCheapCol || !cheapCol || !expensiveCol || !tooExpensiveCol) {
@@ -241,6 +254,7 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
                                 layout={layout}
                                 useResizeHandler={true}
                                 className="w-full h-[500px]"
+                                config={{ scrollZoom: true }}
                             />
                         </CardContent>
                     </Card>

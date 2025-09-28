@@ -202,7 +202,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                             data={plotData}
                             layout={plotLayout}
                             style={{ width: '100%', height: '100%' }}
-                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            config={{ scrollZoom: true, displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
                             useResizeHandler
                         />
                     </CardContent>
@@ -244,7 +244,7 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                                 bargap: 0.1,
                             }}
                             style={{ width: '100%', height: '100%' }}
-                            config={{ displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            config={{ scrollZoom: true, displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
                             useResizeHandler
                         />
                     </CardContent>
