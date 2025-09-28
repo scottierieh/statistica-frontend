@@ -1022,28 +1022,28 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <Card>
-                            <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
-                            <CardContent className="max-h-[200px] overflow-y-auto">{
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
-                                    <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
-                                </Table>
-                            }</CardContent>
-                        </Card>
-                         {comparisonData && (
-                             <Card>
-                                <CardHeader className="pb-2"><CardTitle className="text-base">Group Statistics ({comparisonData.filterValue})</CardTitle></CardHeader>
-                                <CardContent className="max-h-[200px] overflow-y-auto">
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
-                                        <TableBody>{comparisonData.tableData.map((item:any, index:number) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card>
+                           <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                           <CardContent className="max-h-[200px] overflow-y-auto">{
+                               <Table>
+                                   <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">Percentage</TableHead></TableRow></TableHeader>
+                                   <TableBody>{tableData.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                               </Table>
+                           }</CardContent>
+                       </Card>
+                       {comparisonData && (
+                            <Card>
+                               <CardHeader className="pb-2"><CardTitle className="text-base">Group Statistics ({comparisonData.filterValue})</CardTitle></CardHeader>
+                               <CardContent className="max-h-[200px] overflow-y-auto">
+                                   <Table>
+                                       <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
+                                       <TableBody>{comparisonData.tableData.map((item:any, index:number) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow> ))}</TableBody>
+                                   </Table>
+                               </CardContent>
+                           </Card>
+                       )}
+                   </div>
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
                         <CardContent>{ <ul className="space-y-2 text-sm list-disc pl-4">{insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}</ul> }</CardContent>
@@ -2820,3 +2820,4 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         </div>
     );
 }
+
