@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -913,22 +914,13 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
 
     const comparisonChartData = useMemo(() => {
         if (!comparisonData || !comparisonData.tableData) {
-            return tableData.map(d => ({ name: d.name, Overall: parseFloat(d.percentage) }));
+            return tableData.map(d => ({ name: d.name, value: d.percentage }));
         }
-        
-        const combined = new Map();
-        tableData.forEach(d => combined.set(d.name, { name: d.name, Overall: parseFloat(d.percentage) }));
-        
-        comparisonData.tableData.forEach((d: any) => {
-            if (combined.has(d.name)) {
-                combined.get(d.name).Group = parseFloat(d.percentage);
-            } else {
-                combined.set(d.name, { name: d.name, Group: parseFloat(d.percentage) });
-            }
-        });
-
-        return Array.from(combined.values()).map(d => ({...d, Group: d.Group || 0, Overall: d.Overall || 0}));
-
+        return tableData.map(d => ({
+            name: d.name,
+            Overall: d.percentage,
+            Group: comparisonData.tableData.find((cd: any) => cd.name === d.name)?.percentage || 0
+        }));
     }, [comparisonData, tableData]);
 
     const plotLayout = useMemo(() => {
@@ -1030,8 +1022,8 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <Card>
                             <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
                             <CardContent className="max-h-[200px] overflow-y-auto">{
                                 <Table>
@@ -1041,7 +1033,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                             }</CardContent>
                         </Card>
                          {comparisonData && (
-                            <Card>
+                             <Card>
                                 <CardHeader className="pb-2"><CardTitle className="text-base">Group Statistics ({comparisonData.filterValue})</CardTitle></CardHeader>
                                 <CardContent className="max-h-[200px] overflow-y-auto">
                                     <Table>
@@ -1050,7 +1042,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                                     </Table>
                                 </CardContent>
                             </Card>
-                         )}
+                        )}
                     </div>
                     <Card>
                         <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
@@ -1392,6 +1384,204 @@ const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
         </div>
     );
 };
+
+type Position = { x: number; y: number };
+
+const KPICard: React.FC<{ title: string; value: string; status: 'excellent' | 'good' | 'warning' | 'poor' }> = ({ title, value, status }) => {
+    const statusClasses = {
+        excellent: 'text-green-600',
+        good: 'text-green-500',
+        warning: 'text-yellow-600',
+        poor: 'text-red-600',
+    };
+    return (
+        <Card>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className={`text-2xl font-bold ${statusClasses[status]}`}>{value}</div>
+            </CardContent>
+        </Card>
+    );
+};
+
+const InsightCard: React.FC<{ insight: { type: 'critical' | 'warning' | 'opportunity' | 'excellent'; title: string; text: string; actions: string; } }> = ({ insight }) => {
+    const ICONS = {
+        critical: <AlertTriangle className="text-red-500" />,
+        warning: <ShieldAlert className="text-yellow-500" />,
+        opportunity: <Lightbulb className="text-blue-500" />,
+        excellent: <Award className="text-green-500" />,
+    }
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-start gap-4">
+                {ICONS[insight.type]}
+                <div>
+                    <CardTitle className="text-base">{insight.title}</CardTitle>
+                    <CardDescription>{insight.text}</CardDescription>
+                </div>
+            </CardHeader>
+            <CardFooter>
+                 <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                    <MoveRight className="w-4 h-4"/>
+                    <span>{insight.actions}</span>
+                </div>
+            </CardFooter>
+        </Card>
+    );
+};
+const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position?: Position }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+
+    const style: React.CSSProperties = {
+        position: 'absolute',
+        width: 300,
+        height: 300,
+        top: position?.y || 0,
+        left: position?.x || 0,
+        transform: isDragging ? (transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined) : undefined,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style}>
+            <Card className="w-full h-full shadow-lg flex flex-col">
+                <div {...listeners} {...attributes} className="absolute top-2 right-2 p-1 cursor-grab bg-background/50 rounded-full">
+                    <Move className="w-4 h-4 text-muted-foreground"/>
+                </div>
+                {children}
+            </Card>
+        </div>
+    );
+};
+
+const TextAnalysisDisplay = ({ tableData, varName }: { tableData: any[], varName: string; }) => {
+    const [isLoading, setIsLoading] = useState(true);
+    const [wordCloudImage, setWordCloudImage] = useState<string | null>(null);
+    const [frequencies, setFrequencies] = useState<{ word: string, count: number }[]>([]);
+    const [excludedWords, setExcludedWords] = useState<string[]>([]);
+
+    const generateCloud = useCallback(async (stopwords: string[]) => {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/analysis/wordcloud', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: tableData.join('\n'),
+                    customStopwords: stopwords.join(',')
+                })
+            });
+            if (!response.ok) throw new Error('Failed to generate word cloud');
+            const result = await response.json();
+            if (result.plots?.wordcloud) {
+                setWordCloudImage(result.plots.wordcloud);
+                setFrequencies(Object.entries(result.frequencies).map(([word, count]) => ({ word, count: count as number })));
+            } else {
+                throw new Error('Word cloud image not found in response');
+            }
+        } catch (error) {
+            console.error("Word cloud generation failed", error);
+            setWordCloudImage(null);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [tableData]);
+
+    useEffect(() => {
+        if (tableData.length > 0) {
+            generateCloud(excludedWords);
+        } else {
+            setIsLoading(false);
+        }
+    }, [tableData, excludedWords, generateCloud]);
+    
+    const handleExcludeWord = (word: string) => {
+        if (!excludedWords.includes(word)) {
+            setExcludedWords([...excludedWords, word]);
+        }
+    };
+    
+    const handleRestoreWord = (word: string) => {
+        setExcludedWords(excludedWords.filter(w => w !== word));
+    }
+
+    return (
+        <AnalysisDisplayShell varName={varName}>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Word Cloud</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                        {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={wordCloudImage} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
+                    </CardContent>
+                </Card>
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader className="pb-2"><CardTitle className="text-base">Word Frequencies</CardTitle></CardHeader>
+                        <CardContent>
+                             <ScrollArea className="h-64">
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Word</TableHead><TableHead className="text-right">Count</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {frequencies.map(({ word, count }) => (
+                                            <TableRow key={word}>
+                                                <TableCell>{word}</TableCell>
+                                                <TableCell className="text-right">{count}</TableCell>
+                                                <TableCell>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleExcludeWord(word)}>
+                                                        <Trash2 className="w-4 h-4 text-destructive"/>
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                    {excludedWords.length > 0 && (
+                        <Card>
+                            <CardHeader className="pb-2"><CardTitle className="text-base">Excluded Words</CardTitle></CardHeader>
+                            <CardContent className="flex flex-wrap gap-2">
+                                {excludedWords.map(word => (
+                                    <Badge key={word} variant="secondary" className="cursor-pointer" onClick={() => handleRestoreWord(word)}>
+                                        {word} <X className="ml-1 h-3 w-3" />
+                                    </Badge>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            </div>
+        </AnalysisDisplayShell>
+    );
+};
+
+// This function needs to be defined if it's used for IPA analysis
+function pearsonCorrelation(x: (number | undefined)[], y: (number | undefined)[]): number {
+    const validPairs = x.map((val, i) => [val, y[i]]).filter(([val1, val2]) => val1 !== undefined && val2 !== undefined) as [number, number][];
+    if (validPairs.length < 2) return 0;
+    
+    const xs = validPairs.map(p => p[0]);
+    const ys = validPairs.map(p => p[1]);
+
+    const meanX = mean(xs);
+    const meanY = mean(ys);
+    const stdDevX = standardDeviation(xs);
+    const stdDevY = standardDeviation(ys);
+
+    if (stdDevX === 0 || stdDevY === 0) return 0;
+
+    let covariance = 0;
+    for (let i = 0; i < validPairs.length; i++) {
+        covariance += (xs[i] - meanX) * (ys[i] - meanY);
+    }
+    covariance /= (validPairs.length - 1);
+
+    return covariance / (stdDevX * stdDevY);
+}
 
 const SurveyApp = () => {
     return (
@@ -2630,39 +2820,3 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         </div>
     );
 }
-
-// This function needs to be defined if it's used for IPA analysis
-function pearsonCorrelation(x: (number | undefined)[], y: (number | undefined)[]): number {
-    const validPairs = x.map((val, i) => [val, y[i]]).filter(([val1, val2]) => val1 !== undefined && val2 !== undefined) as [number, number][];
-    if (validPairs.length < 2) return 0;
-    
-    const xs = validPairs.map(p => p[0]);
-    const ys = validPairs.map(p => p[1]);
-
-    const meanX = mean(xs);
-    const meanY = mean(ys);
-    const stdDevX = standardDeviation(xs);
-    const stdDevY = standardDeviation(ys);
-
-    if (stdDevX === 0 || stdDevY === 0) return 0;
-
-    let covariance = 0;
-    for (let i = 0; i < validPairs.length; i++) {
-        covariance += (xs[i] - meanX) * (ys[i] - meanY);
-    }
-    covariance /= (validPairs.length - 1);
-
-    return covariance / (stdDevX * stdDevY);
-}
-
-const SurveyApp = () => {
-    return (
-        <Suspense fallback={<div className="flex-1 p-8 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto"/></div>}>
-            <GeneralSurveyPageContentFromClient />
-        </Suspense>
-      )
-}
-
-export default SurveyApp;
-
-    
