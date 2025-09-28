@@ -75,18 +75,22 @@ if (shouldReinstall()) {
         console.log(`Creating virtual environment at ${venvDir}...`);
         execSync(`${pythonCmd} -m venv ${venvDir}`, { cwd: backendDir, stdio: 'inherit' });
         
-        // 2. Install Cython first as it's a build dependency for other packages
+        // 2. Install Cython first
         console.log('Installing build dependency: Cython...');
-        execSync(`${pipCmd} install Cython`, { cwd: backendDir, stdio: 'inherit' });
+        execSync(`${pipCmd} install Cython==3.1.4`, { cwd: backendDir, stdio: 'inherit' });
 
-        // 3. Install the rest of the requirements
+        // 3. Install semopy which depends on Cython
+        console.log('Installing semopy...');
+        execSync(`${pipCmd} install semopy`, { cwd: backendDir, stdio: 'inherit' });
+
+        // 4. Install the rest of the requirements
         console.log(`Installing dependencies from ${reqFile}...`);
         execSync(`${pipCmd} install --prefer-binary --no-cache-dir -r ${reqFile}`, { cwd: backendDir, stdio: 'inherit' });
 
-        // 4. Create a copy of requirements.txt for future comparison
+        // 5. Create a copy of requirements.txt for future comparison
         fs.copyFileSync(reqFile, reqCopyFile);
         
-        // 5. Touch the marker file to indicate a successful setup
+        // 6. Touch the marker file to indicate a successful setup
         fs.writeFileSync(venvMarker, `Setup completed on: ${new Date().toISOString()}`);
 
         console.log('Python backend setup complete.');
