@@ -59,6 +59,8 @@ import {
   ShieldCheck,
   FileSearch,
   CheckCircle2,
+  AlertTriangle,
+  CheckSquare,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
