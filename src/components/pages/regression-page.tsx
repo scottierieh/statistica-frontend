@@ -12,13 +12,10 @@ import { Sigma, Loader2, TrendingUp, AlertTriangle, CheckCircle, Bot, MoveRight,
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
-import { Badge } from '../ui/badge';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Slider } from '../ui/slider';
-
 
 interface RegressionMetrics {
     r2: number;
@@ -51,7 +48,8 @@ interface RegressionResultsData {
         };
         heteroscedasticity_tests?: {
             breusch_pagan: { statistic: number; p_value: number; };
-        }
+        },
+        anova_table?: any[];
     };
     stepwise_log?: string[];
     interpretation?: string;
@@ -228,17 +226,9 @@ const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: 
 
     const isSignificant = f_pvalue !== undefined && f_pvalue < 0.05;
 
-    const { interpretationText, warnings } = useMemo(() => {
-        const parts = interpretation.split('--- Diagnostic Warnings ---');
-        return {
-            interpretationText: parts[0] || '',
-            warnings: parts[1] ? parts[1].trim().split('\n').filter(line => line.startsWith('Warning:')) : []
-        };
-    }, [interpretation]);
-
     const formattedInterpretation = useMemo(() => {
-        if (!interpretationText) return null;
-        return interpretationText
+        if (!interpretation) return null;
+        return interpretation
             .replace(/\n/g, '<br />')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.*?)\*/g, '<i>$1</i>')
@@ -248,33 +238,19 @@ const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: 
             .replace(/R²adj\s*=\s*([\d.-]+)/g, '<i>R</i>²adj = $1')
             .replace(/R²\s*=\s*([\d.-]+)/g, '<i>R</i>² = $1')
             .replace(/B\s*=\s*([\d.-]+)/g, '<i>B</i> = $1');
-    }, [interpretationText]);
+    }, [interpretation]);
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
                 <Alert variant={isSignificant ? 'default' : 'secondary'}>
                     {isSignificant ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                     <AlertTitle>{isSignificant ? "Statistically Significant Model" : "Not Statistically Significant Model"}</AlertTitle>
                     {formattedInterpretation && <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />}
                 </Alert>
-
-                {warnings.length > 0 && (
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Diagnostic Warnings</AlertTitle>
-                        <AlertDescription>
-                            <ul className="list-disc pl-5 mt-2">
-                                {warnings.map((warning, i) => (
-                                    <li key={i}>{warning.replace('Warning: ', '')}</li>
-                                ))}
-                            </ul>
-                        </AlertDescription>
-                    </Alert>
-                )}
             </CardContent>
         </Card>
     );
@@ -407,65 +383,9 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
     
-    const results = analysisResult?.results;
-    const coeffs = results?.diagnostics?.coefficient_tests;
-
-    const coefficientTableData = coeffs ? Object.keys(coeffs.params).map(key => ({
-        key: key,
-        coefficient: coeffs.params[key],
-        stdError: coeffs.bse ? coeffs.bse[key] : undefined,
-        tValue: coeffs.tvalues ? coeffs.tvalues[key] : undefined,
-        pValue: coeffs.pvalues ? coeffs.pvalues[key] : undefined,
-    })) : [];
-
-    const getAnalysisButtonDisabled = () => {
-        if (isLoading || !targetVar) return true;
-        if (modelType === 'simple' && !simpleFeatureVar) return true;
-        if (modelType !== 'simple' && multipleFeatureVars.length === 0) return true;
-        return false;
-    }
-
-    const IntroComponent = {
-        simple: SimpleLinearIntroPage,
-        multiple: MultipleLinearIntroPage,
-        polynomial: PolynomialIntroPage
-    }[modelType];
-    
-    if (!canRun || view === 'intro') {
-        return IntroComponent ? <IntroComponent onStart={() => setView('main')} onLoadExample={onLoadExample} /> : null;
-    }
-    
-    const renderMultiFeatureSelector = () => (
-        <div className="flex flex-col gap-4">
-            <div>
-                <Label>Feature Variables (X)</Label>
-                    <ScrollArea className="h-32 border rounded-md p-4">
-                    <div className="space-y-2">
-                        {availableFeatures.map(h => (
-                            <div key={h} className="flex items-center space-x-2">
-                                <Checkbox id={`feat-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
-                                <label htmlFor={`feat-${h}`}>{h}</label>
-                            </div>
-                        ))}
-                    </div>
-                </ScrollArea>
-            </div>
-             {modelType === 'multiple' && (
-                <div>
-                    <Label>Variable Selection Method</Label>
-                    <Select value={selectionMethod} onValueChange={setSelectionMethod}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">Enter (None)</SelectItem>
-                            <SelectItem value="forward">Forward Selection</SelectItem>
-                            <SelectItem value="backward">Backward Elimination</SelectItem>
-                            <SelectItem value="stepwise">Stepwise Regression</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-             )}
-        </div>
-    )
+    useEffect(() => {
+        setView(canRun ? 'main' : 'intro');
+    }, [canRun]);
 
     const renderSetupUI = () => {
         switch (modelType) {
@@ -498,7 +418,35 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                 <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
-                        {renderMultiFeatureSelector()}
+                        <div className="flex flex-col gap-4">
+                            <div>
+                                <Label>Feature Variables (X)</Label>
+                                    <ScrollArea className="h-32 border rounded-md p-4">
+                                    <div className="space-y-2">
+                                        {availableFeatures.map(h => (
+                                            <div key={h} className="flex items-center space-x-2">
+                                                <Checkbox id={`feat-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
+                                                <label htmlFor={`feat-${h}`}>{h}</label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                             {modelType === 'multiple' && (
+                                <div>
+                                    <Label>Variable Selection Method</Label>
+                                    <Select value={selectionMethod} onValueChange={setSelectionMethod}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Enter (None)</SelectItem>
+                                            <SelectItem value="forward">Forward Selection</SelectItem>
+                                            <SelectItem value="backward">Backward Elimination</SelectItem>
+                                            <SelectItem value="stepwise">Stepwise Regression</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                             )}
+                        </div>
                     </div>
                 );
             case 'polynomial':
@@ -515,13 +463,47 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                 <Input id="poly-degree" type="number" value={polyDegree} onChange={(e) => setPolyDegree(Number(e.target.value))} min="2" className="w-32" />
                            </div>
                         </div>
-                        {renderMultiFeatureSelector()}
+                        <div className="flex flex-col gap-4">
+                            <div>
+                                <Label>Feature Variables (X)</Label>
+                                    <ScrollArea className="h-32 border rounded-md p-4">
+                                    <div className="space-y-2">
+                                        {availableFeatures.map(h => (
+                                            <div key={h} className="flex items-center space-x-2">
+                                                <Checkbox id={`feat-${h}`} checked={multipleFeatureVars.includes(h)} onCheckedChange={(c) => handleMultiFeatureSelectionChange(h, c as boolean)} />
+                                                <label htmlFor={`feat-${h}`}>{h}</label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                        </div>
                     </div>
                 );
             default:
                 return <p>Select a model type.</p>;
         }
     };
+    
+    const IntroComponent = {
+        simple: SimpleLinearIntroPage,
+        multiple: MultipleLinearIntroPage,
+        polynomial: PolynomialIntroPage
+    }[modelType];
+
+    if (!IntroComponent || view === 'intro' || !canRun) {
+        return <IntroComponent onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
+    
+    const results = analysisResult?.results;
+    const anovaTable = results?.diagnostics?.anova_table;
+    const coefficientTableData = results?.diagnostics?.coefficient_tests ? Object.keys(results.diagnostics.coefficient_tests.params).map(key => ({
+        key: key,
+        coefficient: results.diagnostics.coefficient_tests!.params[key],
+        stdError: results.diagnostics.coefficient_tests!.bse ? results.diagnostics.coefficient_tests!.bse[key] : undefined,
+        tValue: results.diagnostics.coefficient_tests!.tvalues ? results.diagnostics.coefficient_tests!.tvalues[key] : undefined,
+        pValue: results.diagnostics.coefficient_tests!.pvalues ? results.diagnostics.coefficient_tests!.pvalues[key] : undefined,
+    })) : [];
 
     return (
         <div className="flex flex-col gap-4">
@@ -536,7 +518,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                 <CardContent className="space-y-4">
                     {renderSetupUI()}
                     <div className="flex justify-end mt-4">
-                        <Button onClick={() => handleAnalysis()} disabled={getAnalysisButtonDisabled()}>
+                        <Button onClick={() => handleAnalysis()} disabled={isLoading || !targetVar || (modelType === 'simple' ? !simpleFeatureVar : multipleFeatureVars.length === 0)}>
                             {isLoading ? <><Loader2 className="mr-2 animate-spin"/> Running...</> : <><Sigma className="mr-2"/>Run Analysis</>}
                         </Button>
                     </div>
@@ -547,42 +529,53 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
 
             {analysisResult && results && (
                 <div className="space-y-4">
-                    <InterpretationDisplay interpretation={results.interpretation} f_pvalue={results.diagnostics.f_pvalue} />
+                    <InterpretationDisplay interpretation={results.interpretation} f_pvalue={results.diagnostics?.f_pvalue} />
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Model Fit</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Metric</TableHead>
-                                        <TableHead className="text-right">Score</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell>R-squared</TableCell>
-                                        <TableCell className="text-right font-mono">{results.metrics.all_data.r2.toFixed(4)}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Adjusted R-squared</TableCell>
-                                        <TableCell className="text-right font-mono">{results.metrics.all_data.adj_r2.toFixed(4)}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>RMSE</TableCell>
-                                        <TableCell className="text-right font-mono">{results.metrics.all_data.rmse.toFixed(3)}</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader><CardTitle>Model Fit</CardTitle></CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Metric</TableHead>
+                                            <TableHead className="text-right">Score</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow><TableCell>R-squared</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.r2.toFixed(4)}</TableCell></TableRow>
+                                        <TableRow><TableCell>Adjusted R-squared</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.adj_r2.toFixed(4)}</TableCell></TableRow>
+                                        <TableRow><TableCell>RMSE</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.rmse.toFixed(3)}</TableCell></TableRow>
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                        {anovaTable && (
+                            <Card>
+                                <CardHeader><CardTitle>ANOVA Table</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableHeader><TableRow><TableHead>Source</TableHead><TableHead className="text-right">Sum of Sq.</TableHead><TableHead className="text-right">df</TableHead><TableHead className="text-right">F</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {anovaTable.map((row: any, i) => (
+                                                <TableRow key={i}>
+                                                    <TableCell>{row.Source}</TableCell>
+                                                    <TableCell className="text-right font-mono">{row.sum_sq?.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{row.df?.toFixed(0)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{row.F?.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{row['p-value'] < 0.001 ? '<.001' : row['p-value']?.toFixed(4)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
 
                     <Card>
                         <CardHeader><CardTitle className="font-headline">Coefficients</CardTitle></CardHeader>
                         <CardContent>
-                            {coeffs ? (
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -605,7 +598,6 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                     ))}
                                 </TableBody>
                             </Table>
-                            ) : <p className="text-muted-foreground">Coefficient details not available.</p>}
                         </CardContent>
                     </Card>
 
