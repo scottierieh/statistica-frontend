@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -41,6 +42,7 @@ interface RegressionResultsData {
             pvalues: { [key: string]: number };
             bse: { [key: string]: number };
             tvalues: { [key: string]: number };
+            conf_int: { [key: string]: [number, number] };
         },
         normality_tests?: {
             jarque_bera: { statistic: number; p_value: number; };
@@ -103,7 +105,7 @@ const SimpleLinearIntroPage = ({ onStart, onLoadExample }: { onStart: () => void
                         <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Equation:</strong> Y = B₀ + B₁X. B₁ is the slope, showing how much Y changes for a one-unit change in X.</li>
+                                <li><strong>Equation:</strong> Y = b0 + b1X. b1 is the slope, showing how much Y changes for a one-unit change in X.</li>
                                 <li><strong>R-squared (R²):</strong> The percentage of variance in Y explained by X.</li>
                             </ul>
                         </div>
@@ -248,7 +250,7 @@ const InterpretationDisplay = ({ interpretation, f_pvalue }: { interpretation?: 
             <CardContent>
                 <Alert variant={isSignificant ? 'default' : 'secondary'}>
                     {isSignificant ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                    <AlertTitle>{isSignificant ? "Statistically Significant Model" : "Not Statistically Significant Model"}</AlertTitle>
+                    <AlertTitle>{isSignificant ? "Statistically Significant Model" : "Model Not Statistically Significant"}</AlertTitle>
                     {formattedInterpretation && <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />}
                 </Alert>
             </CardContent>
@@ -497,12 +499,14 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
     
     const results = analysisResult?.results;
     const anovaTable = results?.diagnostics?.anova_table;
-    const coefficientTableData = results?.diagnostics?.coefficient_tests ? Object.keys(results.diagnostics.coefficient_tests.params).map(key => ({
+    const coefficientTableData = results?.diagnostics?.coefficient_tests ? Object.entries(results.diagnostics.coefficient_tests.params).map(([key, value]) => ({
         key: key,
-        coefficient: results.diagnostics.coefficient_tests!.params[key],
-        stdError: results.diagnostics.coefficient_tests!.bse ? results.diagnostics.coefficient_tests!.bse[key] : undefined,
-        tValue: results.diagnostics.coefficient_tests!.tvalues ? results.diagnostics.coefficient_tests!.tvalues[key] : undefined,
-        pValue: results.diagnostics.coefficient_tests!.pvalues ? results.diagnostics.coefficient_tests!.pvalues[key] : undefined,
+        coefficient: value,
+        stdError: results.diagnostics!.coefficient_tests!.bse?.[key],
+        tValue: results.diagnostics!.coefficient_tests!.tvalues?.[key],
+        pValue: results.diagnostics!.coefficient_tests!.pvalues?.[key],
+        ci_lower: results.diagnostics!.coefficient_tests!.conf_int?.[key]?.[0],
+        ci_upper: results.diagnostics!.coefficient_tests!.conf_int?.[key]?.[1]
     })) : [];
 
     return (
@@ -525,53 +529,40 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                 </CardContent>
             </Card>
 
+             {modelType === 'simple' && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Prediction</CardTitle>
+                        <CardDescription>Enter a value for '{simpleFeatureVar}' to predict '{targetVar}'.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex items-center gap-4">
+                        <Input type="number" value={predictXValue} onChange={e => setPredictXValue(e.target.value === '' ? '' : Number(e.target.value))} placeholder={`Enter a value for ${simpleFeatureVar}`}/>
+                        <Button onClick={() => handleAnalysis(Number(predictXValue))} disabled={predictXValue === '' || isLoading}>Predict</Button>
+                    </CardContent>
+                    {predictedYValue !== null && (
+                        <CardFooter>
+                            <p className="text-lg">Predicted '{targetVar}': <strong className="font-bold text-primary">{predictedYValue.toFixed(4)}</strong></p>
+                        </CardFooter>
+                    )}
+                </Card>
+            )}
+
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
             {analysisResult && results && (
                 <div className="space-y-4">
                     <InterpretationDisplay interpretation={results.interpretation} f_pvalue={results.diagnostics?.f_pvalue} />
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <Card>
-                            <CardHeader><CardTitle>Model Fit</CardTitle></CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Metric</TableHead>
-                                            <TableHead className="text-right">Score</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow><TableCell>R-squared</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.r2.toFixed(4)}</TableCell></TableRow>
-                                        <TableRow><TableCell>Adjusted R-squared</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.adj_r2.toFixed(4)}</TableCell></TableRow>
-                                        <TableRow><TableCell>RMSE</TableCell><TableCell className="text-right font-mono">{results.metrics.all_data.rmse.toFixed(3)}</TableCell></TableRow>
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                        {anovaTable && (
-                            <Card>
-                                <CardHeader><CardTitle>ANOVA Table</CardTitle></CardHeader>
-                                <CardContent>
-                                    <Table>
-                                        <TableHeader><TableRow><TableHead>Source</TableHead><TableHead className="text-right">Sum of Sq.</TableHead><TableHead className="text-right">df</TableHead><TableHead className="text-right">F</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
-                                        <TableBody>
-                                            {anovaTable.map((row: any, i) => (
-                                                <TableRow key={i}>
-                                                    <TableCell>{row.Source}</TableCell>
-                                                    <TableCell className="text-right font-mono">{row.sum_sq?.toFixed(2)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{row.df?.toFixed(0)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{row.F?.toFixed(2)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{row['p-value'] < 0.001 ? '<.001' : row['p-value']?.toFixed(4)}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Model Performance</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm font-medium text-muted-foreground">R-squared</p><p className="text-2xl font-bold">{results.metrics.all_data.r2.toFixed(4)}</p></div>
+                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm font-medium text-muted-foreground">Adj. R-squared</p><p className="text-2xl font-bold">{results.metrics.all_data.adj_r2.toFixed(4)}</p></div>
+                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm font-medium text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{results.metrics.all_data.rmse.toFixed(3)}</p></div>
+                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm font-medium text-muted-foreground">MAE</p><p className="text-2xl font-bold">{results.metrics.all_data.mae.toFixed(3)}</p></div>
+                        </CardContent>
+                    </Card>
 
                     <Card>
                         <CardHeader><CardTitle className="font-headline">Coefficients</CardTitle></CardHeader>
@@ -584,6 +575,7 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                         <TableHead className="text-right">Std. Error</TableHead>
                                         <TableHead className="text-right">t-value</TableHead>
                                         <TableHead className="text-right">p-value</TableHead>
+                                        <TableHead className="text-right">95% CI</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -593,13 +585,36 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
                                             <TableCell className="text-right font-mono">{row.coefficient?.toFixed(4) ?? 'N/A'}</TableCell>
                                             <TableCell className="text-right font-mono">{row.stdError?.toFixed(4) ?? 'N/A'}</TableCell>
                                             <TableCell className="text-right font-mono">{row.tValue?.toFixed(3) ?? 'N/A'}</TableCell>
-                                            <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '<.001' : row.pValue?.toFixed(4) ?? 'N/A'} {getSignificanceStars(row.pValue)}</TableCell>
+                                            <TableCell className="text-right font-mono">{row.pValue < 0.001 ? '&lt;.001' : row.pValue?.toFixed(4) ?? 'N/A'} {getSignificanceStars(row.pValue)}</TableCell>
+                                            <TableCell className="text-right font-mono">{`[${row.ci_lower?.toFixed(3)}, ${row.ci_upper?.toFixed(3)}]`}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
                         </CardContent>
                     </Card>
+
+                    {anovaTable && (
+                        <Card>
+                            <CardHeader><CardTitle>ANOVA Table</CardTitle></CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Source</TableHead><TableHead className="text-right">Sum of Sq.</TableHead><TableHead className="text-right">df</TableHead><TableHead className="text-right">F</TableHead><TableHead className="text-right">p-value</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {anovaTable.map((row: any, i) => (
+                                            <TableRow key={i}>
+                                                <TableCell>{row.Source}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.sum_sq?.toFixed(2)}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.df?.toFixed(0)}</TableCell>
+                                                <TableCell className="text-right font-mono">{row.F?.toFixed(2)}</TableCell>
+                                                <TableCell className="text-right font-mono">{row['p-value'] < 0.001 ? '&lt;.001' : row['p-value']?.toFixed(4)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {analysisResult.plot && (
                         <Card>
@@ -612,3 +627,4 @@ export default function RegressionPage({ data, numericHeaders, onLoadExample, ac
         </div>
     );
 }
+
