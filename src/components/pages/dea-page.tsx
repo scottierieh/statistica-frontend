@@ -6,13 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight, Building, Hospital, Landmark, GraduationCap, BarChart as BarChartIcon, Image as ImageIcon } from 'lucide-react';
+import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight, Building, Hospital, Landmark, GraduationCap, BarChart as BarChartIcon, Image as ImageIcon, GitCommit } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { produce } from 'immer';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
-import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { BarChart as RechartsBarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
@@ -47,6 +47,10 @@ interface DeaResults {
             target: number;
             improvement_pct: number;
         }[];
+        slacks: {
+            inputs: { [key: string]: number };
+            outputs: { [key: string]: number };
+        }
     }[];
 }
 
@@ -134,6 +138,8 @@ interface DeaPageProps {
     numericHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
+
+const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
 export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExample }: DeaPageProps) {
     const { toast } = useToast();
@@ -294,7 +300,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <CardTitle className="font-headline">DEA Setup</CardTitle>
-                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                     <CardDescription>Define your Decision Making Units (DMUs), inputs, and outputs.</CardDescription>
                 </CardHeader>
@@ -401,21 +407,20 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                                 </ChartContainer>
                             </CardContent>
                         </Card>
-                         {analysisResult?.plot && (
+                        {analysisResult?.plot ? (
                             <Card>
                                 <CardHeader><CardTitle>Efficiency Frontier</CardTitle></CardHeader>
                                 <CardContent>
                                     <Image src={analysisResult.plot} alt="DEA Frontier Plot" width={800} height={600} className="w-full rounded-md border" />
                                 </CardContent>
                             </Card>
-                        )}
-                        {ioChartData.length > 0 && results.input_cols.length > 0 && results.output_cols.length > 0 && (
-                             <Card className="lg:col-span-2">
+                        ) : ioChartData.length > 0 && results.input_cols.length > 0 && results.output_cols.length > 0 && (
+                             <Card>
                                 <CardHeader><CardTitle>Input/Output Comparison</CardTitle></CardHeader>
                                 <CardContent>
                                     <ChartContainer config={{}} className="w-full h-[400px]">
                                         <ResponsiveContainer>
-                                            <BarChart data={ioChartData} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
+                                            <RechartsBarChart data={ioChartData} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
                                                 <CartesianGrid strokeDasharray="3 3" />
                                                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={80}/>
                                                 <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
@@ -424,7 +429,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                                                 <Legend />
                                                 <Bar yAxisId="left" dataKey={results.input_cols[0]} fill="#8884d8" name={`Input: ${results.input_cols[0]}`} />
                                                 <Bar yAxisId="right" dataKey={results.output_cols[0]} fill="#82ca9d" name={`Output: ${results.output_cols[0]}`} />
-                                            </BarChart>
+                                            </RechartsBarChart>
                                         </ResponsiveContainer>
                                     </ChartContainer>
                                 </CardContent>
@@ -490,8 +495,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             </ScrollArea>
                         </CardContent>
                     </Card>
-
-                    <Card>
+                     <Card>
                         <CardHeader><CardTitle>Input & Output Data</CardTitle></CardHeader>
                         <CardContent>
                              <ScrollArea className="h-72">
@@ -521,3 +525,4 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
         </div>
     );
 }
+
