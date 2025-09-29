@@ -47,7 +47,13 @@ const HelpPage = ({ onLoadExample, onBackToSetup }: { onLoadExample: (e: Example
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="text-center">
+                        <h2 className="text-xl font-semibold mb-2">Why Use Decision Trees?</h2>
+                        <p className="max-w-3xl mx-auto text-muted-foreground">
+                           Decision trees are excellent for classification problems because they provide clear, interpretable rules. They mimic human decision-making, making it easy to understand why the model made a certain prediction. They can handle both numerical and categorical data and are the fundamental building blocks for more complex models like Random Forests and Gradient Boosting.
+                        </p>
+                    </div>
+                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-4">
                             <h3 className="font-semibold text-lg flex items-center"><Settings className="mr-2 h-5 w-5 text-primary" />Setup Guide</h3>
                             <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
@@ -100,23 +106,27 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
     const [showHelpPage, setShowHelpPage] = useState(data.length === 0);
 
     const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 2 && categoricalHeaders.length >= 1, [data, allHeaders, categoricalHeaders]);
-
-    useEffect(() => {
-        setTarget(categoricalHeaders[0]);
-    }, [data, categoricalHeaders]);
-
-    useEffect(() => {
-        if(target) {
-            setFeatures(allHeaders.filter(h => h !== target));
-        } else {
-            setFeatures([]);
-        }
-        setAnalysisResult(null);
-    }, [target, allHeaders]);
     
-     useEffect(() => {
-        setShowHelpPage(!canRun);
-    }, [canRun]);
+    const loanApprovalExample = exampleDatasets.find(ex => ex.id === 'loan-approval');
+
+    useEffect(() => {
+        if (!canRun) {
+            if (loanApprovalExample) {
+                onLoadExample(loanApprovalExample);
+                setTarget('status');
+                setFeatures(['age', 'income', 'loan_amount', 'credit_score']);
+                setShowHelpPage(false);
+            } else {
+                 setShowHelpPage(true);
+            }
+        } else {
+            const defaultTarget = categoricalHeaders[0];
+            setTarget(defaultTarget);
+            setFeatures(allHeaders.filter(h => h !== defaultTarget));
+            setAnalysisResult(null);
+        }
+    }, [data, allHeaders, numericHeaders, categoricalHeaders, canRun, loanApprovalExample, onLoadExample]);
+
 
     const handleFeatureChange = (header: string, checked: boolean) => {
         setFeatures(prev => checked ? [...prev, header] : prev.filter(f => f !== header));
@@ -271,3 +281,4 @@ export default function DecisionTreePage({ data, allHeaders, numericHeaders, cat
         </div>
     );
 }
+
