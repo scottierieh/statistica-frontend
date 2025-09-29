@@ -38,7 +38,7 @@ interface LpResult {
     };
 }
 
-const IntroPage = ({ onStart }: { onStart: () => void }) => {
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -63,14 +63,14 @@ const IntroPage = ({ onStart }: { onStart: () => void }) => {
                         <li><strong>Optimal Solution:</strong> The values of the variables (x₁, x₂, ...) that optimize the objective function while satisfying all constraints.</li>
                     </ul>
                 </CardContent>
-                <CardFooter className="flex justify-center p-6 bg-muted/30 rounded-b-lg">
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                    <Button variant="outline" onClick={onLoadExample}>Load Example</Button>
                     <Button size="lg" onClick={onStart}>Get Started <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
     );
 };
-
 
 export default function LinearProgrammingPage() {
     const { toast } = useToast();
@@ -110,14 +110,14 @@ export default function LinearProgrammingPage() {
         setNumConstraints(2);
         setObjective('maximize');
         setProblemType('lp');
-        setC([300, 500]); 
-        setA([[2, 3], [3, 4]]);
-        setB([1000, 800]);
+        setC([3, 2]); 
+        setA([[1, 1], [1, 0]]);
+        setB([4, 2]);
         setConstraintTypes(['<=', '<=']);
         setVariableTypes(['continuous', 'continuous']);
         setAnalysisResult(null);
         setView('main');
-        toast({ title: "Sample Data Loaded", description: "Car factory maximization problem has been set up." });
+        toast({ title: "Sample Data Loaded", description: "Example optimization problem has been set up." });
     };
 
     const handleMatrixChange = (val: string, i: number, j: number, type: 'A' | 'b' | 'c') => {
@@ -187,7 +187,7 @@ export default function LinearProgrammingPage() {
 
 
     if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} />;
+        return <IntroPage onStart={() => setView('main')} onLoadExample={handleLoadExample} />;
     }
     
     const primalSolution = analysisResult?.primal_solution ?? analysisResult?.solution;
@@ -283,7 +283,7 @@ export default function LinearProgrammingPage() {
                                             <div key={i} className="flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/20">
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     {row.map((val, j) => (
-                                                        <div key={j} className="flex items-center gap-2">
+                                                        <div key={j} className="flex items-center gap-1">
                                                             <Input id={`a${i+1}${j+1}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, i, j, 'A')} className="w-20"/>
                                                             <Label>· {decisionVars[j]}</Label>
                                                             {j < decisionVars.length - 1 && <span className="mx-1 font-semibold">+</span>}
@@ -335,12 +335,12 @@ export default function LinearProgrammingPage() {
                             <CardContent>
                                 {analysisResult.success ? (
                                     <div>
-                                        <p><strong>Optimal Value (Z*):</strong> <span className="font-mono text-lg text-primary">{optimalValue?.toFixed(6)}</span></p>
+                                        <p><strong>Optimal Value (Z*):</strong> <span className="font-mono text-lg text-primary">{optimalValue?.toFixed(2)}</span></p>
                                         <Table className="mt-2">
                                             <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Optimal Value</TableHead></TableRow></TableHeader>
                                             <TableBody>
                                                 {primalSolution?.map((s, i) => (
-                                                    <TableRow key={i}><TableCell><strong>{decisionVars[i]}</strong></TableCell><TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell></TableRow>
+                                                    <TableRow key={i}><TableCell><strong>{decisionVars[i]}</strong></TableCell><TableCell className="font-mono text-right">{s.toFixed(2)}</TableCell></TableRow>
                                                 ))}
                                             </TableBody>
                                         </Table>
@@ -357,7 +357,7 @@ export default function LinearProgrammingPage() {
                                     <CardTitle>Feasible Region Plot</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                     <Image src={analysisResult.plot} alt="Feasible Region Plot" width={600} height={600} className="w-full rounded-md border" />
+                                     <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="Feasible Region Plot" width={600} height={600} className="w-full rounded-md border" />
                                 </CardContent>
                             </Card>
                         )}
