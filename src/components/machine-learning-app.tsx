@@ -29,21 +29,21 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import DeepLearningApp from './deep-learning-app';
-import KnnRegressionPage from './pages/knn-regression-page';
+import KnnRegressionPage from '@/components/pages/knn-regression-page';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import { useToast } from '@/hooks/use-toast';
 import { DataSet, parseData, unparseData } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import * as XLSX from 'xlsx';
-import RidgeRegressionPage from './pages/ridge-regression-page';
-import LassoRegressionPage from './pages/lasso-regression-page';
-import FruitClusteringPage from './pages/fruit-clustering-page';
-import DecisionTreePage from './pages/decision-tree-page';
-import ClassifierComparisonPage from './pages/classifier-comparison-page';
+import RidgeRegressionPage from '@/components/pages/ridge-regression-page';
+import LassoRegressionPage from '@/components/pages/lasso-regression-page';
+import FruitClusteringPage from '@/components/pages/fruit-clustering-page';
+import DecisionTreePage from '@/components/pages/decision-tree-page';
+import ClassifierComparisonPage from '@/components/pages/classifier-comparison-page';
 import { cn } from '@/lib/utils';
-import HcaPage from './pages/hca-page';
-import HcaComparisonPage from './pages/hca-comparison-page';
+import HcaPage from '@/components/pages/hca-page';
+import HcaComparisonPage from '@/components/pages/hca-comparison-page';
 
 type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison' | 'hca' | 'hca-comparison';
 
