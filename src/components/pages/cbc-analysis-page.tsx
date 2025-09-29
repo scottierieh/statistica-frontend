@@ -94,7 +94,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </div>
                          <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><BarIcon className="text-primary"/> Results Interpretation</h3>
-                             <ul className="list-decimal list-inside space-y-4 text-muted-foreground">
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
                                     <strong>Attribute Importance</strong>
                                     <p className="text-sm pl-5">Shows which attributes (e.g., Brand, Price) have the most significant impact on consumer choice.</p>
@@ -232,7 +232,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
             setAnalysisResult(result);
             toast({ title: 'CBC Analysis Complete', description: 'Part-worths and importance have been calculated.' });
 
-        } catch (e: any) {
+        } catch (e: any) => {
             console.error('CBC error:', e);
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
@@ -356,14 +356,6 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     const importanceData = results ? results.importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value) : [];
     const partWorthsData = results ? results.part_worths : [];
     
-    const diagnosticsData = useMemo(() => {
-        if (!results?.regression?.predictions || !results?.regression?.residuals) return [];
-        return results.regression.predictions.map((p, i) => ({
-            prediction: p,
-            residual: results.regression.residuals[i]
-        }));
-    }, [results]);
-
     const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
     const importanceChartConfig = useMemo(() => {
       if (!analysisResult) return {};
