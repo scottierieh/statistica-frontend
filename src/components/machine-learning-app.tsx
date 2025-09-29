@@ -44,8 +44,9 @@ import ClassifierComparisonPage from '@/components/pages/classifier-comparison-p
 import { cn } from '@/lib/utils';
 import HcaPage from '@/components/pages/hca-page';
 import HcaComparisonPage from '@/components/pages/hca-comparison-page';
+import DiscriminantComparisonPage from './pages/discriminant-comparison-page';
 
-type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison' | 'hca' | 'hca-comparison';
+type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison' | 'hca' | 'hca-comparison' | 'discriminant-comparison';
 
 const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalHeaders, allHeaders, onLoadExample }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], categoricalHeaders: string[], allHeaders: string[], onLoadExample: (e: ExampleDataSet) => void }) => {
     switch (activeTask) {
@@ -69,6 +70,8 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalH
             return <HcaPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} />;
         case 'hca-comparison':
             return <HcaComparisonPage />;
+        case 'discriminant-comparison':
+            return <DiscriminantComparisonPage />;
         case 'regression':
         case 'classification':
         case 'tree':
@@ -275,6 +278,9 @@ export default function MachineLearningApp() {
                          <SidebarMenuItem>
                             <SidebarMenuButton onClick={() => setActiveTask('decision-tree-classifier')} isActive={activeTask === 'decision-tree-classifier'}>Decision Tree Classifier</SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton onClick={() => setActiveTask('discriminant-comparison')} isActive={activeTask === 'discriminant-comparison'}>Discriminant Analysis</SidebarMenuButton>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                   </CollapsibleContent>
               </Collapsible>
@@ -312,7 +318,7 @@ export default function MachineLearningApp() {
                 <div />
             </header>
             
-            {hasData && activeTask !== 'classifier-comparison' && activeTask !== 'fruit-clustering' && activeTask !== 'hca-comparison' && (
+            {hasData && activeTask !== 'classifier-comparison' && activeTask !== 'fruit-clustering' && activeTask !== 'hca-comparison' && activeTask !== 'discriminant-comparison' && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
