@@ -1,6 +1,5 @@
 
 'use client';
-import * as React from 'react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -52,7 +51,7 @@ interface Scenario {
     [key: string]: string;
 }
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const conjointExample = exampleDatasets.find(d => d.id === 'conjoint-smartphone');
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
@@ -267,7 +266,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
     const partWorthChartConfig = { value: { label: "Part-Worth" } };
 
     const calculateUtility = useCallback((scenario: Scenario) => {
-        if (!analysisResult) return 0;
+        if (!analysisResult?.regression) return 0;
         let utility = analysisResult.regression.intercept || 0;
         const { coefficients } = analysisResult.regression;
 
@@ -277,11 +276,12 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
             const attr = attributes[attrName];
             if (attr.type === 'categorical') {
                 if (String(value) !== String(attr.levels[0])) {
-                    const featureName = `${attrName}_${value}`;
-                    utility += coefficients[featureName] || 0;
+                    const paramName = `C(Q("${attrName.replace(/[^A-Za-z0-9_]/g, '_')}"))[T.${value}]`;
+                    utility += coefficients[paramName] || 0;
                 }
             } else {
-                // Not implemented for numerical in this version as per the Python script
+                 const paramName = `Q("${attrName.replace(/[^A-Za-z0-9_]/g, '_')}")`;
+                 utility += (coefficients[paramName] || 0) * Number(value);
             }
         });
         return utility;
@@ -291,7 +291,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         const utilities = scenarios.map(scenario => calculateUtility(scenario));
         const expUtilities = utilities.map(u => Math.exp(u));
         const totalExpUtility = expUtilities.reduce((sum, exp) => sum + exp, 0);
-        const marketShares = expUtilities.map(exp => (exp / totalExpUtility * 100));
+        const marketShares = expUtilities.map(exp => (totalExpUtility > 0 ? (exp / totalExpUtility * 100) : 0));
         
         setSimulationResult(scenarios.map((scenario, index) => ({
             name: scenario.name,
@@ -311,7 +311,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         
         const baseScenario: Scenario = { name: 'base' };
         Object.keys(attributes).forEach(attrName => {
-            if(attributes[attrName].includeInAnalysis) {
+            if(attributes[attrName].includeInAnalysis && attrName !== sensitivityAttribute) {
                 baseScenario[attrName] = attributes[attrName].levels[0];
             }
         });
@@ -323,6 +323,14 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         });
         setSensitivityResult(results);
     };
+
+    const diagnosticsData = useMemo(() => {
+      if (!analysisResult?.regression?.predictions || !analysisResult?.regression?.residuals) return [];
+      return analysisResult.regression.predictions.map((p, i) => ({
+          prediction: p,
+          residual: analysisResult.regression.residuals[i]
+      }));
+  }, [analysisResult]);
     
     if (view === 'intro') {
        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
@@ -408,7 +416,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                         <CardHeader><CardTitle className='flex items-center gap-2'><PieIcon/>Relative Importance of Attributes</CardTitle></CardHeader>
                                         <CardContent>
                                             <ChartContainer config={importanceChartConfig} className="w-full h-[300px]">
-                                                <ResponsiveContainer width="100%" height={300}>
+                                                <ResponsiveContainer>
                                                     <PieChart>
                                                         <Pie data={analysisResult.importance} dataKey="importance" nameKey="attribute" cx="50%" cy="50%" outerRadius={100} label={p => `${p.attribute} (${p.importance.toFixed(1)}%)`}>
                                                             {analysisResult.importance.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
@@ -467,8 +475,8 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                             <Button onClick={runSimulation}>Run Simulation</Button>
                                             {simulationResult && (
                                                 <div className="mt-4">
-                                                    <ChartContainer config={{marketShare: {label: 'Market Share', color: COLORS[0]}}} className="w-full h-[300px]">
-                                                      <ResponsiveContainer width="100%" height={300}>
+                                                    <ChartContainer config={{marketShare: {label: 'Market Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
+                                                      <ResponsiveContainer>
                                                           <BarChart data={simulationResult}>
                                                               <CartesianGrid strokeDasharray="3 3" />
                                                               <XAxis dataKey="name" />
@@ -534,17 +542,17 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                 <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{analysisResult.regression.mae.toFixed(3)}</p></div>
                                             </div>
                                              <Card>
-                                                <CardHeader><CardTitle>Residuals vs. Fitted</CardTitle></CardHeader>
+                                                <CardHeader><CardTitle>Residuals vs. Fitted Plot</CardTitle></CardHeader>
                                                 <CardContent>
                                                     <ChartContainer config={{}} className="w-full h-[300px]">
-                                                        <ResponsiveContainer width="100%" height={300}>
+                                                        <ResponsiveContainer>
                                                             <ScatterChart>
                                                                 <CartesianGrid />
                                                                 <XAxis type="number" dataKey="prediction" name="Fitted Value" />
                                                                 <YAxis type="number" dataKey="residual" name="Residual" />
                                                                 <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
-                                                                {analysisResult.regression.predictions && analysisResult.regression.residuals &&
-                                                                    <Scatter data={analysisResult.regression.predictions.map((p, i) => ({prediction: p, residual: analysisResult.regression.residuals[i]}))} fill="hsl(var(--primary))" />
+                                                                {diagnosticsData.length > 0 &&
+                                                                    <Scatter data={diagnosticsData} fill="hsl(var(--primary))" />
                                                                 }
                                                             </ScatterChart>
                                                         </ResponsiveContainer>
@@ -583,4 +591,3 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
     </div>
   );
 
-    
