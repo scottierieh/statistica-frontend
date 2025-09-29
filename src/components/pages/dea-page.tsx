@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -12,7 +13,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { produce } from 'immer';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
-import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell } from 'recharts';
+import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, ResponsiveContainer, ScatterChart, Scatter, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
@@ -135,6 +136,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
     
     const [analysisResult, setAnalysisResult] = useState<FullDeaResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedDmusForComparison, setSelectedDmusForComparison] = useState<string[]>([]);
     
     const canRun = useMemo(() => data.length > 0 && allHeaders.length >= 3, [data, allHeaders]);
     
@@ -181,6 +183,33 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
         }));
     }, [results, data, dmuCol]);
 
+     const radarChartData = useMemo(() => {
+        if (!results || selectedDmusForComparison.length < 2) return [];
+
+        const allVars = [...results.input_cols, ...results.output_cols];
+        const minMax: { [key: string]: { min: number, max: number } } = {};
+
+        allVars.forEach(v => {
+            const values = data.map(row => row[v] as number);
+            minMax[v] = { min: Math.min(...values), max: Math.max(...values) };
+        });
+
+        const normalizedData = selectedDmusForComparison.map(dmuName => {
+            const dmuData = data.find(row => row[dmuCol!] === dmuName);
+            if (!dmuData) return null;
+            
+            const normalized: any = { subject: dmuName };
+            allVars.forEach(v => {
+                const { min, max } = minMax[v];
+                const value = dmuData[v] as number;
+                normalized[v] = (max - min) > 0 ? (value - min) / (max - min) * 100 : 50;
+            });
+            return normalized;
+        }).filter(Boolean);
+
+        return normalizedData;
+    }, [results, selectedDmusForComparison, data, dmuCol]);
+
     useEffect(() => {
         const potentialDmu = allHeaders.find(h => !numericHeaders.includes(h) && new Set(data.map(row => row[h])).size === data.length);
         setDmuCol(potentialDmu || allHeaders[0]);
@@ -215,6 +244,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
 
         setIsLoading(true);
         setAnalysisResult(null);
+        setSelectedDmusForComparison([]);
 
         try {
             const response = await fetch('/api/analysis/dea', {
@@ -236,6 +266,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
             const result = await response.json();
             if (result.error) throw new Error(result.error);
             setAnalysisResult(result);
+            setSelectedDmusForComparison(result.results.dmu_names.slice(0,3));
             toast({title: 'DEA Complete', description: 'Efficiency scores have been calculated.'});
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
@@ -372,7 +403,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             <Card>
                                 <CardHeader><CardTitle>Efficiency Frontier</CardTitle></CardHeader>
                                 <CardContent>
-                                    <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="DEA Frontier Plot" width={800} height={600} className="w-full rounded-md border" />
+                                    <Image src={analysisResult.plot} alt="DEA Frontier Plot" width={800} height={600} className="w-full rounded-md border" />
                                 </CardContent>
                             </Card>
                         )}
@@ -408,6 +439,49 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Efficient DMUs</p><p className="text-2xl font-bold text-green-600">{results.summary.efficient_dmus}</p></div>
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Inefficient DMUs</p><p className="text-2xl font-bold text-destructive">{results.summary.inefficient_dmus}</p></div>
                             <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Avg. Efficiency</p><p className="text-2xl font-bold">{results.summary.average_efficiency.toFixed(3)}</p></div>
+                        </CardContent>
+                    </Card>
+                    
+                    <Card>
+                        <CardHeader><CardTitle>DMU Comparison</CardTitle></CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="md:col-span-1">
+                                    <Label>Select DMUs to Compare</Label>
+                                    <ScrollArea className="h-64 border rounded-md p-2">
+                                        {results.dmu_names.map(dmu => (
+                                            <div key={dmu} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`comp-${dmu}`}
+                                                    checked={selectedDmusForComparison.includes(dmu)}
+                                                    onCheckedChange={checked => {
+                                                        setSelectedDmusForComparison(prev => 
+                                                            checked ? [...prev, dmu] : prev.filter(item => item !== dmu)
+                                                        );
+                                                    }}
+                                                />
+                                                <Label htmlFor={`comp-${dmu}`}>{dmu}</Label>
+                                            </div>
+                                        ))}
+                                    </ScrollArea>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <ChartContainer config={{}} className="w-full h-[400px]">
+                                        <ResponsiveContainer>
+                                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarChartData}>
+                                                <PolarGrid />
+                                                <PolarAngleAxis dataKey="subject" tick={{fontSize: 10}}/>
+                                                <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                                                <Tooltip content={<ChartTooltipContent />} />
+                                                <Legend />
+                                                {selectedDmusForComparison.map((dmu, i) => (
+                                                    <Radar key={dmu} name={dmu} dataKey={dmu} stroke={COLORS[i % COLORS.length]} fill={COLORS[i % COLORS.length]} fillOpacity={0.6} />
+                                                ))}
+                                            </RadarChart>
+                                        </ResponsiveContainer>
+                                    </ChartContainer>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 
