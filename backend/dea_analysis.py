@@ -4,6 +4,9 @@ import json
 import numpy as np
 import pandas as pd
 import warnings
+import matplotlib.pyplot as plt
+import io
+import base64
 
 try:
     from scipy.optimize import linprog
@@ -29,6 +32,8 @@ class DEAAnalyzer:
         self.dmu_names = data[dmu_col].tolist()
         self.inputs = data[input_cols].values
         self.outputs = data[output_cols].values
+        self.input_cols = input_cols
+        self.output_cols = output_cols
         
     def _generate_interpretation(self, results, orientation):
         scores = np.array([s for s in results['efficiency_scores'].values() if s is not None and not np.isnan(s)])
@@ -196,10 +201,53 @@ class DEAAnalyzer:
             'summary': summary,
             'dmu_col': self.dmu_names[0] if self.dmu_names else "",
             'dmu_names': self.dmu_names,
+            'input_cols': self.input_cols,
+            'output_cols': self.output_cols,
         }
 
         final_results['interpretation'] = self._generate_interpretation(final_results, orientation)
         return final_results
+    
+    def plot_frontier(self, results):
+        if self.inputs.shape[1] != 1 or self.outputs.shape[1] != 1:
+            return None # Can only plot for 1 input, 1 output
+        
+        fig, ax = plt.subplots(figsize=(8, 6))
+        
+        efficient_dmus = {dmu for dmu, score in results['efficiency_scores'].items() if score is not None and score >= 0.9999}
+        
+        dmu_data = []
+        for i, dmu_name in enumerate(self.dmu_names):
+             dmu_data.append({
+                'name': dmu_name,
+                'input': self.inputs[i, 0],
+                'output': self.outputs[i, 0],
+                'is_efficient': dmu_name in efficient_dmus
+             })
+             
+        df_plot = pd.DataFrame(dmu_data)
+        
+        sns.scatterplot(data=df_plot, x='input', y='output', hue='is_efficient', style='is_efficient', s=100, ax=ax, palette={True: 'green', False: 'red'})
+        
+        for i, row in df_plot.iterrows():
+            ax.text(row['input'], row['output'], row['name'], fontsize=9, ha='right')
+
+        # Draw frontier
+        frontier_points = df_plot[df_plot['is_efficient']].sort_values(by='input')
+        if len(frontier_points) > 1:
+            ax.plot(frontier_points['input'], frontier_points['output'], color='green', linestyle='-', marker='o', label='Efficiency Frontier')
+
+        ax.set_title('DEA Efficiency Frontier')
+        ax.set_xlabel('Input')
+        ax.set_ylabel('Output')
+        ax.legend()
+        ax.grid(True)
+        
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode('utf-8')
 
 
 def main():
@@ -228,9 +276,15 @@ def main():
 
         analyzer = DEAAnalyzer(df, input_cols, output_cols, dmu_col)
         results = analyzer.analyze(orientation, rts)
+        
+        plot_image = None
+        if len(input_cols) == 1 and len(output_cols) == 1:
+             plot_image = analyzer.plot_frontier(results)
+
 
         response = {
-            'results': results
+            'results': results,
+            'plot': f"data:image/png;base64,{plot_image}" if plot_image else None
         }
         
         print(json.dumps(response, default=_to_native_type))

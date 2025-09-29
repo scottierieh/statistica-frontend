@@ -35,6 +35,8 @@ interface DeaResults {
     dmu_col: string;
     dmu_names: string[];
     interpretation: string;
+    input_cols: string[];
+    output_cols: string[];
 }
 
 interface FullDeaResponse {
@@ -43,6 +45,7 @@ interface FullDeaResponse {
 }
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
+    const deaExample = exampleDatasets.find(d => d.id === 'dea-bank-data');
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -63,6 +66,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         <p className="max-w-3xl mx-auto text-muted-foreground">
                             When organizations have multiple units (like bank branches, hospitals, or schools) that use various resources (inputs) to produce several outcomes (outputs), comparing their performance can be complex. DEA provides an objective, data-driven way to identify the "best practice" efficiency frontier and measure how far each unit is from this optimal frontier, highlighting specific areas for improvement. It is particularly useful when the relationship between inputs and outputs is complex and not well-understood.
                         </p>
+                    </div>
+                    <div className="flex justify-center">
+                        {deaExample && (
+                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(deaExample)}>
+                                <Landmark className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{deaExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{deaExample.description}</p>
+                                </div>
+                            </Card>
+                        )}
                     </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
@@ -154,6 +168,18 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
         inefficient: { color: 'hsl(var(--chart-5))' }
     }), []);
 
+    const ioChartData = useMemo(() => {
+        if (!results || !results.input_cols || !results.output_cols) return [];
+        const firstInput = results.input_cols[0];
+        const firstOutput = results.output_cols[0];
+        if (!firstInput || !firstOutput) return [];
+        
+        return data.map(row => ({
+            name: row[dmuCol!],
+            [firstInput]: row[firstInput],
+            [firstOutput]: row[firstOutput]
+        }));
+    }, [results, data, dmuCol]);
 
     useEffect(() => {
         const potentialDmu = allHeaders.find(h => !numericHeaders.includes(h) && new Set(data.map(row => row[h])).size === data.length);
@@ -340,16 +366,39 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             </Alert>
                         </CardContent>
                     </Card>
-                    
-                    {analysisResult.plot && (
-                        <Card>
-                            <CardHeader><CardTitle>Efficiency Frontier</CardTitle></CardHeader>
-                            <CardContent>
-                                <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="DEA Frontier Plot" width={800} height={600} className="w-full rounded-md border" />
-                            </CardContent>
-                        </Card>
-                    )}
 
+                    <div className="grid lg:grid-cols-2 gap-4">
+                        {analysisResult.plot && (
+                            <Card>
+                                <CardHeader><CardTitle>Efficiency Frontier</CardTitle></CardHeader>
+                                <CardContent>
+                                    <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="DEA Frontier Plot" width={800} height={600} className="w-full rounded-md border" />
+                                </CardContent>
+                            </Card>
+                        )}
+                        {ioChartData.length > 0 && results.input_cols.length > 0 && results.output_cols.length > 0 && (
+                            <Card>
+                                <CardHeader><CardTitle>Input/Output Comparison</CardTitle></CardHeader>
+                                <CardContent>
+                                    <ChartContainer config={{}} className="w-full h-[400px]">
+                                        <ResponsiveContainer>
+                                            <BarChart data={ioChartData} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80}/>
+                                                <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                                                <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
+                                                <Tooltip content={<ChartTooltipContent />} />
+                                                <Legend />
+                                                <Bar yAxisId="left" dataKey={results.input_cols[0]} fill="#8884d8" name={`Input: ${results.input_cols[0]}`} />
+                                                <Bar yAxisId="right" dataKey={results.output_cols[0]} fill="#82ca9d" name={`Output: ${results.output_cols[0]}`} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </ChartContainer>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                    
                     <Card>
                         <CardHeader>
                             <CardTitle>DEA Summary</CardTitle>
