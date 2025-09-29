@@ -20,7 +20,7 @@ warnings.filterwarnings('ignore')
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
+    elif isinstance(obj, (np.floating, float)):
         if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
@@ -35,7 +35,45 @@ class DEAAnalyzer:
         self.outputs = data[output_cols].values
         self.input_cols = input_cols
         self.output_cols = output_cols
+        self.num_dmus, self.num_inputs = self.inputs.shape
+        self.num_outputs = self.outputs.shape[1]
         
+    def _solve_slack_model(self, X_all, Y_all, x_k, y_k, theta_k):
+        """Second stage LP to maximize slacks."""
+        c = np.concatenate([-np.ones(self.num_inputs), -np.ones(self.num_outputs)])
+
+        A_eq_parts = [np.eye(self.num_inputs), -X_all.T]
+        A_eq = np.hstack(A_eq_parts)
+        b_eq = theta_k * x_k
+
+        A_ub_parts = [-np.eye(self.num_outputs), Y_all.T]
+        A_ub = np.hstack(A_ub_parts)
+        b_ub = -y_k
+        
+        # Combine constraints. Slacks are first, then lambdas
+        A_final_ub = np.zeros((self.num_outputs, self.num_inputs + self.num_outputs + self.num_dmus))
+        A_final_ub[:, self.num_inputs : self.num_inputs + self.num_outputs] = A_ub[:, :self.num_outputs]
+        A_final_ub[:, self.num_inputs + self.num_outputs :] = A_ub[:, self.num_outputs:]
+        b_final_ub = b_ub
+
+        A_final_eq = np.zeros((self.num_inputs, self.num_inputs + self.num_outputs + self.num_dmus))
+        A_final_eq[:, :self.num_inputs] = A_eq[:, :self.num_inputs]
+        A_final_eq[:, self.num_inputs + self.num_outputs:] = A_eq[:, self.num_inputs:]
+        b_final_eq = b_eq
+        
+        # Full objective function for linprog
+        c_full = np.concatenate([c, np.zeros(self.num_dmus)])
+        
+        bounds = [(0, None) for _ in range(self.num_inputs + self.num_outputs + self.num_dmus)]
+
+        res = linprog(c_full, A_ub=A_final_ub, b_ub=b_final_ub, A_eq=A_final_eq, b_eq=b_final_eq, bounds=bounds, method='highs')
+        
+        if res.success:
+            s_minus = res.x[:self.num_inputs]
+            s_plus = res.x[self.num_inputs : self.num_inputs + self.num_outputs]
+            return s_minus, s_plus
+        return None, None
+
     def _generate_interpretation(self, results, orientation):
         scores = np.array([s for s in results['efficiency_scores'].values() if s is not None and not np.isnan(s)])
         if len(scores) == 0:
@@ -106,6 +144,8 @@ class DEAAnalyzer:
         
         efficiencies = np.zeros(n_dmus)
         lambdas_list = []
+        slacks_list = []
+
 
         for k in range(n_dmus):
             if orientation == 'input':
@@ -134,16 +174,28 @@ class DEAAnalyzer:
                     A_eq = None
                     b_eq = None
 
-                bounds = [(0, None)] + [(0, None) for _ in range(n_dmus)]
+                bounds = [(None, 1)] + [(0, None) for _ in range(n_dmus)]
 
                 res = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds, method='highs')
 
                 if res.success:
-                    efficiencies[k] = res.fun
-                    lambdas_list.append(res.x[1:].tolist())
+                    theta_k = res.fun
+                    efficiencies[k] = theta_k
+                    lambdas = res.x[1:]
+                    lambdas_list.append(lambdas.tolist())
+                    
+                    if theta_k < 1.0: # Only calculate slacks for inefficient units
+                        s_minus, s_plus = self._solve_slack_model(self.inputs, self.outputs, self.inputs[k], self.outputs[k], theta_k)
+                        if s_minus is not None:
+                            slacks_list.append({'input': s_minus, 'output': s_plus})
+                        else:
+                            slacks_list.append({'input': np.zeros(n_inputs), 'output': np.zeros(n_outputs)})
+                    else:
+                        slacks_list.append({'input': np.zeros(n_inputs), 'output': np.zeros(n_outputs)})
                 else:
                     efficiencies[k] = np.nan
                     lambdas_list.append([np.nan] * n_dmus)
+                    slacks_list.append(None)
             
             else: # Output-oriented
                 c = np.zeros(n_dmus + 1)
@@ -177,29 +229,33 @@ class DEAAnalyzer:
                     phi = -res.fun
                     efficiencies[k] = 1/phi if phi != 0 else np.inf
                     lambdas_list.append(res.x[1:].tolist())
+                    slacks_list.append({'input': np.zeros(n_inputs), 'output': np.zeros(n_outputs)}) # Slack analysis is more complex for output-oriented in this setup
                 else:
                     efficiencies[k] = np.nan
                     lambdas_list.append([np.nan] * n_dmus)
+                    slacks_list.append(None)
         
         efficiency_scores = {self.dmu_names[i]: eff for i, eff in enumerate(efficiencies)}
         lambdas = {self.dmu_names[i]: l for i, l in enumerate(lambdas_list)}
         reference_sets = {dmu: [self.dmu_names[j] for j, l_val in enumerate(lambdas_list[i]) if l_val > 1e-6]
-                          for i, dmu in enumerate(self.dmu_names)}
+                          for i, dmu in enumerate(self.dmu_names) if i < len(lambdas_list)}
         
         # --- Targets and Improvement Potential ---
         improvement_data = []
         for i, dmu in enumerate(self.dmu_names):
             score = efficiency_scores.get(dmu)
-            if score is None or np.isnan(score) or score >= 0.9999:
+            slacks = slacks_list[i] if i < len(slacks_list) else None
+            if slacks is None or score is None or np.isnan(score) or score >= 0.9999:
                 continue
 
-            entry = {'dmu': dmu, 'score': score, 'targets': []}
+            entry = {'dmu': dmu, 'score': score, 'targets': [], 'slacks': slacks}
             
             if orientation == 'input':
                 for j, col in enumerate(self.input_cols):
                     actual = self.inputs[i, j]
-                    target = score * actual
-                    improvement = (1 - score) * 100
+                    slack_val = slacks['input'][j]
+                    target = score * actual - slack_val
+                    improvement = (actual - target) / actual * 100 if actual > 0 else 0
                     entry['targets'].append({
                         'type': 'input', 'name': col, 'actual': actual, 'target': target, 'improvement_pct': improvement
                     })
@@ -208,7 +264,7 @@ class DEAAnalyzer:
                     entry['targets'].append({
                         'type': 'output', 'name': col, 'actual': actual, 'target': actual, 'improvement_pct': 0
                     })
-            else: # output-oriented
+            else: # output-oriented (slack calculation not fully implemented for output yet)
                 phi = 1 / score if score > 0 else float('inf')
                 for j, col in enumerate(self.input_cols):
                     actual = self.inputs[i, j]
@@ -238,6 +294,7 @@ class DEAAnalyzer:
             'efficiency_scores': efficiency_scores,
             'reference_sets': reference_sets,
             'lambdas': lambdas,
+            'slacks': {self.dmu_names[i]: s for i, s in enumerate(slacks_list) if s is not None},
             'summary': summary,
             'dmu_col': self.dmu_names[0] if self.dmu_names else "",
             'dmu_names': self.dmu_names,
