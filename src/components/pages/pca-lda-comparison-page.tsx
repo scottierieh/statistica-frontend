@@ -165,7 +165,7 @@ export default function PcaLdaComparisonPage({ data, allHeaders, numericHeaders,
             setIsLoading(false);
         }
     }, [datasetType, toast, data, targetVar, features]);
-
+    
     if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample!} />;
     }
