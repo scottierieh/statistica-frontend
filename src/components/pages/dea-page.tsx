@@ -154,6 +154,8 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
     
     const results = analysisResult?.results;
 
+    const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565'];
+
     const efficiencyTiers = useMemo(() => {
         if (!results) return { efficient: 0, mostly: 0, needs: 0, inefficient: 0 };
         const scores = Object.values(results.efficiency_scores);
@@ -318,8 +320,6 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
         )
     }
     
-    const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565'];
-
     return (
         <div className="space-y-4">
             <Card>
@@ -411,7 +411,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                     </Card>
 
                     <div className="grid lg:grid-cols-2 gap-4">
-                        {analysisResult?.plot && (
+                         {analysisResult?.plot && (
                             <Card>
                                 <CardHeader><CardTitle>Efficiency Frontier</CardTitle></CardHeader>
                                 <CardContent>
