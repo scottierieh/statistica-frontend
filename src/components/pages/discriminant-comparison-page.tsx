@@ -20,22 +20,22 @@ interface AnalysisResponse {
     plot: string;
 }
 
-export default function DiscriminantComparisonPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample, onFileSelected }: { data: DataSet, allHeaders: string[], numericHeaders: string[], categoricalHeaders: string[], onLoadExample: (example: ExampleDataSet) => void, onFileSelected?: (file: File) => void }) {
+export default function DiscriminantComparisonPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample, onFileSelected }: { data?: DataSet, allHeaders?: string[], numericHeaders?: string[], categoricalHeaders?: string[], onLoadExample?: (example: ExampleDataSet) => void, onFileSelected?: (file: File) => void }) {
     const { toast } = useToast();
-    const [datasetType, setDatasetType] = useState<'synthetic' | 'custom'>(data.length > 0 ? 'custom' : 'synthetic');
+    const [datasetType, setDatasetType] = useState<'synthetic' | 'custom'>(data && data.length > 0 ? 'custom' : 'synthetic');
     const [syntheticDataset, setSyntheticDataset] = useState('isotropic');
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
     // For custom data
-    const [targetVar, setTargetVar] = useState<string | undefined>(categoricalHeaders[0]);
-    const [features, setFeatures] = useState<string[]>(numericHeaders.slice(0, 2));
+    const [targetVar, setTargetVar] = useState<string | undefined>(categoricalHeaders?.[0]);
+    const [features, setFeatures] = useState<string[]>(numericHeaders?.slice(0, 2) || []);
 
      useEffect(() => {
-        setDatasetType(data.length > 0 ? 'custom' : 'synthetic');
-        setTargetVar(categoricalHeaders.find(h => new Set(data.map(r => r[h])).size === 2) || categoricalHeaders[0]);
-        setFeatures(numericHeaders.slice(0, 2));
+        setDatasetType(data && data.length > 0 ? 'custom' : 'synthetic');
+        setTargetVar(categoricalHeaders?.find(h => new Set(data?.map(r => r[h])).size === 2) || categoricalHeaders?.[0]);
+        setFeatures(numericHeaders?.slice(0, 2) || []);
     }, [data, numericHeaders, categoricalHeaders]);
     
     const handleFeatureChange = (header: string, checked: boolean) => {
@@ -49,7 +49,7 @@ export default function DiscriminantComparisonPage({ data, allHeaders, numericHe
         setIsLoading(true);
         setAnalysisResult(null);
 
-        let body: any = {};
+        let body: any = { };
         if (datasetType === 'custom') {
             if (!data || !targetVar || features.length !== 2) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Please select a binary target and exactly two feature variables for custom data plotting.' });
@@ -85,8 +85,9 @@ export default function DiscriminantComparisonPage({ data, allHeaders, numericHe
             setIsLoading(false);
         }
     }, [datasetType, syntheticDataset, toast, data, targetVar, features]);
-
+    
     const binaryCategoricalHeaders = useMemo(() => {
+        if (!data || !categoricalHeaders) return [];
         return categoricalHeaders.filter(h => new Set(data.map(row => row[h])).size === 2);
     }, [data, categoricalHeaders]);
 
@@ -120,7 +121,7 @@ export default function DiscriminantComparisonPage({ data, allHeaders, numericHe
                     </div>
                     {datasetType === 'custom' && (
                         <div className="space-y-4">
-                             {data.length === 0 ? (
+                             {(!data || data.length === 0) ? (
                                 onFileSelected && <DataUploader onFileSelected={onFileSelected} loading={isUploading} />
                             ) : (
                                 <div className="grid md:grid-cols-2 gap-4">
@@ -135,7 +136,7 @@ export default function DiscriminantComparisonPage({ data, allHeaders, numericHe
                                     <Label>Feature Variables (Select 2)</Label>
                                     <ScrollArea className="h-24 p-2 border rounded-md">
                                         <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
-                                            {numericHeaders.filter(h => h !== targetVar).map(h => (
+                                            {(numericHeaders || []).filter(h => h !== targetVar).map(h => (
                                                 <div key={h} className="flex items-center space-x-2">
                                                     <Checkbox id={`feat-${h}`} checked={features.includes(h)} onCheckedChange={(c) => handleFeatureChange(h, c as boolean)} />
                                                     <Label htmlFor={`feat-${h}`} className="text-sm font-normal">{h}</Label>

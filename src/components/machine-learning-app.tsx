@@ -48,7 +48,7 @@ import DiscriminantComparisonPage from './pages/discriminant-comparison-page';
 
 type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison' | 'hca' | 'hca-comparison' | 'discriminant-comparison';
 
-const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalHeaders, allHeaders, onLoadExample }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], categoricalHeaders: string[], allHeaders: string[], onLoadExample: (e: ExampleDataSet) => void }) => {
+const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalHeaders, allHeaders, onLoadExample, onFileSelected }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], categoricalHeaders: string[], allHeaders: string[], onLoadExample: (e: ExampleDataSet) => void, onFileSelected: (file: File) => void }) => {
     switch (activeTask) {
         case 'deep-learning':
             return <DeepLearningApp />;
@@ -71,7 +71,14 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalH
         case 'hca-comparison':
             return <HcaComparisonPage />;
         case 'discriminant-comparison':
-            return <DiscriminantComparisonPage />;
+            return <DiscriminantComparisonPage 
+                        data={data} 
+                        allHeaders={allHeaders} 
+                        numericHeaders={numericHeaders} 
+                        categoricalHeaders={categoricalHeaders} 
+                        onLoadExample={onLoadExample} 
+                        onFileSelected={onFileSelected} 
+                    />;
         case 'regression':
         case 'classification':
         case 'tree':
@@ -335,6 +342,7 @@ export default function MachineLearningApp() {
                 categoricalHeaders={categoricalHeaders}
                 allHeaders={allHeaders}
                 onLoadExample={handleLoadExampleData}
+                onFileSelected={handleFileSelected}
              />
           </div>
         </SidebarInset>
