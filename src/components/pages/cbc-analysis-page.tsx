@@ -413,12 +413,11 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
             
             {results && (
                  <Tabs defaultValue="importance" className="w-full">
-                    <TabsList className="grid w-full grid-cols-5">
+                    <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="importance"><PieIcon className="mr-2"/>Importance</TabsTrigger>
                         <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
                         <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
                         <TabsTrigger value="sensitivity"><LineChart className="mr-2"/>Sensitivity</TabsTrigger>
-                        <TabsTrigger value="diagnostics"><SlidersHorizontal className="mr-2"/>Diagnostics</TabsTrigger>
                     </TabsList>
                     <TabsContent value="importance" className="mt-4">
                         <Card>
@@ -445,14 +444,14 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                 {attributeCols.map(attr => (
                                     <div key={attr}>
                                         <h3 className="font-semibold mb-2">{attr}</h3>
-                                         <ChartContainer config={{value: {label: 'Part-Worth'}}} className="w-full h-[200px]">
+                                         <ChartContainer config={partWorthChartConfig} className="w-full h-[200px]">
                                             <ResponsiveContainer>
-                                                <BarChart data={partWorthsData.filter(p => p.attribute === attr)} layout="vertical">
+                                                <BarChart data={partWorthsData.filter(p => p.attribute === attr)} layout="vertical" margin={{ left: 80 }}>
                                                     <CartesianGrid strokeDasharray="3 3" />
                                                     <XAxis type="number" />
                                                     <YAxis type="category" dataKey="level" width={80} />
                                                     <Tooltip content={<ChartTooltipContent />} />
-                                                    <Bar dataKey="value" name="Part-Worth" fill="hsl(var(--primary))" />
+                                                    <Bar dataKey="value" name="Part-Worth" fill="hsl(var(--primary))" barSize={30}/>
                                                 </BarChart>
                                             </ResponsiveContainer>
                                         </ChartContainer>
@@ -488,15 +487,15 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                 {simulationResult && (
                                     <div className="mt-4">
                                         <ChartContainer config={{marketShare: {label: 'Market Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
-                                                      <ResponsiveContainer width="100%" height={300}>
-                                                          <BarChart data={simulationResult}>
-                                                              <CartesianGrid strokeDasharray="3 3" />
-                                                              <XAxis dataKey="name" />
-                                                              <YAxis unit="%"/>
-                                                              <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
-                                                              <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
-                                                          </BarChart>
-                                                      </ResponsiveContainer>
+                                            <ResponsiveContainer>
+                                                <BarChart data={simulationResult}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="name" />
+                                                    <YAxis unit="%"/>
+                                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
+                                                    <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
                                         </ChartContainer>
                                     </div>
                                 )}
@@ -518,44 +517,11 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                         Analyze
                                     </Button>
                                 </div>
-                                {isSensitivityLoading && <Skeleton className="h-[300px] w-full" />}
-                                {sensitivityPlot && !isSensitivityLoading && (
+                                {isSensitivityLoading ? <Skeleton className="h-[300px] w-full" /> : sensitivityPlot && (
                                     <div className="h-[300px] w-full">
-                                         <Image src={`data:image/png;base64,${sensitivityPlot}`} alt="Sensitivity Analysis Plot" width={800} height={500} className="w-full h-full object-contain rounded-md border"/>
+                                         <Image src={sensitivityPlot} alt="Sensitivity Analysis Plot" width={800} height={500} className="w-full h-full object-contain rounded-md border"/>
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="diagnostics" className="mt-4">
-                        <Card>
-                            <CardHeader><CardTitle>Model Diagnostics</CardTitle><CardDescription>Check the quality of the underlying regression model.</CardDescription></CardHeader>
-                            <CardContent>
-                                <h3 className="font-bold text-lg mb-2">Model Performance</h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-4">
-                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">R²</p><p className="text-2xl font-bold">{results.regression.rSquared.toFixed(3)}</p></div>
-                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Adjusted R²</p><p className="text-2xl font-bold">{results.regression.adjustedRSquared.toFixed(3)}</p></div>
-                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{results.regression.rmse.toFixed(3)}</p></div>
-                                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{results.regression.mae.toFixed(3)}</p></div>
-                                </div>
-                                <Card>
-                                    <CardHeader><CardTitle>Residuals vs. Fitted</CardTitle></CardHeader>
-                                    <CardContent>
-                                        <ChartContainer config={{}} className="w-full h-[300px]">
-                                            <ResponsiveContainer width="100%" height={300}>
-                                                <ScatterChart>
-                                                    <CartesianGrid />
-                                                    <XAxis type="number" dataKey="prediction" name="Fitted Value" />
-                                                    <YAxis type="number" dataKey="residual" name="Residual" />
-                                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
-                                                    {diagnosticsData.length > 0 &&
-                                                        <Scatter data={diagnosticsData} fill="hsl(var(--primary))" />
-                                                    }
-                                                </ScatterChart>
-                                            </ResponsiveContainer>
-                                        </ChartContainer>
-                                    </CardContent>
-                                 </Card>
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -564,4 +530,3 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         </div>
     );
 }
-
