@@ -241,7 +241,7 @@ export default function DecisionAnalyticsApp() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                     <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => setActiveAnalysis('ahp')} isActive={activeAnalysis === 'ahp'}> AHP Analysis</SidebarMenuButton>
+                        <SidebarMenuButton onClick={() => setActiveAnalysis('ahp')} isActive={activeAnalysis === 'ahp'}>AHP Analysis</SidebarMenuButton>
                     </SidebarMenuItem>
                      <SidebarMenuItem>
                         <SidebarMenuButton onClick={() => setActiveAnalysis('dea')} isActive={activeAnalysis === 'dea'}>Data Envelopment Analysis</SidebarMenuButton>
