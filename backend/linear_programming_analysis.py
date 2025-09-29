@@ -23,24 +23,35 @@ def _to_native_type(obj):
         return obj.tolist()
     return obj
 
-def generate_plot(c, A_ub, b_ub, A_eq, b_eq, solution, objective):
+def generate_interpretation(solution, optimal_value, objective, variable_names):
+    if solution is None:
+        return "No optimal solution was found."
+
+    interp = f"The objective function is {objective}d at a value of **{optimal_value:.4f}**.\n\nThis occurs when:"
+    for i, var_name in enumerate(variable_names):
+        interp += f"\n- **{var_name}** = {solution[i]:.4f}"
+    
+    return interp
+
+
+def generate_plot(c, A_ub, b_ub, A_eq, b_eq, solution, variable_names):
     """Generates a plot for a 2D linear programming problem."""
     if len(c) != 2:
         return None
 
     fig, ax = plt.subplots(figsize=(8, 8))
     
-    # Generate a sensible range for x based on constraints
-    x_max_from_constraints = 20
+    x_max = 20
+    if solution is not None:
+        x_max = max(x_max, solution[0] * 1.5, solution[1] * 1.5)
     if A_ub is not None:
-        possible_x_max = []
-        for i in range(A_ub.shape[0]):
-            if A_ub[i, 0] > 0:
-                possible_x_max.append(b_ub[i] / A_ub[i, 0])
-        if possible_x_max:
-             x_max_from_constraints = max(possible_x_max) * 1.2
-    
-    x = np.linspace(0, x_max_from_constraints, 400)
+        try:
+            x_max = max(x_max, np.nanmax(b_ub / A_ub[:, 0][A_ub[:, 0] > 0])) * 1.2
+        except Exception:
+            pass # Keep default x_max if calculation fails
+            
+    x_vals = np.linspace(0, x_max, 400)
+    y_vals = np.linspace(0, x_max, 400)
     
     # Plot constraints
     if A_ub is not None:
@@ -48,41 +59,44 @@ def generate_plot(c, A_ub, b_ub, A_eq, b_eq, solution, objective):
             a1, a2 = A_ub[i, 0], A_ub[i, 1]
             b_val = b_ub[i]
             if a2 != 0:
-                y_constraint = (b_val - a1 * x) / a2
-                ax.plot(x, y_constraint, label=f'{a1 if a1!=1 else ""}x + {a2 if a2!=1 else ""}y <= {b_val}')
+                y_constraint = (b_val - a1 * x_vals) / a2
+                ax.plot(x_vals, y_constraint, label=f'{a1 if a1!=1 else ""}x + {a2 if a2!=1 else ""}y <= {b_val}')
             elif a1 != 0:
-                ax.axvline(x=b_val/a1, label=f'x <= {b_val/a1}')
+                ax.axvline(x=b_val/a1, linestyle='--', label=f'x <= {b_val/a1}')
 
     if A_eq is not None:
         for i in range(A_eq.shape[0]):
             a1, a2 = A_eq[i, 0], A_eq[i, 1]
             b_val = b_eq[i]
             if a2 != 0:
-                y_constraint = (b_val - a1 * x) / a2
-                ax.plot(x, y_constraint, '--', label=f'{a1 if a1!=1 else ""}x + {a2 if a2!=1 else ""}y = {b_val}')
+                y_constraint = (b_val - a1 * x_vals) / a2
+                ax.plot(x_vals, y_constraint, '--', label=f'{a1 if a1!=1 else ""}x + {a2 if a2!=1 else ""}y = {b_val}')
 
-    # Fill feasible region
-    # This is complex with multiple constraints. A simplified approach:
-    y_feas = np.full(x.shape, np.inf)
+    # Fill feasible region (simplified approach)
+    X, Y = np.meshgrid(x_vals, y_vals)
+    feasible = np.ones_like(X, dtype=bool)
     if A_ub is not None:
         for i in range(A_ub.shape[0]):
-            if A_ub[i, 1] > 0: # y is on the left side
-                y_feas = np.minimum(y_feas, (b_ub[i] - A_ub[i, 0] * x) / A_ub[i, 1])
+            feasible &= (A_ub[i, 0] * X + A_ub[i, 1] * Y <= b_ub[i])
+    if A_eq is not None:
+        for i in range(A_eq.shape[0]):
+             feasible &= np.isclose(A_eq[i, 0] * X + A_eq[i, 1] * Y, b_eq[i])
 
-    ax.fill_between(x, 0, y_feas, where=(y_feas>0), color='lightgreen', alpha=0.5, label='Feasible Region')
+    ax.imshow(feasible, extent=(x_vals.min(), x_vals.max(), y_vals.min(), y_vals.max()), origin="lower", cmap="Greens", alpha=0.3)
+
 
     # Plot objective function (as a contour line)
     if solution is not None and len(solution) == 2:
         obj_val = np.dot(c, solution)
         if c[1] != 0:
-            y_obj = (obj_val - c[0] * x) / c[1]
-            ax.plot(x, y_obj, 'k--', label=f'Objective Z = {obj_val:.2f}')
+            y_obj = (obj_val - c[0] * x_vals) / c[1]
+            ax.plot(x_vals, y_obj, 'k--', label=f'Objective Z = {obj_val:.2f}')
         ax.plot(solution[0], solution[1], 'ro', markersize=10, label=f'Optimal Solution ({solution[0]:.2f}, {solution[1]:.2f})')
 
-    ax.set_xlim((0, None))
-    ax.set_ylim((0, None))
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
+    ax.set_xlim((0, x_max))
+    ax.set_ylim((0, x_max))
+    ax.set_xlabel(variable_names[0])
+    ax.set_ylabel(variable_names[1])
     ax.set_title('Linear Programming Feasible Region')
     ax.legend()
     ax.grid(True)
@@ -188,9 +202,17 @@ def main():
         if not result.get("success"):
             raise ValueError(result.get("error", "An unknown error occurred in the solver."))
 
+        solution = result.get('primal_solution') or result.get('solution')
+        optimal_value = result.get('primal_optimal_value') or result.get('optimal_value')
+        
+        variable_names = [f'x{i+1}' for i in range(num_vars)]
+        if num_vars == 2:
+            variable_names = ['x', 'y']
+        
+        result['interpretation'] = generate_interpretation(solution, optimal_value, objective, variable_names)
+
         if len(c) == 2 and problem_type == 'lp':
-            solution = result.get('primal_solution') or result.get('solution')
-            plot_base64 = generate_plot(c, A_ub_np, b_ub_np, A_eq_np, b_eq_np, solution, objective)
+            plot_base64 = generate_plot(c, A_ub_np, b_ub_np, A_eq_np, b_eq_np, solution, variable_names)
             result['plot'] = f"data:image/png;base64,{plot_base64}" if plot_base64 else None
 
         print(json.dumps(result, default=_to_native_type))

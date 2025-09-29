@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import Image from 'next/image';
 import { produce } from 'immer';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface LpResult {
     primal_solution?: number[];
@@ -314,25 +315,28 @@ export default function LinearProgrammingPage() {
                 </CardFooter>
             </Card>
 
+            {isLoading && <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary"/></CardContent></Card>}
+
             {analysisResult && (
                 <div className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Problem Summary</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <p className="font-semibold">{getObjectiveFunctionString()}</p>
-                            <p className="mt-2 text-muted-foreground">Subject to:</p>
-                            <ul className="list-disc pl-5 mt-1 space-y-1 font-mono">
-                                {A.map((_, i) => <li key={i}>{getConstraintString(i)}</li>)}
-                            </ul>
-                        </CardContent>
-                    </Card>
-
+                    {analysisResult.interpretation && (
+                        <Card>
+                            <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
+                            <CardContent>
+                                <Alert>
+                                    <AlertTitle>Summary of Results</AlertTitle>
+                                    <AlertDescription dangerouslySetInnerHTML={{ __html: analysisResult.interpretation.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                                </Alert>
+                            </CardContent>
+                        </Card>
+                    )}
                     <div className="grid md:grid-cols-2 gap-4">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Optimal Solution</CardTitle>
+                                {analysisResult.success ? (
+                                    <CardDescription>The optimal values for the decision variables.</CardDescription>
+                                ) : <CardDescription className="text-destructive">No optimal solution found.</CardDescription>}
                             </CardHeader>
                             <CardContent>
                                 {analysisResult.success ? (
@@ -342,7 +346,7 @@ export default function LinearProgrammingPage() {
                                             <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Optimal Value</TableHead></TableRow></TableHeader>
                                             <TableBody>
                                                 {primalSolution?.map((s, i) => (
-                                                    <TableRow key={i}><TableCell><strong>{decisionVars[i]}</strong></TableCell><TableCell className="font-mono text-right">{s.toFixed(2)}</TableCell></TableRow>
+                                                    <TableRow key={i}><TableCell><strong>{decisionVars[i]}</strong></TableCell><TableCell className="font-mono text-right">{s.toFixed(4)}</TableCell></TableRow>
                                                 ))}
                                             </TableBody>
                                         </Table>
@@ -358,7 +362,7 @@ export default function LinearProgrammingPage() {
                                     <CardTitle>Feasible Region Plot</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                     <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="Feasible Region Plot" width={600} height={600} className="w-full rounded-md border" />
+                                     <Image src={analysisResult.plot} alt="Feasible Region Plot" width={600} height={600} className="w-full rounded-md border" />
                                 </CardContent>
                             </Card>
                         )}
