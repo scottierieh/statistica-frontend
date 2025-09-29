@@ -89,6 +89,11 @@ export default function LinearProgrammingPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<LpResult | null>(null);
 
+    const decisionVars = React.useMemo(() => {
+        if (numVars === 2) return ['x', 'y'];
+        return Array.from({ length: numVars }, (_, i) => `x${i + 1}`);
+    }, [numVars]);
+
     const handleBoardCreation = () => {
         const vars = Math.max(1, numVars);
         const constraints = Math.max(1, numConstraints);
@@ -173,11 +178,11 @@ export default function LinearProgrammingPage() {
     }, [c, A, b, objective, problemType, variableTypes, toast, constraintTypes]);
 
     const getObjectiveFunctionString = () => {
-        return `${objective === 'maximize' ? 'Max' : 'Min'} Z = ` + c.map((val, j) => `${val}·x${j + 1}`).join(' + ');
+        return `${objective === 'maximize' ? 'Max' : 'Min'} Z = ` + c.map((val, j) => `${val}·${decisionVars[j]}`).join(' + ');
     };
     
     const getConstraintString = (i: number) => {
-        return A[i].map((val, j) => `${val}·x${j + 1}`).join(' + ') + ` ${constraintTypes[i]} ${b[i]}`;
+        return A[i].map((val, j) => `${val}·${decisionVars[j]}`).join(' + ') + ` ${constraintTypes[i]} ${b[i]}`;
     };
 
 
@@ -247,7 +252,7 @@ export default function LinearProgrammingPage() {
                                 <div className="flex flex-wrap items-end gap-2">
                                     {c.map((val, j) => (
                                         <div key={j} className="flex-1 min-w-[100px]">
-                                            <Label htmlFor={`c${j}`}>x{j+1} Coeff:</Label>
+                                            <Label htmlFor={`c${j}`}>{decisionVars[j]} Coeff:</Label>
                                             <Input id={`c${j}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, 0, j, 'c')} />
                                         </div>
                                     ))}
@@ -258,7 +263,7 @@ export default function LinearProgrammingPage() {
                                         <div className="flex flex-wrap gap-4 mt-2">
                                             {variableTypes.map((vType, j) => (
                                                 <div key={j}>
-                                                    <Label htmlFor={`vtype${j}`}>x{j+1}</Label>
+                                                    <Label htmlFor={`vtype${j}`}>{decisionVars[j]}</Label>
                                                     <Select value={vType} onValueChange={value => handleVariableTypeChange(j, value)}>
                                                         <SelectTrigger id={`vtype${j}`}><SelectValue/></SelectTrigger>
                                                         <SelectContent>
@@ -280,7 +285,7 @@ export default function LinearProgrammingPage() {
                                                     {row.map((val, j) => (
                                                         <div key={j} className="flex items-center gap-2">
                                                             <Input id={`a${i+1}${j+1}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, i, j, 'A')} className="w-20"/>
-                                                            <Label htmlFor={`a${i+1}${j+1}`}>· x{j+1}</Label>
+                                                            <Label>· {decisionVars[j]}</Label>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -341,7 +346,7 @@ export default function LinearProgrammingPage() {
                                             <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Optimal Value</TableHead></TableRow></TableHeader>
                                             <TableBody>
                                                 {primalSolution?.map((s, i) => (
-                                                    <TableRow key={i}><TableCell><strong>x{i + 1}</strong></TableCell><TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell></TableRow>
+                                                    <TableRow key={i}><TableCell><strong>{decisionVars[i]}</strong></TableCell><TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell></TableRow>
                                                 ))}
                                             </TableBody>
                                         </Table>
@@ -358,7 +363,7 @@ export default function LinearProgrammingPage() {
                                     <CardTitle>Feasible Region Plot</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                     <Image src={analysisResult.plot} alt="Feasible Region Plot" width={600} height={600} className="w-full rounded-md border" />
+                                     <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="Feasible Region Plot" width={600} height={600} className="w-full rounded-md border" />
                                 </CardContent>
                             </Card>
                         )}
