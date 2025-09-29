@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight, Building, Hospital, Landmark, GraduationCap, BarChart as BarChartIcon } from 'lucide-react';
+import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight, Building, Hospital, Landmark, GraduationCap, BarChart as BarChartIcon, Image as ImageIcon } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { produce } from 'immer';
@@ -19,6 +19,7 @@ import { Skeleton } from '../ui/skeleton';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import type { DataSet } from '@/lib/stats';
 import { Checkbox } from '../ui/checkbox';
+import Image from 'next/image';
 
 
 interface DeaResults {
@@ -38,6 +39,7 @@ interface DeaResults {
 
 interface FullDeaResponse {
     results: DeaResults;
+    plot?: string;
 }
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
@@ -138,10 +140,10 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
     }, [results]);
 
     const tierData = useMemo(() => [
-        { name: 'Efficient (>=1)', count: efficiencyTiers.efficient, fill: 'var(--color-efficient)' },
-        { name: 'Mostly (0.9-1)', count: efficiencyTiers.mostly, fill: 'var(--color-mostly)' },
-        { name: 'Needs Imp. (0.8-0.9)', count: efficiencyTiers.needs, fill: 'var(--color-needs)' },
-        { name: 'Inefficient (<0.8)', count: efficiencyTiers.inefficient, fill: 'var(--color-inefficient)' },
+        { name: 'Efficient (>=1)', count: efficiencyTiers.efficient, fill: 'hsl(var(--chart-2))' },
+        { name: 'Mostly (0.9-1)', count: efficiencyTiers.mostly, fill: 'hsl(var(--chart-3))' },
+        { name: 'Needs Imp. (0.8-0.9)', count: efficiencyTiers.needs, fill: 'hsl(var(--chart-4))' },
+        { name: 'Inefficient (<0.8)', count: efficiencyTiers.inefficient, fill: 'hsl(var(--chart-5))' },
     ], [efficiencyTiers]);
 
     const tierChartConfig = useMemo(() => ({ 
@@ -231,7 +233,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
     
     if (!canRun) {
         return (
-            <div className="flex flex-1 items-center justify-center">
+             <div className="flex flex-1 items-center justify-center">
                 <Card className="w-full max-w-2xl text-center">
                     <CardHeader>
                         <CardTitle className="font-headline">Data Envelopment Analysis (DEA)</CardTitle>
@@ -321,7 +323,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                 </CardFooter>
             </Card>
 
-            {isLoading && <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto"/> <p>Calculating efficiency scores...</p></CardContent></Card>}
+            {isLoading && <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary"/> <p>Calculating efficiency scores...</p></CardContent></Card>}
 
             {results && (
                 <div className="space-y-4">
@@ -338,6 +340,15 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             </Alert>
                         </CardContent>
                     </Card>
+                    
+                    {analysisResult.plot && (
+                        <Card>
+                            <CardHeader><CardTitle>Efficiency Frontier</CardTitle></CardHeader>
+                            <CardContent>
+                                <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="DEA Frontier Plot" width={800} height={600} className="w-full rounded-md border" />
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <Card>
                         <CardHeader>
@@ -389,8 +400,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             </CardContent>
                         </Card>
                     </div>
-
-                    <Card>
+                     <Card>
                         <CardHeader>
                             <CardTitle>Input & Output Data</CardTitle>
                         </CardHeader>
