@@ -5,6 +5,7 @@ import { generateDataVisualization, GenerateDataVisualizationInput } from "@/ai/
 import { generateSummaryReport, GenerateSummaryReportInput } from "@/ai/flows/generate-summary-report";
 import { interpretFrequency, InterpretFrequencyInput } from "@/ai/flows/interpret-frequency";
 import { interpretClustering, InterpretClusteringInput } from "@/ai/flows/interpret-clustering";
+import { interpretPca3d, InterpretPca3dInput } from "@/ai/flows/interpret-pca-3d";
 
 export async function getVisualizationDescription(input: GenerateDataVisualizationInput) {
     try {
@@ -43,5 +44,15 @@ export async function getClusteringInterpretation(input: InterpretClusteringInpu
     } catch (error) {
         console.error(error);
         return { success: false, error: "Failed to generate Clustering interpretation." };
+    }
+}
+
+export async function getPca3dInterpretation(input: InterpretPca3dInput) {
+    try {
+        const result = await interpretPca3d(input);
+        return { success: true, interpretation: result.interpretation };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: "Failed to generate 3D PCA interpretation." };
     }
 }

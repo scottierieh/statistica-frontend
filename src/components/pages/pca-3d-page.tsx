@@ -7,21 +7,70 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Play } from 'lucide-react';
+import { Sigma, Loader2, Play, Bot, AlertTriangle } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import dynamic from 'next/dynamic';
+import { getPca3dInterpretation } from '@/app/actions';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
   loading: () => <Skeleton className="w-full h-[500px]" />,
 });
 
+interface Pca3dResults {
+    explained_variance: number[];
+    target_groups: string[];
+}
+
 interface AnalysisResponse {
+    results: Pca3dResults;
     plot: string;
 }
+
+const InterpretationDisplay = ({ promise }: { promise: Promise<string | null> | null }) => {
+    const [interpretation, setInterpretation] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (!promise) {
+            setInterpretation(null);
+            setLoading(false);
+            return;
+        };
+        let isMounted = true;
+        setLoading(true);
+        promise.then((desc) => {
+            if (isMounted && desc) {
+                setInterpretation(desc);
+            }
+            if (isMounted) setLoading(false);
+        });
+        return () => { isMounted = false; };
+    }, [promise]);
+
+    if (loading) return <Skeleton className="h-24 w-full" />;
+    if (!interpretation) return null;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2"><Bot /> AI Interpretation</CardTitle>
+            </CardHeader>
+            <CardContent>
+                 <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Analysis Summary</AlertTitle>
+                    <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: interpretation.replace(/\n/g, '<br/>') }} />
+                </Alert>
+            </CardContent>
+        </Card>
+    );
+};
+
 
 interface Pca3dPageProps {
     data: DataSet;
@@ -37,6 +86,7 @@ export default function Pca3dPage({ data, numericHeaders, categoricalHeaders, on
     
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [aiPromise, setAiPromise] = useState<Promise<string | null> | null>(null);
     
     const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 3 && categoricalHeaders.length >= 1, [data, numericHeaders, categoricalHeaders]);
 
@@ -59,6 +109,7 @@ export default function Pca3dPage({ data, numericHeaders, categoricalHeaders, on
 
         setIsLoading(true);
         setAnalysisResult(null);
+        setAiPromise(null);
 
         try {
             const response = await fetch('/api/analysis/pca-3d', {
@@ -76,6 +127,13 @@ export default function Pca3dPage({ data, numericHeaders, categoricalHeaders, on
             if ((result as any).error) throw new Error((result as any).error);
             
             setAnalysisResult(result);
+            
+            const aiInterpretationPromise = getPca3dInterpretation({
+                explainedVariance: result.results.explained_variance,
+                targetGroups: result.results.target_groups
+            }).then(res => res.success ? res.interpretation : `AI Error: ${res.error}`);
+            setAiPromise(aiInterpretationPromise);
+
 
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
@@ -145,20 +203,25 @@ export default function Pca3dPage({ data, numericHeaders, categoricalHeaders, on
 
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[500px] w-full"/></CardContent></Card>}
 
-            {plotData && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Interactive 3D PCA Plot</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                         <Plot
-                            data={plotData.data}
-                            layout={plotData.layout}
-                            useResizeHandler={true}
-                            className="w-full h-[600px]"
-                        />
-                    </CardContent>
-                </Card>
+            {analysisResult && (
+                 <div className="space-y-4">
+                    <InterpretationDisplay promise={aiPromise} />
+                    {plotData && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Interactive 3D PCA Plot</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Plot
+                                    data={plotData.data}
+                                    layout={plotData.layout}
+                                    useResizeHandler={true}
+                                    className="w-full h-[600px]"
+                                />
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
             )}
         </div>
     );

@@ -66,6 +66,10 @@ def main():
         plot_json = pio.to_json(fig)
         
         response = {
+            'results': {
+                'explained_variance': pca.explained_variance_ratio_.tolist(),
+                'target_groups': target_names,
+            },
             'plot': plot_json
         }
         
