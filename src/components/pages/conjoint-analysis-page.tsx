@@ -1,5 +1,6 @@
 
 'use client';
+import * as React from 'react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -115,15 +116,6 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             </ul>
                         </div>
                     </div>
-                     <div className="space-y-6">
-                        <h3 className="font-semibold text-2xl text-center mb-4">Key Application Areas</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Brain className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">New Product Development</h4><p className="text-xs text-muted-foreground">Identify the most preferred combination of features.</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><DollarSign className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Pricing Strategy</h4><p className="text-xs text-muted-foreground">Determine the optimal price point that customers are willing to pay.</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><PieIcon className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Market Segmentation</h4><p className="text-xs text-muted-foreground">Identify customer groups that prefer different sets of attributes.</p></div></div>
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-2"><Target className="mx-auto h-8 w-8 text-primary"/><div><h4 className="font-semibold">Brand Equity</h4><p className="text-xs text-muted-foreground">Measure the impact of brand name on consumer preference.</p></div></div>
-                        </div>
-                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
                      {conjointExample && <Button variant="outline" onClick={() => onLoadExample(conjointExample)}>Start with Sample Data</Button>}
@@ -158,6 +150,29 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
     const [sensitivityResult, setSensitivityResult] = useState<any>(null);
 
     const canRun = useMemo(() => data.length > 0 && allHeaders.length > 1, [data, allHeaders]);
+
+    const independentVariables = useMemo(() => Object.values(attributes).filter((attr: any) => attr.includeInAnalysis), [attributes]);
+    
+    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+
+    const importanceChartConfig = useMemo(() => {
+      if (!analysisResult) return {};
+      return analysisResult.importance.reduce((acc, item, index) => {
+        acc[item.attribute] = { label: item.attribute, color: COLORS[index % COLORS.length] };
+        return acc;
+      }, {} as any);
+    }, [analysisResult]);
+
+    const partWorthChartConfig = { value: { label: "Part-Worth" } };
+
+    const diagnosticsData = useMemo(() => {
+      if (!analysisResult?.regression?.predictions || !analysisResult?.regression?.residuals) return [];
+      return analysisResult.regression.predictions.map((p, i) => ({
+          prediction: p,
+          residual: analysisResult.regression.residuals[i]
+      }));
+  }, [analysisResult]);
+
 
     useEffect(() => {
         if (!canRun) {
@@ -226,45 +241,6 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         }
     }
 
-    const runAnalysis = useCallback(async () => {
-        if (!targetVariable) {
-            toast({ title: 'Target variable not set', description: 'Please select a target variable to continue.', variant: 'destructive' });
-            return;
-        }
-        setIsLoading(true);
-        try {
-            const response = await fetch('/api/analysis/conjoint', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, attributes, targetVariable })
-            });
-            if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
-            const result = await response.json();
-            if (result.error) throw new Error(result.error);
-            setAnalysisResult(result.results);
-            setCurrentStep(2);
-            toast({ title: 'Analysis Complete', description: 'Conjoint analysis results are ready.' });
-        } catch (error: any) {
-            toast({ title: 'Analysis Failed', description: error.message, variant: 'destructive' });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [data, attributes, targetVariable, toast]);
-
-    const independentVariables = useMemo(() => Object.values(attributes).filter((attr: any) => attr.includeInAnalysis), [attributes]);
-    
-    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
-
-    const importanceChartConfig = useMemo(() => {
-      if (!analysisResult) return {};
-      return analysisResult.importance.reduce((acc, item, index) => {
-        acc[item.attribute] = { label: item.attribute, color: COLORS[index % COLORS.length] };
-        return acc;
-      }, {} as any);
-    }, [analysisResult]);
-
-    const partWorthChartConfig = { value: { label: "Part-Worth" } };
-
     const calculateUtility = useCallback((scenario: Scenario) => {
         if (!analysisResult?.regression) return 0;
         let utility = analysisResult.regression.intercept || 0;
@@ -274,13 +250,14 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
             if (attrName === 'name' || !attributes[attrName] || !attributes[attrName].includeInAnalysis) return;
 
             const attr = attributes[attrName];
+            const cleanAttrName = attrName.replace(/[^A-Za-z0-9_]/g, '_');
             if (attr.type === 'categorical') {
                 if (String(value) !== String(attr.levels[0])) {
-                    const paramName = `C(Q("${attrName.replace(/[^A-Za-z0-9_]/g, '_')}"))[T.${value}]`;
+                    const paramName = `C(Q("${cleanAttrName}"))[T.${value}]`;
                     utility += coefficients[paramName] || 0;
                 }
             } else {
-                 const paramName = `Q("${attrName.replace(/[^A-Za-z0-9_]/g, '_')}")`;
+                 const paramName = `Q("${cleanAttrName}")`;
                  utility += (coefficients[paramName] || 0) * Number(value);
             }
         });
@@ -323,14 +300,33 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         });
         setSensitivityResult(results);
     };
+    
+    const runAnalysis = useCallback(async () => {
+        if (!targetVariable) {
+            toast({ title: 'Target variable not set', description: 'Please select a target variable to continue.', variant: 'destructive' });
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/analysis/conjoint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data, attributes, targetVariable })
+            });
+            if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
+            const result = await response.json();
+            if (result.error) throw new Error(result.error);
+            setAnalysisResult(result.results);
+            setCurrentStep(2);
+            toast({ title: 'Analysis Complete', description: 'Conjoint analysis results are ready.' });
+        } catch (error: any) {
+            toast({ title: 'Analysis Failed', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [data, attributes, targetVariable, toast]);
 
-    const diagnosticsData = useMemo(() => {
-      if (!analysisResult?.regression?.predictions || !analysisResult?.regression?.residuals) return [];
-      return analysisResult.regression.predictions.map((p, i) => ({
-          prediction: p,
-          residual: analysisResult.regression.residuals[i]
-      }));
-  }, [analysisResult]);
+    const conjointExample = exampleDatasets.find(d => d.id === 'conjoint-smartphone');
     
     if (view === 'intro') {
        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
@@ -432,21 +428,19 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                      <Card>
                                         <CardHeader><CardTitle className='flex items-center gap-2'><BarIcon/>Part-Worth Utilities</CardTitle></CardHeader>
                                         <CardContent>
-                                            <ChartContainer config={partWorthChartConfig} className="w-full h-[400px]">
-                                                <ResponsiveContainer width="100%" height={400}>
-                                                    <BarChart data={analysisResult.partWorths.filter(p => p.level !== 'coefficient')} layout="vertical" margin={{ left: 100 }}>
-                                                        <CartesianGrid strokeDasharray="3 3" />
-                                                        <XAxis type="number" />
-                                                        <YAxis dataKey="level" type="category" width={80} />
-                                                        <Tooltip content={<ChartTooltipContent />} />
-                                                        <Bar dataKey="value" name="Part-Worth">
-                                                            {analysisResult.partWorths.map((entry, index) => (
-                                                                <Cell key={`cell-${index}`} fill={entry.value > 0 ? COLORS[0] : COLORS[3]} />
-                                                            ))}
-                                                        </Bar>
-                                                    </BarChart>
-                                                </ResponsiveContainer>
-                                            </ChartContainer>
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <BarChart data={analysisResult.partWorths.filter(p => p.level !== 'coefficient')} layout="vertical" margin={{ left: 100 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis type="number" />
+                                                    <YAxis dataKey="level" type="category" width={80} />
+                                                    <Tooltip content={<ChartTooltipContent />} />
+                                                    <Bar dataKey="value" name="Part-Worth">
+                                                        {analysisResult.partWorths.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={entry.value > 0 ? COLORS[0] : COLORS[3]} />
+                                                        ))}
+                                                    </Bar>
+                                                </BarChart>
+                                            </ResponsiveContainer>
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
@@ -544,19 +538,17 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                              <Card>
                                                 <CardHeader><CardTitle>Residuals vs. Fitted Plot</CardTitle></CardHeader>
                                                 <CardContent>
-                                                    <ChartContainer config={{}} className="w-full h-[300px]">
-                                                        <ResponsiveContainer>
-                                                            <ScatterChart>
-                                                                <CartesianGrid />
-                                                                <XAxis type="number" dataKey="prediction" name="Fitted Value" />
-                                                                <YAxis type="number" dataKey="residual" name="Residual" />
-                                                                <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
-                                                                {diagnosticsData.length > 0 &&
-                                                                    <Scatter data={diagnosticsData} fill="hsl(var(--primary))" />
-                                                                }
-                                                            </ScatterChart>
-                                                        </ResponsiveContainer>
-                                                    </ChartContainer>
+                                                    <ResponsiveContainer width="100%" height={300}>
+                                                        <ScatterChart>
+                                                            <CartesianGrid />
+                                                            <XAxis type="number" dataKey="prediction" name="Fitted Value" />
+                                                            <YAxis type="number" dataKey="residual" name="Residual" />
+                                                            <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
+                                                            {diagnosticsData.length > 0 &&
+                                                                <Scatter data={diagnosticsData} fill="hsl(var(--primary))" />
+                                                            }
+                                                        </ScatterChart>
+                                                    </ResponsiveContainer>
                                                 </CardContent>
                                              </Card>
                                         </CardContent>
@@ -590,4 +582,3 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
       ))}
     </div>
   );
-
