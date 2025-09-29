@@ -29,23 +29,29 @@ def generate_plot(c, A_ub, b_ub, A_eq, b_eq, solution, objective):
         return None
 
     fig, ax = plt.subplots(figsize=(8, 8))
-    x = np.linspace(0, max(b_ub) * 1.5 if len(b_ub) > 0 else 10, 400)
+    
+    # Generate a sensible range for x based on constraints
+    x_max_from_constraints = 20
+    if A_ub is not None:
+        possible_x_max = []
+        for i in range(A_ub.shape[0]):
+            if A_ub[i, 0] > 0:
+                possible_x_max.append(b_ub[i] / A_ub[i, 0])
+        if possible_x_max:
+             x_max_from_constraints = max(possible_x_max) * 1.2
+    
+    x = np.linspace(0, x_max_from_constraints, 400)
     
     # Plot constraints
-    feasible_y = np.full_like(x, 10000) # Start with a large upper bound
-
     if A_ub is not None:
         for i in range(A_ub.shape[0]):
             a1, a2 = A_ub[i, 0], A_ub[i, 1]
             b_val = b_ub[i]
             if a2 != 0:
                 y_constraint = (b_val - a1 * x) / a2
-                ax.plot(x, y_constraint, label=f'{a1}x + {a2}y <= {b_val}')
-                feasible_y = np.minimum(feasible_y, y_constraint)
-            elif a1 != 0: # Vertical line
-                x_constraint_val = b_val / a1
-                ax.axvline(x_constraint_val, label=f'{a1}x <= {b_val}')
-                feasible_y[x > x_constraint_val] = 0 # Invalidate region
+                ax.plot(x, y_constraint, label=f'{a1 if a1!=1 else ""}x + {a2 if a2!=1 else ""}y <= {b_val}')
+            elif a1 != 0:
+                ax.axvline(x=b_val/a1, label=f'x <= {b_val/a1}')
 
     if A_eq is not None:
         for i in range(A_eq.shape[0]):
@@ -53,18 +59,24 @@ def generate_plot(c, A_ub, b_ub, A_eq, b_eq, solution, objective):
             b_val = b_eq[i]
             if a2 != 0:
                 y_constraint = (b_val - a1 * x) / a2
-                ax.plot(x, y_constraint, label=f'{a1}x + {a2}y = {b_val}', linestyle='--')
-            # Note: Equality constraints make the feasible region a line, which is harder to visualize with fill_between.
-            # This plot focuses on inequality-defined regions.
+                ax.plot(x, y_constraint, '--', label=f'{a1 if a1!=1 else ""}x + {a2 if a2!=1 else ""}y = {b_val}')
 
     # Fill feasible region
-    ax.fill_between(x, 0, feasible_y, where=(feasible_y>=0), color='lightgreen', alpha=0.5, label='Feasible Region')
+    # This is complex with multiple constraints. A simplified approach:
+    y_feas = np.full(x.shape, np.inf)
+    if A_ub is not None:
+        for i in range(A_ub.shape[0]):
+            if A_ub[i, 1] > 0: # y is on the left side
+                y_feas = np.minimum(y_feas, (b_ub[i] - A_ub[i, 0] * x) / A_ub[i, 1])
+
+    ax.fill_between(x, 0, y_feas, where=(y_feas>0), color='lightgreen', alpha=0.5, label='Feasible Region')
 
     # Plot objective function (as a contour line)
-    if solution is not None:
+    if solution is not None and len(solution) == 2:
         obj_val = np.dot(c, solution)
-        y_obj = (obj_val - c[0] * x) / c[1] if c[1] != 0 else np.full_like(x, obj_val / c[0])
-        ax.plot(x, y_obj, 'k--', label=f'Objective Z = {obj_val:.2f}')
+        if c[1] != 0:
+            y_obj = (obj_val - c[0] * x) / c[1]
+            ax.plot(x, y_obj, 'k--', label=f'Objective Z = {obj_val:.2f}')
         ax.plot(solution[0], solution[1], 'ro', markersize=10, label=f'Optimal Solution ({solution[0]:.2f}, {solution[1]:.2f})')
 
     ax.set_xlim((0, None))
@@ -180,61 +192,6 @@ def main():
             solution = result.get('primal_solution') or result.get('solution')
             plot_base64 = generate_plot(c, A_ub_np, b_ub_np, A_eq_np, b_eq_np, solution, objective)
             result['plot'] = f"data:image/png;base64,{plot_base64}" if plot_base64 else None
-
-        # Check for the specific car factory example to add interpretation
-        is_car_example = (
-            objective == 'maximize' and
-            np.array_equal(c, [300, 500]) and
-            np.array_equal(A, [[2, 3], [3, 4]]) and
-            np.array_equal(b, [1000, 800]) and
-            constraint_types == ['<=', '<=']
-        )
-
-        if is_car_example:
-            result['interpretation'] = """### Car Factory Profit Maximization Problem
-
-**Scenario**
-
-A factory produces two types of cars: A and B. The production is limited by available resources: a total of 1000 hours of manufacturing time and 800 units of parts.
-
-| Car Type | Profit (per unit) | Manufacturing Time (hours/unit) | Parts Required (units/unit) |
-| :--- | :--- | :--- | :--- |
-| A | $300 | 2 | 3 |
-| B | $500 | 3 | 4 |
-
-**Problem Definition**
-
-The objective is to maximize the total profit.
-
-- **Objective Function:** `maximize 300x + 500y`
-  - `x`: number of cars of type A produced
-  - `y`: number of cars of type B produced
-
-- **Constraints:**
-  - **Manufacturing Time:** `2x + 3y <= 1000`
-  - **Parts Limit:** `3x + 4y <= 800`
-  - **Non-negativity:** `x >= 0, y >= 0`
-
-**LP Formulation**
-
-```
-maximize   300x + 500y
-subject to 2x + 3y <= 1000
-           3x + 4y <= 800
-           x, y >= 0
-```
-
-**Solution**
-
-By using a simplex algorithm, the optimal production plan is calculated.
-
-- **Optimal Solution:**
-  - `x = 200` (Car A)
-  - `y = 50` (Car B)
-- **Maximum Profit:**
-  - `300 * 200 + 500 * 50 = $85,000`
-
-This means the factory should produce 200 units of Car A and 50 units of Car B to achieve the highest possible profit of $85,000 within the given resource constraints. The role of Linear Programming is to find this optimal production quantity."""
 
         print(json.dumps(result, default=_to_native_type))
 

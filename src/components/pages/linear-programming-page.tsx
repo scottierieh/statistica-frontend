@@ -286,10 +286,11 @@ export default function LinearProgrammingPage() {
                                                         <div key={j} className="flex items-center gap-2">
                                                             <Input id={`a${i+1}${j+1}`} type="number" value={val} onChange={e => handleMatrixChange(e.target.value, i, j, 'A')} className="w-20"/>
                                                             <Label>· {decisionVars[j]}</Label>
+                                                            {j < decisionVars.length - 1 && <span className="mx-1 font-semibold">+</span>}
                                                         </div>
                                                     ))}
                                                 </div>
-                                                <div className="w-[60px] text-center font-bold text-lg">
+                                                <div className="w-[80px]">
                                                      <Select value={constraintTypes[i]} onValueChange={(v) => handleConstraintTypeChange(i, v)}>
                                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                                         <SelectContent><SelectItem value="<=">≤</SelectItem><SelectItem value="==">=</SelectItem><SelectItem value=">=">≥</SelectItem></SelectContent>
@@ -326,13 +327,6 @@ export default function LinearProgrammingPage() {
                         </CardContent>
                     </Card>
 
-                    {analysisResult.interpretation && (
-                        <Card>
-                            <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
-                             <CardContent className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: analysisResult.interpretation.replace(/\n/g, '<br/>') }} />
-                        </Card>
-                    )}
-
                     <div className="grid md:grid-cols-2 gap-4">
                         <Card>
                             <CardHeader>
@@ -363,7 +357,7 @@ export default function LinearProgrammingPage() {
                                     <CardTitle>Feasible Region Plot</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                     <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="Feasible Region Plot" width={600} height={600} className="w-full rounded-md border" />
+                                     <Image src={analysisResult.plot} alt="Feasible Region Plot" width={600} height={600} className="w-full rounded-md border" />
                                 </CardContent>
                             </Card>
                         )}
