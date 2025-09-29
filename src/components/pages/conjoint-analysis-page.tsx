@@ -119,13 +119,13 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
-interface ConjointAnalysisPageProps {
+interface CbcAnalysisPageProps {
     data: DataSet;
     allHeaders: string[];
     onLoadExample: (example: any) => void;
 }
 
-export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }: ConjointAnalysisPageProps) {
+export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: CbcAnalysisPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
     const [currentStep, setCurrentStep] = useState(0);
@@ -318,7 +318,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
     
     const runAnalysis = useCallback(async () => {
         if (!targetVariable) {
-            toast({ title: 'Target variable not set', description: 'Please select a target variable to continue.', variant: 'destructive' });
+            toast({ title: 'Target variable not set', description: 'Please select a target variable to continue.', variant = 'destructive' });
             return;
         }
         setIsLoading(true);
@@ -346,6 +346,8 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
     if (view === 'intro') {
        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
+
+    const partWorthChartConfig = { value: { label: "Part-Worth" } };
 
     return (
         <div className="space-y-4">
@@ -446,14 +448,14 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                             {independentVariables.map((attr: any) => (
                                                 <div key={attr.name}>
                                                     <h3 className="font-semibold mb-2">{attr.name}</h3>
-                                                    <ChartContainer config={partWorthChartConfig} className="w-full h-[200px]">
+                                                     <ChartContainer config={partWorthChartConfig} className="w-full h-[200px]">
                                                         <ResponsiveContainer>
                                                             <BarChart data={partWorthsData.filter(p => p.attribute === attr.name)} layout="vertical" margin={{ left: 80 }}>
                                                                 <CartesianGrid strokeDasharray="3 3" />
                                                                 <XAxis type="number" />
-                                                                <YAxis type="category" dataKey="level" width={80} />
+                                                                <YAxis type="category" dataKey="level" width={100} tick={{ fontSize: 12 }} />
                                                                 <Tooltip content={<ChartTooltipContent />} />
-                                                                <Bar dataKey="value" name="Part-Worth" fill="hsl(var(--primary))" barSize={30} />
+                                                                <Bar dataKey="value" name="Part-Worth" fill="hsl(var(--primary))" barSize={30}/>
                                                             </BarChart>
                                                         </ResponsiveContainer>
                                                     </ChartContainer>
@@ -555,3 +557,5 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
       ))}
     </div>
   );
+
+    

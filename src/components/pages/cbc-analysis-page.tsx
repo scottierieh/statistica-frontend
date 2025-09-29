@@ -250,13 +250,14 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         Object.entries(scenario).forEach(([attrName, value]) => {
             if (attrName === 'name' || !attributeCols.includes(attrName)) return;
 
-            const worth = analysisResult.results.part_worths.find(pw => pw.attribute === attrName && String(pw.level) === String(value));
-            if (worth) {
-                utility += worth.value;
+            const baseLevel = allAttributes[attrName].levels[0];
+            if (String(value) !== String(baseLevel)) {
+                const coeffName = `${attrName}_${value}`;
+                utility += analysisResult.results.regression.coefficients[coeffName] || 0;
             }
         });
         return utility;
-    }, [analysisResult, attributeCols]);
+    }, [analysisResult, attributeCols, allAttributes]);
     
     const runSimulation = () => {
         const utilities = scenarios.map(scenario => calculateUtility(scenario));
@@ -283,15 +284,13 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         setIsSensitivityLoading(true);
         setSensitivityPlot(null);
 
-        const baseScenario: Scenario = { name: 'base' };
-        attributeCols.forEach(attrName => {
-            if (attrName !== sensitivityAttribute) {
-                baseScenario[attrName] = allAttributes[attrName].levels[0];
-            }
-        });
-
         const sensitivityData = allAttributes[sensitivityAttribute].levels.map((level: string) => {
-            const scenario = { ...baseScenario, [sensitivityAttribute]: level };
+            const scenario: Scenario = { name: 'base', [sensitivityAttribute]: level };
+             Object.keys(allAttributes).forEach(attrName => {
+                if(attributeCols.includes(attrName) && attrName !== sensitivityAttribute) {
+                    scenario[attrName] = allAttributes[attrName].levels[0];
+                }
+            });
             const utility = calculateUtility(scenario);
             return { level, utility, attribute: sensitivityAttribute };
         });
@@ -333,7 +332,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     };
     
     if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+       return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
     if (!canRun) {
@@ -521,5 +520,3 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         </div>
     );
 }
-
-```
