@@ -81,8 +81,8 @@ def main():
                 'pca_explained_variance': pca_explained_variance.tolist()
             },
             'plots': {
-                'pca': f"data:image/png;base64,{pca_plot_image}",
-                'lda': f"data:image/png;base64,{lda_plot_image}",
+                'pca': pca_plot_image,
+                'lda': lda_plot_image,
             }
         }
         
