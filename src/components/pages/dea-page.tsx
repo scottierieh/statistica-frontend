@@ -153,8 +153,6 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
     
     const results = analysisResult?.results;
 
-    const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565'];
-
     const efficiencyTiers = useMemo(() => {
         if (!results) return { efficient: 0, mostly: 0, needs: 0, inefficient: 0 };
         const scores = Object.values(results.efficiency_scores);
@@ -381,6 +379,28 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                     </Card>
 
                     <div className="grid lg:grid-cols-2 gap-4">
+                        <Card>
+                             <CardHeader>
+                                <CardTitle>Efficiency Distribution</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ChartContainer config={tierChartConfig} className="w-full h-64">
+                                     <ResponsiveContainer>
+                                        <RechartsBarChart data={tierData} layout="vertical">
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis type="number" />
+                                            <YAxis dataKey="name" type="category" width={120} />
+                                            <Tooltip content={<ChartTooltipContent />} />
+                                            <Bar dataKey="count" name="DMUs" radius={4}>
+                                                {tierData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                                                ))}
+                                            </Bar>
+                                        </RechartsBarChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            </CardContent>
+                        </Card>
                          {analysisResult?.plot && (
                             <Card>
                                 <CardHeader><CardTitle>Efficiency Frontier</CardTitle></CardHeader>
@@ -390,7 +410,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             </Card>
                         )}
                         {ioChartData.length > 0 && results.input_cols.length > 0 && results.output_cols.length > 0 && (
-                             <Card>
+                             <Card className="lg:col-span-2">
                                 <CardHeader><CardTitle>Input/Output Comparison</CardTitle></CardHeader>
                                 <CardContent>
                                     <ChartContainer config={{}} className="w-full h-[400px]">
@@ -412,18 +432,6 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                         )}
                     </div>
                     
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>DEA Summary</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Total DMUs</p><p className="text-2xl font-bold">{results.summary.total_dmus}</p></div>
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Efficient DMUs</p><p className="text-2xl font-bold text-green-600">{results.summary.efficient_dmus}</p></div>
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Inefficient DMUs</p><p className="text-2xl font-bold text-destructive">{results.summary.inefficient_dmus}</p></div>
-                            <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Avg. Efficiency</p><p className="text-2xl font-bold">{results.summary.average_efficiency.toFixed(3)}</p></div>
-                        </CardContent>
-                    </Card>
-
                     <Card>
                         <CardHeader><CardTitle>Detailed Efficiency Results</CardTitle></CardHeader>
                         <CardContent>
@@ -472,7 +480,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                                                         <TableCell><Badge variant={t.type === 'input' ? 'destructive' : 'default'}>{t.type}</Badge></TableCell>
                                                         <TableCell className="text-right font-mono">{t.actual.toFixed(2)}</TableCell>
                                                         <TableCell className="text-right font-mono">{t.target.toFixed(2)}</TableCell>
-                                                        <TableCell className="text-right font-mono text-green-600">{t.improvement_pct > 0 ? `+${t.improvement_pct.toFixed(1)}%` : '-'}</TableCell>
+                                                        <TableCell className="text-right font-mono text-green-600">{t.improvement_pct > 0 ? `${t.type === 'input' ? '-' : '+'}${t.improvement_pct.toFixed(1)}%` : '-'}</TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>
