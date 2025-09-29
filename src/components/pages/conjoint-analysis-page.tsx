@@ -1,6 +1,6 @@
 
-
 'use client';
+import * as React from 'react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -99,8 +99,8 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             </ol>
                         </div>
                          <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarIcon className="text-primary"/> Results Interpretation Guide</h3>
-                             <ul className="list-decimal list-inside space-y-4 text-muted-foreground">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarIcon className="text-primary"/> Results Interpretation</h3>
+                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
                                     <strong>Relative Importance</strong>
                                     <p className="text-sm pl-5">This shows the influence of each attribute on the consumer's overall decision, expressed as a percentage. A higher percentage means the attribute is a more critical driver of choice.</p>
@@ -242,7 +242,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
             if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
             const result = await response.json();
             if (result.error) throw new Error(result.error);
-            setAnalysisResult(result);
+            setAnalysisResult(result.results);
             setCurrentStep(2);
             toast({ title: 'Analysis Complete', description: 'Conjoint analysis results are ready.' });
         } catch (error: any) {
