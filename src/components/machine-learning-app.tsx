@@ -45,8 +45,9 @@ import { cn } from '@/lib/utils';
 import HcaPage from '@/components/pages/hca-page';
 import HcaComparisonPage from '@/components/pages/hca-comparison-page';
 import DiscriminantComparisonPage from './pages/discriminant-comparison-page';
+import PcaLdaComparisonPage from './pages/pca-lda-comparison-page';
 
-type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison' | 'hca' | 'hca-comparison' | 'discriminant-comparison';
+type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison' | 'hca' | 'hca-comparison' | 'discriminant-comparison' | 'pca-lda-comparison';
 
 const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalHeaders, allHeaders, onLoadExample, onFileSelected }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], categoricalHeaders: string[], allHeaders: string[], onLoadExample: (e: ExampleDataSet) => void, onFileSelected: (file: File) => void }) => {
     switch (activeTask) {
@@ -79,6 +80,15 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalH
                         onLoadExample={onLoadExample} 
                         onFileSelected={onFileSelected} 
                     />;
+        case 'pca-lda-comparison':
+            return <PcaLdaComparisonPage 
+                        data={data} 
+                        allHeaders={allHeaders} 
+                        numericHeaders={numericHeaders} 
+                        categoricalHeaders={categoricalHeaders} 
+                        onLoadExample={onLoadExample} 
+                        onFileSelected={onFileSelected} 
+                    />;
         case 'regression':
         case 'classification':
         case 'tree':
@@ -103,7 +113,7 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalH
 };
 
 export default function MachineLearningApp() {
-  const [activeTask, setActiveTask] = useState<MLTaskType>('hca-comparison');
+  const [activeTask, setActiveTask] = useState<MLTaskType>('pca-lda-comparison');
   const { toast } = useToast();
   const [data, setData] = useState<DataSet>([]);
   const [allHeaders, setAllHeaders] = useState<string[]>([]);
@@ -310,6 +320,9 @@ export default function MachineLearningApp() {
                         <SidebarMenuItem>
                             <SidebarMenuButton onClick={() => setActiveTask('hca-comparison')} isActive={activeTask === 'hca-comparison'}>HCA Comparison</SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton onClick={() => setActiveTask('pca-lda-comparison')} isActive={activeTask === 'pca-lda-comparison'}>PCA vs. LDA Comparison</SidebarMenuButton>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                   </CollapsibleContent>
               </Collapsible>
@@ -325,7 +338,7 @@ export default function MachineLearningApp() {
                 <div />
             </header>
             
-            {hasData && activeTask !== 'classifier-comparison' && activeTask !== 'fruit-clustering' && activeTask !== 'hca-comparison' && activeTask !== 'discriminant-comparison' && (
+            {hasData && !['classifier-comparison', 'fruit-clustering', 'hca-comparison', 'discriminant-comparison', 'pca-lda-comparison'].includes(activeTask) && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
