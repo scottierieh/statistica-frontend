@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import warnings
 import matplotlib.pyplot as plt
+import seaborn as sns
 import io
 import base64
 
@@ -185,6 +186,45 @@ class DEAAnalyzer:
         reference_sets = {dmu: [self.dmu_names[j] for j, l_val in enumerate(lambdas_list[i]) if l_val > 1e-6]
                           for i, dmu in enumerate(self.dmu_names)}
         
+        # --- Targets and Improvement Potential ---
+        improvement_data = []
+        for i, dmu in enumerate(self.dmu_names):
+            score = efficiency_scores.get(dmu)
+            if score is None or np.isnan(score) or score >= 0.9999:
+                continue
+
+            entry = {'dmu': dmu, 'score': score, 'targets': []}
+            
+            if orientation == 'input':
+                for j, col in enumerate(self.input_cols):
+                    actual = self.inputs[i, j]
+                    target = score * actual
+                    improvement = (1 - score) * 100
+                    entry['targets'].append({
+                        'type': 'input', 'name': col, 'actual': actual, 'target': target, 'improvement_pct': improvement
+                    })
+                for j, col in enumerate(self.output_cols):
+                    actual = self.outputs[i, j]
+                    entry['targets'].append({
+                        'type': 'output', 'name': col, 'actual': actual, 'target': actual, 'improvement_pct': 0
+                    })
+            else: # output-oriented
+                phi = 1 / score if score > 0 else float('inf')
+                for j, col in enumerate(self.input_cols):
+                    actual = self.inputs[i, j]
+                    entry['targets'].append({
+                        'type': 'input', 'name': col, 'actual': actual, 'target': actual, 'improvement_pct': 0
+                    })
+                for j, col in enumerate(self.output_cols):
+                    actual = self.outputs[i, j]
+                    target = phi * actual
+                    improvement = (phi - 1) * 100
+                    entry['targets'].append({
+                        'type': 'output', 'name': col, 'actual': actual, 'target': target, 'improvement_pct': improvement
+                    })
+
+            improvement_data.append(entry)
+
         # Prepare final results object
         eff_scores_list = [s for s in efficiency_scores.values() if s is not None and not np.isnan(s)]
         summary = {
@@ -203,6 +243,7 @@ class DEAAnalyzer:
             'dmu_names': self.dmu_names,
             'input_cols': self.input_cols,
             'output_cols': self.output_cols,
+            'improvement_potential': improvement_data
         }
 
         final_results['interpretation'] = self._generate_interpretation(final_results, orientation)
@@ -238,8 +279,8 @@ class DEAAnalyzer:
             ax.plot(frontier_points['input'], frontier_points['output'], color='green', linestyle='-', marker='o', label='Efficiency Frontier')
 
         ax.set_title('DEA Efficiency Frontier')
-        ax.set_xlabel('Input')
-        ax.set_ylabel('Output')
+        ax.set_xlabel(self.input_cols[0])
+        ax.set_ylabel(self.output_cols[0])
         ax.legend()
         ax.grid(True)
         

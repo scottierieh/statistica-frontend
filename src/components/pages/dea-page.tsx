@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -38,6 +37,17 @@ interface DeaResults {
     interpretation: string;
     input_cols: string[];
     output_cols: string[];
+    improvement_potential: {
+        dmu: string;
+        score: number;
+        targets: {
+            type: 'input' | 'output';
+            name: string;
+            actual: number;
+            target: number;
+            improvement_pct: number;
+        }[];
+    }[];
 }
 
 interface FullDeaResponse {
@@ -308,6 +318,8 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
         )
     }
     
+    const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565'];
+
     return (
         <div className="space-y-4">
             <Card>
@@ -485,48 +497,8 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                         </CardContent>
                     </Card>
 
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <Card>
-                            <CardHeader><CardTitle>Efficiency Score Distribution</CardTitle></CardHeader>
-                            <CardContent>
-                                <ChartContainer config={{}} className="w-full h-[300px]">
-                                    <ResponsiveContainer>
-                                        <BarChart data={Object.entries(results.efficiency_scores).map(([name, score]) => ({name, score}))}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="name" tick={false} />
-                                            <YAxis domain={[0, 'dataMax + 0.1']} />
-                                            <Tooltip content={<ChartTooltipContent />} />
-                                            <Bar dataKey="score" name="Efficiency Score" fill="hsl(var(--primary))" />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader><CardTitle>DMU Efficiency Tiers</CardTitle></CardHeader>
-                            <CardContent>
-                                <ChartContainer config={tierChartConfig} className="w-full h-[300px]">
-                                    <ResponsiveContainer>
-                                        <BarChart data={tierData} layout="vertical" margin={{left: 120}}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis type="number" />
-                                            <YAxis type="category" dataKey="name" />
-                                            <Tooltip content={<ChartTooltipContent />} />
-                                            <Bar dataKey="count" name="DMUs" radius={4}>
-                                                 {tierData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                                                ))}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
-                    </div>
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Detailed Efficiency Results</CardTitle>
-                        </CardHeader>
+                        <CardHeader><CardTitle>Detailed Efficiency Results</CardTitle></CardHeader>
                         <CardContent>
                             <ScrollArea className="h-96">
                                 <Table>
@@ -558,9 +530,34 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Input & Output Data</CardTitle>
-                        </CardHeader>
+                        <CardHeader><CardTitle>Improvement Potential</CardTitle><CardDescription>For inefficient units, this table shows the targets to reach the efficiency frontier.</CardDescription></CardHeader>
+                        <CardContent>
+                            <ScrollArea className="h-96">
+                                {results.improvement_potential.map(item => (
+                                    <div key={item.dmu} className="mb-4 p-4 border rounded-md">
+                                        <h4 className="font-semibold">{item.dmu} (Score: {item.score.toFixed(3)})</h4>
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Actual</TableHead><TableHead className="text-right">Target</TableHead><TableHead className="text-right">Improvement</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {item.targets.map(t => (
+                                                    <TableRow key={t.name}>
+                                                        <TableCell>{t.name}</TableCell>
+                                                        <TableCell><Badge variant={t.type === 'input' ? 'destructive' : 'default'}>{t.type}</Badge></TableCell>
+                                                        <TableCell className="text-right font-mono">{t.actual.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right font-mono">{t.target.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right font-mono text-green-600">{t.improvement_pct > 0 ? `+${t.improvement_pct.toFixed(1)}%` : '-'}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                ))}
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader><CardTitle>Input & Output Data</CardTitle></CardHeader>
                         <CardContent>
                              <ScrollArea className="h-72">
                                 <Table>
