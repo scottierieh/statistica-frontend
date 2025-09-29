@@ -46,8 +46,9 @@ import HcaPage from '@/components/pages/hca-page';
 import HcaComparisonPage from '@/components/pages/hca-comparison-page';
 import DiscriminantComparisonPage from './pages/discriminant-comparison-page';
 import PcaLdaComparisonPage from './pages/pca-lda-comparison-page';
+import Pca3dPage from './pages/pca-3d-page';
 
-type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison' | 'hca' | 'hca-comparison' | 'discriminant-comparison' | 'pca-lda-comparison';
+type MLTaskType = 'regression' | 'classification' | 'tree' | 'unsupervised' | 'deep-learning' | 'knn-regression-simple' | 'knn-regression-multiple' | 'ridge-regression' | 'lasso-regression' | 'fruit-clustering' | 'decision-tree-classifier' | 'classifier-comparison' | 'hca' | 'hca-comparison' | 'discriminant-comparison' | 'pca-lda-comparison' | 'pca-3d';
 
 const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalHeaders, allHeaders, onLoadExample, onFileSelected }: { activeTask: MLTaskType, data: DataSet, numericHeaders: string[], categoricalHeaders: string[], allHeaders: string[], onLoadExample: (e: ExampleDataSet) => void, onFileSelected: (file: File) => void }) => {
     switch (activeTask) {
@@ -66,7 +67,7 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalH
         case 'decision-tree-classifier':
             return <DecisionTreePage data={data} allHeaders={allHeaders} numericHeaders={numericHeaders} categoricalHeaders={categoricalHeaders} onLoadExample={onLoadExample} />;
         case 'classifier-comparison':
-            return <ClassifierComparisonPage data={data} allHeaders={allHeaders} numericHeaders={numericHeaders} categoricalHeaders={categoricalHeaders} onLoadExample={onLoadExample} />;
+            return <ClassifierComparisonPage data={data} allHeaders={allHeaders} numericHeaders={numericHeaders} categoricalHeaders={categoricalHeaders} onLoadExample={onLoadExample} onFileSelected={onFileSelected} />;
         case 'hca':
             return <HcaPage data={data} numericHeaders={numericHeaders} onLoadExample={onLoadExample} />;
         case 'hca-comparison':
@@ -88,6 +89,13 @@ const MachineLearningContent = ({ activeTask, data, numericHeaders, categoricalH
                         categoricalHeaders={categoricalHeaders} 
                         onLoadExample={onLoadExample} 
                         onFileSelected={onFileSelected} 
+                    />;
+        case 'pca-3d':
+            return <Pca3dPage
+                        data={data}
+                        numericHeaders={numericHeaders}
+                        categoricalHeaders={categoricalHeaders}
+                        onLoadExample={onLoadExample}
                     />;
         case 'regression':
         case 'classification':
@@ -323,6 +331,9 @@ export default function MachineLearningApp() {
                         <SidebarMenuItem>
                             <SidebarMenuButton onClick={() => setActiveTask('pca-lda-comparison')} isActive={activeTask === 'pca-lda-comparison'}>PCA vs. LDA Comparison</SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton onClick={() => setActiveTask('pca-3d')} isActive={activeTask === 'pca-3d'}>3D PCA Plot</SidebarMenuButton>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                   </CollapsibleContent>
               </Collapsible>
@@ -338,7 +349,7 @@ export default function MachineLearningApp() {
                 <div />
             </header>
             
-            {hasData && !['classifier-comparison', 'fruit-clustering', 'hca-comparison', 'discriminant-comparison', 'pca-lda-comparison'].includes(activeTask) && (
+            {hasData && !['classifier-comparison', 'fruit-clustering', 'hca-comparison', 'discriminant-comparison', 'pca-lda-comparison', 'pca-3d'].includes(activeTask) && (
               <DataPreview 
                 fileName={fileName}
                 data={data}
