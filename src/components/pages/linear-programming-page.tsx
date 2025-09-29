@@ -10,6 +10,7 @@ import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Truck, MoveRight 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import Image from 'next/image';
+import { produce } from 'immer';
 
 interface LpResult {
     primal_solution?: number[];
@@ -58,19 +59,20 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         Linear programming addresses how to optimize (maximize or minimize) a linear objective function under given linear constraints. This tool uses the Simplex algorithm to find the solution.
                     </p>
                     <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                        <li><strong>Objective Function:</strong> A linear equation representing the goal to be maximized or minimized (e.g., `Max Z = 3x₁ + 2x₂`).</li>
-                        <li><strong>Constraints:</strong> Linear inequalities representing the limits of available resources (e.g., `x₁ + x₂ ≤ 4`).</li>
-                        <li><strong>Optimal Solution:</strong> The values of the variables (x₁, x₂, ...) that optimize the objective function while satisfying all constraints.</li>
+                        <li><strong>Objective Function:</strong> A linear equation representing the goal to be maximized or minimized (e.g., `Max Z = 3x + 2y`).</li>
+                        <li><strong>Constraints:</strong> Linear inequalities representing the limits of available resources (e.g., `x + y ≤ 4`).</li>
+                        <li><strong>Optimal Solution:</strong> The values of the variables (x, y, ...) that optimize the objective function while satisfying all constraints.</li>
                     </ul>
                 </CardContent>
                 <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    <Button variant="outline" onClick={onLoadExample}>Load Example</Button>
-                    <Button size="lg" onClick={onStart}>Get Started <MoveRight className="ml-2 w-5 h-5"/></Button>
+                     <Button variant="outline" onClick={onLoadExample}>Load Example</Button>
+                     <Button size="lg" onClick={onStart}>Get Started <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
     );
 };
+
 
 export default function LinearProgrammingPage() {
     const { toast } = useToast();
@@ -80,9 +82,9 @@ export default function LinearProgrammingPage() {
     const [objective, setObjective] = useState<'maximize' | 'minimize'>('maximize');
     const [problemType, setProblemType] = useState<'lp' | 'integer' | 'milp'>('lp');
     
-    const [c, setC] = useState<number[]>([300, 500]);
-    const [A, setA] = useState<number[][]>([[2, 3], [3, 4]]);
-    const [b, setB] = useState<number[]>([1000, 800]);
+    const [c, setC] = useState<number[]>([3, 2]);
+    const [A, setA] = useState<number[][]>([[1, 1], [1, 0]]);
+    const [b, setB] = useState<number[]>([4, 2]);
     const [constraintTypes, setConstraintTypes] = useState<string[]>(['<=', '<=']);
     const [variableTypes, setVariableTypes] = useState<string[]>(['continuous', 'continuous']);
 
@@ -350,9 +352,8 @@ export default function LinearProgrammingPage() {
                                 )}
                             </CardContent>
                         </Card>
-
                         {analysisResult.plot && (
-                            <Card>
+                             <Card>
                                 <CardHeader>
                                     <CardTitle>Feasible Region Plot</CardTitle>
                                 </CardHeader>
