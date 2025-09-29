@@ -449,34 +449,6 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             </CardContent>
                         </Card>
                     </div>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Input & Output Data</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             <ScrollArea className="h-72">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>{dmuCol}</TableHead>
-                                            {inputCols.map(c => <TableHead key={c} className="text-right">{c} (Input)</TableHead>)}
-                                            {outputCols.map(c => <TableHead key={c} className="text-right">{c} (Output)</TableHead>)}
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {data.map((row, i) => (
-                                            <TableRow key={i}>
-                                                <TableCell>{row[dmuCol!]}</TableCell>
-                                                {inputCols.map(c => <TableCell key={c} className="text-right font-mono">{row[c]}</TableCell>)}
-                                                {outputCols.map(c => <TableCell key={c} className="text-right font-mono">{row[c]}</TableCell>)}
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                             </ScrollArea>
-                        </CardContent>
-                    </Card>
-
                     <Card>
                         <CardHeader>
                             <CardTitle>Detailed Efficiency Results</CardTitle>
@@ -509,6 +481,33 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                                     </TableBody>
                                 </Table>
                             </ScrollArea>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Input & Output Data</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <ScrollArea className="h-72">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>{dmuCol}</TableHead>
+                                            {inputCols.map(c => <TableHead key={c} className="text-right">{c} (Input)</TableHead>)}
+                                            {outputCols.map(c => <TableHead key={c} className="text-right">{c} (Output)</TableHead>)}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {data.map((row, i) => (
+                                            <TableRow key={i}>
+                                                <TableCell>{row[dmuCol!]}</TableCell>
+                                                {inputCols.map(c => <TableCell key={c} className="text-right font-mono">{row[c]}</TableCell>)}
+                                                {outputCols.map(c => <TableCell key={c} className="text-right font-mono">{row[c]}</TableCell>)}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                             </ScrollArea>
                         </CardContent>
                     </Card>
                 </div>
