@@ -2,6 +2,7 @@
 import sys
 import json
 import numpy as np
+import pandas as pd
 import matplotlib as mpl
 from matplotlib import colors
 import matplotlib.pyplot as plt
@@ -13,6 +14,7 @@ from sklearn.discriminant_analysis import (
     QuadraticDiscriminantAnalysis,
 )
 from sklearn.inspection import DecisionBoundaryDisplay
+from sklearn.preprocessing import LabelEncoder
 
 def make_data(n_samples, n_features, cov_class_1, cov_class_2, seed=0):
     rng = np.random.RandomState(seed)
@@ -102,31 +104,50 @@ def plot_result(estimator, X, y, ax):
 def main():
     try:
         payload = json.load(sys.stdin)
-        dataset_name = payload.get("dataset", "isotropic")
+        is_custom_data = 'data' in payload
 
-        # Data Generation
-        covariance_iso = np.array([[1, 0], [0, 1]])
-        X_iso, y_iso = make_data(1000, 2, covariance_iso, covariance_iso, 0)
-        
-        covariance_shared = np.array([[0.0, -0.23], [0.83, 0.23]])
-        X_shared, y_shared = make_data(300, 2, covariance_shared, covariance_shared, 0)
-        
-        cov_class_1 = np.array([[0.0, -1.0], [2.5, 0.7]]) * 2.0
-        cov_class_2 = cov_class_1.T
-        X_diff, y_diff = make_data(300, 2, cov_class_1, cov_class_2, 0)
+        if is_custom_data:
+            df = pd.DataFrame(payload['data'])
+            feature_cols = payload['feature_cols']
+            target_col = payload['target_col']
+            
+            X = df[feature_cols].values
+            
+            if df[target_col].dtype == 'object':
+                le = LabelEncoder()
+                y = le.fit_transform(df[target_col])
+            else:
+                y = df[target_col].values
+            
+            datasets = [ (X, y, f"Custom Data: {feature_cols[0]} vs {feature_cols[1]}") ]
 
-        datasets = {
-            "isotropic": (X_iso, y_iso, "Data with fixed and spherical covariance"),
-            "shared": (X_shared, y_shared, "Data with fixed covariance"),
-            "different": (X_diff, y_diff, "Data with varying covariances"),
-        }
+        else:
+            dataset_name = payload.get("dataset", "isotropic")
+            covariance_iso = np.array([[1, 0], [0, 1]])
+            X_iso, y_iso = make_data(1000, 2, covariance_iso, covariance_iso, 0)
+            
+            covariance_shared = np.array([[0.0, -0.23], [0.83, 0.23]])
+            X_shared, y_shared = make_data(300, 2, covariance_shared, covariance_shared, 0)
+            
+            cov_class_1 = np.array([[0.0, -1.0], [2.5, 0.7]]) * 2.0
+            cov_class_2 = cov_class_1.T
+            X_diff, y_diff = make_data(300, 2, cov_class_1, cov_class_2, 0)
+            
+            dataset_map = {
+                "isotropic": (X_iso, y_iso, "Data with fixed and spherical covariance"),
+                "shared": (X_shared, y_shared, "Data with fixed covariance"),
+                "different": (X_diff, y_diff, "Data with varying covariances"),
+            }
+            datasets = [dataset_map.get(dataset_name, dataset_map["isotropic"])]
 
         # Plotting
-        fig, axs = plt.subplots(nrows=3, ncols=2, sharex="row", sharey="row", figsize=(8, 12))
+        num_datasets = len(datasets)
+        fig, axs = plt.subplots(nrows=num_datasets, ncols=2, sharex="row", sharey="row", figsize=(8, 4 * num_datasets), squeeze=False)
+
         lda = LinearDiscriminantAnalysis(solver="svd", store_covariance=True)
         qda = QuadraticDiscriminantAnalysis(store_covariance=True)
 
-        for i, (name, (X, y, title)) in enumerate(datasets.items()):
+        for i, (X, y, title) in enumerate(datasets):
             lda.fit(X, y)
             plot_result(lda, X, y, axs[i, 0])
             qda.fit(X, y)
@@ -135,7 +156,12 @@ def main():
 
         axs[0, 0].set_title("Linear Discriminant Analysis")
         axs[0, 1].set_title("Quadratic Discriminant Analysis")
-        fig.suptitle("Linear Discriminant Analysis vs Quadratic Discriminant Analysis", y=0.94, fontsize=15)
+        
+        suptitle = "Linear Discriminant Analysis vs Quadratic Discriminant Analysis"
+        if not is_custom_data:
+            suptitle += f" on '{payload.get('dataset')}' dataset"
+            
+        fig.suptitle(suptitle, y=1.0 if num_datasets == 1 else 0.94, fontsize=15)
         
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight')
