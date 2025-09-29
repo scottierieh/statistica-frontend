@@ -170,7 +170,9 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
             setInputCols([]);
             setOutputCols([]);
         }
-    }, [dmuCol, numericHeaders]);
+        setAnalysisResult(null);
+        setView(canRun ? 'main' : 'intro');
+    }, [dmuCol, numericHeaders, canRun]);
     
     const handleVarChange = (header: string, checked: boolean, type: 'input' | 'output') => {
         const setCols = type === 'input' ? setInputCols : setOutputCols;
@@ -387,6 +389,34 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             </CardContent>
                         </Card>
                     </div>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Input & Output Data</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <ScrollArea className="h-72">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>{dmuCol}</TableHead>
+                                            {inputCols.map(c => <TableHead key={c} className="text-right">{c} (Input)</TableHead>)}
+                                            {outputCols.map(c => <TableHead key={c} className="text-right">{c} (Output)</TableHead>)}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {data.map((row, i) => (
+                                            <TableRow key={i}>
+                                                <TableCell>{row[dmuCol!]}</TableCell>
+                                                {inputCols.map(c => <TableCell key={c} className="text-right font-mono">{row[c]}</TableCell>)}
+                                                {outputCols.map(c => <TableCell key={c} className="text-right font-mono">{row[c]}</TableCell>)}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                             </ScrollArea>
+                        </CardContent>
+                    </Card>
 
                     <Card>
                         <CardHeader>
