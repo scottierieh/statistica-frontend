@@ -66,7 +66,6 @@ def main():
 
         for attr_name in independent_vars:
             props = attributes_def[attr_name]
-            # Treat all as categorical for CBC
             dummies = pd.get_dummies(df[attr_name].astype(str), prefix=attr_name, drop_first=True, dtype=float)
             X_parts.append(dummies)
             feature_names_map.update({col: col for col in dummies.columns})
@@ -82,17 +81,17 @@ def main():
 
         X_with_const = sm.add_constant(X_clean)
 
-        # Fit the OLS model
-        model = sm.OLS(y_clean, X_with_const).fit()
+        # --- Fit the Logit model for choice data ---
+        model = sm.Logit(y_clean, X_with_const).fit(disp=0)
         
         # --- Regression Results ---
         regression_results = {
-            'rSquared': model.rsquared,
-            'adjustedRSquared': model.rsquared_adj,
-            'rmse': np.sqrt(model.mse_resid),
-            'mae': np.mean(np.abs(model.resid)),
+            'rSquared': getattr(model, 'prsquared', 0.0),
+            'adjustedRSquared': getattr(model, 'prsquared', 0.0), # Logit doesn't have a direct adjusted R^2
+            'rmse': np.nan, # Not applicable for Logit
+            'mae': np.nan,  # Not applicable for Logit
             'predictions': model.predict().tolist(),
-            'residuals': model.resid.tolist(),
+            'residuals': model.resid_response.tolist(),
             'intercept': model.params.get('const', 0.0),
             'coefficients': model.params.drop('const').to_dict()
         }
@@ -132,7 +131,6 @@ def main():
             'targetVariable': target_variable
         }
         
-        # Wrap final results in a 'results' key to match frontend expectation
         response = {'results': final_results}
         
         if sensitivity_analysis_request:
@@ -147,4 +145,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-  

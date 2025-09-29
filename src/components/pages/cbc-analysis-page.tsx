@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -232,7 +231,7 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
             setAnalysisResult(result);
             toast({ title: 'CBC Analysis Complete', description: 'Part-worths and importance have been calculated.' });
 
-        } catch (e: any) => {
+        } catch (e: any) {
             console.error('CBC error:', e);
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
@@ -479,15 +478,15 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
                                 {simulationResult && (
                                     <div className="mt-4">
                                         <ChartContainer config={{marketShare: {label: 'Market Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
-                                            <ResponsiveContainer>
-                                                <BarChart data={simulationResult}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis dataKey="name" />
-                                                    <YAxis unit="%"/>
-                                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
-                                                    <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
-                                                </BarChart>
-                                            </ResponsiveContainer>
+                                          <ResponsiveContainer>
+                                              <BarChart data={simulationResult}>
+                                                  <CartesianGrid strokeDasharray="3 3" />
+                                                  <XAxis dataKey="name" />
+                                                  <YAxis unit="%"/>
+                                                  <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
+                                                  <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
+                                              </BarChart>
+                                          </ResponsiveContainer>
                                         </ChartContainer>
                                     </div>
                                 )}
@@ -522,3 +521,5 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         </div>
     );
 }
+
+```
