@@ -18,6 +18,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import type { DataSet } from '@/lib/stats';
+import { Checkbox } from '../ui/checkbox';
 
 
 interface DeaResults {
@@ -324,7 +325,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                 <div className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="font-headline flex items-center gap-2"><Bot /> Interpretation</CardTitle>
+                            <CardTitle className="font-headline flex items-center gap-2">Interpretation</CardTitle>
                         </CardHeader>
                         <CardContent>
                              <Alert>
@@ -352,7 +353,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                         <Card>
                             <CardHeader><CardTitle>Efficiency Score Distribution</CardTitle></CardHeader>
                             <CardContent>
-                                <ChartContainer config={{}} className="w-full h-[300px]">
+                                <ChartContainer config={tierChartConfig} className="w-full h-[300px]">
                                     <ResponsiveContainer>
                                         <BarChart data={Object.entries(results.efficiency_scores).map(([name, score]) => ({name, score}))}>
                                             <CartesianGrid strokeDasharray="3 3" />
