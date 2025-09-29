@@ -81,20 +81,16 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Step-by-Step Guide</h3>
                             <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>Prepare Data</strong>
-                                    <p className="text-sm pl-5">Your dataset should contain various product profiles, where each row represents a unique combination of attributes and includes a consumer preference score (e.g., a rating from 1-10).</p>
+                                    <strong>Prepare Data:</strong> Your dataset should contain various product profiles, where each row represents a unique combination of attributes and includes a consumer preference score (e.g., a rating from 1-10).
                                 </li>
                                 <li>
-                                    <strong>Select Target Variable</strong>
-                                    <p className="text-sm pl-5">Choose the column that represents the preference score or rating. This will be the dependent variable in the analysis.</p>
+                                    <strong>Select Target Variable:</strong> Choose the column that represents the preference score or rating. This will be the dependent variable in the analysis.
                                 </li>
                                 <li>
-                                    <strong>Define Attributes</strong>
-                                    <p className="text-sm pl-5">Select the product/service features to be included in the analysis. The tool will automatically detect if they are categorical or numerical.</p>
+                                    <strong>Define Attributes:</strong> Select the product/service features to be included in the analysis. The tool will automatically detect if they are categorical or numerical.
                                 </li>
                                  <li>
-                                    <strong>Run Analysis</strong>
-                                    <p className="text-sm pl-5">Click 'Run Analysis' to perform the regression-based conjoint analysis, which calculates part-worths and attribute importance.</p>
+                                    <strong>Run Analysis:</strong> Click 'Run Analysis' to perform the regression-based conjoint analysis, which calculates part-worths and attribute importance.
                                 </li>
                             </ol>
                         </div>
@@ -102,16 +98,13 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><BarIcon className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>Relative Importance</strong>
-                                    <p className="text-sm pl-5">This shows the influence of each attribute on the consumer's overall decision, expressed as a percentage. A higher percentage means the attribute is a more critical driver of choice.</p>
+                                    <strong>Relative Importance:</strong> This shows the influence of each attribute on the consumer's overall decision, expressed as a percentage. A higher percentage means the attribute is a more critical driver of choice.
                                 </li>
                                 <li>
-                                    <strong>Part-Worths (Utilities)</strong>
-                                    <p className="text-sm pl-5">These are numerical scores representing the utility or preference for each level of an attribute. Higher values indicate higher preference. The baseline level for each attribute is always set to zero.</p>
+                                    <strong>Part-Worths (Utilities):</strong> These are numerical scores representing the utility or preference for each level of an attribute. Higher values indicate higher preference. The baseline level for each attribute is always set to zero.
                                 </li>
                                 <li>
-                                    <strong>Market Simulation</strong>
-                                    <p className="text-sm pl-5">Create virtual product scenarios to predict their market share. This powerful feature helps you identify the optimal combination of attributes to maximize consumer preference.</p>
+                                    <strong>Market Simulation:</strong> Create virtual product scenarios to predict their market share. This powerful feature helps you identify the optimal combination of attributes to maximize consumer preference.
                                 </li>
                             </ul>
                         </div>
@@ -147,13 +140,17 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
     ]);
     const [simulationResult, setSimulationResult] = useState<any>(null);
     const [sensitivityAttribute, setSensitivityAttribute] = useState<string | undefined>();
-    const [sensitivityResult, setSensitivityResult] = useState<any>(null);
+    const [sensitivityPlot, setSensitivityPlot] = useState<string | null>(null);
+    const [isSensitivityLoading, setIsSensitivityLoading] = useState(false);
 
     const canRun = useMemo(() => data.length > 0 && allHeaders.length > 1, [data, allHeaders]);
 
     const independentVariables = useMemo(() => Object.values(attributes).filter((attr: any) => attr.includeInAnalysis), [attributes]);
     
     const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+
+    const results = analysisResult;
+    const partWorthsData = results ? results.partWorths : [];
 
     const importanceChartConfig = useMemo(() => {
       if (!analysisResult) return {};
@@ -162,17 +159,6 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         return acc;
       }, {} as any);
     }, [analysisResult]);
-
-    const partWorthChartConfig = { value: { label: "Part-Worth" } };
-
-    const diagnosticsData = useMemo(() => {
-      if (!analysisResult?.regression?.predictions || !analysisResult?.regression?.residuals) return [];
-      return analysisResult.regression.predictions.map((p, i) => ({
-          prediction: p,
-          residual: analysisResult.regression.residuals[i]
-      }));
-  }, [analysisResult]);
-
 
     useEffect(() => {
         if (!canRun) {
@@ -198,7 +184,7 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         setCurrentStep(0);
         setAnalysisResult(null);
         setSimulationResult(null);
-        setSensitivityResult(null);
+        setSensitivityPlot(null);
     }, [data, allHeaders, canRun]);
     
     useEffect(() => {
@@ -251,9 +237,10 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
 
             const attr = attributes[attrName];
             const cleanAttrName = attrName.replace(/[^A-Za-z0-9_]/g, '_');
+            const cleanValue = String(value).replace(/[^A-Za-z0-9_.]/g, '_');
             if (attr.type === 'categorical') {
                 if (String(value) !== String(attr.levels[0])) {
-                    const paramName = `C(Q("${cleanAttrName}"))[T.${value}]`;
+                    const paramName = `C(Q("${cleanAttrName}"))[T.${cleanValue}]`;
                     utility += coefficients[paramName] || 0;
                 }
             } else {
@@ -283,22 +270,50 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
         setScenarios(newScenarios);
     };
 
-    const runSensitivityAnalysis = () => {
-        if (!sensitivityAttribute) return;
+    const runSensitivityAnalysis = async () => {
+        if (!sensitivityAttribute || !analysisResult?.results) return;
         
-        const baseScenario: Scenario = { name: 'base' };
-        Object.keys(attributes).forEach(attrName => {
-            if(attributes[attrName].includeInAnalysis && attrName !== sensitivityAttribute) {
-                baseScenario[attrName] = attributes[attrName].levels[0];
-            }
+        setIsSensitivityLoading(true);
+        setSensitivityPlot(null);
+
+        const sensitivityData = attributes[sensitivityAttribute].levels.map((level: string) => {
+            const scenario: Scenario = { name: 'base', [sensitivityAttribute]: level };
+             Object.keys(attributes).forEach(attrName => {
+                if(attributes[attrName].includeInAnalysis && attrName !== sensitivityAttribute) {
+                    scenario[attrName] = attributes[attrName].levels[0];
+                }
+            });
+            const utility = calculateUtility(scenario);
+            return { level, utility, attribute: sensitivityAttribute };
         });
 
-        const results = attributes[sensitivityAttribute].levels.map((level: string) => {
-            const scenario = { ...baseScenario, [sensitivityAttribute]: level };
-            const utility = calculateUtility(scenario);
-            return { level, utility };
-        });
-        setSensitivityResult(results);
+         try {
+            const response = await fetch('/api/analysis/conjoint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    data,
+                    attributes, 
+                    targetVariable,
+                    sensitivityAnalysis: sensitivityData 
+                })
+            });
+
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const result: { sensitivity_plot?: string, error?: string } = await response.json();
+            if (result.error) throw new Error(result.error);
+            
+            setSensitivityPlot(result.sensitivity_plot || null);
+
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Sensitivity Analysis Error', description: e.message });
+        } finally {
+            setIsSensitivityLoading(false);
+        }
     };
     
     const runAnalysis = useCallback(async () => {
@@ -405,7 +420,6 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                     <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
                                     <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
                                     <TabsTrigger value="sensitivity"><LineChart className="mr-2"/>Sensitivity</TabsTrigger>
-                                    <TabsTrigger value="diagnostics"><SlidersHorizontal className="mr-2"/>Diagnostics</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="importance" className="mt-4">
                                     <Card>
@@ -428,19 +442,24 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                      <Card>
                                         <CardHeader><CardTitle className='flex items-center gap-2'><BarIcon/>Part-Worth Utilities</CardTitle></CardHeader>
                                         <CardContent>
-                                            <ResponsiveContainer width="100%" height={400}>
-                                                <BarChart data={analysisResult.partWorths.filter(p => p.level !== 'coefficient')} layout="vertical" margin={{ left: 100 }}>
-                                                    <CartesianGrid strokeDasharray="3 3" />
-                                                    <XAxis type="number" />
-                                                    <YAxis dataKey="level" type="category" width={80} />
-                                                    <Tooltip content={<ChartTooltipContent />} />
-                                                    <Bar dataKey="value" name="Part-Worth">
-                                                        {analysisResult.partWorths.map((entry, index) => (
-                                                            <Cell key={`cell-${index}`} fill={entry.value > 0 ? COLORS[0] : COLORS[3]} />
-                                                        ))}
-                                                    </Bar>
-                                                </BarChart>
-                                            </ResponsiveContainer>
+                                           <div className="grid md:grid-cols-2 gap-4">
+                                            {independentVariables.map((attr: any) => (
+                                                <div key={attr.name}>
+                                                    <h3 className="font-semibold mb-2">{attr.name}</h3>
+                                                    <ChartContainer config={partWorthChartConfig} className="w-full h-[200px]">
+                                                        <ResponsiveContainer>
+                                                            <BarChart data={partWorthsData.filter(p => p.attribute === attr.name)} layout="vertical" margin={{ left: 80 }}>
+                                                                <CartesianGrid strokeDasharray="3 3" />
+                                                                <XAxis type="number" />
+                                                                <YAxis type="category" dataKey="level" width={80} />
+                                                                <Tooltip content={<ChartTooltipContent />} />
+                                                                <Bar dataKey="value" name="Part-Worth" fill="hsl(var(--primary))" barSize={30} />
+                                                            </BarChart>
+                                                        </ResponsiveContainer>
+                                                    </ChartContainer>
+                                                </div>
+                                            ))}
+                                           </div>
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
@@ -495,62 +514,16 @@ export default function ConjointAnalysisPage({ data, allHeaders, onLoadExample }
                                                     <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
                                                     <SelectContent>{independentVariables.map((attr: any) => <SelectItem key={attr.name} value={attr.name}>{attr.name}</SelectItem>)}</SelectContent>
                                                 </Select>
-                                                <Button onClick={runSensitivityAnalysis}>Analyze</Button>
+                                                <Button onClick={runSensitivityAnalysis} disabled={isSensitivityLoading}>
+                                                    {isSensitivityLoading ? <Loader2 className="animate-spin mr-2" /> : null}
+                                                    Analyze
+                                                </Button>
                                             </div>
-                                            {sensitivityResult && (
+                                            {isSensitivityLoading ? <Skeleton className="h-[300px] w-full" /> : sensitivityPlot && (
                                                 <div className="h-[300px] w-full">
-                                                    <Plot
-                                                        data={[
-                                                            {
-                                                                x: sensitivityResult.map((d: any) => d.level),
-                                                                y: sensitivityResult.map((d: any) => d.utility),
-                                                                type: 'scatter',
-                                                                mode: 'lines+markers',
-                                                                marker: {color: COLORS[4]},
-                                                            },
-                                                        ]}
-                                                        layout={{
-                                                            title: `Utility vs. ${sensitivityAttribute}`,
-                                                            xaxis: { title: sensitivityAttribute },
-                                                            yaxis: { title: 'Calculated Utility'},
-                                                            autosize: true,
-                                                        }}
-                                                        style={{ width: '100%', height: '100%' }}
-                                                        useResizeHandler={true}
-                                                        className="w-full h-full"
-                                                    />
+                                                     <Image src={sensitivityPlot} alt="Sensitivity Analysis Plot" width={800} height={500} className="w-full h-full object-contain rounded-md border"/>
                                                 </div>
                                             )}
-                                        </CardContent>
-                                    </Card>
-                                </TabsContent>
-                                 <TabsContent value="diagnostics" className="mt-4">
-                                    <Card>
-                                        <CardHeader><CardTitle>Model Diagnostics</CardTitle><CardDescription>Check the quality of the underlying regression model.</CardDescription></CardHeader>
-                                        <CardContent>
-                                            <h3 className="font-bold text-lg mb-2">Model Performance</h3>
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-4">
-                                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">R²</p><p className="text-2xl font-bold">{analysisResult.regression.rSquared.toFixed(3)}</p></div>
-                                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Adjusted R²</p><p className="text-2xl font-bold">{analysisResult.regression.adjustedRSquared.toFixed(3)}</p></div>
-                                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">RMSE</p><p className="text-2xl font-bold">{analysisResult.regression.rmse.toFixed(3)}</p></div>
-                                                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">MAE</p><p className="text-2xl font-bold">{analysisResult.regression.mae.toFixed(3)}</p></div>
-                                            </div>
-                                             <Card>
-                                                <CardHeader><CardTitle>Residuals vs. Fitted Plot</CardTitle></CardHeader>
-                                                <CardContent>
-                                                    <ResponsiveContainer width="100%" height={300}>
-                                                        <ScatterChart>
-                                                            <CartesianGrid />
-                                                            <XAxis type="number" dataKey="prediction" name="Fitted Value" />
-                                                            <YAxis type="number" dataKey="residual" name="Residual" />
-                                                            <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />}/>
-                                                            {diagnosticsData.length > 0 &&
-                                                                <Scatter data={diagnosticsData} fill="hsl(var(--primary))" />
-                                                            }
-                                                        </ScatterChart>
-                                                    </ResponsiveContainer>
-                                                </CardContent>
-                                             </Card>
                                         </CardContent>
                                     </Card>
                                 </TabsContent>
