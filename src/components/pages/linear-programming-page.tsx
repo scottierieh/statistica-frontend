@@ -1,15 +1,15 @@
 
 'use client';
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, MoveRight } from 'lucide-react';
+import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Truck, MoveRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { produce } from 'immer';
 
 interface LpResult {
     primal_solution?: number[];
@@ -18,6 +18,7 @@ interface LpResult {
     optimal_value?: number; // For MILP
     success: boolean;
     message?: string;
+    interpretation?: string;
     sensitivity?: {
         slack: number[];
         shadow_prices_ub: number[];
@@ -51,7 +52,7 @@ const IntroPage = ({ onStart }: { onStart: () => void }) => {
                         A powerful mathematical optimization technique to find the maximum profit or minimum cost using limited resources.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="text-left space-y-6 px-8 py-10">
+                <CardContent className="text-left space-y-4 px-8 py-10">
                     <p>
                         Linear programming addresses how to optimize (maximize or minimize) a linear objective function under given linear constraints. This tool uses the Simplex algorithm to find the solution.
                     </p>
@@ -97,15 +98,16 @@ export default function LinearProgrammingPage() {
 
     const handleLoadExample = () => {
         setNumVars(2);
-        setNumConstraints(3);
+        setNumConstraints(2);
         setObjective('maximize');
         setProblemType('lp');
-        setC([3, 2]); 
-        setA([[1, 1], [1, 0], [0, 1]]);
-        setB([4, 2, 3]);
+        setC([300, 500]); 
+        setA([[2, 3], [3, 4]]);
+        setB([1000, 800]);
         setVariableTypes(['continuous', 'continuous']);
         setAnalysisResult(null);
-        toast({ title: "Sample Data Loaded", description: "Example maximization problem has been set up." });
+        setView('main');
+        toast({ title: "Sample Data Loaded", description: "Car factory maximization problem has been set up." });
     };
 
     const handleMatrixChange = (val: string, i: number, j: number, type: 'A' | 'b' | 'c') => {
@@ -307,6 +309,16 @@ export default function LinearProgrammingPage() {
                             </ul>
                         </CardContent>
                     </Card>
+
+                    {analysisResult.interpretation && (
+                        <Card>
+                            <CardHeader><CardTitle>Interpretation</CardTitle></CardHeader>
+                            <CardContent>
+                                <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: analysisResult.interpretation.replace(/\n/g, '<br/>') }} />
+                            </CardContent>
+                        </Card>
+                    )}
+
                     <Card>
                         <CardHeader>
                             <CardTitle>Optimal Solution</CardTitle>
@@ -316,13 +328,10 @@ export default function LinearProgrammingPage() {
                                 <div>
                                     <p><strong>Optimal Value (Z*):</strong> <span className="font-mono">{optimalValue?.toFixed(6)}</span></p>
                                     <Table className="mt-2">
-                                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead>Variable</TableHead><TableHead className="text-right">Optimal Value</TableHead></TableRow></TableHeader>
                                         <TableBody>
                                             {primalSolution?.map((s, i) => (
-                                                <TableRow key={i}>
-                                                    <TableCell><strong>x{i + 1}</strong></TableCell>
-                                                    <TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell>
-                                                </TableRow>
+                                                <TableRow key={i}><TableCell><strong>x{i + 1}</strong></TableCell><TableCell className="font-mono text-right">{s.toFixed(6)}</TableCell></TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
