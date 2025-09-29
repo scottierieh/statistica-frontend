@@ -368,7 +368,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                     </Card>
 
                     <div className="grid lg:grid-cols-2 gap-4">
-                        {analysisResult.plot && (
+                        {analysisResult?.plot && (
                             <Card>
                                 <CardHeader><CardTitle>Efficiency Frontier</CardTitle></CardHeader>
                                 <CardContent>
@@ -377,7 +377,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                             </Card>
                         )}
                         {ioChartData.length > 0 && results.input_cols.length > 0 && results.output_cols.length > 0 && (
-                            <Card>
+                             <Card>
                                 <CardHeader><CardTitle>Input/Output Comparison</CardTitle></CardHeader>
                                 <CardContent>
                                     <ChartContainer config={{}} className="w-full h-[400px]">
