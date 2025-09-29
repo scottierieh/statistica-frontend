@@ -1,6 +1,5 @@
 
 'use client';
-import * as React from 'react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -17,12 +16,7 @@ import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import dynamic from 'next/dynamic';
-
-const Plot = dynamic(() => import('react-plotly.js'), {
-  ssr: false,
-  loading: () => <Skeleton className="w-full h-[300px]" />,
-});
+import Image from 'next/image';
 
 interface AnalysisResults {
     regression: {
@@ -45,6 +39,12 @@ interface AnalysisResults {
         importance: number;
     }[];
     targetVariable: string;
+}
+
+interface FullAnalysisResponse {
+    results: AnalysisResults;
+    sensitivity_plot?: string;
+    error?: string;
 }
 
 interface Scenario {
@@ -159,6 +159,8 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         return acc;
       }, {} as any);
     }, [analysisResult]);
+
+    const partWorthChartConfig = { value: { label: "Part-Worth" } };
 
     useEffect(() => {
         if (!canRun) {
@@ -288,12 +290,17 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
         });
 
          try {
+            const attributesForBackend = independentVariables.reduce((acc, attr: any) => {
+                acc[attr.name] = { ...attr };
+                return acc;
+            }, {} as any);
+
             const response = await fetch('/api/analysis/conjoint', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     data,
-                    attributes, 
+                    attributes: attributesForBackend, 
                     targetVariable,
                     sensitivityAnalysis: sensitivityData 
                 })
@@ -318,7 +325,11 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     
     const runAnalysis = useCallback(async () => {
         if (!targetVariable) {
-            toast({ title: 'Target variable not set', description: 'Please select a target variable to continue.', variant = 'destructive' });
+            toast({
+                title: "Target variable not set",
+                description: "Please select a target variable to continue.",
+                variant: "destructive"
+            });
             return;
         }
         setIsLoading(true);
@@ -346,8 +357,6 @@ export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: Cbc
     if (view === 'intro') {
        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
-
-    const partWorthChartConfig = { value: { label: "Part-Worth" } };
 
     return (
         <div className="space-y-4">
