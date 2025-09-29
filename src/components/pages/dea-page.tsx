@@ -353,7 +353,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                         <Card>
                             <CardHeader><CardTitle>Efficiency Score Distribution</CardTitle></CardHeader>
                             <CardContent>
-                                <ChartContainer config={tierChartConfig} className="w-full h-[300px]">
+                                <ChartContainer config={{}} className="w-full h-[300px]">
                                     <ResponsiveContainer>
                                         <BarChart data={Object.entries(results.efficiency_scores).map(([name, score]) => ({name, score}))}>
                                             <CartesianGrid strokeDasharray="3 3" />
@@ -427,4 +427,3 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
         </div>
     );
 }
-
