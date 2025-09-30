@@ -61,7 +61,7 @@ type Survey = {
 
 const STEPS = ['Setup', 'Build', 'Setting', 'Share & Analyze'];
 
-const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'];
+const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#f43f5e', '#6366f1'];
 
 // A distinct component for editing a single question
 const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question: Question; onUpdate: (id: string, newQuestion: Partial<Question>) => void; onDelete: (id: string) => void; isPreview?: boolean }) => {
@@ -310,7 +310,7 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
 const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
     const [chartType, setChartType] = useState<'heatmap' | 'grouped' | 'stacked'>('heatmap');
 
-    const matrixData = useMemo(() => {
+    const { matrixData, totals } = useMemo(() => {
         const data: number[][] = Array(question.rows!.length).fill(0).map(() => Array(question.columns!.length).fill(0));
         
         responses.forEach(response => {
@@ -326,22 +326,25 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
             }
         });
         
-        // Convert to percentages
-        return data.map(row => {
-            const sum = row.reduce((a, b) => a + b, 0);
+        const totals = data.map(row => row.reduce((a, b) => a + b, 0));
+        
+        const percentageData = data.map((row, i) => {
+            const sum = totals[i];
             return sum > 0 ? row.map(cell => (cell / sum) * 100) : row;
         });
+
+        return { matrixData: percentageData, totals };
     }, [question, responses]);
 
     const plotData = useMemo(() => {
         const scales = question.scale || question.columns || [];
-        const questions = question.rows || [];
+        const rows = question.rows || [];
 
         if (chartType === 'heatmap') {
             return [{
                 z: matrixData,
                 x: scales,
-                y: questions,
+                y: rows,
                 type: 'heatmap' as const,
                 colorscale: 'Blues',
                 text: matrixData.map(row => row.map(val => `${val.toFixed(1)}%`)),
@@ -351,11 +354,14 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
             }];
         } else { // grouped or stacked
             return scales.map((scale, i) => ({
-                x: questions,
+                x: rows,
                 y: matrixData.map(row => row[i]),
                 name: scale,
                 type: 'bar' as const,
                 marker: { color: COLORS[i % COLORS.length] },
+                text: matrixData.map(row => `${row[i].toFixed(1)}%`),
+                textposition: 'auto' as const,
+                hovertemplate: `<b>${scale}</b><br>%{x}: %{y:.1f}%<extra></extra>`
             }));
         }
     }, [chartType, matrixData, question.rows, question.columns, question.scale]);
@@ -376,11 +382,11 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
             return {
                 ...baseLayout,
                 xaxis: { 
-                    title: 'Scale',
+                    title: '응답 척도',
                     side: 'bottom' as const
                 },
                 yaxis: { 
-                    title: 'Question',
+                    title: '질문',
                     automargin: true
                 }
             };
@@ -389,7 +395,7 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                 ...baseLayout,
                 barmode: chartType,
                 xaxis: { 
-                    title: 'Question',
+                    title: '질문',
                     tickangle: -45
                 },
                 yaxis: { 
@@ -399,7 +405,7 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                 legend: {
                     orientation: 'h' as const,
                     yanchor: 'bottom' as const,
-                    y: -0.4,
+                    y: -0.3,
                     xanchor: 'center' as const,
                     x: 0.5
                 }
@@ -848,4 +854,3 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
     </div>
   );
 }
-```
