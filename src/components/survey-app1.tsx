@@ -61,7 +61,8 @@ type Survey = {
 
 const STEPS = ['Setup', 'Build', 'Setting', 'Share & Analyze'];
 
-const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', 
+          '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
 // A distinct component for editing a single question
 const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question: Question; onUpdate: (id: string, newQuestion: Partial<Question>) => void; onDelete: (id: string) => void; isPreview?: boolean }) => {
@@ -310,14 +311,16 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
 const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
     const [chartType, setChartType] = useState<'heatmap' | 'grouped' | 'stacked' | 'horizontal-grouped' | 'horizontal-stacked'>('heatmap');
 
-    const matrixData = useMemo(() => {
+    const { matrixData, totalResponses } = useMemo(() => {
         const rows = question.rows || [];
         const cols = question.columns || [];
         const data: number[][] = Array(rows.length).fill(0).map(() => Array(cols.length).fill(0));
+        let totalResponses = 0;
         
         responses.forEach(response => {
             const answer = response.answers[question.id];
             if (answer) {
+                totalResponses++;
                 Object.entries(answer).forEach(([row, col]) => {
                     const rowIndex = rows.indexOf(row);
                     const colIndex = cols.indexOf(col as string);
@@ -329,10 +332,12 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
         });
         
         // Convert to percentages
-        return data.map(row => {
+        const percentageData = data.map(row => {
             const sum = row.reduce((a, b) => a + b, 0);
             return sum > 0 ? row.map(cell => (cell / sum) * 100) : row;
         });
+
+        return { matrixData: percentageData, totalResponses };
     }, [question, responses]);
 
     const plotData = useMemo(() => {
@@ -348,32 +353,43 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                 colorscale: 'Blues',
                 text: matrixData.map(row => row.map(val => `${val.toFixed(1)}%`)),
                 texttemplate: '%{text}',
-                textfont: { color: "white" },
-                hovertemplate: '<b>%{y}</b><br>%{x}: %{text}<extra></extra>'
+                textfont: { color: "white", size: 12 },
+                hovertemplate: '<b>%{y}</b><br>%{x}: %{text}<extra></extra>',
+                colorbar: { title: "Response %" }
             }];
-        } else { // grouped or stacked
-            const orientation = chartType.includes('horizontal') ? 'h' : 'v';
-            return scales.map((scale, i) => ({
-                x: chartType.includes('horizontal') ? matrixData.map(row => row[i]) : rows,
-                y: chartType.includes('horizontal') ? rows : matrixData.map(row => row[i]),
+        } else if (chartType.includes('horizontal')) {
+             return scales.map((scale, i) => ({
+                y: rows,
+                x: matrixData.map(row => row[i]),
                 name: scale,
                 type: 'bar' as const,
-                orientation,
+                orientation: 'h',
                 marker: { color: COLORS[i % COLORS.length] },
                 text: matrixData.map(row => `${row[i].toFixed(1)}%`),
-                textposition: 'inside',
-                textfont: { color: 'white' },
-                hovertemplate: `<b>${scale}</b><br>%{${orientation === 'h' ? 'y' : 'x'}}: %{${orientation === 'h' ? 'x' : 'y'}:.1f}%<extra></extra>`
+                textposition: 'auto',
+                hovertemplate: `<b>${scale}</b><br>%{y}: %{x:.1f}%<extra></extra>`
             }));
         }
-    }, [chartType, matrixData, question.rows, question.columns, question.scale]);
-
+        else { // grouped or stacked vertical
+            return scales.map((scale, i) => ({
+                x: rows,
+                y: matrixData.map(row => row[i]),
+                name: scale,
+                type: 'bar' as const,
+                marker: { color: COLORS[i % COLORS.length] },
+                text: matrixData.map(row => `${row[i].toFixed(1)}%`),
+                textposition: 'auto',
+                hovertemplate: `<b>${scale}</b><br>%{x}: %{y:.1f}%<extra></extra>`
+            }));
+        }
+    }, [chartType, matrixData, question.rows, question.scale, question.columns]);
+    
     const plotLayout = useMemo(() => {
         const baseLayout: any = {
             autosize: true,
-            margin: { t: 40, b: 80, l: 150, r: 20 },
+            margin: { t: 60, b: 80, l: 150, r: 20 },
             title: {
-                text: `Matrix - ${chartType.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
+                text: `Matrix Analysis: ${chartType.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
                 font: { size: 16 }
             },
             font: { size: 12 },
@@ -386,26 +402,33 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                 xaxis: { title: 'Scale', side: 'bottom' as const },
                 yaxis: { title: 'Items', automargin: true }
             };
-        } else {
-            const barmode = chartType.includes('stack') ? 'stack' : 'group';
-            const orientation = chartType.includes('horizontal') ? 'h' : 'v';
-
-            return {
+        } else if (chartType.includes('horizontal')) {
+             return {
                 ...baseLayout,
-                barmode,
+                barmode: chartType.includes('stack') ? 'stack' : 'group',
                 xaxis: { 
-                    title: orientation === 'h' ? 'Percentage (%)' : 'Items',
-                    range: orientation === 'h' && barmode === 'stack' ? [0, 100] : undefined,
-                    tickangle: orientation === 'v' ? -45 : 0
+                    title: 'Percentage (%)',
+                    range: chartType.includes('stack') ? [0, 100] : undefined
                 },
                 yaxis: { 
-                    title: orientation === 'h' ? 'Items' : 'Percentage (%)',
-                    range: orientation === 'v' && barmode === 'stack' ? [0, 100] : undefined,
-                    autorange: orientation === 'h' ? 'reversed' : undefined
+                    title: 'Items',
+                    autorange: 'reversed'
                 },
-                legend: {
-                    orientation: 'h' as const, yanchor: 'bottom' as const, y: -0.4, xanchor: 'center' as const, x: 0.5
-                }
+                 legend: { orientation: 'v' as const, yanchor: 'top' as const, y: 1, xanchor: 'left' as const, x: 1.02 }
+            };
+        } else { // vertical bars
+            return {
+                ...baseLayout,
+                barmode: chartType.includes('stack') ? 'stack' : 'group',
+                xaxis: { 
+                    title: 'Items',
+                    tickangle: -45
+                },
+                yaxis: { 
+                    title: 'Percentage (%)',
+                    range: chartType.includes('stack') ? [0, 100] : undefined,
+                },
+                legend: { orientation: 'h' as const, yanchor: 'bottom' as const, y: -0.4, xanchor: 'center' as const, x: 0.5 }
             };
         }
     }, [chartType]);
@@ -848,3 +871,5 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
     </div>
   );
 }
+
+    
