@@ -56,7 +56,7 @@ type Survey = {
 
 const STEPS = ['Setup', 'Build', 'Setting', 'Share & Analyze'];
 
-const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'];
 
 // A distinct component for editing a single question
 const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question: Question; onUpdate: (id: string, newQuestion: Partial<Question>) => void; onDelete: (id: string) => void; isPreview?: boolean }) => {
@@ -219,47 +219,66 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
 
 // --- Analysis Components ---
 const AnalysisResultDisplay = ({ question, responses }: { question: Question; responses: any[] }) => {
+    const [chartType, setChartType] = useState<'bar'|'pie'|'donut'>('bar');
+
     const chartData = useMemo(() => {
         const answers = responses.map(r => r.answers[question.id]).filter(a => a !== undefined && a !== null);
         if (answers.length === 0) return null;
 
-        if (question.type === 'single' || question.type === 'multiple' || question.type === 'dropdown') {
-            const counts: { [key: string]: number } = {};
-            answers.flat().forEach(ans => { counts[ans] = (counts[ans] || 0) + 1; });
-            return Object.entries(counts).map(([name, value]) => ({ name, value }));
-        }
-        if (question.type === 'nps') {
-            const promoters = answers.filter(s => s >= 9).length;
-            const passives = answers.filter(s => s >= 7 && s <= 8).length;
-            const detractors = answers.filter(s => s <= 6).length;
-            const total = answers.length;
-            return {
-                nps: total > 0 ? ((promoters / total) - (detractors / total)) * 100 : 0,
-                dist: [
-                    { name: 'Detractors', value: detractors },
-                    { name: 'Passives', value: passives },
-                    { name: 'Promoters', value: promoters },
-                ],
-                scoreCounts: answers.reduce((acc, score) => { acc[score] = (acc[score] || 0) + 1; return acc; }, {})
-            };
-        }
-        return null;
+        const counts: { [key: string]: number } = {};
+        answers.flat().forEach(ans => { counts[ans] = (counts[ans] || 0) + 1; });
+        return Object.entries(counts).map(([name, value]) => ({ name, value }));
+        
     }, [question, responses]);
 
-    const renderChart = () => {
-        if (!chartData) return <p>No data to display.</p>;
-        switch(question.type) {
-            case 'single': case 'multiple': case 'dropdown':
-                return <Plot data={[{ values: chartData.map(d => d.value), labels: chartData.map(d => d.name), type: 'pie', hole: .4, marker: { colors: COLORS } }]} layout={{ title: question.text, autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>
-            case 'nps':
-                return <Plot data={[{ type: 'indicator', mode: "gauge+number+delta", value: chartData.nps, gauge: { axis: { range: [-100, 100] } } }]} layout={{ title: "NPS Score", autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>
-            default:
-                return <p>Analysis for this question type is not yet implemented.</p>;
+    const plotData = useMemo(() => {
+        if (!chartData) return [];
+        if (chartType === 'pie' || chartType === 'donut') {
+            return [{
+                values: chartData.map(d => d.value),
+                labels: chartData.map(d => d.name),
+                type: 'pie',
+                hole: chartType === 'donut' ? 0.4 : 0,
+                marker: { colors: COLORS },
+                textinfo: 'label+percent',
+                textposition: 'inside',
+            }];
         }
-    };
+        // bar
+        return [{
+            x: chartData.map(d => d.name),
+            y: chartData.map(d => d.value),
+            type: 'bar',
+            marker: { color: COLORS[0] }
+        }];
+    }, [chartData, chartType]);
 
-    return <Card><CardContent className="p-4">{renderChart()}</CardContent></Card>;
+    if (!chartData) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><p>No responses yet.</p></CardContent></Card>;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{question.text}</CardTitle>
+                <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full mt-2">
+                    <TabsList>
+                        <TabsTrigger value="bar">Bar</TabsTrigger>
+                        <TabsTrigger value="pie">Pie</TabsTrigger>
+                        <TabsTrigger value="donut">Donut</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </CardHeader>
+            <CardContent>
+                <Plot 
+                    data={plotData} 
+                    layout={{ autosize: true, margin: { t: 20, b: 20, l: 40, r: 20 } }} 
+                    style={{ width: '100%', height: '300px' }} 
+                    useResizeHandler
+                />
+            </CardContent>
+        </Card>
+    );
 };
+
 
 // A new, distinct Survey App component
 export default function SurveyApp1() {
@@ -277,12 +296,15 @@ export default function SurveyApp1() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { toast } = useToast();
   const [responses, setResponses] = useState<any[]>([]);
+  const [surveyId, setSurveyId] = useState<string>('');
 
   useEffect(() => {
     // This effect runs once on mount to load data from localStorage.
-    const surveyId = `survey1-${survey.title.replace(/\s+/g, '-')}`;
-    const savedSurvey = localStorage.getItem(surveyId);
-    const savedResponses = localStorage.getItem(`${surveyId}_responses`);
+    const id = `survey1-${survey.title.replace(/\s+/g, '-')}`;
+    setSurveyId(id);
+
+    const savedSurvey = localStorage.getItem(id);
+    const savedResponses = localStorage.getItem(`${id}_responses`);
 
     if (savedSurvey) {
       setSurvey(JSON.parse(savedSurvey));
@@ -311,7 +333,7 @@ export default function SurveyApp1() {
     ],
     'Structure': [
          { id: 'description', icon: FileText, label: 'Description Block', color: 'text-gray-400' },
-         { id: 'matrix', icon: Grid3x3, label: 'Matrix', rows: ['Row 1', 'Row 2'], columns: ['Col 1', 'Col 2'], scale: ['Low', 'High'], color: 'text-purple-500' },
+         { id: 'matrix', icon: Grid3x3, label: 'Matrix', rows: ['Row 1', 'Row 2'], columns: ['Col 1', 'Col 2'], scale: ['Label 1', 'Label 2'], color: 'text-purple-500' },
     ]
 };
 
@@ -381,15 +403,14 @@ export default function SurveyApp1() {
   const prevStep = () => setCurrentStep(p => Math.max(p - 1, 0));
 
   const saveSurvey = () => {
-    const surveyId = `survey1-${survey.title.replace(/\s+/g, '-')}`;
     localStorage.setItem(surveyId, JSON.stringify(survey));
     toast({ title: 'Survey Saved!', description: 'Your survey draft has been saved locally.' });
     return surveyId;
   };
 
   const saveAndShare = () => {
-    const surveyId = saveSurvey();
-    const url = `${window.location.origin}/survey/view/general/${surveyId}`;
+    const id = saveSurvey();
+    const url = `${window.location.origin}/survey/view/general/${id}`;
     setSurveyUrl(url);
     setIsShareModalOpen(true);
     generateQrCode(url);
@@ -598,7 +619,11 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                         <Card>
                             <CardHeader><CardTitle>Analysis</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
-                                {survey.questions.map(q => <AnalysisResultDisplay key={q.id} question={q} responses={responses} />)}
+                                {responses.length > 0 ? (
+                                    survey.questions.map(q => <AnalysisResultDisplay key={q.id} question={q} responses={responses} />)
+                                ) : (
+                                    <p>No responses yet.</p>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>
