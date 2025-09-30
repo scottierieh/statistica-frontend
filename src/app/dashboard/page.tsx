@@ -102,7 +102,7 @@ export default function DashboardHubPage() {
                     </CardHeader>
                     <CardContent>
                         <Button asChild className="w-full">
-                            <Link href="/dashboard/survey" target="_blank" rel="noopener noreferrer">Launch Survey Tool</Link>
+                            <Link href="/dashboard/survey1" target="_blank" rel="noopener noreferrer">Launch Survey Tool</Link>
                         </Button>
                     </CardContent>
                 </Card>
