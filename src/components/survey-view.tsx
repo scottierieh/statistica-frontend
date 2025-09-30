@@ -19,10 +19,6 @@ import { produce } from 'immer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-
-// Re-defining question components for the view page
-// In a real app, these could be in a shared components directory.
-
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { question: any; answer?: string; onAnswerChange: (value: string) => void; }) => {
     return (
         <div className="p-4">
@@ -265,22 +261,6 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: any, a
     );
 };
 
-
-const questionComponents: { [key: string]: React.ComponentType<any> } = {
-  single: SingleSelectionQuestion,
-  multiple: MultipleSelectionQuestion,
-  dropdown: DropdownQuestion,
-  text: TextQuestion,
-  rating: RatingQuestion,
-  number: NumberQuestion,
-  phone: PhoneQuestion,
-  email: EmailQuestion,
-  nps: NPSQuestion,
-  description: DescriptionBlock,
-  'best-worst': BestWorstQuestion,
-  matrix: MatrixQuestion
-};
-
 export default function SurveyView() {
     const params = useParams();
     const surveyId = params.id as string;
@@ -294,11 +274,9 @@ export default function SurveyView() {
     useEffect(() => {
         if (surveyId) {
             try {
-                // Increment view count
                 const views = parseInt(localStorage.getItem(`${surveyId}_views`) || '0', 10) + 1;
                 localStorage.setItem(`${surveyId}_views`, views.toString());
 
-                // Load survey
                 const draft = localStorage.getItem(surveyId);
                 if (draft) {
                     setSurvey(JSON.parse(draft));
@@ -344,6 +322,21 @@ export default function SurveyView() {
         const existingResponses = JSON.parse(localStorage.getItem(`${surveyId}_responses`) || '[]');
         localStorage.setItem(`${surveyId}_responses`, JSON.stringify([...existingResponses, newResponse]));
         setSubmitted(true);
+    };
+
+    const questionComponents: { [key: string]: React.ComponentType<any> } = {
+        single: SingleSelectionQuestion,
+        multiple: MultipleSelectionQuestion,
+        dropdown: DropdownQuestion,
+        text: TextQuestion,
+        rating: RatingQuestion,
+        number: NumberQuestion,
+        phone: PhoneQuestion,
+        email: EmailQuestion,
+        nps: NPSQuestion,
+        description: DescriptionBlock,
+        'best-worst': BestWorstQuestion,
+        matrix: MatrixQuestion
     };
     
     const currentQuestion = survey?.questions[currentQuestionIndex];
@@ -404,5 +397,3 @@ export default function SurveyView() {
         </div>
     );
 }
-
-    

@@ -13,6 +13,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Copy, Download } from 'lucide-react';
+
 
 // Simplified question and survey types for the new tool
 type QuestionType = 'text' | 'choice' | 'single' | 'multiple' | 'dropdown' | 'rating' | 'number' | 'phone' | 'email' | 'nps' | 'description' | 'best-worst' | 'matrix';
@@ -167,6 +171,11 @@ export default function SurveyApp1() {
     description: '',
     questions: [],
   });
+  const [surveyUrl, setSurveyUrl] = useState('');
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [isLoadingQr, setIsLoadingQr] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const { toast } = useToast();
 
   const questionTypeCategories = {
     'Choice': [
@@ -250,6 +259,51 @@ export default function SurveyApp1() {
   
   const nextStep = () => setCurrentStep(p => Math.min(p + 1, STEPS.length - 1));
   const prevStep = () => setCurrentStep(p => Math.max(p - 1, 0));
+
+  const saveAndShare = () => {
+    const surveyId = `survey1-${Date.now()}`;
+    localStorage.setItem(surveyId, JSON.stringify(survey));
+    const url = `${window.location.origin}/survey/view/general/${surveyId}`;
+    setSurveyUrl(url);
+    setIsShareModalOpen(true);
+    generateQrCode(url);
+  };
+
+  const generateQrCode = async (url: string) => {
+    if (!url) return;
+    setIsLoadingQr(true);
+    try {
+        const response = await fetch(`/api/generate-qr-code?data=${encodeURIComponent(url)}`);
+        if(!response.ok) throw new Error('Failed to generate QR code');
+        const result = await response.json();
+        setQrCodeUrl(result.image);
+    } catch (error) {
+         toast({ title: "QR Code Error", description: "Could not generate QR code.", variant: "destructive" });
+    } finally {
+        setIsLoadingQr(false);
+    }
+};
+
+  const copyUrlToClipboard = async () => {
+    if (!surveyUrl) return;
+    try {
+        await navigator.clipboard.writeText(surveyUrl);
+        toast({ title: 'Copied to Clipboard' });
+    } catch (error) {
+        toast({ title: 'Failed to copy', variant: 'destructive' });
+    }
+};
+
+const downloadQrCode = () => {
+    if (qrCodeUrl) {
+        const link = document.createElement('a');
+        link.href = qrCodeUrl;
+        link.download = `survey-qr-code.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+};
 
   const renderContent = () => {
     switch (currentStep) {
@@ -347,12 +401,8 @@ export default function SurveyApp1() {
                         <CardDescription>Your survey is ready! Share the link to start collecting responses.</CardDescription>
                     </CardHeader>
                     <CardContent className="text-center space-y-6">
-                        <div className="p-4 border rounded-lg bg-muted">
-                            <p className="font-mono text-primary break-all">/survey/view/{survey.title.toLowerCase().replace(/\s+/g, '-')}</p>
-                        </div>
-                        <div className="flex justify-center gap-4">
-                            <Button><Share2 className="mr-2 h-4 w-4"/> Share Link</Button>
-                            <Button variant="secondary"><BarChart2 className="mr-2 h-4 w-4"/> View Results</Button>
+                        <div className="flex justify-center">
+                            <Button size="lg" onClick={saveAndShare}><Share2 className="mr-2 h-4 w-4"/> Save and Get Share Link</Button>
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-start">
@@ -390,8 +440,36 @@ export default function SurveyApp1() {
             ))}
         </div>
         {renderContent()}
+
+        <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Share Your Survey</DialogTitle>
+                    <DialogDescription>Use the link or QR code to test or share it.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="survey-link">Shareable Link</Label>
+                        <div className="flex items-center gap-2">
+                            <Input id="survey-link" value={surveyUrl} readOnly />
+                            <Button variant="outline" size="icon" onClick={copyUrlToClipboard}><Copy className="w-4 h-4" /></Button>
+                        </div>
+                    </div>
+                    <div>
+                        <Label>QR Code</Label>
+                        <div className="flex flex-col items-center gap-2 p-4 border rounded-lg">
+                            {isLoadingQr ? <Loader2 className="w-8 h-8 animate-spin" /> : qrCodeUrl ? <Image src={qrCodeUrl} alt="QR Code" width={200} height={200}/> : <p>QR code not available.</p>}
+                            <Button variant="outline" disabled={!qrCodeUrl || isLoadingQr} onClick={downloadQrCode}><Download className="mr-2" /> Download</Button>
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button className="w-full" asChild>
+                        <a href={surveyUrl} target="_blank" rel="noopener noreferrer">Launch Kiosk</a>
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
-
-    
