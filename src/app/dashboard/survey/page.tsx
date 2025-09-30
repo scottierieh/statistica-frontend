@@ -32,7 +32,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
-type SurveySection = 'design' | 'history' | 'templates';
+type SurveySection = 'design' | 'hub' | 'templates';
 
 // Mock data for survey history
 const mockSurveys = [
@@ -43,7 +43,7 @@ const mockSurveys = [
 ];
 
 
-const SurveyHistory = () => {
+const SurveyHub = () => {
     const router = useRouter();
 
     const handleNewSurvey = () => {
@@ -55,8 +55,8 @@ const SurveyHistory = () => {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                    <CardTitle>Survey History</CardTitle>
-                    <CardDescription>View and manage your past and active surveys.</CardDescription>
+                    <CardTitle>Survey Hub</CardTitle>
+                    <CardDescription>Create new surveys or manage your past and active ones.</CardDescription>
                 </div>
                 <Button onClick={handleNewSurvey}>
                     <Plus className="mr-2" /> New Survey
@@ -106,7 +106,7 @@ export default function SurveyPage() {
   const searchParams = useSearchParams();
   const surveyId = searchParams.get('id');
 
-  const [activeSection, setActiveSection] = useState<SurveySection>('history');
+  const [activeSection, setActiveSection] = useState<SurveySection>('hub');
   
   const renderContent = () => {
     if (surveyId) {
@@ -114,12 +114,12 @@ export default function SurveyPage() {
     }
     
     switch (activeSection) {
-      case 'history':
-        return <SurveyHistory />;
+      case 'hub':
+        return <SurveyHub />;
       case 'templates':
         return <div className="p-8 text-center">Survey templates will be available here.</div>;
       default:
-        return <SurveyHistory />;
+        return <SurveyHub />;
     }
   };
 
@@ -128,7 +128,7 @@ export default function SurveyPage() {
     if (surveyId) {
       setActiveSection('design');
     } else {
-      setActiveSection('history');
+      setActiveSection('hub');
     }
   }, [surveyId]);
 
@@ -159,10 +159,10 @@ export default function SurveyPage() {
               <SidebarMenuItem>
                 <Link href="/dashboard/survey" className="w-full">
                     <SidebarMenuButton
-                      isActive={activeSection === 'history' && !surveyId}
+                      isActive={activeSection === 'hub' && !surveyId}
                     >
                       <History />
-                      <span>History</span>
+                      <span>Survey Hub</span>
                     </SidebarMenuButton>
                  </Link>
               </SidebarMenuItem>
@@ -194,4 +194,3 @@ export default function SurveyPage() {
     </SidebarProvider>
   );
 }
-
