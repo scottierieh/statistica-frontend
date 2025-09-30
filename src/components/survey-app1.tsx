@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -5,13 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2 } from 'lucide-react';
+import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot } from 'lucide-react';
 import { produce } from 'immer';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Simplified question and survey types for the new tool
+type QuestionType = 'text' | 'choice';
+
 type Question = {
   id: string;
-  type: 'text' | 'choice';
+  type: QuestionType;
   text: string;
   options?: string[];
 };
@@ -24,6 +29,64 @@ type Survey = {
 
 const STEPS = ['Setup', 'Build', 'Share & Analyze'];
 
+// A distinct component for editing a single question
+const QuestionEditor = ({ question, onUpdate, onDelete }: { question: Question; onUpdate: (id: string, newQuestion: Partial<Question>) => void; onDelete: (id: string) => void; }) => {
+    
+    const handleOptionChange = (optIndex: number, value: string) => {
+        const newOptions = [...(question.options || [])];
+        newOptions[optIndex] = value;
+        onUpdate(question.id, { options: newOptions });
+    };
+
+    const addOption = () => {
+        const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
+        onUpdate(question.id, { options: newOptions });
+    };
+
+    const removeOption = (optIndex: number) => {
+        const newOptions = (question.options || []).filter((_, i) => i !== optIndex);
+        onUpdate(question.id, { options: newOptions });
+    };
+    
+  return (
+    <Card className="p-4 space-y-4">
+      <div className="flex justify-between items-start">
+        <div className='flex-1'>
+            <Label>Question Text</Label>
+            <Input
+            value={question.text}
+            onChange={(e) => onUpdate(question.id, { text: e.target.value })}
+            placeholder="Type your question here..."
+            />
+        </div>
+        <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
+            <Trash2 className="w-4 h-4 text-destructive"/>
+        </Button>
+      </div>
+
+      {question.type === 'choice' && (
+        <div className="space-y-2">
+          <Label>Options</Label>
+          {question.options?.map((opt, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <Input
+                value={opt}
+                onChange={(e) => handleOptionChange(index, e.target.value)}
+                placeholder={`Option ${index + 1}`}
+              />
+              <Button variant="ghost" size="icon" onClick={() => removeOption(index)}>
+                <Trash2 className="w-4 h-4 text-muted-foreground"/>
+              </Button>
+            </div>
+          ))}
+          <Button variant="outline" size="sm" onClick={addOption}><PlusCircle className="mr-2 h-4 w-4"/> Add Option</Button>
+        </div>
+      )}
+    </Card>
+  );
+};
+
+
 // A new, distinct Survey App component
 export default function SurveyApp1() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -33,29 +96,38 @@ export default function SurveyApp1() {
     questions: [],
   });
 
-  const addQuestion = () => {
+  const addQuestion = (type: QuestionType) => {
+    const newQuestion: Question = {
+      id: `q_${Date.now()}`,
+      type: type,
+      text: '',
+    };
+    if (type === 'choice') {
+      newQuestion.options = ['Option 1', 'Option 2'];
+    }
     setSurvey(
       produce((draft) => {
-        draft.questions.push({
-          id: `q_${Date.now()}`,
-          type: 'choice',
-          text: '',
-          options: ['Option 1', 'Option 2'],
-        });
+        draft.questions.push(newQuestion);
       })
     );
   };
 
-  const updateQuestion = (id: string, newText: string) => {
+  const updateQuestion = (id: string, newProps: Partial<Question>) => {
     setSurvey(
       produce((draft) => {
         const question = draft.questions.find((q) => q.id === id);
         if (question) {
-          question.text = newText;
+          Object.assign(question, newProps);
         }
       })
     );
   };
+  
+  const deleteQuestion = (id: string) => {
+      setSurvey(produce(draft => {
+          draft.questions = draft.questions.filter(q => q.id !== id);
+      }))
+  }
   
   const nextStep = () => setCurrentStep(p => Math.min(p + 1, STEPS.length - 1));
   const prevStep = () => setCurrentStep(p => Math.max(p - 1, 0));
@@ -124,18 +196,28 @@ export default function SurveyApp1() {
           </CardHeader>
           <CardContent className="space-y-4">
             {survey.questions.map((q, index) => (
-              <Card key={q.id} className="p-4">
-                <Label>Question {index + 1}</Label>
-                <Input
-                  value={q.text}
-                  onChange={(e) => updateQuestion(q.id, e.target.value)}
-                  placeholder="Type your question here..."
-                />
-              </Card>
+              <QuestionEditor 
+                key={q.id}
+                question={q}
+                onUpdate={updateQuestion}
+                onDelete={deleteQuestion}
+              />
             ))}
-            <Button variant="outline" onClick={addQuestion}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Question
-            </Button>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Question
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuItem onSelect={() => addQuestion('choice')}>
+                        <CircleDot className="mr-2 h-4 w-4"/> Multiple Choice
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => addQuestion('text')}>
+                        <CaseSensitive className="mr-2 h-4 w-4"/> Text Answer
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
           </CardContent>
            <CardFooter className="flex justify-between">
             <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Setup</Button>
