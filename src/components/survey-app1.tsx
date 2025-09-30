@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot, CheckSquare, ChevronDown, Star, Sigma, Phone, Mail, ThumbsUp, Grid3x3, FileText, Plus } from 'lucide-react';
+import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot, CheckSquare, ChevronDown, Star, Sigma, Phone, Mail, ThumbsUp, Grid3x3, FileText, Plus, X } from 'lucide-react';
 import { produce } from 'immer';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -57,43 +57,105 @@ const QuestionEditor = ({ question, onUpdate, onDelete }: { question: Question; 
         const newOptions = (question.options || []).filter((_, i) => i !== optIndex);
         onUpdate(question.id, { options: newOptions });
     };
-    
-  return (
-    <Card className="p-4 space-y-4">
-      <div className="flex justify-between items-start">
-        <div className='flex-1'>
-            <Label>Question Text</Label>
-            <Input
-            value={question.text}
-            onChange={(e) => onUpdate(question.id, { text: e.target.value })}
-            placeholder="Type your question here..."
-            />
-        </div>
-        <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
-            <Trash2 className="w-4 h-4 text-destructive"/>
-        </Button>
-      </div>
 
-      {(question.type === 'choice' || question.type === 'single' || question.type === 'multiple') && (
-        <div className="space-y-2">
-          <Label>Options</Label>
-          {question.options?.map((opt, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Input
-                value={opt}
-                onChange={(e) => handleOptionChange(index, e.target.value)}
-                placeholder={`Option ${index + 1}`}
-              />
-              <Button variant="ghost" size="icon" onClick={() => removeOption(index)}>
-                <Trash2 className="w-4 h-4 text-muted-foreground"/>
-              </Button>
+    const handleMatrixChange = (type: 'rows' | 'columns' | 'scale', index: number, value: string) => {
+        const newValues = [...(question[type] || [])];
+        newValues[index] = value;
+        onUpdate(question.id, { [type]: newValues });
+    };
+
+    const addMatrixRow = () => onUpdate(question.id, { rows: [...(question.rows || []), `New Row`] });
+    const removeMatrixRow = (index: number) => onUpdate(question.id, { rows: (question.rows || []).filter((_, i) => i !== index) });
+    
+    const handleItemChange = (index: number, value: string) => {
+        const newItems = [...(question.items || [])];
+        newItems[index] = value;
+        onUpdate(question.id, { items: newItems });
+    };
+    
+    const addItem = () => {
+        const newItems = [...(question.items || []), `New Item`];
+        onUpdate(question.id, { items: newItems });
+    };
+    
+    const removeItem = (index: number) => {
+        const newItems = (question.items || []).filter((_, i) => i !== index);
+        onUpdate(question.id, { items: newItems });
+    };
+
+
+    return (
+    <Card className="p-4 space-y-4">
+        <div className="flex justify-between items-start">
+            <div className='flex-1'>
+                <Label>Question Text</Label>
+                <Input
+                    value={question.text}
+                    onChange={(e) => onUpdate(question.id, { text: e.target.value })}
+                    placeholder="Type your question here..."
+                />
             </div>
-          ))}
-          <Button variant="outline" size="sm" onClick={addOption}><PlusCircle className="mr-2 h-4 w-4"/> Add Option</Button>
+            <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
+                <Trash2 className="w-4 h-4 text-destructive"/>
+            </Button>
         </div>
-      )}
+
+        {['single', 'multiple', 'dropdown'].includes(question.type) && (
+            <div className="space-y-2">
+                <Label>Options</Label>
+                {question.options?.map((opt, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                    <Input
+                        value={opt}
+                        onChange={(e) => handleOptionChange(index, e.target.value)}
+                        placeholder={`Option ${index + 1}`}
+                    />
+                    <Button variant="ghost" size="icon" onClick={() => removeOption(index)}>
+                        <X className="w-4 h-4 text-muted-foreground"/>
+                    </Button>
+                    </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={addOption}><PlusCircle className="mr-2 h-4 w-4"/> Add Option</Button>
+            </div>
+        )}
+
+        {question.type === 'best-worst' && (
+             <div className="space-y-2">
+                <Label>Items to Compare</Label>
+                {question.items?.map((item, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                        <Input value={item} onChange={(e) => handleItemChange(index, e.target.value)} />
+                        <Button variant="ghost" size="icon" onClick={() => removeItem(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>
+                    </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={addItem}><PlusCircle className="mr-2 h-4 w-4"/> Add Item</Button>
+            </div>
+        )}
+        
+        {question.type === 'matrix' && (
+            <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label>Rows</Label>
+                    {question.rows?.map((row, index) => (
+                         <div key={index} className="flex items-center gap-2">
+                            <Input value={row} onChange={(e) => handleMatrixChange('rows', index, e.target.value)} />
+                            <Button variant="ghost" size="icon" onClick={() => removeMatrixRow(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>
+                        </div>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={addMatrixRow}><PlusCircle className="mr-2 h-4 w-4"/> Add Row</Button>
+                </div>
+                 <div className="space-y-2">
+                    <Label>Scale Labels (Columns)</Label>
+                    {question.scale?.map((col, index) => (
+                         <div key={index} className="flex items-center gap-2">
+                            <Input value={col} onChange={(e) => handleMatrixChange('scale', index, e.target.value)} />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
     </Card>
-  );
+    );
 };
 
 
@@ -331,3 +393,5 @@ export default function SurveyApp1() {
     </div>
   );
 }
+
+    
