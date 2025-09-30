@@ -10,7 +10,7 @@ import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensi
 import { produce } from 'immer';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenuItem, SidebarMenu, SidebarProvider, SidebarTrigger } from './ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenuItem, SidebarMenu, SidebarProvider, SidebarTrigger, SidebarMenuButton } from './ui/sidebar';
 
 // Simplified question and survey types for the new tool
 type QuestionType = 'text' | 'choice';
@@ -199,7 +199,7 @@ export default function SurveyApp1() {
                     </CardContent>
                     <CardFooter className="flex justify-between">
                         <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Setup</Button>
-                        <Button onClick={nextStep}>Next: Share & Analyze <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                        <Button onClick={nextStep}>Next: Share & Analyze <ArrowRight className="mr-2 h-4 w-4" /></Button>
                     </CardFooter>
                 </Card>
             );
