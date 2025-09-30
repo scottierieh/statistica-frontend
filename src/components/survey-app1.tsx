@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot, CheckSquare, ChevronDown, Star, Sigma, Phone, Mail, ThumbsUp, Grid3x3, FileText, Plus, X, Settings, Eye } from 'lucide-react';
+import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot, CheckSquare, ChevronDown, Star, Sigma, Phone, Mail, ThumbsUp, Grid3x3, FileText, Plus, X, Settings, Eye, Save } from 'lucide-react';
 import { produce } from 'immer';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -15,9 +15,9 @@ import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Copy, Download, Save } from 'lucide-react';
+import { Loader2, Copy, Download, QrCode } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DatePickerWithRange } from '../ui/date-range-picker';
 import { addDays } from 'date-fns';
 
 
@@ -410,10 +410,7 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                                         </DialogHeader>
                                         <ScrollArea className="max-h-[70vh] p-4">
                                             <div className="space-y-4">
-                                                {survey.questions.map(q => {
-                                                     const QuestionPreview = questionComponents[q.type];
-                                                     return QuestionPreview ? <QuestionPreview key={q.id} question={q} isPreview={true} /> : null;
-                                                })}
+                                                <p>Preview functionality is not fully implemented in this view.</p>
                                             </div>
                                         </ScrollArea>
                                     </DialogContent>
@@ -549,4 +546,3 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
     </div>
   );
 }
-```
