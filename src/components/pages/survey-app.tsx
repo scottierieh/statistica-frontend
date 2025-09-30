@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -159,7 +160,7 @@ const psmTemplate = {
 };
 
 
-const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 const SortableCard = ({ id, children }: { id: any; children: React.ReactNode }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
@@ -1657,32 +1658,37 @@ const MatrixAnalysisDisplay = ({ chartData, tableData, insightsData, varName, qu
         return tableData.map(row => {
             const total = Object.values<number>(row).slice(1).reduce((acc, val) => acc + val, 0);
             const newRow: {[key: string]: any} = { name: row.name };
-            Object.keys(row).slice(1).forEach(key => {
-                newRow[key] = total > 0 ? (row[key] / total) * 100 : 0;
+            (question.columns || []).forEach((col: string) => {
+                newRow[col] = total > 0 ? (row[col] / total) * 100 : 0;
             });
             return newRow;
         });
-    }, [tableData]);
-
+    }, [tableData, question.columns]);
+    
+    const chartConfig = useMemo(() => {
+        return (question.scale || question.columns).reduce((acc: any, label: string, index: number) => {
+            acc[label] = { label: label, color: COLORS[index % COLORS.length] };
+            return acc;
+        }, {});
+    }, [question.scale, question.columns]);
+    
     return (
         <AnalysisDisplayShell varName={varName}>
             <div className="grid grid-cols-1 gap-6">
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Response Distribution</CardTitle>
-                    </CardHeader>
+                    <CardHeader><CardTitle className="text-base">Response Distribution</CardTitle></CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
-                       <ChartContainer config={{}} className="h-[300px] w-full">
+                       <ChartContainer config={chartConfig} className="h-[300px] w-full">
                          <ResponsiveContainer>
-                           <RechartsBarChart data={percentages} layout="vertical" margin={{ left: 120 }}>
+                           <RechartsBarChart data={percentages} layout="vertical" stackOffset="expand">
                              <CartesianGrid strokeDasharray="3 3" />
                              <XAxis type="number" unit="%" domain={[0, 100]} />
-                             <YAxis dataKey="name" type="category" />
+                             <YAxis dataKey="name" type="category" width={150} tick={{fontSize: 12}} />
                              <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`}/>} />
                              <Legend />
-                             {question.columns.map((col: string, i: number) => (
-                                <Bar key={col} dataKey={col} stackId="a" fill={COLORS[i % COLORS.length]} name={question.scale?.[i] || col} />
-                            ))}
+                             {(question.columns || []).map((col: string, i: number) => (
+                                <Bar key={col} dataKey={col} stackId="a" fill={`var(--color-${question.scale?.[i] || col})`} name={question.scale?.[i] || col} />
+                             ))}
                            </RechartsBarChart>
                          </ResponsiveContainer>
                        </ChartContainer>
@@ -2292,13 +2298,13 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                 break;
             }
             case 'matrix': {
-                const rowData: {[key: string]: number[]} = {};
+                const rowData: {[key: string]: string[]} = {};
                 question.rows.forEach((row: string) => rowData[row] = []);
 
                 allAnswers.forEach((answer: any) => {
                     Object.entries(answer).forEach(([row, value]) => {
                         if(rowData[row]) {
-                            rowData[row].push(Number(value));
+                            rowData[row].push(String(value));
                         }
                     });
                 });
@@ -2307,9 +2313,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     const counts: {[key: string]: number} = {};
                      question.columns.forEach((col: string) => counts[col] = 0);
                      rowData[row].forEach(val => {
-                        const colKey = String(val);
-                        if (counts[colKey] !== undefined) {
-                            counts[colKey]++;
+                        if (counts[val] !== undefined) {
+                            counts[val]++;
                         }
                      });
                      return { name: row, ...counts };
@@ -3228,3 +3233,4 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         </div>
     );
 }
+
