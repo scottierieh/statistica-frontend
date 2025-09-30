@@ -138,7 +138,7 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label>Rows</Label>
+                        <Label>Rows (Items to be rated)</Label>
                         {(question.rows || []).map((row, index) => (
                             <div key={index} className="flex items-center gap-2">
                                 <Input value={row} onChange={e => handleMatrixChange('rows', index, e.target.value)} readOnly={isPreview}/>
@@ -261,8 +261,8 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
         
         if (chartType === 'pie' || chartType === 'donut') {
             return [{
-                values,
-                labels,
+                values: values,
+                labels: labels,
                 type: 'pie',
                 hole: chartType === 'donut' ? 0.4 : 0,
                 marker: { colors: COLORS },
@@ -275,7 +275,7 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
             y: chartType === 'hbar' ? labels : values,
             x: chartType === 'hbar' ? values : labels,
             type: 'bar',
-            orientation: chartType === 'hbar' ? 'h' : 'v',
+            orientation: chartType === 'hbar' ? 'h' : 'v' as 'h' | 'v',
             marker: { color: COLORS[0] }
         }];
     }, [chartData, chartType]);
@@ -308,7 +308,7 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
 };
 
 const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
-    const [chartType, setChartType] = useState<'heatmap' | 'stacked' | 'grouped'>('heatmap');
+    const [chartType, setChartType] = useState<'heatmap' | 'grouped' | 'stacked'>('heatmap');
 
     const matrixData = useMemo(() => {
         const data: number[][] = Array(question.rows!.length).fill(0).map(() => Array(question.columns!.length).fill(0));
@@ -334,7 +334,6 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
     const plotData = useMemo(() => {
         const scales = question.scale || question.columns || [];
         const questions = question.rows || [];
-        const colors = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'];
 
         if (chartType === 'heatmap') {
             return [{
@@ -353,7 +352,7 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                 y: matrixData.map(row => row[i]),
                 name: scale,
                 type: 'bar',
-                marker: { color: colors[i % colors.length] }
+                marker: { color: COLORS[i % COLORS.length] }
             }));
         }
     }, [chartType, matrixData, question.rows, question.columns, question.scale]);
@@ -465,12 +464,6 @@ export default function SurveyApp1() {
     }
      if ('items' in questionConfig) {
         newQuestion.items = [...(questionConfig as any).items];
-    }
-     if ('columns' in questionConfig) {
-        newQuestion.columns = [...(questionConfig as any).columns];
-    }
-     if ('scale' in questionConfig) {
-        newQuestion.scale = [...(questionConfig as any).scale];
     }
     if (type === 'description') {
         newQuestion.content = 'Enter your description or instructions here...';
@@ -803,3 +796,4 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
     </div>
   );
 }
+
