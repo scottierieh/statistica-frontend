@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -76,7 +75,7 @@ const OneSampleIntroPage = ({ onStart, onLoadExample }: { onStart: () => void, o
                             </ol>
                         </div>
                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChart className="text-primary"/> Results Interpretation</h3>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
                                     <strong>t-statistic:</strong> A larger absolute value indicates a greater difference between your sample mean and the test value.
@@ -204,7 +203,7 @@ const PairedSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () => voi
                             </ol>
                         </div>
                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><BarChart className="text-primary"/> Results Interpretation</h3>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li><strong>t-statistic:</strong> Indicates the size of the difference relative to the variation in the differences.</li>
                                 <li><strong>p-value:</strong> If less than 0.05, there is a significant mean difference between the two paired measurements.</li>
@@ -221,6 +220,75 @@ const PairedSamplesIntroPage = ({ onStart, onLoadExample }: { onStart: () => voi
     );
 };
 
+
+const OneSampleSetup = ({ numericHeaders, oneSampleVar, setOneSampleVar, testValue, setTestValue }: any) => {
+    return (
+        <div className="grid md:grid-cols-2 gap-4">
+            <div>
+                <Label htmlFor="oneSampleVar">Variable</Label>
+                <Select value={oneSampleVar} onValueChange={setOneSampleVar}>
+                    <SelectTrigger id="oneSampleVar"><SelectValue/></SelectTrigger>
+                    <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
+            <div>
+                <Label htmlFor="testValue">Test Value (μ₀)</Label>
+                <Input id="testValue" type="number" value={testValue} onChange={e => setTestValue(Number(e.target.value))} />
+            </div>
+        </div>
+    );
+};
+
+const IndependentSamplesSetup = ({ numericHeaders, categoricalHeaders, independentVar, setIndependentVar, groupVar, setGroupVar }: any) => {
+    const binaryCategoricalHeaders = useMemo(() => {
+        return categoricalHeaders.filter((h: string) => new Set(data.map((row: any) => row[h]).filter((v: any) => v != null && v !== '')).size === 2);
+    }, [data, categoricalHeaders]);
+    if (binaryCategoricalHeaders.length === 0) {
+        return <p className="text-destructive-foreground bg-destructive p-3 rounded-md">This test requires a categorical variable with exactly two groups. None found.</p>
+    }
+    return (
+        <div className="grid md:grid-cols-2 gap-4">
+            <div>
+                <Label>Group Variable</Label>
+                <Select value={groupVar} onValueChange={setGroupVar}>
+                    <SelectTrigger><SelectValue placeholder="Select group..."/></SelectTrigger>
+                    <SelectContent>{binaryCategoricalHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
+            <div>
+                <Label>Value Variable</Label>
+                <Select value={independentVar} onValueChange={setIndependentVar}>
+                    <SelectTrigger><SelectValue placeholder="Select value..."/></SelectTrigger>
+                    <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
+        </div>
+    );
+};
+
+const PairedSamplesSetup = ({ numericHeaders, pairedVar1, setPairedVar1, pairedVar2, setPairedVar2 }: any) => {
+    if (numericHeaders.length < 2) {
+        return <p className="text-destructive-foreground bg-destructive p-3 rounded-md">This test requires at least two numeric variables to compare.</p>
+    }
+    return (
+        <div className="grid md:grid-cols-2 gap-4">
+            <div>
+                <Label>Variable 1 (e.g. Pre-test)</Label>
+                <Select value={pairedVar1} onValueChange={setPairedVar1}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
+            <div>
+               <Label>Variable 2 (e.g. Post-test)</Label>
+                <Select value={pairedVar2} onValueChange={setPairedVar2}>
+                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectContent>{numericHeaders.filter((h: string) => h !== pairedVar1).map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                </Select>
+            </div>
+        </div>
+    );
+};
 
 interface TTestPageProps {
     data: DataSet;
@@ -241,9 +309,8 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
     }, [activeAnalysis]);
 
     const [testType, setTestType] = useState(initialTestType);
-    const [view, setView] = useState('main'); // Can be 'intro' or 'main'
+    const [view, setView] = useState('intro'); // Can be 'intro' or 'main'
     
-    // States for different tests
     const [oneSampleVar, setOneSampleVar] = useState<string | undefined>(numericHeaders[0]);
     const [testValue, setTestValue] = useState<number>(0);
     
@@ -285,7 +352,6 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
 
     const handleAnalysis = useCallback(async () => {
         let params: any = {};
-        let currentTestType = testType;
 
         switch(testType) {
             case 'one_sample':
@@ -318,7 +384,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             const response = await fetch('/api/analysis/t-test', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, testType: currentTestType, params })
+                body: JSON.stringify({ data, testType: testType, params })
             });
 
             if (!response.ok) {
@@ -329,7 +395,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             const result = await response.json();
             if (result.error) throw new Error(result.error);
             setAnalysisResult(result);
-            setView('main'); // Go to main analysis view after running
+            setView('main');
 
         } catch (e: any) {
             console.error('Analysis error:', e);
@@ -338,72 +404,6 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             setIsLoading(false);
         }
     }, [data, testType, oneSampleVar, testValue, independentVar, groupVar, pairedVar1, pairedVar2, toast]);
-    
-    const renderSetupUI = () => {
-        switch (testType) {
-            case 'one_sample':
-                 return (
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <Label>Variable</Label>
-                            <Select value={oneSampleVar} onValueChange={setOneSampleVar}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>Test Value (μ₀)</Label>
-                            <Input type="number" value={testValue} onChange={e => setTestValue(Number(e.target.value))} />
-                        </div>
-                    </div>
-                );
-            case 'independent_samples':
-                 if (binaryCategoricalHeaders.length === 0) {
-                    return <p className="text-destructive-foreground bg-destructive p-3 rounded-md">This test requires a categorical variable with exactly two groups. None found.</p>
-                }
-                return (
-                     <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <Label>Group Variable</Label>
-                             <Select value={groupVar} onValueChange={setGroupVar}>
-                                <SelectTrigger><SelectValue placeholder="Select group..."/></SelectTrigger>
-                                <SelectContent>{binaryCategoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>Value Variable</Label>
-                             <Select value={independentVar} onValueChange={setIndependentVar}>
-                                <SelectTrigger><SelectValue placeholder="Select value..."/></SelectTrigger>
-                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                );
-            case 'paired_samples':
-                if (numericHeaders.length < 2) {
-                    return <p className="text-destructive-foreground bg-destructive p-3 rounded-md">This test requires at least two numeric variables to compare.</p>
-                }
-                 return (
-                     <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <Label>Variable 1 (e.g. Pre-test)</Label>
-                             <Select value={pairedVar1} onValueChange={setPairedVar1}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                <SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                           <Label>Variable 2 (e.g. Post-test)</Label>
-                             <Select value={pairedVar2} onValueChange={setPairedVar2}>
-                                <SelectTrigger><SelectValue/></SelectTrigger>
-                                <SelectContent>{numericHeaders.filter(h => h !== pairedVar1).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                );
-            default: return null;
-        }
-    }
     
     const renderResult = () => {
         if (!analysisResult) return null;
@@ -528,10 +528,11 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                         <CardTitle className="font-headline">T-Test Analysis Setup</CardTitle>
                          <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
-                    <CardDescription>Select a test type and configure the variables for the analysis.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {renderSetupUI()}
+                    {testType === 'one_sample' && <OneSampleSetup numericHeaders={numericHeaders} oneSampleVar={oneSampleVar} setOneSampleVar={setOneSampleVar} testValue={testValue} setTestValue={setTestValue} />}
+                    {testType === 'independent_samples' && <IndependentSamplesSetup numericHeaders={numericHeaders} categoricalHeaders={categoricalHeaders} independentVar={independentVar} setIndependentVar={setIndependentVar} groupVar={groupVar} setGroupVar={setGroupVar} data={data} />}
+                    {testType === 'paired_samples' && <PairedSamplesSetup numericHeaders={numericHeaders} pairedVar1={pairedVar1} setPairedVar1={setPairedVar1} pairedVar2={pairedVar2} setPairedVar2={setPairedVar2} />}
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleAnalysis} disabled={isLoading}>

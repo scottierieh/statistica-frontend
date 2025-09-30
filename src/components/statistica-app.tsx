@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -133,14 +132,26 @@ const analysisCategories = [
     {
       name: 'Comparison',
       icon: Users,
-      items: [
-        { id: 't-test', label: 'T-Test', icon: TestTube, component: TTestPage },
-        { id: 'one-way-anova', label: 'One-Way ANOVA', icon: Users, component: AnovaPage },
-        { id: 'two-way-anova', label: 'Two-Way ANOVA', icon: Copy, component: TwoWayAnovaPage },
-        { id: 'ancova', label: 'ANCOVA', icon: Layers, component: AncovaPage },
-        { id: 'manova', label: 'MANOVA', icon: Layers, component: ManovaPage },
-        { id: 'rm-anova-pingouin', label: 'Repeated Measures ANOVA', icon: Repeat, component: NonParametricPage },
-      ],
+      subCategories: [
+          {
+            name: 'T-Tests',
+            items: [
+                { id: 't-test-one-sample', label: 'One-Sample T-Test', icon: TestTube, component: TTestPage },
+                { id: 't-test-independent', label: 'Independent Samples T-Test', icon: TestTube, component: TTestPage },
+                { id: 't-test-paired', label: 'Paired Samples T-Test', icon: TestTube, component: TTestPage },
+            ]
+          },
+          {
+            name: 'ANOVA',
+            items: [
+                { id: 'one-way-anova', label: 'One-Way ANOVA', icon: Users, component: AnovaPage },
+                { id: 'two-way-anova', label: 'Two-Way ANOVA', icon: Copy, component: TwoWayAnovaPage },
+                { id: 'ancova', label: 'ANCOVA', icon: Layers, component: AncovaPage },
+                { id: 'manova', label: 'MANOVA', icon: Layers, component: ManovaPage },
+                { id: 'rm-anova-pingouin', label: 'Repeated Measures ANOVA', icon: Repeat, component: NonParametricPage },
+            ]
+          }
+      ]
     },
     {
       name: 'Relationship',
