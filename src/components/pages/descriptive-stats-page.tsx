@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -8,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle, Sparkles, Grid3x3, PieChart as PieChartIcon, FileSearch, BarChart } from 'lucide-react';
+import { Loader2, Zap, Brain, AlertTriangle, BookOpen, Coffee, Settings, MoveRight, BarChart as BarChartIcon, HelpCircle, Sparkles, Grid3x3, PieChart as PieChartIcon, FileSearch } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,6 +15,10 @@ import { type DataSet } from '@/lib/stats';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
 import dynamic from 'next/dynamic';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
+import { Skeleton } from '../ui/skeleton';
+
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -34,20 +36,21 @@ const getQuantile = (arr: number[], q: number) => {
     }
 };
 
-const getNumericStats = (data: number[]) => {
-    if (data.length === 0) return { count: 0, mean: NaN, stdDev: NaN, min: NaN, q1: NaN, median: NaN, q3: NaN, max: NaN, mode: NaN };
+const getNumericStats = (data: (number | undefined | null)[]) => {
+    const cleanData = data.filter((val): val is number => typeof val === 'number' && isFinite(val));
+    if (cleanData.length === 0) return { count: 0, missing: data.length, mean: NaN, stdDev: NaN, min: NaN, q1: NaN, median: NaN, q3: NaN, max: NaN, mode: NaN, skewness: NaN };
     
-    const sortedData = [...data].sort((a, b) => a - b);
-    const sum = data.reduce((acc, val) => acc + val, 0);
-    const meanVal = sum / data.length;
-    const stdDevVal = Math.sqrt(data.reduce((acc, val) => acc + (val - meanVal) ** 2, 0) / (data.length > 1 ? data.length - 1 : 1));
+    const sortedData = [...cleanData].sort((a, b) => a - b);
+    const sum = cleanData.reduce((acc, val) => acc + val, 0);
+    const meanVal = sum / cleanData.length;
+    const stdDevVal = Math.sqrt(cleanData.reduce((acc, val) => acc + (val - meanVal) ** 2, 0) / (cleanData.length > 1 ? cleanData.length - 1 : 1));
 
     const q1 = getQuantile(sortedData, 0.25);
     const medianVal = getQuantile(sortedData, 0.5);
     const q3 = getQuantile(sortedData, 0.75);
 
     const counts: { [key: string]: number } = {};
-    data.forEach(val => {
+    cleanData.forEach(val => {
       const key = String(val);
       counts[key] = (counts[key] || 0) + 1;
     });
@@ -60,22 +63,28 @@ const getNumericStats = (data: number[]) => {
       }
     });
 
+    const n = cleanData.length;
+    const skew = n > 2 && stdDevVal > 0 ? (n / ((n - 1) * (n - 2))) * cleanData.reduce((acc, val) => acc + Math.pow((val - meanVal) / stdDevVal, 3), 0) : NaN;
+
 
     return {
-        count: data.length, mean: meanVal, stdDev: stdDevVal, min: sortedData[0], q1, median: medianVal, q3, max: sortedData[data.length - 1], mode: modeVal,
+        count: n, missing: data.length - n, mean: meanVal, stdDev: stdDevVal, min: sortedData[0], q1, median: medianVal, q3, max: sortedData[n - 1], mode: modeVal, skewness: skew,
     };
 };
 
 const getCategoricalStats = (data: (string | number)[]) => {
     if (data.length === 0) return [];
     const counts: { [key: string]: number } = {};
+    let validCount = 0;
     data.forEach(val => {
+        if(val === null || val === undefined || val === '') return;
         const key = String(val);
         counts[key] = (counts[key] || 0) + 1;
+        validCount++;
     });
 
     return Object.entries(counts)
-        .map(([value, count]) => ({ name: value, count, percentage: ((count / data.length) * 100).toFixed(1) }))
+        .map(([value, count]) => ({ name: value, count, percentage: ((count / validCount) * 100) }))
         .sort((a, b) => b.count - a.count);
 };
 
@@ -83,18 +92,21 @@ const generateNumericInsights = (stats: ReturnType<typeof getNumericStats>) => {
     const insights: string[] = [];
     if (isNaN(stats.mean)) return ["Not enough data for insights."];
 
-    const skewness = stats.mean - stats.median;
-    const skewThreshold = stats.stdDev * 0.2;
-    if (Math.abs(skewness) > skewThreshold) {
-        insights.push(`The mean (<strong>${stats.mean.toFixed(2)}</strong>) is ${skewness > 0 ? 'higher' : 'lower'} than the median (<strong>${stats.median.toFixed(2)}</strong>), suggesting the data is <strong>${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong>.`);
-    } else {
-        insights.push(`The data appears to be roughly <strong>symmetrical</strong>, as the mean and median are very close.`);
+    const skewness = stats.skewness;
+    if (!isNaN(skewness)) {
+      if (Math.abs(skewness) > 1) {
+          insights.push(`The distribution is <strong>highly ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong> (skewness = ${skewness.toFixed(2)}).`);
+      } else if (Math.abs(skewness) > 0.5) {
+          insights.push(`The data is <strong>moderately ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong> (skewness = ${skewness.toFixed(2)}).`);
+      } else {
+          insights.push(`The data appears to be roughly <strong>symmetrical</strong> (skewness = ${skewness.toFixed(2)}).`);
+      }
     }
 
     if (stats.stdDev > 0) {
       const cv = (stats.stdDev / Math.abs(stats.mean)) * 100;
       if (cv > 30) {
-          insights.push(`The standard deviation (<strong>${stats.stdDev.toFixed(2)}</strong>) is relatively high compared to the mean, indicating <strong>high variability</strong> in the data.`);
+          insights.push(`The standard deviation (<strong>${stats.stdDev.toFixed(2)}</strong>) is relatively high compared to the mean, indicating <strong>high variability</strong>.`);
       } else {
           insights.push(`The data shows <strong>low to moderate variability</strong> with a standard deviation of <strong>${stats.stdDev.toFixed(2)}</strong>.`);
       }
@@ -106,7 +118,7 @@ const generateNumericInsights = (stats: ReturnType<typeof getNumericStats>) => {
 const generateCategoricalInsights = (stats: ReturnType<typeof getCategoricalStats>) => {
     if (stats.length === 0) return ["Not enough data for insights."];
     const mode = stats[0];
-    return [`The most frequent category is <strong>"${mode.name}"</strong>, appearing in <strong>${mode.percentage}%</strong> of cases.`];
+    return [`The most frequent category is <strong>"${mode.name}"</strong>, appearing in <strong>${mode.percentage.toFixed(1)}%</strong> of cases.`];
 };
 
 const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode, varName: string }) => {
@@ -121,66 +133,8 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
 };
   
 const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
-    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-    const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'treemap'>('hbar');
-
-    const plotLayout = useMemo(() => {
-        const baseLayout = {
-            autosize: true,
-            margin: { t: 40, b: 40, l: 40, r: 20 },
-            xaxis: {
-                title: chartType === 'hbar' ? 'Percentage' : '',
-            },
-            yaxis: {
-                title: chartType === 'hbar' ? '' : 'Percentage',
-            },
-        };
-        if (chartType === 'hbar') {
-            baseLayout.yaxis = { autorange: 'reversed' as const };
-            baseLayout.margin.l = 120;
-        }
-        if (chartType === 'bar') {
-            (baseLayout.xaxis as any).tickangle = -45;
-        }
-        return baseLayout;
-    }, [chartType]);
-
-    const plotData = useMemo(() => {
-        const percentages = tableData.map((d: any) => parseFloat(d.percentage));
-        const labels = tableData.map((d: any) => d.name);
-        const counts = tableData.map((d: any) => d.count);
-
-        if (chartType === 'pie') {
-            return [{
-                values: percentages,
-                labels: labels,
-                type: 'pie',
-                hole: 0.4,
-                marker: { colors: COLORS },
-                textinfo: 'label+percent',
-                textposition: 'inside',
-            }];
-        }
-        if (chartType === 'treemap') {
-            return [{
-                type: 'treemap',
-                labels: labels,
-                parents: Array(labels.length).fill(""),
-                values: counts,
-                textinfo: 'label+value+percent root',
-                marker: {colors: COLORS}
-            }];
-        }
-        return [{
-            y: chartType === 'hbar' ? labels : percentages,
-            x: chartType === 'hbar' ? percentages : labels,
-            type: 'bar',
-            orientation: chartType === 'hbar' ? 'h' : 'v',
-            marker: { color: COLORS[0] },
-            text: percentages.map((p: number) => `${p.toFixed(1)}%`),
-            textposition: 'auto',
-        }];
-    }, [chartType, tableData]);
+    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+    const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
 
     return (
         <AnalysisDisplayShell varName={varName}>
@@ -189,22 +143,35 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                     <CardHeader>
                         <CardTitle className="text-base flex justify-between items-center">
                             Distribution
-                             <div className="flex gap-1">
-                                <Button variant={chartType === 'hbar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('hbar')}><BarChart className="w-4 h-4 -rotate-90" /></Button>
-                                <Button variant={chartType === 'bar' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('bar')}><BarChart className="w-4 h-4" /></Button>
-                                <Button variant={chartType === 'pie' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('pie')}><PieChartIcon className="w-4 h-4" /></Button>
-                                <Button variant={chartType === 'treemap' ? 'secondary' : 'ghost'} size="icon" onClick={() => setChartType('treemap')}><Grid3x3 className="w-4 h-4" /></Button>
-                            </div>
+                             <Tabs value={chartType} onValueChange={(value) => setChartType(value as any)}><TabsList>
+                                <TabsTrigger value="bar"><BarChartIcon className="w-4 h-4" /></TabsTrigger>
+                                <TabsTrigger value="pie"><PieChartIcon className="w-4 h-4" /></TabsTrigger>
+                            </TabsList></Tabs>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
-                        <Plot
-                            data={plotData}
-                            layout={plotLayout}
-                            style={{ width: '100%', height: '100%' }}
-                            config={{ scrollZoom: true, displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
-                            useResizeHandler
-                        />
+                       <ChartContainer config={{}} className="w-full h-[300px]">
+                         <ResponsiveContainer>
+                           {chartType === 'bar' ? (
+                               <RechartsBarChart data={chartData} layout="vertical" margin={{ left: 80 }}>
+                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                 <XAxis type="number" dataKey="count" />
+                                 <YAxis dataKey="name" type="category" width={80} />
+                                 <Tooltip content={<ChartTooltipContent />} cursor={{fill: 'hsl(var(--muted))'}} />
+                                 <Bar dataKey="count" name="Frequency" radius={4}>
+                                   {chartData.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                 </Bar>
+                               </RechartsBarChart>
+                           ) : (
+                               <PieChart>
+                                 <Pie data={chartData} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={p => `${p.name} (${p.percentage.toFixed(1)}%)`}>
+                                   {chartData.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                 </Pie>
+                                 <Tooltip content={<ChartTooltipContent />} />
+                               </PieChart>
+                           )}
+                         </ResponsiveContainer>
+                       </ChartContainer>
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
@@ -227,7 +194,8 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
     );
 };
   
-const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any, insightsData: string[], varName: string }) => {
+const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName, comparisonData }: { chartData: any, tableData: any, insightsData: string[], varName: string, comparisonData?: any }) => {
+     const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
     return (
       <AnalysisDisplayShell varName={varName}>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -237,14 +205,18 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
                         <Plot
-                            data={[{ x: chartData.values, type: 'histogram', marker: {color: 'hsl(var(--primary))'} }]}
+                            data={comparisonData ? [
+                                { x: chartData.values, type: 'histogram', name: 'Overall', opacity: 0.7, marker: {color: COLORS[0]} },
+                                { x: comparisonData.chartData.values, type: 'histogram', name: comparisonData.filterValue, opacity: 0.7, marker: {color: COLORS[1]} }
+                            ] : [{ x: chartData.values, type: 'histogram', marker: {color: COLORS[0]} }]}
                             layout={{
                                 autosize: true,
                                 margin: { t: 40, b: 40, l: 40, r: 20 },
                                 bargap: 0.1,
+                                barmode: 'overlay'
                             }}
                             style={{ width: '100%', height: '100%' }}
-                            config={{ scrollZoom: true, displayModeBar: true, modeBarButtonsToRemove: ['select2d', 'lasso2d'] }}
+                            config={{ displayModeBar: false }}
                             useResizeHandler
                         />
                     </CardContent>
@@ -257,17 +229,16 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Metric</TableHead>
-                                        <TableHead className="text-right">Value</TableHead>
+                                        <TableHead className="text-right">Overall</TableHead>
+                                        {comparisonData && <TableHead className="text-right">{comparisonData.filterValue}</TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{tableData.mean.toFixed(3)}</TableCell></TableRow>
-                                    <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{tableData.median}</TableCell></TableRow>
-                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{tableData.mode}</TableCell></TableRow>
-                                    <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell></TableRow>
-                                    <TableRow><TableCell>Minimum</TableCell><TableCell className="text-right">{tableData.min}</TableCell></TableRow>
-                                    <TableRow><TableCell>Maximum</TableCell><TableCell className="text-right">{tableData.max}</TableCell></TableRow>
-                                    <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{tableData.count}</TableCell></TableRow>
+                                    <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{tableData.mean.toFixed(3)}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.mean.toFixed(3)}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{tableData.median}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.median}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{tableData.mode}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.mode}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.stdDev.toFixed(3)}</TableCell>}</TableRow>
+                                    <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{tableData.count}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.count}</TableCell>}</TableRow>
                                 </TableBody>
                             </Table>
                          </CardContent>
@@ -284,11 +255,67 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
             </div>
       </AnalysisDisplayShell>
     );
-  };
+};
+
+const GroupedStatisticsTable = ({ data, selectedVars, groupVar }: { data: DataSet, selectedVars: string[], groupVar: string }) => {
+    const statsByGroup = useMemo(() => {
+        const groups = Array.from(new Set(data.map(row => row[groupVar])));
+        const result: { [group: string]: { [variable: string]: ReturnType<typeof getNumericStats> } } = {};
+        
+        groups.forEach(group => {
+            const groupData = data.filter(row => row[groupVar] === group);
+            result[String(group)] = {};
+            selectedVars.forEach(varName => {
+                const columnData = groupData.map(row => row[varName]);
+                result[String(group)][varName] = getNumericStats(columnData);
+            });
+        });
+        return result;
+    }, [data, selectedVars, groupVar]);
+
+    const metrics: (keyof ReturnType<typeof getNumericStats>)[] = ['count', 'missing', 'mean', 'median', 'stdDev', 'min', 'max', 'skewness'];
+    const groups = Object.keys(statsByGroup);
+
+    return (
+        <Card>
+            <CardHeader><CardTitle>Descriptive Statistics by {groupVar}</CardTitle></CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[150px]">Statistic</TableHead>
+                            <TableHead className="w-[100px]">{groupVar}</TableHead>
+                            {selectedVars.map(v => <TableHead key={v} className="text-right">{v}</TableHead>)}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {metrics.map(metric => (
+                            <React.Fragment key={metric}>
+                                {groups.map((group, groupIndex) => (
+                                    <TableRow key={`${metric}-${group}`}>
+                                        {groupIndex === 0 && <TableHead rowSpan={groups.length} className="align-top capitalize">{metric.replace(/([A-Z])/g, ' $1').trim()}</TableHead>}
+                                        <TableCell>{group}</TableCell>
+                                        {selectedVars.map(varName => {
+                                            const statValue = statsByGroup[group]?.[varName]?.[metric];
+                                            return <TableCell key={`${metric}-${group}-${varName}`} className="text-right font-mono">{typeof statValue === 'number' && !isNaN(statValue) ? statValue.toFixed(2) : 'NaN'}</TableCell>
+                                        })}
+                                    </TableRow>
+                                ))}
+                            </React.Fragment>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    )
+};
+
 
 interface DescriptiveStatsPageProps {
     data: DataSet;
     allHeaders: string[];
+    numericHeaders: string[];
+    categoricalHeaders: string[];
     onLoadExample: (example: ExampleDataSet) => void;
 }
 
@@ -370,12 +397,13 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     );
 };
 
-export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExample }: DescriptiveStatsPageProps) {
+export default function DescriptiveStatisticsPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: DescriptiveStatsPageProps) {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [selectedVars, setSelectedVars] = useState<string[]>(allHeaders);
     const [analysisData, setAnalysisData] = useState<any | null>(null);
     const [view, setView] = useState('intro');
+    const [groupByVar, setGroupByVar] = useState<string | undefined>();
 
     useEffect(() => {
         setSelectedVars(allHeaders);
@@ -403,27 +431,22 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
                     continue;
                 }
 
-                const columnData = data.map((row: any) => row[varName]).filter((val: any) => val !== null && val !== undefined && val !== '');
+                const columnData = data.map((row: any) => row[varName]);
                 
-                if (columnData.length === 0) {
-                    results[varName] = { error: `No valid data for variable '${varName}'.`};
-                    continue;
-                }
-
-                const isNumeric = columnData.every((val: any) => typeof val === 'number' && isFinite(val));
+                const isNumeric = numericHeaders.includes(varName);
                 
                 if (isNumeric) {
-                    const stats = getNumericStats(columnData as number[]);
+                    const stats = getNumericStats(columnData);
                     results[varName] = {
                         type: 'numeric', stats: stats,
-                        plotData: { values: columnData },
+                        plotData: { values: columnData.filter(v => typeof v === 'number') },
                         insights: generateNumericInsights(stats),
                     };
                 } else {
                     const stats = getCategoricalStats(columnData);
                     results[varName] = {
                         type: 'categorical', stats: stats,
-                        plotData: stats.map(s => ({ name: s.name, count: s.count })),
+                        plotData: stats.map(s => ({ name: s.name, count: s.count, percentage: parseFloat(s.percentage) })),
                         insights: generateCategoricalInsights(stats),
                     };
                 }
@@ -432,47 +455,48 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
             setIsLoading(false);
             toast({title: "Analysis Complete", description: `Descriptive statistics generated for ${selectedVars.length} variable(s).`});
         }, 500);
-    }, [data, selectedVars, toast]);
+    }, [data, selectedVars, toast, numericHeaders]);
     
-    if(view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
-
-    const renderResults = () => {
+    const renderIndividualResults = () => {
         if (!analysisData) return null;
         return (
             <div className="space-y-8">
-                {selectedVars.map(header => {
-                    if(!analysisData[header] || analysisData[header].error) {
-                        return (
-                             <Card key={header}>
-                                <CardHeader><CardTitle>{header}</CardTitle></CardHeader>
-                                <CardContent>
-                                    <Alert variant="destructive">
-                                        <AlertTriangle className="h-4 w-4" />
-                                        <AlertTitle>Analysis Error</AlertTitle>
-                                        <AlertDescription>{analysisData[header]?.error || "An unknown error occurred."}</AlertDescription>
-                                    </Alert>
-                                </CardContent>
-                            </Card>
-                        )
-                    }
+                {selectedVars.filter(h => numericHeaders.includes(h)).map(header => {
+                    if(!analysisData[header] || analysisData[header].error) return null;
                     const result = analysisData[header];
-                    const displayProps = {
-                        chartData: result.plotData,
-                        tableData: result.stats,
-                        insightsData: result.insights,
-                        varName: header,
-                    };
                     return (
                         <div key={header}>
-                            {result.type === 'numeric' ? <NumberAnalysisDisplay {...displayProps} /> : <ChoiceAnalysisDisplay {...displayProps} />}
+                           <NumberAnalysisDisplay
+                                chartData={result.plotData}
+                                tableData={result.stats}
+                                insightsData={result.insights}
+                                varName={header}
+                            />
+                        </div>
+                    );
+                })}
+                {selectedVars.filter(h => categoricalHeaders.includes(h)).map(header => {
+                    if(!analysisData[header] || analysisData[header].error) return null;
+                    const result = analysisData[header];
+                    return (
+                        <div key={header}>
+                           <ChoiceAnalysisDisplay
+                                chartData={result.plotData}
+                                tableData={result.stats}
+                                insightsData={result.insights}
+                                varName={header}
+                                comparisonData={null}
+                            />
                         </div>
                     );
                 })}
             </div>
         );
     };
+
+    if(view === 'intro') {
+        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+    }
 
     return (
         <div className="space-y-6">
@@ -484,11 +508,12 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
                 </div>
                 <CardDescription>Select the variables you want to analyze from your dataset.</CardDescription>
               </CardHeader>
-              <CardContent>
-                    <>
-                        <Label>Variables</Label>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <Label>Variables for Analysis</Label>
                         <ScrollArea className="h-40 border rounded-lg p-4 mt-2">
-                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {allHeaders.map(h => (
                                     <div key={h} className="flex items-center space-x-2">
                                         <Checkbox 
@@ -501,7 +526,21 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
                                 ))}
                             </div>
                         </ScrollArea>
-                    </>
+                    </div>
+                    <div>
+                        <Label>Group By (Optional)</Label>
+                        <Select value={groupByVar} onValueChange={(v) => setGroupByVar(v === 'none' ? undefined : v)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="None"/>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                {categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground mt-2">Select a categorical variable to see statistics for each group.</p>
+                    </div>
+                </div>
               </CardContent>
               <CardFooter>
                    <Button onClick={runAnalysis} disabled={isLoading || selectedVars.length === 0}>
@@ -522,7 +561,13 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
                 </Card>
             )}
 
-            {analysisData ? renderResults() : (
+            {analysisData ? (
+                groupByVar ? (
+                    <GroupedStatisticsTable data={data} selectedVars={selectedVars.filter(v => numericHeaders.includes(v))} groupVar={groupByVar} />
+                ) : (
+                    renderIndividualResults()
+                )
+            ) : (
                  !isLoading && (
                     <div className="text-center text-muted-foreground py-10">
                         <BarChartIcon className="mx-auto h-12 w-12 text-gray-400"/>
@@ -533,4 +578,3 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, onLoadExam
         </div>
     );
 }
-
