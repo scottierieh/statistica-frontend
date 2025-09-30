@@ -362,7 +362,8 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
         margin: { t: 40, b: 40, l: 150, r: 20 },
         barmode: chartType,
         title: `Matrix - ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`,
-        yaxis: { title: 'Percentage (%)' }
+        yaxis: { title: 'Percentage (%)' },
+        xaxis: { title: 'Questions' },
     }), [chartType]);
     
     return (
@@ -796,4 +797,3 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
     </div>
   );
 }
-
