@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -167,6 +168,14 @@ export default function SurveyPage() {
                  </Link>
               </SidebarMenuItem>
               <SidebarMenuItem>
+                <Link href="/dashboard/survey1" className="w-full">
+                    <SidebarMenuButton>
+                      <ClipboardList />
+                      <span>Survey Tool 1</span>
+                    </SidebarMenuButton>
+                 </Link>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => setActiveSection('design')}
                   isActive={activeSection === 'design'}
@@ -204,3 +213,4 @@ export default function SurveyPage() {
     </SidebarProvider>
   );
 }
+
