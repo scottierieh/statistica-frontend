@@ -6,18 +6,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot, ClipboardList } from 'lucide-react';
+import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot, CheckSquare, ChevronDown, Star, Sigma, Phone, Mail, ThumbsUp, Grid3x3, FileText, Plus } from 'lucide-react';
 import { produce } from 'immer';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import Image from 'next/image';
+import { Switch } from '@/components/ui/switch';
 
 // Simplified question and survey types for the new tool
-type QuestionType = 'text' | 'choice';
+type QuestionType = 'text' | 'choice' | 'single' | 'multiple' | 'dropdown' | 'rating' | 'number' | 'phone' | 'email' | 'nps' | 'description' | 'best-worst' | 'matrix';
 
 type Question = {
   id: string;
   type: QuestionType;
   text: string;
+  title?: string;
   options?: string[];
+  items?: string[];
+  columns?: string[];
+  scale?: string[];
+  required?: boolean;
+  content?: string;
+  imageUrl?: string;
 };
 
 type Survey = {
@@ -63,7 +74,7 @@ const QuestionEditor = ({ question, onUpdate, onDelete }: { question: Question; 
         </Button>
       </div>
 
-      {question.type === 'choice' && (
+      {(question.type === 'choice' || question.type === 'single' || question.type === 'multiple') && (
         <div className="space-y-2">
           <Label>Options</Label>
           {question.options?.map((opt, index) => (
@@ -95,15 +106,62 @@ export default function SurveyApp1() {
     questions: [],
   });
 
+  const questionTypeCategories = {
+    'Choice': [
+        { id: 'single', icon: CircleDot, label: 'Single Selection', options: ["Option 1", "Option 2"], color: 'text-blue-500' },
+        { id: 'multiple', icon: CheckSquare, label: 'Multiple Selection', options: ["Option 1", "Option 2"], color: 'text-green-500' },
+        { id: 'dropdown', icon: ChevronDown, label: 'Dropdown', options: ["Option 1", "Option 2"], color: 'text-cyan-500' },
+        { id: 'best-worst', icon: ThumbsUp, label: 'Best/Worst Choice', items: ["Item 1", "Item 2", "Item 3", "Item 4"], color: 'text-amber-500' },
+    ],
+    'Input': [
+        { id: 'text', icon: CaseSensitive, label: 'Text Input', color: 'text-slate-500' },
+        { id: 'number', icon: Sigma, label: 'Number Input', color: 'text-fuchsia-500' },
+        { id: 'phone', icon: Phone, label: 'Phone Input', color: 'text-indigo-500' },
+        { id: 'email', icon: Mail, label: 'Email Input', color: 'text-rose-500' },
+    ],
+    'Scale': [
+        { id: 'rating', icon: Star, label: 'Rating', scale: ['1', '2', '3', '4', '5'], color: 'text-yellow-500' },
+        { id: 'nps', icon: Share2, label: 'Net Promoter Score', color: 'text-sky-500' },
+    ],
+    'Structure': [
+         { id: 'description', icon: FileText, label: 'Description Block', color: 'text-gray-400' },
+         { id: 'matrix', icon: Grid3x3, label: 'Matrix', rows: ['Row 1', 'Row 2'], columns: ['Col 1', 'Col 2'], scale: ['Low', 'High'], color: 'text-purple-500' },
+    ]
+};
+
   const addQuestion = (type: QuestionType) => {
+    let questionConfig;
+    Object.values(questionTypeCategories).flat().forEach(t => {
+      if (t.id === type) {
+        questionConfig = t;
+      }
+    });
+
+    if (!questionConfig) return;
+
     const newQuestion: Question = {
       id: `q_${Date.now()}`,
       type: type,
       text: '',
+      title: `New ${questionConfig.label} Question`,
     };
-    if (type === 'choice') {
-      newQuestion.options = ['Option 1', 'Option 2'];
+
+    if ('options' in questionConfig) {
+        newQuestion.options = [...questionConfig.options];
     }
+     if ('items' in questionConfig) {
+        newQuestion.items = [...(questionConfig as any).items];
+    }
+     if ('columns' in questionConfig) {
+        newQuestion.columns = [...(questionConfig as any).columns];
+    }
+     if ('scale' in questionConfig) {
+        newQuestion.scale = [...(questionConfig as any).scale];
+    }
+    if (type === 'description') {
+        newQuestion.content = 'Enter your description or instructions here...';
+    }
+
     setSurvey(
       produce((draft) => {
         draft.questions.push(newQuestion);
@@ -171,21 +229,22 @@ export default function SurveyApp1() {
                             <CardHeader>
                                 <CardTitle className="text-lg">Toolbox</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-2">
-                                <Button
-                                    variant="outline"
-                                    className="w-full justify-start"
-                                    onClick={() => addQuestion('choice')}
-                                >
-                                    <CircleDot className="mr-2 h-4 w-4" /> Multiple Choice
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="w-full justify-start"
-                                    onClick={() => addQuestion('text')}
-                                >
-                                    <CaseSensitive className="mr-2 h-4 w-4" /> Text Answer
-                                </Button>
+                             <CardContent className="space-y-2">
+                                {Object.entries(questionTypeCategories).map(([category, types]) => (
+                                    <div key={category}>
+                                        <h3 className="text-sm font-semibold text-muted-foreground px-2 my-2">{category}</h3>
+                                        {types.map((type) => (
+                                            <Button
+                                                key={type.id}
+                                                variant="ghost"
+                                                className="w-full justify-start"
+                                                onClick={() => addQuestion(type.id as QuestionType)}
+                                            >
+                                                <type.icon className={cn("mr-2 h-4 w-4", type.color)} /> {type.label}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                ))}
                             </CardContent>
                         </Card>
                     </div>
