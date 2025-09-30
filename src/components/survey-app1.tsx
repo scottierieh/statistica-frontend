@@ -249,7 +249,7 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
             case 'single': case 'multiple': case 'dropdown':
                 return <Plot data={[{ values: chartData.map(d => d.value), labels: chartData.map(d => d.name), type: 'pie', hole: .4, marker: { colors: COLORS } }]} layout={{ title: question.text, autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>
             case 'nps':
-                return <Plot data={[{ type: 'indicator', mode: "gauge+number", value: chartData.nps, gauge: { axis: { range: [-100, 100] } } }]} layout={{ title: "NPS Score", autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>
+                return <Plot data={[{ type: 'indicator', mode: "gauge+number+delta", value: chartData.nps, gauge: { axis: { range: [-100, 100] } } }]} layout={{ title: "NPS Score", autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>
             default:
                 return <p>Analysis for this question type is not yet implemented.</p>;
         }
@@ -364,7 +364,7 @@ export default function SurveyApp1() {
   const prevStep = () => setCurrentStep(p => Math.max(p - 1, 0));
 
   const saveSurvey = () => {
-    const surveyId = `survey1-${''}${survey.title.replace(/\s+/g, '-')}`;
+    const surveyId = `survey1-${survey.title.replace(/\s+/g, '-')}`;
     localStorage.setItem(surveyId, JSON.stringify(survey));
     toast({ title: 'Survey Saved!', description: 'Your survey draft has been saved locally.' });
     return surveyId;
@@ -372,7 +372,7 @@ export default function SurveyApp1() {
 
   const saveAndShare = () => {
     const surveyId = saveSurvey();
-    const url = `${window.location.origin}/survey/view/general/${''}${surveyId}`;
+    const url = `${window.location.origin}/survey/view/general/${surveyId}`;
     setSurveyUrl(url);
     setIsShareModalOpen(true);
     generateQrCode(url);
