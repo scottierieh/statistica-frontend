@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot, CheckSquare, ChevronDown, Star, Sigma, Phone, Mail, ThumbsUp, Grid3x3, FileText, Plus, X, Settings } from 'lucide-react';
+import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot, CheckSquare, ChevronDown, Star, Sigma, Phone, Mail, ThumbsUp, Grid3x3, FileText, Plus, X, Settings, Eye } from 'lucide-react';
 import { produce } from 'immer';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -15,7 +15,7 @@ import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Copy, Download } from 'lucide-react';
+import { Loader2, Copy, Download, Save } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { addDays } from 'date-fns';
@@ -49,7 +49,7 @@ type Survey = {
 const STEPS = ['Setup', 'Build', 'Setting', 'Share & Analyze'];
 
 // A distinct component for editing a single question
-const QuestionEditor = ({ question, onUpdate, onDelete }: { question: Question; onUpdate: (id: string, newQuestion: Partial<Question>) => void; onDelete: (id: string) => void; }) => {
+const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question: Question; onUpdate: (id: string, newQuestion: Partial<Question>) => void; onDelete: (id: string) => void; isPreview?: boolean }) => {
     
     const handleOptionChange = (optIndex: number, value: string) => {
         const newOptions = [...(question.options || [])];
@@ -102,11 +102,14 @@ const QuestionEditor = ({ question, onUpdate, onDelete }: { question: Question; 
                     value={question.text}
                     onChange={(e) => onUpdate(question.id, { text: e.target.value })}
                     placeholder="Type your question here..."
+                    readOnly={isPreview}
                 />
             </div>
-            <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
-                <Trash2 className="w-4 h-4 text-destructive"/>
-            </Button>
+            {!isPreview && (
+                 <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
+                    <Trash2 className="w-4 h-4 text-destructive"/>
+                </Button>
+            )}
         </div>
 
         {['single', 'multiple', 'dropdown'].includes(question.type) && (
@@ -118,13 +121,18 @@ const QuestionEditor = ({ question, onUpdate, onDelete }: { question: Question; 
                         value={opt}
                         onChange={(e) => handleOptionChange(index, e.target.value)}
                         placeholder={`Option ${index + 1}`}
+                        readOnly={isPreview}
                     />
-                    <Button variant="ghost" size="icon" onClick={() => removeOption(index)}>
-                        <X className="w-4 h-4 text-muted-foreground"/>
-                    </Button>
+                    {!isPreview && (
+                         <Button variant="ghost" size="icon" onClick={() => removeOption(index)}>
+                            <X className="w-4 h-4 text-muted-foreground"/>
+                        </Button>
+                    )}
                     </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={addOption}><PlusCircle className="mr-2 h-4 w-4"/> Add Option</Button>
+                {!isPreview && (
+                    <Button variant="outline" size="sm" onClick={addOption}><PlusCircle className="mr-2 h-4 w-4"/> Add Option</Button>
+                )}
             </div>
         )}
 
@@ -133,11 +141,11 @@ const QuestionEditor = ({ question, onUpdate, onDelete }: { question: Question; 
                 <Label>Items to Compare</Label>
                 {question.items?.map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
-                        <Input value={item} onChange={(e) => handleItemChange(index, e.target.value)} />
-                        <Button variant="ghost" size="icon" onClick={() => removeItem(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>
+                        <Input value={item} onChange={(e) => handleItemChange(index, e.target.value)} readOnly={isPreview} />
+                        {!isPreview && <Button variant="ghost" size="icon" onClick={() => removeItem(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>}
                     </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={addItem}><PlusCircle className="mr-2 h-4 w-4"/> Add Item</Button>
+                {!isPreview && <Button variant="outline" size="sm" onClick={addItem}><PlusCircle className="mr-2 h-4 w-4"/> Add Item</Button>}
             </div>
         )}
         
@@ -147,17 +155,17 @@ const QuestionEditor = ({ question, onUpdate, onDelete }: { question: Question; 
                     <Label>Rows</Label>
                     {question.rows?.map((row, index) => (
                          <div key={index} className="flex items-center gap-2">
-                            <Input value={row} onChange={(e) => handleMatrixChange('rows', index, e.target.value)} />
-                            <Button variant="ghost" size="icon" onClick={() => removeMatrixRow(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>
+                            <Input value={row} onChange={e => handleMatrixChange('rows', index, e.target.value)} readOnly={isPreview}/>
+                            {!isPreview && <Button variant="ghost" size="icon" onClick={() => removeMatrixRow(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>}
                         </div>
                     ))}
-                    <Button variant="outline" size="sm" onClick={addMatrixRow}><PlusCircle className="mr-2 h-4 w-4"/> Add Row</Button>
+                    {!isPreview && <Button variant="outline" size="sm" onClick={addMatrixRow}><PlusCircle className="mr-2 h-4 w-4"/> Add Row</Button>}
                 </div>
                  <div className="space-y-2">
                     <Label>Scale Labels (Columns)</Label>
                     {question.scale?.map((col, index) => (
                          <div key={index} className="flex items-center gap-2">
-                            <Input value={col} onChange={(e) => handleMatrixChange('scale', index, e.target.value)} />
+                            <Input value={col} onChange={e => handleMatrixChange('scale', index, e.target.value)} readOnly={isPreview}/>
                         </div>
                     ))}
                 </div>
@@ -267,9 +275,15 @@ export default function SurveyApp1() {
   const nextStep = () => setCurrentStep(p => Math.min(p + 1, STEPS.length - 1));
   const prevStep = () => setCurrentStep(p => Math.max(p - 1, 0));
 
-  const saveAndShare = () => {
-    const surveyId = `survey1-${Date.now()}`;
+  const saveSurvey = () => {
+    const surveyId = `survey1-${survey.title.replace(/\s+/g, '-')}`;
     localStorage.setItem(surveyId, JSON.stringify(survey));
+    toast({ title: 'Survey Saved!', description: 'Your survey draft has been saved locally.' });
+    return surveyId;
+  };
+
+  const saveAndShare = () => {
+    const surveyId = saveSurvey();
     const url = `${window.location.origin}/survey/view/general/${surveyId}`;
     setSurveyUrl(url);
     setIsShareModalOpen(true);
@@ -380,9 +394,30 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                     </div>
                     <div className="md:col-span-9">
                         <Card>
-                            <CardHeader>
-                                <CardTitle>2. Build Your Survey</CardTitle>
-                                <CardDescription>Add and edit the questions for your survey.</CardDescription>
+                            <CardHeader className="flex flex-row justify-between items-center">
+                                <div>
+                                    <CardTitle>2. Build Your Survey</CardTitle>
+                                    <CardDescription>Add and edit the questions for your survey.</CardDescription>
+                                </div>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline"><Eye className="mr-2 h-4 w-4"/> Preview</Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-3xl">
+                                        <DialogHeader>
+                                            <DialogTitle>{survey.title}</DialogTitle>
+                                            <DialogDescription>{survey.description}</DialogDescription>
+                                        </DialogHeader>
+                                        <ScrollArea className="max-h-[70vh] p-4">
+                                            <div className="space-y-4">
+                                                {survey.questions.map(q => {
+                                                     const QuestionPreview = questionComponents[q.type];
+                                                     return QuestionPreview ? <QuestionPreview key={q.id} question={q} isPreview={true} /> : null;
+                                                })}
+                                            </div>
+                                        </ScrollArea>
+                                    </DialogContent>
+                                </Dialog>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {survey.questions.map((q) => (
@@ -401,7 +436,12 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                             </CardContent>
                             <CardFooter className="flex justify-between">
                                 <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Setup</Button>
-                                <Button onClick={nextStep}>Next: Setting <ArrowRight className="mr-2 h-4 w-4" /></Button>
+                                <div className="flex gap-2">
+                                     <Button variant="secondary" onClick={saveSurvey}>
+                                        <Save className="mr-2 h-4 w-4" /> Save Draft
+                                    </Button>
+                                    <Button onClick={nextStep}>Next: Settings <ArrowRight className="mr-2 h-4 w-4" /></Button>
+                                </div>
                             </CardFooter>
                         </Card>
                     </div>
@@ -421,27 +461,6 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                                 date={{ from: survey.startDate, to: survey.endDate }}
                                 onDateChange={handleDateChange}
                             />
-                        </div>
-                         <div className="space-y-4">
-                            <Label>Sharing Information</Label>
-                             <div className="flex items-center gap-2">
-                                <Input id="survey-link-setting" value={surveyUrl || 'Save to generate link'} readOnly />
-                                <Button variant="outline" size="icon" onClick={copyUrlToClipboard} disabled={!surveyUrl}>
-                                    <Copy className="w-4 h-4" />
-                                </Button>
-                            </div>
-                             <div className="flex flex-col items-center gap-2 p-4 border rounded-lg">
-                                {isLoadingQr ? (
-                                    <Loader2 className="w-8 h-8 animate-spin" />
-                                ) : qrCodeUrl ? (
-                                    <Image src={qrCodeUrl} alt="QR Code" width={150} height={150}/>
-                                ) : (
-                                    <p className="text-muted-foreground text-sm">QR code will be generated upon saving.</p>
-                                )}
-                                <Button variant="outline" disabled={!qrCodeUrl || isLoadingQr} onClick={downloadQrCode}>
-                                    <Download className="mr-2" /> Download QR
-                                </Button>
-                            </div>
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">
@@ -463,7 +482,7 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-start">
-                        <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Setting</Button>
+                        <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Settings</Button>
                     </CardFooter>
                 </Card>
             );
@@ -488,7 +507,7 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                 >
                     {index + 1}
                 </div>
-                <p className="mt-2 text-sm text-center">{step}</p>
+                <p className={`mt-2 text-sm text-center ${currentStep >= index ? 'font-semibold' : 'text-muted-foreground'}`}>{step}</p>
                 </div>
                 {index < STEPS.length - 1 && (
                 <div className={`flex-1 h-1 mx-2 ${currentStep > index ? 'bg-primary' : 'bg-muted'}`} />
@@ -530,4 +549,4 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
     </div>
   );
 }
-
+```
