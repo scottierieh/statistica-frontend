@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -18,7 +19,7 @@ import { Loader2, Copy, Download, QrCode } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import { DatePickerWithRange } from './ui/date-range-picker';
 import { addDays } from 'date-fns';
-
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Simplified question and survey types for the new tool
 type QuestionType = 'text' | 'choice' | 'single' | 'multiple' | 'dropdown' | 'rating' | 'number' | 'phone' | 'email' | 'nps' | 'description' | 'best-worst' | 'matrix';
@@ -225,10 +226,10 @@ export default function SurveyApp1() {
     if (!questionConfig) return;
 
     const newQuestion: Question = {
-      id: `q_${Date.now()}`,
+      id: `q_${''}${Date.now()}`,
       type: type,
       text: '',
-      title: `New ${questionConfig.label} Question`,
+      title: `New ${''}${questionConfig.label} Question`,
     };
 
     if ('options' in questionConfig) {
@@ -275,7 +276,7 @@ export default function SurveyApp1() {
   const prevStep = () => setCurrentStep(p => Math.max(p - 1, 0));
 
   const saveSurvey = () => {
-    const surveyId = `survey1-${survey.title.replace(/\s+/g, '-')}`;
+    const surveyId = `survey1-${''}${survey.title.replace(/\s+/g, '-')}`;
     localStorage.setItem(surveyId, JSON.stringify(survey));
     toast({ title: 'Survey Saved!', description: 'Your survey draft has been saved locally.' });
     return surveyId;
@@ -283,7 +284,7 @@ export default function SurveyApp1() {
 
   const saveAndShare = () => {
     const surveyId = saveSurvey();
-    const url = `${window.location.origin}/survey/view/general/${surveyId}`;
+    const url = `${window.location.origin}/survey/view/general/${''}${surveyId}`;
     setSurveyUrl(url);
     setIsShareModalOpen(true);
     generateQrCode(url);
@@ -293,7 +294,7 @@ export default function SurveyApp1() {
     if (!url) return;
     setIsLoadingQr(true);
     try {
-        const response = await fetch(`/api/generate-qr-code?data=${encodeURIComponent(url)}`);
+        const response = await fetch(`/api/generate-qr-code?data=${''}${encodeURIComponent(url)}`);
         if(!response.ok) throw new Error('Failed to generate QR code');
         const result = await response.json();
         setQrCodeUrl(result.image);
