@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -147,16 +146,6 @@ export default function SurveyPage() {
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveSection('design')}
-                  isActive={activeSection === 'design'}
-                  disabled={!surveyId}
-                >
-                  <LayoutDashboard />
-                  <span>Design & Analysis</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
                 <Link href="/dashboard/survey" className="w-full">
                     <SidebarMenuButton
                       isActive={activeSection === 'hub' && !surveyId}
@@ -165,6 +154,16 @@ export default function SurveyPage() {
                       <span>Survey Hub</span>
                     </SidebarMenuButton>
                  </Link>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => setActiveSection('design')}
+                  isActive={activeSection === 'design'}
+                  disabled={!surveyId}
+                >
+                  <LayoutDashboard />
+                  <span>Design &amp; Analysis</span>
+                </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
