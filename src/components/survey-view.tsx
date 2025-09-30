@@ -241,8 +241,8 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: any, a
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                     {question.rows.map((row: string, rowIndex: number) => (
-                        <TableRow key={rowIndex}>
+                     {(question.rows || []).map((row: string, rowIndex: number) => (
+                         <TableRow key={rowIndex}>
                             <TableCell>{row}</TableCell>
                             <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                 <>
