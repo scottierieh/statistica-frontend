@@ -17,7 +17,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Copy, Download, QrCode } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
-import { DatePickerWithRange } from './ui/date-range-picker';
 import { addDays } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -38,6 +37,7 @@ type Question = {
   required?: boolean;
   content?: string;
   imageUrl?: string;
+  rows?: string[];
 };
 
 type Survey = {
@@ -126,7 +126,7 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
             <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label>Rows</Label>
-                    {question.rows?.map((row, index) => (
+                    {(question.rows || []).map((row, index) => (
                         <div key={index} className="flex items-center gap-2">
                             <Input value={row} onChange={e => handleMatrixChange('rows', index, e.target.value)} readOnly={isPreview}/>
                             {!isPreview && <Button variant="ghost" size="icon" onClick={() => removeMatrixRow(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>}
@@ -136,7 +136,7 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
                 </div>
                 <div className="space-y-2">
                     <Label>Scale Labels (Columns)</Label>
-                    {question.scale?.map((col, index) => (
+                    {(question.scale || []).map((col, index) => (
                         <div key={index} className="flex items-center gap-2">
                             <Input value={col} onChange={e => handleMatrixChange('scale', index, e.target.value)} readOnly={isPreview}/>
                             {!isPreview && <Button variant="ghost" size="icon" onClick={() => removeMatrixColumn(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>}
@@ -262,8 +262,8 @@ export default function SurveyApp1() {
     const newQuestion: Question = {
       id: `q_${''}${Date.now()}`,
       type: type,
-      text: '',
-      title: `New ${''}${questionConfig.label} Question`,
+      text: `New ${questionConfig.label} Question`,
+      title: `New ${questionConfig.label} Question`,
     };
 
     if ('options' in questionConfig) {
@@ -280,6 +280,9 @@ export default function SurveyApp1() {
     }
     if (type === 'description') {
         newQuestion.content = 'Enter your description or instructions here...';
+    }
+    if (type === 'matrix') {
+        newQuestion.rows = ['Row 1', 'Row 2'];
     }
 
     setSurvey(
@@ -488,10 +491,7 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
                             <Label>Survey Period</Label>
-                            <DatePickerWithRange
-                                date={{ from: survey.startDate, to: survey.endDate }}
-                                onDateChange={handleDateChange}
-                            />
+                            
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">
