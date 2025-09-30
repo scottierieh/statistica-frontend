@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -17,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Copy, Download, QrCode } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
-import { DatePickerWithRange } from '../ui/date-range-picker';
+import { DatePickerWithRange } from './ui/date-range-picker';
 import { addDays } from 'date-fns';
 
 
