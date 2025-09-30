@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { jStat } from 'jstat';
 import dynamic from 'next/dynamic';
-import { DatePickerWithRange } from './ui/date-range-picker';
+import { DatePickerWithRange } from '../ui/date-range-picker';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -55,6 +55,8 @@ type Survey = {
 };
 
 const STEPS = ['Setup', 'Build', 'Setting', 'Share & Analyze'];
+
+const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
 // A distinct component for editing a single question
 const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question: Question; onUpdate: (id: string, newQuestion: Partial<Question>) => void; onDelete: (id: string) => void; isPreview?: boolean }) => {
@@ -324,7 +326,7 @@ export default function SurveyApp1() {
     if (!questionConfig) return;
 
     const newQuestion: Question = {
-      id: `q_${''}${Date.now()}`,
+      id: `q_${Date.now()}`,
       type: type,
       text: `New ${questionConfig.label} Question`,
       title: `New ${questionConfig.label} Question`,
@@ -397,7 +399,7 @@ export default function SurveyApp1() {
     if (!url) return;
     setIsLoadingQr(true);
     try {
-        const response = await fetch(`/api/generate-qr-code?data=${''}${encodeURIComponent(url)}`);
+        const response = await fetch(`/api/generate-qr-code?data=${encodeURIComponent(url)}`);
         if(!response.ok) throw new Error('Failed to generate QR code');
         const result = await response.json();
         setQrCodeUrl(result.image);
