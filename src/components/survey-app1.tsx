@@ -20,6 +20,8 @@ import { DateRange } from 'react-day-picker';
 import { DatePickerWithRange } from './ui/date-range-picker';
 import { addDays } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Simplified question and survey types for the new tool
 type QuestionType = 'text' | 'choice' | 'single' | 'multiple' | 'dropdown' | 'rating' | 'number' | 'phone' | 'email' | 'nps' | 'description' | 'best-worst' | 'matrix';
@@ -75,6 +77,16 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
 
     const addMatrixRow = () => onUpdate(question.id, { rows: [...(question.rows || []), `New Row`] });
     const removeMatrixRow = (index: number) => onUpdate(question.id, { rows: (question.rows || []).filter((_, i) => i !== index) });
+    const addMatrixColumn = () => {
+        const newColumns = [...(question.columns || []), `Col ${(question.columns?.length || 0) + 1}`];
+        const newScale = [...(question.scale || []), `Label ${(question.scale?.length || 0) + 1}`];
+        onUpdate(question.id, { columns: newColumns, scale: newScale });
+    };
+    const removeMatrixColumn = (index: number) => {
+        const newColumns = (question.columns || []).filter((_, i) => i !== index);
+        const newScale = (question.scale || []).filter((_, i) => i !== index);
+        onUpdate(question.id, { columns: newColumns, scale: newScale });
+    };
     
     const handleItemChange = (index: number, value: string) => {
         const newItems = [...(question.items || [])];
@@ -92,6 +104,50 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
         onUpdate(question.id, { items: newItems });
     };
 
+    if (question.type === 'matrix') {
+    return (
+        <Card className="p-4 space-y-4">
+            <div className="flex justify-between items-start">
+                <div className='flex-1'>
+                    <Label>Question Text</Label>
+                    <Input
+                        value={question.text}
+                        onChange={(e) => onUpdate(question.id, { text: e.target.value })}
+                        placeholder="Type your matrix question title here..."
+                        readOnly={isPreview}
+                    />
+                </div>
+                {!isPreview && (
+                     <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive"/>
+                    </Button>
+                )}
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label>Rows</Label>
+                    {question.rows?.map((row, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <Input value={row} onChange={e => handleMatrixChange('rows', index, e.target.value)} readOnly={isPreview}/>
+                            {!isPreview && <Button variant="ghost" size="icon" onClick={() => removeMatrixRow(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>}
+                        </div>
+                    ))}
+                    {!isPreview && <Button variant="outline" size="sm" onClick={addMatrixRow}><PlusCircle className="mr-2 h-4 w-4"/> Add Row</Button>}
+                </div>
+                <div className="space-y-2">
+                    <Label>Scale Labels (Columns)</Label>
+                    {question.scale?.map((col, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <Input value={col} onChange={e => handleMatrixChange('scale', index, e.target.value)} readOnly={isPreview}/>
+                            {!isPreview && <Button variant="ghost" size="icon" onClick={() => removeMatrixColumn(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>}
+                        </div>
+                    ))}
+                    {!isPreview && <Button variant="outline" size="sm" onClick={addMatrixColumn}><PlusCircle className="mr-2 h-4 w-4"/> Add Column</Button>}
+                </div>
+            </div>
+        </Card>
+    );
+}
 
     return (
     <Card className="p-4 space-y-4">
@@ -148,29 +204,7 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
                 {!isPreview && <Button variant="outline" size="sm" onClick={addItem}><PlusCircle className="mr-2 h-4 w-4"/> Add Item</Button>}
             </div>
         )}
-        
-        {question.type === 'matrix' && (
-            <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label>Rows</Label>
-                    {question.rows?.map((row, index) => (
-                         <div key={index} className="flex items-center gap-2">
-                            <Input value={row} onChange={e => handleMatrixChange('rows', index, e.target.value)} readOnly={isPreview}/>
-                            {!isPreview && <Button variant="ghost" size="icon" onClick={() => removeMatrixRow(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>}
-                        </div>
-                    ))}
-                    {!isPreview && <Button variant="outline" size="sm" onClick={addMatrixRow}><PlusCircle className="mr-2 h-4 w-4"/> Add Row</Button>}
-                </div>
-                 <div className="space-y-2">
-                    <Label>Scale Labels (Columns)</Label>
-                    {question.scale?.map((col, index) => (
-                         <div key={index} className="flex items-center gap-2">
-                            <Input value={col} onChange={e => handleMatrixChange('scale', index, e.target.value)} readOnly={isPreview}/>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        )}
+
     </Card>
     );
 };
