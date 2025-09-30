@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { jStat } from 'jstat';
 import dynamic from 'next/dynamic';
+import { DatePickerWithRange } from './ui/date-range-picker';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -110,49 +111,49 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
     };
 
     if (question.type === 'matrix') {
-    return (
-        <Card className="p-4 space-y-4">
-            <div className="flex justify-between items-start">
-                <div className='flex-1'>
-                    <Label>Question Text</Label>
-                    <Input
-                        value={question.text}
-                        onChange={(e) => onUpdate(question.id, { text: e.target.value })}
-                        placeholder="Type your matrix question title here..."
-                        readOnly={isPreview}
-                    />
+        return (
+            <Card className="p-4 space-y-4">
+                <div className="flex justify-between items-start">
+                    <div className='flex-1'>
+                        <Label>Question Text</Label>
+                        <Input
+                            value={question.text}
+                            onChange={(e) => onUpdate(question.id, { text: e.target.value })}
+                            placeholder="Type your matrix question title here..."
+                            readOnly={isPreview}
+                        />
+                    </div>
+                    {!isPreview && (
+                         <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
+                            <Trash2 className="w-4 h-4 text-destructive"/>
+                        </Button>
+                    )}
                 </div>
-                {!isPreview && (
-                     <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive"/>
-                    </Button>
-                )}
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label>Rows</Label>
-                    {(question.rows || []).map((row, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                            <Input value={row} onChange={e => handleMatrixChange('rows', index, e.target.value)} readOnly={isPreview}/>
-                            {!isPreview && <Button variant="ghost" size="icon" onClick={() => removeMatrixRow(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>}
-                        </div>
-                    ))}
-                    {!isPreview && <Button variant="outline" size="sm" onClick={addMatrixRow}><PlusCircle className="mr-2 h-4 w-4"/> Add Row</Button>}
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Rows</Label>
+                        {(question.rows || []).map((row, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                                <Input value={row} onChange={e => handleMatrixChange('rows', index, e.target.value)} readOnly={isPreview}/>
+                                {!isPreview && <Button variant="ghost" size="icon" onClick={() => removeMatrixRow(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>}
+                            </div>
+                        ))}
+                        {!isPreview && <Button variant="outline" size="sm" onClick={addMatrixRow}><PlusCircle className="mr-2 h-4 w-4"/> Add Row</Button>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Scale Labels (Columns)</Label>
+                        {(question.scale || []).map((col, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                                <Input value={col} onChange={e => handleMatrixChange('scale', index, e.target.value)} readOnly={isPreview}/>
+                                {!isPreview && <Button variant="ghost" size="icon" onClick={() => removeMatrixColumn(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>}
+                            </div>
+                        ))}
+                        {!isPreview && <Button variant="outline" size="sm" onClick={addMatrixColumn}><PlusCircle className="mr-2 h-4 w-4"/> Add Column</Button>}
+                    </div>
                 </div>
-                <div className="space-y-2">
-                    <Label>Scale Labels (Columns)</Label>
-                    {(question.scale || []).map((col, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                            <Input value={col} onChange={e => handleMatrixChange('scale', index, e.target.value)} readOnly={isPreview}/>
-                            {!isPreview && <Button variant="ghost" size="icon" onClick={() => removeMatrixColumn(index)}><X className="w-4 h-4 text-muted-foreground"/></Button>}
-                        </div>
-                    ))}
-                    {!isPreview && <Button variant="outline" size="sm" onClick={addMatrixColumn}><PlusCircle className="mr-2 h-4 w-4"/> Add Column</Button>}
-                </div>
-            </div>
-        </Card>
-    );
-}
+            </Card>
+        );
+    }
 
     return (
     <Card className="p-4 space-y-4">
@@ -274,6 +275,20 @@ export default function SurveyApp1() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { toast } = useToast();
   const [responses, setResponses] = useState<any[]>([]);
+
+  useEffect(() => {
+    // This effect runs once on mount to load data from localStorage.
+    const surveyId = `survey1-${survey.title.replace(/\s+/g, '-')}`;
+    const savedSurvey = localStorage.getItem(surveyId);
+    const savedResponses = localStorage.getItem(`${surveyId}_responses`);
+
+    if (savedSurvey) {
+      setSurvey(JSON.parse(savedSurvey));
+    }
+    if (savedResponses) {
+      setResponses(JSON.parse(savedResponses));
+    }
+  }, []); // Empty dependency array ensures this runs only once
 
   const questionTypeCategories = {
     'Choice': [
@@ -542,7 +557,10 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
                             <Label>Survey Period</Label>
-                            
+                             <DatePickerWithRange 
+                                date={{ from: survey.startDate, to: survey.endDate }}
+                                onDateChange={handleDateChange}
+                             />
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">
