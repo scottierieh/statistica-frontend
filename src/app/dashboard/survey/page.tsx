@@ -182,7 +182,7 @@ export default function SurveyPage() {
                   disabled={!surveyId}
                 >
                   <LayoutDashboard />
-                  <span>Design &amp; Analysis</span>
+                  <span>Design & Analysis</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -213,4 +213,3 @@ export default function SurveyPage() {
     </SidebarProvider>
   );
 }
-
