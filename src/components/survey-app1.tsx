@@ -17,7 +17,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Copy, Download, QrCode } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { addDays } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -25,6 +24,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { jStat } from 'jstat';
 import dynamic from 'next/dynamic';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -219,7 +220,7 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
 
 // --- Analysis Components ---
 const AnalysisResultDisplay = ({ question, responses }: { question: Question; responses: any[] }) => {
-    const [chartType, setChartType] = useState<'bar'|'pie'|'donut'>('bar');
+    const [chartType, setChartType] = useState<'hbar'|'bar'|'pie'|'donut'>('hbar');
 
     const chartData = useMemo(() => {
         const answers = responses.map(r => r.answers[question.id]).filter(a => a !== undefined && a !== null);
@@ -231,12 +232,33 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
         
     }, [question, responses]);
 
+    const plotLayout = useMemo(() => {
+        const baseLayout = {
+            autosize: true,
+            margin: { t: 40, b: 40, l: 40, r: 20 },
+            xaxis: { title: chartType === 'hbar' ? 'Count' : '' },
+            yaxis: { title: chartType === 'hbar' ? '' : 'Count' },
+            legend: { orientation: "h", yanchor: "bottom", y: 1.02, xanchor: "right", x: 1 }
+        };
+        if (chartType === 'hbar') {
+            baseLayout.yaxis = { autorange: 'reversed' as const };
+            baseLayout.margin.l = 120; // More space for labels
+        }
+        if (chartType === 'bar') {
+            (baseLayout.xaxis as any).tickangle = -45;
+        }
+        return baseLayout;
+    }, [chartType]);
+    
     const plotData = useMemo(() => {
         if (!chartData) return [];
+        const values = chartData.map(d => d.value);
+        const labels = chartData.map(d => d.name);
+        
         if (chartType === 'pie' || chartType === 'donut') {
             return [{
-                values: chartData.map(d => d.value),
-                labels: chartData.map(d => d.name),
+                values,
+                labels,
                 type: 'pie',
                 hole: chartType === 'donut' ? 0.4 : 0,
                 marker: { colors: COLORS },
@@ -244,11 +266,12 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
                 textposition: 'inside',
             }];
         }
-        // bar
+        
         return [{
-            x: chartData.map(d => d.name),
-            y: chartData.map(d => d.value),
+            y: chartType === 'hbar' ? labels : values,
+            x: chartType === 'hbar' ? values : labels,
             type: 'bar',
+            orientation: chartType === 'hbar' ? 'h' : 'v',
             marker: { color: COLORS[0] }
         }];
     }, [chartData, chartType]);
@@ -261,7 +284,8 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
                 <CardTitle>{question.text}</CardTitle>
                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full mt-2">
                     <TabsList>
-                        <TabsTrigger value="bar">Bar</TabsTrigger>
+                        <TabsTrigger value="hbar">Horizontal Bar</TabsTrigger>
+                        <TabsTrigger value="bar">Vertical Bar</TabsTrigger>
                         <TabsTrigger value="pie">Pie</TabsTrigger>
                         <TabsTrigger value="donut">Donut</TabsTrigger>
                     </TabsList>
@@ -270,10 +294,88 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
             <CardContent>
                 <Plot 
                     data={plotData} 
-                    layout={{ autosize: true, margin: { t: 20, b: 20, l: 40, r: 20 } }} 
+                    layout={plotLayout}
                     style={{ width: '100%', height: '300px' }} 
                     useResizeHandler
                 />
+            </CardContent>
+        </Card>
+    );
+};
+
+const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
+    const [chartType, setChartType] = useState<'heatmap' | 'stacked' | 'grouped'>('heatmap');
+
+    const matrixData = useMemo(() => {
+        const data: number[][] = Array(question.rows!.length).fill(0).map(() => Array(question.columns!.length).fill(0));
+        responses.forEach(response => {
+            const answer = response.answers[question.id];
+            if (answer) {
+                Object.entries(answer).forEach(([row, col]) => {
+                    const rowIndex = question.rows!.indexOf(row);
+                    const colIndex = question.columns!.indexOf(col as string);
+                    if (rowIndex !== -1 && colIndex !== -1) {
+                        data[rowIndex][colIndex]++;
+                    }
+                });
+            }
+        });
+        // Convert to percentages
+        return data.map(row => {
+            const sum = row.reduce((a, b) => a + b, 0);
+            return sum > 0 ? row.map(cell => (cell / sum) * 100) : row;
+        });
+    }, [question, responses]);
+
+    const plotData = useMemo(() => {
+        const scales = question.scale || question.columns || [];
+        const questions = question.rows || [];
+        const colors = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'];
+
+        if (chartType === 'heatmap') {
+            return [{
+                z: matrixData,
+                x: scales,
+                y: questions,
+                type: 'heatmap',
+                colorscale: 'Blues',
+                text: matrixData.map(row => row.map(val => `${val.toFixed(1)}%`)),
+                texttemplate: '%{text}',
+                textfont: { color: "white" }
+            }];
+        } else { // grouped or stacked
+            return scales.map((scale, i) => ({
+                x: questions,
+                y: matrixData.map(row => row[i]),
+                name: scale,
+                type: 'bar',
+                marker: { color: colors[i % colors.length] }
+            }));
+        }
+    }, [chartType, matrixData, question.rows, question.columns, question.scale]);
+
+    const plotLayout = useMemo(() => ({
+        autosize: true,
+        margin: { t: 40, b: 40, l: 150, r: 20 },
+        barmode: chartType,
+        title: `Matrix - ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`,
+        yaxis: { title: 'Percentage (%)' }
+    }), [chartType]);
+    
+    return (
+         <Card>
+            <CardHeader>
+                <CardTitle>{question.text}</CardTitle>
+                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full mt-2">
+                    <TabsList>
+                        <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
+                        <TabsTrigger value="grouped">Grouped Bar</TabsTrigger>
+                        <TabsTrigger value="stacked">Stacked Bar</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </CardHeader>
+            <CardContent>
+                <Plot data={plotData} layout={plotLayout} style={{ width: '100%', height: '400px' }} useResizeHandler />
             </CardContent>
         </Card>
     );
@@ -693,4 +795,4 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
   );
 }
 
-    
+```
