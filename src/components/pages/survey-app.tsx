@@ -869,6 +869,105 @@ const getMedian = (arr: number[]): number | null => {
     return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
+const getQuantile = (arr: number[], q: number) => {
+    if (arr.length === 0) return NaN;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const pos = (sorted.length - 1) * q;
+    const base = Math.floor(pos);
+    const rest = pos - base;
+    if (sorted[base + 1] !== undefined) {
+        return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+    } else {
+        return sorted[base];
+    }
+};
+
+const getNumericStats = (data: (number | undefined | null)[]) => {
+    const cleanData = data.filter((val): val is number => typeof val === 'number' && isFinite(val));
+    if (cleanData.length === 0) return { count: 0, missing: data.length, mean: NaN, stdDev: NaN, min: NaN, q1: NaN, median: NaN, q3: NaN, max: NaN, mode: NaN, skewness: NaN };
+    
+    const sortedData = [...cleanData].sort((a, b) => a - b);
+    const sum = cleanData.reduce((acc, val) => acc + val, 0);
+    const meanVal = sum / cleanData.length;
+    const stdDevVal = Math.sqrt(cleanData.reduce((acc, val) => acc + (val - meanVal) ** 2, 0) / (cleanData.length > 1 ? cleanData.length - 1 : 1));
+
+    const q1 = getQuantile(sortedData, 0.25);
+    const medianVal = getQuantile(sortedData, 0.5);
+    const q3 = getQuantile(sortedData, 0.75);
+
+    const counts: { [key: string]: number } = {};
+    cleanData.forEach(val => {
+      const key = String(val);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    let modeVal: number | null = null;
+    let maxCount = 0;
+    Object.entries(counts).forEach(([val, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        modeVal = parseFloat(val);
+      }
+    });
+
+    const n = cleanData.length;
+    const skew = n > 2 && stdDevVal > 0 ? (n / ((n - 1) * (n - 2))) * cleanData.reduce((acc, val) => acc + Math.pow((val - meanVal) / stdDevVal, 3), 0) : NaN;
+
+
+    return {
+        count: n, missing: data.length - n, mean: meanVal, stdDev: stdDevVal, min: sortedData[0], q1, median: medianVal, q3, max: sortedData[n - 1], mode: modeVal, skewness: skew,
+    };
+};
+
+const getCategoricalStats = (data: (string | number)[]) => {
+    if (data.length === 0) return [];
+    const counts: { [key: string]: number } = {};
+    let validCount = 0;
+    data.forEach(val => {
+        if(val === null || val === undefined || val === '') return;
+        const key = String(val);
+        counts[key] = (counts[key] || 0) + 1;
+        validCount++;
+    });
+
+    return Object.entries(counts)
+        .map(([value, count]) => ({ name: value, count, percentage: ((count / validCount) * 100).toFixed(1) }))
+        .sort((a, b) => b.count - a.count);
+};
+
+const generateNumericInsights = (stats: ReturnType<typeof getNumericStats>) => {
+    const insights: string[] = [];
+    if (isNaN(stats.mean)) return ["Not enough data for insights."];
+
+    const skewness = stats.skewness;
+    if (!isNaN(skewness)) {
+      if (Math.abs(skewness) > 1) {
+          insights.push(`The distribution is <strong>highly ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong> (skewness = ${skewness.toFixed(2)}).`);
+      } else if (Math.abs(skewness) > 0.5) {
+          insights.push(`The data is <strong>moderately ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong> (skewness = ${skewness.toFixed(2)}).`);
+      } else {
+          insights.push(`The data appears to be roughly <strong>symmetrical</strong> (skewness = ${skewness.toFixed(2)}).`);
+      }
+    }
+
+    if (stats.stdDev > 0) {
+      const cv = (stats.stdDev / Math.abs(stats.mean)) * 100;
+      if (cv > 30) {
+          insights.push(`The standard deviation (<strong>${stats.stdDev.toFixed(2)}</strong>) is relatively high compared to the mean, indicating <strong>high variability</strong> in the data.`);
+      } else {
+          insights.push(`The data shows <strong>low to moderate variability</strong> with a standard deviation of <strong>${stats.stdDev.toFixed(2)}</strong>.`);
+      }
+    }
+    
+    return insights;
+};
+
+const generateCategoricalInsights = (stats: ReturnType<typeof getCategoricalStats>) => {
+    if (stats.length === 0) return ["Not enough data for insights."];
+    const mode = stats[0];
+    return [`The most frequent category is <strong>"${mode.name}"</strong>, appearing in <strong>${mode.percentage}%</strong> of cases.`];
+};
+
+
 
 // New Star Display Component
 const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number, total?: number, size?: string }) => {
@@ -910,21 +1009,76 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
 const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, comparisonData }: { chartData: any, tableData: any[], insightsData: string[], varName: string, comparisonData: any }) => {
     const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'donut'>('hbar');
 
-    const comparisonChartData = useMemo(() => {
-        if (!comparisonData || !comparisonData.tableData) {
-            return tableData.map(d => ({ name: d.name, value: d.percentage }));
+    const plotLayout = useMemo(() => {
+        const baseLayout = {
+            autosize: true,
+            margin: { t: 40, b: 40, l: 40, r: 20 },
+            xaxis: { title: chartType === 'hbar' ? 'Percentage' : '' },
+            yaxis: { title: chartType === 'hbar' ? '' : 'Percentage' },
+            legend: { orientation: "h", yanchor: "bottom", y: 1.02, xanchor: "right", x: 1 }
+        };
+        if (chartType === 'hbar') {
+            baseLayout.yaxis = { autorange: 'reversed' as const };
+            baseLayout.margin.l = 120; // More space for labels
         }
-        return tableData.map(d => ({
-            name: d.name,
-            Overall: d.percentage,
-            Group: comparisonData.tableData.find((cd: any) => cd.name === d.name)?.percentage || 0
-        }));
-    }, [comparisonData, tableData]);
+        if (chartType === 'bar') {
+            (baseLayout.xaxis as any).tickangle = -45;
+        }
+        return baseLayout;
+    }, [chartType]);
+    
+    const plotData = useMemo(() => {
+        const percentages = tableData.map(d => parseFloat(d.percentage));
+        const labels = tableData.map(d => d.name);
+        const counts = tableData.map(d => d.count);
 
-    const chartConfig = {
-      Overall: { label: 'Overall', color: 'hsl(var(--chart-1))' },
-      Group: { label: comparisonData?.filterValue || 'Group', color: 'hsl(var(--chart-2))' },
-    };
+        if (chartType === 'pie' || chartType === 'donut') {
+            return [{
+                values: percentages,
+                labels: labels,
+                type: 'pie',
+                hole: chartType === 'donut' ? 0.4 : 0,
+                marker: { colors: COLORS },
+                textinfo: 'label+percent',
+                textposition: 'inside',
+            }];
+        }
+        
+        const baseTrace = {
+            y: chartType === 'hbar' ? labels : percentages,
+            x: chartType === 'hbar' ? percentages : labels,
+            type: 'bar' as const,
+            orientation: chartType === 'hbar' ? 'h' : 'v' as 'h' | 'v',
+            text: percentages.map(p => `${p.toFixed(1)}%`),
+            textposition: 'auto' as const,
+            hoverinfo: 'x+y' as const,
+        };
+        
+        if (comparisonData) {
+            const groupPercentages = comparisonData.tableData.map((d: any) => parseFloat(d.percentage));
+            const groupLabels = comparisonData.tableData.map((d: any) => d.name);
+
+            // Align data
+            const alignedGroupPercentages = labels.map(label => {
+                const index = groupLabels.indexOf(label);
+                return index !== -1 ? groupPercentages[index] : 0;
+            });
+            
+            return [
+                { ...baseTrace, name: 'Overall', marker: { color: 'hsl(var(--chart-1))' } },
+                {
+                    ...baseTrace,
+                    name: comparisonData.filterValue || 'Group',
+                    x: chartType === 'hbar' ? alignedGroupPercentages : labels,
+                    y: chartType === 'hbar' ? labels : alignedGroupPercentages,
+                    text: alignedGroupPercentages.map(p => `${p.toFixed(1)}%`),
+                    marker: { color: 'hsl(var(--chart-2))' }
+                }
+            ];
+        }
+
+        return [{ ...baseTrace, marker: { color: 'hsl(var(--chart-1))' } }];
+    }, [chartType, tableData, comparisonData]);
 
     return (
         <AnalysisDisplayShell varName={varName}>
@@ -944,53 +1098,13 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
                         </Tabs>
                     </CardHeader>
                     <CardContent className="flex items-center justify-center min-h-[300px]">
-                        {chartType === 'pie' || chartType === 'donut' ? (
-                            <ChartContainer config={chartConfig} className="w-full h-[300px]">
-                                <ResponsiveContainer>
-                                    <PieChart>
-                                        <Pie data={tableData} dataKey="percentage" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={chartType === 'donut' ? 60 : 0} label={p => `${p.name} (${p.percentage.toFixed(1)}%)`}>
-                                            {tableData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                        </Pie>
-                                        <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(1)}%`} />} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        ) : comparisonData ? (
-                            <ChartContainer config={chartConfig} className="w-full h-[300px]">
-                                <ResponsiveContainer>
-                                    <BarChart data={comparisonChartData} layout="vertical">
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis type="number" unit="%" />
-                                        <YAxis type="category" dataKey="name" width={100} />
-                                        <Tooltip content={<ChartTooltipContent />} />
-                                        <Legend />
-                                        <Bar dataKey="Overall" fill="var(--color-Overall)" radius={4}/>
-                                        <Bar dataKey="Group" fill="var(--color-Group)" radius={4}/>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        ) : (
-                            <ChartContainer config={{ value: { label: 'Percentage' } }} className="w-full h-[300px]">
-                                <ResponsiveContainer>
-                                     <BarChart data={tableData.map(d => ({...d, value: d.percentage}))} layout={chartType === 'hbar' ? 'vertical' : 'horizontal'}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        {chartType === 'hbar' ? (
-                                            <>
-                                                <XAxis type="number" unit="%" />
-                                                <YAxis type="category" dataKey="name" width={100} />
-                                            </>
-                                        ) : (
-                                            <>
-                                                <XAxis dataKey="name" />
-                                                <YAxis unit="%" />
-                                            </>
-                                        )}
-                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
-                                        <Bar dataKey="value" fill={COLORS[0]} radius={4} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        )}
+                        <Plot
+                            data={plotData}
+                            layout={plotLayout}
+                            style={{ width: '100%', height: '100%' }}
+                            config={{ displayModeBar: false }}
+                            useResizeHandler
+                        />
                     </CardContent>
                 </Card>
                 <div className="space-y-4">
@@ -1684,6 +1798,103 @@ const CrosstabAnalysisDisplay = ({ responses, survey }: { responses: any[], surv
     );
 };
 
+const ResponseFlowAnalysis = ({ responses, survey }: { responses: any[], survey: any }) => {
+    const [sourceVarId, setSourceVarId] = useState<number | undefined>();
+    const [targetVarId, setTargetVarId] = useState<number | undefined>();
+    const [flowData, setFlowData] = useState<any>(null);
+
+    const categoricalQuestions = useMemo(() => {
+        return survey.questions.filter((q: any) => ['single', 'dropdown'].includes(q.type));
+    }, [survey.questions]);
+
+    useEffect(() => {
+        if (categoricalQuestions.length > 0) setSourceVarId(categoricalQuestions[0].id);
+        if (categoricalQuestions.length > 1) setTargetVarId(categoricalQuestions[1].id);
+    }, [categoricalQuestions]);
+    
+    const generateFlowData = useCallback(() => {
+        if (!sourceVarId || !targetVarId) return;
+
+        const sourceQ = survey.questions.find((q:any) => q.id === sourceVarId);
+        const targetQ = survey.questions.find((q:any) => q.id === targetVarId);
+        if (!sourceQ || !targetQ) return;
+
+        const links: { [key: string]: number } = {};
+        responses.forEach(r => {
+            const sourceAns = r.answers[sourceVarId];
+            const targetAns = r.answers[targetVarId];
+            if (sourceAns && targetAns) {
+                const key = `${sourceAns}__%__${targetAns}`;
+                links[key] = (links[key] || 0) + 1;
+            }
+        });
+
+        const allNodes = [...sourceQ.options.map((o: string) => ({ name: o, id: `${sourceQ.title}-${o}` })), ...targetQ.options.map((o: string) => ({ name: o, id: `${targetQ.title}-${o}` }))];
+        const uniqueNodes = Array.from(new Set(allNodes.map(n => n.name))).map(name => ({name}));
+
+        const nodeIndices = Object.fromEntries(uniqueNodes.map((n, i) => [n.name, i]));
+        
+        const sankeyData = {
+            data: [{
+                type: 'sankey',
+                orientation: "h",
+                node: {
+                    pad: 15,
+                    thickness: 20,
+                    line: { color: "black", width: 0.5 },
+                    label: uniqueNodes.map(n => n.name),
+                    color: COLORS
+                },
+                link: {
+                    source: Object.keys(links).map(k => nodeIndices[k.split('__%__')[0]]),
+                    target: Object.keys(links).map(k => nodeIndices[k.split('__%__')[1]]),
+                    value: Object.values(links)
+                }
+            }],
+            layout: {
+                title: "Response Flow",
+                autosize: true,
+            }
+        };
+
+        setFlowData(sankeyData);
+    }, [sourceVarId, targetVarId, responses, survey.questions]);
+
+    return (
+         <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Share2/> Response Flow (Sankey)</CardTitle>
+                <CardDescription>Visualize how respondents' answers to one question flow to another.</CardDescription>
+            </CardHeader>
+             <CardContent>
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                     <div>
+                        <Label>Source Question</Label>
+                        <Select value={String(sourceVarId)} onValueChange={v => setSourceVarId(Number(v))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{categoricalQuestions.map((q: any) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                     <div>
+                        <Label>Target Question</Label>
+                        <Select value={String(targetVarId)} onValueChange={v => setTargetVarId(Number(v))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{categoricalQuestions.filter((q:any) => q.id !== sourceVarId).map((q: any) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <Button onClick={generateFlowData}>Generate Diagram</Button>
+                {flowData && (
+                    <div className="mt-4">
+                        <Plot {...flowData} useResizeHandler style={{ width: '100%', height: '500px' }} />
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
+
 const CategoricalToScaleAnalysis = ({ responses, survey }: { responses: any[], survey: any }) => {
     const { toast } = useToast();
     const [selectedVarId, setSelectedVarId] = useState<number | undefined>();
@@ -1739,15 +1950,7 @@ const CategoricalToScaleAnalysis = ({ responses, survey }: { responses: any[], s
             return;
         }
 
-        const stats = {
-            mean: mean(convertedData),
-            median: getMedian(convertedData) || 0,
-            mode: getMode(convertedData) || 0,
-            stdDev: standardDeviation(convertedData),
-            min: Math.min(...convertedData),
-            max: Math.max(...convertedData),
-            count: convertedData.length
-        };
+        const stats = getNumericStats(convertedData);
         const insights = generateNumericInsights(stats);
         setAnalysisData({
             chartData: { values: convertedData },
@@ -2072,22 +2275,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             }
             case 'number': {
                 const numberResponses = allAnswers.map(Number).filter(n => !isNaN(n));
-                const stats = {
-                    mean: mean(numberResponses),
-                    median: getMedian(numberResponses) || 0,
-                    mode: getMode(numberResponses) || 0,
-                    stdDev: standardDeviation(numberResponses),
-                    min: Math.min(...numberResponses),
-                    max: Math.max(...numberResponses),
-                    count: numberResponses.length
-                };
+                const stats = getNumericStats(numberResponses);
                 chartData = { values: numberResponses };
                 tableData = stats;
-                insights = [
-                    `The average response is <strong>${stats.mean.toFixed(2)}</strong>.`,
-                    `Responses range from <strong>${stats.min}</strong> to <strong>${stats.max}</strong>.`,
-                    `The standard deviation of <strong>${stats.stdDev.toFixed(2)}</strong> indicates the spread of the data.`
-                ];
+                insights = generateNumericInsights(stats);
                 break;
             }
              case 'rating': {
@@ -2963,6 +3154,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     <div className="space-y-4 mt-4">
                         <CrosstabAnalysisDisplay responses={responses} survey={survey} />
                         <CategoricalToScaleAnalysis responses={responses} survey={survey} />
+                        <ResponseFlowAnalysis responses={responses} survey={survey} />
                     </div>
                 </TabsContent>
                  <TabsContent value="dashboard">
