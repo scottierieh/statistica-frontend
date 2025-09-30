@@ -28,7 +28,7 @@ import dynamic from 'next/dynamic';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent, useDraggable } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Info, Link as LinkIcon, Laptop, Palette, Tablet, Monitor, FileDown, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, BookOpen, Handshake, Columns, Network, TrendingUp, FlaskConical, Binary, Component, HeartPulse, Feather, GitBranch, MessagesSquare, Target } from 'lucide-react';
+import { GripVertical, Info, Link as LinkIcon, Laptop, Palette, Tablet, Monitor, FileDown, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, BookOpen, Handshake, Columns, Network, TrendingUp, FlaskConical, Binary, Component, HeartPulse, Feather, GitBranch, Smile, Scaling } from 'lucide-react';
 
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
@@ -61,7 +61,7 @@ type Survey = {
 
 const STEPS = ['Setup', 'Build', 'Setting', 'Share & Analyze'];
 
-const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'];
+const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'];
 
 // A distinct component for editing a single question
 const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question: Question; onUpdate: (id: string, newQuestion: Partial<Question>) => void; onDelete: (id: string) => void; isPreview?: boolean }) => {
@@ -242,7 +242,7 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
             margin: { t: 40, b: 40, l: 40, r: 20 },
             xaxis: { title: chartType === 'hbar' ? 'Count' : '' },
             yaxis: { title: chartType === 'hbar' ? '' : 'Count' },
-            legend: { orientation: "h", yanchor: "bottom", y: 1.02, xanchor: "right", x: 1 }
+            legend: { orientation: "h" as const, yanchor: "bottom", y: 1.02, xanchor: "right" as const, x: 1 }
         };
         if (chartType === 'hbar') {
             baseLayout.yaxis = { autorange: 'reversed' as const };
@@ -300,7 +300,7 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
                     data={plotData} 
                     layout={plotLayout}
                     style={{ width: '100%', height: '300px' }} 
-                    useResizeHandler
+                    useResizeHandler 
                 />
             </CardContent>
         </Card>
@@ -312,6 +312,7 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
 
     const matrixData = useMemo(() => {
         const data: number[][] = Array(question.rows!.length).fill(0).map(() => Array(question.columns!.length).fill(0));
+        
         responses.forEach(response => {
             const answer = response.answers[question.id];
             if (answer) {
@@ -324,6 +325,7 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                 });
             }
         });
+        
         // Convert to percentages
         return data.map(row => {
             const sum = row.reduce((a, b) => a + b, 0);
@@ -340,37 +342,76 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                 z: matrixData,
                 x: scales,
                 y: questions,
-                type: 'heatmap',
+                type: 'heatmap' as const,
                 colorscale: 'Blues',
                 text: matrixData.map(row => row.map(val => `${val.toFixed(1)}%`)),
                 texttemplate: '%{text}',
-                textfont: { color: "white" }
+                textfont: { color: "white" },
+                hovertemplate: '<b>%{y}</b><br>%{x}: %{text}<extra></extra>'
             }];
         } else { // grouped or stacked
             return scales.map((scale, i) => ({
                 x: questions,
                 y: matrixData.map(row => row[i]),
                 name: scale,
-                type: 'bar',
-                marker: { color: COLORS[i % COLORS.length] }
+                type: 'bar' as const,
+                marker: { color: COLORS[i % COLORS.length] },
             }));
         }
     }, [chartType, matrixData, question.rows, question.columns, question.scale]);
 
-    const plotLayout = useMemo(() => ({
-        autosize: true,
-        margin: { t: 40, b: 40, l: 150, r: 20 },
-        barmode: chartType,
-        title: `Matrix - ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`,
-        yaxis: { title: 'Percentage (%)' },
-        xaxis: { title: 'Questions' },
-    }), [chartType]);
+    const plotLayout = useMemo(() => {
+        const baseLayout: any = {
+            autosize: true,
+            margin: { t: 40, b: 80, l: 150, r: 20 },
+            title: {
+                text: `Matrix - ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`,
+                font: { size: 16 }
+            },
+            font: { size: 12 },
+            hovermode: 'closest' as const
+        };
+
+        if (chartType === 'heatmap') {
+            return {
+                ...baseLayout,
+                xaxis: { 
+                    title: 'Scale',
+                    side: 'bottom' as const
+                },
+                yaxis: { 
+                    title: 'Question',
+                    automargin: true
+                }
+            };
+        } else {
+            return {
+                ...baseLayout,
+                barmode: chartType,
+                xaxis: { 
+                    title: 'Question',
+                    tickangle: -45
+                },
+                yaxis: { 
+                    title: 'Percentage (%)',
+                    range: [0, 100]
+                },
+                legend: {
+                    orientation: 'h' as const,
+                    yanchor: 'bottom' as const,
+                    y: -0.4,
+                    xanchor: 'center' as const,
+                    x: 0.5
+                }
+            };
+        }
+    }, [chartType]);
     
     return (
-         <Card>
+        <Card>
             <CardHeader>
                 <CardTitle>{question.text}</CardTitle>
-                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full mt-2">
+                <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full mt-2">
                     <TabsList>
                         <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
                         <TabsTrigger value="grouped">Grouped Bar</TabsTrigger>
@@ -379,12 +420,22 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                 </Tabs>
             </CardHeader>
             <CardContent>
-                <Plot data={plotData} layout={plotLayout} style={{ width: '100%', height: '400px' }} useResizeHandler />
+                <Plot 
+                    data={plotData} 
+                    layout={plotLayout} 
+                    style={{ width: '100%', height: '500px' }} 
+                    useResizeHandler 
+                    config={{ 
+                        responsive: true,
+                        displayModeBar: true,
+                        displaylogo: false,
+                        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+                    }}
+                />
             </CardContent>
         </Card>
     );
 };
-
 
 // A new, distinct Survey App component
 export default function SurveyApp1() {
@@ -797,3 +848,4 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
     </div>
   );
 }
+```
