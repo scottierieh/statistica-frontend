@@ -93,6 +93,22 @@ export default function DashboardHubPage() {
                  <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center gap-2">
+                            <ClipboardList className="h-5 w-5 text-primary"/>
+                            Survey1
+                        </CardTitle>
+                        <CardDescription>
+                            Design, distribute, and analyze surveys with an integrated, easy-to-use tool.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild className="w-full">
+                            <Link href="/dashboard/survey" target="_blank" rel="noopener noreferrer">Launch Survey Tool</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+                 <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center gap-2">
                             <DollarSign className="h-5 w-5 text-primary"/>
                             Financial Modeling
                         </CardTitle>
