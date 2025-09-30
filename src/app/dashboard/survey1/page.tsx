@@ -1,7 +1,7 @@
 'use client';
 
-import SurveyApp from '@/components/survey-app';
+import SurveyApp1 from '@/components/survey-app1';
 
 export default function Survey1Page() {
-  return <SurveyApp />;
+  return <SurveyApp1 />;
 }
