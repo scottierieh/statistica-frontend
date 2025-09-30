@@ -1652,6 +1652,47 @@ const TextAnalysisDisplay = ({ tableData, varName }: { tableData: any[], varName
     );
 };
 
+const MatrixAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question, comparisonData }: { chartData: any, tableData: any[], insightsData: string[], varName: string, question: any, comparisonData: any }) => {
+    const percentages = useMemo(() => {
+        return tableData.map(row => {
+            const total = Object.values<number>(row).slice(1).reduce((acc, val) => acc + val, 0);
+            const newRow: {[key: string]: any} = { name: row.name };
+            Object.keys(row).slice(1).forEach(key => {
+                newRow[key] = total > 0 ? (row[key] / total) * 100 : 0;
+            });
+            return newRow;
+        });
+    }, [tableData]);
+
+    return (
+        <AnalysisDisplayShell varName={varName}>
+            <div className="grid grid-cols-1 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Response Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-center min-h-[300px]">
+                       <ChartContainer config={{}} className="h-[300px] w-full">
+                         <ResponsiveContainer>
+                           <RechartsBarChart data={percentages} layout="vertical" margin={{ left: 120 }}>
+                             <CartesianGrid strokeDasharray="3 3" />
+                             <XAxis type="number" unit="%" domain={[0, 100]} />
+                             <YAxis dataKey="name" type="category" />
+                             <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`}/>} />
+                             <Legend />
+                             {question.columns.map((col: string, i: number) => (
+                                <Bar key={col} dataKey={col} stackId="a" fill={COLORS[i % COLORS.length]} name={question.scale?.[i] || col} />
+                            ))}
+                           </RechartsBarChart>
+                         </ResponsiveContainer>
+                       </ChartContainer>
+                    </CardContent>
+                </Card>
+            </div>
+        </AnalysisDisplayShell>
+    );
+};
+
 // This function needs to be defined if it's used for IPA analysis
 function pearsonCorrelation(x: (number | undefined)[], y: (number | undefined)[]): number {
     const validPairs = x.map((val, i) => [val, y[i]]).filter(([val1, val2]) => val1 !== undefined && val2 !== undefined) as [number, number][];
@@ -3086,7 +3127,6 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     <div className="space-y-4 mt-4">
                         <CrosstabAnalysisDisplay responses={responses} survey={survey} />
                         <CategoricalToScaleAnalysis responses={responses} survey={survey} />
-                        <ResponseFlowAnalysis responses={responses} survey={survey} />
                     </div>
                 </TabsContent>
                  <TabsContent value="dashboard">
