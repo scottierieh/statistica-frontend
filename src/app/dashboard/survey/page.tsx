@@ -23,6 +23,7 @@ import {
   LayoutDashboard,
   Edit,
   Eye,
+  Network
 } from 'lucide-react';
 import SurveyApp from '@/components/survey-app';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -49,6 +50,11 @@ const SurveyHub = () => {
         const newId = Date.now().toString();
         router.push(`/dashboard/survey?id=${newId}`);
     };
+    
+    const handleNewConjointSurvey = () => {
+        const newId = Date.now().toString();
+        router.push(`/dashboard/survey?id=${newId}&template=conjoint`);
+    }
 
     return (
         <Card>
@@ -57,9 +63,14 @@ const SurveyHub = () => {
                     <CardTitle>Survey Hub</CardTitle>
                     <CardDescription>Create new surveys or manage your past and active ones.</CardDescription>
                 </div>
-                <Button onClick={handleNewSurvey}>
-                    <Plus className="mr-2" /> New Survey
-                </Button>
+                <div className='flex gap-2'>
+                    <Button onClick={handleNewConjointSurvey}>
+                        <Network className="mr-2" /> New Conjoint Survey
+                    </Button>
+                    <Button onClick={handleNewSurvey}>
+                        <Plus className="mr-2" /> New Survey
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <Table>

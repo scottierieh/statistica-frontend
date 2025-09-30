@@ -159,6 +159,46 @@ const psmTemplate = {
   isPsmTemplate: true
 };
 
+const conjointTemplate = {
+    title: 'Smartphone Feature Preference Survey',
+    description: 'Please rate your preference for the following smartphone concepts.',
+    questions: [
+      {
+        id: 1,
+        type: 'rating',
+        title: 'Profile 1: Brand A, $800, 6.1" Screen',
+        description: 'How likely are you to purchase this specific model?',
+        scale: ['1', '2', '3', '4', '5', '6', '7'],
+        required: true
+      },
+      {
+        id: 2,
+        type: 'rating',
+        title: 'Profile 2: Brand B, $1000, 6.7" Screen',
+        description: 'How likely are you to purchase this specific model?',
+        scale: ['1', '2', '3', '4', '5', '6', '7'],
+        required: true
+      },
+      {
+        id: 3,
+        type: 'rating',
+        title: 'Profile 3: Brand A, $1000, 6.1" Screen',
+        description: 'How likely are you to purchase this specific model?',
+        scale: ['1', '2', '3', '4', '5', '6', '7'],
+        required: true
+      },
+      {
+        id: 4,
+        type: 'rating',
+        title: 'Profile 4: Brand B, $800, 6.7" Screen',
+        description: 'How likely are you to purchase this specific model?',
+        scale: ['1', '2', '3', '4', '5', '6', '7'],
+        required: true
+      }
+    ],
+    isConjointTemplate: true
+  };
+  
 
 const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
@@ -730,53 +770,6 @@ const BestWorstQuestion = ({ question, onDelete, onUpdate, isPreview, onImageUpl
 };
 
 
-const MatrixAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question, comparisonData }: { chartData: any, tableData: any[], insightsData: string[], varName: string, question: any, comparisonData: any }) => {
-    const percentages = useMemo(() => {
-        return tableData.map(row => {
-            const total = Object.values<number>(row).slice(1).reduce((acc, val) => acc + val, 0);
-            const newRow: {[key: string]: any} = { name: row.name };
-            (question.columns || []).forEach((col: string) => {
-                newRow[col] = total > 0 ? (row[col] / total) * 100 : 0;
-            });
-            return newRow;
-        });
-    }, [tableData, question.columns]);
-    
-    const chartConfig = useMemo(() => {
-        return (question.scale || question.columns).reduce((acc: any, label: string, index: number) => {
-            acc[label] = { label: label, color: COLORS[index % COLORS.length] };
-            return acc;
-        }, {});
-    }, [question.scale, question.columns]);
-    
-    return (
-        <AnalysisDisplayShell varName={varName}>
-            <div className="grid grid-cols-1 gap-6">
-                <Card>
-                    <CardHeader><CardTitle className="text-base">Response Distribution</CardTitle></CardHeader>
-                    <CardContent className="flex items-center justify-center min-h-[300px]">
-                       <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                         <ResponsiveContainer>
-                           <RechartsBarChart data={percentages} layout="vertical" stackOffset="expand">
-                             <CartesianGrid strokeDasharray="3 3" />
-                             <XAxis type="number" unit="%" domain={[0, 100]} />
-                             <YAxis dataKey="name" type="category" width={150} tick={{fontSize: 12}} />
-                             <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`}/>} />
-                             <Legend />
-                             {(question.columns || []).map((col: string, i: number) => (
-                                <Bar key={col} dataKey={col} stackId="a" fill={`var(--color-${question.scale?.[i] || col})`} name={question.scale?.[i] || col} />
-                             ))}
-                           </RechartsBarChart>
-                         </ResponsiveContainer>
-                       </ChartContainer>
-                    </CardContent>
-                </Card>
-            </div>
-        </AnalysisDisplayShell>
-    );
-};
-
-
 const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, isPreview, cardClassName }: { question: any, answer: any, onAnswerChange?: (value: any) => void, onUpdate?: (q:any) => void, onDelete?: (id: number) => void, isPreview?: boolean, cardClassName?: string }) => {
     const handleRowChange = (index: number, value: string) => {
         onUpdate?.(produce(question, (draft: any) => { draft.rows[index] = value; }));
@@ -958,7 +951,7 @@ const getNumericStats = (data: (number | undefined | null)[]) => {
     });
 
     const n = cleanData.length;
-    const skew = n > 2 && stdDevVal > 0 ? (n / ((n - 1) * (n - 2))) * cleanData.reduce((acc, val) => acc + Math.pow((val - meanVal) / s, 3), 0) : NaN;
+    const skew = n > 2 && stdDevVal > 0 ? (n / ((n - 1) * (n - 2))) * cleanData.reduce((acc, val) => acc + Math.pow((val - meanVal) / stdDevVal, 3), 0) : NaN;
 
 
     return {
@@ -2083,6 +2076,17 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             }));
             setLoadedTemplate(true);
             toast({ title: "Template Loaded", description: "Van Westendorp PSM Survey template has been applied." });
+        }
+        if (template === 'conjoint' && !loadedTemplate) {
+            setSurvey(prev => ({
+                ...prev,
+                title: conjointTemplate.title,
+                description: conjointTemplate.description,
+                questions: conjointTemplate.questions.map(q => ({...q, id: Date.now() + Math.random()})),
+                isConjointTemplate: true
+            }));
+            setLoadedTemplate(true);
+            toast({ title: "Template Loaded", description: "Conjoint Analysis survey template has been applied." });
         }
     }, [template, loadedTemplate, toast]);
 
@@ -3234,4 +3238,3 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         </div>
     );
 }
-
