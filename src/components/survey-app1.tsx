@@ -22,9 +22,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { jStat } from 'jstat';
 import dynamic from 'next/dynamic';
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent, useDraggable } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical, Info, Link as LinkIcon, Laptop, Palette, Tablet, Monitor, FileDown, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, BookOpen, Handshake, Columns, Network, TrendingUp, FlaskConical, Binary, Component, HeartPulse, Feather, GitBranch, MessagesSquare, Target } from 'lucide-react';
 
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
@@ -220,7 +224,7 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
 
 // --- Analysis Components ---
 const AnalysisResultDisplay = ({ question, responses }: { question: Question; responses: any[] }) => {
-    const [chartType, setChartType] = useState<'hbar'|'bar'|'pie'|'donut'>('hbar');
+    const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'donut'>('hbar');
 
     const chartData = useMemo(() => {
         const answers = responses.map(r => r.answers[question.id]).filter(a => a !== undefined && a !== null);
@@ -722,7 +726,12 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                             <CardHeader><CardTitle>Analysis</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
                                 {responses.length > 0 ? (
-                                    survey.questions.map(q => <AnalysisResultDisplay key={q.id} question={q} responses={responses} />)
+                                    survey.questions.map(q => {
+                                        if (q.type === 'matrix') {
+                                            return <MatrixAnalysisDisplay key={q.id} question={q} responses={responses} />
+                                        }
+                                        return <AnalysisResultDisplay key={q.id} question={q} responses={responses} />
+                                    })
                                 ) : (
                                     <p>No responses yet.</p>
                                 )}
@@ -794,5 +803,3 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
     </div>
   );
 }
-
-```
