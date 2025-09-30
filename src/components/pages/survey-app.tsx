@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -1799,106 +1798,6 @@ const CrosstabAnalysisDisplay = ({ responses, survey }: { responses: any[], surv
     );
 };
 
-const ResponseFlowAnalysis = ({ responses, survey }: { responses: any[], survey: any }) => {
-    const [sourceVarId, setSourceVarId] = useState<number | undefined>();
-    const [targetVarId, setTargetVarId] = useState<number | undefined>();
-    const [flowData, setFlowData] = useState<any>(null);
-
-    const categoricalQuestions = useMemo(() => {
-        return survey.questions.filter((q: any) => ['single', 'dropdown'].includes(q.type));
-    }, [survey.questions]);
-
-    useEffect(() => {
-        if (categoricalQuestions.length > 0) setSourceVarId(categoricalQuestions[0].id);
-        if (categoricalQuestions.length > 1) setTargetVarId(categoricalQuestions[1].id);
-    }, [categoricalQuestions]);
-    
-    const generateFlowData = useCallback(() => {
-        if (!sourceVarId || !targetVarId) return;
-
-        const sourceQ = survey.questions.find((q:any) => q.id === sourceVarId);
-        const targetQ = survey.questions.find((q:any) => q.id === targetVarId);
-        if (!sourceQ || !targetQ) return;
-
-        const links: { [key: string]: number } = {};
-        responses.forEach(r => {
-            const sourceAns = r.answers[sourceVarId];
-            const targetAns = r.answers[targetVarId];
-            if (sourceAns && targetAns) {
-                const key = `${sourceAns}__%__${targetAns}`;
-                links[key] = (links[key] || 0) + 1;
-            }
-        });
-        
-        const allSourceNodes = sourceQ.options.map((name: string) => ({ name }));
-        const allTargetNodes = targetQ.options.map((name: string) => ({ name }));
-
-        const allNodes = [...allSourceNodes, ...allTargetNodes];
-        const uniqueNodes = Array.from(new Set(allNodes.map(n => n.name))).map(name => ({name}));
-
-        const nodeIndices = Object.fromEntries(uniqueNodes.map((n, i) => [n.name, i]));
-        
-        const sankeyData = {
-            data: [{
-                type: 'sankey',
-                orientation: "h",
-                node: {
-                    pad: 15,
-                    thickness: 20,
-                    line: { color: "black", width: 0.5 },
-                    label: uniqueNodes.map(n => n.name),
-                    color: uniqueNodes.map((_, i) => COLORS[i % COLORS.length])
-                },
-                link: {
-                    source: Object.keys(links).map(k => nodeIndices[k.split('__%__')[0]]),
-                    target: Object.keys(links).map(k => nodeIndices[k.split('__%__')[1]] + sourceQ.options.length),
-                    value: Object.values(links)
-                }
-            }],
-            layout: {
-                title: "Response Flow",
-                autosize: true,
-            }
-        };
-
-        setFlowData(sankeyData);
-    }, [sourceVarId, targetVarId, responses, survey.questions]);
-
-    return (
-         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Share2/> Response Flow (Sankey)</CardTitle>
-                <CardDescription>Visualize how respondents' answers to one question flow to another.</CardDescription>
-            </CardHeader>
-             <CardContent>
-                <div className="grid md:grid-cols-2 gap-4 mb-4">
-                     <div>
-                        <Label>Source Question</Label>
-                        <Select value={String(sourceVarId)} onValueChange={v => setSourceVarId(Number(v))}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>{categoricalQuestions.map((q: any) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}</SelectContent>
-                        </Select>
-                    </div>
-                     <div>
-                        <Label>Target Question</Label>
-                        <Select value={String(targetVarId)} onValueChange={v => setTargetVarId(Number(v))}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>{categoricalQuestions.filter((q:any) => q.id !== sourceVarId).map((q: any) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}</SelectContent>
-                        </Select>
-                    </div>
-                </div>
-                <Button onClick={generateFlowData}>Generate Diagram</Button>
-                {flowData && (
-                    <div className="mt-4">
-                        <Plot {...flowData} useResizeHandler style={{ width: '100%', height: '500px' }} />
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-};
-
-
 const CategoricalToScaleAnalysis = ({ responses, survey }: { responses: any[], survey: any }) => {
     const { toast } = useToast();
     const [selectedVarId, setSelectedVarId] = useState<number | undefined>();
@@ -2351,6 +2250,34 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                 ];
                 break;
             }
+            case 'matrix': {
+                const rowData: {[key: string]: number[]} = {};
+                question.rows.forEach((row: string) => rowData[row] = []);
+
+                allAnswers.forEach((answer: any) => {
+                    Object.entries(answer).forEach(([row, value]) => {
+                        if(rowData[row]) {
+                            rowData[row].push(Number(value));
+                        }
+                    });
+                });
+                
+                tableData = question.rows.map((row: string) => {
+                    const counts: {[key: string]: number} = {};
+                     question.columns.forEach((col: string) => counts[col] = 0);
+                     rowData[row].forEach(val => {
+                        const colKey = String(val);
+                        if (counts[colKey] !== undefined) {
+                            counts[colKey]++;
+                        }
+                     });
+                     return { name: row, ...counts };
+                });
+
+                chartData = tableData;
+                insights = [`Matrix data aggregated. Each row represents an item, and columns show response counts.`];
+                break;
+            }
             default:
                 return { noData: true, chartData: null, tableData: null, insights: [] };
         }
@@ -2771,9 +2698,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             <input type="file" ref={fileInputRef} onChange={handleQuestionImageFileChange} className="hidden" accept="image/*" />
             <header className="mb-8 flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold">Survey Tool</h1>
+                    <h1 className="text-3xl font-bold">Survey Hub</h1>
                     <p className="text-muted-foreground">
-                    Design, configure, and analyze your surveys all in one place.
+                    Create, manage, and analyze your surveys all in one place.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -3130,6 +3057,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                         number: NumberAnalysisDisplay,
                                         nps: NPSAnalysisDisplay,
                                         'best-worst': BestWorstAnalysisDisplay,
+                                        matrix: MatrixAnalysisDisplay
                                       };
                                       const AnalysisComponent = questionComponents[q.type];
 
