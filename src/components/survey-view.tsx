@@ -270,6 +270,7 @@ export default function SurveyView() {
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [animationClass, setAnimationClass] = useState('animate-in fade-in slide-in-from-right-10');
+    const [isSurveyActive, setIsSurveyActive] = useState(false);
 
     useEffect(() => {
         if (surveyId) {
@@ -279,7 +280,18 @@ export default function SurveyView() {
 
                 const draft = localStorage.getItem(surveyId);
                 if (draft) {
-                    setSurvey(JSON.parse(draft));
+                    const loadedSurvey = JSON.parse(draft);
+                    setSurvey(loadedSurvey);
+                    
+                    const now = new Date();
+                    const startDate = loadedSurvey.startDate ? new Date(loadedSurvey.startDate) : null;
+                    const endDate = loadedSurvey.endDate ? new Date(loadedSurvey.endDate) : null;
+
+                    if (startDate && endDate) {
+                        setIsSurveyActive(now >= startDate && now <= endDate);
+                    } else {
+                        setIsSurveyActive(true); // If no dates set, assume it's always active
+                    }
                 }
             } catch (error) {
                 console.error("Failed to load survey from local storage", error);
@@ -348,6 +360,19 @@ export default function SurveyView() {
 
     if (!survey) {
         return <div className="flex items-center justify-center min-h-screen">Survey not found.</div>;
+    }
+
+    if (!isSurveyActive) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-muted/40">
+                <Card className="w-full max-w-lg text-center p-8">
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Survey Closed</CardTitle>
+                        <CardDescription>This survey is not currently accepting responses. Thank you for your interest.</CardDescription>
+                    </CardHeader>
+                </Card>
+            </div>
+        );
     }
 
     if (submitted) {
