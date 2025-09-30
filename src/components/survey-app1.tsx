@@ -21,6 +21,11 @@ import { addDays } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { jStat } from 'jstat';
+import dynamic from 'next/dynamic';
+
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 // Simplified question and survey types for the new tool
 type QuestionType = 'text' | 'choice' | 'single' | 'multiple' | 'dropdown' | 'rating' | 'number' | 'phone' | 'email' | 'nps' | 'description' | 'best-worst' | 'matrix';
@@ -209,6 +214,49 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
     );
 };
 
+// --- Analysis Components ---
+const AnalysisResultDisplay = ({ question, responses }: { question: Question; responses: any[] }) => {
+    const chartData = useMemo(() => {
+        const answers = responses.map(r => r.answers[question.id]).filter(a => a !== undefined && a !== null);
+        if (answers.length === 0) return null;
+
+        if (question.type === 'single' || question.type === 'multiple' || question.type === 'dropdown') {
+            const counts: { [key: string]: number } = {};
+            answers.flat().forEach(ans => { counts[ans] = (counts[ans] || 0) + 1; });
+            return Object.entries(counts).map(([name, value]) => ({ name, value }));
+        }
+        if (question.type === 'nps') {
+            const promoters = answers.filter(s => s >= 9).length;
+            const passives = answers.filter(s => s >= 7 && s <= 8).length;
+            const detractors = answers.filter(s => s <= 6).length;
+            const total = answers.length;
+            return {
+                nps: total > 0 ? ((promoters / total) - (detractors / total)) * 100 : 0,
+                dist: [
+                    { name: 'Detractors', value: detractors },
+                    { name: 'Passives', value: passives },
+                    { name: 'Promoters', value: promoters },
+                ],
+                scoreCounts: answers.reduce((acc, score) => { acc[score] = (acc[score] || 0) + 1; return acc; }, {})
+            };
+        }
+        return null;
+    }, [question, responses]);
+
+    const renderChart = () => {
+        if (!chartData) return <p>No data to display.</p>;
+        switch(question.type) {
+            case 'single': case 'multiple': case 'dropdown':
+                return <Plot data={[{ values: chartData.map(d => d.value), labels: chartData.map(d => d.name), type: 'pie', hole: .4, marker: { colors: COLORS } }]} layout={{ title: question.text, autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>
+            case 'nps':
+                return <Plot data={[{ type: 'indicator', mode: "gauge+number", value: chartData.nps, gauge: { axis: { range: [-100, 100] } } }]} layout={{ title: "NPS Score", autosize: true, margin: { t: 40, b: 20, l: 20, r: 20 } }} style={{ width: '100%', height: '300px' }} useResizeHandler/>
+            default:
+                return <p>Analysis for this question type is not yet implemented.</p>;
+        }
+    };
+
+    return <Card><CardContent className="p-4">{renderChart()}</CardContent></Card>;
+};
 
 // A new, distinct Survey App component
 export default function SurveyApp1() {
@@ -225,6 +273,7 @@ export default function SurveyApp1() {
   const [isLoadingQr, setIsLoadingQr] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { toast } = useToast();
+  const [responses, setResponses] = useState<any[]>([]);
 
   const questionTypeCategories = {
     'Choice': [
@@ -283,6 +332,8 @@ export default function SurveyApp1() {
     }
     if (type === 'matrix') {
         newQuestion.rows = ['Row 1', 'Row 2'];
+        newQuestion.columns = ['Col 1', 'Col 2'];
+        newQuestion.scale = ['Label 1', 'Label 2'];
     }
 
     setSurvey(
@@ -502,20 +553,36 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
             );
         case 3:
             return (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>4. Share & Analyze</CardTitle>
-                        <CardDescription>Your survey is ready! Share the link to start collecting responses.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-center space-y-6">
-                        <div className="flex justify-center">
-                            <Button size="lg" onClick={saveAndShare}><Share2 className="mr-2 h-4 w-4"/> Save and Get Share Link</Button>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-start">
-                        <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Settings</Button>
-                    </CardFooter>
-                </Card>
+                <Tabs defaultValue="share" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="share">Share</TabsTrigger>
+                        <TabsTrigger value="analyze">Analyze</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="share">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>4. Share & Analyze</CardTitle>
+                                <CardDescription>Your survey is ready! Share the link to start collecting responses.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="text-center space-y-6">
+                                <div className="flex justify-center">
+                                    <Button size="lg" onClick={saveAndShare}><Share2 className="mr-2 h-4 w-4"/> Save and Get Share Link</Button>
+                                </div>
+                            </CardContent>
+                            <CardFooter className="flex justify-start">
+                                <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Settings</Button>
+                            </CardFooter>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="analyze">
+                        <Card>
+                            <CardHeader><CardTitle>Analysis</CardTitle></CardHeader>
+                            <CardContent className="space-y-4">
+                                {survey.questions.map(q => <AnalysisResultDisplay key={q.id} question={q} responses={responses} />)}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
             );
         default: return null;
     }
