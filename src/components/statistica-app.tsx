@@ -76,7 +76,6 @@ import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
 import DescriptiveStatisticsPage from './pages/descriptive-stats-page';
 import CorrelationPage from './pages/correlation-page';
-import TTestPage from './pages/t-test-page';
 import AnovaPage from './pages/anova-page';
 import TwoWayAnovaPage from './pages/two-way-anova-page';
 import AncovaPage from './pages/ancova-page';
@@ -133,14 +132,6 @@ const analysisCategories = [
       name: 'Comparison',
       icon: Users,
       subCategories: [
-          {
-            name: 'T-Tests',
-            items: [
-                { id: 't-test-one-sample', label: 'One-Sample T-Test', icon: TestTube, component: TTestPage },
-                { id: 't-test-independent', label: 'Independent Samples T-Test', icon: TestTube, component: TTestPage },
-                { id: 't-test-paired', label: 'Paired Samples T-Test', icon: TestTube, component: TTestPage },
-            ]
-          },
           {
             name: 'ANOVA',
             items: [

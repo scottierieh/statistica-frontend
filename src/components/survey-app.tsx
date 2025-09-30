@@ -1,6 +1,6 @@
 
-'use client';
 
+'use client';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -805,7 +805,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {(question.rows || []).map((row: string, rowIndex: number) => (
+                     {(question.rows || []).map((row: string, rowIndex: number) => (
                          <TableRow key={rowIndex}>
                             <TableCell className="group relative">
                                 {isPreview ? row : <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="border-none p-0 focus:ring-0" />}
@@ -870,16 +870,84 @@ const getMedian = (arr: number[]): number | null => {
     return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
+const getQuantile = (arr: number[], q: number) => {
+    if (arr.length === 0) return NaN;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const pos = (sorted.length - 1) * q;
+    const base = Math.floor(pos);
+    const rest = pos - base;
+    if (sorted[base + 1] !== undefined) {
+        return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+    } else {
+        return sorted[base];
+    }
+};
+
+const getNumericStats = (data: (number | undefined | null)[]) => {
+    const cleanData = data.filter((val): val is number => typeof val === 'number' && isFinite(val));
+    if (cleanData.length === 0) return { count: 0, missing: data.length, mean: NaN, stdDev: NaN, min: NaN, q1: NaN, median: NaN, q3: NaN, max: NaN, mode: NaN, skewness: NaN };
+    
+    const sortedData = [...cleanData].sort((a, b) => a - b);
+    const sum = cleanData.reduce((acc, val) => acc + val, 0);
+    const meanVal = sum / cleanData.length;
+    const stdDevVal = Math.sqrt(cleanData.reduce((acc, val) => acc + (val - meanVal) ** 2, 0) / (cleanData.length > 1 ? cleanData.length - 1 : 1));
+
+    const q1 = getQuantile(sortedData, 0.25);
+    const medianVal = getQuantile(sortedData, 0.5);
+    const q3 = getQuantile(sortedData, 0.75);
+
+    const counts: { [key: string]: number } = {};
+    cleanData.forEach(val => {
+      const key = String(val);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    let modeVal: number | null = null;
+    let maxCount = 0;
+    Object.entries(counts).forEach(([val, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        modeVal = parseFloat(val);
+      }
+    });
+
+    const n = cleanData.length;
+    const skew = n > 2 && stdDevVal > 0 ? (n / ((n - 1) * (n - 2))) * cleanData.reduce((acc, val) => acc + Math.pow((val - meanVal) / stdDevVal, 3), 0) : NaN;
+
+
+    return {
+        count: n, missing: data.length - n, mean: meanVal, stdDev: stdDevVal, min: sortedData[0], q1, median: medianVal, q3, max: sortedData[n - 1], mode: modeVal, skewness: skew,
+    };
+};
+
+const getCategoricalStats = (data: (string | number)[]) => {
+    if (data.length === 0) return [];
+    const counts: { [key: string]: number } = {};
+    let validCount = 0;
+    data.forEach(val => {
+        if(val === null || val === undefined || val === '') return;
+        const key = String(val);
+        counts[key] = (counts[key] || 0) + 1;
+        validCount++;
+    });
+
+    return Object.entries(counts)
+        .map(([value, count]) => ({ name: value, count, percentage: ((count / validCount) * 100).toFixed(1) }))
+        .sort((a, b) => b.count - a.count);
+};
+
 const generateNumericInsights = (stats: ReturnType<typeof getNumericStats>) => {
     const insights: string[] = [];
     if (isNaN(stats.mean)) return ["Not enough data for insights."];
 
-    const skewness = stats.mean - stats.median;
-    const skewThreshold = stats.stdDev * 0.2;
-    if (Math.abs(skewness) > skewThreshold) {
-        insights.push(`The mean (<strong>${stats.mean.toFixed(2)}</strong>) is ${skewness > 0 ? 'higher' : 'lower'} than the median (<strong>${stats.median.toFixed(2)}</strong>), suggesting the data is <strong>${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong>.`);
-    } else {
-        insights.push(`The data appears to be roughly <strong>symmetrical</strong>, as the mean and median are very close.`);
+    const skewness = stats.skewness;
+    if (!isNaN(skewness)) {
+      if (Math.abs(skewness) > 1) {
+          insights.push(`The distribution is <strong>highly ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong> (skewness = ${skewness.toFixed(2)}).`);
+      } else if (Math.abs(skewness) > 0.5) {
+          insights.push(`The data is <strong>moderately ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong> (skewness = ${skewness.toFixed(2)}).`);
+      } else {
+          insights.push(`The data appears to be roughly <strong>symmetrical</strong> (skewness = ${skewness.toFixed(2)}).`);
+      }
     }
 
     if (stats.stdDev > 0) {
@@ -900,50 +968,6 @@ const generateCategoricalInsights = (stats: ReturnType<typeof getCategoricalStat
     return [`The most frequent category is <strong>"${mode.name}"</strong>, appearing in <strong>${mode.percentage}%</strong> of cases.`];
 };
 
-const getNumericStats = (data: number[]) => {
-    if (data.length === 0) return { count: 0, mean: NaN, stdDev: NaN, min: NaN, q1: NaN, median: NaN, q3: NaN, max: NaN, mode: NaN };
-    
-    const sortedData = [...data].sort((a, b) => a - b);
-    const sum = data.reduce((acc, val) => acc + val, 0);
-    const meanVal = sum / data.length;
-    const stdDevVal = Math.sqrt(data.reduce((acc, val) => acc + (val - meanVal) ** 2, 0) / (data.length > 1 ? data.length - 1 : 1));
-
-    const q1 = getQuantile(sortedData, 0.25);
-    const medianVal = getQuantile(sortedData, 0.5);
-    const q3 = getQuantile(sortedData, 0.75);
-
-    const counts: { [key: string]: number } = {};
-    data.forEach(val => {
-      const key = String(val);
-      counts[key] = (counts[key] || 0) + 1;
-    });
-    let modeVal: number | null = null;
-    let maxCount = 0;
-    Object.entries(counts).forEach(([val, count]) => {
-      if (count > maxCount) {
-        maxCount = count;
-        modeVal = parseFloat(val);
-      }
-    });
-
-
-    return {
-        count: data.length, mean: meanVal, stdDev: stdDevVal, min: sortedData[0], q1, median: medianVal, q3, max: sortedData[data.length - 1], mode: modeVal,
-    };
-};
-
-const getCategoricalStats = (data: (string | number)[]) => {
-    if (data.length === 0) return [];
-    const counts: { [key: string]: number } = {};
-    data.forEach(val => {
-        const key = String(val);
-        counts[key] = (counts[key] || 0) + 1;
-    });
-
-    return Object.entries(counts)
-        .map(([value, count]) => ({ name: value, count, percentage: ((count / data.length) * 100).toFixed(1) }))
-        .sort((a, b) => b.count - a.count);
-};
 
 
 // New Star Display Component
@@ -1830,15 +1854,7 @@ const CategoricalToScaleAnalysis = ({ responses, survey }: { responses: any[], s
             return;
         }
 
-        const stats = {
-            mean: mean(convertedData),
-            median: getMedian(convertedData) || 0,
-            mode: getMode(convertedData) || 0,
-            stdDev: standardDeviation(convertedData),
-            min: Math.min(...convertedData),
-            max: Math.max(...convertedData),
-            count: convertedData.length
-        };
+        const stats = getNumericStats(convertedData);
         const insights = generateNumericInsights(stats);
         setAnalysisData({
             chartData: { values: convertedData },
@@ -2163,22 +2179,10 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             }
             case 'number': {
                 const numberResponses = allAnswers.map(Number).filter(n => !isNaN(n));
-                const stats = {
-                    mean: mean(numberResponses),
-                    median: getMedian(numberResponses) || 0,
-                    mode: getMode(numberResponses) || 0,
-                    stdDev: standardDeviation(numberResponses),
-                    min: Math.min(...numberResponses),
-                    max: Math.max(...numberResponses),
-                    count: numberResponses.length
-                };
+                const stats = getNumericStats(numberResponses);
                 chartData = { values: numberResponses };
                 tableData = stats;
-                insights = [
-                    `The average response is <strong>${stats.mean.toFixed(2)}</strong>.`,
-                    `Responses range from <strong>${stats.min}</strong> to <strong>${stats.max}</strong>.`,
-                    `The standard deviation of <strong>${stats.stdDev.toFixed(2)}</strong> indicates the spread of the data.`
-                ];
+                insights = generateNumericInsights(stats);
                 break;
             }
              case 'rating': {
@@ -2667,9 +2671,9 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             <input type="file" ref={fileInputRef} onChange={handleQuestionImageFileChange} className="hidden" accept="image/*" />
             <header className="mb-8 flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold">General Survey</h1>
+                    <h1 className="text-3xl font-bold">Survey Hub</h1>
                     <p className="text-muted-foreground">
-                    Design, configure, and analyze your survey.
+                    Create, manage, and analyze your surveys all in one place.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -3155,3 +3159,4 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         </div>
     );
 }
+
