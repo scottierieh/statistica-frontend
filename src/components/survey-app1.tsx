@@ -1,12 +1,12 @@
 
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot, CheckSquare, ChevronDown, Star, Sigma, Phone, Mail, ThumbsUp, Grid3x3, FileText, Plus, X } from 'lucide-react';
+import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot, CheckSquare, ChevronDown, Star, Sigma, Phone, Mail, ThumbsUp, Grid3x3, FileText, Plus, X, Settings } from 'lucide-react';
 import { produce } from 'immer';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -16,6 +16,9 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Copy, Download } from 'lucide-react';
+import { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '../ui/date-range-picker';
+import { addDays } from 'date-fns';
 
 
 // Simplified question and survey types for the new tool
@@ -39,9 +42,11 @@ type Survey = {
   title: string;
   description: string;
   questions: Question[];
+  startDate?: Date;
+  endDate?: Date;
 };
 
-const STEPS = ['Setup', 'Build', 'Share & Analyze'];
+const STEPS = ['Setup', 'Build', 'Setting', 'Share & Analyze'];
 
 // A distinct component for editing a single question
 const QuestionEditor = ({ question, onUpdate, onDelete }: { question: Question; onUpdate: (id: string, newQuestion: Partial<Question>) => void; onDelete: (id: string) => void; }) => {
@@ -170,6 +175,8 @@ export default function SurveyApp1() {
     title: 'New Survey',
     description: '',
     questions: [],
+    startDate: new Date(),
+    endDate: addDays(new Date(), 7),
   });
   const [surveyUrl, setSurveyUrl] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
@@ -305,6 +312,13 @@ const downloadQrCode = () => {
     }
 };
 
+const handleDateChange = (dateRange: DateRange | undefined) => {
+    setSurvey(produce(draft => {
+        draft.startDate = dateRange?.from;
+        draft.endDate = dateRange?.to;
+    }));
+};
+
   const renderContent = () => {
     switch (currentStep) {
         case 0:
@@ -387,7 +401,7 @@ const downloadQrCode = () => {
                             </CardContent>
                             <CardFooter className="flex justify-between">
                                 <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Setup</Button>
-                                <Button onClick={nextStep}>Next: Share & Analyze <ArrowRight className="mr-2 h-4 w-4" /></Button>
+                                <Button onClick={nextStep}>Next: Setting <ArrowRight className="mr-2 h-4 w-4" /></Button>
                             </CardFooter>
                         </Card>
                     </div>
@@ -396,8 +410,51 @@ const downloadQrCode = () => {
         case 2:
             return (
                 <Card>
+                     <CardHeader>
+                        <CardTitle>3. Survey Settings</CardTitle>
+                        <CardDescription>Configure the active period and other settings for your survey.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                            <Label>Survey Period</Label>
+                            <DatePickerWithRange
+                                date={{ from: survey.startDate, to: survey.endDate }}
+                                onDateChange={handleDateChange}
+                            />
+                        </div>
+                         <div className="space-y-4">
+                            <Label>Sharing Information</Label>
+                             <div className="flex items-center gap-2">
+                                <Input id="survey-link-setting" value={surveyUrl || 'Save to generate link'} readOnly />
+                                <Button variant="outline" size="icon" onClick={copyUrlToClipboard} disabled={!surveyUrl}>
+                                    <Copy className="w-4 h-4" />
+                                </Button>
+                            </div>
+                             <div className="flex flex-col items-center gap-2 p-4 border rounded-lg">
+                                {isLoadingQr ? (
+                                    <Loader2 className="w-8 h-8 animate-spin" />
+                                ) : qrCodeUrl ? (
+                                    <Image src={qrCodeUrl} alt="QR Code" width={150} height={150}/>
+                                ) : (
+                                    <p className="text-muted-foreground text-sm">QR code will be generated upon saving.</p>
+                                )}
+                                <Button variant="outline" disabled={!qrCodeUrl || isLoadingQr} onClick={downloadQrCode}>
+                                    <Download className="mr-2" /> Download QR
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                        <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Build</Button>
+                        <Button onClick={nextStep}>Next: Share & Analyze <ArrowRight className="mr-2 h-4 w-4" /></Button>
+                    </CardFooter>
+                </Card>
+            );
+        case 3:
+            return (
+                <Card>
                     <CardHeader>
-                        <CardTitle>3. Share & Analyze</CardTitle>
+                        <CardTitle>4. Share & Analyze</CardTitle>
                         <CardDescription>Your survey is ready! Share the link to start collecting responses.</CardDescription>
                     </CardHeader>
                     <CardContent className="text-center space-y-6">
@@ -406,7 +463,7 @@ const downloadQrCode = () => {
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-start">
-                        <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Build</Button>
+                        <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Setting</Button>
                     </CardFooter>
                 </Card>
             );
@@ -473,3 +530,4 @@ const downloadQrCode = () => {
     </div>
   );
 }
+
