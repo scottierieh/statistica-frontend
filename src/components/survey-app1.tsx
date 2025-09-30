@@ -9,8 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { PlusCircle, ArrowRight, ArrowLeft, Share2, BarChart2, Trash2, CaseSensitive, CircleDot, ClipboardList } from 'lucide-react';
 import { produce } from 'immer';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenuItem, SidebarMenu, SidebarProvider, SidebarTrigger, SidebarMenuButton } from './ui/sidebar';
 
 // Simplified question and survey types for the new tool
 type QuestionType = 'text' | 'choice';
@@ -167,41 +165,58 @@ export default function SurveyApp1() {
             );
         case 1:
             return (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>2. Build Your Survey</CardTitle>
-                        <CardDescription>Add and edit the questions for your survey.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {survey.questions.map((q) => (
-                        <QuestionEditor 
-                            key={q.id}
-                            question={q}
-                            onUpdate={updateQuestion}
-                            onDelete={deleteQuestion}
-                        />
-                        ))}
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline">
-                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Question
+                <div className="grid md:grid-cols-12 gap-6">
+                    <div className="md:col-span-3">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">Toolbox</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start"
+                                    onClick={() => addQuestion('choice')}
+                                >
+                                    <CircleDot className="mr-2 h-4 w-4" /> Multiple Choice
                                 </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuItem onSelect={() => addQuestion('choice')}>
-                                    <CircleDot className="mr-2 h-4 w-4"/> Multiple Choice
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => addQuestion('text')}>
-                                    <CaseSensitive className="mr-2 h-4 w-4"/> Text Answer
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                        <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Setup</Button>
-                        <Button onClick={nextStep}>Next: Share & Analyze <ArrowRight className="mr-2 h-4 w-4" /></Button>
-                    </CardFooter>
-                </Card>
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start"
+                                    onClick={() => addQuestion('text')}
+                                >
+                                    <CaseSensitive className="mr-2 h-4 w-4" /> Text Answer
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="md:col-span-9">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>2. Build Your Survey</CardTitle>
+                                <CardDescription>Add and edit the questions for your survey.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {survey.questions.map((q) => (
+                                    <QuestionEditor 
+                                        key={q.id}
+                                        question={q}
+                                        onUpdate={updateQuestion}
+                                        onDelete={deleteQuestion}
+                                    />
+                                ))}
+                                {survey.questions.length === 0 && (
+                                    <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                                        <p>Add questions from the toolbox.</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                            <CardFooter className="flex justify-between">
+                                <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Setup</Button>
+                                <Button onClick={nextStep}>Next: Share & Analyze <ArrowRight className="mr-2 h-4 w-4" /></Button>
+                            </CardFooter>
+                        </Card>
+                    </div>
+                </div>
             );
         case 2:
             return (
@@ -229,63 +244,31 @@ export default function SurveyApp1() {
   }
 
   return (
-    <SidebarProvider>
-        <div className="flex min-h-screen w-full">
-            <Sidebar>
-                <SidebarHeader>
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                            <ClipboardList className="h-6 w-6 text-primary-foreground" />
-                        </div>
-                        <h1 className="text-xl font-headline font-bold">Survey Tool 1</h1>
-                    </div>
-                </SidebarHeader>
-                <SidebarContent>
-                    <SidebarMenu>
-                         {STEPS.map((step, index) => (
-                             <SidebarMenuItem key={step}>
-                                 <SidebarMenuButton
-                                    onClick={() => setCurrentStep(index)}
-                                    isActive={currentStep === index}
-                                >
-                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs ${currentStep === index ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{index + 1}</span>
-                                    {step}
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                         ))}
-                    </SidebarMenu>
-                </SidebarContent>
-            </Sidebar>
-
-            <SidebarInset>
-                 <div className="p-4 md:p-8 w-full max-w-4xl mx-auto">
-                    <div className="flex justify-center items-center mb-8">
-                        {STEPS.map((step, index) => (
-                        <React.Fragment key={step}>
-                            <div className="flex flex-col items-center cursor-pointer" onClick={() => setCurrentStep(index)}>
-                            <div
-                                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${
-                                currentStep === index
-                                    ? 'bg-primary text-primary-foreground scale-110'
-                                    : currentStep > index 
-                                    ? 'bg-primary/50 text-primary-foreground'
-                                    : 'bg-muted text-muted-foreground'
-                                }`}
-                            >
-                                {index + 1}
-                            </div>
-                            <p className="mt-2 text-sm text-center">{step}</p>
-                            </div>
-                            {index < STEPS.length - 1 && (
-                            <div className={`flex-1 h-1 mx-2 ${currentStep > index ? 'bg-primary' : 'bg-muted'}`} />
-                            )}
-                        </React.Fragment>
-                        ))}
-                    </div>
-                    {renderContent()}
+    <div className="p-4 md:p-8 w-full max-w-6xl mx-auto">
+        <div className="flex justify-center items-center mb-8">
+            {STEPS.map((step, index) => (
+            <React.Fragment key={step}>
+                <div className="flex flex-col items-center cursor-pointer" onClick={() => setCurrentStep(index)}>
+                <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${
+                    currentStep === index
+                        ? 'bg-primary text-primary-foreground scale-110'
+                        : currentStep > index 
+                        ? 'bg-primary/50 text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                >
+                    {index + 1}
                 </div>
-            </SidebarInset>
+                <p className="mt-2 text-sm text-center">{step}</p>
+                </div>
+                {index < STEPS.length - 1 && (
+                <div className={`flex-1 h-1 mx-2 ${currentStep > index ? 'bg-primary' : 'bg-muted'}`} />
+                )}
+            </React.Fragment>
+            ))}
         </div>
-    </SidebarProvider>
+        {renderContent()}
+    </div>
   );
 }
