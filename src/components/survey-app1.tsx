@@ -61,7 +61,7 @@ type Survey = {
 
 const STEPS = ['Setup', 'Build', 'Setting', 'Share & Analyze'];
 
-const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#f43f5e', '#6366f1'];
+const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
 // A distinct component for editing a single question
 const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question: Question; onUpdate: (id: string, newQuestion: Partial<Question>) => void; onDelete: (id: string) => void; isPreview?: boolean }) => {
@@ -308,17 +308,19 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
 };
 
 const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
-    const [chartType, setChartType] = useState<'heatmap' | 'grouped' | 'stacked'>('heatmap');
+    const [chartType, setChartType] = useState<'heatmap' | 'grouped' | 'stacked' | 'horizontal-grouped' | 'horizontal-stacked'>('heatmap');
 
-    const { matrixData, totals } = useMemo(() => {
-        const data: number[][] = Array(question.rows!.length).fill(0).map(() => Array(question.columns!.length).fill(0));
+    const matrixData = useMemo(() => {
+        const rows = question.rows || [];
+        const cols = question.columns || [];
+        const data: number[][] = Array(rows.length).fill(0).map(() => Array(cols.length).fill(0));
         
         responses.forEach(response => {
             const answer = response.answers[question.id];
             if (answer) {
                 Object.entries(answer).forEach(([row, col]) => {
-                    const rowIndex = question.rows!.indexOf(row);
-                    const colIndex = question.columns!.indexOf(col as string);
+                    const rowIndex = rows.indexOf(row);
+                    const colIndex = cols.indexOf(col as string);
                     if (rowIndex !== -1 && colIndex !== -1) {
                         data[rowIndex][colIndex]++;
                     }
@@ -326,14 +328,11 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
             }
         });
         
-        const totals = data.map(row => row.reduce((a, b) => a + b, 0));
-        
-        const percentageData = data.map((row, i) => {
-            const sum = totals[i];
+        // Convert to percentages
+        return data.map(row => {
+            const sum = row.reduce((a, b) => a + b, 0);
             return sum > 0 ? row.map(cell => (cell / sum) * 100) : row;
         });
-
-        return { matrixData: percentageData, totals };
     }, [question, responses]);
 
     const plotData = useMemo(() => {
@@ -353,15 +352,18 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                 hovertemplate: '<b>%{y}</b><br>%{x}: %{text}<extra></extra>'
             }];
         } else { // grouped or stacked
+            const orientation = chartType.includes('horizontal') ? 'h' : 'v';
             return scales.map((scale, i) => ({
-                x: rows,
-                y: matrixData.map(row => row[i]),
+                x: chartType.includes('horizontal') ? matrixData.map(row => row[i]) : rows,
+                y: chartType.includes('horizontal') ? rows : matrixData.map(row => row[i]),
                 name: scale,
                 type: 'bar' as const,
+                orientation,
                 marker: { color: COLORS[i % COLORS.length] },
                 text: matrixData.map(row => `${row[i].toFixed(1)}%`),
-                textposition: 'auto' as const,
-                hovertemplate: `<b>${scale}</b><br>%{x}: %{y:.1f}%<extra></extra>`
+                textposition: 'inside',
+                textfont: { color: 'white' },
+                hovertemplate: `<b>${scale}</b><br>%{${orientation === 'h' ? 'y' : 'x'}}: %{${orientation === 'h' ? 'x' : 'y'}:.1f}%<extra></extra>`
             }));
         }
     }, [chartType, matrixData, question.rows, question.columns, question.scale]);
@@ -371,7 +373,7 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
             autosize: true,
             margin: { t: 40, b: 80, l: 150, r: 20 },
             title: {
-                text: `Matrix - ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`,
+                text: `Matrix - ${chartType.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
                 font: { size: 16 }
             },
             font: { size: 12 },
@@ -381,33 +383,28 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
         if (chartType === 'heatmap') {
             return {
                 ...baseLayout,
-                xaxis: { 
-                    title: '응답 척도',
-                    side: 'bottom' as const
-                },
-                yaxis: { 
-                    title: '질문',
-                    automargin: true
-                }
+                xaxis: { title: 'Scale', side: 'bottom' as const },
+                yaxis: { title: 'Items', automargin: true }
             };
         } else {
+            const barmode = chartType.includes('stack') ? 'stack' : 'group';
+            const orientation = chartType.includes('horizontal') ? 'h' : 'v';
+
             return {
                 ...baseLayout,
-                barmode: chartType,
+                barmode,
                 xaxis: { 
-                    title: '질문',
-                    tickangle: -45
+                    title: orientation === 'h' ? 'Percentage (%)' : 'Items',
+                    range: orientation === 'h' && barmode === 'stack' ? [0, 100] : undefined,
+                    tickangle: orientation === 'v' ? -45 : 0
                 },
                 yaxis: { 
-                    title: 'Percentage (%)',
-                    range: [0, 100]
+                    title: orientation === 'h' ? 'Items' : 'Percentage (%)',
+                    range: orientation === 'v' && barmode === 'stack' ? [0, 100] : undefined,
+                    autorange: orientation === 'h' ? 'reversed' : undefined
                 },
                 legend: {
-                    orientation: 'h' as const,
-                    yanchor: 'bottom' as const,
-                    y: -0.3,
-                    xanchor: 'center' as const,
-                    x: 0.5
+                    orientation: 'h' as const, yanchor: 'bottom' as const, y: -0.4, xanchor: 'center' as const, x: 0.5
                 }
             };
         }
@@ -422,6 +419,8 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                         <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
                         <TabsTrigger value="grouped">Grouped Bar</TabsTrigger>
                         <TabsTrigger value="stacked">Stacked Bar</TabsTrigger>
+                        <TabsTrigger value="horizontal-grouped">H. Grouped</TabsTrigger>
+                        <TabsTrigger value="horizontal-stacked">H. Stacked</TabsTrigger>
                     </TabsList>
                 </Tabs>
             </CardHeader>
@@ -431,19 +430,14 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                     layout={plotLayout} 
                     style={{ width: '100%', height: '500px' }} 
                     useResizeHandler 
-                    config={{ 
-                        responsive: true,
-                        displayModeBar: true,
-                        displaylogo: false,
-                        modeBarButtonsToRemove: ['lasso2d', 'select2d']
-                    }}
+                    config={{ responsive: true, displayModeBar: true, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'] }}
                 />
             </CardContent>
         </Card>
     );
 };
 
-// A new, distinct Survey App component
+// Main Component
 export default function SurveyApp1() {
   const [currentStep, setCurrentStep] = useState(0);
   const [survey, setSurvey] = useState<Survey>({
