@@ -364,41 +364,43 @@ const BestWorstAnalysisDisplay = ({ question, responses }: { question: Question;
     if (!analysisResult) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><p>No responses or analysis failed.</p><Button onClick={runAnalysis}>Retry</Button></CardContent></Card>;
 
     const plotData = useMemo(() => {
-        const bestTrace = {
-            y: analysisResult.results.map((d: any) => d.item).reverse(),
-            x: analysisResult.results.map((d: any) => d.best_pct).reverse(),
-            name: 'Best',
-            type: 'bar',
-            orientation: 'h',
-            marker: { color: 'hsl(var(--chart-2))' }
+        const divergingData = analysisResult.results.map((d: any) => ({
+            name: d.item,
+            best: d.best_count,
+            worst: -d.worst_count,
+            net: d.net_score,
+            worst_abs: d.worst_count
+        })).sort((a: any, b: any) => b.net - a.net);
+
+        return {
+            diverging: divergingData,
+            net: divergingData.map((d: any) => ({ name: d.name, score: d.net }))
         };
-         const worstTrace = {
-            y: analysisResult.results.map((d: any) => d.item).reverse(),
-            x: analysisResult.results.map((d: any) => -d.worst_pct).reverse(),
-            name: 'Worst',
-            type: 'bar',
-            orientation: 'h',
-            marker: { color: 'hsl(var(--destructive))' }
-        };
-        return [bestTrace, worstTrace];
     }, [analysisResult]);
 
     return (
         <Card>
             <CardHeader><CardTitle>{question.text} - Best/Worst Analysis</CardTitle></CardHeader>
             <CardContent>
-                <Plot 
-                    data={plotData}
-                    layout={{
-                        barmode: 'overlay',
-                        title: 'Best vs. Worst Scores (%)',
-                        xaxis: { title: 'Percentage of Votes' },
-                        height: 400,
-                        autosize: true
-                    }}
-                    style={{width: '100%', height: '100%'}}
-                    useResizeHandler
-                />
+                <ResponsiveContainer width="100%" height={400}>
+                    <RechartsBarChart data={plotData.diverging} layout="vertical" margin={{ left: 100 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis type="category" dataKey="name" width={100} />
+                        <Tooltip content={<ChartTooltipContent formatter={(value, name, item) => (
+                          <>
+                          <div>{item.payload.name}</div>
+                          <div>Best: {item.payload.best}</div>
+                          <div>Worst: {item.payload.worst_abs}</div>
+                          <div>Net: {item.payload.net}</div>
+                          </>
+                        )}/>} />
+                        <Legend />
+                        <ReferenceLine x={0} stroke="#666" />
+                        <Bar dataKey="best" name="Best" stackId="a" fill="#22c55e" />
+                        <Bar dataKey="worst" name="Worst" stackId="a" fill="#ef4444" />
+                    </RechartsBarChart>
+                </ResponsiveContainer>
             </CardContent>
         </Card>
     );
@@ -406,15 +408,90 @@ const BestWorstAnalysisDisplay = ({ question, responses }: { question: Question;
 
 
 const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
-    // Placeholder implementation
+    const [isLoading, setIsLoading] = useState(false);
+    const [analysisResult, setAnalysisResult] = useState<any>(null);
+    const { toast } = useToast();
+
+    const runAnalysis = useCallback(async () => {
+        if (responses.length === 0) return;
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/analysis/matrix', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ responses, question }),
+            });
+            if (!response.ok) throw new Error('Matrix Analysis failed');
+            const result = await response.json();
+            setAnalysisResult(result);
+        } catch (error: any) {
+            toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [responses, question, toast]);
+    
+    useEffect(() => {
+        runAnalysis();
+    }, [runAnalysis]);
+    
+    if (isLoading) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><Skeleton className="h-64 w-full"/></CardContent></Card>;
+    if (!analysisResult) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><p>No responses yet or analysis failed.</p><Button onClick={runAnalysis}>Retry</Button></CardContent></Card>;
+
+    const chartData = analysisResult.results.mean_scores;
+    const chartConfig = Object.keys(chartData[0] || {}).slice(1).reduce((acc: any, key, i) => {
+        acc[key] = { label: key, color: COLORS[i % COLORS.length] };
+        return acc;
+    }, {});
+
+
     return (
         <Card>
             <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
             <CardContent>
-                <p>Matrix Analysis coming soon.</p>
+                <Tabs defaultValue="chart">
+                    <TabsList>
+                        <TabsTrigger value="chart">Chart</TabsTrigger>
+                        <TabsTrigger value="table">Table</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="chart" className="pt-4">
+                        <ChartContainer config={chartConfig} className="w-full h-80">
+                            <ResponsiveContainer>
+                                <RechartsBarChart data={chartData} >
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <Legend />
+                                    {Object.keys(chartData[0]).slice(1).map(key => (
+                                        <Bar key={key} dataKey={key} fill={`var(--color-${key})`} radius={[4, 4, 0, 0]} />
+                                    ))}
+                                </RechartsBarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </TabsContent>
+                    <TabsContent value="table" className="pt-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Item</TableHead>
+                                    {Object.keys(chartData[0]).slice(1).map(key => <TableHead key={key} className="text-right">{key}</TableHead>)}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {chartData.map((row: any) => (
+                                    <TableRow key={row.name}>
+                                        <TableCell>{row.name}</TableCell>
+                                        {Object.keys(row).slice(1).map(key => <TableCell key={key} className="text-right font-mono">{row[key].toFixed(2)}</TableCell>)}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TabsContent>
+                </Tabs>
             </CardContent>
         </Card>
-    )
+    );
 };
 
 
@@ -469,16 +546,18 @@ const NPSAnalysisDisplay = ({ question, responses }: { question: Question; respo
         <div className="flex flex-col items-center justify-center p-6 text-center">
           <CardDescription>Net Promoter Score</CardDescription>
           <CardTitle className="text-7xl font-bold text-primary my-2">{nps.toFixed(1)}</CardTitle>
-          <ResponsiveContainer width="100%" height={40}>
-            <BarChart layout="vertical" data={npsGroupData} stackOffset="expand">
-              <YAxis type="category" dataKey="name" hide />
-              <XAxis type="number" hide domain={[0, 100]} />
-              <Tooltip cursor={false} content={<ChartTooltipContent formatter={(value, name, item) => <span>{item.payload.name}: {item.payload.value} ({item.payload.percentage.toFixed(1)}%)</span>} />} />
-              <Bar dataKey="percentage" stackId="a" radius={[4, 4, 4, 4]}>
-                {npsGroupData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <ChartContainer config={{ percentage: { label: 'Percentage' } }} className="w-full h-10 mt-4">
+            <ResponsiveContainer width="100%" height={40}>
+              <BarChart layout="vertical" data={npsGroupData} stackOffset="expand">
+                <YAxis type="category" dataKey="name" hide />
+                <XAxis type="number" hide domain={[0, 100]} />
+                <Tooltip cursor={false} content={<ChartTooltipContent formatter={(value, name, item) => <span>{item.payload.name}: {item.payload.value} ({item.payload.percentage.toFixed(1)}%)</span>} />} />
+                <Bar dataKey="percentage" stackId="a" radius={[4, 4, 4, 4]}>
+                  {npsGroupData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartContainer>
               <div className="flex justify-between text-xs text-muted-foreground mt-2 w-full">
                 <span>Detractors ({detractorsP.toFixed(1)}%)</span>
                 <span>Passives ({passivesP.toFixed(1)}%)</span>
@@ -487,7 +566,7 @@ const NPSAnalysisDisplay = ({ question, responses }: { question: Question; respo
         </div>
         <div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={Object.entries(scoreCounts).map(([score, count]) => ({ score: Number(score), count }))}>
+            <RechartsBarChart data={Object.entries(scoreCounts).map(([score, count]) => ({ score: Number(score), count }))}>
               <CartesianGrid vertical={false} />
               <XAxis dataKey="score" />
               <YAxis />
@@ -495,7 +574,7 @@ const NPSAnalysisDisplay = ({ question, responses }: { question: Question; respo
               <Bar dataKey="count" fill="hsl(var(--primary))" radius={2}>
                 {Object.entries(scoreCounts).map(([score]) => <Cell key={`cell-${score}`} fill={Number(score) >= 9 ? 'hsl(var(--chart-2))' : Number(score) <= 6 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />)}
               </Bar>
-            </BarChart>
+            </RechartsBarChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
@@ -907,9 +986,9 @@ function SurveyApp1() {
                                           } else if (q.type === 'best-worst') {
                                               return <BestWorstAnalysisDisplay key={q.id} question={q} responses={responses} />
                                           } else if (q.type === 'rating') {
-                                              return <RatingAnalysisDisplay key={q.id} question={q} responses={responses} />
+                                              return <RatingAnalysisDisplay key={q.id} question={q} responses={responses} />;
                                           } else if (q.type === 'nps') {
-                                              return <NPSAnalysisDisplay key={q.id} question={q} responses={responses} />
+                                              return <NPSAnalysisDisplay key={q.id} question={q} responses={responses} />;
                                           }
                                           return <AnalysisResultDisplay key={q.id} question={q} responses={responses} />
                                       })
@@ -986,6 +1065,6 @@ function SurveyApp1() {
           </Dialog>
       </div>
     );
-}
-
-export default SurveyApp1;
+  }
+  
+  export default SurveyApp1;
