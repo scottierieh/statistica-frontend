@@ -320,7 +320,7 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
                 </ResponsiveContainer>
             </CardContent>
         </Card>
-    )
+    );
 };
 
 const BestWorstAnalysisDisplay = ({ question, responses }: { question: Question; responses: any[] }) => {
@@ -566,11 +566,11 @@ const NPSAnalysisDisplay = ({ question, responses }: { question: Question; respo
         </div>
         <div>
           <ResponsiveContainer width="100%" height={300}>
-            <RechartsBarChart data={Object.entries(scoreCounts).map(([score, count]) => ({ score: Number(score), count }))}>
+            <RechartsBarChart data={Object.entries(scoreCounts).map(([score, count]) => ({score: Number(score), count: count as number}))}>
               <CartesianGrid vertical={false} />
               <XAxis dataKey="score" />
               <YAxis />
-              <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent />} />
+              <Tooltip cursor={{fill: 'hsl(var(--muted))'}} content={<ChartTooltipContent />} />
               <Bar dataKey="count" fill="hsl(var(--primary))" radius={2}>
                 {Object.entries(scoreCounts).map(([score]) => <Cell key={`cell-${score}`} fill={Number(score) >= 9 ? 'hsl(var(--chart-2))' : Number(score) <= 6 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />)}
               </Bar>
@@ -646,8 +646,33 @@ const RatingAnalysisDisplay = ({ question, responses }: { question: Question; re
   )
 };
 
+const StarDisplay = ({ rating, total = 5, size = 'w-12 h-12' }: { rating: number, total?: number, size?: string }) => {
+    const fullStars = Math.floor(rating);
+    const partialStar = rating % 1;
+    const emptyStars = total - Math.ceil(rating);
+
+    return (
+        <div className="flex items-center">
+            {[...Array(fullStars)].map((_, i) => (
+                <Star key={`full-${i}`} className={cn(size, 'text-yellow-400 fill-yellow-400')} />
+            ))}
+            {partialStar > 0 && (
+                <div className="relative">
+                    <Star className={cn(size, 'text-yellow-400')} />
+                    <div className="absolute top-0 left-0 overflow-hidden" style={{ width: `${partialStar * 100}%` }}>
+                        <Star className={cn(size, 'text-yellow-400 fill-yellow-400')} />
+                    </div>
+                </div>
+            )}
+            {[...Array(emptyStars)].map((_, i) => (
+                <Star key={`empty-${i}`} className={cn(size, 'text-yellow-400')} />
+            ))}
+        </div>
+    );
+};
+
 // Main Component
-function SurveyApp1() {
+export default function SurveyApp1() {
     const [currentStep, setCurrentStep] = useState(0);
     const [survey, setSurvey] = useState<Survey>({
       title: 'New Survey',
@@ -1068,3 +1093,5 @@ function SurveyApp1() {
   }
   
   export default SurveyApp1;
+
+    
