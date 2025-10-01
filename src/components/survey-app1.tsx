@@ -253,7 +253,7 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
     const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'donut'>('hbar');
 
     const runAnalysis = useCallback(async () => {
-        const answers = responses.map(r => r.answers[question.id]).filter(a => a !== undefined && a !== null);
+        const answers = responses.map(r => r.answers[question.id]).flat().filter(a => a !== undefined && a !== null);
         if (answers.length === 0) {
             return;
         }
@@ -282,7 +282,7 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
     if (isLoading) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><Skeleton className="w-full h-64"/></CardContent></Card>;
     if (!result) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><p>No responses yet or analysis failed.</p><Button onClick={runAnalysis}>Retry</Button></CardContent></Card>;
 
-    const chartData = result.table.map((d: any) => ({name: d.Value, value: d.Frequency}));
+    const chartData = result.table.map((d: any) => ({name: d.Value, value: d.Frequency, percentage: d.Percentage}));
     
     return (
         <Card>
@@ -304,8 +304,10 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
                             <CartesianGrid strokeDasharray="3 3" horizontal={chartType === 'hbar'} vertical={chartType === 'bar'} />
                             <XAxis type={chartType === 'hbar' ? 'number' : 'category'} dataKey={chartType === 'hbar' ? 'value' : 'name'} />
                             <YAxis type={chartType === 'hbar' ? 'category' : 'number'} dataKey={chartType === 'hbar' ? 'name' : 'value'} />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="value" name="Frequency" fill={COLORS[0]} />
+                            <Tooltip content={<ChartTooltipContent />} cursor={{fill: 'hsl(var(--muted))'}} />
+                            <Bar dataKey="value" name="Frequency" radius={4}>
+                                {chartData.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                            </Bar>
                         </RechartsBarChart>
                     ) : (
                         <PieChart>
@@ -362,22 +364,23 @@ const BestWorstAnalysisDisplay = ({ question, responses }: { question: Question;
     if (!analysisResult) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><p>No responses or analysis failed.</p><Button onClick={runAnalysis}>Retry</Button></CardContent></Card>;
 
     const plotData = useMemo(() => {
-        return [{
+        const bestTrace = {
             y: analysisResult.results.map((d: any) => d.item).reverse(),
             x: analysisResult.results.map((d: any) => d.best_pct).reverse(),
-            name: 'Best %',
+            name: 'Best',
             type: 'bar',
             orientation: 'h',
-            marker: { color: COLORS[4]}
-        },
-        {
+            marker: { color: 'hsl(var(--chart-2))' }
+        };
+         const worstTrace = {
             y: analysisResult.results.map((d: any) => d.item).reverse(),
             x: analysisResult.results.map((d: any) => -d.worst_pct).reverse(),
-            name: 'Worst %',
+            name: 'Worst',
             type: 'bar',
             orientation: 'h',
-            marker: { color: COLORS[0] }
-        }]
+            marker: { color: 'hsl(var(--destructive))' }
+        };
+        return [bestTrace, worstTrace];
     }, [analysisResult]);
 
     return (
@@ -389,7 +392,7 @@ const BestWorstAnalysisDisplay = ({ question, responses }: { question: Question;
                     layout={{
                         barmode: 'overlay',
                         title: 'Best vs. Worst Scores (%)',
-                        xaxis: { title: 'Percentage' },
+                        xaxis: { title: 'Percentage of Votes' },
                         height: 400,
                         autosize: true
                     }}
@@ -445,7 +448,7 @@ const NPSAnalysisDisplay = ({ question, responses }: { question: Question; respo
     runAnalysis();
   }, [runAnalysis]);
   
-  if (isLoading) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><Skeleton className="h-64 w-full" /></CardContent></Card>;
+  if (isLoading) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><Skeleton className="h-64 w-full"/></CardContent></Card>;
   if (!analysisResult) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><p>No responses or analysis failed.</p><Button onClick={runAnalysis}>Retry</Button></CardContent></Card>;
   
   const { results } = analysisResult;
@@ -476,11 +479,11 @@ const NPSAnalysisDisplay = ({ question, responses }: { question: Question; respo
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-          <div className="flex justify-between text-xs text-muted-foreground mt-2 w-full">
-            <span>Detractors ({detractorsP.toFixed(1)}%)</span>
-            <span>Passives ({passivesP.toFixed(1)}%)</span>
-            <span>Promoters ({promotersP.toFixed(1)}%)</span>
-          </div>
+              <div className="flex justify-between text-xs text-muted-foreground mt-2 w-full">
+                <span>Detractors ({detractorsP.toFixed(1)}%)</span>
+                <span>Passives ({passivesP.toFixed(1)}%)</span>
+                <span>Promoters ({promotersP.toFixed(1)}%)</span>
+              </div>
         </div>
         <div>
           <ResponsiveContainer width="100%" height={300}>
@@ -983,6 +986,6 @@ function SurveyApp1() {
           </Dialog>
       </div>
     );
-  }
+}
 
 export default SurveyApp1;
