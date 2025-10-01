@@ -29,7 +29,8 @@ import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, Keyboa
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Info, Link as LinkIcon, Laptop, Palette, Tablet, Monitor, FileDown, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, BookOpen, Handshake, Columns, Network, TrendingUp, FlaskConical, Binary, Component, HeartPulse, Feather, GitBranch, Smile, Scaling } from 'lucide-react';
-
+import { ChartContainer, ChartTooltipContent } from './ui/chart';
+import { Bar, BarChart as RechartsBarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, CartesianGrid, XAxis, YAxis, Legend, ReferenceLine } from 'recharts';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -64,7 +65,24 @@ const STEPS = ['Setup', 'Build', 'Setting', 'Share & Analyze'];
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', 
           '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
-// A distinct component for editing a single question
+const SortableCard = ({ id, children }: { id: any; children: React.ReactNode }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+    return (
+        <div ref={setNodeRef} style={style} className="flex items-start gap-2">
+            <div {...attributes} {...listeners} className="p-2 cursor-grab mt-1">
+                <GripVertical className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1">
+                {children}
+            </div>
+        </div>
+    );
+};
+
 const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question: Question; onUpdate: (id: string, newQuestion: Partial<Question>) => void; onDelete: (id: string) => void; isPreview?: boolean }) => {
     
     const handleOptionChange = (optIndex: number, value: string) => {
@@ -308,157 +326,84 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
     );
 };
 
-const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
-    const [chartType, setChartType] = useState<'heatmap' | 'grouped' | 'stacked' | 'horizontal-grouped' | 'horizontal-stacked'>('heatmap');
-
-    const { matrixData, totalResponses } = useMemo(() => {
-        const rows = question.rows || [];
-        const cols = question.columns || [];
-        const data: number[][] = Array(rows.length).fill(0).map(() => Array(cols.length).fill(0));
-        let totalResponses = 0;
+const BestWorstAnalysisDisplay = ({ question, responses }: { question: Question; responses: any[] }) => {
+    const { bestWorstData, netScores, items } = useMemo(() => {
+        const items = question.items || [];
+        const bestCounts: { [key: string]: number } = {};
+        const worstCounts: { [key: string]: number } = {};
+        items.forEach(item => { bestCounts[item] = 0; worstCounts[item] = 0; });
         
-        responses.forEach(response => {
-            const answer = response.answers[question.id];
-            if (answer) {
-                totalResponses++;
-                Object.entries(answer).forEach(([row, col]) => {
-                    const rowIndex = rows.indexOf(row);
-                    const colIndex = cols.indexOf(col as string);
-                    if (rowIndex !== -1 && colIndex !== -1) {
-                        data[rowIndex][colIndex]++;
-                    }
-                });
-            }
+        responses.forEach(r => {
+            const answer = r.answers[question.id];
+            if (answer?.best) bestCounts[answer.best]++;
+            if (answer?.worst) worstCounts[answer.worst]++;
         });
         
-        // Convert to percentages
-        const percentageData = data.map(row => {
-            const sum = row.reduce((a, b) => a + b, 0);
-            return sum > 0 ? row.map(cell => (cell / sum) * 100) : row;
-        });
+        const netScores = items.map(item => ({ item, score: bestCounts[item] - worstCounts[item] }));
 
-        return { matrixData: percentageData, totalResponses };
+        const bestData = items.map(item => bestCounts[item]);
+        const worstData = items.map(item => -worstCounts[item]);
+
+        return { bestWorstData: { best: bestData, worst: worstData }, netScores, items };
     }, [question, responses]);
 
-    const plotData = useMemo(() => {
-        const scales = question.scale || question.columns || [];
-        const rows = question.rows || [];
+    const plotData = [
+        {
+            y: items,
+            x: bestWorstData.best,
+            name: 'Best',
+            type: 'bar',
+            orientation: 'h',
+            marker: { color: '#22c55e' },
+            text: bestWorstData.best.map(String),
+            textposition: 'auto',
+            hovertemplate: '<b>Best</b><br>%{y}: %{x}<extra></extra>'
+        },
+        {
+            y: items,
+            x: bestWorstData.worst,
+            name: 'Worst',
+            type: 'bar',
+            orientation: 'h',
+            marker: { color: '#ef4444' },
+            text: bestWorstData.worst.map(v => String(-v)),
+            textposition: 'auto',
+            hovertemplate: '<b>Worst</b><br>%{y}: %{customdata}<extra></extra>',
+            customdata: bestWorstData.worst.map(v => -v)
+        }
+    ];
 
-        if (chartType === 'heatmap') {
-            return [{
-                z: matrixData,
-                x: scales,
-                y: question.columns,
-                type: 'heatmap' as const,
-                colorscale: 'Blues',
-                text: matrixData.map(row => row.map(val => `${val.toFixed(1)}%`)),
-                texttemplate: '%{text}',
-                textfont: { color: "white", size: 12 },
-                hovertemplate: '<b>%{y}</b><br>%{x}: %{text}<extra></extra>',
-                colorbar: { title: "Response %" }
-            }];
-        } else if (chartType.includes('horizontal')) {
-             return scales.map((scale, i) => ({
-                y: question.columns,
-                x: matrixData.map(row => row[i]),
-                name: scale,
-                type: 'bar' as const,
-                orientation: 'h',
-                marker: { color: COLORS[i % COLORS.length] },
-                text: matrixData.map(row => `${row[i].toFixed(1)}%`),
-                textposition: 'auto',
-                hovertemplate: `<b>${scale}</b><br>%{y}: %{x:.1f}%<extra></extra>`
-            }));
-        }
-        else { // vertical bars
-            return scales.map((scale, i) => ({
-                x: question.columns,
-                y: matrixData.map(row => row[i]),
-                name: scale,
-                type: 'bar' as const,
-                marker: { color: COLORS[i % COLORS.length] },
-                text: matrixData.map(row => `${row[i].toFixed(1)}%`),
-                textposition: 'auto',
-                hovertemplate: `<b>${scale}</b><br>%{x}: %{y:.1f}%<extra></extra>`
-            }));
-        }
-    }, [chartType, matrixData, question.rows, question.scale, question.columns]);
-    
-    const plotLayout = useMemo(() => {
-        const baseLayout: any = {
-            autosize: true,
-            margin: { t: 60, b: 80, l: 150, r: 20 },
-            title: {
-                text: `Matrix Analysis: ${chartType.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
-                font: { size: 16 }
-            },
-            font: { size: 12 },
-            hovermode: 'closest' as const
-        };
-
-        if (chartType === 'heatmap') {
-            return {
-                ...baseLayout,
-                xaxis: { title: 'Scale', side: 'bottom' as const },
-                yaxis: { title: 'Items', automargin: true }
-            };
-        } else if (chartType.includes('horizontal')) {
-             return {
-                ...baseLayout,
-                barmode: chartType.includes('stack') ? 'stack' : 'group',
-                xaxis: { 
-                    title: 'Percentage (%)',
-                    range: chartType.includes('stack') ? [0, 100] : undefined
-                },
-                yaxis: { 
-                    title: 'Items',
-                    autorange: 'reversed'
-                },
-                 legend: { orientation: 'v' as const, yanchor: 'top' as const, y: 1, xanchor: 'left' as const, x: 1.02 }
-            };
-        } else { // vertical bars
-            return {
-                ...baseLayout,
-                barmode: chartType.includes('stack') ? 'stack' : 'group',
-                xaxis: { 
-                    title: 'Items',
-                    tickangle: -45
-                },
-                yaxis: { 
-                    title: 'Percentage (%)',
-                    range: chartType.includes('stack') ? [0, 100] : undefined,
-                },
-                legend: { orientation: 'h' as const, yanchor: 'bottom' as const, y: -0.4, xanchor: 'center' as const, x: 0.5 }
-            };
-        }
-    }, [chartType]);
+    const plotLayout = {
+        title: 'Best/Worst Choice - Diverging Bar Chart',
+        xaxis: { title: 'Votes', zeroline: true, zerolinewidth: 2, zerolinecolor: 'gray' },
+        yaxis: { title: 'Items', autorange: 'reversed' as const },
+        barmode: 'overlay' as const,
+        height: 500,
+        showlegend: true,
+        legend: { orientation: 'h' as const, yanchor: 'bottom', y: 1.02, xanchor: 'center' as const, x: 0.5 }
+    };
     
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>{question.text}</CardTitle>
-                <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full mt-2">
-                    <TabsList>
-                        <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
-                        <TabsTrigger value="grouped">Grouped Bar</TabsTrigger>
-                        <TabsTrigger value="stacked">Stacked Bar</TabsTrigger>
-                        <TabsTrigger value="horizontal-grouped">H. Grouped</TabsTrigger>
-                        <TabsTrigger value="horizontal-stacked">H. Stacked</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-            </CardHeader>
+            <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
             <CardContent>
-                <Plot 
-                    data={plotData} 
-                    layout={plotLayout} 
-                    style={{ width: '100%', height: '500px' }} 
-                    useResizeHandler 
-                    config={{ responsive: true, displayModeBar: true, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'] }}
-                />
+                <Plot data={plotData} layout={plotLayout} style={{ width: '100%', height: '500px' }} useResizeHandler />
             </CardContent>
         </Card>
     );
 };
+
+const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
+    // This is a placeholder. Full implementation would be complex.
+    const hasData = responses.some(r => r.answers[question.id]);
+    return (
+        <Card>
+            <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
+            <CardContent>{hasData ? <p>Matrix analysis visualization coming soon.</p> : <p>No responses yet.</p>}</CardContent>
+        </Card>
+    )
+};
+
 
 // Main Component
 export default function SurveyApp1() {
@@ -797,6 +742,8 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                                     survey.questions.map(q => {
                                         if (q.type === 'matrix') {
                                             return <MatrixAnalysisDisplay key={q.id} question={q} responses={responses} />
+                                        } else if (q.type === 'best-worst') {
+                                            return <BestWorstAnalysisDisplay key={q.id} question={q} responses={responses} />
                                         }
                                         return <AnalysisResultDisplay key={q.id} question={q} responses={responses} />
                                     })
