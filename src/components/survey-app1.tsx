@@ -1,5 +1,3 @@
-
-
 'use client';
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -248,87 +246,79 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
 
 // --- Analysis Components ---
 const AnalysisResultDisplay = ({ question, responses }: { question: Question; responses: any[] }) => {
+    const [result, setResult] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const { toast } = useToast();
     const [chartType, setChartType] = useState<'hbar' | 'bar' | 'pie' | 'donut'>('hbar');
 
-    const chartData = useMemo(() => {
+    const runAnalysis = useCallback(async () => {
         const answers = responses.map(r => r.answers[question.id]).filter(a => a !== undefined && a !== null);
-        if (answers.length === 0) return null;
-
-        const counts: { [key: string]: number } = {};
-        answers.flat().forEach(ans => { counts[ans] = (counts[ans] || 0) + 1; });
-        return Object.entries(counts).map(([name, value]) => ({ name, value }));
-        
-    }, [question, responses]);
-
-    const plotLayout = useMemo(() => {
-        const baseLayout = {
-            autosize: true,
-            margin: { t: 40, b: 40, l: 40, r: 20 },
-            xaxis: { title: chartType === 'hbar' ? 'Count' : '' },
-            yaxis: { title: chartType === 'hbar' ? '' : 'Count' },
-            legend: { orientation: "h" as const, yanchor: "bottom", y: 1.02, xanchor: "right" as const, x: 1 }
-        };
-        if (chartType === 'hbar') {
-            baseLayout.yaxis = { autorange: 'reversed' as const };
-            baseLayout.margin.l = 120; // More space for labels
+        if (answers.length === 0) {
+            toast({ title: 'No data for this question.' });
+            return;
         }
-        if (chartType === 'bar') {
-            (baseLayout.xaxis as any).tickangle = -45;
+
+        setIsLoading(true);
+        try {
+            const response = await fetch(`/api/analysis/frequency`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: answers.map(a => ({ value: a })), variables: ['value'] }),
+            });
+            if (!response.ok) throw new Error('Analysis failed');
+            const data = await response.json();
+            setResult(data.results.value);
+        } catch (error: any) {
+            toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
         }
-        return baseLayout;
-    }, [chartType]);
+    }, [question.id, responses, toast]);
     
-    const plotData = useMemo(() => {
-        if (!chartData) return [];
-        const values = chartData.map(d => d.value);
-        const labels = chartData.map(d => d.name);
-        
-        if (chartType === 'pie' || chartType === 'donut') {
-            return [{
-                values: values,
-                labels: labels,
-                type: 'pie',
-                hole: chartType === 'donut' ? 0.4 : 0,
-                marker: { colors: COLORS },
-                textinfo: 'label+percent',
-                textposition: 'inside',
-            }];
-        }
-        
-        return [{
-            y: chartType === 'hbar' ? labels : values,
-            x: chartType === 'hbar' ? values : labels,
-            type: 'bar',
-            orientation: chartType === 'hbar' ? 'h' : 'v' as 'h' | 'v',
-            marker: { color: COLORS[0] }
-        }];
-    }, [chartData, chartType]);
+     useEffect(() => {
+        runAnalysis();
+    }, [runAnalysis]);
+    
+    if (isLoading) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><Skeleton className="w-full h-64"/></CardContent></Card>;
+    if (!result) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><p>No responses yet or analysis failed.</p><Button onClick={runAnalysis}>Retry</Button></CardContent></Card>;
 
-    if (!chartData) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><p>No responses yet.</p></CardContent></Card>;
-
+    const chartData = result.table.map((d: any) => ({name: d.Value, value: d.Frequency}));
+    
     return (
         <Card>
             <CardHeader>
                 <CardTitle>{question.text}</CardTitle>
-                <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full mt-2">
+                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full mt-2">
                     <TabsList>
-                        <TabsTrigger value="hbar">Horizontal Bar</TabsTrigger>
-                        <TabsTrigger value="bar">Vertical Bar</TabsTrigger>
+                        <TabsTrigger value="hbar">Horizontal</TabsTrigger>
+                        <TabsTrigger value="bar">Vertical</TabsTrigger>
                         <TabsTrigger value="pie">Pie</TabsTrigger>
                         <TabsTrigger value="donut">Donut</TabsTrigger>
                     </TabsList>
                 </Tabs>
             </CardHeader>
             <CardContent>
-                <Plot 
-                    data={plotData} 
-                    layout={plotLayout}
-                    style={{ width: '100%', height: '300px' }} 
-                    useResizeHandler 
-                />
+                 <ResponsiveContainer width="100%" height={300}>
+                    {chartType.includes('bar') ? (
+                        <RechartsBarChart data={chartData} layout={chartType === 'hbar' ? 'vertical' : 'horizontal'} margin={chartType === 'hbar' ? {left: 80} : {}}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis type={chartType === 'hbar' ? 'number' : 'category'} dataKey={chartType === 'hbar' ? 'value' : 'name'} />
+                            <YAxis type={chartType === 'hbar' ? 'category' : 'number'} dataKey={chartType === 'hbar' ? 'name' : 'value'} />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="value" name="Frequency" fill={COLORS[0]} />
+                        </RechartsBarChart>
+                    ) : (
+                        <PieChart>
+                            <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={p => `${p.name} (${p.value})`} hole={chartType === 'donut' ? 0.4 : 0}>
+                                {chartData.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                            </Pie>
+                            <Tooltip content={<ChartTooltipContent />} />
+                        </PieChart>
+                    )}
+                </ResponsiveContainer>
             </CardContent>
         </Card>
-    );
+    )
 };
 
 const BestWorstAnalysisDisplay = ({ question, responses }: { question: Question; responses: any[] }) => {
@@ -364,21 +354,49 @@ const BestWorstAnalysisDisplay = ({ question, responses }: { question: Question;
             setIsLoading(false);
         }
     }, [question.id, responses, toast]);
+    
+    useEffect(() => {
+        runAnalysis();
+    }, [runAnalysis]);
+
+    if (isLoading) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><Skeleton className="h-64 w-full"/></CardContent></Card>;
+    if (!analysisResult) return <Card><CardHeader><CardTitle>{question.text}</CardTitle></CardHeader><CardContent><p>No responses or analysis failed.</p><Button onClick={runAnalysis}>Retry</Button></CardContent></Card>;
+
+    const plotData = useMemo(() => {
+        return [{
+            y: analysisResult.results.map((d: any) => d.item).reverse(),
+            x: analysisResult.results.map((d: any) => d.best_pct).reverse(),
+            name: 'Best %',
+            type: 'bar',
+            orientation: 'h',
+            marker: { color: COLORS[4]}
+        },
+        {
+            y: analysisResult.results.map((d: any) => d.item).reverse(),
+            x: analysisResult.results.map((d: any) => -d.worst_pct).reverse(),
+            name: 'Worst %',
+            type: 'bar',
+            orientation: 'h',
+            marker: { color: COLORS[0] }
+        }]
+    }, [analysisResult]);
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>{question.text} - Best/Worst Analysis</CardTitle>
-                <CardDescription>Click 'Run Analysis' to see the preference scores.</CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>{question.text} - Best/Worst Analysis</CardTitle></CardHeader>
             <CardContent>
-                <Button onClick={runAnalysis} disabled={isLoading}>{isLoading ? 'Analyzing...' : 'Run Best/Worst Analysis'}</Button>
-                {isLoading && <Skeleton className="h-64 w-full mt-4" />}
-                {analysisResult && (
-                    <div className="mt-4">
-                        <Image src={analysisResult.plot} alt="Best/Worst Plot" width={600} height={400} className="w-full h-auto" />
-                    </div>
-                )}
+                <Plot 
+                    data={plotData}
+                    layout={{
+                        barmode: 'overlay',
+                        title: 'Best/Worst Scores',
+                        xaxis: { title: 'Percentage' },
+                        height: 400,
+                        autosize: true
+                    }}
+                    style={{width: '100%', height: '100%'}}
+                    useResizeHandler
+                />
             </CardContent>
         </Card>
     );
@@ -386,12 +404,13 @@ const BestWorstAnalysisDisplay = ({ question, responses }: { question: Question;
 
 
 const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
-    // This is a placeholder. Full implementation would be complex.
-    const hasData = responses.some(r => r.answers[question.id]);
+    // Placeholder implementation
     return (
         <Card>
             <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
-            <CardContent>{hasData ? <p>Matrix analysis visualization coming soon.</p> : <p>No responses yet.</p>}</CardContent>
+            <CardContent>
+                <p>Matrix Analysis coming soon.</p>
+            </CardContent>
         </Card>
     )
 };
@@ -813,3 +832,5 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
     </div>
   );
 }
+
+export default SurveyApp1;
