@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -31,6 +32,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Info, Link as LinkIcon, Laptop, Palette, Tablet, Monitor, FileDown, Frown, Lightbulb, AlertTriangle, ShoppingCart, ShieldCheck, BeakerIcon, ShieldAlert, Move, PieChart as PieChartIcon, DollarSign, ZoomIn, ZoomOut, AreaChart, BookOpen, Handshake, Columns, Network, TrendingUp, FlaskConical, Binary, Component, HeartPulse, Feather, GitBranch, Smile, Scaling } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from './ui/chart';
 import { Bar, BarChart as RechartsBarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, CartesianGrid, XAxis, YAxis, Legend, ReferenceLine } from 'recharts';
+import { Skeleton } from './ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from './ui/alert';
+import Papa from 'papaparse';
+import Link from 'next/link';
 
 const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
@@ -327,71 +332,58 @@ const AnalysisResultDisplay = ({ question, responses }: { question: Question; re
 };
 
 const BestWorstAnalysisDisplay = ({ question, responses }: { question: Question; responses: any[] }) => {
-    const { bestWorstData, netScores, items } = useMemo(() => {
-        const items = question.items || [];
-        const bestCounts: { [key: string]: number } = {};
-        const worstCounts: { [key: string]: number } = {};
-        items.forEach(item => { bestCounts[item] = 0; worstCounts[item] = 0; });
-        
-        responses.forEach(r => {
-            const answer = r.answers[question.id];
-            if (answer?.best) bestCounts[answer.best]++;
-            if (answer?.worst) worstCounts[answer.worst]++;
-        });
-        
-        const netScores = items.map(item => ({ item, score: bestCounts[item] - worstCounts[item] }));
+    const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(false);
+    const [analysisResult, setAnalysisResult] = useState<any>(null);
 
-        const bestData = items.map(item => bestCounts[item]);
-        const worstData = items.map(item => -worstCounts[item]);
-
-        return { bestWorstData: { best: bestData, worst: worstData }, netScores, items };
-    }, [question, responses]);
-
-    const plotData = [
-        {
-            y: items,
-            x: bestWorstData.best,
-            name: 'Best',
-            type: 'bar',
-            orientation: 'h',
-            marker: { color: '#22c55e' },
-            text: bestWorstData.best.map(String),
-            textposition: 'auto',
-            hovertemplate: '<b>Best</b><br>%{y}: %{x}<extra></extra>'
-        },
-        {
-            y: items,
-            x: bestWorstData.worst,
-            name: 'Worst',
-            type: 'bar',
-            orientation: 'h',
-            marker: { color: '#ef4444' },
-            text: bestWorstData.worst.map(v => String(-v)),
-            textposition: 'auto',
-            hovertemplate: '<b>Worst</b><br>%{y}: %{customdata}<extra></extra>',
-            customdata: bestWorstData.worst.map(v => -v)
+    const runAnalysis = useCallback(async () => {
+        const relevantResponses = responses.map(r => r.answers[question.id]).filter(Boolean);
+        if (relevantResponses.length === 0) {
+            toast({ title: 'No data to analyze', variant: 'destructive' });
+            return;
         }
-    ];
 
-    const plotLayout = {
-        title: 'Best/Worst Choice - Diverging Bar Chart',
-        xaxis: { title: 'Votes', zeroline: true, zerolinewidth: 2, zerolinecolor: 'gray' },
-        yaxis: { title: 'Items', autorange: 'reversed' as const },
-        barmode: 'overlay' as const,
-        height: 500,
-        showlegend: true,
-        legend: { orientation: 'h' as const, yanchor: 'bottom', y: 1.02, xanchor: 'center' as const, x: 0.5 }
-    };
-    
+        const data = relevantResponses.map(r => ({
+            best_choice: r.best,
+            worst_choice: r.worst,
+        }));
+        
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/analysis/maxdiff', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data, bestCol: 'best_choice', worstCol: 'worst_choice' })
+            });
+            if (!response.ok) throw new Error('Analysis failed');
+            const result = await response.json();
+            setAnalysisResult(result);
+        } catch (error: any) {
+             toast({ title: 'Analysis Error', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [question.id, responses, toast]);
+
     return (
         <Card>
-            <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
+            <CardHeader>
+                <CardTitle>{question.text} - Best/Worst Analysis</CardTitle>
+                <CardDescription>Click 'Run Analysis' to see the preference scores.</CardDescription>
+            </CardHeader>
             <CardContent>
-                <Plot data={plotData} layout={plotLayout} style={{ width: '100%', height: '500px' }} useResizeHandler />
+                <Button onClick={runAnalysis} disabled={isLoading}>{isLoading ? 'Analyzing...' : 'Run Best/Worst Analysis'}</Button>
+                {isLoading && <Skeleton className="h-64 w-full mt-4" />}
+                {analysisResult && (
+                    <div className="mt-4">
+                        <Image src={analysisResult.plot} alt="Best/Worst Plot" width={600} height={400} className="w-full h-auto" />
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
 };
+
 
 const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
     // This is a placeholder. Full implementation would be complex.
