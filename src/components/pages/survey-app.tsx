@@ -1168,57 +1168,69 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
     );
 };
   
-const RatingAnalysisDisplay = ({ chartData, tableData, insightsData, varName, question, comparisonData }: { chartData: any, tableData: any, insightsData: string[], varName: string, question: any, comparisonData: any }) => {
+const RatingAnalysisDisplay = ({ question, responses, trigger }: { question: Question; responses: any[], trigger: number }) => {
+    const [result, setResult] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const { toast } = useToast();
+
+    const analyze = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const ratings = responses.map(r => r.answers[question.id]).filter(r => typeof r === 'number');
+            if (ratings.length === 0) throw new Error("No responses for this rating question.");
+            
+            const res = await fetch('/api/analysis/rating', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ratings, scale: question.scale?.length || 5 }) });
+            if (!res.ok) throw new Error('Rating analysis failed');
+            const data = await res.json();
+            setResult(data.results);
+        } catch (e: any) {
+            toast({ title: 'Error', description: e.message, variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [question, responses, toast]);
+    
+    useEffect(() => {
+        if (trigger > 0) {
+            analyze();
+        }
+    }, [trigger, analyze]);
+    
+    if (isLoading) return <Skeleton className="h-48 w-full" />;
+    if(!result) return null;
+
     return (
-        <AnalysisDisplayShell varName={varName}>
-             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <AnalysisDisplayShell varName={question.title || ''}>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Average Rating {comparisonData && `vs. ${comparisonData.filterValue}`}</CardTitle>
+                        <CardTitle className="text-base">Average Rating</CardTitle>
                     </CardHeader>
-                     <CardContent className="flex flex-col items-center justify-center min-h-[300px] gap-4">
-                        <StarDisplay rating={chartData.avg} total={question.scale?.length || 5} />
-                        <p className="text-2xl font-bold">{chartData.avg.toFixed(2)} <span className="text-base font-normal text-muted-foreground">/ {question.scale?.length || 5}</span></p>
-                        {comparisonData && (
-                            <p className="text-lg">Group Avg: <strong className="text-primary">{comparisonData.chartData.avg.toFixed(2)}</strong></p>
-                        )}
+                    <CardContent className="flex flex-col items-center justify-center min-h-[300px] gap-4">
+                        <StarDisplay rating={result.mean} total={result.scale} />
+                        <p className="text-4xl font-bold mt-2">{result.mean.toFixed(2)} <span className="text-base font-normal text-muted-foreground">/ {result.scale}</span></p>
                     </CardContent>
                 </Card>
-                 <div className="space-y-4">
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics {comparisonData && `vs. ${comparisonData.filterValue}`}</CardTitle></CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Metric</TableHead>
-                                        <TableHead className="text-right">Overall</TableHead>
-                                        {comparisonData && <TableHead className="text-right">{comparisonData.filterValue}</TableHead>}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow><TableCell>Average Rating</TableCell><TableCell className="text-right">{tableData.avg.toFixed(3)}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.avg.toFixed(3)}</TableCell>}</TableRow>
-                                    <TableRow><TableCell>Median Rating</TableCell><TableCell className="text-right">{tableData.median}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.median}</TableCell>}</TableRow>
-                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{tableData.mode}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.mode}</TableCell>}</TableRow>
-                                    <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{tableData.stdDev.toFixed(3)}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.stdDev.toFixed(3)}</TableCell>}</TableRow>
-                                    <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{tableData.count}</TableCell>{comparisonData && <TableCell className="text-right">{comparisonData.tableData.count}</TableCell>}</TableRow>
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
-                        <CardContent>
-                            <ul className="space-y-2 text-sm list-disc pl-4">
-                                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
-                            </ul>
-                        </CardContent>
-                    </Card>
-                </div>
+                <Card>
+                    <CardHeader><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Metric</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{result.mean.toFixed(3)}</TableCell></TableRow>
+                                <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{result.median}</TableCell></TableRow>
+                                <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{result.mode}</TableCell></TableRow>
+                                <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{result.stdDev.toFixed(3)}</TableCell></TableRow>
+                                <TableRow><TableCell>Responses</TableCell><TableCell className="text-right">{result.count}</TableCell></TableRow>
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
             </div>
         </AnalysisDisplayShell>
     );
 };
+
 
 const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName, comparisonData }: { chartData: any, tableData: any, insightsData: string[], varName: string, comparisonData: any }) => {
     return (
@@ -1275,693 +1287,167 @@ const NumberAnalysisDisplay = ({ chartData, tableData, insightsData, varName, co
     );
   };
 
-const BestWorstAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
-    return (
-       <AnalysisDisplayShell varName={varName}>
-             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Best-Worst Score</CardTitle>
-                    </CardHeader>
-                     <CardContent className="flex items-center justify-center min-h-[300px]">
-                        <Plot
-                            data={[{ ...chartData, type: 'bar', marker: { color: COLORS[1] } }]}
-                            layout={{
-                                autosize: true,
-                                margin: { t: 20, b: 40, l: 100, r: 20 },
-                                xaxis: { title: 'Best-Worst Score (Best count - Worst count)' },
-                            }}
-                            style={{ width: '100%', height: '100%' }}
-                            config={{ displayModeBar: false }}
-                            useResizeHandler
-                        />
-                    </CardContent>
-                </Card>
-                 <div className="space-y-4">
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base">Summary Statistics</CardTitle></CardHeader>
-                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Item</TableHead>
-                                        <TableHead className="text-right">Best Count</TableHead>
-                                        <TableHead className="text-right">Worst Count</TableHead>
-                                        <TableHead className="text-right">Net Score</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {tableData.map(item => (
-                                        <TableRow key={item.name}>
-                                            <TableCell>{item.name}</TableCell>
-                                            <TableCell className="text-right">{item.best}</TableCell>
-                                            <TableCell className="text-right">{item.worst}</TableCell>
-                                            <TableCell className="text-right font-bold">{item.score}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
-                        <CardContent>
-                             <ul className="space-y-2 text-sm list-disc pl-4">
-                                {insightsData.map((insight, i) => <li key={i} dangerouslySetInnerHTML={{ __html: insight }} />)}
-                            </ul>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-       </AnalysisDisplayShell>
-    );
-};
+const BestWorstAnalysisDisplay = ({ question, responses, trigger }: { question: Question, responses: any[], trigger: number }) => {
+  const [result, setResult] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-const NPSAnalysisDisplay = ({ chartData, tableData, varName, comparisonData }: { chartData: any, tableData: any, varName: string, comparisonData: any }) => {
-    if (!chartData || !chartData.scoreCounts) return null;
-    const npsGroupData = [
-      { name: 'Detractors', value: tableData.detractors, percentage: tableData.detractorsP, fill: 'hsl(var(--destructive))' },
-      { name: 'Passives', value: tableData.passives, percentage: tableData.passivesP, fill: 'hsl(var(--muted-foreground))' },
-      { name: 'Promoters', value: tableData.promoters, percentage: tableData.promotersP, fill: 'hsl(var(--chart-2))' },
-    ];
-  
-    return (
-      <AnalysisDisplayShell varName={varName}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="flex flex-col items-center justify-center p-6 text-center">
-            <CardDescription>Net Promoter Score</CardDescription>
-            <CardTitle className="text-7xl font-bold text-primary my-2">{chartData.nps.toFixed(1)}</CardTitle>
-            <ChartContainer config={{ percentage: { label: 'Percentage' } }} className="w-full h-10 mt-4">
-              <ResponsiveContainer width="100%" height={40}>
-                <BarChart layout="vertical" data={npsGroupData} stackOffset="expand">
-                  <YAxis type="category" dataKey="name" hide />
-                  <XAxis type="number" hide domain={[0, 100]} />
-                  <Tooltip
-                    cursor={false}
-                    content={<ChartTooltipContent 
-                      indicator="dot"
-                      formatter={(value, name, item) => (
-                        <div className="flex flex-col">
-                            <span>{item.payload.name}: {item.payload.value} ({item.payload.percentage.toFixed(1)}%)</span>
-                        </div>
-                      )}
-                    />}
-                  />
-                  <Bar dataKey="percentage" stackId="a" radius={[4, 4, 4, 4]}>
-                    {npsGroupData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-              <div className="flex justify-between text-xs text-muted-foreground mt-2 w-full">
-                <span>Detractors ({tableData.detractorsP.toFixed(1)}%)</span>
-                <span>Passives ({tableData.passivesP.toFixed(1)}%)</span>
-                <span>Promoters ({tableData.promotersP.toFixed(1)}%)</span>
-              </div>
-          </Card>
-  
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Score Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={{ count: { label: 'Count' } }} className="w-full h-[250px]">
-                <ResponsiveContainer>
-                  <BarChart data={Object.entries(chartData.scoreCounts).map(([score, count]) => ({score: Number(score), count: count as number}))}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis dataKey="score" />
-                    <YAxis />
-                    <Tooltip cursor={{fill: 'hsl(var(--muted))'}} content={<ChartTooltipContent />} />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={2}>
-                        {Object.entries(chartData.scoreCounts).map(([score, count]) => (
-                            <Cell key={`cell-${score}`} fill={Number(score) >= 9 ? 'hsl(var(--chart-2))' : Number(score) <= 6 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />
-                        ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </div>
-      </AnalysisDisplayShell>
-    );
-};
-  
-const RetailAnalyticsDashboard = ({ data }: { data: any }) => {
-    if (!data) return null;
-    const { kpiData, insights } = data;
-    const kpiStatus = {
-        npsScore: kpiData.npsScore > 50 ? 'excellent' : kpiData.npsScore > 0 ? 'good' : 'poor',
-        avgSatisfaction: kpiData.avgSatisfaction > 4 ? 'excellent' : kpiData.avgSatisfaction > 3 ? 'good' : 'warning',
-        avgOrderValue: 'good',
-        repurchaseRate: kpiData.repurchaseRate > 50 ? 'excellent' : kpiData.repurchaseRate > 30 ? 'good' : 'warning',
-    };
-
-    return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <KPICard title="NPS Score" value={kpiData.npsScore.toFixed(1)} status={kpiStatus.npsScore} />
-                <KPICard title="Avg Satisfaction" value={`${kpiData.avgSatisfaction.toFixed(2)} / 5`} status={kpiStatus.avgSatisfaction} />
-                <KPICard title="Avg Order Value" value={`$${kpiData.avgOrderValue.toFixed(2)}`} status={kpiStatus.avgOrderValue} />
-                <KPICard title="Repurchase Rate" value={`${kpiData.repurchaseRate.toFixed(1)}%`} status={kpiStatus.repurchaseRate} />
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {insights.map((insight: any, i: number) => <InsightCard key={i} insight={insight} />)}
-            </div>
-        </div>
-    )
-}
-
-
-const ServqualAnalyticsDashboard = ({ data }: { data: any }) => {
-    if (!data) return null;
-
-    const servqualChartConfig = {
-        expectation: { label: "Expectation", color: COLORS[1] },
-        perception: { label: "Perception", color: COLORS[0] },
-        gap: { label: "Gap", color: COLORS[3] },
-    };
-
-    return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>SERVQUAL Gap Scores by Dimension</CardTitle>
-                    <CardDescription>Negative gaps indicate perceptions fall short of expectations.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ChartContainer config={servqualChartConfig} className="w-full h-96">
-                        <ResponsiveContainer>
-                            <RechartsBarChart data={data.dimensionScores}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" angle={-30} textAnchor="end" height={80} />
-                                <YAxis />
-                                <Tooltip content={<ChartTooltipContent />} />
-                                <Legend />
-                                <RechartsBar dataKey="expectation" fill="var(--color-expectation)" radius={4}/>
-                                <RechartsBar dataKey="perception" fill="var(--color-perception)" radius={4} />
-                                <RechartsBar dataKey="gap" fill="var(--color-gap)" radius={4} />
-                            </RechartsBarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                </CardContent>
-            </Card>
-        </div>
-    );
-};
-
-const IpaAnalyticsDashboard = ({ data: ipaData }: { data: any }) => {
-    if (!ipaData) return null;
-    const { points, meanImportance, meanSatisfaction, quadrants } = ipaData;
-
-    return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Importance-Performance Matrix</CardTitle>
-                </CardHeader>
-                <CardContent className="flex justify-center">
-                    <Plot
-                        data={[{
-                            x: points.map((p: any) => p.importance),
-                            y: points.map((p: any) => p.satisfaction),
-                            text: points.map((p: any) => p.name),
-                            mode: 'markers+text',
-                            textposition: 'top center',
-                            type: 'scatter',
-                            marker: { size: 12, color: COLORS[0] }
-                        }]}
-                        layout={{
-                            autosize: true,
-                            width: 600,
-                            height: 600,
-                            xaxis: { title: 'Derived Importance' },
-                            yaxis: { title: 'Stated Satisfaction' },
-                            shapes: [
-                                { type: 'line', x0: meanImportance, x1: meanImportance, y0: Math.min(...points.map((p:any) => p.satisfaction)) - 0.5, y1: Math.max(...points.map((p:any) => p.satisfaction)) + 0.5, line: { dash: 'dash', color: 'grey' } },
-                                { type: 'line', y0: meanSatisfaction, y1: meanSatisfaction, x0: Math.min(...points.map((p:any) => p.importance)) - 0.05, x1: Math.max(...points.map((p:any) => p.importance)) + 0.05, line: { dash: 'dash', color: 'grey' } }
-                            ],
-                            annotations: [
-                                { x: meanImportance, y: Math.max(...points.map((p:any) => p.satisfaction)) + 0.3, text: 'Keep Up Good Work', showarrow: false, xanchor: 'left'},
-                                { x: meanImportance, y: Math.min(...points.map((p:any) => p.satisfaction)) - 0.3, text: 'Concentrate Here', showarrow: false, xanchor: 'left', yanchor: 'top'},
-                                { x: Math.min(...points.map((p:any) => p.importance)) - 0.05, y: Math.max(...points.map((p:any) => p.satisfaction)) + 0.3, text: 'Possible Overkill', showarrow: false, xanchor: 'left'},
-                                { x: Math.min(...points.map((p:any) => p.importance)) - 0.05, y: Math.min(...points.map((p:any) => p.satisfaction)) - 0.3, text: 'Low Priority', showarrow: false, xanchor: 'left', yanchor: 'top'},
-                            ]
-                        }}
-                        style={{ width: '100%', height: '100%' }}
-                        useResizeHandler
-                    />
-                </CardContent>
-            </Card>
-        </div>
-    );
-};
-
-type Position = { x: number; y: number };
-
-const KPICard: React.FC<{ title: string; value: string; status: 'excellent' | 'good' | 'warning' | 'poor' }> = ({ title, value, status }) => {
-    const statusClasses = {
-        excellent: 'text-green-600',
-        good: 'text-green-500',
-        warning: 'text-yellow-600',
-        poor: 'text-red-600',
-    };
-    return (
-        <Card>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className={`text-2xl font-bold ${statusClasses[status]}`}>{value}</div>
-            </CardContent>
-        </Card>
-    );
-};
-
-const InsightCard: React.FC<{ insight: { type: 'critical' | 'warning' | 'opportunity' | 'excellent'; title: string; text: string; actions: string; } }> = ({ insight }) => {
-    const ICONS = {
-        critical: <AlertTriangle className="text-red-500" />,
-        warning: <ShieldAlert className="text-yellow-500" />,
-        opportunity: <Lightbulb className="text-blue-500" />,
-        excellent: <Award className="text-green-500" />,
+  const analyze = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const answers = responses.map(r => r.answers[question.id]).filter(a => a && a.best && a.worst);
+        if (answers.length === 0) throw new Error("No responses for Best/Worst question.");
+        
+        const body = {
+            data: answers.map(a => ({ bestChoice: a.best, worstChoice: a.worst })),
+            bestCol: 'bestChoice',
+            worstCol: 'worstChoice'
+        };
+        const res = await fetch('/api/analysis/maxdiff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) throw new Error('MaxDiff analysis failed');
+        const data = await res.json();
+        setResult(data);
+    } catch (e: any) {
+        toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
     }
-    return (
-        <Card>
-            <CardHeader className="flex flex-row items-start gap-4">
-                {ICONS[insight.type]}
-                <div>
-                    <CardTitle className="text-base">{insight.title}</CardTitle>
-                    <CardDescription>{insight.text}</CardDescription>
-                </div>
-            </CardHeader>
-            <CardFooter>
-                 <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                    <MoveRight className="w-4 h-4"/>
-                    <span>{insight.actions}</span>
-                </div>
-            </CardFooter>
-        </Card>
-    );
-};
-const DraggableDashboardCard = ({ id, children, position }: { id: any, children: React.ReactNode, position?: Position }) => {
-    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+  }, [question, responses, toast]);
 
-    const style: React.CSSProperties = {
-        position: 'absolute',
-        width: 300,
-        height: 300,
-        top: position?.y || 0,
-        left: position?.x || 0,
-        transform: isDragging ? (transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined) : undefined,
-    };
-
-    return (
-        <div ref={setNodeRef} style={style}>
-            <Card className="w-full h-full shadow-lg flex flex-col">
-                <div {...listeners} {...attributes} className="absolute top-2 right-2 p-1 cursor-grab bg-background/50 rounded-full">
-                    <Move className="w-4 h-4 text-muted-foreground"/>
-                </div>
-                {children}
-            </Card>
-        </div>
-    );
-};
-
-const TextAnalysisDisplay = ({ tableData, varName }: { tableData: any[], varName: string; }) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [wordCloudImage, setWordCloudImage] = useState<string | null>(null);
-    const [frequencies, setFrequencies] = useState<{ word: string, count: number }[]>([]);
-    const [excludedWords, setExcludedWords] = useState<string[]>([]);
-
-    const generateCloud = useCallback(async (stopwords: string[]) => {
-        setIsLoading(true);
-        try {
-            const response = await fetch('/api/analysis/wordcloud', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: tableData.join('\n'),
-                    customStopwords: stopwords.join(',')
-                })
-            });
-            if (!response.ok) throw new Error('Failed to generate word cloud');
-            const result = await response.json();
-            if (result.plots?.wordcloud) {
-                setWordCloudImage(result.plots.wordcloud);
-                setFrequencies(Object.entries(result.frequencies).map(([word, count]) => ({ word, count: count as number })));
-            } else {
-                throw new Error('Word cloud image not found in response');
-            }
-        } catch (error) {
-            console.error("Word cloud generation failed", error);
-            setWordCloudImage(null);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [tableData]);
-
-    useEffect(() => {
-        if (tableData.length > 0) {
-            generateCloud(excludedWords);
-        } else {
-            setIsLoading(false);
-        }
-    }, [tableData, excludedWords, generateCloud]);
-    
-    const handleExcludeWord = (word: string) => {
-        if (!excludedWords.includes(word)) {
-            setExcludedWords([...excludedWords, word]);
-        }
-    };
-    
-    const handleRestoreWord = (word: string) => {
-        setExcludedWords(excludedWords.filter(w => w !== word));
+  useEffect(() => {
+    if (trigger > 0) {
+        analyze();
     }
+  }, [trigger, analyze]);
 
-    return (
-        <AnalysisDisplayShell varName={varName}>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Word Cloud</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex items-center justify-center min-h-[300px]">
-                        {isLoading ? <Skeleton className="w-full h-[300px]" /> : wordCloudImage ? <Image src={wordCloudImage} alt="Word Cloud" width={500} height={300} className="rounded-md" /> : <p>Could not generate word cloud.</p>}
-                    </CardContent>
-                </Card>
-                <div className="space-y-4">
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base">Word Frequencies</CardTitle></CardHeader>
-                        <CardContent>
-                             <ScrollArea className="h-64">
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Word</TableHead><TableHead className="text-right">Count</TableHead><TableHead></TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {frequencies.map(({ word, count }) => (
-                                            <TableRow key={word}>
-                                                <TableCell>{word}</TableCell>
-                                                <TableCell className="text-right">{count}</TableCell>
-                                                <TableCell>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleExcludeWord(word)}>
-                                                        <Trash2 className="w-4 h-4 text-destructive"/>
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
-                    {excludedWords.length > 0 && (
-                        <Card>
-                            <CardHeader className="pb-2"><CardTitle className="text-base">Excluded Words</CardTitle></CardHeader>
-                            <CardContent className="flex flex-wrap gap-2">
-                                {excludedWords.map(word => (
-                                    <Badge key={word} variant="secondary" className="cursor-pointer" onClick={() => handleRestoreWord(word)}>
-                                        {word} <X className="ml-1 h-3 w-3" />
-                                    </Badge>
-                                ))}
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
-            </div>
-        </AnalysisDisplayShell>
-    );
+  if (isLoading) return <Skeleton className="h-48 w-full" />;
+  if (!result) return null;
+
+  return (
+    <Card>
+        <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
+        <CardContent>
+            {result.plot && <Image src={`data:image/png;base64,${result.plot}`} alt="MaxDiff Plot" width={600} height={400} className="rounded-md" />}
+        </CardContent>
+    </Card>
+  )
 };
 
-// This function needs to be defined if it's used for IPA analysis
-function pearsonCorrelation(x: (number | undefined)[], y: (number | undefined)[]): number {
-    const validPairs = x.map((val, i) => [val, y[i]]).filter(([val1, val2]) => val1 !== undefined && val2 !== undefined) as [number, number][];
-    if (validPairs.length < 2) return 0;
-    
-    const xs = validPairs.map(p => p[0]);
-    const ys = validPairs.map(p => p[1]);
-
-    const meanX = mean(xs);
-    const meanY = mean(ys);
-    const stdDevX = standardDeviation(xs);
-    const stdDevY = standardDeviation(ys);
-
-    if (stdDevX === 0 || stdDevY === 0) return 0;
-
-    let covariance = 0;
-    for (let i = 0; i < validPairs.length; i++) {
-        covariance += (xs[i] - meanX) * (ys[i] - meanY);
-    }
-    covariance /= (validPairs.length - 1);
-
-    return covariance / (stdDevX * stdDevY);
-}
-
-const CrosstabAnalysisDisplay = ({ responses, survey }: { responses: any[], survey: any }) => {
-    const { toast } = useToast();
-    const [rowVarId, setRowVarId] = useState<number | undefined>();
-    const [colVarId, setColVarId] = useState<number | undefined>();
-    const [crosstabResult, setCrosstabResult] = useState<any>(null);
+const MatrixAnalysisDisplay = ({ question, responses, trigger }: { question: Question, responses: any[], trigger: number }) => {
+    const [result, setResult] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const { toast } = useToast();
 
-    const categoricalQuestions = useMemo(() => {
-        return survey.questions.filter((q: any) => q.type === 'single' || q.type === 'dropdown');
-    }, [survey.questions]);
-
-    useEffect(() => {
-        if (categoricalQuestions.length > 0) setRowVarId(categoricalQuestions[0].id);
-        if (categoricalQuestions.length > 1) setColVarId(categoricalQuestions[1].id);
-    }, [categoricalQuestions]);
-
-    const runCrosstabAnalysis = useCallback(async () => {
-        if (!rowVarId || !colVarId) {
-            toast({ title: "Please select two variables", variant: "destructive" });
-            return;
-        }
-
-        const rowQuestion = survey.questions.find((q:any) => q.id === rowVarId);
-        const colQuestion = survey.questions.find((q:any) => q.id === colVarId);
-
-        if(!rowQuestion || !colQuestion) return;
-
-        const analysisData = responses.map(r => ({
-            [rowQuestion.title]: r.answers[rowVarId],
-            [colQuestion.title]: r.answers[colVarId],
-        })).filter(r => r[rowQuestion.title] && r[colQuestion.title]);
-
+    const analyze = useCallback(async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/analysis/crosstab', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    data: analysisData,
-                    rowVar: rowQuestion.title,
-                    colVar: colQuestion.title,
-                })
-            });
-            if (!response.ok) throw new Error("Crosstab analysis failed");
-            const result = await response.json();
-            setCrosstabResult(result);
-        } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            const body = { responses, question: { ...question, id: String(question.id) }};
+            const res = await fetch('/api/analysis/matrix', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (!res.ok) throw new Error('Matrix analysis failed');
+            const data = await res.json();
+            setResult(data);
+        } catch (e: any) {
+            toast({ title: 'Error', description: e.message, variant: 'destructive' });
         } finally {
             setIsLoading(false);
         }
-    }, [rowVarId, colVarId, responses, survey.questions, toast]);
-    
-    const { results } = crosstabResult || {};
+    }, [question, responses, toast]);
 
+    useEffect(() => {
+        if (trigger > 0) {
+            analyze();
+        }
+    }, [trigger, analyze]);
+
+    if (isLoading) return <Skeleton className="h-48 w-full" />;
+    if (!result) return null;
+    
+    const chartData = result.results?.mean_scores || [];
+    
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Grid3x3/> Cross-Tabulation Analysis</CardTitle>
-                <CardDescription>Analyze the relationship between two single-choice questions.</CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
             <CardContent>
-                <div className="grid md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <Label>Primary Variable (Rows)</Label>
-                        <Select value={String(rowVarId)} onValueChange={v => setRowVarId(Number(v))}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>{categoricalQuestions.map((q: any) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}</SelectContent>
-                        </Select>
-                    </div>
-                     <div>
-                        <Label>Secondary Variable (Columns)</Label>
-                        <Select value={String(colVarId)} onValueChange={v => setColVarId(Number(v))}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>{categoricalQuestions.filter((q:any) => q.id !== rowVarId).map((q: any) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}</SelectContent>
-                        </Select>
-                    </div>
-                </div>
-                 <Button onClick={runCrosstabAnalysis} disabled={isLoading || !rowVarId || !colVarId}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sigma className="mr-2 h-4 w-4" />}
-                    Run Analysis
-                </Button>
-                {isLoading && <Skeleton className="w-full h-48 mt-4"/>}
-                {results && (
-                     <div className="mt-4">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>{results.row_var} \ {results.col_var}</TableHead>
-                                    {results.col_levels.map((c: string) => <TableHead key={c} className="text-right">{c}</TableHead>)}
-                                    <TableHead className="text-right font-bold">Total</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {results.row_levels.map((r: string) => {
-                                    const rowTotal = results.col_levels.reduce((sum: number, c: string) => sum + (results.contingency_table[c]?.[r] || 0), 0);
-                                    return (
-                                        <TableRow key={r}>
-                                            <TableHead>{r}</TableHead>
-                                            {results.col_levels.map((c: string) => {
-                                                const count = results.contingency_table[c]?.[r] || 0;
-                                                const percent = rowTotal > 0 ? (count / rowTotal * 100).toFixed(1) : 0;
-                                                return <TableCell key={c} className="text-right">{count} ({percent}%)</TableCell>
-                                            })}
-                                            <TableCell className="text-right font-bold">{rowTotal}</TableCell>
-                                        </TableRow>
-                                    )
-                                })}
-                            </TableBody>
-                        </Table>
-                         <p className="text-sm mt-4">
-                            <strong>Chi-Squared Test:</strong> χ² = {results.chi_squared.statistic.toFixed(2)}, 
-                            p = {results.chi_squared.p_value.toFixed(3)}, 
-                            Cramer's V = {results.cramers_v.toFixed(3)}
-                        </p>
-                    </div>
-                )}
+                <ChartContainer config={{}} className="h-80">
+                     <ResponsiveContainer>
+                        <RechartsBarChart data={chartData} layout="vertical">
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis type="number" unit="%" />
+                            <YAxis dataKey="name" type="category" width={100} />
+                            <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
+                            <Legend />
+                            {(question.columns || []).map((col, i) => (
+                                <Bar key={col} dataKey={col} stackId="a" fill={COLORS[i % COLORS.length]} />
+                            ))}
+                        </RechartsBarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
             </CardContent>
         </Card>
     );
 };
 
-const CategoricalToScaleAnalysis = ({ responses, survey }: { responses: any[], survey: any }) => {
+const NPSAnalysisDisplay = ({ question, responses, trigger }: { question: Question; responses: any[], trigger: number }) => {
+    const [result, setResult] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
-    const [selectedVarId, setSelectedVarId] = useState<number | undefined>();
-    const [scaleMap, setScaleMap] = useState<{ [key: string]: number }>({});
-    const [analysisData, setAnalysisData] = useState<any>(null);
-
-    const categoricalQuestions = useMemo(() => {
-        return survey.questions.filter((q: any) => (q.type === 'single' || q.type === 'dropdown' || q.type === 'rating') && q.options?.length > 0 || q.scale?.length > 0);
-    }, [survey.questions]);
+  
+    const analyze = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const scores = responses.map(r => r.answers[question.id]).filter(s => typeof s === 'number');
+            if (scores.length === 0) throw new Error("No responses for NPS question.");
+            const res = await fetch('/api/analysis/nps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scores }) });
+            if (!res.ok) throw new Error('NPS analysis failed');
+            const data = await res.json();
+            setResult(data.results);
+        } catch (e: any) {
+            toast({ title: 'Error', description: e.message, variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [question, responses, toast]);
 
     useEffect(() => {
-        if (categoricalQuestions.length > 0) {
-            const firstQuestion = categoricalQuestions[0];
-            setSelectedVarId(firstQuestion.id);
-            const initialMap: { [key: string]: number } = {};
-            (firstQuestion.options || firstQuestion.scale).forEach((opt: string, i: number) => {
-                initialMap[opt] = i + 1;
-            });
-            setScaleMap(initialMap);
+        if (trigger > 0) {
+            analyze();
         }
-    }, [categoricalQuestions]);
-
-    const handleVarChange = (id: number) => {
-        setSelectedVarId(id);
-        const question = categoricalQuestions.find(q => q.id === id);
-        if (question) {
-            const initialMap: { [key: string]: number } = {};
-            (question.options || question.scale).forEach((opt: string, i: number) => {
-                initialMap[opt] = i + 1;
-            });
-            setScaleMap(initialMap);
-        }
-        setAnalysisData(null);
-    };
-
-    const handleScaleValueChange = (option: string, value: string) => {
-        const numValue = parseInt(value, 10);
-        setScaleMap(prev => ({
-            ...prev,
-            [option]: isNaN(numValue) ? 0 : numValue,
-        }));
-    };
-
-    const runConversionAnalysis = () => {
-        if (!selectedVarId) return;
-
-        const convertedData = responses
-            .map(r => scaleMap[r.answers[selectedVarId]])
-            .filter((v): v is number => typeof v === 'number');
-
-        if (convertedData.length === 0) {
-            toast({ title: "No data to analyze", variant: "destructive" });
-            return;
-        }
-
-        const stats = getNumericStats(convertedData);
-        const insights = generateNumericInsights(stats);
-        setAnalysisData({
-            chartData: { values: convertedData },
-            tableData: stats,
-            insightsData: insights
-        });
-    };
-    
-    const selectedQuestion = categoricalQuestions.find(q => q.id === selectedVarId);
-
+    }, [trigger, analyze]);
+  
+    if (isLoading) return <Skeleton className="h-48 w-full" />;
+    if (!result) return null;
+  
+    const scoreCounts = Object.entries(result.scoreCounts).map(([score, count]) => ({ score: Number(score), count: count as number }));
+  
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><TrendingUp/> Categorical to Scale Conversion</CardTitle>
-                <CardDescription>Convert a categorical variable to a numeric scale for descriptive analysis.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                        <Label>Select Categorical Variable</Label>
-                        <Select value={String(selectedVarId)} onValueChange={v => handleVarChange(Number(v))}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>{categoricalQuestions.map((q: any) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}</SelectContent>
-                        </Select>
-                        {selectedQuestion && (
-                            <div className="mt-4 space-y-2">
-                                <h4 className="font-semibold">Assign Numeric Values</h4>
-                                <ScrollArea className="h-48 border rounded p-2">
-                                {(selectedQuestion.options || selectedQuestion.scale).map((opt: string) => (
-                                    <div key={opt} className="flex items-center gap-2 mb-2">
-                                        <Label className="flex-1">{opt}</Label>
-                                        <Input
-                                            type="number"
-                                            value={scaleMap[opt] ?? ''}
-                                            onChange={e => handleScaleValueChange(opt, e.target.value)}
-                                            className="w-24"
-                                        />
-                                    </div>
-                                ))}
-                                </ScrollArea>
-                            </div>
-                        )}
-                    </div>
-                     <div>
-                        {analysisData ? (
-                            <NumberAnalysisDisplay
-                                chartData={analysisData.chartData}
-                                tableData={analysisData.tableData}
-                                insightsData={analysisData.insightsData}
-                                varName={`Converted: ${selectedQuestion?.title}`}
-                                comparisonData={null}
-                            />
-                        ) : (
-                            <div className="h-full flex items-center justify-center text-muted-foreground bg-muted/50 rounded-lg">
-                                <p>Analysis results will appear here.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </CardContent>
-            <CardFooter>
-                 <Button onClick={runConversionAnalysis} disabled={!selectedVarId}>Convert & Analyze</Button>
-            </CardFooter>
-        </Card>
-    )
+      <Card>
+        <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
+        <CardContent>
+            <div className="text-center">
+                <p>NPS Score</p>
+                <p className="text-5xl font-bold">{result.nps.toFixed(1)}</p>
+            </div>
+            <ChartContainer config={{}} className="h-64">
+                <ResponsiveContainer>
+                    <RechartsBarChart data={scoreCounts}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="score" />
+                        <YAxis />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="count" name="Responses">
+                            {scoreCounts.map(entry => (
+                                <Cell key={entry.score} fill={entry.score >= 9 ? 'hsl(var(--chart-2))' : entry.score <= 6 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />
+                            ))}
+                        </Bar>
+                    </RechartsBarChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+        </CardContent>
+      </Card>
+    );
 };
 
+// ... (Rest of the analysis components: Rating, Number, BestWorst, Matrix, NPS)
 
 const SurveyApp = () => {
     return (
@@ -2018,6 +1504,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     const [retailAnalysisData, setRetailAnalysisData] = useState<any>(null);
     const [servqualAnalysisData, setServqualAnalysisData] = useState<any>(null);
     const [ipaAnalysisData, setIpaAnalysisData] = useState<any>(null);
+    const [analysisTrigger, setAnalysisTrigger] = useState(0);
+
 
     const [uploadingImageForQuestionId, setUploadingImageForQuestionId] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -2078,11 +1566,11 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
             toast({ title: "Template Loaded", description: "Van Westendorp PSM Survey template has been applied." });
         }
         if (template === 'conjoint' && !loadedTemplate) {
-            setSurvey(prev => ({
+             setSurvey(prev => ({
                 ...prev,
                 title: conjointTemplate.title,
                 description: conjointTemplate.description,
-                questions: conjointTemplate.questions.map(q => ({...q, id: Date.now() + Math.random()})),
+                questions: conjointTemplate.questions.map(q => ({...q, id: Date.now() + Math.random(), text: q.title})),
                 isConjointTemplate: true
             }));
             setLoadedTemplate(true);
@@ -2442,17 +1930,17 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
         });
     };
 
-    const saveAndTest = () => {
+    const saveAndShare = () => {
         if(saveDraft()) {
             setIsShareModalOpen(true);
         }
     };
     
-    const generateQrCode = async () => {
-        if (!surveyUrl) return;
+    const generateQrCode = async (url: string) => {
+        if (!url) return;
         setIsLoadingQr(true);
         try {
-            const response = await fetch(`/api/generate-qr-code?data=${encodeURIComponent(surveyUrl)}`);
+            const response = await fetch(`/api/generate-qr-code?data=${encodeURIComponent(url)}`);
             if(!response.ok) {
                 throw new Error('Failed to generate QR code');
             }
@@ -2515,7 +2003,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
     
     useEffect(() => {
         if (activeTab === 'dashboard' && surveyUrl && !qrCodeUrl) {
-            generateQrCode();
+            generateQrCode(surveyUrl);
         }
     }, [activeTab, surveyUrl, qrCodeUrl]);
 
@@ -2761,7 +2249,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     </Button>
                     <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
                         <DialogTrigger asChild>
-                             <Button onClick={saveAndTest} disabled={!surveyId}>
+                             <Button onClick={saveAndShare} disabled={!surveyId}>
                                 <Share2 className="mr-2" />
                                 Share
                             </Button>
@@ -3083,6 +2571,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                         </SelectContent>
                                     </Select>
                                 )}
+                                <Button onClick={() => setAnalysisTrigger(Date.now())}>Refresh Analysis</Button>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-8">
@@ -3101,8 +2590,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                     
                                     const questionComponents: { [key: string]: React.ComponentType<any> } = {
                                         single: ChoiceAnalysisDisplay,
-                                        multiple: ChoiceAnalysisDisplay,
-                                        dropdown: ChoiceAnalysisDisplay,
+                                        multiple: MultipleSelectionQuestion,
+                                        dropdown: DropdownQuestion,
                                         text: TextAnalysisDisplay,
                                         rating: RatingAnalysisDisplay,
                                         number: NumberAnalysisDisplay,
@@ -3122,6 +2611,8 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                                                     varName={`${qIndex + 1}. ${q.title}`} 
                                                     question={q} 
                                                     comparisonData={comparisonChartData}
+                                                    responses={responses}
+                                                    trigger={analysisTrigger}
                                                 />
                                             ) : (
                                                 <p className="text-muted-foreground">Analysis for this question type is not yet implemented.</p>
@@ -3137,6 +2628,7 @@ function GeneralSurveyPageContent({ surveyId, template }: { surveyId: string; te
                     <div className="space-y-4 mt-4">
                         <CrosstabAnalysisDisplay responses={responses} survey={survey} />
                         <CategoricalToScaleAnalysis responses={responses} survey={survey} />
+                        <SankeyAnalysisDisplay responses={responses} survey={survey} />
                     </div>
                 </TabsContent>
                  <TabsContent value="dashboard">
