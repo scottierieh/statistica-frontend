@@ -348,7 +348,7 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
             return [{
                 z: matrixData,
                 x: scales,
-                y: rows,
+                y: question.columns,
                 type: 'heatmap' as const,
                 colorscale: 'Blues',
                 text: matrixData.map(row => row.map(val => `${val.toFixed(1)}%`)),
@@ -359,7 +359,7 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
             }];
         } else if (chartType.includes('horizontal')) {
              return scales.map((scale, i) => ({
-                y: rows,
+                y: question.columns,
                 x: matrixData.map(row => row[i]),
                 name: scale,
                 type: 'bar' as const,
@@ -370,9 +370,9 @@ const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, re
                 hovertemplate: `<b>${scale}</b><br>%{y}: %{x:.1f}%<extra></extra>`
             }));
         }
-        else { // grouped or stacked vertical
+        else { // vertical bars
             return scales.map((scale, i) => ({
-                x: rows,
+                x: question.columns,
                 y: matrixData.map(row => row[i]),
                 name: scale,
                 type: 'bar' as const,
@@ -804,6 +804,9 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
                                     <p>No responses yet.</p>
                                 )}
                             </CardContent>
+                            <CardFooter className="flex justify-between">
+                                <Button variant="outline" onClick={prevStep}><ArrowLeft className="mr-2 h-4 w-4" /> Back to Settings</Button>
+                            </CardFooter>
                         </Card>
                     </TabsContent>
                 </Tabs>
@@ -871,5 +874,3 @@ const handleDateChange = (dateRange: DateRange | undefined) => {
     </div>
   );
 }
-
-    
