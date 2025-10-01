@@ -446,7 +446,7 @@ const NPSAnalysisDisplay = ({ question, responses, trigger }: { question: Questi
   
     return (
       <Card>
-        <CardHeader><CardTitle>{question.title}</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
         <CardContent>
             <div className="text-center">
                 <p>NPS Score</p>
