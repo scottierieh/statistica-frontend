@@ -245,23 +245,292 @@ const QuestionEditor = ({ question, onUpdate, onDelete, isPreview }: { question:
     );
 };
 
-const AnalysisResultDisplay = ({ question, responses }: { question: Question; responses: any[] }) => {
-  return null;
+const AnalysisResultDisplay = ({ question, responses, trigger }: { question: Question, responses: any[], trigger: number }) => {
+  const [result, setResult] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const analyze = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const answers = responses.map(r => r.answers[question.id]).filter(a => a !== undefined && a !== null && a !== '');
+        if (answers.length === 0) throw new Error("No responses for this question.");
+        
+        let stats;
+        if (question.type === 'rating' || question.type === 'number') {
+            stats = getNumericStats(answers as number[]);
+        } else {
+            stats = getCategoricalStats(answers.flat());
+        }
+        setResult(stats);
+    } catch (e: any) {
+        toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [question, responses, toast]);
+
+  useEffect(() => {
+    if (trigger > 0) {
+        analyze();
+    }
+  }, [trigger, analyze]);
+
+  if (isLoading) return <Skeleton className="h-48 w-full" />;
+  if (!result) return null;
+  
+  if (question.type === 'rating' || question.type === 'number') {
+    return (
+        <Card>
+            <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
+            <CardContent>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    <dt>Mean</dt><dd className="text-right">{result.mean?.toFixed(2)}</dd>
+                    <dt>Median</dt><dd className="text-right">{result.median}</dd>
+                    <dt>Std. Dev.</dt><dd className="text-right">{result.stdDev?.toFixed(2)}</dd>
+                    <dt>Count</dt><dd className="text-right">{result.count}</dd>
+                </dl>
+            </CardContent>
+        </Card>
+    );
+  }
+
+  return (
+    <Card>
+        <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
+        <CardContent>
+            <Table>
+                <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
+                <TableBody>
+                    {result.map((item: any) => (
+                        <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage}%</TableCell></TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </CardContent>
+    </Card>
+  );
 };
 
-const BestWorstAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
-  return null;
-};
-const MatrixAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
-  return null;
+const BestWorstAnalysisDisplay = ({ question, responses, trigger }: { question: Question, responses: any[], trigger: number }) => {
+  const [result, setResult] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const analyze = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const answers = responses.map(r => r.answers[question.id]).filter(a => a && a.best && a.worst);
+        if (answers.length === 0) throw new Error("No responses for Best/Worst question.");
+        
+        const body = {
+            data: answers.map(a => ({ bestChoice: a.best, worstChoice: a.worst })),
+            bestCol: 'bestChoice',
+            worstCol: 'worstChoice'
+        };
+        const res = await fetch('/api/analysis/maxdiff', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) throw new Error('MaxDiff analysis failed');
+        const data = await res.json();
+        setResult(data);
+    } catch (e: any) {
+        toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [question, responses, toast]);
+
+  useEffect(() => {
+    if (trigger > 0) {
+        analyze();
+    }
+  }, [trigger, analyze]);
+
+  if (isLoading) return <Skeleton className="h-48 w-full" />;
+  if (!result) return null;
+
+  return (
+    <Card>
+        <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
+        <CardContent>
+            {result.plot && <Image src={result.plot} alt="MaxDiff Plot" width={600} height={400} className="rounded-md" />}
+        </CardContent>
+    </Card>
+  )
 };
 
-const NPSAnalysisDisplay = ({ question, responses }: { question: Question; responses: any[] }) => {
-  return null;
+const MatrixAnalysisDisplay = ({ question, responses, trigger }: { question: Question, responses: any[], trigger: number }) => {
+    const [result, setResult] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const toast = useToast();
+
+    const analyze = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const body = { responses, question: { ...question, id: String(question.id) }};
+            const res = await fetch('/api/analysis/matrix', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (!res.ok) throw new Error('Matrix analysis failed');
+            const data = await res.json();
+            setResult(data);
+        } catch (e: any) {
+            toast.toast({ title: 'Error', description: e.message, variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [question, responses, toast]);
+
+    useEffect(() => {
+        if (trigger > 0) {
+            analyze();
+        }
+    }, [trigger, analyze]);
+
+    if (isLoading) return <Skeleton className="h-48 w-full" />;
+    if (!result) return null;
+    
+    const chartData = result.results?.mean_scores || [];
+    
+    return (
+        <Card>
+            <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
+            <CardContent>
+                <ChartContainer config={{}} className="h-80">
+                     <ResponsiveContainer>
+                        <RechartsBarChart data={chartData} layout="vertical">
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis type="number" unit="%" />
+                            <YAxis dataKey="name" type="category" width={100} />
+                            <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
+                            <Legend />
+                            {(question.columns || []).map((col, i) => (
+                                <Bar key={col} dataKey={col} stackId="a" fill={COLORS[i % COLORS.length]} />
+                            ))}
+                        </RechartsBarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            </CardContent>
+        </Card>
+    );
 };
 
-const RatingAnalysisDisplay = ({ question, responses }: { question: Question, responses: any[] }) => {
-  return null;
+const NPSAnalysisDisplay = ({ question, responses, trigger }: { question: Question; responses: any[], trigger: number }) => {
+    const [result, setResult] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const toast = useToast();
+  
+    const analyze = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const scores = responses.map(r => r.answers[question.id]).filter(s => typeof s === 'number');
+            if (scores.length === 0) throw new Error("No responses for NPS question.");
+            const res = await fetch('/api/analysis/nps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scores }) });
+            if (!res.ok) throw new Error('NPS analysis failed');
+            const data = await res.json();
+            setResult(data.results);
+        } catch (e: any) {
+            toast.toast({ title: 'Error', description: e.message, variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [question, responses, toast]);
+
+    useEffect(() => {
+        if (trigger > 0) {
+            analyze();
+        }
+    }, [trigger, analyze]);
+  
+    if (isLoading) return <Skeleton className="h-48 w-full" />;
+    if (!result) return null;
+  
+    const scoreCounts = Object.entries(result.scoreCounts).map(([score, count]) => ({ score: Number(score), count: count as number }));
+  
+    return (
+      <Card>
+        <CardHeader><CardTitle>{question.title}</CardTitle></CardHeader>
+        <CardContent>
+            <div className="text-center">
+                <p>NPS Score</p>
+                <p className="text-5xl font-bold">{result.nps.toFixed(1)}</p>
+            </div>
+            <ChartContainer config={{}} className="h-64">
+                <ResponsiveContainer>
+                    <RechartsBarChart data={scoreCounts}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="score" />
+                        <YAxis />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="count" name="Responses">
+                            {scoreCounts.map(entry => (
+                                <Cell key={entry.score} fill={entry.score >= 9 ? 'hsl(var(--chart-2))' : entry.score <= 6 ? 'hsl(var(--destructive))' : 'hsl(var(--muted-foreground))'} />
+                            ))}
+                        </Bar>
+                    </RechartsBarChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+        </CardContent>
+      </Card>
+    );
+};
+
+const RatingAnalysisDisplay = ({ question, responses, trigger }: { question: Question; responses: any[], trigger: number }) => {
+    const [result, setResult] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const { toast } = useToast();
+
+    const analyze = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const ratings = responses.map(r => r.answers[question.id]).filter(r => typeof r === 'number');
+            if (ratings.length === 0) throw new Error("No responses for this rating question.");
+            
+            const res = await fetch('/api/analysis/rating', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ratings, scale: question.scale?.length || 5 }) });
+            if (!res.ok) throw new Error('Rating analysis failed');
+            const data = await res.json();
+            setResult(data.results);
+        } catch (e: any) {
+            toast({ title: 'Error', description: e.message, variant: 'destructive' });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [question, responses, toast]);
+    
+    useEffect(() => {
+        if (trigger > 0) {
+            analyze();
+        }
+    }, [trigger, analyze]);
+    
+    if (isLoading) return <Skeleton className="h-48 w-full" />;
+    if(!result) return null;
+
+    return (
+        <Card>
+            <CardHeader><CardTitle>{question.text}</CardTitle></CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div className="flex flex-col items-center justify-center p-6 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Average Rating</p>
+                        <p className="text-4xl font-bold mt-2">{result.mean.toFixed(2)} <span className="text-base font-normal text-muted-foreground">/ {result.scale}</span></p>
+                        <div className="mt-4">
+                            <StarDisplay rating={result.mean} total={result.scale} />
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Metric</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{result.mean.toFixed(3)}</TableCell></TableRow>
+                                <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{result.median}</TableCell></TableRow>
+                                <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{result.mode}</TableCell></TableRow>
+                                <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{result.stdDev.toFixed(3)}</TableCell></TableRow>
+                                <TableRow><TableCell>Responses</TableCell><TableCell className="text-right">{result.count}</TableCell></TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
 };
 
 // Main Component
@@ -281,6 +550,7 @@ export default function SurveyApp1() {
       const { toast } = useToast();
       const [responses, setResponses] = useState<any[]>([]);
       const [surveyId, setSurveyId] = useState<string>('');
+      const [analysisTrigger, setAnalysisTrigger] = useState(0);
     
       useEffect(() => {
         // This effect runs once on mount to load data from localStorage.
@@ -597,18 +867,24 @@ export default function SurveyApp1() {
                             <Card>
                                 <CardHeader><CardTitle>Analysis</CardTitle></CardHeader>
                                 <CardContent className="space-y-4">
+                                     <div className="flex justify-end">
+                                        <Button onClick={() => setAnalysisTrigger(t => t + 1)}>
+                                            <Sigma className="mr-2 h-4 w-4" />
+                                            Refresh
+                                        </Button>
+                                    </div>
                                     {responses.length > 0 ? (
                                         survey.questions.map(q => {
                                             if (q.type === 'matrix') {
-                                                return <MatrixAnalysisDisplay key={q.id} question={q} responses={responses} />
+                                                return <MatrixAnalysisDisplay key={q.id} question={q} responses={responses} trigger={analysisTrigger} />
                                             } else if (q.type === 'best-worst') {
-                                                return <BestWorstAnalysisDisplay key={q.id} question={q} responses={responses} />
+                                                return <BestWorstAnalysisDisplay key={q.id} question={q} responses={responses} trigger={analysisTrigger} />
                                             } else if (q.type === 'rating') {
-                                                return <RatingAnalysisDisplay key={q.id} question={q} responses={responses} />;
+                                                return <RatingAnalysisDisplay key={q.id} question={q} responses={responses} trigger={analysisTrigger} />;
                                             } else if (q.type === 'nps') {
-                                                return <NPSAnalysisDisplay key={q.id} question={q} responses={responses} />;
+                                                return <NPSAnalysisDisplay key={q.id} question={q} responses={responses} trigger={analysisTrigger} />;
                                             }
-                                            return <AnalysisResultDisplay key={q.id} question={q} responses={responses} />
+                                            return <AnalysisResultDisplay key={q.id} question={q} responses={responses} trigger={analysisTrigger} />
                                         })
                                     ) : (
                                         <p>No responses yet.</p>
