@@ -59,7 +59,7 @@ def plot_scatter(df, config):
 
 def plot_heatmap(df, config):
     plt.figure(figsize=(10, 8))
-    corr = df[config['variables']].corr()
+    corr = df[config['variables']].corr(numeric_only=True)
     sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f")
     plt.title("Correlation Heatmap")
 
@@ -152,3 +152,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
