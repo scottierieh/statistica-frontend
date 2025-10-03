@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, CheckCircle2, AlertTriangle, FileSearch, MoveRight, Settings, HelpCircle, BrainCircuit } from 'lucide-react';
+import { Sigma, Loader2, CheckCircle2, AlertTriangle, FileSearch, MoveRight, Settings, HelpCircle, BrainCircuit, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
@@ -26,7 +26,7 @@ interface IntroPageProps {
 }
 
 function IntroPage({ onStart, onLoadExample }: IntroPageProps) {
-    const cfaExample = exampleDatasets.find(d => d.id === 'well-being-survey');
+    const cfaExample = useMemo(() => exampleDatasets.find(d => d.id === 'well-being-survey'), []);
     const Icon = cfaExample?.icon;
 
     return (
@@ -97,6 +97,99 @@ function IntroPage({ onStart, onLoadExample }: IntroPageProps) {
     );
 }
 
+const DualListBox = ({ allItems, selectedItems, setSelectedItems }: { allItems: string[], selectedItems: string[], setSelectedItems: (items: string[]) => void }) => {
+    const [highlightedAvailable, setHighlightedAvailable] = useState<string[]>([]);
+    const [highlightedSelected, setHighlightedSelected] = useState<string[]>([]);
+
+    const availableItems = useMemo(() => allItems.filter(item => !selectedItems.includes(item)), [allItems, selectedItems]);
+    
+    const handleSelection = (item: string, list: 'available' | 'selected', e: React.MouseEvent) => {
+        const currentHighlighted = list === 'available' ? highlightedAvailable : highlightedSelected;
+        const setHighlighted = list === 'available' ? setHighlightedAvailable : setHighlightedSelected;
+        const allListItems = list === 'available' ? availableItems : selectedItems;
+
+        if (e.ctrlKey || e.metaKey) {
+            if (currentHighlighted.includes(item)) {
+                setHighlighted(currentHighlighted.filter(i => i !== item));
+            } else {
+                setHighlighted([...currentHighlighted, item]);
+            }
+        } else if (e.shiftKey && currentHighlighted.length > 0) {
+            const lastSelectedItem = currentHighlighted[currentHighlighted.length - 1];
+            const lastIndex = allListItems.indexOf(lastSelectedItem);
+            const currentIndex = allListItems.indexOf(item);
+            const start = Math.min(lastIndex, currentIndex);
+            const end = Math.max(lastIndex, currentIndex);
+            const newSelection = allListItems.slice(start, end + 1);
+            setHighlighted([...new Set([...currentHighlighted, ...newSelection])]);
+        } else {
+            setHighlighted([item]);
+        }
+    };
+
+    const moveSelected = () => {
+        setSelectedItems([...new Set([...selectedItems, ...highlightedAvailable])]);
+        setHighlightedAvailable([]);
+    };
+
+    const moveAll = () => {
+        setSelectedItems([...allItems]);
+        setHighlightedAvailable([]);
+    };
+
+    const removeSelected = () => {
+        setSelectedItems(selectedItems.filter(item => !highlightedSelected.includes(item)));
+        setHighlightedSelected([]);
+    };
+
+    const removeAll = () => {
+        setSelectedItems([]);
+        setHighlightedSelected([]);
+    };
+
+    const ListItem = ({ item, highlighted, onSelect }: { item: string, highlighted: boolean, onSelect: (e: React.MouseEvent) => void }) => (
+        <div 
+            onClick={onSelect}
+            className={`px-2 py-1 cursor-pointer rounded ${highlighted ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`}
+        >
+            {item}
+        </div>
+    );
+
+    return (
+        <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+            {/* Available Items */}
+            <div className="flex flex-col gap-2">
+                <Label>Available Items ({availableItems.length})</Label>
+                <ScrollArea className="h-40 border rounded-md p-1">
+                    {availableItems.map(item => (
+                        <ListItem key={item} item={item} highlighted={highlightedAvailable.includes(item)} onSelect={(e) => handleSelection(item, 'available', e)} />
+                    ))}
+                </ScrollArea>
+            </div>
+            
+            {/* Controls */}
+            <div className="flex flex-col gap-2">
+                <Button variant="outline" size="icon" onClick={moveAll} aria-label="Move all to selected"><ChevronsRight /></Button>
+                <Button variant="outline" size="icon" onClick={moveSelected} disabled={highlightedAvailable.length === 0} aria-label="Move selected to right"><ChevronRight /></Button>
+                <Button variant="outline" size="icon" onClick={removeSelected} disabled={highlightedSelected.length === 0} aria-label="Move selected to left"><ChevronLeft /></Button>
+                <Button variant="outline" size="icon" onClick={removeAll} aria-label="Move all to available"><ChevronsLeft /></Button>
+            </div>
+
+            {/* Selected Items */}
+            <div className="flex flex-col gap-2">
+                <Label>Selected for Analysis ({selectedItems.length})</Label>
+                <ScrollArea className="h-40 border rounded-md p-1">
+                     {selectedItems.map(item => (
+                        <ListItem key={item} item={item} highlighted={highlightedSelected.includes(item)} onSelect={(e) => handleSelection(item, 'selected', e)} />
+                    ))}
+                </ScrollArea>
+            </div>
+        </div>
+    );
+};
+
+
 interface CfaPageProps {
     data: DataSet;
     numericHeaders: string[];
@@ -119,10 +212,6 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         setAnalysisResult(null);
         setView(canRun ? 'main' : 'intro');
     }, [data, numericHeaders, canRun]);
-
-    const handleItemSelectionChange = (header: string, checked: boolean) => {
-        setSelectedItems(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
-    };
 
     const handleAnalysis = useCallback(async () => {
         if (selectedItems.length < 3) {
@@ -190,15 +279,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                             />
                         </div>
                         <div>
-                            <Label>Variables Used in Model</Label>
-                            <ScrollArea className="h-40 border rounded-md p-4">
-                                {numericHeaders.map(h => (
-                                    <div key={h} className="flex items-center space-x-2">
-                                        <Checkbox id={`cfa-${h}`} checked={selectedItems.includes(h)} onCheckedChange={(c) => handleItemSelectionChange(h, c as boolean)} />
-                                        <Label htmlFor={`cfa-${h}`}>{h}</Label>
-                                    </div>
-                                ))}
-                            </ScrollArea>
+                             <DualListBox allItems={numericHeaders} selectedItems={selectedItems} setSelectedItems={setSelectedItems} />
                         </div>
                     </div>
                 </CardContent>
@@ -238,18 +319,27 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                                     }
 
                                     return (
-                                        <Card key={key} className={`${ status === 'poor' ? 'border-red-200 bg-red-50' : status === 'acceptable' ? 'border-yellow-200 bg-yellow-50' : 'border-green-200 bg-green-50' }`}>
+                                        <Card key={key} className={`${
+                                            status === 'poor' ? 'border-red-200 bg-red-50' : 
+                                            status === 'acceptable' ? 'border-yellow-200 bg-yellow-50' : 
+                                            'border-green-200 bg-green-50'
+                                        }`}>
                                             <CardContent className="p-4">
                                                 <div className="flex justify-between items-start mb-2"><div className="font-semibold text-sm">{key}</div>{statusIcon}</div>
                                                 <div className="text-2xl font-bold font-mono">
                                                     {typeof value === 'number' ? value.toFixed(3) : value}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground mt-1">{status === 'good' ? 'Good fit' : status === 'acceptable' ? 'Acceptable fit' : 'Poor fit'}</div>
+                                                <div className="text-xs text-muted-foreground mt-1">
+                                                    {status === 'good' ? 'Good fit' : 
+                                                     status === 'acceptable' ? 'Acceptable fit' : 
+                                                     'Poor fit'}
+                                                </div>
                                             </CardContent>
                                         </Card>
                                     );
                                 })}
                             </div>
+                            
                             <Alert className="mt-4">
                                 <FileSearch className="h-4 w-4" />
                                 <AlertTitle>Model Fit Interpretation</AlertTitle>
