@@ -21,7 +21,7 @@ interface CfaResults {
 }
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const cfaExample = useMemo(() => exampleDatasets.find(d => d.id === 'well-being-survey'), []);
+    const cfaExample = exampleDatasets.find(d => d.id === 'well-being-survey');
     const Icon = cfaExample?.icon;
 
     return (
