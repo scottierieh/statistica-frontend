@@ -4,6 +4,8 @@ export interface Survey {
   name: string;
   status: 'active' | 'draft' | 'closed';
   created_date: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface SurveyResponse {

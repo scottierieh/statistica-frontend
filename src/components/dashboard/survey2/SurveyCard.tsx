@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart, Edit, Users, Clock } from "lucide-react";
+import { BarChart, Edit, Users, Clock, Settings, Share2, QrCode, Copy, Download, Calendar as CalendarIcon } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -12,6 +12,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import type { Survey, SurveyResponse } from '@/types/survey';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import Image from "next/image";
+import { Loader2 } from "lucide-react";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
+import { addDays } from "date-fns";
 
 interface SurveyCardProps {
     survey: Survey;
@@ -19,12 +29,22 @@ interface SurveyCardProps {
     onUpdate: () => void;
 }
 
-
 export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardProps) {
+    const { toast } = useToast();
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [qrCodeUrl, setQrCodeUrl] = useState('');
+    const [isLoadingQr, setIsLoadingQr] = useState(false);
+    const [date, setDate] = useState<DateRange | undefined>({
+      from: survey.startDate ? new Date(survey.startDate) : undefined,
+      to: survey.endDate ? new Date(survey.endDate) : undefined,
+    });
+
     const cardVariants = {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0 },
     };
+
+    const surveyUrl = typeof window !== 'undefined' ? `${window.location.origin}/survey/view/general/${survey.id}` : '';
 
     const statusConfig = {
         active: { color: "bg-green-500", label: "Active" },
@@ -33,6 +53,48 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
     };
 
     const { color, label } = statusConfig[survey.status as keyof typeof statusConfig] || { color: 'bg-gray-500', label: 'Unknown' };
+
+    const generateQrCode = async () => {
+        if (!surveyUrl) return;
+        setIsLoadingQr(true);
+        try {
+            const response = await fetch(`/api/generate-qr-code?data=${encodeURIComponent(surveyUrl)}`);
+            if (!response.ok) throw new Error('Failed to generate QR code');
+            const result = await response.json();
+            setQrCodeUrl(result.image);
+        } catch (error) {
+            toast({ title: "QR Code Error", description: "Could not generate the QR code.", variant: "destructive" });
+        } finally {
+            setIsLoadingQr(false);
+        }
+    };
+
+    const copyUrlToClipboard = async () => {
+        try {
+            await navigator.clipboard.writeText(surveyUrl);
+            toast({ title: 'Copied to Clipboard', description: 'The survey URL has been copied.' });
+        } catch (error) {
+            console.error("Failed to copy", error);
+        }
+    };
+    
+    const downloadQrCode = () => {
+        if (qrCodeUrl) {
+            const link = document.createElement('a');
+            link.href = qrCodeUrl;
+            link.download = `${survey.name.replace(/\s+/g, '_')}_qr_code.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
+    
+    const handleSettingsSave = () => {
+      // In a real app, this would be an API call to update the survey
+      console.log("Saving settings:", { startDate: date?.from, endDate: date?.to });
+      toast({ title: "Settings Saved", description: "Survey settings have been updated."});
+      onUpdate(); // To refetch and reflect changes if any
+    };
 
     return (
         <motion.div
@@ -81,6 +143,44 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
                         Edit
                     </Button>
                 </Link>
+                 <Dialog onOpenChange={(open) => open && generateQrCode()}>
+                    <DialogTrigger asChild>
+                         <Button variant="outline" size="icon" className="shrink-0"><Settings className="w-4 h-4" /></Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                         <DialogHeader>
+                            <DialogTitle>Survey Settings & Share</DialogTitle>
+                             <DialogDescription>Manage survey availability and sharing options.</DialogDescription>
+                        </DialogHeader>
+                        <div className="grid md:grid-cols-2 gap-6 py-4">
+                            <div className="space-y-4">
+                                <h4 className="font-semibold">Activation Period</h4>
+                                <div className="space-y-2">
+                                    <Label htmlFor="date">Survey Dates</Label>
+                                    <DatePickerWithRange date={date} onDateChange={setDate} />
+                                </div>
+                                <Button onClick={handleSettingsSave}>Save Settings</Button>
+                            </div>
+                            <div className="space-y-4">
+                                <h4 className="font-semibold">Share</h4>
+                                <div>
+                                    <Label htmlFor="survey-link">Shareable Link</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Input id="survey-link" value={surveyUrl} readOnly />
+                                        <Button variant="outline" size="icon" onClick={copyUrlToClipboard}><Copy className="w-4 h-4" /></Button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label>QR Code</Label>
+                                    <div className="flex flex-col items-center gap-2 p-4 border rounded-lg">
+                                        {isLoadingQr ? <Loader2 className="w-8 h-8 animate-spin" /> : qrCodeUrl ? <Image src={qrCodeUrl} alt="Survey QR Code" width={200} height={200} data-ai-hint="QR code"/> : <p>Could not load QR code.</p>}
+                                        <Button variant="outline" disabled={!qrCodeUrl || isLoadingQr} onClick={downloadQrCode}><Download className="mr-2" /> Download</Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </motion.div>
     );
