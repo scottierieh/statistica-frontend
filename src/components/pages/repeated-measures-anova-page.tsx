@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -98,7 +99,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
 export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHeaders, categoricalHeaders, onLoadExample }: { data: DataSet; allHeaders: string[], numericHeaders: string[], categoricalHeaders: string[], onLoadExample: (data: any) => void }) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<FullAnalysisResponse | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
   const [view, setView] = useState('intro');
 
   const [subjectCol, setSubjectCol] = useState<string | undefined>();
@@ -116,7 +117,7 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
     } else {
         setView('intro');
     }
-    setResult(null);
+    setAnalysisResult(null);
   }, [canRun, allHeaders, numericHeaders]);
 
   const handleWithinChange = (header: string, checked: boolean) => {
@@ -129,7 +130,7 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
       return;
     }
     setIsLoading(true);
-    setResult(null);
+    setAnalysisResult(null);
 
     try {
       const response = await fetch('/api/analysis/repeated-measures-anova', {
@@ -146,7 +147,7 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
       const res = await response.json();
       if (res.error) throw new Error(res.error);
 
-      setResult(res);
+      setAnalysisResult(res);
       toast({ title: 'Analysis Complete', description: 'Repeated measures ANOVA has been successfully executed.' });
     } catch (error: any) {
       toast({ title: 'Analysis Error', description: error.message, variant: 'destructive' });
@@ -158,6 +159,8 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
     if (view === 'intro' || !canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
+
+    const results = analysisResult?.results;
 
   return (
     <div className="space-y-6">
@@ -203,14 +206,16 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
 
       {isLoading && <Skeleton className="w-full h-96" />}
 
-      {result && (
+      {analysisResult && (
         <div className="space-y-4">
-            <Card>
-                <CardHeader><CardTitle>Plot</CardTitle></CardHeader>
-                <CardContent>
-                    <Image src={result.plot} alt="Interaction Plot" width={800} height={600} className="w-full h-auto rounded-md border" />
-                </CardContent>
-            </Card>
+            {analysisResult.plot && (
+                <Card>
+                    <CardHeader><CardTitle>Plot</CardTitle></CardHeader>
+                    <CardContent>
+                        <Image src={analysisResult.plot} alt="Interaction Plot" width={800} height={600} className="w-full h-auto rounded-md border" />
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader><CardTitle>ANOVA Summary Table</CardTitle></CardHeader>
@@ -218,7 +223,7 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
                      <Table>
                         <TableHeader><TableRow><TableHead>Source</TableHead><TableHead>SS</TableHead><TableHead>DF</TableHead><TableHead>MS</TableHead><TableHead>F</TableHead><TableHead>p-unc</TableHead><TableHead>p-GG-corr</TableHead><TableHead>np2</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {(result.results.anova_table || []).map((row: any, i: number) => (
+                            {(results.anova_table || []).map((row: any, i: number) => (
                                 <TableRow key={i}>
                                     <TableCell>{row.Source}</TableCell>
                                     <TableCell>{row.SS?.toFixed(3)}</TableCell>
@@ -234,18 +239,18 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
                     </Table>
                 </CardContent>
             </Card>
-             {result.results.mauchly_test && (
+             {results.mauchly_test && (
                  <Card>
                     <CardHeader><CardTitle>Mauchly's Test for Sphericity</CardTitle></CardHeader>
                     <CardContent>
-                        <p>Sphericity assumed: {result.results.mauchly_test.sphericity ? 'Yes' : 'No'} (W={result.results.mauchly_test.W?.toFixed(3)}, p={result.results.mauchly_test['p-val']?.toFixed(4)})</p>
+                        <p>Sphericity assumed: {results.mauchly_test.sphericity ? 'Yes' : 'No'} (W={results.mauchly_test.W?.toFixed(3)}, p={results.mauchly_test['p-val']?.toFixed(4)})</p>
                          <p className="text-xs text-muted-foreground mt-1">If p &lt; 0.05, the assumption is violated. Use the Greenhouse-Geisser (p-GG-corr) corrected p-value.</p>
                     </CardContent>
                 </Card>
             )}
-             {result.results.posthoc_results && (
+             {results.posthoc_results && (
                  <Card>
-                    <CardHeader><CardTitle>Pairwise Post-Hoc Tests (Tukey)</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Pairwise Post-Hoc Tests (Bonferroni)</CardTitle></CardHeader>
                     <CardContent>
                         <Table>
                              <TableHeader>
@@ -254,18 +259,18 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
                                     <TableHead>A</TableHead>
                                     <TableHead>B</TableHead>
                                     <TableHead className="text-right">T</TableHead>
-                                    <TableHead className="text-right">p-tukey</TableHead>
+                                    <TableHead className="text-right">p-corr</TableHead>
                                     <TableHead className="text-right">hedges</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {result.results.posthoc_results.map((row: any, i: number) => (
+                                {results.posthoc_results.map((row: any, i: number) => (
                                      <TableRow key={i}>
                                         <TableCell>{row.Contrast}</TableCell>
                                         <TableCell>{row.A}</TableCell>
                                         <TableCell>{row.B}</TableCell>
                                         <TableCell className="font-mono text-right">{row.T?.toFixed(3)}</TableCell>
-                                        <TableCell className="font-mono text-right">{row['p-tukey'] < 0.001 ? '<.001' : row['p-tukey']?.toFixed(4)}</TableCell>
+                                        <TableCell className="font-mono text-right">{row['p-corr'] < 0.001 ? '<.001' : row['p-corr']?.toFixed(4)}</TableCell>
                                         <TableCell className="font-mono text-right">{row.hedges?.toFixed(3)}</TableCell>
                                     </TableRow>
                                 ))}
