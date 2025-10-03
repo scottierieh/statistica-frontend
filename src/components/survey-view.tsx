@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -16,29 +17,29 @@ import { Progress } from './ui/progress';
 import { produce } from 'immer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
+import type { Question } from '@/entities/Survey';
 
-const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { question: any; answer?: string; onAnswerChange: (value: string) => void; }) => {
-    return (
-        <div className="p-4">
-            <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
-            {question.imageUrl && (
-                 <div className="my-4">
-                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; }) => (
+    <div className="p-4">
+        <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+        {question.imageUrl && (
+             <div className="my-4">
+                <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+            </div>
+        )}
+        <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-3">
+            {question.options?.map((option: string, index: number) => (
+                <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
+                    <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
+                    <Label htmlFor={`q${question.id}-o${index}`} className="flex-1 cursor-pointer">{option}</Label>
                 </div>
-            )}
-            <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-3">
-                {question.options.map((option: string, index: number) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
-                        <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
-                        <Label htmlFor={`q${question.id}-o${index}`} className="flex-1 cursor-pointer">{option}</Label>
-                    </div>
-                ))}
-            </RadioGroup>
-        </div>
-    );
-};
+            ))}
+        </RadioGroup>
+    </div>
+);
 
-const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { question: any; answer?: string[]; onAnswerChange: (newAnswer: string[]) => void; }) => {
+const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { question: Question; answer?: string[]; onAnswerChange: (newAnswer: string[]) => void; }) => {
    const handleCheckChange = (checked: boolean, opt: string) => {
        if (!onAnswerChange) return;
        const currentAnswers = answer || [];
@@ -57,7 +58,7 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { 
                 </div>
             )}
            <div className="space-y-2">
-                {question.options.map((option: string, index: number) => (
+                {question.options?.map((option: string, index: number) => (
                    <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
                        <Checkbox
                            id={`q${question.id}-o${index}`}
@@ -72,7 +73,7 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { 
    );
 };
 
-const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: any; answer?: string; onAnswerChange: (value: string) => void; }) => {
+const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; }) => {
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
@@ -86,7 +87,7 @@ const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: any;
                     <SelectValue placeholder="Select an option..." />
                 </SelectTrigger>
                 <SelectContent>
-                    {question.options.map((option: string, index: number) => (
+                    {question.options?.map((option: string, index: number) => (
                         <SelectItem key={index} value={option}>{option}</SelectItem>
                     ))}
                 </SelectContent>
@@ -96,7 +97,7 @@ const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: any;
 };
 
 
-const TextQuestion = ({ question, answer, onAnswerChange }: { question: any, answer: string, onAnswerChange: (value: string) => void }) => (
+const TextQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
   <div className="p-4">
     <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
      {question.imageUrl && (
@@ -108,7 +109,7 @@ const TextQuestion = ({ question, answer, onAnswerChange }: { question: any, ans
   </div>
 );
 
-const NumberQuestion = ({ question, answer, onAnswerChange }: { question: any, answer: string, onAnswerChange: (value: string) => void }) => (
+const NumberQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
     <div className="p-4">
       <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
        {question.imageUrl && (
@@ -120,7 +121,7 @@ const NumberQuestion = ({ question, answer, onAnswerChange }: { question: any, a
     </div>
 );
 
-const PhoneQuestion = ({ question, answer, onAnswerChange }: { question: any, answer: string, onAnswerChange: (value: string) => void }) => (
+const PhoneQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
   <div className="p-4">
     <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
      {question.imageUrl && (
@@ -132,7 +133,7 @@ const PhoneQuestion = ({ question, answer, onAnswerChange }: { question: any, an
   </div>
 );
 
-const EmailQuestion = ({ question, answer, onAnswerChange }: { question: any, answer: string, onAnswerChange: (value: string) => void }) => (
+const EmailQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
   <div className="p-4">
     <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
     {question.imageUrl && (
@@ -144,23 +145,27 @@ const EmailQuestion = ({ question, answer, onAnswerChange }: { question: any, an
   </div>
 );
 
-const RatingQuestion = ({ question, answer, onAnswerChange }: { question: any; answer: number; onAnswerChange: (value: number) => void; }) => (
-  <div className="p-4">
-     <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
-     {question.imageUrl && (
-        <div className="my-4">
-            <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+const RatingQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: number; onAnswerChange: (value: number) => void; }) => {
+    const scale = question.scale || ['1','2','3','4','5'];
+    return (
+        <div className="p-4">
+            <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+            {question.imageUrl && (
+            <div className="my-4">
+                <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+            </div>
+        )}
+        <div className="flex items-center gap-2">
+        {scale.map((_, index) => (
+            <Star key={index} className={cn("w-8 h-8 text-yellow-400 cursor-pointer hover:text-yellow-500 transition-colors", (index + 1) <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(index + 1)}/>
+        ))}
         </div>
-    )}
-    <div className="flex items-center gap-2">
-      {[1, 2, 3, 4, 5].map(rating => (
-        <Star key={rating} className={cn("w-8 h-8 text-yellow-400 cursor-pointer hover:text-yellow-500 transition-colors", rating <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(rating)}/>
-      ))}
     </div>
-  </div>
-);
+  );
+}
 
-const NPSQuestion = ({ question, answer, onAnswerChange }: { question: any; answer: number; onAnswerChange: (value: number) => void; }) => (
+
+const NPSQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: number; onAnswerChange: (value: number) => void; }) => (
     <div className="p-4">
       <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
        {question.imageUrl && (
@@ -170,7 +175,7 @@ const NPSQuestion = ({ question, answer, onAnswerChange }: { question: any; answ
         )}
       <div className="flex items-center justify-between gap-1 flex-wrap">
         {[...Array(11)].map((_, i) => (
-            <Button key={i} variant={answer === i ? 'default' : 'outline'} size="icon" className="h-10 w-8 text-xs transition-transform hover:scale-110 active:scale-95" onClick={() => onAnswerChange(i)}>
+            <Button key={i} variant={answer === i ? 'default' : 'outline'} size="icon" className="h-10 w-8 text-xs transition-transform hover:scale-110 active:scale-95" onClick={() => onAnswerChange?.(i)}>
                 {i}
             </Button>
         ))}
@@ -182,13 +187,13 @@ const NPSQuestion = ({ question, answer, onAnswerChange }: { question: any; answ
     </div>
 );
 
-const DescriptionBlock = ({ question }: { question: any }) => (
+const DescriptionBlock = ({ question }: { question: Question }) => (
     <div className="p-4 prose dark:prose-invert">
       <p>{question.content}</p>
     </div>
 );
 
-const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: any, answer: { best?: string, worst?: string }, onAnswerChange: (value: any) => void }) => {
+const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: { best?: string, worst?: string }, onAnswerChange: (value: any) => void }) => {
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
@@ -203,7 +208,7 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: any
                     <div className="font-semibold text-center w-20">Best</div>
                     <div className="font-semibold text-center w-20">Worst</div>
                 </div>
-                {question.items.map((item: string, index: number) => (
+                {question.items?.map((item: string, index: number) => (
                     <div key={index} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 p-2 border rounded-md hover:bg-accent transition-colors">
                         <div>{item}</div>
                         <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })} className="flex items-center justify-center w-20">
@@ -220,7 +225,7 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: any
 };
 
 
-const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: any, answer: any, onAnswerChange: (value: any) => void }) => {
+const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: any, onAnswerChange: (value: any) => void }) => {
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
@@ -228,11 +233,11 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: any, a
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-1/3"></TableHead>
-                        {question.columns.map((col: string, colIndex: number) => {
-                            const showLabel = colIndex === 0 || colIndex === question.columns.length - 1;
+                        {question.columns?.map((col: string, colIndex: number) => {
+                            const showLabel = colIndex === 0 || colIndex === (question.columns?.length || 0) - 1;
                             return (
                                 <TableHead key={colIndex} className={cn("text-center text-xs w-[60px]", !showLabel && "hidden sm:table-cell")}>
-                                    {showLabel ? question.scale[colIndex] : col}
+                                    {showLabel ? question.scale?.[colIndex] : col}
                                 </TableHead>
                             );
                         })}
@@ -242,15 +247,13 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: any, a
                      {(question.rows || []).map((row: string, rowIndex: number) => (
                          <TableRow key={rowIndex}>
                             <TableCell>{row}</TableCell>
-                            <RadioGroup asChild value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                <>
-                                {question.columns.map((col: string, colIndex: number) => (
-                                    <TableCell key={colIndex} className="text-center">
+                            {question.columns?.map((col: string, colIndex: number) => (
+                                <TableCell key={colIndex} className="text-center">
+                                     <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                         <RadioGroupItem value={col}/>
-                                    </TableCell>
-                                ))}
-                                </>
-                            </RadioGroup>
+                                    </RadioGroup>
+                                </TableCell>
+                            ))}
                         </TableRow>
                      ))}
                 </TableBody>
@@ -309,23 +312,15 @@ export default function SurveyView() {
         }
     }, [surveyId]);
     
-    const handleAnswerChange = (questionId: number, value: any) => {
+    const handleAnswerChange = (questionId: string, value: any) => {
         setAnswers((prev: any) => ({
             ...prev,
             [questionId]: value
         }));
     };
-    
-    const toggleMultipleChoice = (questionId: number, option: string) => {
-        const currentAnswers = answers[questionId] || [];
-        const newAnswers = currentAnswers.includes(option)
-          ? currentAnswers.filter((a: string) => a !== option)
-          : [...currentAnswers, option];
-        setAnswers({ ...answers, [questionId]: newAnswers });
-    };
 
     const handleNext = () => {
-        if (currentQuestionIndex < survey.questions.length - 1) {
+        if (survey && currentQuestionIndex < survey.questions.length - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
         }
     };
@@ -436,10 +431,10 @@ export default function SurveyView() {
         )
     }
     
-    const progress = ((currentQuestionIndex + 2) / (survey.questions.length + 1)) * 100;
+    const progress = survey ? ((currentQuestionIndex + 2) / (survey.questions.length + 1)) * 100 : 0;
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4 transition-all">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-muted/40">
              <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-sm">
                 <CardHeader className="text-center">
                     <CardTitle className="font-headline text-3xl">{survey.title}</CardTitle>
@@ -488,9 +483,9 @@ export default function SurveyView() {
                            initial={{ opacity: 0, x: 50 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -50 }}
-                          className="p-8 md:p-12"
+                           className="p-4"
                         >
-                            {QuestionComponent && (
+                            {QuestionComponent && survey && (
                                 <div key={currentQuestion.id}>
                                     <QuestionComponent
                                         question={currentQuestion}
