@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -37,6 +36,19 @@ interface TTestResults {
     cohens_d: number;
     confidence_interval?: [number, number];
     interpretation: string;
+    levene_test?: {
+        statistic: number;
+        p_value: number;
+        assumption_met: boolean;
+    };
+     descriptives?: {
+        [key: string]: {
+            n: number;
+            mean: number;
+            std_dev: number;
+            se_mean?: number;
+        }
+    }
 }
 
 interface FullAnalysisResponse {
@@ -179,7 +191,7 @@ const OneSampleSetup = ({ numericHeaders, oneSampleVar, setOneSampleVar, testVal
             <div>
                 <Label htmlFor="oneSampleVar">Variable</Label>
                 <Select value={oneSampleVar} onValueChange={setOneSampleVar}>
-                    <SelectTrigger id="oneSampleVar"><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="oneSampleVar"><SelectValue placeholder="Select a numeric variable..." /></SelectTrigger>
                     <SelectContent>{numericHeaders.map((h: string) => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                 </Select>
             </div>
@@ -407,7 +419,7 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             <Card>
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">T-Test Setup</CardTitle>
+                        <CardTitle className="font-headline">{activeTest.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())} T-Test Setup</CardTitle>
                         <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
                     </div>
                 </CardHeader>
@@ -425,9 +437,9 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
             
             {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
 
-            {results && analysisResult?.plot && (
+            {analysisResult && results && (
                 <div className="space-y-4">
-                    <Card>
+                     <Card>
                         <CardHeader>
                             <CardTitle>Analysis Interpretation</CardTitle>
                         </CardHeader>
@@ -439,17 +451,42 @@ export default function TTestPage({ data, numericHeaders, categoricalHeaders, on
                             </Alert>
                         </CardContent>
                     </Card>
-                    <Card>
-                         <CardHeader>
-                            <CardTitle>Visualizations</CardTitle>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Diagnostic Plots</CardTitle>
                         </CardHeader>
-                         <CardContent>
+                        <CardContent>
                              <Image src={analysisResult.plot} alt="T-Test Plots" width={1200} height={1000} className="w-full rounded-md border"/>
                         </CardContent>
                     </Card>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader><CardTitle>T-Test Statistics</CardTitle></CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableBody>
+                                        <TableRow><TableCell>t-statistic</TableCell><TableCell className="text-right font-mono">{results.t_statistic.toFixed(3)}</TableCell></TableRow>
+                                        <TableRow><TableCell>Degrees of Freedom</TableCell><TableCell className="text-right font-mono">{results.degrees_of_freedom.toFixed(2)}</TableCell></TableRow>
+                                        <TableRow><TableCell>p-value</TableCell><TableCell className="text-right font-mono">{results.p_value < 0.001 ? '&lt; 0.001' : results.p_value.toFixed(4)}</TableCell></TableRow>
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                         <Card>
+                            <CardHeader><CardTitle>Effect Size &amp; Confidence Interval</CardTitle></CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableBody>
+                                        <TableRow><TableCell>Cohen's d</TableCell><TableCell className="text-right font-mono">{results.cohens_d.toFixed(3)}</TableCell></TableRow>
+                                        {results.mean_diff !== undefined && <TableRow><TableCell>Mean Difference</TableCell><TableCell className="text-right font-mono">{results.mean_diff.toFixed(3)}</TableCell></TableRow>}
+                                        {results.confidence_interval && <TableRow><TableCell>95% CI of Difference</TableCell><TableCell className="text-right font-mono">[{results.confidence_interval[0].toFixed(3)}, {results.confidence_interval[1].toFixed(3)}]</TableCell></TableRow>}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             )}
         </div>
     );
 }
-
