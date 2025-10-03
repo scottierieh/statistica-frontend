@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -5,46 +6,63 @@ import path from 'path';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { data, subject_col, condition_col, value_col } = body;
+    const pythonExecutable = path.resolve(process.cwd(), 'backend', 'venv', 'bin', 'python');
+    const scriptPath = path.resolve(process.cwd(), 'backend', 'repeated_measures_anova_analysis.py');
 
-    // Basic validation
-    if (!data || !subject_col || !condition_col || !value_col) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
-    }
+    const pythonProcess = spawn(pythonExecutable, [scriptPath]);
+    
+    let result = '';
+    let error = '';
 
-    const pythonProcess = spawn('python3', [
-        path.resolve(process.cwd(), 'src/backend/repeated_measures_anova_analysis.py'),
-    ]);
+    pythonProcess.stdout.on('data', (data) => {
+      result += data.toString();
+    });
 
-    let pythonOutput = '';
-    let pythonError = '';
+    pythonProcess.stderr.on('data', (data) => {
+      error += data.toString();
+    });
 
-    pythonProcess.stdin.write(JSON.stringify(body));
+    // Pass the correct parameter names to the python script
+    const scriptPayload = {
+      data: body.data,
+      subjectCol: body.subjectCol,
+      withinCols: body.withinCols,
+      dependentVar_template: body.dependentVar, // Corrected parameter name
+      betweenCol: body.betweenCol,
+    };
+
+    pythonProcess.stdin.write(JSON.stringify(scriptPayload));
     pythonProcess.stdin.end();
 
-    for await (const chunk of pythonProcess.stdout) {
-        pythonOutput += chunk;
-    }
+    return new Promise<NextResponse>((resolve) => {
+      pythonProcess.on('close', (code) => {
+        if (code !== 0) {
+          console.error(`Script exited with code ${code}`);
+          console.error(error);
+          try {
+            const errorJson = JSON.parse(error);
+             resolve(NextResponse.json({ error: errorJson.error || 'Unknown error occurred in Python script.' }, { status: 500 }));
+          } catch(e) {
+             resolve(NextResponse.json({ error: `Script failed: ${error}` }, { status: 500 }));
+          }
+        } else {
+          try {
+            const jsonResult = JSON.parse(result);
+            if (jsonResult.error) {
+              resolve(NextResponse.json({ error: jsonResult.error }, { status: 400 }));
+            } else {
+              resolve(NextResponse.json(jsonResult));
+            }
+          } catch(e) {
+            console.error('Failed to parse python script output');
+            console.error(result);
+            resolve(NextResponse.json({ error: `Failed to parse script output: ${result}` }, { status: 500 }));
+          }
+        }
+      });
+    });
 
-    for await (const chunk of pythonProcess.stderr) {
-        pythonError += chunk;
-    }
-
-    if (pythonError) {
-      console.error('Python script error:', pythonError);
-      return NextResponse.json({ error: 'Error executing Python script', details: pythonError }, { status: 500 });
-    }
-
-    try {
-      const result = JSON.parse(pythonOutput);
-      return NextResponse.json(result, { status: 200 });
-    } catch (e) {
-      console.error('Error parsing Python output:', pythonOutput);
-      return NextResponse.json({ error: 'Failed to parse analysis results', details: pythonOutput }, { status: 500 });
-    }
-
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
