@@ -140,7 +140,7 @@ const analysisCategories = [
           {
             name: 'T-Tests',
             items: [
-                { id: 'one-sample-t-test', label: 'One-Sample T-Test', icon: Target, component: OneSampleTTestPage },
+                { id: 't-test-one-sample', label: 'One-Sample T-Test', icon: Target, component: TTestPage },
                 { id: 't-test-independent-samples', label: 'Independent Samples', icon: Users, component: TTestPage },
                 { id: 't-test-paired-samples', label: 'Paired Samples', icon: Repeat, component: TTestPage },
             ]
