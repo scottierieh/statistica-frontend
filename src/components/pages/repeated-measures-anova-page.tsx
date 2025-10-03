@@ -80,7 +80,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>Sphericity (Mauchly's Test):</strong> If this test is significant (p &lt; .05), the assumption of sphericity is violated. You should rely on the corrected p-values (e.g., Greenhouse-Geisser).
+                                    <strong>Sphericity (Mauchly's Test):</strong> If this test is significant (p &lt; .05), the assumption of sphericity is violated. You should rely on the corrected p-values (e.g., Greenhouse-Geisser or Huynh-Feldt).
                                 </li>
                                 <li><strong>Main Effects & Interactions:</strong> A significant p-value for the within-subjects factor indicates a change over time. A significant interaction effect means the change over time differs between your between-subjects groups.</li>
                                 <li><strong>Effect Size (η²p):</strong> Partial eta-squared indicates the proportion of variance explained by a factor.</li>
@@ -243,7 +243,7 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
                  <Card>
                     <CardHeader><CardTitle>Mauchly's Test for Sphericity</CardTitle></CardHeader>
                     <CardContent>
-                        <p>Sphericity assumed: {results.mauchly_test.sphericity ? 'Yes' : 'No'} (W={results.mauchly_test.W?.toFixed(3)}, p={results.mauchly_test['p-val']?.toFixed(4)})</p>
+                        <p>Sphericity assumed: {results.mauchly_test.spher ? 'Yes' : 'No'} (W={results.mauchly_test['W-spher']?.toFixed(3)}, p={results.mauchly_test['p-val']?.toFixed(4)})</p>
                          <p className="text-xs text-muted-foreground mt-1">If p &lt; 0.05, the assumption is violated. Use the Greenhouse-Geisser (p-GG-corr) corrected p-value.</p>
                     </CardContent>
                 </Card>
