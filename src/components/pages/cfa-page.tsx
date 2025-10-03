@@ -206,7 +206,83 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                             <CardDescription>Key metrics to evaluate how well the model fits the data.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                           {/* Fit indices display will go here */}
+                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {Object.entries(analysisResult.fit_indices).map(([key, value]) => {
+                                    // 적합도 기준 설정
+                                    let status: 'good' | 'acceptable' | 'poor' = 'good';
+                                    let statusIcon = <CheckCircle2 className="w-4 h-4 text-green-600" />;
+                                    
+                                    if (key === 'CFI' || key === 'TLI') {
+                                        if (value < 0.90) {
+                                            status = 'poor';
+                                            statusIcon = <AlertTriangle className="w-4 h-4 text-red-600" />;
+                                        } else if (value < 0.95) {
+                                            status = 'acceptable';
+                                            statusIcon = <AlertTriangle className="w-4 h-4 text-yellow-600" />;
+                                        }
+                                    } else if (key === 'RMSEA') {
+                                        if (value > 0.08) {
+                                            status = 'poor';
+                                            statusIcon = <AlertTriangle className="w-4 h-4 text-red-600" />;
+                                        } else if (value > 0.05) {
+                                            status = 'acceptable';
+                                            statusIcon = <AlertTriangle className="w-4 h-4 text-yellow-600" />;
+                                        }
+                                    } else if (key === 'SRMR') {
+                                        if (value > 0.10) {
+                                            status = 'poor';
+                                            statusIcon = <AlertTriangle className="w-4 h-4 text-red-600" />;
+                                        } else if (value > 0.08) {
+                                            status = 'acceptable';
+                                            statusIcon = <AlertTriangle className="w-4 h-4 text-yellow-600" />;
+                                        }
+                                    }
+                                    
+                                    return (
+                                        <Card key={key} className={`${
+                                            status === 'poor' ? 'border-red-200 bg-red-50' : 
+                                            status === 'acceptable' ? 'border-yellow-200 bg-yellow-50' : 
+                                            'border-green-200 bg-green-50'
+                                        }`}>
+                                            <CardContent className="p-4">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="font-semibold text-sm">{key}</div>
+                                                    {statusIcon}
+                                                </div>
+                                                <div className="text-2xl font-bold font-mono">
+                                                    {typeof value === 'number' ? value.toFixed(3) : value}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground mt-1">
+                                                    {status === 'good' ? 'Good fit' : 
+                                                     status === 'acceptable' ? 'Acceptable fit' : 
+                                                     'Poor fit'}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
+                            </div>
+                            
+                            {/* 적합도 해석 요약 */}
+                            <Alert className="mt-4">
+                                <FileSearch className="h-4 w-4" />
+                                <AlertTitle>Model Fit Interpretation</AlertTitle>
+                                <AlertDescription>
+                                    {(() => {
+                                        const cfi = analysisResult.fit_indices.CFI || 0;
+                                        const rmsea = analysisResult.fit_indices.RMSEA || 1;
+                                        const srmr = analysisResult.fit_indices.SRMR || 1;
+                                        
+                                        if (cfi > 0.95 && rmsea < 0.06 && srmr < 0.08) {
+                                            return "Excellent model fit! All indices meet stringent criteria.";
+                                        } else if (cfi > 0.90 && rmsea < 0.08 && srmr < 0.10) {
+                                            return "Acceptable model fit. Consider reviewing modification indices for potential improvements.";
+                                        } else {
+                                            return "Poor model fit. Consider model respecification or examining residuals.";
+                                        }
+                                    })()}
+                                </AlertDescription>
+                            </Alert>
                         </CardContent>
                     </Card>
                     <Card>
