@@ -22,6 +22,8 @@ interface CfaResults {
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const cfaExample = exampleDatasets.find(d => d.id === 'well-being-survey');
+    const Icon = cfaExample?.icon;
+
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -44,9 +46,9 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                         </p>
                     </div>
                     <div className="flex justify-center">
-                        {cfaExample && (
+                        {cfaExample && Icon && (
                             <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
-                                <cfaExample.icon className="mx-auto h-8 w-8 text-primary"/>
+                                <Icon className="mx-auto h-8 w-8 text-primary"/>
                                 <div>
                                     <h4 className="font-semibold">{cfaExample.name}</h4>
                                     <p className="text-xs text-muted-foreground">{cfaExample.description}</p>
@@ -67,7 +69,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li><strong>Fit Indices (CFI, TLI, RMSEA, SRMR):</strong> These are crucial for evaluating model fit. Look for CFI/TLI > .90 (ideally > .95), RMSEA < .08, and SRMR < .08 for acceptable fit.</li>
-                                <li><strong>Factor Loadings:</strong> The 'Estimate' column for ` =~ ` relationships shows the factor loadings. Standardized loadings > 0.5 are generally considered good.</li>
+                                <li><strong>Factor Loadings:</strong> The 'Estimate' column for `=~` relationships shows the factor loadings. Standardized loadings > 0.5 are generally considered good.</li>
                                 <li><strong>P-values:</strong> Significant p-values (&lt; .05) for loadings indicate that the item is a significant indicator of its latent factor.</li>
                             </ul>
                         </div>
@@ -146,40 +148,6 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         }
     }, [data, selectedItems, modelSpec, toast]);
 
-    const renderFitIndices = () => {
-        if (!analysisResult?.fit_indices) return null;
-        const fit = analysisResult.fit_indices;
-        const fitCriteria = {
-            cfi: { value: fit.cfi, good: 0.95, ok: 0.90 },
-            tli: { value: fit.tli, good: 0.95, ok: 0.90 },
-            rmsea: { value: fit.rmsea, good: 0.06, ok: 0.08, reverse: true },
-            srmr: { value: fit.srmr, good: 0.08, ok: 0.10, reverse: true },
-        };
-
-        const getBadge = (metric: any) => {
-            if (metric.reverse) {
-                if (metric.value <= metric.good) return <Badge>Good</Badge>;
-                if (metric.value <= metric.ok) return <Badge variant="secondary">Acceptable</Badge>;
-                return <Badge variant="destructive">Poor</Badge>;
-            }
-            if (metric.value >= metric.good) return <Badge>Good</Badge>;
-            if (metric.value >= metric.ok) return <Badge variant="secondary">Acceptable</Badge>;
-            return <Badge variant="destructive">Poor</Badge>;
-        }
-
-        return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                {Object.entries(fitCriteria).map(([name, metric]) => (
-                    <div key={name} className="p-4 bg-muted rounded-lg">
-                        <p className="text-sm font-medium text-muted-foreground">{name.toUpperCase()}</p>
-                        <p className="text-2xl font-bold">{metric.value.toFixed(3)}</p>
-                        {getBadge(metric)}
-                    </div>
-                ))}
-            </div>
-        );
-    };
-
     if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
@@ -238,7 +206,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                             <CardDescription>Key metrics to evaluate how well the model fits the data.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {renderFitIndices()}
+                           {/* Fit indices display will go here */}
                         </CardContent>
                     </Card>
                     <Card>
