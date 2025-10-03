@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -9,17 +8,14 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
-import { Textarea } from '@/components/ui/textarea';
-import Image from 'next/image';
-import { Progress } from '@/components/ui/progress';
-import { Star, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { produce } from 'immer';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, Star, ThumbsUp, ThumbsDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Textarea } from './ui/textarea';
+import { Progress } from './ui/progress';
+import { produce } from 'immer';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import Image from 'next/image';
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { question: any; answer?: string; onAnswerChange: (value: string) => void; }) => {
     return (
@@ -30,7 +26,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { questio
                     <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
                 </div>
             )}
-            <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-2">
+            <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-3">
                 {question.options.map((option: string, index: number) => (
                     <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
                         <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
@@ -276,7 +272,6 @@ export default function SurveyView() {
     const [respondentName, setRespondentName] = useState("");
     const [respondentEmail, setRespondentEmail] = useState("");
     const [loading, setLoading] = useState(true);
-    const [animationClass, setAnimationClass] = useState('animate-in fade-in slide-in-from-right-10');
     const [isSurveyActive, setIsSurveyActive] = useState(false);
 
     useEffect(() => {
@@ -296,12 +291,18 @@ export default function SurveyView() {
 
                     if (startDate && endDate) {
                         setIsSurveyActive(now >= startDate && now <= endDate);
-                    } else {
+                    } else if (startDate) {
+                        setIsSurveyActive(now >= startDate);
+                    } else if (endDate) {
+                        setIsSurveyActive(now <= endDate);
+                    }
+                    else {
                         setIsSurveyActive(true); // If no dates set, assume it's always active
                     }
                 }
             } catch (error) {
                 console.error("Failed to load survey from local storage", error);
+                setError("Failed to load survey.");
             } finally {
                 setLoading(false);
             }
@@ -314,21 +315,25 @@ export default function SurveyView() {
             [questionId]: value
         }));
     };
+    
+    const toggleMultipleChoice = (questionId: number, option: string) => {
+        const currentAnswers = answers[questionId] || [];
+        const newAnswers = currentAnswers.includes(option)
+          ? currentAnswers.filter((a: string) => a !== option)
+          : [...currentAnswers, option];
+        setAnswers({ ...answers, [questionId]: newAnswers });
+    };
 
     const handleNext = () => {
-        setAnimationClass('animate-out fade-out slide-out-to-left-10');
-        setTimeout(() => {
+        if (currentQuestionIndex < survey.questions.length - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
-            setAnimationClass('animate-in fade-in slide-in-from-right-10');
-        }, 150);
+        }
     };
 
     const handlePrev = () => {
-        setAnimationClass('animate-out fade-out slide-out-to-right-10');
-        setTimeout(() => {
+        if (currentQuestionIndex > -1) {
             setCurrentQuestionIndex(prev => prev - 1);
-            setAnimationClass('animate-in fade-in slide-in-from-left-10');
-        }, 150);
+        }
     };
 
     const handleSubmit = () => {
@@ -340,19 +345,19 @@ export default function SurveyView() {
         };
         const existingResponses = JSON.parse(localStorage.getItem(`${surveyId}_responses`) || '[]');
         localStorage.setItem(`${surveyId}_responses`, JSON.stringify([...existingResponses, newResponse]));
-        setSubmitted(true);
+        setIsCompleted(true);
     };
     
     const canProceed = () => {
-        if (currentQuestion === -1) {
+        if (currentQuestionIndex === -1) {
           return respondentName.trim() && respondentEmail.trim();
         }
         if(!survey) return false;
-        const question = survey.questions[currentQuestion];
+        const question = survey.questions[currentQuestionIndex];
         if (question.type === "description") return true;
         if (question.required) {
           const answer = answers[question.id];
-          if (!answer) return false;
+          if (answer === undefined || answer === null) return false;
           if (Array.isArray(answer)) return answer.length > 0;
           if (typeof answer === "string") return answer.trim().length > 0;
           if (typeof answer === "object" && answer !== null) {
@@ -384,16 +389,16 @@ export default function SurveyView() {
     const QuestionComponent = currentQuestion ? questionComponents[currentQuestion.type] : null;
 
     if (loading) {
-        return <div className="flex items-center justify-center min-h-screen">Loading survey...</div>;
+        return <div className="min-h-screen flex items-center justify-center">Loading survey...</div>;
     }
 
     if (!survey) {
-        return <div className="flex items-center justify-center min-h-screen">Survey not found.</div>;
+        return <div className="min-h-screen flex items-center justify-center">Survey not found.</div>;
     }
 
     if (!isSurveyActive) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-muted/40">
+            <div className="min-h-screen flex items-center justify-center bg-muted/40">
                 <Card className="w-full max-w-lg text-center p-8">
                     <CardHeader>
                         <CardTitle className="text-2xl">Survey Closed</CardTitle>
@@ -404,15 +409,29 @@ export default function SurveyView() {
         );
     }
 
-    if (submitted) {
+    if (isCompleted) {
         return (
-             <div className="flex items-center justify-center min-h-screen bg-muted/40">
-                <Card className="w-full max-w-lg text-center p-8 animate-in fade-in zoom-in-95">
-                    <CardHeader>
-                        <CardTitle className="text-2xl">Thank You!</CardTitle>
-                        <CardDescription>Your response has been submitted successfully.</CardDescription>
-                    </CardHeader>
-                </Card>
+             <div className="min-h-screen flex items-center justify-center p-4">
+                <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-3xl p-12 shadow-2xl max-w-md w-full text-center"
+                >
+                <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: "spring" }}
+                    className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-cyan-500/30"
+                >
+                    <CheckCircle2 className="w-10 h-10 text-white" />
+                </motion.div>
+                <h2 className="text-3xl font-bold text-slate-900 mb-3">
+                    Thank You!
+                </h2>
+                <p className="text-slate-600 text-lg">
+                    Your response has been recorded.
+                </p>
+                </motion.div>
             </div>
         )
     }
@@ -429,7 +448,7 @@ export default function SurveyView() {
                 </CardHeader>
                 <CardContent className="min-h-[300px] overflow-hidden">
                     <AnimatePresence mode="wait">
-                    {currentQuestion === -1 ? (
+                    {currentQuestionIndex === -1 ? (
                         <motion.div
                           key="intro"
                           initial={{ opacity: 0, x: 50 }}
@@ -465,7 +484,7 @@ export default function SurveyView() {
                         </motion.div>
                       ) : (
                         <motion.div
-                          key={currentQuestion}
+                          key={currentQuestionIndex}
                            initial={{ opacity: 0, x: 50 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -50 }}
@@ -490,8 +509,8 @@ export default function SurveyView() {
                         Previous
                     </Button>
                     {currentQuestionIndex < survey.questions.length - 1 ? (
-                        <Button onClick={currentQuestion === -1 ? () => setCurrentQuestion(0) : handleNext} disabled={!canProceed()} className="transition-transform active:scale-95">
-                            {currentQuestion === -1 ? "Start Survey" : "Next"}
+                        <Button onClick={currentQuestionIndex === -1 ? () => setCurrentQuestionIndex(0) : handleNext} disabled={!canProceed()} className="transition-transform active:scale-95">
+                            {currentQuestionIndex === -1 ? "Start Survey" : "Next"}
                         </Button>
                     ) : (
                         <Button onClick={handleSubmit} disabled={!canProceed() || isSubmitting} className="transition-transform active:scale-95">
@@ -503,4 +522,3 @@ export default function SurveyView() {
         </div>
     );
 }
-
