@@ -22,7 +22,7 @@ import type { Question } from '@/entities/Survey';
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; }) => (
     <div className="p-4">
-        <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+        <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         {question.imageUrl && (
              <div className="my-4">
                 <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
@@ -41,7 +41,6 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { questio
 
 const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { question: Question; answer?: string[]; onAnswerChange: (newAnswer: string[]) => void; }) => {
    const handleCheckChange = (checked: boolean, opt: string) => {
-       if (!onAnswerChange) return;
        const currentAnswers = answer || [];
        const newAnswers = checked
            ? [...currentAnswers, opt]
@@ -51,7 +50,7 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { 
    
    return (
        <div className="p-4">
-           <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+           <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
            {question.imageUrl && (
                  <div className="my-4">
                     <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
@@ -76,7 +75,7 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { 
 const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; }) => {
     return (
         <div className="p-4">
-            <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && (
                 <div className="my-4">
                     <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
@@ -99,7 +98,7 @@ const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: Ques
 
 const TextQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
   <div className="p-4">
-    <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+    <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
      {question.imageUrl && (
         <div className="my-4">
             <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
@@ -111,7 +110,7 @@ const TextQuestion = ({ question, answer, onAnswerChange }: { question: Question
 
 const NumberQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
     <div className="p-4">
-      <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+      <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
        {question.imageUrl && (
             <div className="my-4">
                 <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
@@ -123,7 +122,7 @@ const NumberQuestion = ({ question, answer, onAnswerChange }: { question: Questi
 
 const PhoneQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
   <div className="p-4">
-    <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+    <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
      {question.imageUrl && (
         <div className="my-4">
             <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
@@ -135,7 +134,7 @@ const PhoneQuestion = ({ question, answer, onAnswerChange }: { question: Questio
 
 const EmailQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
   <div className="p-4">
-    <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+    <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
     {question.imageUrl && (
         <div className="my-4">
             <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
@@ -149,7 +148,7 @@ const RatingQuestion = ({ question, answer, onAnswerChange }: { question: Questi
     const scale = question.scale || ['1','2','3','4','5'];
     return (
         <div className="p-4">
-            <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && (
             <div className="my-4">
                 <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
@@ -167,7 +166,7 @@ const RatingQuestion = ({ question, answer, onAnswerChange }: { question: Questi
 
 const NPSQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: number; onAnswerChange: (value: number) => void; }) => (
     <div className="p-4">
-      <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+      <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
        {question.imageUrl && (
             <div className="my-4">
                 <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
@@ -196,7 +195,7 @@ const DescriptionBlock = ({ question }: { question: Question }) => (
 const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: { best?: string, worst?: string }, onAnswerChange: (value: any) => void }) => {
     return (
         <div className="p-4">
-            <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && (
                 <div className="my-4">
                     <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
@@ -228,7 +227,7 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Que
 const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: any, onAnswerChange: (value: any) => void }) => {
     return (
         <div className="p-4">
-            <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
              <Table>
                 <TableHeader>
                     <TableRow>
@@ -491,7 +490,6 @@ export default function SurveyView() {
                                         question={currentQuestion}
                                         answer={answers[currentQuestion.id]}
                                         onAnswerChange={(value: any) => handleAnswerChange(currentQuestion.id, value)}
-                                        isPreview={true}
                                     />
                                 </div>
                             )}
@@ -517,3 +515,5 @@ export default function SurveyView() {
         </div>
     );
 }
+
+    
