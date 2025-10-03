@@ -118,7 +118,7 @@ import ExponentialSmoothingPage from './pages/exponential-smoothing-page';
 import ForecastEvaluationPage from './pages/forecast-evaluation-page';
 import ArchLmTestPage from './pages/arch-lm-test-page';
 import LjungBoxPage from './pages/ljung-box-page';
-import RepeatedMeasuresANOAPage from './pages/repeated-measures-anova-page';
+import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
 import TTestPage from './pages/t-test-page';
 import { cn } from '@/lib/utils';
 import OneSampleTTestPage from './pages/one-sample-t-test-page';
@@ -152,7 +152,7 @@ const analysisCategories = [
                 { id: 'two-way-anova', label: 'Two-Way ANOVA', icon: Copy, component: TwoWayAnovaPage },
                 { id: 'ancova', label: 'ANCOVA', icon: Layers, component: AncovaPage },
                 { id: 'manova', label: 'MANOVA', icon: Layers, component: ManovaPage },
-                { id: 'repeated-measures-anova', label: 'Repeated Measures ANOVA', icon: Repeat, component: RepeatedMeasuresANOAPage },
+                { id: 'repeated-measures-anova', label: 'Repeated Measures ANOVA', icon: Repeat, component: RepeatedMeasuresAnovaPage },
             ]
           }
       ]
