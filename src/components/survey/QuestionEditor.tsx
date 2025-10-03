@@ -46,8 +46,8 @@ export default function QuestionEditor({ question: initialQuestion, onSave, onCa
             Question Text *
           </label>
           <Textarea
-            value={question.text}
-            onChange={(e) => setQuestion({ ...question, text: e.target.value })}
+            value={question.title}
+            onChange={(e) => setQuestion({ ...question, title: e.target.value })}
             placeholder="e.g. How satisfied are you with our service?"
             rows={2}
             className="rounded-xl"

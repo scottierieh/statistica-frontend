@@ -61,7 +61,7 @@ export default function QuestionList({ questions, onEdit, onDelete, onReorder }:
 
   function handleDragEnd(event: any) {
     const { active, over } = event;
-    if (active.id !== over.id) {
+    if (over && active.id !== over.id) {
       const oldIndex = questions.findIndex(q => q.id === active.id);
       const newIndex = questions.findIndex(q => q.id === over.id);
       onReorder(oldIndex, newIndex);

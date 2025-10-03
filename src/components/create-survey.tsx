@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SurveyEntity as Survey } from "@/entities/Survey";
+import { SurveyEntity } from "@/entities/Survey";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +30,7 @@ export default function CreateSurvey() {
 
   useEffect(() => {
     const loadSurvey = async () => {
-      const surveys = await Survey.list();
+      const surveys = await SurveyEntity.list();
       const survey = surveys.find(s => s.id === surveyId);
       if (survey) {
         setTitle(survey.title);
@@ -48,7 +48,6 @@ export default function CreateSurvey() {
     const newQuestion: Question = {
       id: Date.now().toString(),
       type,
-      text: "",
       title: "",
       description: "",
       options: type === "single" || type === "multiple" || type === "dropdown" || type === "best_worst" ? ["", ""] : [],
@@ -101,9 +100,9 @@ export default function CreateSurvey() {
     };
 
     if (surveyId) {
-      await Survey.update(surveyId, surveyData);
+      await SurveyEntity.update(surveyId, surveyData);
     } else {
-      await Survey.create(surveyData);
+      await SurveyEntity.create(surveyData);
     }
 
     setIsSaving(false);

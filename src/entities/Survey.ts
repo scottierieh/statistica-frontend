@@ -4,8 +4,8 @@
 export type Question = {
     id: string;
     type: string;
-    text: string;
-    title?: string;
+    title: string;
+    text: string; // Keep for backward compatibility, but prefer title
     description?: string;
     options?: string[];
     items?: string[];
