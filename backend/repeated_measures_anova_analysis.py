@@ -31,8 +31,7 @@ class RepeatedMeasuresAnova:
         self.data = pd.DataFrame(data).copy()
         self.subject_col = subject_col
         self.within_cols = within_cols
-        self.within_name = 'time' # Standard name for within-subject factor
-        self.dependent_var = dependent_var_template
+        self.dependent_var = dependent_var_template # This will be the name for the melted value column, e.g., 'score'
         self.between_col = between_col
         self.alpha = alpha
         self.results = {}
@@ -43,10 +42,11 @@ class RepeatedMeasuresAnova:
         if self.between_col and self.between_col in self.data.columns:
             id_vars.append(self.between_col)
         
+        # Melt the dataframe from wide to long format
         self.long_data = pd.melt(self.data, 
                                  id_vars=id_vars, 
                                  value_vars=self.within_cols,
-                                 var_name=self.within_name, 
+                                 var_name='time', # Standard name for the within-subject factor variable after melting
                                  value_name=self.dependent_var)
         self.long_data.dropna(inplace=True)
 
@@ -57,7 +57,7 @@ class RepeatedMeasuresAnova:
             kwargs = {
                 'data': self.long_data,
                 'dv': self.dependent_var,
-                'within': self.within_name,
+                'within': 'time', # This is now the standard name for the within-factor
                 'subject': self.subject_col,
                 'detailed': True,
                 'effsize': "np2"
@@ -71,9 +71,10 @@ class RepeatedMeasuresAnova:
             
             # Sphericity test is only relevant for within-subject effects with > 2 levels
             if len(self.within_cols) > 2:
-                sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within=self.within_name, subject=self.subject_col)
-                if isinstance(sphericity_test, tuple): # Older pingouin versions
-                    self.results['mauchly_test'] = {'spher': sphericity_test[0], 'p-val': sphericity_test[2], 'W': sphericity_test[1]}
+                sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within='time', subject=self.subject_col)
+                if isinstance(sphericity_test, tuple): # Older pingouin versions might return a tuple
+                    w, spher, chi2, dof, pval = sphericity_test
+                    self.results['mauchly_test'] = {'spher': spher, 'p-val': pval, 'W': w, 'chi2': chi2, 'dof': dof}
                 else: # Newer pingouin versions return dataframe
                     spher_dict = sphericity_test.to_dict('records')[0]
                     self.results['mauchly_test'] = spher_dict
@@ -83,25 +84,26 @@ class RepeatedMeasuresAnova:
 
             # Post-hoc tests if significant interaction or main effect
             perform_posthoc = False
-            main_effect_p = 'p-GG-corr' if 'p-GG-corr' in aov.columns and not pd.isna(aov[aov['Source'] == self.within_name]['p-GG-corr'].iloc[0]) else 'p-unc'
+            main_effect_p_col = 'p-GG-corr' if 'p-GG-corr' in aov.columns and not pd.isna(aov.loc[aov['Source'] == 'time', 'p-GG-corr']).any() else 'p-unc'
             
             if self.between_col:
-                interaction_row = aov[aov['Source'] == f'{self.within_name} * {self.between_col}']
+                interaction_row = aov[aov['Source'] == f'time * {self.between_col}']
                 if not interaction_row.empty:
-                    interaction_p = interaction_row['p-GG-corr'].iloc[0] if 'p-GG-corr' in interaction_row.columns and not pd.isna(interaction_row['p-GG-corr'].iloc[0]) else interaction_row['p-unc'].iloc[0]
-                    if interaction_p < self.alpha:
+                    interaction_p_col = 'p-GG-corr' if 'p-GG-corr' in interaction_row.columns and not pd.isna(interaction_row['p-GG-corr'].iloc[0]) else 'p-unc'
+                    if interaction_row[interaction_p_col].iloc[0] < self.alpha:
                         perform_posthoc = True
             else: # No between-subject factor, check main within-subject effect
-                within_row = aov[aov['Source'] == self.within_name]
-                if not within_row.empty and within_row[main_effect_p].iloc[0] < self.alpha:
+                within_row = aov[aov['Source'] == 'time']
+                if not within_row.empty and within_row[main_effect_p_col].iloc[0] < self.alpha:
                     perform_posthoc = True
 
             if perform_posthoc:
                 posthoc_args = {
                     'data': self.long_data,
                     'dv': self.dependent_var,
-                    'within': self.within_name,
-                    'subject': self.subject_col
+                    'within': 'time',
+                    'subject': self.subject_col,
+                    'padjust': 'bonf'
                 }
                 if self.between_col:
                     posthoc_args['between'] = self.between_col
@@ -122,12 +124,13 @@ class RepeatedMeasuresAnova:
         hue = self.between_col if self.between_col else None
         
         sns.pointplot(data=self.long_data, 
-                      x=self.within_name, 
+                      x='time', 
                       y=self.dependent_var, 
                       hue=hue, 
                       ax=ax,
                       dodge=True,
-                      errorbar='ci')
+                      errorbar='ci',
+                      capsize=.1)
                       
         ax.set_title(f'Interaction Plot: {self.dependent_var} over Time')
         ax.set_xlabel('Time / Condition')
