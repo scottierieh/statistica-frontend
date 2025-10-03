@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Sigma, Loader2, Repeat, CheckCircle, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, BarChart as BarChartIcon, Users, TestTube, Columns } from 'lucide-react';
+import { Sigma, Loader2, Repeat, CheckCircle, AlertTriangle, HelpCircle, MoveRight, Settings, FileSearch, Users } from 'lucide-react';
 import Image from 'next/image';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { ScrollArea } from '../ui/scroll-area';
@@ -62,6 +62,9 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
                             <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
                                 <li>
+                                    <strong>Data Format:</strong> Your data should be in "wide" format, with each row representing a subject and each repeated measure in a separate column.
+                                </li>
+                                <li>
                                     <strong>Subject Identifier:</strong> Select the column that uniquely identifies each subject or participant.
                                 </li>
                                 <li>
@@ -76,11 +79,10 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>MANOVA Tests (Pillai's Trace, etc.):</strong> The primary result. A significant p-value (&lt; 0.05) indicates an overall difference across your repeated measures.
+                                    <strong>Sphericity (Mauchly's Test):</strong> If this test is significant (p &lt; .05), the assumption of sphericity is violated. You should rely on the corrected p-values (e.g., Greenhouse-Geisser).
                                 </li>
-                                <li><strong>Sphericity (Mauchly's Test):</strong> Checks a key assumption. If significant (p &lt; .05), the assumption is violated, but the MANOVA results are still valid as they don't require sphericity.
-                                </li>
-                                <li><strong>Interaction Plot:</strong> Visually inspects the mean changes over time. Non-parallel lines suggest an interaction if you have a between-subjects factor.</li>
+                                <li><strong>Main Effects & Interactions:</strong> A significant p-value for the within-subjects factor indicates a change over time. A significant interaction effect means the change over time differs between your between-subjects groups.</li>
+                                <li><strong>Effect Size (η²p):</strong> Partial eta-squared indicates the proportion of variance explained by a factor.</li>
                             </ul>
                         </div>
                     </div>
@@ -154,7 +156,7 @@ const RepeatedMeasuresANOAPage = ({ data, allHeaders, numericHeaders, categorica
     }
   }, [data, subjectCol, withinCols, betweenCol, toast]);
   
-    if (view === 'intro') {
+    if (view === 'intro' || !canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
@@ -194,7 +196,7 @@ const RepeatedMeasuresANOAPage = ({ data, allHeaders, numericHeaders, categorica
              </div>
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button onClick={handleAnalysis} disabled={!canRun || isLoading || withinCols.length < 2}>
+          <Button onClick={handleAnalysis} disabled={isLoading || withinCols.length < 2}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sigma className="mr-2 h-4 w-4" />} Run Analysis
           </Button>
         </CardFooter>
@@ -212,38 +214,12 @@ const RepeatedMeasuresANOAPage = ({ data, allHeaders, numericHeaders, categorica
             </Card>
 
             <Card>
-                <CardHeader><CardTitle>MANOVA Test Results</CardTitle><CardDescription>Tests the overall significance of within-subject (and interaction) effects.</CardDescription></CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Factor</TableHead><TableHead>Test</TableHead><TableHead className='text-right'>Value</TableHead><TableHead className='text-right'>F</TableHead><TableHead className='text-right'>Num DF</TableHead><TableHead className='text-right'>Den DF</TableHead><TableHead className='text-right'>p-value</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                            {Object.entries(result.results.manova_results || {}).map(([factor, tests]: [string, any]) => (
-                                <React.Fragment key={factor}>
-                                    {Object.entries(tests).map(([testName, testData]: [string, any]) => (
-                                         <TableRow key={`${factor}-${testName}`}>
-                                            <TableCell>{factor.replace('C(time)', 'Time')}</TableCell>
-                                            <TableCell>{testName}</TableCell>
-                                            <TableCell className="font-mono text-right">{testData.Value?.toFixed(4)}</TableCell>
-                                            <TableCell className="font-mono text-right">{testData['F Value']?.toFixed(4)}</TableCell>
-                                            <TableCell className="font-mono text-right">{testData['Num DF']?.toFixed(0)}</TableCell>
-                                            <TableCell className="font-mono text-right">{testData['Den DF']?.toFixed(2)}</TableCell>
-                                            <TableCell className="font-mono text-right">{testData['Pr(>F)'] < 0.001 ? '<.001' : testData['Pr(>F)']?.toFixed(4)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </React.Fragment>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-
-             <Card>
-                <CardHeader><CardTitle>Univariate ANOVA Summary</CardTitle><CardDescription>This summary is provided for descriptive purposes. The MANOVA results are generally preferred.</CardDescription></CardHeader>
+                <CardHeader><CardTitle>ANOVA Summary Table</CardTitle></CardHeader>
                 <CardContent>
                      <Table>
-                        <TableHeader><TableRow><TableHead>Source</TableHead><TableHead>SS</TableHead><TableHead>DF</TableHead><TableHead>MS</TableHead><TableHead>F</TableHead><TableHead>p-unc</TableHead><TableHead>np2</TableHead></TableRow></TableHeader>
+                        <TableHeader><TableRow><TableHead>Source</TableHead><TableHead>SS</TableHead><TableHead>DF</TableHead><TableHead>MS</TableHead><TableHead>F</TableHead><TableHead>p-unc</TableHead><TableHead>p-GG-corr</TableHead><TableHead>np2</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {(result.results.summary_table || []).map((row: any, i: number) => (
+                            {(result.results.anova_table || []).map((row: any, i: number) => (
                                 <TableRow key={i}>
                                     <TableCell>{row.Source}</TableCell>
                                     <TableCell>{row.SS?.toFixed(3)}</TableCell>
@@ -251,6 +227,7 @@ const RepeatedMeasuresANOAPage = ({ data, allHeaders, numericHeaders, categorica
                                     <TableCell>{row.MS?.toFixed(3)}</TableCell>
                                     <TableCell>{row.F?.toFixed(3)}</TableCell>
                                     <TableCell>{row['p-unc'] < 0.001 ? '<.001' : row['p-unc']?.toFixed(4)}</TableCell>
+                                    <TableCell>{row['p-GG-corr'] < 0.001 ? '<.001' : row['p-GG-corr']?.toFixed(4)}</TableCell>
                                     <TableCell>{row.np2?.toFixed(3)}</TableCell>
                                 </TableRow>
                             ))}
@@ -258,99 +235,51 @@ const RepeatedMeasuresANOAPage = ({ data, allHeaders, numericHeaders, categorica
                     </Table>
                 </CardContent>
             </Card>
+             {result.results.mauchly_test && (
+                 <Card>
+                    <CardHeader><CardTitle>Mauchly's Test for Sphericity</CardTitle></CardHeader>
+                    <CardContent>
+                        <p>Sphericity assumed: {result.results.mauchly_test.sphericity ? 'Yes' : 'No'} (W={result.results.mauchly_test.W?.toFixed(3)}, p={result.results.mauchly_test['p-val']?.toFixed(4)})</p>
+                         <p className="text-xs text-muted-foreground mt-1">If p &lt; 0.05, the assumption is violated. Use the Greenhouse-Geisser (p-GG-corr) corrected p-value.</p>
+                    </CardContent>
+                </Card>
+            )}
+             {result.results.posthoc_results && (
+                 <Card>
+                    <CardHeader><CardTitle>Pairwise Post-Hoc Tests (Tukey)</CardTitle></CardHeader>
+                    <CardContent>
+                        <Table>
+                             <TableHeader>
+                                <TableRow>
+                                    <TableHead>Contrast</TableHead>
+                                    <TableHead>A</TableHead>
+                                    <TableHead>B</TableHead>
+                                    <TableHead className="text-right">T</TableHead>
+                                    <TableHead className="text-right">p-tukey</TableHead>
+                                    <TableHead className="text-right">hedges</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {result.results.posthoc_results.map((row: any, i: number) => (
+                                     <TableRow key={i}>
+                                        <TableCell>{row.Contrast}</TableCell>
+                                        <TableCell>{row.A}</TableCell>
+                                        <TableCell>{row.B}</TableCell>
+                                        <TableCell className="font-mono text-right">{row.T?.toFixed(3)}</TableCell>
+                                        <TableCell className="font-mono text-right">{row['p-tukey'] < 0.001 ? '<.001' : row['p-tukey']?.toFixed(4)}</TableCell>
+                                        <TableCell className="font-mono text-right">{row.hedges?.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            )}
 
         </div>
       )}
     </div>
   );
 };
-```
-- src/lib/example-datasets/rm-anova-data.ts:
-```ts
-import type { ExampleDataSet } from './index';
 
-const data = `Subject,Time,Score
-S1,Time1,8
-S1,Time2,7
-S1,Time3,6
-S1,Time4,5
-S2,Time1,9
-S2,Time2,8
-S2,Time3,7
-S2,Time4,6
-S3,Time1,6
-S3,Time2,5
-S3,Time3,5
-S3,Time4,4
-S4,Time1,10
-S4,Time2,9
-S4,Time3,8
-S4,Time4,8
-S5,Time1,7
-S5,Time2,6
-S5,Time3,6
-S5,Time4,5
-S6,Time1,8
-S6,Time2,8
-S6,Time3,7
-S6,Time4,6
-S7,Time1,9
-S7,Time2,8
-S7,Time3,8
-S7,Time4,7
-S8,Time1,7
-S8,Time2,7
-S8,Time3,6
-S8,Time4,6
-S9,Time1,10
-S9,Time2,9
-S9,Time3,9
-S9,Time4,8
-S10,Time1,6
-S10,Time2,6
-S10,Time3,5
-S10,Time4,4
-S11,Time1,8
-S11,Time2,7
-S11,Time3,6
-S11,Time4,5
-S12,Time1,9
-S12,Time2,8
-S12,Time3,8
-S12,Time4,7
-S13,Time1,7
-S13,Time2,6
-S13,Time3,5
-S13,Time4,5
-S14,Time1,10
-S14,Time2,9
-S14,Time3,8
-S14,Time4,7
-S15,Time1,8
-S15,Time2,8
-S15,Time3,7
-S15,Time4,6
-`;
-
-export const rmAnovaData: ExampleDataSet = {
-  id: 'rm-anova',
-  name: 'Cognitive Training Study (RM ANOVA)',
-  description: 'A dataset tracking the cognitive scores of 15 subjects over four time points after a training program. Ideal for Repeated Measures ANOVA.',
-  data,
-  recommendedAnalysis: 'repeated-measures-anova',
-};
-```
-- src/components/ui/collapsible.tsx:
-```tsx
-"use client"
-
-import * as CollapsiblePrimitive from "@radix-ui/react-collapsible"
-
-const Collapsible = CollapsiblePrimitive.Root
-
-const CollapsibleTrigger = CollapsiblePrimitive.CollapsibleTrigger
-
-const CollapsibleContent = CollapsiblePrimitive.CollapsibleContent
-
-export { Collapsible, CollapsibleTrigger, CollapsibleContent }
-```
+export default RepeatedMeasuresANOAPage;
