@@ -75,7 +75,7 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
                         Analyze
                     </Button>
                 </Link>
-                <Link href={`/dashboard/survey?id=${survey.id}`} className="flex-1">
+                <Link href={`/dashboard/createsurvey?id=${survey.id}`} className="flex-1">
                     <Button variant="outline" className="w-full gap-2 hover:bg-slate-50">
                         <Edit className="w-4 h-4" />
                         Edit
