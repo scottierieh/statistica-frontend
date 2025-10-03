@@ -18,6 +18,8 @@ import { Star, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { produce } from 'immer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CheckCircle2, AlertCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { question: any; answer?: string; onAnswerChange: (value: string) => void; }) => {
     return (
@@ -266,8 +268,13 @@ export default function SurveyView() {
     const surveyId = params.id as string;
     const [survey, setSurvey] = useState<any>(null);
     const [answers, setAnswers] = useState<any>({});
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [submitted, setSubmitted] = useState(false);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(-1);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isCompleted, setIsCompleted] = useState(false);
+    const [error, setError] = useState("");
+    const [startTime] = useState(Date.now());
+    const [respondentName, setRespondentName] = useState("");
+    const [respondentEmail, setRespondentEmail] = useState("");
     const [loading, setLoading] = useState(true);
     const [animationClass, setAnimationClass] = useState('animate-in fade-in slide-in-from-right-10');
     const [isSurveyActive, setIsSurveyActive] = useState(false);
@@ -335,6 +342,28 @@ export default function SurveyView() {
         localStorage.setItem(`${surveyId}_responses`, JSON.stringify([...existingResponses, newResponse]));
         setSubmitted(true);
     };
+    
+    const canProceed = () => {
+        if (currentQuestion === -1) {
+          return respondentName.trim() && respondentEmail.trim();
+        }
+        if(!survey) return false;
+        const question = survey.questions[currentQuestion];
+        if (question.type === "description") return true;
+        if (question.required) {
+          const answer = answers[question.id];
+          if (!answer) return false;
+          if (Array.isArray(answer)) return answer.length > 0;
+          if (typeof answer === "string") return answer.trim().length > 0;
+          if (typeof answer === "object" && answer !== null) {
+            if (question.type === "best-worst") {
+              return answer.best && answer.worst;
+            }
+          }
+          return true;
+        }
+        return true;
+      };
 
     const questionComponents: { [key: string]: React.ComponentType<any> } = {
         single: SingleSelectionQuestion,
@@ -387,6 +416,8 @@ export default function SurveyView() {
             </div>
         )
     }
+    
+    const progress = ((currentQuestionIndex + 2) / (survey.questions.length + 1)) * 100;
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4 transition-all">
@@ -394,31 +425,82 @@ export default function SurveyView() {
                 <CardHeader className="text-center">
                     <CardTitle className="font-headline text-3xl">{survey.title}</CardTitle>
                     <CardDescription>{survey.description}</CardDescription>
-                     <Progress value={((currentQuestionIndex + 1) / survey.questions.length) * 100} className="mt-4" />
+                     <Progress value={progress} className="mt-4" />
                 </CardHeader>
                 <CardContent className="min-h-[300px] overflow-hidden">
-                    {QuestionComponent && (
-                        <div key={currentQuestion.id} className={animationClass}>
-                            <QuestionComponent
-                                question={currentQuestion}
-                                answer={answers[currentQuestion.id]}
-                                onAnswerChange={(value: any) => handleAnswerChange(currentQuestion.id, value)}
-                                isPreview={true}
-                            />
-                        </div>
+                    <AnimatePresence mode="wait">
+                    {currentQuestion === -1 ? (
+                        <motion.div
+                          key="intro"
+                          initial={{ opacity: 0, x: 50 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -50 }}
+                          className="p-8 md:p-12"
+                        >
+                          <div className="space-y-6">
+                            <div>
+                              <Label className="text-slate-900 font-semibold mb-2 block">
+                                Name *
+                              </Label>
+                              <Input
+                                value={respondentName}
+                                onChange={(e) => setRespondentName(e.target.value)}
+                                placeholder="Enter your name"
+                                className="h-12 rounded-xl border-slate-200"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-slate-900 font-semibold mb-2 block">
+                                Email *
+                              </Label>
+                              <Input
+                                type="email"
+                                value={respondentEmail}
+                                onChange={(e) => setRespondentEmail(e.target.value)}
+                                placeholder="email@example.com"
+                                className="h-12 rounded-xl border-slate-200"
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key={currentQuestion}
+                           initial={{ opacity: 0, x: 50 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -50 }}
+                          className="p-8 md:p-12"
+                        >
+                            {QuestionComponent && (
+                                <div key={currentQuestion.id}>
+                                    <QuestionComponent
+                                        question={currentQuestion}
+                                        answer={answers[currentQuestion.id]}
+                                        onAnswerChange={(value: any) => handleAnswerChange(currentQuestion.id, value)}
+                                        isPreview={true}
+                                    />
+                                </div>
+                            )}
+                        </motion.div>
                     )}
+                    </AnimatePresence>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                    <Button onClick={handlePrev} disabled={currentQuestionIndex === 0} variant="outline" className="transition-transform active:scale-95">
+                    <Button onClick={handlePrev} disabled={currentQuestionIndex === -1} variant="outline" className="transition-transform active:scale-95">
                         Previous
                     </Button>
                     {currentQuestionIndex < survey.questions.length - 1 ? (
-                        <Button onClick={handleNext} className="transition-transform active:scale-95">Next</Button>
+                        <Button onClick={currentQuestion === -1 ? () => setCurrentQuestion(0) : handleNext} disabled={!canProceed()} className="transition-transform active:scale-95">
+                            {currentQuestion === -1 ? "Start Survey" : "Next"}
+                        </Button>
                     ) : (
-                        <Button onClick={handleSubmit} className="transition-transform active:scale-95">Submit</Button>
+                        <Button onClick={handleSubmit} disabled={!canProceed() || isSubmitting} className="transition-transform active:scale-95">
+                             {isSubmitting ? "Submitting..." : "Submit Survey"}
+                        </Button>
                     )}
                 </CardFooter>
             </Card>
         </div>
     );
 }
+
