@@ -20,7 +20,12 @@ interface CfaResults {
     fit_indices: { [key: string]: number };
 }
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
+interface IntroPageProps {
+    onStart: () => void;
+    onLoadExample: (example: ExampleDataSet) => void;
+}
+
+function IntroPage({ onStart, onLoadExample }: IntroPageProps) {
     const cfaExample = exampleDatasets.find(d => d.id === 'well-being-survey');
     const Icon = cfaExample?.icon;
 
@@ -47,7 +52,10 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                     <div className="flex justify-center">
                         {cfaExample && Icon && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(cfaExample)}>
+                            <Card 
+                                className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" 
+                                onClick={() => onLoadExample(cfaExample)}
+                            >
                                 <Icon className="mx-auto h-8 w-8 text-primary"/>
                                 <div>
                                     <h4 className="font-semibold">{cfaExample.name}</h4>
@@ -58,31 +66,36 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
+                            <h3 className="font-semibold text-2xl flex items-center gap-2">
+                                <Settings className="text-primary"/> Setup Guide
+                            </h3>
                             <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
                                 <li><strong>Define Model Specification:</strong> Using `semopy` syntax, define your measurement model. Each line represents a latent variable and its indicators (e.g., `Factor1 =~ X1 + X2 + X3`).</li>
                                 <li><strong>Select Variables:</strong> Choose the numeric variables from your dataset that are included in your model specification.</li>
                                 <li><strong>Run Analysis:</strong> The tool will fit the CFA model and provide detailed fit indices and parameter estimates.</li>
                             </ol>
                         </div>
-                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Fit Indices (CFI, TLI, RMSEA, SRMR):</strong> These are crucial for evaluating model fit. Look for CFI/TLI > .90 (ideally > .95), RMSEA < .08, and SRMR < .08 for acceptable fit.</li>
-                                <li><strong>Factor Loadings:</strong> The 'Estimate' column for `=~` relationships shows the factor loadings. Standardized loadings > 0.5 are generally considered good.</li>
+                        <div className="space-y-6">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2">
+                                <FileSearch className="text-primary"/> Results Interpretation
+                            </h3>
+                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
+                                <li><strong>Fit Indices (CFI, TLI, RMSEA, SRMR):</strong> These are crucial for evaluating model fit. Look for CFI/TLI &gt; .90 (ideally &gt; .95), RMSEA &lt; .08, and SRMR &lt; .08 for acceptable fit.</li>
+                                <li><strong>Factor Loadings:</strong> The &apos;Estimate&apos; column for `=~` relationships shows the factor loadings. Standardized loadings &gt; 0.5 are generally considered good.</li>
                                 <li><strong>P-values:</strong> Significant p-values (&lt; .05) for loadings indicate that the item is a significant indicator of its latent factor.</li>
                             </ul>
                         </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                    <Button size="lg" onClick={onStart}>
+                        Start New Analysis <MoveRight className="ml-2 w-5 h-5"/>
+                    </Button>
                 </CardFooter>
             </Card>
         </div>
     );
-};
-
+}
 
 interface CfaPageProps {
     data: DataSet;
@@ -206,64 +219,37 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                             <CardDescription>Key metrics to evaluate how well the model fits the data.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {Object.entries(analysisResult.fit_indices).map(([key, value]) => {
-                                    // 적합도 기준 설정
+                                    if (value === null) return null;
+                                    
                                     let status: 'good' | 'acceptable' | 'poor' = 'good';
                                     let statusIcon = <CheckCircle2 className="w-4 h-4 text-green-600" />;
                                     
                                     if (key === 'CFI' || key === 'TLI') {
-                                        if (value < 0.90) {
-                                            status = 'poor';
-                                            statusIcon = <AlertTriangle className="w-4 h-4 text-red-600" />;
-                                        } else if (value < 0.95) {
-                                            status = 'acceptable';
-                                            statusIcon = <AlertTriangle className="w-4 h-4 text-yellow-600" />;
-                                        }
+                                        if (value < 0.90) { status = 'poor'; statusIcon = <AlertTriangle className="w-4 h-4 text-red-600" />; }
+                                        else if (value < 0.95) { status = 'acceptable'; statusIcon = <AlertTriangle className="w-4 h-4 text-yellow-600" />; }
                                     } else if (key === 'RMSEA') {
-                                        if (value > 0.08) {
-                                            status = 'poor';
-                                            statusIcon = <AlertTriangle className="w-4 h-4 text-red-600" />;
-                                        } else if (value > 0.05) {
-                                            status = 'acceptable';
-                                            statusIcon = <AlertTriangle className="w-4 h-4 text-yellow-600" />;
-                                        }
+                                        if (value > 0.08) { status = 'poor'; statusIcon = <AlertTriangle className="w-4 h-4 text-red-600" />; }
+                                        else if (value > 0.05) { status = 'acceptable'; statusIcon = <AlertTriangle className="w-4 h-4 text-yellow-600" />; }
                                     } else if (key === 'SRMR') {
-                                        if (value > 0.10) {
-                                            status = 'poor';
-                                            statusIcon = <AlertTriangle className="w-4 h-4 text-red-600" />;
-                                        } else if (value > 0.08) {
-                                            status = 'acceptable';
-                                            statusIcon = <AlertTriangle className="w-4 h-4 text-yellow-600" />;
-                                        }
+                                        if (value > 0.10) { status = 'poor'; statusIcon = <AlertTriangle className="w-4 h-4 text-red-600" />; }
+                                        else if (value > 0.08) { status = 'acceptable'; statusIcon = <AlertTriangle className="w-4 h-4 text-yellow-600" />; }
                                     }
-                                    
+
                                     return (
-                                        <Card key={key} className={`${
-                                            status === 'poor' ? 'border-red-200 bg-red-50' : 
-                                            status === 'acceptable' ? 'border-yellow-200 bg-yellow-50' : 
-                                            'border-green-200 bg-green-50'
-                                        }`}>
+                                        <Card key={key} className={`${ status === 'poor' ? 'border-red-200 bg-red-50' : status === 'acceptable' ? 'border-yellow-200 bg-yellow-50' : 'border-green-200 bg-green-50' }`}>
                                             <CardContent className="p-4">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className="font-semibold text-sm">{key}</div>
-                                                    {statusIcon}
-                                                </div>
+                                                <div className="flex justify-between items-start mb-2"><div className="font-semibold text-sm">{key}</div>{statusIcon}</div>
                                                 <div className="text-2xl font-bold font-mono">
                                                     {typeof value === 'number' ? value.toFixed(3) : value}
                                                 </div>
-                                                <div className="text-xs text-muted-foreground mt-1">
-                                                    {status === 'good' ? 'Good fit' : 
-                                                     status === 'acceptable' ? 'Acceptable fit' : 
-                                                     'Poor fit'}
-                                                </div>
+                                                <div className="text-xs text-muted-foreground mt-1">{status === 'good' ? 'Good fit' : status === 'acceptable' ? 'Acceptable fit' : 'Poor fit'}</div>
                                             </CardContent>
                                         </Card>
                                     );
                                 })}
                             </div>
-                            
-                            {/* 적합도 해석 요약 */}
                             <Alert className="mt-4">
                                 <FileSearch className="h-4 w-4" />
                                 <AlertTitle>Model Fit Interpretation</AlertTitle>
