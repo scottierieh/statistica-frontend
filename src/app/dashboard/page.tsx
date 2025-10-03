@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +5,9 @@ import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineC
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
+import DashboardClientLayout from "@/components/dashboard-client-layout";
 
-export default function DashboardHubPage() {
+function DashboardHub() {
   const { user } = useAuth();
 
   return (
@@ -159,4 +159,12 @@ export default function DashboardHubPage() {
       </main>
     </div>
   );
+}
+
+export default function DashboardHubPage() {
+    return (
+        <DashboardClientLayout>
+            <DashboardHub />
+        </DashboardClientLayout>
+    )
 }
