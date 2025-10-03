@@ -46,21 +46,21 @@ export default function QuestionEditor({ question: initialQuestion, onSave, onCa
             Question Text *
           </label>
           <Textarea
-            value={question.question}
-            onChange={(e) => setQuestion({ ...question, question: e.target.value })}
+            value={question.text}
+            onChange={(e) => setQuestion({ ...question, text: e.target.value })}
             placeholder="e.g. How satisfied are you with our service?"
             rows={2}
             className="rounded-xl"
           />
         </div>
         
-        {['single_selection', 'multiple_selection', 'dropdown'].includes(question.type) && (
+        {['single', 'multiple', 'dropdown'].includes(question.type) && (
           <div>
             <label className="block text-sm font-semibold text-slate-900 mb-2">
               Options
             </label>
             <div className="space-y-2">
-              {question.options.map((opt: string, index: number) => (
+              {(question.options || []).map((opt: string, index: number) => (
                 <div key={index} className="flex items-center gap-2">
                   <Input
                     value={opt}

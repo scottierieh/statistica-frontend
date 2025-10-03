@@ -6,8 +6,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { GripVertical, Edit, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { type Question } from '@/entities/Survey';
 
-const SortableItem = ({ id, question, onEdit, onDelete }: { id: string, question: any, onEdit: (q: any) => void, onDelete: (id: string) => void }) => {
+const SortableItem = ({ id, question, onEdit, onDelete }: { id: string, question: Question, onEdit: (q: Question) => void, onDelete: (id: string) => void }) => {
   const {
     attributes,
     listeners,
@@ -35,7 +36,7 @@ const SortableItem = ({ id, question, onEdit, onDelete }: { id: string, question
         <GripVertical className="w-5 h-5" />
       </button>
       <div className="flex-1">
-        <p className="font-semibold text-slate-800">{question.question}</p>
+        <p className="font-semibold text-slate-800">{question.title || question.text}</p>
         <p className="text-sm text-slate-500">{question.type}</p>
       </div>
       <div className="flex gap-2">
@@ -50,7 +51,7 @@ const SortableItem = ({ id, question, onEdit, onDelete }: { id: string, question
   );
 };
 
-export default function QuestionList({ questions, onEdit, onDelete, onReorder }: { questions: any[], onEdit: (q: any) => void, onDelete: (id: string) => void, onReorder: (start: number, end: number) => void }) {
+export default function QuestionList({ questions, onEdit, onDelete, onReorder }: { questions: Question[], onEdit: (q: Question) => void, onDelete: (id: string) => void, onReorder: (start: number, end: number) => void }) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {

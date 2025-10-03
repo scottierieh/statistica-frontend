@@ -3,11 +3,12 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
+import { type Question } from '@/entities/Survey';
 
 // Dummy question components for preview
-const PreviewQuestion = ({ question }: { question: any }) => (
+const PreviewQuestion = ({ question }: { question: Question }) => (
   <div className="mb-6 p-6 bg-white rounded-xl shadow-sm border border-slate-200">
-    <h4 className="font-semibold text-lg mb-4 text-slate-800">{question.question}</h4>
+    <h4 className="font-semibold text-lg mb-4 text-slate-800">{question.title || question.text}</h4>
     <div className="text-slate-600">
       {/* This is a simplified preview. A full implementation would render the actual question type. */}
       <p>Type: {question.type}</p>

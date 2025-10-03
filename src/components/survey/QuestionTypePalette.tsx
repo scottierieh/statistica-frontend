@@ -1,17 +1,31 @@
 'use client';
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, CaseSensitive, CheckSquare, CircleDot, ChevronDown, Star, Sigma } from 'lucide-react';
+import { PlusCircle, CaseSensitive, CheckSquare, CircleDot, ChevronDown, Star, Sigma, Grid3x3, ThumbsUp, FileText, Phone, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const questionTypes = [
-  { type: 'single_selection', label: 'Single Selection', icon: CircleDot },
-  { type: 'multiple_selection', label: 'Multiple Selection', icon: CheckSquare },
-  { type: 'dropdown', label: 'Dropdown', icon: ChevronDown },
-  { type: 'text', label: 'Text Input', icon: CaseSensitive },
-  { type: 'number_input', label: 'Number Input', icon: Sigma },
-  { type: 'rating', label: 'Rating', icon: Star },
-];
+const questionTypeCategories = {
+    'Choice': [
+        { type: 'single', label: 'Single Selection', icon: CircleDot, color: 'text-blue-500' },
+        { type: 'multiple', label: 'Multiple Selection', icon: CheckSquare, color: 'text-green-500' },
+        { type: 'dropdown', label: 'Dropdown', icon: ChevronDown, color: 'text-cyan-500' },
+        { type: 'best-worst', label: 'Best/Worst Choice', icon: ThumbsUp, color: 'text-amber-500' },
+    ],
+    'Input': [
+        { type: 'text', label: 'Text Input', icon: CaseSensitive, color: 'text-slate-500' },
+        { type: 'number', label: 'Number Input', icon: Sigma, color: 'text-fuchsia-500' },
+        { type: 'phone', label: 'Phone Input', icon: Phone, color: 'text-indigo-500' },
+        { type: 'email', label: 'Email Input', icon: Mail, color: 'text-rose-500' },
+    ],
+    'Scale': [
+        { type: 'rating', label: 'Rating', icon: Star, color: 'text-yellow-500' },
+        { type: 'nps', label: 'Net Promoter Score', icon: Share2, color: 'text-sky-500' },
+    ],
+    'Structure': [
+         { type: 'description', label: 'Description Block', icon: FileText, color: 'text-gray-400' },
+         { type: 'matrix', label: 'Matrix', icon: Grid3x3, color: 'text-purple-500' },
+    ]
+};
 
 export default function QuestionTypePalette({ onSelectType }: { onSelectType: (type: string) => void }) {
   return (
@@ -21,19 +35,24 @@ export default function QuestionTypePalette({ onSelectType }: { onSelectType: (t
       className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200"
     >
       <h3 className="text-lg font-bold text-slate-900 mb-4">Add a Question</h3>
-      <div className="space-y-2">
-        {questionTypes.map((qType) => (
-          <Button
-            key={qType.type}
-            variant="ghost"
-            className="w-full justify-start h-12 text-base"
-            onClick={() => onSelectType(qType.type)}
-          >
-            <qType.icon className="w-5 h-5 mr-3 text-slate-500" />
-            {qType.label}
-          </Button>
-        ))}
-      </div>
+       <div className="space-y-2">
+            {Object.entries(questionTypeCategories).map(([category, types]) => (
+                <div key={category}>
+                    <h4 className="text-sm font-semibold text-muted-foreground px-2 my-2">{category}</h4>
+                    {types.map((qType) => (
+                        <Button
+                            key={qType.type}
+                            variant="ghost"
+                            className="w-full justify-start h-12 text-base"
+                            onClick={() => onSelectType(qType.type)}
+                        >
+                            <qType.icon className={`w-5 h-5 mr-3 ${qType.color}`} />
+                            {qType.label}
+                        </Button>
+                    ))}
+                </div>
+            ))}
+        </div>
     </motion.div>
   );
 }
