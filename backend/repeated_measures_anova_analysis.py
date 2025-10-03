@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -67,7 +68,8 @@ class RepeatedMeasuresAnova:
             
             aov = pg.rm_anova(**kwargs)
 
-            self.results['anova_table'] = aov.to_dict('records')
+            # Convert NaN to None before creating the dictionary
+            self.results['anova_table'] = aov.replace({np.nan: None}).to_dict('records')
             
             # Sphericity test is only relevant for within-subject effects with > 2 levels
             if len(self.within_cols) > 2:
@@ -76,7 +78,7 @@ class RepeatedMeasuresAnova:
                     w, spher, chi2, dof, pval = sphericity_test
                     self.results['mauchly_test'] = {'spher': spher, 'p-val': pval, 'W': w, 'chi2': chi2, 'dof': dof}
                 else: # Newer pingouin versions return dataframe
-                    spher_dict = sphericity_test.to_dict('records')[0]
+                    spher_dict = sphericity_test.replace({np.nan: None}).to_dict('records')[0]
                     self.results['mauchly_test'] = spher_dict
             else:
                 self.results['mauchly_test'] = None
@@ -109,7 +111,7 @@ class RepeatedMeasuresAnova:
                     posthoc_args['between'] = self.between_col
                 
                 posthoc = pg.pairwise_tests(**posthoc_args)
-                self.results['posthoc_results'] = posthoc.to_dict('records')
+                self.results['posthoc_results'] = posthoc.replace({np.nan: None}).to_dict('records')
 
         except Exception as e:
             self.results['error'] = str(e)
@@ -169,7 +171,7 @@ def main():
             'plot': plot_image
         }
         
-        print(json.dumps(response, default=_to_native_type))
+        sys.stdout.write(json.dumps(response, default=_to_native_type, ensure_ascii=False))
 
     except Exception as e:
         error_response = {"error": str(e)}
