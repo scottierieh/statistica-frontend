@@ -1,23 +1,73 @@
+import type { ExampleDataSet } from './index';
 
-export const rmAnovaData = `athlete_id,group,time1,time2,time3
-S01,Control,55,58,57
-S02,Control,60,62,61
-S03,Control,62,65,66
-S04,Control,58,60,61
-S05,Control,59,61,60
-S06,Control,61,63,64
-S07,Control,57,59,58
-S08,Control,63,66,65
-S09,Control,54,56,55
-S10,Control,56,57,58
-S11,Treatment,65,72,78
-S12,Treatment,68,75,82
-S13,Treatment,66,74,80
-S14,Treatment,70,78,85
-S15,Treatment,64,71,77
-S16,Treatment,71,79,86
-S17,Treatment,69,76,83
-S18,Treatment,67,73,81
-S19,Treatment,72,80,88
-S20,Treatment,68,75,84
+const data = `
+Subject,Time,Score
+S1,Time1,8
+S1,Time2,7
+S1,Time3,6
+S1,Time4,5
+S2,Time1,9
+S2,Time2,8
+S2,Time3,7
+S2,Time4,6
+S3,Time1,6
+S3,Time2,5
+S3,Time3,5
+S3,Time4,4
+S4,Time1,10
+S4,Time2,9
+S4,Time3,8
+S4,Time4,8
+S5,Time1,7
+S5,Time2,6
+S5,Time3,6
+S5,Time4,5
+S6,Time1,8
+S6,Time2,8
+S6,Time3,7
+S6,Time4,6
+S7,Time1,9
+S7,Time2,8
+S7,Time3,8
+S7,Time4,7
+S8,Time1,7
+S8,Time2,7
+S8,Time3,6
+S8,Time4,6
+S9,Time1,10
+S9,Time2,9
+S9,Time3,9
+S9,Time4,8
+S10,Time1,6
+S10,Time2,6
+S10,Time3,5
+S10,Time4,4
+S11,Time1,8
+S11,Time2,7
+S11,Time3,6
+S11,Time4,5
+S12,Time1,9
+S12,Time2,8
+S12,Time3,8
+S12,Time4,7
+S13,Time1,7
+S13,Time2,6
+S13,Time3,5
+S13,Time4,5
+S14,Time1,10
+S14,Time2,9
+S14,Time3,8
+S14,Time4,7
+S15,Time1,8
+S15,Time2,8
+S15,Time3,7
+S15,Time4,6
 `;
+
+export const rmAnovaData: ExampleDataSet = {
+  id: 'rm-anova',
+  name: 'Cognitive Training Study (RM ANOVA)',
+  description: 'A dataset tracking the cognitive scores of 15 subjects over four time points after a training program. Ideal for Repeated Measures ANOVA.',
+  data,
+  recommendedAnalysis: 'repeated-measures-anova',
+};
