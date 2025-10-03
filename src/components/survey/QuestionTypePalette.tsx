@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, CaseSensitive, CheckSquare, CircleDot, ChevronDown, Star, Sigma, Grid3x3, ThumbsUp, FileText, Phone, Mail } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { PlusCircle, CaseSensitive, CheckSquare, CircleDot, ChevronDown, Star, Sigma, Grid3x3, ThumbsUp, FileText, Phone, Mail, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const questionTypeCategories = {
@@ -40,15 +40,16 @@ export default function QuestionTypePalette({ onSelectType }: { onSelectType: (t
                 <div key={category}>
                     <h4 className="text-sm font-semibold text-muted-foreground px-2 my-2">{category}</h4>
                     {types.map((qType) => (
-                        <Button
-                            key={qType.type}
-                            variant="ghost"
-                            className="w-full justify-start h-12 text-base"
-                            onClick={() => onSelectType(qType.type)}
-                        >
-                            <qType.icon className={`w-5 h-5 mr-3 ${qType.color}`} />
-                            {qType.label}
-                        </Button>
+                        <div key={qType.type} className="group relative">
+                            <Button
+                                variant="ghost"
+                                className="w-full justify-start h-12 text-base"
+                                onClick={() => onSelectType(qType.type)}
+                            >
+                                <qType.icon className={`w-5 h-5 mr-3 ${qType.color}`} />
+                                {qType.label}
+                            </Button>
+                        </div>
                     ))}
                 </div>
             ))}
