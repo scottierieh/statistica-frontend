@@ -1,3 +1,4 @@
+
 import sys
 import json
 import numpy as np
@@ -8,8 +9,6 @@ import seaborn as sns
 import io
 import base64
 import pingouin as pg
-import statsmodels.api as sm
-from statsmodels.multivariate.manova import MANOVA
 import math
 
 warnings.filterwarnings('ignore')
@@ -28,10 +27,11 @@ def _to_native_type(obj):
     return obj
 
 class RepeatedMeasuresAnova:
-    def __init__(self, data, subject_col, within_cols, between_col=None, alpha=0.05):
+    def __init__(self, data, subject_col, within_cols, dependent_var_template, between_col=None, alpha=0.05):
         self.data = pd.DataFrame(data).copy()
         self.subject_col = subject_col
         self.within_cols = within_cols
+        self.dependent_var = dependent_var_template # This will be the name for the melted value column, e.g., 'score'
         self.between_col = between_col
         self.alpha = alpha
         self.results = {}
@@ -39,63 +39,107 @@ class RepeatedMeasuresAnova:
 
     def _prepare_data(self):
         id_vars = [self.subject_col]
-        if self.between_col:
+        if self.between_col and self.between_col in self.data.columns:
             id_vars.append(self.between_col)
+        
+        # Melt the dataframe from wide to long format
+        self.long_data = pd.melt(self.data, 
+                                 id_vars=id_vars, 
+                                 value_vars=self.within_cols,
+                                 var_name='time', # Standard name for the within-subject factor variable after melting
+                                 value_name=self.dependent_var)
+        self.long_data.dropna(inplace=True)
 
-        # Ensure all within columns are numeric
-        for col in self.within_cols:
-            self.data[col] = pd.to_numeric(self.data[col], errors='coerce')
-            
-        self.wide_data = self.data[id_vars + self.within_cols].dropna()
 
     def run_analysis(self):
         try:
-            formula_end = " * ".join([f"C({c})" for c in self.within_cols]) if len(self.within_cols) > 1 else self.within_cols[0]
-            formula = f'{" + ".join(self.within_cols)} ~ {self.between_col}' if self.between_col else f'{" + ".join(self.within_cols)} ~ 1'
+            # Build arguments dynamically for rm_anova
+            kwargs = {
+                'data': self.long_data,
+                'dv': self.dependent_var,
+                'within': 'time', # This is now the standard name for the within-factor
+                'subject': self.subject_col,
+                'detailed': True,
+                'effsize': "np2"
+            }
+            if self.between_col:
+                kwargs['between'] = self.between_col
             
-            # Use MANOVA for repeated measures
-            manova = MANOVA.from_formula(formula, data=self.wide_data)
-            mv_test_results = manova.mv_test()
+            aov = pg.rm_anova(**kwargs)
+
+            self.results['anova_table'] = aov.to_dict('records')
             
-            self.results['manova_results'] = {name: table.to_dict('records') for name, table in mv_test_results.results.items()}
+            # Sphericity test is only relevant for within-subject effects with > 2 levels
+            if len(self.within_cols) > 2:
+                sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within='time', subject=self.subject_col)
+                if isinstance(sphericity_test, tuple): # Older pingouin versions might return a tuple
+                    w, spher, chi2, dof, pval = sphericity_test
+                    self.results['mauchly_test'] = {'spher': spher, 'p-val': pval, 'W': w, 'chi2': chi2, 'dof': dof}
+                else: # Newer pingouin versions return dataframe
+                    spher_dict = sphericity_test.to_dict('records')[0]
+                    self.results['mauchly_test'] = spher_dict
+            else:
+                self.results['mauchly_test'] = None
+
+
+            # Post-hoc tests if significant interaction or main effect
+            perform_posthoc = False
+            main_effect_p_col = 'p-GG-corr' if 'p-GG-corr' in aov.columns and not pd.isna(aov.loc[aov['Source'] == 'time', 'p-GG-corr']).any() else 'p-unc'
             
-            # For interpretation, we can still use pingouin for its simpler summary output
-            self.run_pingouin_for_summary()
+            if self.between_col:
+                interaction_row = aov[aov['Source'] == f'time * {self.between_col}']
+                if not interaction_row.empty:
+                    interaction_p_col = 'p-GG-corr' if 'p-GG-corr' in interaction_row.columns and not pd.isna(interaction_row['p-GG-corr'].iloc[0]) else 'p-unc'
+                    if interaction_row[interaction_p_col].iloc[0] < self.alpha:
+                        perform_posthoc = True
+            else: # No between-subject factor, check main within-subject effect
+                within_row = aov[aov['Source'] == 'time']
+                if not within_row.empty and within_row[main_effect_p_col].iloc[0] < self.alpha:
+                    perform_posthoc = True
+
+            if perform_posthoc:
+                posthoc_args = {
+                    'data': self.long_data,
+                    'dv': self.dependent_var,
+                    'within': 'time',
+                    'subject': self.subject_col,
+                    'padjust': 'bonf'
+                }
+                if self.between_col:
+                    posthoc_args['between'] = self.between_col
+                
+                posthoc = pg.pairwise_tests(**posthoc_args)
+                self.results['posthoc_results'] = posthoc.to_dict('records')
 
         except Exception as e:
             self.results['error'] = str(e)
 
-    def run_pingouin_for_summary(self):
-        long_data = pd.melt(self.wide_data, 
-                            id_vars=[self.subject_col] + ([self.between_col] if self.between_col else []), 
-                            value_vars=self.within_cols, 
-                            var_name='time', 
-                            value_name='score')
-
-        aov = pg.rm_anova(data=long_data, dv='score', within='time', subject=self.subject_col, between=self.between_col, detailed=True)
-        self.results['summary_table'] = aov.to_dict('records')
-
-        sphericity = pg.sphericity(data=long_data, dv='score', within='time', subject=self.subject_col)
-        self.results['sphericity'] = {
-            'spher': sphericity.spher, 'p-val': sphericity.pvalue, 'W': sphericity.W
-        }
 
     def plot_results(self):
-        long_data = pd.melt(self.wide_data, 
-                            id_vars=[self.subject_col] + ([self.between_col] if self.between_col else []), 
-                            value_vars=self.within_cols, 
-                            var_name='time', 
-                            value_name='score')
+        if 'error' in self.results or not hasattr(self, 'long_data') or self.long_data.empty:
+            return None
         
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.pointplot(data=long_data, x='time', y='score', hue=self.between_col, ax=ax, dodge=True, errorbar='ci')
-        ax.set_title(f'Interaction Plot')
-        ax.set_xlabel('Condition')
-        ax.set_ylabel('Mean Score')
-        if self.between_col:
-            ax.legend(title=self.between_col)
-        plt.tight_layout()
         
+        hue = self.between_col if self.between_col else None
+        
+        sns.pointplot(data=self.long_data, 
+                      x='time', 
+                      y=self.dependent_var, 
+                      hue=hue, 
+                      ax=ax,
+                      dodge=True,
+                      errorbar='ci',
+                      capsize=.1)
+                      
+        ax.set_title(f'Interaction Plot: {self.dependent_var} over Time')
+        ax.set_xlabel('Time / Condition')
+        ax.set_ylabel(f'Mean of {self.dependent_var}')
+        if hue:
+            ax.legend(title=hue)
+        ax.grid(True, linestyle='--', alpha=0.6)
+        
+        plt.tight_layout()
         buf = io.BytesIO()
         plt.savefig(buf, format='png')
         plt.close(fig)
@@ -109,12 +153,13 @@ def main():
         data = payload.get('data')
         subject_col = payload.get('subjectCol')
         within_cols = payload.get('withinCols')
-        between_col = payload.get('betweenCol', None)
+        dependent_var = payload.get('dependentVar', 'measurement')
+        between_col = payload.get('betweenCol')
 
         if not all([data, subject_col, within_cols]):
-            raise ValueError("Missing data, subjectCol, or withinCols")
+            raise ValueError("Missing required parameters: data, subjectCol, withinCols")
 
-        analysis = RepeatedMeasuresAnova(data, subject_col, within_cols, between_col)
+        analysis = RepeatedMeasuresAnova(data, subject_col, within_cols, dependent_var, between_col)
         analysis.run_analysis()
         
         plot_image = analysis.plot_results()
@@ -124,7 +169,7 @@ def main():
             'plot': plot_image
         }
         
-        print(json.dumps(response, default=_to_native_type))
+        sys.stdout.write(json.dumps(response, default=_to_native_type, ensure_ascii=False))
 
     except Exception as e:
         error_response = {"error": str(e)}
