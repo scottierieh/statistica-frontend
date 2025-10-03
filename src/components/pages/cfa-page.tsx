@@ -14,6 +14,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Input } from '../ui/input';
 
 interface CfaResults {
     estimates: any[];
@@ -200,7 +201,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     const { toast } = useToast();
     const [view, setView] = useState('intro');
     const [selectedItems, setSelectedItems] = useState<string[]>(numericHeaders);
-    const [modelSpec, setModelSpec] = useState('Factor1 =~ X1 + X2 + X3\nFactor2 =~ Y1 + Y2 + Y3');
+    const [nFactors, setNFactors] = useState<number>(2);
     
     const [analysisResult, setAnalysisResult] = useState<CfaResults | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -214,17 +215,31 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
     }, [data, numericHeaders, canRun]);
 
     const handleAnalysis = useCallback(async () => {
-        if (selectedItems.length < 3) {
-            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select at least 3 variables for CFA.' });
-            return;
-        }
-        if (!modelSpec.trim()) {
-            toast({ variant: 'destructive', title: 'Model Error', description: 'Please provide a model specification.' });
+        if (selectedItems.length < nFactors) {
+            toast({ variant: 'destructive', title: 'Selection Error', description: 'The number of selected variables must be greater than or equal to the number of factors.' });
             return;
         }
 
         setIsLoading(true);
         setAnalysisResult(null);
+        
+        // Auto-generate modelSpec
+        let modelSpec = '';
+        const itemsPerFactor = Math.floor(selectedItems.length / nFactors);
+        let remainder = selectedItems.length % nFactors;
+        let currentItemIndex = 0;
+        for (let i = 1; i <= nFactors; i++) {
+            const factorName = `Factor${i}`;
+            const numItemsForThisFactor = itemsPerFactor + (remainder > 0 ? 1 : 0);
+            const factorItems = selectedItems.slice(currentItemIndex, currentItemIndex + numItemsForThisFactor);
+            if (factorItems.length > 0) {
+                modelSpec += `${factorName} =~ ${factorItems.join(' + ')}\n`;
+            }
+            currentItemIndex += numItemsForThisFactor;
+            if (remainder > 0) {
+                remainder--;
+            }
+        }
         
         try {
             const response = await fetch('/api/analysis/cfa', {
@@ -248,7 +263,7 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
         } finally {
             setIsLoading(false);
         }
-    }, [data, selectedItems, modelSpec, toast]);
+    }, [data, selectedItems, nFactors, toast]);
 
     if (!canRun && view === 'main') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
@@ -268,17 +283,19 @@ export default function CfaPage({ data, numericHeaders, onLoadExample }: CfaPage
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-6">
+                     <div className="grid md:grid-cols-2 gap-6">
                         <div>
-                            <Label>Model Specification (semopy syntax)</Label>
-                            <Textarea
-                                className="font-mono h-40"
-                                value={modelSpec}
-                                onChange={e => setModelSpec(e.target.value)}
-                                placeholder={'# Measurement Model\nFactor1 =~ item1 + item2 + item3\nFactor2 =~ item4 + item5 + item6'}
+                           <Label>Number of Factors</Label>
+                           <Input 
+                                type="number" 
+                                value={nFactors} 
+                                onChange={e => setNFactors(Number(e.target.value))}
+                                min="1"
+                                max={selectedItems.length > 1 ? selectedItems.length - 1 : 1}
                             />
+                             <p className="text-xs text-muted-foreground mt-1">Variables will be evenly distributed among factors.</p>
                         </div>
-                        <div>
+                        <div className="md:col-span-2">
                              <DualListBox allItems={numericHeaders} selectedItems={selectedItems} setSelectedItems={setSelectedItems} />
                         </div>
                     </div>
