@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -221,17 +220,17 @@ export default function RepeatedMeasuresAnovaPage({ data, allHeaders, numericHea
                 <CardHeader><CardTitle>ANOVA Summary Table</CardTitle></CardHeader>
                 <CardContent>
                      <Table>
-                        <TableHeader><TableRow><TableHead>Source</TableHead><TableHead>SS</TableHead><TableHead>DF</TableHead><TableHead>MS</TableHead><TableHead>F</TableHead><TableHead>p-unc</TableHead><TableHead>p-GG-corr</TableHead><TableHead>np2</TableHead></TableRow></TableHeader>
+                        <TableHeader><TableRow><TableHead>Source</TableHead><TableHead>SS</TableHead><TableHead>df</TableHead><TableHead>MS</TableHead><TableHead>F</TableHead><TableHead>p-unc</TableHead><TableHead>p-GG-corr</TableHead><TableHead>np2</TableHead></TableRow></TableHeader>
                         <TableBody>
                             {(results.anova_table || []).map((row: any, i: number) => (
                                 <TableRow key={i}>
                                     <TableCell>{row.Source}</TableCell>
                                     <TableCell>{row.SS?.toFixed(3)}</TableCell>
-                                    <TableCell>{row.ddof1 || row.DF1}</TableCell>
+                                    <TableCell>{row.ddof1 || row.DF1 || 'N/A'}</TableCell>
                                     <TableCell>{row.MS?.toFixed(3)}</TableCell>
                                     <TableCell>{row.F?.toFixed(3)}</TableCell>
                                     <TableCell>{row['p-unc'] < 0.001 ? '<.001' : row['p-unc']?.toFixed(4)}</TableCell>
-                                    <TableCell>{row['p-GG-corr'] < 0.001 ? '<.001' : row['p-GG-corr']?.toFixed(4)}</TableCell>
+                                    <TableCell>{row['p-GG-corr'] ? (row['p-GG-corr'] < 0.001 ? '<.001' : row['p-GG-corr']?.toFixed(4)) : '-'}</TableCell>
                                     <TableCell>{row.np2?.toFixed(3)}</TableCell>
                                 </TableRow>
                             ))}
