@@ -121,7 +121,7 @@ import LjungBoxPage from './pages/ljung-box-page';
 import RepeatedMeasuresANOAPage from './pages/repeated-measures-anova-page';
 import TTestPage from './pages/t-test-page';
 import { cn } from '@/lib/utils';
-import OneSampleTTestPage from './pages/one-sample-ttest-page';
+import OneSampleTTestPage from './pages/one-sample-t-test-page';
 
 
 const analysisCategories = [
@@ -140,7 +140,7 @@ const analysisCategories = [
           {
             name: 'T-Tests',
             items: [
-                { id: 'one-sample-ttest', label: 'One-Sample T-Test', icon: Target, component: OneSampleTTestPage },
+                { id: 'one-sample-t-test', label: 'One-Sample T-Test', icon: Target, component: OneSampleTTestPage },
                 { id: 't-test-independent-samples', label: 'Independent Samples', icon: Users, component: TTestPage },
                 { id: 't-test-paired-samples', label: 'Paired Samples', icon: Repeat, component: TTestPage },
             ]
