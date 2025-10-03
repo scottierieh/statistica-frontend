@@ -14,10 +14,10 @@ import AIAnalysisCard from "@/components/dashboard/survey2/AIAnalysisCard";
 import type { Survey, SurveyResponse } from '@/types/survey';
 
 // Mock data to simulate API calls
-const mockSurveys: Survey[] = [
+const mockSurveysData: Survey[] = [
     { id: '1', name: 'Customer Satisfaction Q2', status: 'active', created_date: '2024-06-15T10:00:00Z' },
-    { id: '2', name: 'Product Feedback for Alpha Launch', status: 'active', created_date: '2024-07-01T11:30:00Z' },
-    { id: '3', name: 'Employee Engagement Survey 2023', status: 'closed', created_date: '2023-12-10T09:00:00Z' },
+    { id: '2', name: 'Product Feedback for Alpha Launch', status: 'active', created_date: '2024-07-01T11:30:00Z', startDate: new Date(new Date().setDate(new Date().getDate() - 7)).toISOString(), endDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString() },
+    { id: '3', name: 'Employee Engagement Survey 2023', status: 'closed', created_date: '2023-12-10T09:00:00Z', startDate: '2023-12-01T09:00:00Z', endDate: '2023-12-31T09:00:00Z' },
     { id: '4', name: 'Website Usability Testing', status: 'draft', created_date: '2024-07-20T14:00:00Z' },
 ];
 
@@ -45,9 +45,15 @@ export default function Survey2Dashboard() {
     setIsLoading(true);
     // Simulating an API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    setSurveys(mockSurveys.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime()));
+    setSurveys(mockSurveysData.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime()));
     setResponses(mockResponses);
     setIsLoading(false);
+  };
+  
+  const handleSurveyUpdate = (updatedSurvey: Survey) => {
+    setSurveys(prevSurveys => 
+      prevSurveys.map(s => s.id === updatedSurvey.id ? updatedSurvey : s)
+    );
   };
 
   const filteredSurveys = filter === "all" 
@@ -162,7 +168,7 @@ export default function Survey2Dashboard() {
                 key={survey.id}
                 survey={survey}
                 responses={responses.filter(r => r.survey_id === survey.id)}
-                onUpdate={loadData}
+                onUpdate={handleSurveyUpdate}
               />
             ))}
           </AnimatePresence>

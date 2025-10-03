@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart, Edit, Users, Clock, Settings, Share2, QrCode, Copy, Download, Calendar as CalendarIcon } from "lucide-react";
+import { BarChart, Edit, Users, Clock, Settings, Share2, QrCode, Copy, Download, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
@@ -26,7 +26,7 @@ import { addDays } from "date-fns";
 interface SurveyCardProps {
     survey: Survey;
     responses: SurveyResponse[];
-    onUpdate: () => void;
+    onUpdate: (updatedSurvey: Survey) => void;
 }
 
 export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardProps) {
@@ -46,13 +46,28 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
 
     const surveyUrl = typeof window !== 'undefined' ? `${window.location.origin}/survey/view/general/${survey.id}` : '';
 
-    const statusConfig = {
+    const effectiveStatus = useMemo(() => {
+        if (survey.status === 'draft' || survey.status === 'closed') {
+            return survey.status;
+        }
+        const now = new Date();
+        const startDate = survey.startDate ? new Date(survey.startDate) : null;
+        const endDate = survey.endDate ? new Date(survey.endDate) : null;
+        
+        if (startDate && now < startDate) return 'scheduled';
+        if (endDate && now > endDate) return 'closed';
+
+        return 'active';
+    }, [survey.status, survey.startDate, survey.endDate]);
+
+    const statusConfig: { [key: string]: { color: string; label: string; icon?: React.ElementType } } = {
         active: { color: "bg-green-500", label: "Active" },
         draft: { color: "bg-yellow-500", label: "Draft" },
         closed: { color: "bg-red-500", label: "Closed" },
+        scheduled: { color: "bg-blue-500", label: "Scheduled", icon: CalendarIcon },
     };
 
-    const { color, label } = statusConfig[survey.status as keyof typeof statusConfig] || { color: 'bg-gray-500', label: 'Unknown' };
+    const { color, label, icon: StatusIcon } = statusConfig[effectiveStatus] || { color: 'bg-gray-500', label: 'Unknown' };
 
     const generateQrCode = async () => {
         if (!surveyUrl) return;
@@ -90,11 +105,21 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
     };
     
     const handleSettingsSave = () => {
-      // In a real app, this would be an API call to update the survey
-      console.log("Saving settings:", { startDate: date?.from, endDate: date?.to });
-      toast({ title: "Settings Saved", description: "Survey settings have been updated."});
-      onUpdate(); // To refetch and reflect changes if any
+      const updatedSurvey = {
+        ...survey,
+        startDate: date?.from?.toISOString(),
+        endDate: date?.to?.toISOString(),
+      };
+      onUpdate(updatedSurvey);
+      toast({ title: "Settings Saved", description: "Survey activation dates have been updated."});
     };
+    
+    useEffect(() => {
+        setDate({
+            from: survey.startDate ? new Date(survey.startDate) : undefined,
+            to: survey.endDate ? new Date(survey.endDate) : undefined,
+        });
+    }, [survey.startDate, survey.endDate]);
 
     return (
         <motion.div
@@ -111,7 +136,10 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger>
-                                <Badge className={`${color} h-2.5 w-2.5 p-0`}></Badge>
+                                <Badge className={`${color} h-6 px-2 flex items-center gap-1`}>
+                                     {StatusIcon && <StatusIcon className="w-3 h-3" />}
+                                    <span>{label}</span>
+                                </Badge>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>{label}</p>
