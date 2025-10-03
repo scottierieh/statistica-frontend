@@ -135,7 +135,7 @@ const RepeatedMeasuresANOAPage = ({ data, allHeaders, numericHeaders, categorica
       const response = await fetch('/api/analysis/repeated-measures-anova', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data, subjectCol, withinCols, betweenCol }),
+        body: JSON.stringify({ data, subjectCol, withinCols, dependentVar: 'score', betweenCol }),
       });
 
       if (!response.ok) {
@@ -280,5 +280,3 @@ const RepeatedMeasuresANOAPage = ({ data, allHeaders, numericHeaders, categorica
     </div>
   );
 };
-
-export default RepeatedMeasuresANOAPage;

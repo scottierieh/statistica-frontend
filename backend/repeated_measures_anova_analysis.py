@@ -73,7 +73,7 @@ class RepeatedMeasuresAnova:
             if len(self.within_cols) > 2:
                 sphericity_test = pg.sphericity(data=self.long_data, dv=self.dependent_var, within=self.within_name, subject=self.subject_col)
                 if isinstance(sphericity_test, tuple): # Older pingouin versions
-                    self.results['mauchly_test'] = {'spher': sphericity_test[0], 'p-value': sphericity_test[1], 'sphericity': sphericity_test[2]}
+                    self.results['mauchly_test'] = {'spher': sphericity_test[0], 'p-val': sphericity_test[2], 'W': sphericity_test[1]}
                 else: # Newer pingouin versions return dataframe
                     spher_dict = sphericity_test.to_dict('records')[0]
                     self.results['mauchly_test'] = spher_dict
