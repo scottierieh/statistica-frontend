@@ -162,6 +162,21 @@ const processMatrixResponses = (responses: SurveyResponse[], question: Question)
     return { heatmapData: result, chartData, rows, columns };
 };
 
+const processNPS = async (responses: SurveyResponse[], questionId: string) => {
+    const npsScores = responses.map((r: any) => r.answers[questionId]).filter(v => typeof v === 'number');
+    const npsResponse = await fetch('/api/analysis/nps', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ scores: npsScores }),
+    });
+    if (!npsResponse.ok) {
+        console.error("NPS analysis failed");
+        return null;
+    }
+    const npsResult = await npsResponse.json();
+    return npsResult.results;
+};
+
 // --- Chart Components ---
 const CategoricalChart = ({ data, title }: { data: {name: string, count: number, percentage: number}[], title: string }) => {
     const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
@@ -224,7 +239,7 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
 
 
 
-const NumericChart = ({ data, title, questionId }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], values: number[] }, title: string, questionId: string }) => {
+const NumericChart = ({ data, title }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], values: number[] }, title: string }) => {
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
@@ -878,4 +893,291 @@ export default function SurveyAnalysisPage() {
     );
 }
 
+```
+- src/hooks/use-local-storage.ts:
+```ts
+import { useState, useEffect } from 'react';
+
+function useLocalStorage<T>(key: string, initialValue: T) {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    if (typeof window === 'undefined') {
+      return initialValue;
+    }
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(error);
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const item = window.localStorage.getItem(key);
+        if (item) {
+            try {
+                setStoredValue(JSON.parse(item));
+            } catch (error) {
+                console.log(error);
+            }
+        }
+    }
+  }, [key]);
+
+  return [storedValue, setValue] as const;
+}
+
+export default useLocalStorage;
+
+```
+- src/lib/stats.ts:
+```ts
+
+import Papa from 'papaparse';
+
+export type DataPoint = Record<string, number | string>;
+export type DataSet = DataPoint[];
+
+export const parseData = (
+  fileContent: string
+): { headers: string[]; data: DataSet; numericHeaders: string[]; categoricalHeaders: string[] } => {
+  const result = Papa.parse(fileContent, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: true,
+  });
+
+  if (result.errors.length > 0) {
+    console.error("Parsing errors:", result.errors);
+    // Optionally throw an error for the first critical error
+    const firstError = result.errors[0];
+    if (firstError.code !== 'UndetectableDelimiter') {
+       throw new Error(`CSV Parsing Error: ${firstError.message} on row ${firstError.row}`);
+    }
+  }
+
+  if (!result.data || result.data.length === 0) {
+    throw new Error("No parsable data rows found in the file.");
+  }
+  
+  const rawHeaders = result.meta.fields || [];
+  const data: DataSet = result.data as DataSet;
+
+  const numericHeaders: string[] = [];
+  const categoricalHeaders: string[] = [];
+
+  rawHeaders.forEach(header => {
+    const values = data.map(row => row[header]).filter(val => val !== null && val !== undefined && val !== '');
+    
+    // Check if every non-empty value is a number
+    const isNumericColumn = values.every(val => typeof val === 'number' && isFinite(val));
+
+    if (isNumericColumn) {
+        numericHeaders.push(header);
+    } else {
+        categoricalHeaders.push(header);
+    }
+  });
+
+  // Ensure types are correct, PapaParse does a good job but we can enforce it.
+  const sanitizedData = data.map(row => {
+    const newRow: DataPoint = {};
+    rawHeaders.forEach(header => {
+      const value = row[header];
+      if (numericHeaders.includes(header)) {
+        if (typeof value === 'number' && isFinite(value)) {
+            newRow[header] = value;
+        } else if (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value))) {
+            newRow[header] = parseFloat(value);
+        } else {
+            newRow[header] = NaN; // Use NaN for non-numeric values in numeric columns
+        }
+      } else { // Categorical
+        newRow[header] = String(value ?? '');
+      }
+    });
+    return newRow;
+  });
+
+  return { headers: rawHeaders, data: sanitizedData, numericHeaders, categoricalHeaders };
+};
+
+export const unparseData = (
+    { headers, data }: { headers: string[]; data: DataSet }
+): string => {
+    return Papa.unparse(data, {
+        columns: headers,
+        header: true,
+    });
+};
+
+```
+- src/lib/utils.ts:
+```ts
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+```
+- src/types/survey.ts:
+```ts
+
+export interface Question {
+  id: string;
+  type: string;
+  title: string;
+  text?: string;
+  description?: string;
+  options?: string[];
+  items?: string[];
+  columns?: string[];
+  scale?: string[];
+  required?: boolean;
+  content?: string;
+  imageUrl?: string;
+  rows?: string[];
+}
+
+
+export interface Survey {
+  id: string;
+  name: string;
+  status: 'active' | 'draft' | 'closed';
+  created_date: string;
+  questions?: Question[];
+  startDate?: string;
+  endDate?: string;
+}
+
+
+export interface SurveyResponse {
+    id: string;
+    survey_id: string;
+    submitted_at: string;
+    answers: {
+        [questionId: string]: any;
+    }
+}
+```
+- tailwind.config.ts:
+```ts
+import type { Config } from "tailwindcss"
+const {fontFamily} = require('tailwindcss/defaultTheme');
+
+const config = {
+  darkMode: ["class"],
+  content: [
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+	],
+  prefix: "",
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+       fontFamily: {
+        sans: ["var(--font-sans)", ...fontFamily.sans],
+        headline: ['Space Grotesk', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
+      },
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+} satisfies Config
+
+export default config
 ```
