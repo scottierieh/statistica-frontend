@@ -363,7 +363,7 @@ const BestWorstChart = ({ data, title }: { data: {name: string, netScore: number
                     <ChartContainer config={{}} className="w-full h-[300px]">
                         <ResponsiveContainer>
                             <BarChart data={[...data].sort((a,b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
-                                <YAxis type="category" dataKey="name" />
+                                <YAxis type="category" dataKey="name" width={100} />
                                 <XAxis type="number" />
                                 <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>}/>
                                 <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))" />
@@ -549,4 +549,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-```
