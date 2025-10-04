@@ -1,14 +1,12 @@
-
-
 'use client';
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Customized, BoxPlot } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Customized } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -84,7 +82,7 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
         outliers: [] // Placeholder for outlier detection
     }];
 
-    return { mean, median, std, count: values.length, histogram, boxplot };
+    return { mean, median, std, count: values.length, histogram, boxplot, values };
 };
 
 const processNPS = (responses: SurveyResponse[], questionId: string) => {
@@ -232,17 +230,48 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
     );
 };
 
-const NumericChart = ({ data, title }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], boxplot: any[] }, title: string }) => {
+const NumericChart = ({ data, title, questionId }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], values: number[] }, title: string, questionId: string }) => {
     const [chartType, setChartType] = useState<'histogram' | 'boxplot'>('histogram');
+    const [boxPlotImage, setBoxPlotImage] = useState<string | null>(null);
+    const [isPlotLoading, setIsPlotLoading] = useState(false);
+
+    const generateBoxPlot = async () => {
+        if (boxPlotImage) return; // Don't re-generate if we already have it
+        setIsPlotLoading(true);
+        try {
+            const response = await fetch('/api/analysis/visualization', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    data: data.values.map(v => ({ [title]: v })),
+                    chartType: 'box',
+                    config: { x_col: title }
+                }),
+            });
+            if (!response.ok) throw new Error('Failed to generate box plot');
+            const result = await response.json();
+            setBoxPlotImage(result.plot);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsPlotLoading(false);
+        }
+    };
     
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
+                 <Tabs value={chartType} onValueChange={(v) => {
+                     const newType = v as any;
+                     setChartType(newType);
+                     if (newType === 'boxplot') {
+                         generateBoxPlot();
+                     }
+                 }} className="col-span-1">
                     <TabsList>
                         <TabsTrigger value="histogram"><BarChartIcon className="w-4 h-4 mr-2"/>Histogram</TabsTrigger>
-                        <TabsTrigger value="boxplot"><BarChartIcon className="w-4 h-4 mr-2"/>Box Plot</TabsTrigger>
+                        <TabsTrigger value="boxplot"><Box className="w-4 h-4 mr-2"/>Box Plot</TabsTrigger>
                     </TabsList>
                     <TabsContent value="histogram">
                         <ChartContainer config={{}} className="w-full h-64">
@@ -257,16 +286,11 @@ const NumericChart = ({ data, title }: { data: { mean: number, median: number, s
                         </ChartContainer>
                     </TabsContent>
                      <TabsContent value="boxplot">
-                        <ChartContainer config={{}} className="w-full h-64">
-                            <ResponsiveContainer>
-                                <BarChart data={data.boxplot} layout="vertical">
-                                    <YAxis type="category" dataKey="name" hide />
-                                    <XAxis type="number" />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="box" name="Box" fill="hsl(var(--primary))" shape={<div />} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
+                        <div className="w-full h-64 flex items-center justify-center">
+                            {isPlotLoading ? <Skeleton className="h-full w-full" /> : 
+                            boxPlotImage ? <Image src={boxPlotImage} alt="Box plot" width={400} height={256} className="object-contain"/> : 
+                            <p>Could not load box plot.</p>}
+                        </div>
                     </TabsContent>
                 </Tabs>
                  <div className="grid grid-cols-2 gap-4 text-center">
@@ -578,7 +602,7 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
                     <TabsContent value="stacked">
                         <ChartContainer config={{}} className="w-full h-[400px]">
                             <ResponsiveContainer>
-                                <BarChart data={data.chartData} layout="vertical">
+                                <BarChart data={data.chartData} layout="vertical" margin={{ left: 100 }}>
                                     <XAxis type="number" stackId="a" domain={[0, 100]} unit="%"/>
                                     <YAxis type="category" dataKey="name" width={120} />
                                     <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
@@ -656,7 +680,7 @@ export default function SurveyAnalysisPage() {
                 case 'multiple':
                     return { type: 'categorical', title: q.title, data: processCategoricalResponses(responses, q) };
                 case 'number':
-                    return { type: 'numeric', title: q.title, data: processNumericResponses(responses, questionId) };
+                    return { type: 'numeric', title: q.title, data: processNumericResponses(responses, questionId), questionId };
                 case 'rating':
                     const ratingData = processCategoricalResponses(responses, q);
                     return { type: 'rating', title: q.title, data: ratingData };
@@ -701,7 +725,7 @@ export default function SurveyAnalysisPage() {
                     case 'multiple':
                         return <CategoricalChart key={index} data={result.data} title={result.title} />;
                     case 'numeric':
-                        return <NumericChart key={index} data={result.data} title={result.title} />;
+                        return <NumericChart key={index} data={result.data} title={result.title} questionId={result.questionId} />;
                     case 'rating':
                          return <RatingChart key={index} data={result.data} title={result.title} />;
                     case 'nps':
@@ -720,176 +744,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
-```
-- src/types/survey.ts:
-```ts
-
-export interface Survey {
-  id: string;
-  title: string;
-  status: 'active' | 'draft' | 'closed';
-  created_date: string;
-  startDate?: string;
-  endDate?: string;
-  questions?: any[]; 
-  description?: string; 
-  name?: string;
-}
-
-export interface SurveyResponse {
-  id: string;
-  survey_id: string;
-  submitted_at: string;
-  answers: {
-    [questionId: string]: any;
-  }
-}
-
-```
-- tailwind.config.ts:
-```ts
-import type {Config} from 'tailwindcss';
-const {fontFamily} = require('tailwindcss/defaultTheme');
-
-export default {
-  darkMode: ['class'],
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    container: {
-      center: true,
-      padding: '2rem',
-      screens: {
-        '2xl': '1400px',
-      },
-    },
-    extend: {
-      fontFamily: {
-        sans: ['var(--font-sans)', ...fontFamily.sans],
-        body: ['Inter', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
-      },
-      colors: {
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
-        },
-        sidebar: {
-          DEFAULT: 'hsl(var(--sidebar-background))',
-          foreground: 'hsl(var(--sidebar-foreground))',
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-          border: 'hsl(var(--sidebar-border))',
-          ring: 'hsl(var(--sidebar-ring))',
-        },
-      },
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
-      },
-      keyframes: {
-        'accordion-down': {
-          from: {height: '0'},
-          to: {height: 'var(--radix-accordion-content-height)'},
-        },
-        'accordion-up': {
-          from: {height: 'var(--radix-accordion-content-height)'},
-          to: {height: '0'},
-        },
-      },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
-      },
-    },
-  },
-  plugins: [require('tailwindcss-animate')],
-} satisfies Config;
-
-```
-- tsconfig.json:
-```json
-{
-  "compilerOptions": {
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
-}
-```
