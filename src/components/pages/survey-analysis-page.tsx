@@ -267,18 +267,18 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
             setIsPlotLoading(false);
         }
     }, [boxPlotImage, isPlotLoading, data.values, title]);
+
+    useEffect(() => {
+        if (chartType === 'boxplot' && !boxPlotImage) {
+            generateBoxPlot();
+        }
+    }, [chartType, boxPlotImage, generateBoxPlot]);
     
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <Tabs value={chartType} onValueChange={(v) => {
-                     const newType = v as any;
-                     setChartType(newType);
-                     if (newType === 'boxplot') {
-                         generateBoxPlot();
-                     }
-                 }} className="col-span-1">
+                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
                     <TabsList>
                         <TabsTrigger value="histogram"><BarChartIcon className="w-4 h-4 mr-2"/>Histogram</TabsTrigger>
                         <TabsTrigger value="boxplot"><Box className="w-4 h-4 mr-2"/>Box Plot</TabsTrigger>
@@ -314,18 +314,23 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
     );
 };
 
-const RatingChart = ({ data, title }: { data: { values: number[] }, title: string }) => {
-    const ratingCounts = data.values.reduce((acc, value) => {
-        acc[value] = (acc[value] || 0) + 1;
-        return acc;
-    }, {} as {[key: number]: number});
+const RatingChart = ({ data, title }: { data: { values: number[], count: number }, title: string }) => {
+    const ratingCounts: {[key: number]: number} = {};
+    const scale = Array.from({length: 5}, (_, i) => i + 1); // Assuming 1-5 scale for now
+    scale.forEach(s => ratingCounts[s] = 0);
+    
+    data.values.forEach(value => {
+        if (value >= 1 && value <= 5) {
+            ratingCounts[Math.round(value)]++;
+        }
+    });
 
     const tableData = Object.entries(ratingCounts).map(([rating, count]) => ({
         name: rating,
         count: count,
-    })).sort((a,b) => Number(a.name) - Number(b.name));
+    }));
 
-    const totalResponses = data.values.length;
+    const totalResponses = data.count;
     const weightedSum = data.values.reduce((sum, val) => sum + val, 0);
     const averageRating = totalResponses > 0 ? weightedSum / totalResponses : 0;
     
@@ -355,7 +360,7 @@ const RatingChart = ({ data, title }: { data: { values: number[] }, title: strin
                             <TableRow key={item.name}>
                                 <TableCell>{item.name}</TableCell>
                                 <TableCell className="text-right">{item.count}</TableCell>
-                                <TableCell className="text-right">{(item.count / totalResponses * 100).toFixed(1)}%</TableCell>
+                                <TableCell className="text-right">{totalResponses > 0 ? (item.count / totalResponses * 100).toFixed(1) : 0}%</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -675,7 +680,7 @@ export default function SurveyAnalysisPage() {
     const params = useParams();
     const router = useRouter();
     const surveyId = params.id as string;
-    const [survey, setSurvey] = useState<Survey | null>(null);
+    const [survey, setSurvey] = useState<any>(null);
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -684,7 +689,7 @@ export default function SurveyAnalysisPage() {
         if (surveyId) {
             try {
                 const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
-                const currentSurvey = storedSurveys.find((s: Survey) => s.id === surveyId);
+                const currentSurvey = storedSurveys.find((s: any) => s.id === surveyId);
                 setSurvey(currentSurvey || null);
 
                 const storedResponses = JSON.parse(localStorage.getItem(`${surveyId}_responses`) || '[]');
@@ -700,7 +705,7 @@ export default function SurveyAnalysisPage() {
     
     const analysisData = useMemo(() => {
         if (!survey || !responses) return [];
-        return (survey.questions || []).map(q => {
+        return (survey.questions || []).map((q: Question) => {
             const questionId = String(q.id);
             switch(q.type) {
                 case 'single':
@@ -757,7 +762,7 @@ export default function SurveyAnalysisPage() {
                     case 'numeric':
                         return <NumericChart key={index} data={result.data} title={result.title} questionId={result.questionId} />;
                     case 'rating':
-                         return <RatingChart key={index} data={result.data} title={result.title} />;
+                        return <RatingChart key={index} data={result.data} title={result.title} />;
                     case 'nps':
                         return <NPSChart key={index} data={result.data} title={result.title} />;
     
@@ -773,472 +778,6 @@ export default function SurveyAnalysisPage() {
             })}
         </div>
     );
-}
-
-```
-- src/hooks/use-toast.ts:
-```tsx
-"use client"
-
-// Inspired by react-hot-toast library
-import * as React from "react"
-
-import type {
-  ToastActionElement,
-  ToastProps,
-} from "@/components/ui/toast"
-
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
-
-type ToasterToast = ToastProps & {
-  id: string
-  title?: React.ReactNode
-  description?: React.ReactNode
-  action?: ToastActionElement
-}
-
-const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
-} as const
-
-let count = 0
-
-function genId() {
-  count = (count + 1) % Number.MAX_SAFE_INTEGER
-  return count.toString()
-}
-
-type ActionType = typeof actionTypes
-
-type Action =
-  | {
-      type: ActionType["ADD_TOAST"]
-      toast: ToasterToast
-    }
-  | {
-      type: ActionType["UPDATE_TOAST"]
-      toast: Partial<ToasterToast>
-    }
-  | {
-      type: ActionType["DISMISS_TOAST"]
-      toastId?: ToasterToast["id"]
-    }
-  | {
-      type: ActionType["REMOVE_TOAST"]
-      toastId?: ToasterToast["id"]
-    }
-
-interface State {
-  toasts: ToasterToast[]
-}
-
-const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
-
-const addToRemoveQueue = (toastId: string) => {
-  if (toastTimeouts.has(toastId)) {
-    return
-  }
-
-  const timeout = setTimeout(() => {
-    toastTimeouts.delete(toastId)
-    dispatch({
-      type: "REMOVE_TOAST",
-      toastId: toastId,
-    })
-  }, TOAST_REMOVE_DELAY)
-
-  toastTimeouts.set(toastId, timeout)
-}
-
-export const reducer = (state: State, action: Action): State => {
-  switch (action.type) {
-    case "ADD_TOAST":
-      return {
-        ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
-      }
-
-    case "UPDATE_TOAST":
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
-        ),
-      }
-
-    case "DISMISS_TOAST": {
-      const { toastId } = action
-
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
-      if (toastId) {
-        addToRemoveQueue(toastId)
-      } else {
-        state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id)
-        })
-      }
-
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === toastId || toastId === undefined
-            ? {
-                ...t,
-                open: false,
-              }
-            : t
-        ),
-      }
-    }
-    case "REMOVE_TOAST":
-      if (action.toastId === undefined) {
-        return {
-          ...state,
-          toasts: [],
-        }
-      }
-      return {
-        ...state,
-        toasts: state.toasts.filter((t) => t.id !== action.toastId),
-      }
-  }
-}
-
-const listeners: Array<(state: State) => void> = []
-
-let memoryState: State = { toasts: [] }
-
-function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action)
-  listeners.forEach((listener) => {
-    listener(memoryState)
-  })
-}
-
-type Toast = Omit<ToasterToast, "id">
-
-function toast({ ...props }: Toast) {
-  const id = genId()
-
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: "UPDATE_TOAST",
-      toast: { ...props, id },
-    })
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
-
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
-      },
-    },
-  })
-
-  return {
-    id: id,
-    dismiss,
-    update,
-  }
-}
-
-function useToast() {
-  const [state, setState] = React.useState<State>(memoryState)
-
-  React.useEffect(() => {
-    listeners.push(setState)
-    return () => {
-      const index = listeners.indexOf(setState)
-      if (index > -1) {
-        listeners.splice(index, 1)
-      }
-    }
-  }, [state])
-
-  return {
-    ...state,
-    toast,
-    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
-  }
-}
-
-export { useToast, toast }
-
-```
-- src/lib/stats.ts:
-```ts
-
-import Papa from 'papaparse';
-
-export type DataPoint = Record<string, number | string>;
-export type DataSet = DataPoint[];
-
-export const parseData = (
-  fileContent: string
-): { headers: string[]; data: DataSet; numericHeaders: string[]; categoricalHeaders: string[] } => {
-  const result = Papa.parse(fileContent, {
-    header: true,
-    skipEmptyLines: true,
-    dynamicTyping: true,
-  });
-
-  if (result.errors.length > 0) {
-    console.error("Parsing errors:", result.errors);
-    // Optionally throw an error for the first critical error
-    const firstError = result.errors[0];
-    if (firstError.code !== 'UndetectableDelimiter') {
-       throw new Error(`CSV Parsing Error: ${firstError.message} on row ${firstError.row}`);
-    }
-  }
-
-  if (!result.data || result.data.length === 0) {
-    throw new Error("No parsable data rows found in the file.");
-  }
-  
-  const rawHeaders = result.meta.fields || [];
-  const data: DataSet = result.data as DataSet;
-
-  const numericHeaders: string[] = [];
-  const categoricalHeaders: string[] = [];
-
-  rawHeaders.forEach(header => {
-    const values = data.map(row => row[header]).filter(val => val !== null && val !== undefined && val !== '');
-    
-    // Check if every non-empty value is a number
-    const isNumericColumn = values.every(val => typeof val === 'number' && isFinite(val));
-
-    if (isNumericColumn) {
-        numericHeaders.push(header);
-    } else {
-        categoricalHeaders.push(header);
-    }
-  });
-
-  // Ensure types are correct, PapaParse does a good job but we can enforce it.
-  const sanitizedData = data.map(row => {
-    const newRow: DataPoint = {};
-    rawHeaders.forEach(header => {
-      const value = row[header];
-      if (numericHeaders.includes(header)) {
-        if (typeof value === 'number' && isFinite(value)) {
-            newRow[header] = value;
-        } else if (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value))) {
-            newRow[header] = parseFloat(value);
-        } else {
-            newRow[header] = NaN; // Use NaN for non-numeric values in numeric columns
-        }
-      } else { // Categorical
-        newRow[header] = String(value ?? '');
-      }
-    });
-    return newRow;
-  });
-
-  return { headers: rawHeaders, data: sanitizedData, numericHeaders, categoricalHeaders };
-};
-
-export const unparseData = (
-    { headers, data }: { headers: string[]; data: DataSet }
-): string => {
-    return Papa.unparse(data, {
-        columns: headers,
-        header: true,
-    });
-};
-
-
-const getColumn = (data: DataSet, column: string): (number | string)[] => {
-    return data.map(row => row[column]).filter(val => val !== undefined && val !== null && val !== '');
-};
-
-const getNumericColumn = (data: DataSet, column: string): number[] => {
-    return data.map(row => row[column]).filter(val => typeof val === 'number' && !isNaN(val)) as number[];
-}
-
-const mean = (arr: number[]): number => arr.length === 0 ? NaN : arr.reduce((a, b) => a + b, 0) / arr.length;
-
-const median = (arr: number[]): number => {
-    if (arr.length === 0) return NaN;
-    const sorted = [...arr].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-};
-
-const variance = (arr: number[]): number => {
-    if (arr.length < 2) return NaN;
-    const m = mean(arr);
-    if(isNaN(m)) return NaN;
-    return mean(arr.map(x => Math.pow(x - m, 2)));
-};
-
-const stdDev = (arr: number[]): number => Math.sqrt(variance(arr));
-
-const percentile = (arr: number[], p: number): number => {
-    if (arr.length === 0) return NaN;
-    const sorted = [...arr].sort((a, b) => a - b);
-    const index = (p / 100) * (sorted.length - 1);
-    const lower = Math.floor(index);
-    const upper = Math.ceil(index);
-    if (lower === upper) return sorted[lower];
-    if(sorted[lower] === undefined || sorted[upper] === undefined) return NaN;
-    return sorted[lower] * (upper - index) + sorted[upper] * (index - lower);
-};
-
-const mode = (arr: (number|string)[]): (number|string)[] => {
-    if (arr.length === 0) return [];
-    const counts: {[key: string]: number} = {};
-    arr.forEach(val => {
-        const key = String(val);
-        counts[key] = (counts[key] || 0) + 1;
-    });
-
-    let maxFreq = 0;
-    for (const key in counts) {
-        if (counts[key] > maxFreq) {
-            maxFreq = counts[key];
-        }
-    }
-
-    if (maxFreq <= 1 && new Set(arr).size === arr.length) return []; // No mode if all unique
-
-    const modes = Object.keys(counts)
-        .filter(key => counts[key] === maxFreq)
-        .map(key => {
-            const num = parseFloat(key);
-            return isNaN(num) ? key : num;
-        });
-    
-    return modes;
-}
-
-const skewness = (arr: number[]): number => {
-    if (arr.length < 3) return NaN;
-    const m = mean(arr);
-    const s = stdDev(arr);
-    if (s === 0 || isNaN(s) || isNaN(m)) return 0;
-    const n = arr.length;
-    return (n / ((n - 1) * (n - 2))) * arr.reduce((acc, val) => acc + Math.pow((val - m) / s, 3), 0);
-};
-
-const kurtosis = (arr: number[]): number => {
-    if (arr.length < 4) return NaN;
-    const m = mean(arr);
-    const s = stdDev(arr);
-    if (s === 0 || isNaN(s) || isNaN(m)) return 0;
-    const n = arr.length;
-    const term1 = (n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3));
-    const term2 = arr.reduce((acc, val) => acc + Math.pow((val - m) / s, 4), 0);
-    const term3 = (3 * Math.pow(n - 1, 2)) / ((n - 2) * (n - 3));
-    return term1 * term2 - term3; // Excess kurtosis
-};
-
-export const findIntersection = (x1: number[], y1: number[], x2: number[], y2: number[]): number | null => {
-    for (let i = 0; i < x1.length - 1; i++) {
-        for (let j = 0; j < x2.length - 1; j++) {
-            const p1 = { x: x1[i], y: y1[i] };
-            const p2 = { x: x1[i+1], y: y1[i+1] };
-            const p3 = { x: x2[j], y: y2[j] };
-            const p4 = { x: x2[j+1], y: y2[j+1] };
-
-            const denominator = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
-            if (denominator === 0) continue;
-
-            const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denominator;
-            const ub = -((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denominator;
-
-            if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
-                return p1.x + ua * (p2.x - p1.x); // Return intersection X value
-            }
-        }
-    }
-    return null;
-};
-
-
-export const calculateDescriptiveStats = (data: DataSet, headers: string[]) => {
-    const stats: Record<string, any> = {};
-    headers.forEach(header => {
-        const numericColumn = data.every(row => typeof row[header] === 'number');
-
-        if (numericColumn) {
-            const columnData = getNumericColumn(data, header);
-            if (columnData.length > 0) {
-                const p25 = percentile(columnData, 25);
-                const p75 = percentile(columnData, 75);
-                stats[header] = {
-                    mean: mean(columnData),
-                    median: median(columnData),
-                    stdDev: stdDev(columnData),
-                    variance: variance(columnData),
-                    min: Math.min(...columnData),
-                    max: Math.max(...columnData),
-                    range: Math.max(...columnData) - Math.min(...columnData),
-                    iqr: p75 - p25,
-                    count: columnData.length,
-                    mode: mode(columnData),
-                    skewness: skewness(columnData),
-                    kurtosis: kurtosis(columnData),
-                    p25: p25,
-                    p75: p75,
-                };
-            }
-        } else {
-             const catColumnData = getColumn(data, header);
-             if(catColumnData.length > 0) {
-                 stats[header] = {
-                     count: catColumnData.length,
-                     unique: new Set(catColumnData).size,
-                     mode: mode(catColumnData),
-                 }
-             }
-        }
-    });
-    return stats;
-};
-
-// Deprecated: Correlation calculation is now handled by the Python backend.
-export const calculateCorrelationMatrix = (data: DataSet, headers: string[]) => {
-    return [];
-};
-
-```
-- src/lib/utils.ts:
-```ts
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-
-```
-- src/types/survey.ts:
-```ts
-
-export interface Survey {
-  id: string;
-  name: string;
-  status: 'active' | 'draft' | 'closed';
-  created_date: string;
-  startDate?: string;
-  endDate?: string;
-  questions?: any[]; // Keep questions for saving logic
-  description?: string; // Keep for saving logic
-}
-
-export interface SurveyResponse {
-  id: string;
-  survey_id: string;
-  submitted_at: string;
 }
 
 ```
