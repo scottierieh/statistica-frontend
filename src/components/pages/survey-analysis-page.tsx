@@ -167,8 +167,8 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-            <CardContent>
-                <Tabs defaultValue="bar">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <Tabs defaultValue="bar" className="col-span-1">
                     <TabsList>
                         <TabsTrigger value="bar"><BarChartIcon className="w-4 h-4 mr-2"/>Bar</TabsTrigger>
                         <TabsTrigger value="pie"><PieChartIcon className="w-4 h-4 mr-2"/>Pie</TabsTrigger>
@@ -198,6 +198,20 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
                         </ChartContainer>
                     </TabsContent>
                 </Tabs>
+                <div className="col-span-1">
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {data.map((item) => (
+                                <TableRow key={item.name}>
+                                    <TableCell>{item.name}</TableCell>
+                                    <TableCell className="text-right">{item.count}</TableCell>
+                                    <TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
         </Card>
     );
@@ -206,13 +220,7 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
 const NumericChart = ({ data, title }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[] }, title: string }) => (
     <Card>
         <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-        <CardContent>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center mb-6">
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Mean</p><p className="text-2xl font-bold">{data.mean.toFixed(2)}</p></div>
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Median</p><p className="text-2xl font-bold">{data.median.toFixed(2)}</p></div>
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Std. Dev.</p><p className="text-2xl font-bold">{data.std.toFixed(2)}</p></div>
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Responses</p><p className="text-2xl font-bold">{data.count}</p></div>
-            </div>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <ChartContainer config={{}} className="w-full h-64">
                 <ResponsiveContainer>
                     <BarChart data={data.histogram}>
@@ -223,6 +231,12 @@ const NumericChart = ({ data, title }: { data: { mean: number, median: number, s
                     </BarChart>
                 </ResponsiveContainer>
             </ChartContainer>
+             <div className="grid grid-cols-2 gap-4 text-center">
+                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Mean</p><p className="text-2xl font-bold">{data.mean.toFixed(2)}</p></div>
+                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Median</p><p className="text-2xl font-bold">{data.median.toFixed(2)}</p></div>
+                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Std. Dev.</p><p className="text-2xl font-bold">{data.std.toFixed(2)}</p></div>
+                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Responses</p><p className="text-2xl font-bold">{data.count}</p></div>
+            </div>
         </CardContent>
     </Card>
 );
@@ -230,7 +244,7 @@ const NumericChart = ({ data, title }: { data: { mean: number, median: number, s
 const RatingChart = ({ data, title }: { data: {name: string, count: number}[], title: string }) => (
     <Card>
         <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <ChartContainer config={{}} className="w-full h-64">
                 <ResponsiveContainer>
                     <BarChart data={data}>
@@ -241,6 +255,14 @@ const RatingChart = ({ data, title }: { data: {name: string, count: number}[], t
                     </BarChart>
                 </ResponsiveContainer>
             </ChartContainer>
+            <div>
+                 <Table>
+                    <TableHeader><TableRow><TableHead>Rating</TableHead><TableHead className="text-right">Count</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                        {data.map(item => <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell></TableRow>)}
+                    </TableBody>
+                </Table>
+            </div>
         </CardContent>
     </Card>
 );
@@ -255,41 +277,66 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-            <CardContent>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col items-center justify-center">
-                        <p className="text-sm text-muted-foreground">NPS Score</p>
-                        <p className="text-6xl font-bold">{data.npsScore.toFixed(0)}</p>
-                    </div>
-                     <ChartContainer config={{}} className="w-full h-64">
-                        <ResponsiveContainer>
-                             <BarChart data={chartData} layout="vertical" stackOffset="expand">
-                                <XAxis type="number" hide domain={[0, 100]} />
-                                <YAxis type="category" dataKey="name" hide />
-                                <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(1)}%`} />} />
-                                <Bar dataKey="detractors" fill="#e74c3c" stackId="a" radius={[10,0,0,10]}/>
-                                <Bar dataKey="passives" fill="#f1c40f" stackId="a" />
-                                <Bar dataKey="promoters" fill="#2ecc71" stackId="a" radius={[0,10,10,0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col items-center justify-center">
+                    <p className="text-sm text-muted-foreground">NPS Score</p>
+                    <p className="text-6xl font-bold">{data.npsScore.toFixed(0)}</p>
                 </div>
+                 <ChartContainer config={{}} className="w-full h-64">
+                    <ResponsiveContainer>
+                         <BarChart data={chartData} layout="vertical" stackOffset="expand">
+                            <XAxis type="number" hide domain={[0, 100]} />
+                            <YAxis type="category" dataKey="name" hide />
+                            <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(1)}%`} />} />
+                            <Bar dataKey="detractors" fill="#e74c3c" stackId="a" radius={[10,0,0,10]}/>
+                            <Bar dataKey="passives" fill="#f1c40f" stackId="a" />
+                            <Bar dataKey="promoters" fill="#2ecc71" stackId="a" radius={[0,10,10,0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
             </CardContent>
         </Card>
     );
 };
 
 const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
-    // Word Cloud generation logic will be added here
+    const wordFrequency = useMemo(() => {
+        const words = data.join(' ').toLowerCase().match(/\b(\w+)\b/g) || [];
+        const counts: {[key:string]: number} = {};
+        words.forEach(word => {
+            if (word.length > 3) { // Simple stopword/length filter
+                counts[word] = (counts[word] || 0) + 1;
+            }
+        });
+        return Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 50);
+    }, [data]);
+    
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent>
-                <ScrollArea className="h-64 border rounded-md p-4 space-y-2">
-                    {data.map((text, i) => (
-                        <div key={i} className="p-2 border-b">{text}</div>
-                    ))}
-                </ScrollArea>
+                <Tabs defaultValue="wordcloud">
+                    <TabsList>
+                        <TabsTrigger value="wordcloud">Word Cloud</TabsTrigger>
+                        <TabsTrigger value="list">Responses</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="wordcloud" className="p-2">
+                        {wordFrequency.length > 0 ? (
+                            <div className="h-64 flex flex-wrap gap-2 items-center justify-center">
+                                {wordFrequency.map(([word, freq]) => (
+                                    <span key={word} style={{ fontSize: `${Math.min(10 + freq * 3, 50)}px`, opacity: 0.6 + (freq / wordFrequency[0][1] * 0.4)}}>{word}</span>
+                                ))}
+                            </div>
+                        ) : <p>Not enough text data for a word cloud.</p>}
+                    </TabsContent>
+                    <TabsContent value="list">
+                        <ScrollArea className="h-64 border rounded-md p-4 space-y-2">
+                            {data.map((text, i) => (
+                                <div key={i} className="p-2 border-b">{text}</div>
+                            ))}
+                        </ScrollArea>
+                    </TabsContent>
+                </Tabs>
             </CardContent>
         </Card>
     );
@@ -305,30 +352,42 @@ const BestWorstChart = ({ data, title }: { data: {name: string, netScore: number
                     <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
                 </TabsList>
                 <TabsContent value="net_score">
-                    <ChartContainer config={{}} className="w-full h-[300px]">
-                        <ResponsiveContainer>
-                            <BarChart data={[...data].sort((a,b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
-                                <YAxis type="category" dataKey="name" />
-                                <XAxis type="number" />
-                                <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>}/>
-                                <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <ChartContainer config={{}} className="w-full h-[300px]">
+                            <ResponsiveContainer>
+                                <BarChart data={[...data].sort((a,b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
+                                    <YAxis type="category" dataKey="name" />
+                                    <XAxis type="number" />
+                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>}/>
+                                    <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Net Score</TableHead></TableRow></TableHeader>
+                            <TableBody>{[...data].sort((a,b) => b.netScore - a.netScore).map(item => (<TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.netScore.toFixed(1)}</TableCell></TableRow>))}</TableBody>
+                        </Table>
+                    </div>
                 </TabsContent>
                 <TabsContent value="best_vs_worst">
-                     <ChartContainer config={{}} className="w-full h-[300px]">
-                        <ResponsiveContainer>
-                            <BarChart data={data} margin={{ left: 100 }}>
-                                <YAxis />
-                                <XAxis type="category" dataKey="name" />
-                                <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>}/>
-                                <Legend />
-                                <Bar dataKey="bestPct" name="Best %" fill="hsl(var(--chart-2))" />
-                                <Bar dataKey="worstPct" name="Worst %" fill="hsl(var(--chart-5))" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <ChartContainer config={{}} className="w-full h-[300px]">
+                            <ResponsiveContainer>
+                                <BarChart data={data} margin={{ left: 100 }}>
+                                    <YAxis />
+                                    <XAxis type="category" dataKey="name" />
+                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>}/>
+                                    <Legend />
+                                    <Bar dataKey="bestPct" name="Best %" fill="hsl(var(--chart-2))" />
+                                    <Bar dataKey="worstPct" name="Worst %" fill="hsl(var(--chart-5))" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Best %</TableHead><TableHead className="text-right">Worst %</TableHead></TableRow></TableHeader>
+                            <TableBody>{data.map(item => (<TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.bestPct.toFixed(1)}%</TableCell><TableCell className="text-right">{item.worstPct.toFixed(1)}%</TableCell></TableRow>))}</TableBody>
+                        </Table>
+                     </div>
                 </TabsContent>
             </Tabs>
         </CardContent>
@@ -346,7 +405,7 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
                         <TabsTrigger value="stacked_bar">Stacked Bar</TabsTrigger>
                         <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="stacked_bar">
+                    <TabsContent value="stacked_bar" className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <ChartContainer config={{}} className="w-full h-[400px]">
                             <ResponsiveContainer>
                                 <BarChart data={data.chartData} layout="vertical">
@@ -360,8 +419,12 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
                                 </BarChart>
                             </ResponsiveContainer>
                         </ChartContainer>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>{title}</TableHead>{data.columns.map((c: string) => <TableHead key={c} className="text-center">{c}</TableHead>)}</TableRow></TableHeader>
+                            <TableBody>{data.rows.map((r: string) => (<TableRow key={r}><TableCell>{r}</TableCell>{data.columns.map((c: string) => <TableCell key={c} className="text-center">{data.heatmapData[r]?.[c] || 0}</TableCell>)}</TableRow>))}</TableBody>
+                        </Table>
                     </TabsContent>
-                    <TabsContent value="heatmap">
+                    <TabsContent value="heatmap" className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
@@ -423,9 +486,8 @@ export default function SurveyAnalysisPage() {
                 case 'multiple':
                      return { type: 'multiple', title: q.title, data: processCategoricalResponses(responses, q) };
                 case 'number':
-                    return { type: 'numeric', title: q.title, data: processNumericResponses(responses, questionId) };
                 case 'rating':
-                    return { type: 'rating', title: q.title, data: processCategoricalResponses(responses, q) };
+                    return { type: 'numeric', title: q.title, data: processNumericResponses(responses, questionId) };
                 case 'nps':
                     return { type: 'nps', title: q.title, data: processNPS(responses, questionId) };
                 case 'text':
@@ -486,4 +548,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
