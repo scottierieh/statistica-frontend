@@ -21,7 +21,7 @@ import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
-import { addDays, format } from "date-fns";
+import { format } from "date-fns";
 
 interface SurveyCardProps {
     survey: Survey;
@@ -172,10 +172,10 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
                 </div>
             </div>
             <div className="flex gap-2">
-                <Link href={`/dashboard/survey?id=${survey.id}&view=analysis`} className="flex-1">
+                <Link href={`/dashboard/survey/${survey.id}/analysis`} className="flex-1">
                     <Button variant="outline" className="w-full gap-2 hover:bg-slate-50">
                         <BarChart className="w-4 h-4" />
-                        Analyze
+                        Result
                     </Button>
                 </Link>
                 <Link href={`/dashboard/createsurvey?id=${survey.id}`} className="flex-1">
