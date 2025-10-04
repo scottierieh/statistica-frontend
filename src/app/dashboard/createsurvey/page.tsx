@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -15,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { GripVertical, Plus, Trash2, ArrowLeft, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Eye, Shuffle, FileText, Save, Info, ImageIcon, X, Phone, Mail, Share2, ThumbsUp, Grid3x3, ChevronDown, Sigma } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -166,10 +167,10 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
                     <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
                 </div>
             )}
-            <div className="space-y-2">
+            <RadioGroup className="space-y-2">
                 {(question.options || []).map((option: string, index: number) => (
                     <div key={index} className="flex items-center space-x-2 group">
-                        <RadioGroupItem value={option} id={`q${question.id}-o${index}`} disabled />
+                        <RadioGroupItem value={option} id={`q${question.id}-o${index}-edit`} disabled />
                         <Input 
                             placeholder={`Option ${index + 1}`} 
                             className="border-none focus:ring-0 p-0" 
@@ -184,7 +185,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
                         )}
                     </div>
                 ))}
-            </div>
+            </RadioGroup>
              {!isPreview && (
                 <Button variant="link" size="sm" className="mt-2" onClick={addOption}>
                     <PlusCircle className="w-4 h-4 mr-2" /> Add Option
