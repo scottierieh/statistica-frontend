@@ -21,9 +21,9 @@ import { cn } from '@/lib/utils';
 import type { Question } from '@/entities/Survey';
 import { Switch } from './ui/switch';
 
-const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string; onAnswerChange?: (value: string) => void; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => {
+const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string; onAnswerChange?: (value: string) => void; onDelete?: (id: string) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: string) => void; cardClassName?: string; }) => {
     const handleOptionChange = (index: number, value: string) => {
-        const newOptions = [...question.options];
+        const newOptions = [...(question.options || [])];
         newOptions[index] = value;
         onUpdate?.({ ...question, options: newOptions });
     };
@@ -34,10 +34,10 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
     };
 
     const deleteOption = (index: number) => {
-        const newOptions = question.options.filter((_:any, i:number) => i !== index);
+        const newOptions = (question.options || []).filter((_:any, i:number) => i !== index);
         onUpdate?.({ ...question, options: newOptions });
     };
-    
+
     if (isPreview) {
         return (
              <div className={cn("p-4", cardClassName)}>
@@ -48,7 +48,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
                     </div>
                 )}
                 <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-3">
-                    {question.options?.map((option: string, index: number) => (
+                    {(question.options || []).map((option: string, index: number) => (
                         <Label key={index} htmlFor={`q${question.id}-o${index}`} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
                             <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
                             <span className="flex-1">{option}</span>
@@ -89,7 +89,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
                     <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
                 </div>
             )}
-            <div className="space-y-2">
+            <RadioGroup className="space-y-2">
                 {(question.options || []).map((option: string, index: number) => (
                     <div key={index} className="flex items-center space-x-2 group">
                         <RadioGroupItem value={option} id={`q${question.id}-o${index}`} disabled />
@@ -107,7 +107,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
                         )}
                     </div>
                 ))}
-            </div>
+            </RadioGroup>
              {!isPreview && (
                 <Button variant="link" size="sm" className="mt-2" onClick={addOption}>
                     <PlusCircle className="w-4 h-4 mr-2" /> Add Option
@@ -117,7 +117,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
     );
 };
 
-const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string[]; onAnswerChange?: (newAnswer: string[]) => void; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => {
+const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string[]; onAnswerChange?: (newAnswer: string[]) => void; onDelete?: (id: string) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: string) => void; cardClassName?: string; }) => {
    const handleOptionChange = (index: number, value: string) => {
        const newOptions = [...question.options];
        newOptions[index] = value;
@@ -189,9 +189,9 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, onDe
    );
 };
 
-const DropdownQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string; onAnswerChange?: (value: string) => void; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => {
+const DropdownQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string; onAnswerChange?: (value: string) => void; onDelete?: (id: string) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: string) => void; cardClassName?: string; }) => {
     const handleOptionChange = (index: number, value: string) => {
-        const newOptions = [...question.options];
+        const newOptions = [...(question.options || [])];
         newOptions[index] = value;
         onUpdate?.({ ...question, options: newOptions });
     };
@@ -202,7 +202,7 @@ const DropdownQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate
     };
 
     const deleteOption = (index: number) => {
-        const newOptions = question.options.filter((_:any, i:number) => i !== index);
+        const newOptions = (question.options || []).filter((_:any, i:number) => i !== index);
         onUpdate?.({ ...question, options: newOptions });
     };
     
@@ -218,7 +218,7 @@ const DropdownQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate
                 <Select value={answer} onValueChange={onAnswerChange}>
                     <SelectTrigger><SelectValue placeholder="Select an option..." /></SelectTrigger>
                     <SelectContent>
-                        {question.options.map((option: string, index: number) => (
+                        {(question.options || []).map((option: string, index: number) => (
                             <SelectItem key={index} value={option}>{option}</SelectItem>
                         ))}
                     </SelectContent>
@@ -253,7 +253,7 @@ const DropdownQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate
                 )}
             </div>
              <div className="space-y-2">
-                {question.options.map((option: string, index: number) => (
+                {(question.options || []).map((option: string, index: number) => (
                     <div key={index} className="flex items-center space-x-2 group">
                         <Input 
                             placeholder={`Option ${index + 1}`} 
@@ -466,28 +466,26 @@ export default function SurveyView() {
     useEffect(() => {
         if (surveyId) {
             try {
-                const views = parseInt(localStorage.getItem(`${surveyId}_views`) || '0', 10) + 1;
-                localStorage.setItem(`${surveyId}_views`, views.toString());
-
-                const draft = localStorage.getItem(surveyId);
-                if (draft) {
-                    const loadedSurvey = JSON.parse(draft);
+                const surveys = JSON.parse(localStorage.getItem('surveys') || '[]');
+                const loadedSurvey = surveys.find((s: any) => s.id === surveyId);
+                
+                if (loadedSurvey) {
                     setSurvey(loadedSurvey);
-                    
                     const now = new Date();
                     const startDate = loadedSurvey.startDate ? new Date(loadedSurvey.startDate) : null;
                     const endDate = loadedSurvey.endDate ? new Date(loadedSurvey.endDate) : null;
 
-                    if (startDate && endDate) {
-                        setIsSurveyActive(now >= startDate && now <= endDate);
-                    } else if (startDate) {
-                        setIsSurveyActive(now >= startDate);
-                    } else if (endDate) {
-                        setIsSurveyActive(now <= endDate);
+                    if (!startDate && !endDate) {
+                        setIsSurveyActive(loadedSurvey.status === 'active');
+                    } else {
+                         setIsSurveyActive(
+                            loadedSurvey.status === 'active' &&
+                            (!startDate || now >= startDate) &&
+                            (!endDate || now <= endDate)
+                        );
                     }
-                    else {
-                        setIsSurveyActive(true); // If no dates set, assume it's always active
-                    }
+                } else {
+                    setError("Survey not found.");
                 }
             } catch (error) {
                 console.error("Failed to load survey from local storage", error);
@@ -573,8 +571,8 @@ export default function SurveyView() {
         return <div className="min-h-screen flex items-center justify-center">Loading survey...</div>;
     }
 
-    if (!survey) {
-        return <div className="min-h-screen flex items-center justify-center">Survey not found.</div>;
+    if (error) {
+        return <div className="min-h-screen flex items-center justify-center">{error}</div>;
     }
 
     if (!isSurveyActive) {
