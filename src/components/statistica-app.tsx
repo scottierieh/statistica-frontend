@@ -103,7 +103,6 @@ import CrosstabPage from './pages/crosstab-page';
 import NormalityTestPage from './pages/normality-test-page';
 import HomogeneityTestPage from './pages/homogeneity-test-page';
 import SurvivalAnalysisPage from './pages/survival-analysis-page';
-import WordCloudPage from './pages/wordcloud-page';
 import GbmPage from './pages/gbm-page';
 import SentimentAnalysisPage from './pages/sentiment-analysis-page';
 import MetaAnalysisPage from './pages/meta-analysis-page';
@@ -228,7 +227,6 @@ const analysisCategories = [
       name: 'Unstructured Data',
       icon: FileText,
       items: [
-        { id: 'wordcloud', label: 'Word Cloud', icon: Feather, component: WordCloudPage },
         { id: 'sentiment', label: 'Sentiment Analysis', icon: Smile, component: SentimentAnalysisPage },
         { id: 'topic-modeling', label: 'Topic Modeling (LDA)', icon: MessagesSquare, component: TopicModelingPage },
       ]
