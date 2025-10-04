@@ -519,6 +519,7 @@ export default function SurveyView() {
         if (!surveyId) return;
         const newResponse = {
             id: `resp-${Date.now()}`,
+            survey_id: surveyId,
             submittedAt: new Date().toISOString(),
             answers,
         };
