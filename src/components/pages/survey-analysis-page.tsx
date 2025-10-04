@@ -1,5 +1,5 @@
 
-      'use client';
+'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -484,18 +484,87 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
     );
 };
 
-const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => (
-    <Card>
+const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
+    const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(false);
+    const [wordCloudPlot, setWordCloudPlot] = useState<string | null>(null);
+    const [wordFrequencies, setWordFrequencies] = useState<{ [key: string]: number }>({});
+    const [excludedWords, setExcludedWords] = useState<string[]>([]);
+  
+    const generateWordCloud = useCallback(async (text: string, stopwords: string[] = []) => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/analysis/wordcloud', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, customStopwords: stopwords.join(',') }),
+        });
+        if (!response.ok) throw new Error('Failed to generate word cloud.');
+        const result = await response.json();
+        if (result.error) throw new Error(result.error);
+        setWordCloudPlot(result.plots.wordcloud);
+        setWordFrequencies(result.frequencies);
+      } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Word Cloud Error', description: error.message });
+      } finally {
+        setIsLoading(false);
+      }
+    }, [toast]);
+  
+    useEffect(() => {
+      if (data.length > 0) {
+        generateWordCloud(data.join('\n'));
+      }
+    }, [data, generateWordCloud]);
+
+    const handleWordDelete = (word: string) => {
+        const newExcluded = [...excludedWords, word];
+        setExcludedWords(newExcluded);
+        generateWordCloud(data.join('\n'), newExcluded);
+    }
+  
+    const plotData = useMemo(() => {
+        if (!wordCloudPlot) return null;
+        try {
+            return JSON.parse(wordCloudPlot);
+        } catch (e) { return null; }
+    }, [wordCloudPlot]);
+
+    const frequencyData = useMemo(() => {
+        return Object.entries(wordFrequencies)
+            .map(([text, value]) => ({ text, value }))
+            .sort((a,b) => b.value - a.value);
+    }, [wordFrequencies]);
+  
+    return (
+      <Card>
         <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
         <CardContent>
-            <ScrollArea className="h-64 p-4 border rounded-md">
-                <ul className="space-y-4">
-                    {data.map((text, i) => <li key={i} className="text-sm border-b pb-2">{text}</li>)}
-                </ul>
+          <div className="grid md:grid-cols-2 gap-4">
+             {isLoading ? <Skeleton className="h-80 w-full" /> : 
+                plotData ? <Plot data={plotData.data} layout={plotData.layout} useResizeHandler style={{width: '100%', height: '100%'}}/> 
+                : <p>No word cloud to display.</p>}
+            <ScrollArea className="h-80 border rounded-md">
+                <Table>
+                    <TableHeader><TableRow><TableHead>Word</TableHead><TableHead className="text-right">Frequency</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                    <TableBody>
+                        {frequencyData.map(({ text, value }) => (
+                            <TableRow key={text}>
+                                <TableCell>{text}</TableCell>
+                                <TableCell className="text-right">{value}</TableCell>
+                                <TableCell className="text-right">
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleWordDelete(text)}><X className="h-4 w-4"/></Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </ScrollArea>
+          </div>
         </CardContent>
-    </Card>
-);
+      </Card>
+    );
+  };
 
 const BestWorstChart = ({ data, title }: { data: { name: string, netScore: number, bestPct: number, worstPct: number }[], title: string }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
@@ -503,16 +572,18 @@ const BestWorstChart = ({ data, title }: { data: { name: string, netScore: numbe
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full mt-2">
-                    <TabsList>
-                        <TabsTrigger value="net_score">Net Score</TabsTrigger>
-                        <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <div className="flex justify-between items-center">
+                   <CardTitle>{title}</CardTitle>
+                   <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-auto">
+                        <TabsList>
+                            <TabsTrigger value="net_score">Net Score</TabsTrigger>
+                            <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <ChartContainer config={{}} className="w-full h-[300px]">
                         <ResponsiveContainer>
                             {chartType === 'net_score' ? (
@@ -778,5 +849,3 @@ export default function SurveyAnalysisPage() {
     );
 }
 
-
-    
