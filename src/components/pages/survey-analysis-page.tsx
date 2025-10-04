@@ -266,7 +266,9 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
             });
             if (!response.ok) throw new Error('Failed to generate box plot');
             const result = await response.json();
-            setBoxPlotImage(`data:image/png;base64,${result.plot}`);
+             if (result.plot) {
+              setBoxPlotImage(`data:image/png;base64,${result.plot}`);
+            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -757,3 +759,4 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
