@@ -4,7 +4,7 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, ComposedChart, Line, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
@@ -15,7 +15,6 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
 
 // --- Data Processing Functions ---
 const processTextResponses = (responses: SurveyResponse[], questionId: string) => {
@@ -41,8 +40,6 @@ const processCategoricalResponses = (responses: SurveyResponse[], question: Ques
         }
     });
 
-    const totalSelections = Object.values(counts).reduce((sum, count) => sum + count, 0);
-
     return (question.options || []).map(opt => ({
         name: opt,
         count: counts[opt] || 0,
@@ -65,7 +62,7 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
     const min = Math.min(...values);
     const max = Math.max(...values);
     const numBins = Math.min(10, Math.ceil(Math.sqrt(values.length)));
-    const binWidth = (max-min) / numBins;
+    const binWidth = numBins > 0 ? (max - min) / numBins : 1;
     const histogram = Array(numBins).fill(0).map((_,i) => {
         const binStart = min + i * binWidth;
         const binEnd = binStart + binWidth;
@@ -168,7 +165,7 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <Tabs defaultValue="bar" className="col-span-1">
+                <Tabs defaultValue="bar" className="col-span-1">
                     <TabsList>
                         <TabsTrigger value="bar"><BarChartIcon className="w-4 h-4 mr-2"/>Bar</TabsTrigger>
                         <TabsTrigger value="pie"><PieChartIcon className="w-4 h-4 mr-2"/>Pie</TabsTrigger>
@@ -179,7 +176,7 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
                                 <BarChart data={data} layout="vertical" margin={{ left: 100 }}>
                                     <XAxis type="number" />
                                     <YAxis type="category" dataKey="name" width={100} />
-                                    <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${value} (${(data.find(d=>d.name === name)?.percentage || 0).toFixed(1)}%)`} />} />
+                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${value} (${(data.find(d=>d.count === value)?.percentage || 0).toFixed(1)}%)`} />} />
                                     <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" radius={4} />
                                 </BarChart>
                             </ResponsiveContainer>
@@ -274,17 +271,14 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
 
     const chartData = [{ name: 'NPS', promoters: promoterPct, passives: passivePct, detractors: detractorPct }];
     
-    const gaugeData = [{ value: data.npsScore }];
-    const needleValue = data.npsScore;
-
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col items-center justify-center">
+                 <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted">
                     <p className="text-sm text-muted-foreground">NPS Score</p>
                     <p className="text-6xl font-bold">{data.npsScore.toFixed(0)}</p>
-                    <ChartContainer config={{}} className="w-full h-32 -mt-4">
+                     <ChartContainer config={{}} className="w-full h-32 -mt-4">
                         <ResponsiveContainer>
                             <PieChart>
                                 <Pie 
@@ -302,7 +296,7 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
                                      <Cell fill="#f1c40f" />
                                      <Cell fill="#2ecc71" />
                                 </Pie>
-                                <text x="50%" y="75%" textAnchor="middle" dominantBaseline="middle" className="text-2xl font-bold fill-foreground">
+                                 <text x="50%" y="75%" textAnchor="middle" dominantBaseline="middle" className="text-2xl font-bold fill-foreground">
                                     {data.npsScore.toFixed(0)}
                                 </text>
                             </PieChart>
@@ -314,7 +308,7 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
                          <BarChart data={chartData} layout="vertical" stackOffset="expand">
                             <XAxis type="number" hide domain={[0, 100]} />
                             <YAxis type="category" dataKey="name" hide />
-                            <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(1)}%`} />} />
+                            <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
                             <Legend layout="vertical" verticalAlign="middle" align="right" />
                             <Bar dataKey="detractors" fill="#e74c3c" stackId="a" name={`Detractors (${detractorPct.toFixed(1)}%)`} />
                             <Bar dataKey="passives" fill="#f1c40f" stackId="a" name={`Passives (${passivePct.toFixed(1)}%)`} />
@@ -429,7 +423,7 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
                         <TabsTrigger value="stacked_bar">Stacked Bar</TabsTrigger>
                         <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="stacked_bar" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <TabsContent value="stacked_bar">
                         <ChartContainer config={{}} className="w-full h-[400px]">
                             <ResponsiveContainer>
                                 <BarChart data={data.chartData} layout="vertical">
@@ -443,12 +437,8 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
                                 </BarChart>
                             </ResponsiveContainer>
                         </ChartContainer>
-                        <Table>
-                            <TableHeader><TableRow><TableHead>{title}</TableHead>{data.columns.map((c: string) => <TableHead key={c} className="text-center">{c}</TableHead>)}</TableRow></TableHeader>
-                            <TableBody>{data.rows.map((r: string) => (<TableRow key={r}><TableCell>{r}</TableCell>{data.columns.map((c: string) => <TableCell key={c} className="text-center">{data.heatmapData[r]?.[c] || 0}</TableCell>)}</TableRow>))}</TableBody>
-                        </Table>
                     </TabsContent>
-                    <TabsContent value="heatmap" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <TabsContent value="heatmap">
                          <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
@@ -506,15 +496,15 @@ export default function SurveyAnalysisPage() {
             switch(q.type) {
                 case 'single':
                 case 'dropdown':
-                    return { type: 'categorical', title: q.title, data: processCategoricalResponses(responses, q) };
                 case 'multiple':
-                     return { type: 'multiple', title: q.title, data: processCategoricalResponses(responses, q) };
+                    return { type: 'categorical', title: q.title, data: processCategoricalResponses(responses, q) };
                 case 'number':
-                case 'rating':
                     return { type: 'numeric', title: q.title, data: processNumericResponses(responses, questionId) };
+                case 'rating':
+                    const ratingData = processCategoricalResponses(responses, q);
+                    return { type: 'rating', title: q.title, data: ratingData };
                 case 'nps':
                     return { type: 'nps', title: q.title, data: processNPS(responses, questionId) };
-    
                 case 'text':
                      return { type: 'text', title: q.title, data: processTextResponses(responses, questionId) };
                 case 'best-worst':
@@ -573,5 +563,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
-```)
