@@ -67,4 +67,6 @@ def main():
         print(json.dumps({"error": str(e)}), file=sys.stderr)
         sys.exit(1)
 
-if
+if __name__ == '__main__':
+    main()
+

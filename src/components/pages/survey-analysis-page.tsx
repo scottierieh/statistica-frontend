@@ -1,8 +1,8 @@
 
 'use client';
 
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -164,26 +164,33 @@ const processMatrixResponses = (responses: SurveyResponse[], question: Question)
 
 const processNPS = async (responses: SurveyResponse[], questionId: string) => {
     const npsScores = responses.map((r: any) => r.answers[questionId]).filter(v => typeof v === 'number');
-    const npsResponse = await fetch('/api/analysis/nps', {
+    const response = await fetch('/api/analysis/nps', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ scores: npsScores }),
     });
-    if (!npsResponse.ok) {
+    if (!response.ok) {
         console.error("NPS analysis failed");
         return null;
     }
-    const npsResult = await npsResponse.json();
-    return npsResult.results;
+    const result = await response.json();
+    return result.results;
 };
 
+
 // --- Chart Components ---
-const CategoricalChart = ({ data, title }: { data: {name: string, count: number, percentage: number}[], title: string }) => {
-    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+
+const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
     return (
         <Card>
-            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle>{title}</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+                </div>
+            </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
                     <TabsList>
@@ -198,8 +205,9 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
                                   <XAxis type="number" dataKey="count" />
                                   <YAxis dataKey="name" type="category" width={100} />
                                   <Tooltip content={<ChartTooltipContent formatter={(value) => `${value} (${(data.find(d=>d.count === value)?.percentage || 0).toFixed(1)}%)`} />} cursor={{fill: 'hsl(var(--muted))'}} />
-                                  <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" radius={4}>
+                                  <Bar dataKey="count" name="Frequency" radius={4}>
                                     <LabelList dataKey="count" position="insideRight" style={{ fill: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 'bold' }} />
+                                    {data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                   </Bar>
                             </BarChart>
                             </ResponsiveContainer>
@@ -239,10 +247,17 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
 
 
 
-const NumericChart = ({ data, title }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], values: number[] }, title: string }) => {
+const NumericChart = ({ data, title, questionId, onDownload }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], values: number[] }, title: string, questionId: string, onDownload: () => void }) => {
+    const [chartType, setChartType] = useState('histogram');
+    
     return (
         <Card>
-            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle>{title}</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+                </div>
+            </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <ChartContainer config={{}} className="w-full h-64">
                     <ResponsiveContainer>
@@ -282,7 +297,7 @@ const NumericChart = ({ data, title }: { data: { mean: number, median: number, s
 
 
 
-const RatingChart = ({ data, title }: { data: { values: number[], count: number }, title: string }) => {
+const RatingChart = ({ data, title, onDownload }: { data: { values: number[], count: number }, title: string, onDownload: () => void }) => {
     if (!data || data.values.length === 0) {
         return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent><p>No data available for this rating question.</p></CardContent></Card>;
     }
@@ -308,7 +323,12 @@ const RatingChart = ({ data, title }: { data: { values: number[], count: number 
     
     return (
         <Card>
-            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle>{title}</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+                </div>
+            </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col items-center justify-center">
                     <p className="text-5xl font-bold">{averageRating.toFixed(2)}</p>
@@ -342,7 +362,7 @@ const RatingChart = ({ data, title }: { data: { values: number[], count: number 
     );
 };
 
-const NPSChart = ({ data, title }: { data: { npsScore: number; promoters: number; passives: number; detractors: number; total: number, interpretation: string }, title: string }) => {
+const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promoters: number; passives: number; detractors: number; total: number, interpretation: string }, title: string, onDownload: () => void }) => {
     const GaugeChart = ({ score }: { score: number }) => {
       const getLevel = (s: number) => {
           if (s >= 70) return { level: 'Excellent', color: '#10b981' };
@@ -389,15 +409,22 @@ const NPSChart = ({ data, title }: { data: { npsScore: number; promoters: number
 
     return (
         <Card>
-          <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+                <CardTitle>{title}</CardTitle>
+                <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+            </div>
+          </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div className="flex flex-col items-center justify-center">
                 <GaugeChart score={data.npsScore} />
-                <div className="w-full px-4 mt-4">
-                   <div className="text-sm text-gray-600 space-y-1 p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs">{data.interpretation}</p>
-                  </div>
-                </div>
+                 <Alert className="mt-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Summary</AlertTitle>
+                    <AlertDescription>
+                        {data.interpretation}
+                    </AlertDescription>
+                 </Alert>
               </div>
               <div className="space-y-4">
                   <Table>
@@ -432,7 +459,7 @@ const NPSChart = ({ data, title }: { data: { npsScore: number; promoters: number
       );
     };
 
-const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
+const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], title: string, onDownload: () => void }) => {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -461,7 +488,7 @@ const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }
 
   useEffect(() => {
     performAnalysis([]);
-  }, [data]);
+  }, [data, performAnalysis]);
   
   const handleWordDelete = (word: string) => {
     const newExcludedWords = [...excludedWords, word];
@@ -474,7 +501,12 @@ const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }
 
   return (
     <Card>
-        <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+        <CardHeader>
+            <div className="flex justify-between items-center">
+                <CardTitle>{title}</CardTitle>
+                <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+            </div>
+        </CardHeader>
         <CardContent className="grid md:grid-cols-2 gap-6">
             <div>
                  <h3 className="font-semibold text-center mb-2">Word Cloud</h3>
@@ -510,20 +542,23 @@ const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }
 };
 
 
-const BestWorstChart = ({ data, title }: { data: { name: string, netScore: number, bestPct: number, worstPct: number }[], title: string }) => {
+const BestWorstChart = ({ data, title, onDownload }: { data: { name: string, netScore: number, bestPct: number, worstPct: number }[], title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
 
     return (
         <Card>
             <CardHeader>
-                <div className="flex items-start gap-4">
+                <div className="flex items-start justify-between gap-4">
                    <CardTitle>{title}</CardTitle>
-                   <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-auto">
-                        <TabsList>
-                            <TabsTrigger value="net_score">Net Score</TabsTrigger>
-                            <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
-                        </TabsList>
-                    </Tabs>
+                   <div className="flex items-center gap-2">
+                       <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-auto">
+                            <TabsList>
+                                <TabsTrigger value="net_score">Net Score</TabsTrigger>
+                                <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                        <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+                   </div>
                 </div>
             </CardHeader>
             <CardContent>
@@ -599,10 +634,9 @@ const BestWorstChart = ({ data, title }: { data: { name: string, netScore: numbe
     );
 };
 
-const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string, rows: string[], columns: string[] }) => {
+const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, title: string, rows: string[], columns: string[], onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked');
     const [tableFormat, setTableFormat] = useState('counts');
-    const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'];
     
     const renderContingencyTable = () => {
         if (!data) return null;
@@ -694,7 +728,12 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
     
     return (
         <Card>
-            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle>{title}</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+                </div>
+            </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
                     <TabsList>
@@ -752,9 +791,12 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
     );
 };
 
+
 export default function SurveyAnalysisPage() {
     const params = useParams();
     const router = useRouter();
+    const chartRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
+    const { toast } = useToast();
     const surveyId = params.id as string;
     const [survey, setSurvey] = useState<any>(null);
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
@@ -790,7 +832,7 @@ export default function SurveyAnalysisPage() {
         loadData();
     }, [surveyId]);
     
-    const processAllData = async (questions: Question[], responses: SurveyResponse[]) => {
+    const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
       return Promise.all((questions || []).map(async (q: Question) => {
           const questionId = String(q.id);
           switch(q.type) {
@@ -804,14 +846,7 @@ export default function SurveyAnalysisPage() {
               case 'rating':
                   return { type: 'rating', title: q.title, data: processNumericResponses(responses, questionId) };
               case 'nps':
-                  const npsScores = responses.map((r: any) => r.answers[questionId]).filter(v => typeof v === 'number');
-                  const npsResponse = await fetch('/api/analysis/nps', {
-                      method: 'POST',
-                      headers: {'Content-Type': 'application/json'},
-                      body: JSON.stringify({ scores: npsScores }),
-                  });
-                  const npsResult = await npsResponse.json();
-                  return { type: 'nps', title: q.title, data: npsResult.results };
+                  return { type: 'nps', title: q.title, data: await processNPS(responses, questionId) };
               case 'text':
                    return { type: 'text', title: q.title, data: processTextResponses(responses, questionId) };
               case 'best-worst':
@@ -822,11 +857,29 @@ export default function SurveyAnalysisPage() {
                   return null;
           }
       }).filter(Boolean));
-    };
+    }, []);
 
+    const downloadChartAsPng = useCallback((chartId: string, title: string) => {
+        const chartElement = chartRefs.current[chartId];
+        if (chartElement) {
+            import('html2canvas').then(html2canvas => {
+                html2canvas(chartElement, { scale: 2 }).then(canvas => {
+                    const image = canvas.toDataURL("image/png", 1.0);
+                    const link = document.createElement('a');
+                    link.download = `${title.replace(/ /g, '_')}.png`;
+                    link.href = image;
+                    link.click();
+                });
+            });
+        }
+    }, []);
 
     if (loading) {
         return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-96 w-full" /></div>;
+    }
+
+    if (error) {
+        return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
     }
 
     if (!survey) {
@@ -855,25 +908,32 @@ export default function SurveyAnalysisPage() {
                 <TabsContent value="results" className="mt-4">
                     <div className="space-y-6">
                         {analysisData.map((result, index) => {
-                            if (!result) return null;
-                            switch (result.type) {
-                                case 'categorical':
-                                    return <CategoricalChart key={index} data={result.data} title={result.title} />;
-                                case 'numeric':
-                                    return <NumericChart key={index} data={result.data} title={result.title} questionId={result.questionId} />;
-                                case 'rating':
-                                    return <RatingChart key={index} data={result.data} title={result.title} />;
-                                case 'nps':
-                                    return <NPSChart key={index} data={result.data} title={result.title} />;
-                                case 'text':
-                                     return <TextResponsesDisplay key={index} data={result.data} title={result.title} />;
-                                case 'best-worst':
-                                    return <BestWorstChart key={index} data={result.data} title={result.title} />;
-                                case 'matrix':
-                                    return <MatrixChart key={index} data={result.data} title={result.title} rows={result.rows!} columns={result.columns!} />;
-                                default:
-                                    return null;
-                            }
+                            if (!result || !result.data) return null;
+                            const chartId = `chart-${index}`;
+                            return (
+                                <div key={index} ref={el => chartRefs.current[chartId] = el}>
+                                {(() => {
+                                    switch (result.type) {
+                                        case 'categorical':
+                                            return <CategoricalChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
+                                        case 'numeric':
+                                            return <NumericChart data={result.data} title={result.title} questionId={result.questionId} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                        case 'rating':
+                                            return <RatingChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                        case 'nps':
+                                            return <NPSChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                        case 'text':
+                                             return <TextResponsesDisplay data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
+                                        case 'best-worst':
+                                            return <BestWorstChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                        case 'matrix':
+                                            return <MatrixChart data={result.data} title={result.title} rows={result.rows!} columns={result.columns!} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                        default:
+                                            return null;
+                                    }
+                                })()}
+                                </div>
+                            );
                         })}
                     </div>
                 </TabsContent>
@@ -893,291 +953,3 @@ export default function SurveyAnalysisPage() {
     );
 }
 
-```
-- src/hooks/use-local-storage.ts:
-```ts
-import { useState, useEffect } from 'react';
-
-function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      console.error(error);
-      return initialValue;
-    }
-  });
-
-  const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const item = window.localStorage.getItem(key);
-        if (item) {
-            try {
-                setStoredValue(JSON.parse(item));
-            } catch (error) {
-                console.log(error);
-            }
-        }
-    }
-  }, [key]);
-
-  return [storedValue, setValue] as const;
-}
-
-export default useLocalStorage;
-
-```
-- src/lib/stats.ts:
-```ts
-
-import Papa from 'papaparse';
-
-export type DataPoint = Record<string, number | string>;
-export type DataSet = DataPoint[];
-
-export const parseData = (
-  fileContent: string
-): { headers: string[]; data: DataSet; numericHeaders: string[]; categoricalHeaders: string[] } => {
-  const result = Papa.parse(fileContent, {
-    header: true,
-    skipEmptyLines: true,
-    dynamicTyping: true,
-  });
-
-  if (result.errors.length > 0) {
-    console.error("Parsing errors:", result.errors);
-    // Optionally throw an error for the first critical error
-    const firstError = result.errors[0];
-    if (firstError.code !== 'UndetectableDelimiter') {
-       throw new Error(`CSV Parsing Error: ${firstError.message} on row ${firstError.row}`);
-    }
-  }
-
-  if (!result.data || result.data.length === 0) {
-    throw new Error("No parsable data rows found in the file.");
-  }
-  
-  const rawHeaders = result.meta.fields || [];
-  const data: DataSet = result.data as DataSet;
-
-  const numericHeaders: string[] = [];
-  const categoricalHeaders: string[] = [];
-
-  rawHeaders.forEach(header => {
-    const values = data.map(row => row[header]).filter(val => val !== null && val !== undefined && val !== '');
-    
-    // Check if every non-empty value is a number
-    const isNumericColumn = values.every(val => typeof val === 'number' && isFinite(val));
-
-    if (isNumericColumn) {
-        numericHeaders.push(header);
-    } else {
-        categoricalHeaders.push(header);
-    }
-  });
-
-  // Ensure types are correct, PapaParse does a good job but we can enforce it.
-  const sanitizedData = data.map(row => {
-    const newRow: DataPoint = {};
-    rawHeaders.forEach(header => {
-      const value = row[header];
-      if (numericHeaders.includes(header)) {
-        if (typeof value === 'number' && isFinite(value)) {
-            newRow[header] = value;
-        } else if (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value))) {
-            newRow[header] = parseFloat(value);
-        } else {
-            newRow[header] = NaN; // Use NaN for non-numeric values in numeric columns
-        }
-      } else { // Categorical
-        newRow[header] = String(value ?? '');
-      }
-    });
-    return newRow;
-  });
-
-  return { headers: rawHeaders, data: sanitizedData, numericHeaders, categoricalHeaders };
-};
-
-export const unparseData = (
-    { headers, data }: { headers: string[]; data: DataSet }
-): string => {
-    return Papa.unparse(data, {
-        columns: headers,
-        header: true,
-    });
-};
-
-```
-- src/lib/utils.ts:
-```ts
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-
-```
-- src/types/survey.ts:
-```ts
-
-export interface Question {
-  id: string;
-  type: string;
-  title: string;
-  text?: string;
-  description?: string;
-  options?: string[];
-  items?: string[];
-  columns?: string[];
-  scale?: string[];
-  required?: boolean;
-  content?: string;
-  imageUrl?: string;
-  rows?: string[];
-}
-
-
-export interface Survey {
-  id: string;
-  name: string;
-  status: 'active' | 'draft' | 'closed';
-  created_date: string;
-  questions?: Question[];
-  startDate?: string;
-  endDate?: string;
-}
-
-
-export interface SurveyResponse {
-    id: string;
-    survey_id: string;
-    submitted_at: string;
-    answers: {
-        [questionId: string]: any;
-    }
-}
-```
-- tailwind.config.ts:
-```ts
-import type { Config } from "tailwindcss"
-const {fontFamily} = require('tailwindcss/defaultTheme');
-
-const config = {
-  darkMode: ["class"],
-  content: [
-    './pages/**/*.{ts,tsx}',
-    './components/**/*.{ts,tsx}',
-    './app/**/*.{ts,tsx}',
-    './src/**/*.{ts,tsx}',
-	],
-  prefix: "",
-  theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
-    extend: {
-       fontFamily: {
-        sans: ["var(--font-sans)", ...fontFamily.sans],
-        headline: ['Space Grotesk', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
-      },
-      colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
-        },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-          border: 'hsl(var(--sidebar-border))',
-          ring: 'hsl(var(--sidebar-ring))',
-        },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
-      keyframes: {
-        "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
-        },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-      },
-    },
-  },
-  plugins: [require("tailwindcss-animate")],
-} satisfies Config
-
-export default config
-```
