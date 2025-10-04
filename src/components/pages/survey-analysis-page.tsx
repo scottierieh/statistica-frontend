@@ -1,12 +1,13 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Customized } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -15,8 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { Star } from 'lucide-react';
 import { Button } from '../ui/button';
+import { Progress } from './../ui/progress';
 
 // --- Data Processing Functions ---
 const processTextResponses = (responses: SurveyResponse[], questionId: string) => {
@@ -51,7 +52,7 @@ const processCategoricalResponses = (responses: SurveyResponse[], question: Ques
 
 const processNumericResponses = (responses: SurveyResponse[], questionId: string) => {
     const values = responses.map((r: any) => Number(r.answers[questionId])).filter(v => !isNaN(v));
-    if (values.length === 0) return { mean: 0, median: 0, std: 0, count: 0, histogram: [], boxplot: [] };
+    if (values.length === 0) return { mean: 0, median: 0, std: 0, count: 0, histogram: [], boxplot: [], values: [] };
     
     const sum = values.reduce((a, b) => a + b, 0);
     const mean = sum / values.length;
@@ -289,7 +290,7 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
                      <TabsContent value="boxplot">
                         <div className="w-full h-64 flex items-center justify-center">
                             {isPlotLoading ? <Skeleton className="h-full w-full" /> : 
-                            boxPlotImage ? <Image src={boxPlotImage} alt="Box plot" width={400} height={256} className="object-contain"/> : 
+                            boxPlotImage ? <Image src={`data:image/png;base64,${boxPlotImage}`} alt="Box plot" width={400} height={256} className="object-contain"/> : 
                             <p>Could not load box plot.</p>}
                         </div>
                     </TabsContent>
@@ -749,4 +750,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
