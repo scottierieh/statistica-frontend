@@ -97,7 +97,7 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
         if (qrCodeUrl) {
             const link = document.createElement('a');
             link.href = qrCodeUrl;
-            link.download = `${survey.name.replace(/\s+/g, '_')}_qr_code.png`;
+            link.download = `${survey.title.replace(/\s+/g, '_')}_qr_code.png`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -132,7 +132,7 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
         >
             <div>
                 <div className="flex justify-between items-start mb-4">
-                    <h3 className="font-bold text-slate-800 text-lg leading-tight pr-4">{survey.name}</h3>
+                    <h3 className="font-bold text-slate-800 text-lg leading-tight pr-4">{survey.title}</h3>
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger>
