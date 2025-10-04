@@ -30,10 +30,10 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { questio
         )}
         <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-3">
             {question.options?.map((option: string, index: number) => (
-                <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
+                <Label key={index} htmlFor={`q${question.id}-o${index}`} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
                     <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
-                    <Label htmlFor={`q${question.id}-o${index}`} className="flex-1 cursor-pointer">{option}</Label>
-                </div>
+                    <span className="flex-1">{option}</span>
+                </Label>
             ))}
         </RadioGroup>
     </div>
@@ -41,6 +41,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { questio
 
 const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { question: Question; answer?: string[]; onAnswerChange: (newAnswer: string[]) => void; }) => {
    const handleCheckChange = (checked: boolean, opt: string) => {
+       if (!onAnswerChange) return;
        const currentAnswers = answer || [];
        const newAnswers = checked
            ? [...currentAnswers, opt]
@@ -58,14 +59,14 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { 
             )}
            <div className="space-y-2">
                 {question.options?.map((option: string, index: number) => (
-                   <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
+                   <Label key={index} htmlFor={`q${question.id}-o${index}`} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
                        <Checkbox
                            id={`q${question.id}-o${index}`}
                            checked={answer?.includes(option)}
                            onCheckedChange={(checked) => handleCheckChange(!!checked, option)}
                        />
-                       <Label htmlFor={`q${question.id}-o${index}`} className="flex-1 cursor-pointer">{option}</Label>
-                   </div>
+                       <span className="flex-1">{option}</span>
+                   </Label>
                ))}
            </div>
        </div>
@@ -201,24 +202,32 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Que
                     <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
                 </div>
             )}
-            <div className="space-y-2">
-                <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
-                    <div className="font-semibold text-muted-foreground">Item</div>
-                    <div className="font-semibold text-center w-20">Best</div>
-                    <div className="font-semibold text-center w-20">Worst</div>
-                </div>
-                {question.items?.map((item: string, index: number) => (
-                    <div key={index} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 p-2 border rounded-md hover:bg-accent transition-colors">
-                        <div>{item}</div>
-                        <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })} className="flex items-center justify-center w-20">
-                            <RadioGroupItem value={item} />
-                        </RadioGroup>
-                         <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })} className="flex items-center justify-center w-20">
-                            <RadioGroupItem value={item} />
-                        </RadioGroup>
-                    </div>
-                ))}
-            </div>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-2/3">Item</TableHead>
+                        <TableHead className="text-center">Best</TableHead>
+                        <TableHead className="text-center">Worst</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {question.items?.map((item: string, index: number) => (
+                        <TableRow key={index}>
+                            <TableCell>{item}</TableCell>
+                            <TableCell className="text-center">
+                                <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })}>
+                                    <RadioGroupItem value={item} />
+                                </RadioGroup>
+                            </TableCell>
+                            <TableCell className="text-center">
+                                <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })}>
+                                    <RadioGroupItem value={item} />
+                                </RadioGroup>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         </div>
     );
 };
@@ -490,6 +499,7 @@ export default function SurveyView() {
                                         question={currentQuestion}
                                         answer={answers[currentQuestion.id]}
                                         onAnswerChange={(value: any) => handleAnswerChange(currentQuestion.id, value)}
+                                        isPreview={true}
                                     />
                                 </div>
                             )}
@@ -515,5 +525,6 @@ export default function SurveyView() {
         </div>
     );
 }
+
 
     
