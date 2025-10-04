@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -27,6 +28,7 @@ import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
+import html2canvas from 'html2canvas';
 
 
 const Plot = dynamic(() => import('react-plotly.js'), {
@@ -77,10 +79,10 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
     const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / (values.length > 1 ? values.length -1 : 1) );
 
     const histogramBinsResult = jStat.histogram(values, 10);
-    const histogramData = histogramBinsResult.map((binData: { x: number; y: number; dx: number; }) => ({
+    const histogramData = histogramBinsResult ? histogramBinsResult.map((binData: { x: number; y: number; dx: number; }) => ({
         name: `${binData.x.toFixed(1)}-${(binData.x + binData.dx).toFixed(1)}`,
         count: binData.y,
-    }));
+    })) : [];
 
     const q1 = sorted[Math.floor(0.25 * sorted.length)];
     const q3 = sorted[Math.floor(0.75 * sorted.length)];
@@ -248,6 +250,19 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
 
 
 const NumericChart = ({ data, title, questionId, onDownload }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], values: number[] }, title: string, questionId: string, onDownload: () => void }) => {
+    
+    if (!data || !data.histogram) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>{title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>No data available for this numeric question.</p>
+          </CardContent>
+        </Card>
+      );
+    }
     
     return (
         <Card>
@@ -861,14 +876,12 @@ export default function SurveyAnalysisPage() {
     const downloadChartAsPng = useCallback((chartId: string, title: string) => {
         const chartElement = chartRefs.current[chartId];
         if (chartElement) {
-            import('html2canvas').then(html2canvas => {
-                html2canvas.default(chartElement, { scale: 2 }).then(canvas => {
-                    const image = canvas.toDataURL("image/png", 1.0);
-                    const link = document.createElement('a');
-                    link.download = `${title.replace(/ /g, '_')}.png`;
-                    link.href = image;
-                    link.click();
-                });
+            html2canvas(chartElement, { scale: 2 }).then(canvas => {
+                const image = canvas.toDataURL("image/png", 1.0);
+                const link = document.createElement('a');
+                link.download = `${title.replace(/ /g, '_')}.png`;
+                link.href = image;
+                link.click();
             });
         }
     }, []);
