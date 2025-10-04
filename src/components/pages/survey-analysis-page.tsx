@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { Progress } from './../ui/progress';
+import { produce } from 'immer';
 import { jStat } from 'jstat';
 import dynamic from 'next/dynamic';
 import { Textarea } from '../ui/textarea';
@@ -479,34 +480,17 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
     );
 };
 
-const TextQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: Question, answer: string, onAnswerChange: (value: string) => void, onDelete?: (id: string) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: string) => void; cardClassName?: string; }) => (
-  <div className={cn("p-4", cardClassName)}>
-    <div className="flex justify-between items-start mb-4">
-       <div className="flex-1">
-          <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
-          {question.required && <span className="text-destructive text-xs">* Required</span>}
-      </div>
-      {!isPreview && onDelete && (
-        <div className="flex items-center">
-            <div className="flex items-center space-x-2 mr-2">
-              <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
-              <Label htmlFor={`required-${question.id}`}>Required</Label>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
-                <ImageIcon className="w-5 h-5 text-muted-foreground" />
-            </Button>
-            <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
-            <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
-        </div>
-      )}
-    </div>
-    {question.imageUrl && (
-        <div className="my-4">
-            <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
-        </div>
-    )}
-    <Textarea placeholder="Your answer..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} disabled={isPreview}/>
-  </div>
+const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => (
+    <Card>
+        <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+        <CardContent>
+            <ScrollArea className="h-64 p-4 border rounded-md">
+                <ul className="space-y-4">
+                    {data.map((text, i) => <li key={i} className="text-sm border-b pb-2">{text}</li>)}
+                </ul>
+            </ScrollArea>
+        </CardContent>
+    </Card>
 );
 
 const BestWorstChart = ({ data, title }: { data: { name: string, netScore: number, bestPct: number, worstPct: number }[], title: string }) => {
@@ -753,7 +737,6 @@ export default function SurveyAnalysisPage() {
                 if (!result) return null;
                 switch (result.type) {
                     case 'categorical':
-                    case 'multiple':
                         return <CategoricalChart key={index} data={result.data} title={result.title} />;
                     case 'numeric':
                         return <NumericChart key={index} data={result.data} title={result.title} questionId={result.questionId} />;
@@ -761,9 +744,8 @@ export default function SurveyAnalysisPage() {
                         return <RatingChart key={index} data={result.data} title={result.title} />;
                     case 'nps':
                         return <NPSChart key={index} data={result.data} title={result.title} />;
-    
                     case 'text':
-                         return <TextQuestion key={index} data={result.data} title={result.title} />;
+                         return <TextResponsesDisplay key={index} data={result.data} title={result.title} />;
                     case 'best-worst':
                         return <BestWorstChart key={index} data={result.data} title={result.title} />;
                     case 'matrix':
@@ -775,4 +757,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
