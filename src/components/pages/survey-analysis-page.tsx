@@ -11,17 +11,18 @@ import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users } from 'lu
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
+import { ScrollArea } from '../ui/scroll-area';
 
 // --- Data Processing Functions ---
 const processTextResponses = (responses: SurveyResponse[], questionId: string) => {
-    return responses.map(r => r.answers[questionId]).filter(Boolean);
+    return responses.map((r: any) => r.answers[questionId]).filter(Boolean);
 };
 
 const processCategoricalResponses = (responses: SurveyResponse[], question: Question) => {
     const counts: { [key: string]: number } = {};
     const questionId = String(question.id);
     
-    responses.forEach(response => {
+    responses.forEach((response: any) => {
         const answer = response.answers[questionId];
         if (Array.isArray(answer)) { // Multiple choice
             answer.forEach(opt => {
@@ -41,7 +42,7 @@ const processCategoricalResponses = (responses: SurveyResponse[], question: Ques
 };
 
 const processNumericResponses = (responses: SurveyResponse[], questionId: string) => {
-    const values = responses.map(r => Number(r.answers[questionId])).filter(v => !isNaN(v));
+    const values = responses.map((r: any) => Number(r.answers[questionId])).filter(v => !isNaN(v));
     if (values.length === 0) return { mean: 0, median: 0, std: 0, count: 0 };
     
     const sum = values.reduce((a, b) => a + b, 0);
@@ -184,4 +185,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
