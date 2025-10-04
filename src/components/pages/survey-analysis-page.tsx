@@ -4,7 +4,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2 } from 'lucide-react';
@@ -76,49 +76,23 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
     const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
     const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / (values.length > 1 ? values.length -1 : 1) );
 
-    // Histogram data
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const numBins = Math.min(10, Math.ceil(Math.sqrt(values.length)));
-    const binWidth = numBins > 0 ? (max - min) / numBins : 1;
-    const histogram = Array(numBins).fill(0).map((_,i) => {
-        const binStart = min + i * binWidth;
-        const binEnd = binStart + binWidth;
-        return {
-            name: `${binStart.toFixed(1)}-${binEnd.toFixed(1)}`,
-            count: values.filter(v => v >= binStart && (i === numBins - 1 ? v <= binEnd : v < binEnd)).length
-        }
-    })
+    const histogramBins = jStat.histogram(values, 10);
+    const histogramData = histogramBins.map((count: number, i: number) => ({
+      name: `${histogramBins.x[i].toFixed(1)}-${(histogramBins.x[i] + histogramBins.dx).toFixed(1)}`,
+      count,
+    }));
 
     const q1 = sorted[Math.floor(0.25 * sorted.length)];
     const q3 = sorted[Math.floor(0.75 * sorted.length)];
     const boxplot = [{
         name: questionId,
         box: [q1, median, q3],
-        whisker: [min, max],
+        whisker: [Math.min(...values), Math.max(...values)],
         outliers: [] // Placeholder for outlier detection
     }];
 
-    return { mean, median, std, count: values.length, histogram, boxplot, values };
+    return { mean, median, std, count: values.length, histogram: histogramData, boxplot, values };
 };
-
-const processNPS = (responses: SurveyResponse[], questionId: string) => {
-    const values = responses.map((r: any) => Number(r.answers[questionId])).filter(v => !isNaN(v));
-    if (values.length === 0) return { npsScore: 0, promoters: 0, passives: 0, detractors: 0, total: 0 };
-    
-    const promoters = values.filter(v => v >= 9).length;
-    const passives = values.filter(v => v >= 7 && v <= 8).length;
-    const detractors = values.filter(v => v <= 6).length;
-    const total = values.length;
-
-    const promoterPct = (promoters / total) * 100;
-    const detractorPct = (detractors / total) * 100;
-
-    return {
-        npsScore: promoterPct - detractorPct,
-        promoters, passives, detractors, total
-    }
-}
 
 const processBestWorst = (responses: SurveyResponse[], question: Question) => {
     const questionId = String(question.id);
@@ -160,7 +134,6 @@ const processMatrixResponses = (responses: SurveyResponse[], question: Question)
         const answer = (response.answers as any)[questionId];
         if (answer && typeof answer === 'object') {
             Object.entries(answer).forEach(([row, colValue]) => {
-                // Find the column label that corresponds to the stored column value (e.g., '1', '2')
                 const colIndex = question.columns?.indexOf(colValue as string);
                 if (colIndex !== -1 && colIndex !== undefined) {
                     const colLabel = columns[colIndex];
@@ -180,7 +153,6 @@ const processMatrixResponses = (responses: SurveyResponse[], question: Question)
             entry[col] = count;
             total += count;
         });
-        // Calculate percentages
         columns.forEach(col => {
             entry[`${col}_pct`] = total > 0 ? ((entry[col] as number / total) * 100) : 0;
         });
@@ -207,11 +179,14 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
                          <ChartContainer config={{}} className="w-full h-64">
                             <ResponsiveContainer>
                                 <BarChart data={data} layout="vertical" margin={{ left: 100 }}>
-                                    <XAxis type="number" />
-                                    <YAxis type="category" dataKey="name" width={100} />
-                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${value} (${(data.find(d=>d.count === value)?.percentage || 0).toFixed(1)}%)`} />} />
-                                    <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" radius={4} />
-                                </BarChart>
+                                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                  <XAxis type="number" dataKey="count" />
+                                  <YAxis dataKey="name" type="category" width={100} />
+                                  <Tooltip content={<ChartTooltipContent formatter={(value) => `${value} (${(data.find(d=>d.count === value)?.percentage || 0).toFixed(1)}%)`} />} cursor={{fill: 'hsl(var(--muted))'}} />
+                                  <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" radius={4}>
+                                    <LabelList dataKey="count" position="insideRight" style={{ fill: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 'bold' }} />
+                                  </Bar>
+                            </BarChart>
                             </ResponsiveContainer>
                         </ChartContainer>
                     </TabsContent>
@@ -247,6 +222,8 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
     );
 };
 
+
+
 const NumericChart = ({ data, title, questionId }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], values: number[] }, title: string, questionId: string }) => {
     return (
         <Card>
@@ -258,20 +235,37 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
                             <XAxis dataKey="name" angle={-45} textAnchor="end" height={50} />
                             <YAxis />
                             <Tooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" />
+                            <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))">
+                                <LabelList dataKey="count" position="top" style={{ fontSize: 11 }} />
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
-                 <div className="grid grid-cols-2 gap-4 text-center">
-                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Mean</p><p className="text-2xl font-bold">{data.mean.toFixed(2)}</p></div>
-                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Median</p><p className="text-2xl font-bold">{data.median.toFixed(2)}</p></div>
-                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Std. Dev.</p><p className="text-2xl font-bold">{data.std.toFixed(2)}</p></div>
-                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Responses</p><p className="text-2xl font-bold">{data.count}</p></div>
+                <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="p-4 bg-muted rounded-lg flex flex-col justify-center items-center">
+                        <p className="text-sm text-muted-foreground">Mean</p>
+                        <p className="text-2xl font-bold">{data.mean.toFixed(2)}</p>
+                    </div>
+                    <div className="p-4 bg-muted rounded-lg flex flex-col justify-center items-center">
+                        <p className="text-sm text-muted-foreground">Median</p>
+                        <p className="text-2xl font-bold">{data.median.toFixed(2)}</p>
+                    </div>
+                    <div className="p-4 bg-muted rounded-lg flex flex-col justify-center items-center">
+                        <p className="text-sm text-muted-foreground">Std. Dev.</p>
+                        <p className="text-2xl font-bold">{data.std.toFixed(2)}</p>
+                    </div>
+                    <div className="p-4 bg-muted rounded-lg flex flex-col justify-center items-center">
+                        <p className="text-sm text-muted-foreground">Responses</p>
+                        <p className="text-2xl font-bold">{data.count}</p>
+                    </div>
                 </div>
             </CardContent>
         </Card>
     );
 };
+
+
+
 
 const RatingChart = ({ data, title }: { data: { values: number[], count: number }, title: string }) => {
     if (!data || data.values.length === 0) {
@@ -333,105 +327,95 @@ const RatingChart = ({ data, title }: { data: { values: number[], count: number 
     );
 };
 
+const NPSChart = ({ data, title }: { data: { npsScore: number; promoters: number; passives: number; detractors: number; total: number, interpretation: string }, title: string }) => {
+    const GaugeChart = ({ score }: { score: number }) => {
+      const getLevel = (s: number) => {
+          if (s >= 70) return { level: 'Excellent', color: '#10b981' };
+          if (s >= 50) return { level: 'Good', color: '#84cc16' };
+          if (s >= 30) return { level: 'Fair', color: '#eab308' };
+          if (s >= 0) return { level: 'Needs Improvement', color: '#f97316' };
+          return { level: 'Poor', color: '#ef4444' };
+      };
 
-const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number, passives: number, detractors: number, total: number }, title: string }) => {
-    const NPSGauge = () => {
-        const npsScore = data.npsScore;
-        
-        const getColor = (score: number) => {
-            if (score >= 50) return '#10b981'; // Excellent (green-500)
-            if (score >= 0) return '#eab308'; // Good (yellow-500)
-            return '#ef4444'; // Needs Improvement (red-500)
-        };
-        
-        const getLevel = (score: number) => {
-            if (score >= 50) return 'Excellent';
-            if (score >= 0) return 'Good';
-            return 'Needs Improvement';
-        };
+      const { level, color } = getLevel(score);
+      const gaugeValue = score + 100;
+      const gaugeData = [{ value: gaugeValue }, { value: 200 - gaugeValue }];
 
-        const gaugeData = [
-            { value: npsScore + 100 },
-            { value: 200 - (npsScore + 100) }
-        ];
-
-        const color = getColor(npsScore);
-        
-        return (
-            <div className="flex flex-col items-center justify-center p-4">
-                <div className="relative flex flex-col items-center">
-                    <PieChart width={250} height={150}>
-                    <Pie
-                        data={gaugeData}
-                        cx={125}
-                        cy={150}
-                        startAngle={180}
-                        endAngle={0}
-                        innerRadius={80}
-                        outerRadius={120}
-                        dataKey="value"
-                        stroke="none"
-                    >
-                        <Cell fill={color} />
-                        <Cell fill="#e5e7eb" />
-                    </Pie>
-                    </PieChart>
-                    
-                    <div className="absolute top-20 flex flex-col items-center">
-                    <div className="text-5xl font-bold" style={{ color }}>
-                        {npsScore.toFixed(0)}
-                    </div>
-                    <div className="text-lg text-gray-600 mt-2">
-                        {getLevel(npsScore)}
-                    </div>
-                    </div>
-                </div>
-                 <div className="mt-4 flex justify-between w-full max-w-[250px] text-xs text-muted-foreground">
-                    <span>Poor</span>
-                    <span>Good</span>
-                    <span>Excellent</span>
-                </div>
+      return (
+        <div className="relative flex flex-col items-center justify-center">
+          <PieChart width={300} height={200}>
+            <Pie
+              data={gaugeData}
+              cx={150}
+              cy={150}
+              startAngle={180}
+              endAngle={0}
+              innerRadius={80}
+              outerRadius={120}
+              dataKey="value"
+              paddingAngle={0}
+            >
+              <Cell fill={color} />
+              <Cell fill="#e5e7eb" />
+            </Pie>
+          </PieChart>
+          
+          <div className="absolute top-24 flex flex-col items-center">
+            <div className="text-5xl font-bold" style={{ color }}>
+              {Math.round(score)}
             </div>
-        );
+            <div className="text-lg text-gray-600 mt-2">
+              {level}
+            </div>
+          </div>
+        </div>
+      );
     };
 
     return (
         <Card>
-            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <NPSGauge />
-                <div>
-                     <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Group</TableHead>
-                                <TableHead className="text-right">Count</TableHead>
-                                <TableHead className="text-right">%</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell>Promoters (9-10)</TableCell>
-                                <TableCell className="text-right">{data.promoters}</TableCell>
-                                <TableCell className="text-right">{data.total > 0 ? ((data.promoters / data.total) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
-                             <TableRow>
-                                <TableCell>Passives (7-8)</TableCell>
-                                <TableCell className="text-right">{data.passives}</TableCell>
-                                <TableCell className="text-right">{data.total > 0 ? ((data.passives / data.total) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
-                             <TableRow>
-                                <TableCell>Detractors (0-6)</TableCell>
-                                <TableCell className="text-right">{data.detractors}</TableCell>
-                                <TableCell className="text-right">{data.total > 0 ? ((data.detractors / data.total) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
+          <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div className="flex flex-col items-center justify-center">
+                <GaugeChart score={data.npsScore} />
+                <div className="w-full px-4 mt-4">
+                   <div className="text-sm text-gray-600 space-y-1 p-4 bg-gray-50 rounded-lg">
+                    <p className="text-xs">{data.interpretation}</p>
+                  </div>
                 </div>
-            </CardContent>
+              </div>
+              <div className="space-y-4">
+                  <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Group</TableHead>
+                            <TableHead className="text-right">Count</TableHead>
+                            <TableHead className="text-right">Percentage</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow>
+                            <TableCell><Badge className="bg-green-500 hover:bg-green-600">Promoters (9-10)</Badge></TableCell>
+                            <TableCell className="text-right font-mono">{data.promoters}</TableCell>
+                            <TableCell className="text-right font-mono">{data.total > 0 ? ((data.promoters / data.total) * 100).toFixed(1) : 0}%</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell><Badge className="bg-yellow-500 hover:bg-yellow-600">Passives (7-8)</Badge></TableCell>
+                            <TableCell className="text-right font-mono">{data.passives}</TableCell>
+                            <TableCell className="text-right font-mono">{data.total > 0 ? ((data.passives / data.total) * 100).toFixed(1) : 0}%</TableCell>
+                        </TableRow>
+                         <TableRow>
+                            <TableCell><Badge variant="destructive">Detractors (0-6)</Badge></TableCell>
+                            <TableCell className="text-right font-mono">{data.detractors}</TableCell>
+                            <TableCell className="text-right font-mono">{data.total > 0 ? ((data.detractors / data.total) * 100).toFixed(1) : 0}%</TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+              </div>
+          </CardContent>
         </Card>
-    );
-};
+      );
+    };
 
 const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
@@ -517,43 +501,83 @@ const BestWorstChart = ({ data, title }: { data: { name: string, netScore: numbe
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{title}</CardTitle>
+                <div className="flex items-start gap-4">
+                   <CardTitle>{title}</CardTitle>
+                   <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-auto">
+                        <TabsList>
+                            <TabsTrigger value="net_score">Net Score</TabsTrigger>
+                            <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div className="flex flex-col items-center">
-                        <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-auto mb-4">
-                            <TabsList>
-                                <TabsTrigger value="net_score">Net Score</TabsTrigger>
-                                <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                        <ChartContainer config={{}} className="w-full h-[300px]">
-                            <ResponsiveContainer>
-                                {chartType === 'net_score' ? (
-                                    <BarChart data={[...data].sort((a, b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
-                                        <YAxis type="category" dataKey="name" width={100} />
-                                        <XAxis type="number" />
-                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
-                                        <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))" />
-                                    </BarChart>
-                                ) : (
-                                    <BarChart data={data} margin={{ left: 100 }}>
-                                        <YAxis />
-                                        <XAxis type="category" dataKey="name" />
-                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
-                                        <Legend />
-                                        <Bar dataKey="bestPct" name="Best %" fill="hsl(var(--chart-2))" />
-                                        <Bar dataKey="worstPct" name="Worst %" fill="hsl(var(--chart-5))" />
-                                    </BarChart>
-                                )}
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </div>
-                     <Table>
-                        <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Net Score</TableHead></TableRow></TableHeader>
-                        <TableBody>{[...data].sort((a, b) => b.netScore - a.netScore).map(item => (<TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.netScore.toFixed(1)}</TableCell></TableRow>))}</TableBody>
-                    </Table>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ChartContainer config={{}} className="w-full h-[300px]">
+                        <ResponsiveContainer>
+                            {chartType === 'net_score' ? (
+                                <BarChart data={[...data].sort((a, b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
+                                    <YAxis type="category" dataKey="name" width={100} />
+                                    <XAxis type="number" />
+                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
+                                    <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))">
+                                        <LabelList dataKey="netScore" position="right" formatter={(value: number) => `${value.toFixed(1)}%`} style={{ fontSize: 11 }} />
+                                    </Bar>
+                                </BarChart>
+                            ) : (
+                                <BarChart data={data} margin={{ left: 100 }}>
+                                    <YAxis />
+                                    <XAxis type="category" dataKey="name" />
+                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
+                                    <Legend />
+                                    <Bar dataKey="bestPct" name="Best %" fill="hsl(var(--chart-2))">
+                                        <LabelList dataKey="bestPct" position="top" formatter={(value: number) => `${value.toFixed(1)}%`} style={{ fontSize: 11 }} />
+                                    </Bar>
+                                    <Bar dataKey="worstPct" name="Worst %" fill="hsl(var(--chart-5))">
+                                        <LabelList dataKey="worstPct" position="top" formatter={(value: number) => `${value.toFixed(1)}%`} style={{ fontSize: 11 }} />
+                                    </Bar>
+                                </BarChart>
+                            )}
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                    
+                    {chartType === 'net_score' ? (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Item</TableHead>
+                                    <TableHead className="text-right">Net Score</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {[...data].sort((a, b) => b.netScore - a.netScore).map(item => (
+                                    <TableRow key={item.name}>
+                                        <TableCell>{item.name}</TableCell>
+                                        <TableCell className="text-right">{item.netScore.toFixed(1)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Item</TableHead>
+                                    <TableHead className="text-right">Best %</TableHead>
+                                    <TableHead className="text-right">Worst %</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {data.map(item => (
+                                    <TableRow key={item.name}>
+                                        <TableCell>{item.name}</TableCell>
+                                        <TableCell className="text-right">{item.bestPct.toFixed(1)}%</TableCell>
+                                        <TableCell className="text-right">{item.worstPct.toFixed(1)}%</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -563,7 +587,7 @@ const BestWorstChart = ({ data, title }: { data: { name: string, netScore: numbe
 const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string, rows: string[], columns: string[] }) => {
     const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked');
     const [tableFormat, setTableFormat] = useState('counts');
-    const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e']; // red to green
+    const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'];
     
     const renderContingencyTable = () => {
         if (!data) return null;
@@ -588,6 +612,44 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
             }
         };
 
+        const getRowTotal = (rowIndex: number) => {
+            switch(tableFormat) {
+                case 'row_percent':
+                    return '100.0%';
+                case 'col_percent':
+                    return ''; // 열 % 모드에서는 행 합계 숨김
+                case 'total_percent':
+                    return ((rowTotals[rowIndex] / total) * 100 || 0).toFixed(1) + '%';
+                default:
+                    return rowTotals[rowIndex];
+            }
+        };
+
+        const getColTotal = (colIndex: number) => {
+            switch(tableFormat) {
+                case 'row_percent':
+                    return ''; // 행 % 모드에서는 열 합계 숨김
+                case 'col_percent':
+                    return '100.0%';
+                case 'total_percent':
+                    return ((colTotals[colIndex] / total) * 100 || 0).toFixed(1) + '%';
+                default:
+                    return colTotals[colIndex];
+            }
+        };
+
+        const getGrandTotal = () => {
+            switch(tableFormat) {
+                case 'row_percent':
+                case 'col_percent':
+                    return ''; // 행%/열% 모드에서는 전체 합계 숨김
+                case 'total_percent':
+                    return '100.0%';
+                default:
+                    return total;
+            }
+        };
+
         return (
              <Table>
                 <TableHeader>
@@ -602,13 +664,13 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
                         <TableRow key={r}>
                             <TableHead>{r}</TableHead>
                             {columns.map((c: string, colIndex: number) => <TableCell key={c} className="text-right font-mono">{getCellContent(r, c, rowIndex, colIndex)}</TableCell>)}
-                            <TableCell className="text-right font-bold font-mono">{tableFormat === 'counts' ? rowTotals[rowIndex] : '100.0%'}</TableCell>
+                            <TableCell className="text-right font-bold font-mono">{getRowTotal(rowIndex)}</TableCell>
                         </TableRow>
                     ))}
                     <TableRow className="font-bold bg-muted/50">
                         <TableHead>Total</TableHead>
-                         {columns.map((c: string, colIndex: number) => <TableCell key={c} className="text-right font-mono">{tableFormat === 'counts' ? colTotals[colIndex] : ''}</TableCell>)}
-                        <TableCell className="text-right font-mono">{tableFormat === 'counts' ? total : ''}</TableCell>
+                         {columns.map((c: string, colIndex: number) => <TableCell key={c} className="text-right font-mono">{getColTotal(colIndex)}</TableCell>)}
+                        <TableCell className="text-right font-mono">{getGrandTotal()}</TableCell>
                     </TableRow>
                 </TableBody>
             </Table>
@@ -633,7 +695,9 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
                                     <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
                                     <Legend />
                                     {data.columns.map((col: string, i: number) => (
-                                        <Bar key={col} dataKey={`${col}_pct`} name={col} stackId="a" fill={COLORS[i % COLORS.length]} />
+                                        <Bar key={col} dataKey={`${col}_pct`} name={col} stackId="a" fill={COLORS[i % COLORS.length]}>
+                                            <LabelList dataKey={`${col}_pct`} position="center" formatter={(value: number) => value > 5 ? `${value.toFixed(1)}%` : ''} style={{ fill: '#fff', fontSize: 12, fontWeight: 'bold' }} />
+                                        </Bar>
                                     ))}
                                 </BarChart>
                             </ResponsiveContainer>
@@ -648,7 +712,9 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
                                     <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
                                     <Legend />
                                     {data.columns.map((col: string, i: number) => (
-                                        <Bar key={col} dataKey={`${col}_pct`} name={col} fill={COLORS[i % COLORS.length]} />
+                                        <Bar key={col} dataKey={`${col}_pct`} name={col} fill={COLORS[i % COLORS.length]}>
+                                            <LabelList dataKey={`${col}_pct`} position="top" formatter={(value: number) => `${value.toFixed(1)}%`} style={{ fontSize: 11 }} />
+                                        </Bar>
                                     ))}
                                 </BarChart>
                             </ResponsiveContainer>
@@ -679,51 +745,69 @@ export default function SurveyAnalysisPage() {
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [analysisData, setAnalysisData] = useState<any[]>([]);
 
     useEffect(() => {
-        if (surveyId) {
-            try {
-                const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
-                const currentSurvey = storedSurveys.find((s: any) => s.id === surveyId);
-                setSurvey(currentSurvey || null);
+        const loadData = async () => {
+            if (surveyId) {
+                try {
+                    const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
+                    const currentSurvey = storedSurveys.find((s: any) => s.id === surveyId);
+                    setSurvey(currentSurvey || null);
 
-                const storedResponses = JSON.parse(localStorage.getItem(`${surveyId}_responses`) || '[]');
-                setResponses(storedResponses);
-            } catch (error) {
-                console.error("Failed to load survey data:", error);
-                setError("Failed to load survey.");
-            } finally {
-                setLoading(false);
+                    const storedResponses = JSON.parse(localStorage.getItem(`${surveyId}_responses`) || '[]');
+                    setResponses(storedResponses);
+
+                    if (currentSurvey) {
+                      const processed = await processAllData(currentSurvey.questions, storedResponses);
+                      setAnalysisData(processed);
+                    } else {
+                        setError("Survey not found.");
+                    }
+                } catch (error) {
+                    console.error("Failed to load survey data:", error);
+                    setError("Failed to load survey.");
+                } finally {
+                    setLoading(false);
+                }
             }
-        }
+        };
+        loadData();
     }, [surveyId]);
     
-    const analysisData = useMemo(() => {
-        if (!survey || !responses) return [];
-        return (survey.questions || []).map((q: Question) => {
-            const questionId = String(q.id);
-            switch(q.type) {
-                case 'single':
-                case 'dropdown':
-                case 'multiple':
-                    return { type: 'categorical', title: q.title, data: processCategoricalResponses(responses, q) };
-                case 'number':
-                    return { type: 'numeric', title: q.title, data: processNumericResponses(responses, questionId), questionId };
-                case 'rating':
-                    return { type: 'rating', title: q.title, data: processNumericResponses(responses, questionId) };
-                case 'nps':
-                    return { type: 'nps', title: q.title, data: processNPS(responses, questionId) };
-                case 'text':
-                     return { type: 'text', title: q.title, data: processTextResponses(responses, questionId) };
-                case 'best-worst':
-                    return { type: 'best-worst', title: q.title, data: processBestWorst(responses, q) };
-                case 'matrix':
-                    return { type: 'matrix', title: q.title, data: processMatrixResponses(responses, q), rows: q.rows, columns: q.scale || q.columns };
-                default:
-                    return null;
-            }
-        }).filter(Boolean);
-    }, [survey, responses]);
+    const processAllData = async (questions: Question[], responses: SurveyResponse[]) => {
+      return Promise.all((questions || []).map(async (q: Question) => {
+          const questionId = String(q.id);
+          switch(q.type) {
+              case 'single':
+              case 'dropdown':
+              case 'multiple':
+                  return { type: 'categorical', title: q.title, data: processCategoricalResponses(responses, q) };
+              case 'number':
+                  const numericData = processNumericResponses(responses, questionId);
+                  return { type: 'numeric', title: q.title, data: numericData, questionId };
+              case 'rating':
+                  return { type: 'rating', title: q.title, data: processNumericResponses(responses, questionId) };
+              case 'nps':
+                  const npsScores = responses.map((r: any) => r.answers[questionId]).filter(v => typeof v === 'number');
+                  const npsResponse = await fetch('/api/analysis/nps', {
+                      method: 'POST',
+                      headers: {'Content-Type': 'application/json'},
+                      body: JSON.stringify({ scores: npsScores }),
+                  });
+                  const npsResult = await npsResponse.json();
+                  return { type: 'nps', title: q.title, data: npsResult.results };
+              case 'text':
+                   return { type: 'text', title: q.title, data: processTextResponses(responses, questionId) };
+              case 'best-worst':
+                  return { type: 'best-worst', title: q.title, data: processBestWorst(responses, q) };
+              case 'matrix':
+                  return { type: 'matrix', title: q.title, data: processMatrixResponses(responses, q), rows: q.rows, columns: q.scale || q.columns };
+              default:
+                  return null;
+          }
+      }).filter(Boolean));
+    };
 
 
     if (loading) {
@@ -793,3 +877,5 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
+```
