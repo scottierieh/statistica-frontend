@@ -21,7 +21,7 @@ import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
-import { addDays } from "date-fns";
+import { addDays, format } from "date-fns";
 
 interface SurveyCardProps {
     survey: Survey;
@@ -120,6 +120,19 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
             to: survey.endDate ? new Date(survey.endDate) : undefined,
         });
     }, [survey.startDate, survey.endDate]);
+    
+    const displayDate = useMemo(() => {
+        if (survey.startDate && survey.endDate) {
+            return `${format(new Date(survey.startDate), 'LLL dd, y')} - ${format(new Date(survey.endDate), 'LLL dd, y')}`;
+        }
+        if (survey.startDate) {
+            return `Starts ${format(new Date(survey.startDate), 'LLL dd, y')}`;
+        }
+        if (survey.endDate) {
+            return `Ends ${format(new Date(survey.endDate), 'LLL dd, y')}`;
+        }
+        return `Created on ${new Date(survey.created_date).toLocaleDateString()}`;
+    }, [survey.startDate, survey.endDate, survey.created_date]);
 
     return (
         <motion.div
@@ -154,7 +167,7 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
                     </div>
                     <div className="flex items-center gap-1.5">
                         <Clock className="w-4 h-4" />
-                        <span>{new Date(survey.created_date).toLocaleDateString()}</span>
+                        <span>{displayDate}</span>
                     </div>
                 </div>
             </div>
