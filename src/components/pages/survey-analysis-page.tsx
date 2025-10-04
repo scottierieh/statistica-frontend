@@ -43,7 +43,7 @@ const processCategoricalResponses = (responses: SurveyResponse[], question: Ques
         }
     });
 
-    return (question.options || []).map(opt => ({
+    return (question.options || question.scale || []).map(opt => ({
         name: opt,
         count: counts[opt] || 0,
         percentage: totalResponses > 0 ? ((counts[opt] || 0) / totalResponses) * 100 : 0
@@ -655,6 +655,7 @@ export default function SurveyAnalysisPage() {
     const [survey, setSurvey] = useState<Survey | null>(null);
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     useEffect(() => {
         if (surveyId) {
@@ -667,6 +668,7 @@ export default function SurveyAnalysisPage() {
                 setResponses(storedResponses);
             } catch (error) {
                 console.error("Failed to load survey data:", error);
+                setError("Failed to load survey.");
             } finally {
                 setLoading(false);
             }
