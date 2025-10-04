@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart, Edit, Users, Clock, Settings, Share2, QrCode, Copy, Download, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
+import { BarChart, Edit, Users, Clock, Settings, Share2, QrCode, Copy, Download, Calendar as CalendarIcon, AlertCircle, Eye } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
