@@ -14,6 +14,7 @@ import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from 'next/image';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 
 // --- Data Processing Functions ---
@@ -485,3 +486,4 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
