@@ -18,6 +18,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { Progress } from './../ui/progress';
+import { jStat } from 'jstat';
+import dynamic from 'next/dynamic';
+
+
+const Plot = dynamic(() => import('react-plotly.js'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-[300px]" />,
+});
 
 // --- Data Processing Functions ---
 const processTextResponses = (responses: SurveyResponse[], questionId: string) => {
@@ -306,7 +314,7 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
     );
 };
 
-const RatingChart = ({ data, title }: { data: { name: string, count: number, percentage: number }[], title: string }) => {
+const RatingChart = ({ data, title }: { data: {name: string, count: number}[], title: string }) => {
     const totalResponses = data.reduce((sum, item) => sum + item.count, 0);
     const weightedSum = data.reduce((sum, item) => sum + Number(item.name) * item.count, 0);
     const averageRating = totalResponses > 0 ? weightedSum / totalResponses : 0;
@@ -337,7 +345,7 @@ const RatingChart = ({ data, title }: { data: { name: string, count: number, per
                             <TableRow key={item.name}>
                                 <TableCell>{item.name}</TableCell>
                                 <TableCell className="text-right">{item.count}</TableCell>
-                                <TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell>
+                                <TableCell className="text-right">{(item.count / totalResponses * 100).toFixed(1)}%</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -687,8 +695,12 @@ export default function SurveyAnalysisPage() {
                 case 'number':
                     return { type: 'numeric', title: q.title, data: processNumericResponses(responses, questionId), questionId };
                 case 'rating':
-                    const ratingData = processCategoricalResponses(responses, q);
-                    return { type: 'rating', title: q.title, data: ratingData };
+                    const ratingData = processNumericResponses(responses, questionId);
+                    const tableData = (q.scale || []).map(opt => ({
+                        name: opt,
+                        count: ratingData.values.filter(v => String(v) === opt).length
+                    })).map(item => ({ ...item, percentage: ratingData.count > 0 ? (item.count / ratingData.count) * 100 : 0 }));
+                    return { type: 'rating', title: q.title, data: { ...ratingData, table: tableData } };
                 case 'nps':
                     return { type: 'nps', title: q.title, data: processNPS(responses, questionId) };
                 case 'text':
@@ -735,7 +747,7 @@ export default function SurveyAnalysisPage() {
                     case 'numeric':
                         return <NumericChart key={index} data={result.data} title={result.title} questionId={result.questionId} />;
                     case 'rating':
-                         return <RatingChart key={index} data={result.data} title={result.title} />;
+                         return <RatingChart key={index} data={result.data.table} title={result.title} />;
                     case 'nps':
                         return <NPSChart key={index} data={result.data} title={result.title} />;
     
