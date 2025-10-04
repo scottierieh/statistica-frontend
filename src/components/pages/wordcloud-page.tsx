@@ -169,13 +169,13 @@ export default function WordCloudPage() {
                              <Card>
                                 <CardHeader><CardTitle>Generated Word Cloud</CardTitle></CardHeader>
                                 <CardContent>
-                                    <Image src={`data:image/png;base64,${analysisResult.plots.wordcloud}`} alt="Generated Word Cloud" width={800} height={400} className="rounded-md border"/>
+                                    <Image src={analysisResult.plots.wordcloud} alt="Generated Word Cloud" width={800} height={400} className="rounded-md border"/>
                                 </CardContent>
                             </Card>
                              <Card>
                                 <CardHeader><CardTitle>Top 20 Word Frequencies</CardTitle></CardHeader>
                                 <CardContent>
-                                     <Image src={`data:image/png;base64,${analysisResult.plots.frequency_bar}`} alt="Word Frequency Bar Chart" width={1000} height={800} className="rounded-md border"/>
+                                     <Image src={analysisResult.plots.frequency_bar} alt="Word Frequency Bar Chart" width={1000} height={800} className="rounded-md border"/>
                                 </CardContent>
                             </Card>
                          </div>

@@ -155,7 +155,6 @@ class WordCloudGenerator:
 
         wordcloud = WordCloud(**wc_params).generate(text)
         
-        # Use wordcloud's own method to convert to an image
         img = wordcloud.to_image()
         
         buf = io.BytesIO()
@@ -174,7 +173,6 @@ class WordCloudGenerator:
         plt.xlabel('Frequency', fontproperties=font_properties)
         plt.title(f'Top {top_n} Most Frequent Words', fontproperties=font_properties)
         
-        # Apply font properties to y-axis ticks
         plt.yticks(fontproperties=font_properties)
 
         plt.gca().invert_yaxis()
@@ -217,12 +215,12 @@ def main():
             'colormap': colormap, 'max_words': max_words
         }
 
-        wordcloud_img = generator.generate_wordcloud_image(processed_text, settings)
+        wordcloud_img_b64 = generator.generate_wordcloud_image(processed_text, settings)
         frequency_plot_img = generator.generate_frequency_plot(frequencies)
 
         response = {
             "plots": {
-                "wordcloud": f"data:image/png;base64,{wordcloud_img}",
+                "wordcloud": f"data:image/png;base64,{wordcloud_img_b64}",
                 "frequency_bar": f"data:image/png;base64,{frequency_plot_img}",
             },
             "frequencies": frequencies,
@@ -232,10 +230,10 @@ def main():
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
-        # Send error as JSON to stderr
         error_response = {"error": str(e)}
         sys.stderr.write(json.dumps(error_response))
         sys.exit(1)
+
 
 if __name__ == '__main__':
     main()
