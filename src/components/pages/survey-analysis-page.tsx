@@ -161,7 +161,7 @@ const processMatrixResponses = (responses: SurveyResponse[], question: Question)
 
 // --- Chart Components ---
 const CategoricalChart = ({ data, title }: { data: {name: string, count: number, percentage: number}[], title: string }) => {
-    const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57'];
+    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
@@ -265,6 +265,66 @@ const RatingChart = ({ data, title }: { data: {name: string, count: number}[], t
     </Card>
 );
 
+const GaugeChart = ({ score }: { score: number }) => {
+    const width = 300;
+    const height = 200;
+    
+    const colorData = [
+        { value: 40, color: "#e74c3c" }, // Detractors -40%
+        { value: 20, color: "#f1c40f" }, // Passives 20%
+        { value: 40, color: "#2ecc71" }  // Promoters 40%
+    ];
+
+    const normalizedScore = score + 100; // a value between 0 and 200
+    
+    // Convert score to angle. 0 score is 90 degrees, 200 score is -90 degrees
+    const angle = 180 - (normalizedScore / 200) * 180;
+    
+    const pieProps = {
+        startAngle: 180,
+        endAngle: 0,
+        cx: width / 2,
+        cy: height,
+    };
+
+    const pieRadius = {
+        innerRadius: "65%",
+        outerRadius: "90%",
+    };
+
+    const Needle = ({ cx, cy, midAngle, outerRadius}: any) => {
+        if (cx === undefined || cy === undefined) return null;
+        const RADIAN = Math.PI / 180;
+        const length = outerRadius * 0.8;
+        const x1 = cx;
+        const y1 = cy;
+        const x2 = cx + length * Math.cos(-angle * RADIAN);
+        const y2 = cy + length * Math.sin(-angle * RADIAN);
+
+        return (
+            <g>
+                <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="black" strokeWidth="2" />
+                <circle cx={x1} cy={y1} r={5} fill="black" stroke="none" />
+            </g>
+        );
+    };
+
+    return (
+        <div className="relative w-full h-full">
+            <PieChart width={width} height={height}>
+                <Pie data={colorData} dataKey="value" fill="#eee" {...pieRadius} {...pieProps} isAnimationActive={false}>
+                    {colorData.map((entry, index) => <Cell key={`cell-${index}`} fill={colorData[index].color} />)}
+                </Pie>
+                <Customized component={Needle} />
+            </PieChart>
+             <div className="absolute bottom-4 w-full text-center">
+                <p className="text-3xl font-bold">{score.toFixed(0)}</p>
+                <p className="text-sm text-muted-foreground">NPS Score</p>
+            </div>
+        </div>
+    );
+};
+
 const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number, passives: number, detractors: number, total: number }, title: string }) => {
     const promoterPct = data.total > 0 ? (data.promoters / data.total) * 100 : 0;
     const passivePct = data.total > 0 ? (data.passives / data.total) * 100 : 0;
@@ -272,54 +332,12 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
 
     const chartData = [{ name: 'NPS', promoters: promoterPct, passives: passivePct, detractors: detractorPct }];
     
-    const Needle = ({ cx, cy, radius, angle }: any) => {
-        if (cx === undefined || cy === undefined) return null;
-        const length = radius * 0.8;
-        const x2 = cx + length * Math.cos(-angle * Math.PI / 180);
-        const y2 = cy + length * Math.sin(-angle * Math.PI / 180);
-        return <line x1={cx} y1={cy} x2={x2} y2={y2} stroke="black" strokeWidth="2" />;
-    };
-    
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted">
-                     <ChartContainer config={{}} className="w-full h-48 -mb-8">
-                        <ResponsiveContainer>
-                            <PieChart>
-                                <Pie 
-                                    data={[{value:1},{value:1},{value:1}]} 
-                                    dataKey="value"
-                                    cx="50%" 
-                                    cy="80%" 
-                                    startAngle={180} 
-                                    endAngle={0} 
-                                    innerRadius={60} 
-                                    outerRadius={80}
-                                    paddingAngle={2}
-                                >
-                                     <Cell fill="#e74c3c" />
-                                     <Cell fill="#f1c40f" />
-                                     <Cell fill="#2ecc71" />
-                                </Pie>
-                                <Customized component={
-                                    (props) => {
-                                        const { cx, cy, outerRadius } = props;
-                                        if (!cx || !cy || !outerRadius) return null;
-                                        const angle = 180 - (data.npsScore + 100) / 200 * 180;
-                                        return <Needle cx={cx} cy={cy} radius={outerRadius} angle={angle} />;
-                                    }
-                                }/>
-                                 <text x="50%" y="75%" textAnchor="middle" dominantBaseline="middle" className="text-2xl font-bold fill-foreground">
-                                    {data.npsScore.toFixed(0)}
-                                </text>
-                                 <text x="50%" y="90%" textAnchor="middle" dominantBaseline="middle" className="text-sm fill-muted-foreground">
-                                    NPS Score
-                                </text>
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
+                    <GaugeChart score={data.npsScore} />
                 </div>
                  <ChartContainer config={{}} className="w-full h-64">
                     <ResponsiveContainer>
@@ -338,6 +356,7 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
         </Card>
     );
 };
+
 
 const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
     const wordFrequency = useMemo(() => {
@@ -387,7 +406,7 @@ const BestWorstChart = ({ data, title }: { data: {name: string, netScore: number
         <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
         <CardContent>
             <Tabs defaultValue="net_score">
-                <TabsList className="grid grid-cols-2">
+                <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="net_score">Net Score</TabsTrigger>
                     <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
                 </TabsList>
