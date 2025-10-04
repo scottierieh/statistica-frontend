@@ -76,10 +76,10 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
     const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
     const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / (values.length > 1 ? values.length -1 : 1) );
 
-    const histogramBins = jStat.histogram(values, 10);
-    const histogramData = histogramBins.map((count: number, i: number) => ({
-      name: `${histogramBins.x[i].toFixed(1)}-${(histogramBins.x[i] + histogramBins.dx).toFixed(1)}`,
-      count,
+    const histogramBinsResult = jStat.histogram(values, 10);
+    const histogramData = histogramBinsResult.map((binData: { x: number; y: number; dx: number; }) => ({
+        name: `${binData.x.toFixed(1)}-${(binData.x + binData.dx).toFixed(1)}`,
+        count: binData.y,
     }));
 
     const q1 = sorted[Math.floor(0.25 * sorted.length)];
@@ -951,4 +951,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
