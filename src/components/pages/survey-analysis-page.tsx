@@ -1,17 +1,19 @@
-
 'use client';
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, ComposedChart, Line } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Image from 'next/image';
+
 
 // --- Data Processing Functions ---
 const processTextResponses = (responses: SurveyResponse[], questionId: string) => {
@@ -21,53 +23,201 @@ const processTextResponses = (responses: SurveyResponse[], questionId: string) =
 const processCategoricalResponses = (responses: SurveyResponse[], question: Question) => {
     const counts: { [key: string]: number } = {};
     const questionId = String(question.id);
+    let totalResponses = 0;
     
     responses.forEach((response: any) => {
         const answer = response.answers[questionId];
-        if (Array.isArray(answer)) { // Multiple choice
-            answer.forEach(opt => {
-                counts[opt] = (counts[opt] || 0) + 1;
-            });
-        } else if (answer) { // Single choice
-            counts[String(answer)] = (counts[String(answer)] || 0) + 1;
+        if (answer) {
+             totalResponses++;
+            if (Array.isArray(answer)) { // Multiple choice
+                answer.forEach(opt => {
+                    counts[opt] = (counts[opt] || 0) + 1;
+                });
+            } else { // Single choice
+                counts[String(answer)] = (counts[String(answer)] || 0) + 1;
+            }
         }
     });
 
-    const total = responses.length;
+    const totalSelections = Object.values(counts).reduce((sum, count) => sum + count, 0);
+
     return (question.options || []).map(opt => ({
         name: opt,
         count: counts[opt] || 0,
-        percentage: total > 0 ? ((counts[opt] || 0) / total) * 100 : 0
+        percentage: totalResponses > 0 ? ((counts[opt] || 0) / totalResponses) * 100 : 0
     }));
 };
 
 const processNumericResponses = (responses: SurveyResponse[], questionId: string) => {
     const values = responses.map((r: any) => Number(r.answers[questionId])).filter(v => !isNaN(v));
-    if (values.length === 0) return { mean: 0, median: 0, std: 0, count: 0 };
+    if (values.length === 0) return { mean: 0, median: 0, std: 0, count: 0, histogram: [] };
     
     const sum = values.reduce((a, b) => a + b, 0);
     const mean = sum / values.length;
     const sorted = [...values].sort((a,b) => a - b);
     const mid = Math.floor(sorted.length / 2);
     const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
-    const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / values.length);
+    const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / (values.length > 1 ? values.length -1 : 1) );
 
-    return { mean, median, std, count: values.length };
+    // Histogram data
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const numBins = Math.min(10, Math.ceil(Math.sqrt(values.length)));
+    const binWidth = (max-min) / numBins;
+    const histogram = Array(numBins).fill(0).map((_,i) => {
+        const binStart = min + i * binWidth;
+        const binEnd = binStart + binWidth;
+        return {
+            name: `${binStart.toFixed(1)}-${binEnd.toFixed(1)}`,
+            count: values.filter(v => v >= binStart && (i === numBins - 1 ? v <= binEnd : v < binEnd)).length
+        }
+    })
+
+    return { mean, median, std, count: values.length, histogram };
 };
 
+const processNPS = (responses: SurveyResponse[], questionId: string) => {
+    const values = responses.map((r: any) => Number(r.answers[questionId])).filter(v => !isNaN(v));
+    if (values.length === 0) return { npsScore: 0, promoters: 0, passives: 0, detractors: 0, total: 0 };
+    
+    const promoters = values.filter(v => v >= 9).length;
+    const passives = values.filter(v => v >= 7 && v <= 8).length;
+    const detractors = values.filter(v => v <= 6).length;
+    const total = values.length;
+
+    const promoterPct = (promoters / total) * 100;
+    const detractorPct = (detractors / total) * 100;
+
+    return {
+        npsScore: promoterPct - detractorPct,
+        promoters, passives, detractors, total
+    }
+}
+
+const processBestWorst = (responses: SurveyResponse[], question: Question) => {
+    const questionId = String(question.id);
+    const items = question.items || [];
+    const bestCounts: { [key: string]: number } = {};
+    const worstCounts: { [key: string]: number } = {};
+
+    responses.forEach((response: any) => {
+        const answer = response.answers[questionId];
+        if (answer) {
+            if (answer.best) bestCounts[answer.best] = (bestCounts[answer.best] || 0) + 1;
+            if (answer.worst) worstCounts[answer.worst] = (worstCounts[answer.worst] || 0) + 1;
+        }
+    });
+
+    const totalResponses = responses.length;
+    return items.map(item => ({
+        name: item,
+        best: bestCounts[item] || 0,
+        worst: worstCounts[item] || 0,
+        bestPct: ((bestCounts[item] || 0) / totalResponses) * 100,
+        worstPct: ((worstCounts[item] || 0) / totalResponses) * 100,
+        netScore: (((bestCounts[item] || 0) - (worstCounts[item] || 0)) / totalResponses) * 100
+    }));
+};
+
+const processMatrixResponses = (responses: SurveyResponse[], question: Question) => {
+    const questionId = String(question.id);
+    const rows = question.rows || [];
+    const columns = question.columns || [];
+
+    const result: {[row: string]: {[col: string]: number}} = {};
+    rows.forEach(row => {
+        result[row] = {};
+        columns.forEach(col => result[row][col] = 0);
+    });
+
+    responses.forEach(response => {
+        const answer = (response.answers as any)[questionId];
+        if (answer && typeof answer === 'object') {
+            Object.entries(answer).forEach(([row, col]) => {
+                if (result[row] && col in result[row]) {
+                    result[row][col as string]++;
+                }
+            });
+        }
+    });
+
+    const chartData = rows.map(row => {
+        const entry: {[key: string]: string | number} = { name: row };
+        let total = 0;
+        columns.forEach(col => {
+            const count = result[row][col] || 0;
+            entry[col] = count;
+            total += count;
+        });
+        // Calculate percentages
+        columns.forEach(col => {
+            entry[`${col}_pct`] = total > 0 ? (entry[col] as number / total) * 100 : 0;
+        });
+        return entry;
+    });
+
+    return { heatmapData: result, chartData, rows, columns };
+};
 
 // --- Chart Components ---
-const CategoricalChart = ({ data, title }: { data: {name: string, count: number}[], title: string }) => (
+const CategoricalChart = ({ data, title }: { data: {name: string, count: number, percentage: number}[], title: string }) => {
+    const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57'];
+    return (
+        <Card>
+            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+            <CardContent>
+                <Tabs defaultValue="bar">
+                    <TabsList>
+                        <TabsTrigger value="bar"><BarChartIcon className="w-4 h-4 mr-2"/>Bar</TabsTrigger>
+                        <TabsTrigger value="pie"><PieChartIcon className="w-4 h-4 mr-2"/>Pie</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="bar">
+                         <ChartContainer config={{}} className="w-full h-64">
+                            <ResponsiveContainer>
+                                <BarChart data={data} layout="vertical" margin={{ left: 100 }}>
+                                    <XAxis type="number" />
+                                    <YAxis type="category" dataKey="name" width={100} />
+                                    <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${value} (${(data.find(d=>d.name === name)?.percentage || 0).toFixed(1)}%)`} />} />
+                                    <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" radius={4} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </TabsContent>
+                     <TabsContent value="pie">
+                        <ChartContainer config={{}} className="w-full h-64">
+                            <ResponsiveContainer>
+                                <PieChart>
+                                    <Pie data={data} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                                         {data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                    </Pie>
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </TabsContent>
+                </Tabs>
+            </CardContent>
+        </Card>
+    );
+};
+
+const NumericChart = ({ data, title }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[] }, title: string }) => (
     <Card>
         <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
         <CardContent>
-            <ChartContainer config={{}} className="w-full h-64">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center mb-6">
+                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Mean</p><p className="text-2xl font-bold">{data.mean.toFixed(2)}</p></div>
+                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Median</p><p className="text-2xl font-bold">{data.median.toFixed(2)}</p></div>
+                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Std. Dev.</p><p className="text-2xl font-bold">{data.std.toFixed(2)}</p></div>
+                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Responses</p><p className="text-2xl font-bold">{data.count}</p></div>
+            </div>
+             <ChartContainer config={{}} className="w-full h-64">
                 <ResponsiveContainer>
-                    <BarChart data={data} layout="vertical" margin={{ left: 80 }}>
-                        <XAxis type="number" />
-                        <YAxis type="category" dataKey="name" />
+                    <BarChart data={data.histogram}>
+                        <XAxis dataKey="name" />
+                        <YAxis />
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" radius={4} />
+                        <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartContainer>
@@ -75,33 +225,166 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number}
     </Card>
 );
 
-const NumericChart = ({ data, title }: { data: { mean: number, median: number, std: number, count: number }, title: string }) => (
+const RatingChart = ({ data, title }: { data: {name: string, count: number}[], title: string }) => (
     <Card>
         <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
         <CardContent>
-            <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Mean</p><p className="text-2xl font-bold">{data.mean.toFixed(2)}</p></div>
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Median</p><p className="text-2xl font-bold">{data.median.toFixed(2)}</p></div>
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Std. Dev.</p><p className="text-2xl font-bold">{data.std.toFixed(2)}</p></div>
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Responses</p><p className="text-2xl font-bold">{data.count}</p></div>
-            </div>
+             <ChartContainer config={{}} className="w-full h-64">
+                <ResponsiveContainer>
+                    <BarChart data={data}>
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="count" name="Count" fill="hsl(var(--primary))" />
+                    </BarChart>
+                </ResponsiveContainer>
+            </ChartContainer>
         </CardContent>
     </Card>
 );
 
-const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => (
-     <Card>
+const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number, passives: number, detractors: number, total: number }, title: string }) => {
+    const promoterPct = data.total > 0 ? (data.promoters / data.total) * 100 : 0;
+    const passivePct = data.total > 0 ? (data.passives / data.total) * 100 : 0;
+    const detractorPct = data.total > 0 ? (data.detractors / data.total) * 100 : 0;
+
+    const chartData = [{ name: 'NPS', promoters: promoterPct, passives: passivePct, detractors: detractorPct }];
+
+    return (
+        <Card>
+            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+            <CardContent>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col items-center justify-center">
+                        <p className="text-sm text-muted-foreground">NPS Score</p>
+                        <p className="text-6xl font-bold">{data.npsScore.toFixed(0)}</p>
+                    </div>
+                     <ChartContainer config={{}} className="w-full h-64">
+                        <ResponsiveContainer>
+                             <BarChart data={chartData} layout="vertical" stackOffset="expand">
+                                <XAxis type="number" hide domain={[0, 100]} />
+                                <YAxis type="category" dataKey="name" hide />
+                                <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(1)}%`} />} />
+                                <Bar dataKey="detractors" fill="#e74c3c" stackId="a" radius={[10,0,0,10]}/>
+                                <Bar dataKey="passives" fill="#f1c40f" stackId="a" />
+                                <Bar dataKey="promoters" fill="#2ecc71" stackId="a" radius={[0,10,10,0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
+    // Word Cloud generation logic will be added here
+    return (
+        <Card>
+            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+            <CardContent>
+                <ScrollArea className="h-64 border rounded-md p-4 space-y-2">
+                    {data.map((text, i) => (
+                        <div key={i} className="p-2 border-b">{text}</div>
+                    ))}
+                </ScrollArea>
+            </CardContent>
+        </Card>
+    );
+};
+
+const BestWorstChart = ({ data, title }: { data: {name: string, netScore: number, bestPct: number, worstPct: number}[], title: string }) => (
+    <Card>
         <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
         <CardContent>
-            <ScrollArea className="h-64 border rounded-md p-4 space-y-2">
-                {data.map((text, i) => (
-                    <div key={i} className="p-2 border-b">{text}</div>
-                ))}
-            </ScrollArea>
+            <Tabs defaultValue="net_score">
+                <TabsList>
+                    <TabsTrigger value="net_score">Net Score</TabsTrigger>
+                    <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
+                </TabsList>
+                <TabsContent value="net_score">
+                    <ChartContainer config={{}} className="w-full h-[300px]">
+                        <ResponsiveContainer>
+                            <BarChart data={[...data].sort((a,b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
+                                <YAxis type="category" dataKey="name" />
+                                <XAxis type="number" />
+                                <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>}/>
+                                <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                </TabsContent>
+                <TabsContent value="best_vs_worst">
+                     <ChartContainer config={{}} className="w-full h-[300px]">
+                        <ResponsiveContainer>
+                            <BarChart data={data} margin={{ left: 100 }}>
+                                <YAxis />
+                                <XAxis type="category" dataKey="name" />
+                                <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>}/>
+                                <Legend />
+                                <Bar dataKey="bestPct" name="Best %" fill="hsl(var(--chart-2))" />
+                                <Bar dataKey="worstPct" name="Worst %" fill="hsl(var(--chart-5))" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                </TabsContent>
+            </Tabs>
         </CardContent>
     </Card>
 );
 
+const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string, rows: string[], columns: string[] }) => {
+    const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e']; // red to green
+    return (
+        <Card>
+            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+            <CardContent>
+                 <Tabs defaultValue="stacked_bar">
+                    <TabsList>
+                        <TabsTrigger value="stacked_bar">Stacked Bar</TabsTrigger>
+                        <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="stacked_bar">
+                        <ChartContainer config={{}} className="w-full h-[400px]">
+                            <ResponsiveContainer>
+                                <BarChart data={data.chartData} layout="vertical">
+                                    <XAxis type="number" stackId="a" domain={[0, 100]} unit="%"/>
+                                    <YAxis type="category" dataKey="name" width={120} />
+                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
+                                    <Legend />
+                                    {data.columns.map((col: string, i: number) => (
+                                        <Bar key={col} dataKey={`${col}_pct`} name={col} stackId="a" fill={COLORS[i % COLORS.length]} />
+                                    ))}
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </TabsContent>
+                    <TabsContent value="heatmap">
+                         <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow><TableHead>{title}</TableHead>{data.columns.map((c: string) => <TableHead key={c} className="text-center">{c}</TableHead>)}</TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {data.rows.map((r: string) => (
+                                        <TableRow key={r}><TableCell>{r}</TableCell>
+                                            {data.columns.map((c: string) => {
+                                                const value = data.heatmapData[r]?.[c] || 0;
+                                                const total = Object.values(data.heatmapData[r] || {}).reduce((s: any, v: any) => s+v, 0);
+                                                const pct = total > 0 ? (value / total) * 100 : 0;
+                                                return <TableCell key={c} className="text-center" style={{backgroundColor: `rgba(132, 204, 22, ${pct / 100})`}}>{value}</TableCell>
+                                            })}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </TabsContent>
+                 </Tabs>
+            </CardContent>
+        </Card>
+    );
+};
 
 export default function SurveyAnalysisPage() {
     const params = useParams();
@@ -136,13 +419,19 @@ export default function SurveyAnalysisPage() {
                 case 'dropdown':
                     return { type: 'categorical', title: q.title, data: processCategoricalResponses(responses, q) };
                 case 'multiple':
-                     return { type: 'categorical', title: q.title, data: processCategoricalResponses(responses, q) };
+                     return { type: 'multiple', title: q.title, data: processCategoricalResponses(responses, q) };
                 case 'number':
-                case 'rating':
-                case 'nps':
                     return { type: 'numeric', title: q.title, data: processNumericResponses(responses, questionId) };
+                case 'rating':
+                    return { type: 'rating', title: q.title, data: processCategoricalResponses(responses, q) };
+                case 'nps':
+                    return { type: 'nps', title: q.title, data: processNPS(responses, questionId) };
                 case 'text':
                     return { type: 'text', title: q.title, data: processTextResponses(responses, questionId) };
+                case 'best-worst':
+                    return { type: 'best-worst', title: q.title, data: processBestWorst(responses, q) };
+                case 'matrix':
+                    return { type: 'matrix', title: q.title, data: processMatrixResponses(responses, q), rows: q.rows, columns: q.columns };
                 default:
                     return null;
             }
@@ -173,11 +462,21 @@ export default function SurveyAnalysisPage() {
                 if (!result) return null;
                 switch (result.type) {
                     case 'categorical':
+                    case 'multiple':
                         return <CategoricalChart key={index} data={result.data} title={result.title} />;
                     case 'numeric':
                         return <NumericChart key={index} data={result.data} title={result.title} />;
+                    case 'rating':
+                        return <RatingChart key={index} data={result.data} title={result.title} />;
+                    case 'nps':
+                        return <NPSChart key={index} data={result.data} title={result.title} />;
+    
                     case 'text':
                          return <TextResponsesDisplay key={index} data={result.data} title={result.title} />;
+                    case 'best-worst':
+                        return <BestWorstChart key={index} data={result.data} title={result.title} />;
+                    case 'matrix':
+                        return <MatrixChart key={index} data={result.data} title={result.title} rows={result.rows!} columns={result.columns!} />;
                     default:
                         return null;
                 }
