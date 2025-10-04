@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Customized } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Customized, BoxPlot } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
@@ -51,7 +52,7 @@ const processCategoricalResponses = (responses: SurveyResponse[], question: Ques
 
 const processNumericResponses = (responses: SurveyResponse[], questionId: string) => {
     const values = responses.map((r: any) => Number(r.answers[questionId])).filter(v => !isNaN(v));
-    if (values.length === 0) return { mean: 0, median: 0, std: 0, count: 0, histogram: [] };
+    if (values.length === 0) return { mean: 0, median: 0, std: 0, count: 0, histogram: [], boxplot: [] };
     
     const sum = values.reduce((a, b) => a + b, 0);
     const mean = sum / values.length;
@@ -74,7 +75,16 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
         }
     })
 
-    return { mean, median, std, count: values.length, histogram };
+    const q1 = sorted[Math.floor(0.25 * sorted.length)];
+    const q3 = sorted[Math.floor(0.75 * sorted.length)];
+    const boxplot = [{
+        name: questionId,
+        box: [q1, median, q3],
+        whisker: [min, max],
+        outliers: [] // Placeholder for outlier detection
+    }];
+
+    return { mean, median, std, count: values.length, histogram, boxplot };
 };
 
 const processNPS = (responses: SurveyResponse[], questionId: string) => {
@@ -222,29 +232,53 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
     );
 };
 
-const NumericChart = ({ data, title }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[] }, title: string }) => (
-    <Card>
-        <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <ChartContainer config={{}} className="w-full h-64">
-                <ResponsiveContainer>
-                    <BarChart data={data.histogram}>
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" />
-                    </BarChart>
-                </ResponsiveContainer>
-            </ChartContainer>
-             <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Mean</p><p className="text-2xl font-bold">{data.mean.toFixed(2)}</p></div>
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Median</p><p className="text-2xl font-bold">{data.median.toFixed(2)}</p></div>
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Std. Dev.</p><p className="text-2xl font-bold">{data.std.toFixed(2)}</p></div>
-                <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Responses</p><p className="text-2xl font-bold">{data.count}</p></div>
-            </div>
-        </CardContent>
-    </Card>
-);
+const NumericChart = ({ data, title }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], boxplot: any[] }, title: string }) => {
+    const [chartType, setChartType] = useState<'histogram' | 'boxplot'>('histogram');
+    
+    return (
+        <Card>
+            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
+                    <TabsList>
+                        <TabsTrigger value="histogram"><BarChartIcon className="w-4 h-4 mr-2"/>Histogram</TabsTrigger>
+                        <TabsTrigger value="boxplot"><BarChartIcon className="w-4 h-4 mr-2"/>Box Plot</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="histogram">
+                        <ChartContainer config={{}} className="w-full h-64">
+                            <ResponsiveContainer>
+                                <BarChart data={data.histogram}>
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </TabsContent>
+                     <TabsContent value="boxplot">
+                        <ChartContainer config={{}} className="w-full h-64">
+                            <ResponsiveContainer>
+                                <BarChart data={data.boxplot} layout="vertical">
+                                    <YAxis type="category" dataKey="name" hide />
+                                    <XAxis type="number" />
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <Bar dataKey="box" name="Box" fill="hsl(var(--primary))" shape={<div />} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </TabsContent>
+                </Tabs>
+                 <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Mean</p><p className="text-2xl font-bold">{data.mean.toFixed(2)}</p></div>
+                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Median</p><p className="text-2xl font-bold">{data.median.toFixed(2)}</p></div>
+                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Std. Dev.</p><p className="text-2xl font-bold">{data.std.toFixed(2)}</p></div>
+                    <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Responses</p><p className="text-2xl font-bold">{data.count}</p></div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
 
 const RatingChart = ({ data, title }: { data: { name: string, count: number, percentage: number }[], title: string }) => {
     const totalResponses = data.reduce((sum, item) => sum + item.count, 0);
@@ -524,7 +558,7 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
                     ))}
                     <TableRow className="font-bold bg-muted/50">
                         <TableHead>Total</TableHead>
-                         {columns.map((c: string, colIndex: number) => <TableCell key={c} className="text-right font-mono">{tableFormat === 'counts' ? colTotals[colIndex] : '100.0%'}</TableCell>)}
+                         {columns.map((c: string, colIndex: number) => <TableCell key={c} className="text-right font-mono">{tableFormat === 'counts' ? colTotals[colIndex] : ''}</TableCell>)}
                         <TableCell className="text-right font-mono">{tableFormat === 'counts' ? total : ''}</TableCell>
                     </TableRow>
                 </TableBody>
@@ -687,4 +721,175 @@ export default function SurveyAnalysisPage() {
     );
 }
 
-    
+```
+- src/types/survey.ts:
+```ts
+
+export interface Survey {
+  id: string;
+  title: string;
+  status: 'active' | 'draft' | 'closed';
+  created_date: string;
+  startDate?: string;
+  endDate?: string;
+  questions?: any[]; 
+  description?: string; 
+  name?: string;
+}
+
+export interface SurveyResponse {
+  id: string;
+  survey_id: string;
+  submitted_at: string;
+  answers: {
+    [questionId: string]: any;
+  }
+}
+
+```
+- tailwind.config.ts:
+```ts
+import type {Config} from 'tailwindcss';
+const {fontFamily} = require('tailwindcss/defaultTheme');
+
+export default {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
+    extend: {
+      fontFamily: {
+        sans: ['var(--font-sans)', ...fontFamily.sans],
+        body: ['Inter', 'sans-serif'],
+        headline: ['Space Grotesk', 'sans-serif'],
+      },
+      colors: {
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: {height: '0'},
+          to: {height: 'var(--radix-accordion-content-height)'},
+        },
+        'accordion-up': {
+          from: {height: 'var(--radix-accordion-content-height)'},
+          to: {height: '0'},
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+} satisfies Config;
+
+```
+- tsconfig.json:
+```json
+{
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "target": "es5",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+```
