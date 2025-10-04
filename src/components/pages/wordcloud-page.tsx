@@ -13,11 +13,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import dynamic from 'next/dynamic';
+
+const Plot = dynamic(() => import('react-plotly.js'), {
+    ssr: false,
+    loading: () => <Skeleton className="w-full h-96" />,
+});
 
 interface AnalysisResponse {
     plots: {
-        wordcloud: string;
-        frequency_bar: string;
+        wordcloud: string; // This will be a JSON string for Plotly
+        frequency_bar: string; // This is a base64 image string
     };
     frequencies: { [key: string]: number };
     statistics: {
@@ -83,6 +89,16 @@ export default function WordCloudPage() {
         }
 
     }, [text, customStopwords, minWordLength, maxWords, colormap, toast]);
+
+    const plotData = useMemo(() => {
+        if (!analysisResult?.plots.wordcloud) return null;
+        try {
+            return JSON.parse(analysisResult.plots.wordcloud);
+        } catch (e) {
+            console.error("Failed to parse wordcloud plot data", e);
+            return null;
+        }
+    }, [analysisResult]);
 
     return (
         <div className="space-y-4">
@@ -154,7 +170,16 @@ export default function WordCloudPage() {
                     <Card>
                         <CardHeader><CardTitle>Word Cloud</CardTitle></CardHeader>
                         <CardContent>
-                           <Image src={analysisResult.plots.wordcloud} alt="Word Cloud" width={800} height={400} className="w-full rounded-md border" />
+                           {plotData ? (
+                                <Plot
+                                    data={plotData.data}
+                                    layout={plotData.layout}
+                                    useResizeHandler={true}
+                                    className="w-full h-[400px]"
+                                />
+                            ) : (
+                                <p>Could not render word cloud.</p>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -162,7 +187,7 @@ export default function WordCloudPage() {
                         <Card>
                             <CardHeader><CardTitle className="flex items-center gap-2"><BarChart/> Top 20 Word Frequency</CardTitle></CardHeader>
                             <CardContent>
-                                <Image src={analysisResult.plots.frequency_bar} alt="Word Frequency Bar Chart" width={600} height={400} className="w-full rounded-md border" />
+                                <Image src={`data:image/png;base64,${analysisResult.plots.frequency_bar}`} alt="Word Frequency Bar Chart" width={600} height={400} className="w-full rounded-md border" />
                             </CardContent>
                         </Card>
                         <Card>
