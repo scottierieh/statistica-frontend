@@ -241,34 +241,36 @@ const NumericChart = ({ data, title }: { data: { mean: number, median: number, s
     </Card>
 );
 
-const RatingChart = ({ data, title }: { data: {name: string, count: number}[], title: string }) => {
+const RatingChart = ({ data, title }: { data: { name: string, count: number, percentage: number }[], title: string }) => {
     const totalResponses = data.reduce((sum, item) => sum + item.count, 0);
     const weightedSum = data.reduce((sum, item) => sum + Number(item.name) * item.count, 0);
     const averageRating = totalResponses > 0 ? weightedSum / totalResponses : 0;
-    
+
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="flex flex-col items-center justify-center">
-                     <p className="text-5xl font-bold">{averageRating.toFixed(2)}</p>
-                     <div className="flex items-center mt-2">
+                <div className="flex flex-col items-center justify-center">
+                    <p className="text-5xl font-bold">{averageRating.toFixed(2)}</p>
+                    <div className="flex items-center mt-2">
                         {[...Array(5)].map((_, i) => (
                            <Star key={i} className={cn("w-7 h-7 text-yellow-300", averageRating > i && "fill-yellow-400")} />
                         ))}
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">Average Rating</p>
                 </div>
-                 <ChartContainer config={{}} className="w-full h-64">
-                    <ResponsiveContainer>
-                        <BarChart data={data}>
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" name="Count" fill="hsl(var(--primary))" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
+                <Table>
+                    <TableHeader><TableRow><TableHead>Rating</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                        {data.map((item) => (
+                            <TableRow key={item.name}>
+                                <TableCell>{item.name}</TableCell>
+                                <TableCell className="text-right">{item.count}</TableCell>
+                                <TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </CardContent>
         </Card>
     );
@@ -279,29 +281,69 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
     const passivePct = data.total > 0 ? (data.passives / data.total) * 100 : 0;
     const detractorPct = data.total > 0 ? (data.detractors / data.total) * 100 : 0;
 
-    const chartData = [{ name: 'NPS', promoters: promoterPct, passives: passivePct, detractors: detractorPct }];
-    
+    const Needle = ({ cx, cy, midAngle, outerRadius }: any) => {
+        const npsAngle = 180 * (1 - (data.npsScore + 100) / 200);
+        const RADIAN = Math.PI / 180;
+        const x = cx + outerRadius * 0.8 * Math.cos(-npsAngle * RADIAN);
+        const y = cy + outerRadius * 0.8 * Math.sin(-npsAngle * RADIAN);
+      
+        return (
+          <g>
+            <circle cx={cx} cy={cy} r={5} fill="hsl(var(--primary))" stroke="white" strokeWidth={2} />
+            <path d={`M ${cx} ${cy} L ${x} ${y}`} stroke="hsl(var(--primary))" strokeWidth={2} fill="none" strokeLinecap="round" />
+          </g>
+        );
+      };
+      
+    const gaugeData = [
+        { name: 'Detractors', value: 30, color: '#ef4444' }, // 0 to 6
+        { name: 'Passives', value: 20, color: '#f97316' },   // 7 to 8
+        { name: 'Promoters', value: 50, color: '#22c55e' }, // 9 to 10
+      ];
+
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted">
-                    <p className="text-6xl font-bold">{data.npsScore.toFixed(0)}</p>
-                    <p className="text-lg text-muted-foreground">NPS Score</p>
+                 <div className="relative flex flex-col items-center justify-center">
+                    <PieChart width={300} height={200}>
+                        <Pie data={gaugeData} dataKey="value" startAngle={180} endAngle={0} innerRadius={80} outerRadius={120}>
+                            {gaugeData.map((entry) => <Cell key={entry.name} fill={entry.color} stroke="none" />)}
+                        </Pie>
+                        <Customized component={<Needle />} />
+                    </PieChart>
+                    <div className="absolute top-2/3 flex flex-col items-center">
+                        <div className="text-5xl font-bold" style={{ color: gaugeData.find(d=> (data.npsScore + 100)/2 >= (100 - d.value))?.color }}>
+                            {data.npsScore.toFixed(0)}
+                        </div>
+                    </div>
                 </div>
-                 <ChartContainer config={{}} className="w-full h-64">
-                    <ResponsiveContainer>
-                         <BarChart data={chartData} layout="vertical" stackOffset="expand">
-                            <XAxis type="number" hide domain={[0, 100]} />
-                            <YAxis type="category" dataKey="name" hide />
-                            <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
-                            <Legend layout="vertical" verticalAlign="middle" align="right" />
-                            <Bar dataKey="detractors" fill="#e74c3c" stackId="a" name={`Detractors (${detractorPct.toFixed(1)}%)`} />
-                            <Bar dataKey="passives" fill="#f1c40f" stackId="a" name={`Passives (${passivePct.toFixed(1)}%)`} />
-                            <Bar dataKey="promoters" fill="#2ecc71" stackId="a" name={`Promoters (${promoterPct.toFixed(1)}%)`} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Group</TableHead>
+                            <TableHead className="text-right">Count</TableHead>
+                            <TableHead className="text-right">%</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow>
+                            <TableCell>Promoters (9-10)</TableCell>
+                            <TableCell className="text-right">{data.promoters}</TableCell>
+                            <TableCell className="text-right">{promoterPct.toFixed(1)}%</TableCell>
+                        </TableRow>
+                         <TableRow>
+                            <TableCell>Passives (7-8)</TableCell>
+                            <TableCell className="text-right">{data.passives}</TableCell>
+                            <TableCell className="text-right">{passivePct.toFixed(1)}%</TableCell>
+                        </TableRow>
+                         <TableRow>
+                            <TableCell>Detractors (0-6)</TableCell>
+                            <TableCell className="text-right">{data.detractors}</TableCell>
+                            <TableCell className="text-right">{detractorPct.toFixed(1)}%</TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
             </CardContent>
         </Card>
     );
