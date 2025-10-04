@@ -20,6 +20,11 @@ import { Button } from '../ui/button';
 import { Progress } from './../ui/progress';
 import { jStat } from 'jstat';
 import dynamic from 'next/dynamic';
+import { Textarea } from '../ui/textarea';
+import { Input } from '../ui/input';
+import { Switch } from '../ui/switch';
+import { Label } from '../ui/label';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 
 const Plot = dynamic(() => import('react-plotly.js'), {
@@ -474,48 +479,35 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
     );
 };
 
-const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
-    const wordFrequency = useMemo(() => {
-        const words = data.join(' ').toLowerCase().match(/\b(\w+)\b/g) || [];
-        const counts: {[key:string]: number} = {};
-        words.forEach(word => {
-            if (word.length > 3) { // Simple stopword/length filter
-                counts[word] = (counts[word] || 0) + 1;
-            }
-        });
-        return Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 50);
-    }, [data]);
-    
-    return (
-        <Card>
-            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-            <CardContent>
-                <Tabs defaultValue="wordcloud">
-                    <TabsList>
-                        <TabsTrigger value="wordcloud">Word Cloud</TabsTrigger>
-                        <TabsTrigger value="list">Responses</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="wordcloud" className="p-2">
-                        {wordFrequency.length > 0 ? (
-                            <div className="h-64 flex flex-wrap gap-2 items-center justify-center">
-                                {wordFrequency.map(([word, freq]) => (
-                                    <span key={word} style={{ fontSize: `${Math.min(10 + freq * 3, 50)}px`, opacity: 0.6 + (freq / wordFrequency[0][1] * 0.4)}}>{word}</span>
-                                ))}
-                            </div>
-                        ) : <p>Not enough text data for a word cloud.</p>}
-                    </TabsContent>
-                    <TabsContent value="list">
-                        <ScrollArea className="h-64 border rounded-md p-4 space-y-2">
-                            {data.map((text, i) => (
-                                <div key={i} className="p-2 border-b">{text}</div>
-                            ))}
-                        </ScrollArea>
-                    </TabsContent>
-                </Tabs>
-            </CardContent>
-        </Card>
-    );
-};
+const TextQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: Question, answer: string, onAnswerChange: (value: string) => void, onDelete?: (id: string) => void; onUpdate?: (q:any) => void; isPreview?: boolean; onImageUpload?: (id: string) => void; cardClassName?: string; }) => (
+  <div className={cn("p-4", cardClassName)}>
+    <div className="flex justify-between items-start mb-4">
+       <div className="flex-1">
+          <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0" readOnly={isPreview} />
+          {question.required && <span className="text-destructive text-xs">* Required</span>}
+      </div>
+      {!isPreview && onDelete && (
+        <div className="flex items-center">
+            <div className="flex items-center space-x-2 mr-2">
+              <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+              <Label htmlFor={`required-${question.id}`}>Required</Label>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
+                <ImageIcon className="w-5 h-5 text-muted-foreground" />
+            </Button>
+            <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+        </div>
+      )}
+    </div>
+    {question.imageUrl && (
+        <div className="my-4">
+            <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
+        </div>
+    )}
+    <Textarea placeholder="Your answer..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} disabled={isPreview}/>
+  </div>
+);
 
 const BestWorstChart = ({ data, title }: { data: { name: string, netScore: number, bestPct: number, worstPct: number }[], title: string }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
@@ -771,7 +763,7 @@ export default function SurveyAnalysisPage() {
                         return <NPSChart key={index} data={result.data} title={result.title} />;
     
                     case 'text':
-                         return <TextResponsesDisplay key={index} data={result.data} title={result.title} />;
+                         return <TextQuestion key={index} data={result.data} title={result.title} />;
                     case 'best-worst':
                         return <BestWorstChart key={index} data={result.data} title={result.title} />;
                     case 'matrix':
