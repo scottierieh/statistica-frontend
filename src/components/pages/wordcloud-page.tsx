@@ -175,7 +175,7 @@ export default function WordCloudPage() {
                              <Card>
                                 <CardHeader><CardTitle>Top 20 Word Frequencies</CardTitle></CardHeader>
                                 <CardContent>
-                                     <Image src={analysisResult.plots.frequency_bar} alt="Word Frequency Bar Chart" width={1000} height={800} className="rounded-md border"/>
+                                     <Image src={`data:image/png;base64,${analysisResult.plots.frequency_bar}`} alt="Word Frequency Bar Chart" width={1000} height={800} className="rounded-md border"/>
                                 </CardContent>
                             </Card>
                          </div>
