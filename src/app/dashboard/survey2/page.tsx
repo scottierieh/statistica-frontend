@@ -13,24 +13,6 @@ import EmptyState from "@/components/dashboard/survey2/EmptyState";
 import AIAnalysisCard from "@/components/dashboard/survey2/AIAnalysisCard";
 import type { Survey, SurveyResponse } from '@/types/survey';
 
-// Mock data to simulate API calls
-const mockSurveysData: Survey[] = [
-    { id: '1', name: 'Customer Satisfaction Q2', status: 'active', created_date: '2024-06-15T10:00:00Z' },
-    { id: '2', name: 'Product Feedback for Alpha Launch', status: 'active', created_date: '2024-07-01T11:30:00Z', startDate: new Date(new Date().setDate(new Date().getDate() - 7)).toISOString(), endDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString() },
-    { id: '3', name: 'Employee Engagement Survey 2023', status: 'closed', created_date: '2023-12-10T09:00:00Z', startDate: '2023-12-01T09:00:00Z', endDate: '2023-12-31T09:00:00Z' },
-    { id: '4', name: 'Website Usability Testing', status: 'draft', created_date: '2024-07-20T14:00:00Z' },
-];
-
-const mockResponses: SurveyResponse[] = [
-    { id: 'r1', survey_id: '1', submitted_at: '2024-06-16T10:00:00Z' },
-    { id: 'r2', survey_id: '1', submitted_at: '2024-06-17T11:00:00Z' },
-    { id: 'r3', survey_id: '2', submitted_at: '2024-07-02T12:00:00Z' },
-    { id: 'r4', survey_id: '1', submitted_at: '2024-07-03T13:00:00Z' },
-    { id: 'r5', survey_id: '2', submitted_at: '2024-07-04T14:00:00Z' },
-    { id: 'r6', survey_id: '3', submitted_at: '2023-12-11T15:00:00Z' },
-];
-
-
 export default function Survey2Dashboard() {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
@@ -43,11 +25,25 @@ export default function Survey2Dashboard() {
 
   const loadData = async () => {
     setIsLoading(true);
-    // Simulating an API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSurveys(mockSurveysData.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime()));
-    setResponses(mockResponses);
-    setIsLoading(false);
+    // Simulating an API call latency
+    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]') as Survey[];
+      const allResponses: SurveyResponse[] = [];
+      
+      storedSurveys.forEach(survey => {
+        const surveyResponses = JSON.parse(localStorage.getItem(`${survey.id}_responses`) || '[]');
+        allResponses.push(...surveyResponses);
+      });
+
+      setSurveys(storedSurveys.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime()));
+      setResponses(allResponses);
+    } catch (e) {
+      console.error("Failed to load data from localStorage", e);
+      // Handle potential JSON parsing errors, etc.
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleSurveyUpdate = (updatedSurvey: Survey) => {
