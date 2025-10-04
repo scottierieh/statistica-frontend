@@ -260,7 +260,13 @@ const RatingChart = ({ data, title }: { data: { name: string, count: number, per
                     <p className="text-sm text-muted-foreground mt-1">Average Rating</p>
                 </div>
                  <Table>
-                    <TableHeader><TableRow><TableHead>Rating</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Rating</TableHead>
+                            <TableHead className="text-right">Count</TableHead>
+                            <TableHead className="text-right">%</TableHead>
+                        </TableRow>
+                    </TableHeader>
                     <TableBody>
                         {data.map((item) => (
                             <TableRow key={item.name}>
@@ -277,26 +283,21 @@ const RatingChart = ({ data, title }: { data: { name: string, count: number, per
 };
 
 const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number, passives: number, detractors: number, total: number }, title: string }) => {
-    const promoterPct = data.total > 0 ? (data.promoters / data.total) * 100 : 0;
-    const passivePct = data.total > 0 ? (data.passives / data.total) * 100 : 0;
-    const detractorPct = data.total > 0 ? (data.detractors / data.total) * 100 : 0;
-
     const NPSGauge = () => {
         const [npsScore, setNpsScore] = useState(data.npsScore);
-
+        
         const getColor = (score: number) => {
-            if (score >= 50) return '#22c55e'; // Excellent
+            if (score >= 50) return '#10b981'; // Excellent
             if (score >= 30) return '#84cc16'; // Good
             if (score >= 0) return '#eab308'; // Fair
             if (score >= -50) return '#f97316'; // Needs Improvement
             return '#ef4444'; // Poor
         };
-
+        
         const getLevel = (score: number) => {
-            if (score >= 50) return 'Excellent';
-            if (score >= 30) return 'Good';
+            if (score >= 70) return 'Excellent';
+            if (score >= 50) return 'Good';
             if (score >= 0) return 'Fair';
-            if (score > -50) return 'Needs Improvement';
             return 'Poor';
         };
 
@@ -304,54 +305,64 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
             { value: npsScore + 100 },
             { value: 200 - (npsScore + 100) }
         ];
-        const color = getColor(npsScore);
 
+        const color = getColor(npsScore);
+        
         return (
             <div className="flex flex-col items-center justify-center p-4">
-                <div className="relative flex flex-col items-center">
-                    <PieChart width={250} height={150}>
-                        <Pie
-                            data={gaugeData}
-                            cx={125}
-                            cy={150}
-                            startAngle={180}
-                            endAngle={0}
-                            innerRadius={70}
-                            outerRadius={100}
-                            dataKey="value"
-                            stroke="none"
-                        >
-                            <Cell fill={color} />
-                            <Cell fill="#e5e7eb" />
-                        </Pie>
-                    </PieChart>
-                    <div className="absolute top-16 flex flex-col items-center">
-                        <div className="text-4xl font-bold" style={{ color }}>
-                            {npsScore.toFixed(0)}
-                        </div>
-                        <div className="text-md text-gray-600 mt-1">
-                            {getLevel(npsScore)}
-                        </div>
-                    </div>
+            <div className="relative flex flex-col items-center">
+                <PieChart width={250} height={150}>
+                <Pie
+                    data={gaugeData}
+                    cx={125}
+                    cy={150}
+                    startAngle={180}
+                    endAngle={0}
+                    innerRadius={80}
+                    outerRadius={120}
+                    dataKey="value"
+                    stroke="none"
+                >
+                    <Cell fill={color} />
+                    <Cell fill="#e5e7eb" />
+                </Pie>
+                </PieChart>
+                
+                <div className="absolute top-20 flex flex-col items-center">
+                <div className="text-5xl font-bold" style={{ color }}>
+                    {npsScore.toFixed(0)}
                 </div>
-                 <div className="w-full max-w-xs mt-4">
-                    <input
-                        type="range"
-                        min="-100"
-                        max="100"
-                        value={npsScore}
-                        onChange={(e) => setNpsScore(Number(e.target.value))}
-                        className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                        style={{
-                        background: `linear-gradient(to right, #ef4444 0%, #f97316 25%, #eab308 50%, #84cc16 75%, #10b981 100%)`
-                        }}
-                    />
-                     <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>-100</span>
-                        <span>0</span>
-                        <span>100</span>
-                    </div>
+                <div className="text-lg text-gray-600 mt-2">
+                    {getLevel(npsScore)}
                 </div>
+                </div>
+            </div>
+            
+            <div className="mt-8 w-full max-w-xs">
+                <input
+                    type="range"
+                    min="-100"
+                    max="100"
+                    value={npsScore}
+                    onChange={(e) => setNpsScore(Number(e.target.value))}
+                    className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                    background: `linear-gradient(to right, #ef4444 0%, #f97316 25%, #eab308 50%, #84cc16 75%, #10b981 100%)`
+                    }}
+                />
+                 <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>-100</span>
+                    <span>0</span>
+                    <span>100</span>
+                </div>
+            </div>
+            
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg text-xs text-gray-600 space-y-1 w-full max-w-xs">
+                <div className="flex justify-between"><span>🔴 Poor:</span><span>-100 to -1</span></div>
+                <div className="flex justify-between"><span>🟠 Fair:</span><span>0 to 49</span></div>
+                <div className="flex justify-between"><span>🟢 Good:</span><span>50 to 69</span></div>
+                <div className="flex justify-between"><span>💚 Excellent:</span><span>70 to 100</span></div>
+            </div>
             </div>
         );
     };
@@ -360,7 +371,7 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <GaugeChart />
+                <NPSGauge />
                 <div>
                      <Table>
                         <TableHeader>
@@ -374,27 +385,20 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
                             <TableRow>
                                 <TableCell>Promoters (9-10)</TableCell>
                                 <TableCell className="text-right">{data.promoters}</TableCell>
-                                <TableCell className="text-right">{promoterPct.toFixed(1)}%</TableCell>
+                                <TableCell className="text-right">{data.total > 0 ? ((data.promoters / data.total) * 100).toFixed(1) : 0}%</TableCell>
                             </TableRow>
                              <TableRow>
                                 <TableCell>Passives (7-8)</TableCell>
                                 <TableCell className="text-right">{data.passives}</TableCell>
-                                <TableCell className="text-right">{passivePct.toFixed(1)}%</TableCell>
+                                <TableCell className="text-right">{data.total > 0 ? ((data.passives / data.total) * 100).toFixed(1) : 0}%</TableCell>
                             </TableRow>
                              <TableRow>
                                 <TableCell>Detractors (0-6)</TableCell>
                                 <TableCell className="text-right">{data.detractors}</TableCell>
-                                <TableCell className="text-right">{detractorPct.toFixed(1)}%</TableCell>
+                                <TableCell className="text-right">{data.total > 0 ? ((data.detractors / data.total) * 100).toFixed(1) : 0}%</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
-                     <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-600 space-y-1">
-                        <div className="flex justify-between"><span>🔴 Poor:</span><span>-100 ~ -51</span></div>
-                        <div className="flex justify-between"><span>🟠 Needs Improvement:</span><span>-50 ~ -1</span></div>
-                        <div className="flex justify-between"><span>🟡 Fair:</span><span>0 ~ 29</span></div>
-                        <div className="flex justify-between"><span>🟢 Good:</span><span>30 ~ 69</span></div>
-                        <div className="flex justify-between"><span>💚 Excellent:</span><span>70 ~ 100</span></div>
-                    </div>
                 </div>
             </CardContent>
         </Card>
