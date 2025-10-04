@@ -861,17 +861,18 @@ export default function CreateSurveyPage() {
     setIsSaving(true);
     try {
         const allSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
-        const surveyData = { title, description, questions, status, created_date: new Date().toISOString() };
         
         if (surveyId) {
             const index = allSurveys.findIndex((s: any) => s.id === surveyId);
             if (index > -1) {
-                allSurveys[index] = { ...allSurveys[index], ...surveyData };
+                // Update existing survey, but preserve original created_date
+                allSurveys[index] = { ...allSurveys[index], title, description, questions, status };
             } else {
-                 allSurveys.push({ ...surveyData, id: surveyId });
+                 // This case should ideally not happen if editing, but as a fallback
+                 allSurveys.push({ title, description, questions, status, id: surveyId, created_date: new Date().toISOString() });
             }
         } else {
-            allSurveys.push({ ...surveyData, id: Date.now().toString() });
+            allSurveys.push({ title, description, questions, status, id: Date.now().toString(), created_date: new Date().toISOString() });
         }
 
         localStorage.setItem('surveys', JSON.stringify(allSurveys));
