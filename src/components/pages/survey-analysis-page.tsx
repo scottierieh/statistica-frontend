@@ -260,7 +260,7 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
             });
             if (!response.ok) throw new Error('Failed to generate box plot');
             const result = await response.json();
-            setBoxPlotImage(result.plot);
+            setBoxPlotImage(`data:image/png;base64,${result.plot}`);
         } catch (error) {
             console.error(error);
         } finally {
@@ -298,7 +298,7 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
                      <TabsContent value="boxplot">
                         <div className="w-full h-64 flex items-center justify-center">
                             {isPlotLoading ? <Skeleton className="h-full w-full" /> : 
-                            boxPlotImage ? <Image src={`data:image/png;base64,${boxPlotImage}`} alt="Box plot" width={400} height={256} className="object-contain"/> : 
+                            boxPlotImage ? <Image src={boxPlotImage} alt="Box plot" width={400} height={256} className="object-contain"/> : 
                             <p>Could not load box plot.</p>}
                         </div>
                     </TabsContent>
