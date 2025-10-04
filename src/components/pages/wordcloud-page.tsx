@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -94,7 +95,8 @@ export default function WordCloudPage() {
                         <Label htmlFor="text-input">Text Input</Label>
                         <Textarea
                             id="text-input"
-                            placeholder="Paste your text here..."
+                            placeholder="e.g., This product is amazing!
+I am very disappointed with the service."
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                             rows={10}
@@ -161,7 +163,7 @@ export default function WordCloudPage() {
                  <Tabs defaultValue="visuals" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="visuals">Visualizations</TabsTrigger>
-                        <TabsTrigger value="data">Data Summary</TabsTrigger>
+                        <TabsTrigger value="data">Statistics</TabsTrigger>
                     </TabsList>
                     <TabsContent value="visuals" className="mt-4">
                          <div className="grid lg:grid-cols-2 gap-4">
@@ -171,10 +173,27 @@ export default function WordCloudPage() {
                                     <Image src={analysisResult.plots.wordcloud} alt="Generated Word Cloud" width={800} height={400} className="rounded-md border"/>
                                 </CardContent>
                             </Card>
-                            <Card>
-                                <CardHeader><CardTitle>Top 20 Word Frequencies</CardTitle></CardHeader>
+                             <Card>
+                                <CardHeader><CardTitle>Word Frequency</CardTitle></CardHeader>
                                 <CardContent>
-                                     <Image src={analysisResult.plots.frequency_bar} alt="Word Frequency Bar Chart" width={1000} height={800} className="rounded-md border"/>
+                                     <ScrollArea className="h-80">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Word</TableHead>
+                                                    <TableHead className="text-right">Frequency</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {frequencyData.map(({ word, count }) => (
+                                                    <TableRow key={word}>
+                                                        <TableCell>{word}</TableCell>
+                                                        <TableCell className="text-right font-mono">{count}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </ScrollArea>
                                 </CardContent>
                             </Card>
                          </div>
@@ -196,26 +215,9 @@ export default function WordCloudPage() {
                                 </CardContent>
                             </Card>
                              <Card>
-                                <CardHeader><CardTitle>Word Frequency Table</CardTitle></CardHeader>
+                                <CardHeader><CardTitle>Top 20 Word Frequencies</CardTitle></CardHeader>
                                 <CardContent>
-                                    <ScrollArea className="h-80">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Word</TableHead>
-                                                    <TableHead className="text-right">Frequency</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {frequencyData.map(({ word, count }) => (
-                                                    <TableRow key={word}>
-                                                        <TableCell>{word}</TableCell>
-                                                        <TableCell className="text-right font-mono">{count}</TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </ScrollArea>
+                                     <Image src={analysisResult.plots.frequency_bar} alt="Word Frequency Bar Chart" width={1000} height={800} className="rounded-md border"/>
                                 </CardContent>
                             </Card>
                         </div>
