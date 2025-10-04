@@ -433,18 +433,83 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
     );
 };
 
-const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => (
+const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const [excludedWords, setExcludedWords] = useState<string[]>([]);
+  const [plotData, setPlotData] = useState<any>(null);
+
+  const performAnalysis = useCallback(async (currentExcludedWords: string[]) => {
+    setIsLoading(true);
+    try {
+      const textToAnalyze = data.join('\n');
+      const response = await fetch('/api/analysis/wordcloud', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: textToAnalyze, customStopwords: currentExcludedWords.join(',') }),
+      });
+      if (!response.ok) throw new Error('Failed to analyze text data');
+      const result = await response.json();
+      setAnalysisResult(result);
+      setPlotData(JSON.parse(result.plots.wordcloud));
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [data, toast]);
+
+  useEffect(() => {
+    performAnalysis([]);
+  }, [data]);
+  
+  const handleWordDelete = (word: string) => {
+    const newExcludedWords = [...excludedWords, word];
+    setExcludedWords(newExcludedWords);
+    performAnalysis(newExcludedWords);
+  };
+
+  if (isLoading) return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent><Skeleton className="h-64" /></CardContent></Card>;
+  if (!analysisResult) return null;
+
+  return (
     <Card>
         <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-        <CardContent>
-            <ScrollArea className="h-64 p-4 border rounded-md">
-                <ul className="space-y-4">
-                    {data.map((text, i) => <li key={i} className="text-sm border-b pb-2">{text}</li>)}
-                </ul>
-            </ScrollArea>
+        <CardContent className="grid md:grid-cols-2 gap-6">
+            <div>
+                 <h3 className="font-semibold text-center mb-2">Word Cloud</h3>
+                {plotData ? (
+                    <Plot
+                        data={plotData.data}
+                        layout={plotData.layout}
+                        useResizeHandler
+                        className="w-full h-[300px]"
+                    />
+                ) : <Skeleton className="h-[300px] w-full" />}
+            </div>
+            <div>
+                <h3 className="font-semibold text-center mb-2">Word Frequency</h3>
+                <ScrollArea className="h-[300px] border rounded-md">
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Word</TableHead><TableHead className="text-right">Frequency</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {Object.entries(analysisResult.frequencies).map(([word, count]) => (
+                                <TableRow key={word}>
+                                    <TableCell>{word}</TableCell>
+                                    <TableCell className="text-right">{count as number}</TableCell>
+                                    <TableCell><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleWordDelete(word)}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </ScrollArea>
+            </div>
         </CardContent>
     </Card>
-);
+  );
+};
+
 
 const BestWorstChart = ({ data, title }: { data: { name: string, netScore: number, bestPct: number, worstPct: number }[], title: string }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
@@ -452,40 +517,40 @@ const BestWorstChart = ({ data, title }: { data: { name: string, netScore: numbe
     return (
         <Card>
             <CardHeader>
-                <div className="flex justify-between items-center">
-                   <CardTitle>{title}</CardTitle>
-                   <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-auto">
-                        <TabsList>
-                            <TabsTrigger value="net_score">Net Score</TabsTrigger>
-                            <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                </div>
+                <CardTitle>{title}</CardTitle>
             </CardHeader>
             <CardContent>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <ChartContainer config={{}} className="w-full h-[300px]">
-                        <ResponsiveContainer>
-                            {chartType === 'net_score' ? (
-                                <BarChart data={[...data].sort((a, b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
-                                    <YAxis type="category" dataKey="name" width={100} />
-                                    <XAxis type="number" />
-                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
-                                    <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))" />
-                                </BarChart>
-                            ) : (
-                                <BarChart data={data} margin={{ left: 100 }}>
-                                    <YAxis />
-                                    <XAxis type="category" dataKey="name" />
-                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
-                                    <Legend />
-                                    <Bar dataKey="bestPct" name="Best %" fill="hsl(var(--chart-2))" />
-                                    <Bar dataKey="worstPct" name="Worst %" fill="hsl(var(--chart-5))" />
-                                </BarChart>
-                            )}
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                    <Table>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="flex flex-col items-center">
+                        <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-auto mb-4">
+                            <TabsList>
+                                <TabsTrigger value="net_score">Net Score</TabsTrigger>
+                                <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                        <ChartContainer config={{}} className="w-full h-[300px]">
+                            <ResponsiveContainer>
+                                {chartType === 'net_score' ? (
+                                    <BarChart data={[...data].sort((a, b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
+                                        <YAxis type="category" dataKey="name" width={100} />
+                                        <XAxis type="number" />
+                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
+                                        <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))" />
+                                    </BarChart>
+                                ) : (
+                                    <BarChart data={data} margin={{ left: 100 }}>
+                                        <YAxis />
+                                        <XAxis type="category" dataKey="name" />
+                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
+                                        <Legend />
+                                        <Bar dataKey="bestPct" name="Best %" fill="hsl(var(--chart-2))" />
+                                        <Bar dataKey="worstPct" name="Worst %" fill="hsl(var(--chart-5))" />
+                                    </BarChart>
+                                )}
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </div>
+                     <Table>
                         <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Net Score</TableHead></TableRow></TableHeader>
                         <TableBody>{[...data].sort((a, b) => b.netScore - a.netScore).map(item => (<TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.netScore.toFixed(1)}</TableCell></TableRow>))}</TableBody>
                     </Table>
@@ -683,7 +748,7 @@ export default function SurveyAnalysisPage() {
                 </div>
             </div>
             
-            <Tabs defaultValue="results" className="w-full">
+             <Tabs defaultValue="results" className="w-full">
                 <TabsList>
                     <TabsTrigger value="results">Result</TabsTrigger>
                     <TabsTrigger value="further_analysis">Further Analysis</TabsTrigger>
