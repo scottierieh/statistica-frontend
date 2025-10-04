@@ -14,12 +14,8 @@ import os
 import platform
 import matplotlib.font_manager as fm
 from pathlib import Path
-
-try:
-    from wordcloud import WordCloud, STOPWORDS
-    WORDCLOUD_AVAILABLE = True
-except ImportError:
-    WORDCLOUD_AVAILABLE = False
+import plotly.express as px
+import plotly.io as pio
 
 # NLTK for English sentiment
 try:
@@ -39,6 +35,11 @@ except ImportError:
 
 warnings.filterwarnings('ignore')
 
+try:
+    from wordcloud import WordCloud, STOPWORDS
+    WORDCLOUD_AVAILABLE = True
+except ImportError:
+    WORDCLOUD_AVAILABLE = False
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -159,7 +160,18 @@ class WordCloudGenerator:
         image.save(buf, format='PNG')
         buf.seek(0)
         
-        return base64.b64encode(buf.read()).decode('utf-8')
+        img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+
+        fig = px.imshow(wordcloud)
+        fig.update_layout(
+            title_text='Word Cloud',
+            xaxis_visible=False,
+            yaxis_visible=False,
+            margin=dict(t=40, b=0, l=0, r=0),
+            showlegend=False
+        )
+        
+        return pio.to_json(fig)
 
     def generate_frequency_plot(self, frequencies, top_n=20):
         top_freq = dict(list(frequencies.items())[:top_n])
@@ -171,6 +183,7 @@ class WordCloudGenerator:
         plt.xlabel('Frequency', fontproperties=font_properties)
         plt.title(f'Top {top_n} Most Frequent Words', fontproperties=font_properties)
         
+        # Apply font properties to y-axis ticks
         plt.yticks(fontproperties=font_properties)
 
         plt.gca().invert_yaxis()
@@ -213,12 +226,12 @@ def main():
             'colormap': colormap, 'max_words': max_words
         }
 
-        wordcloud_img = generator.generate_wordcloud_image(processed_text, settings)
+        wordcloud_json = generator.generate_wordcloud_image(processed_text, settings)
         frequency_plot_img = generator.generate_frequency_plot(frequencies)
 
         response = {
             "plots": {
-                "wordcloud": f"data:image/png;base64,{wordcloud_img}",
+                "wordcloud": wordcloud_json,
                 "frequency_bar": f"data:image/png;base64,{frequency_plot_img}",
             },
             "frequencies": frequencies,
@@ -228,6 +241,7 @@ def main():
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
+        # Send error as JSON to stderr
         error_response = {"error": str(e)}
         sys.stderr.write(json.dumps(error_response))
         sys.exit(1)
