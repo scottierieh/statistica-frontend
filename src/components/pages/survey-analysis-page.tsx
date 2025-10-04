@@ -212,7 +212,7 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
                         <ChartContainer config={{}} className="w-full h-64">
                             <ResponsiveContainer>
                                 <PieChart>
-                                    <Pie data={data} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                                    <Pie data={data} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={p => `${p.name} (${p.percentage.toFixed(1)}%)`}>
                                          {data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                     </Pie>
                                     <Tooltip content={<ChartTooltipContent />} />
@@ -269,10 +269,10 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
     }, [boxPlotImage, isPlotLoading, data.values, title]);
 
     useEffect(() => {
-        if (chartType === 'boxplot' && !boxPlotImage) {
+        if (chartType === 'boxplot') {
             generateBoxPlot();
         }
-    }, [chartType, boxPlotImage, generateBoxPlot]);
+    }, [chartType, generateBoxPlot]);
     
     return (
         <Card>
@@ -315,6 +315,9 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
 };
 
 const RatingChart = ({ data, title }: { data: { values: number[], count: number }, title: string }) => {
+    if (!data || data.values.length === 0) {
+        return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent><p>No data available for this rating question.</p></CardContent></Card>;
+    }
     const ratingCounts: {[key: number]: number} = {};
     const scale = Array.from({length: 5}, (_, i) => i + 1); // Assuming 1-5 scale for now
     scale.forEach(s => ratingCounts[s] = 0);
@@ -328,6 +331,7 @@ const RatingChart = ({ data, title }: { data: { values: number[], count: number 
     const tableData = Object.entries(ratingCounts).map(([rating, count]) => ({
         name: rating,
         count: count,
+        percentage: data.count > 0 ? (count / data.count) * 100 : 0
     }));
 
     const totalResponses = data.count;
@@ -360,7 +364,7 @@ const RatingChart = ({ data, title }: { data: { values: number[], count: number 
                             <TableRow key={item.name}>
                                 <TableCell>{item.name}</TableCell>
                                 <TableCell className="text-right">{item.count}</TableCell>
-                                <TableCell className="text-right">{totalResponses > 0 ? (item.count / totalResponses * 100).toFixed(1) : 0}%</TableCell>
+                                <TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -780,4 +784,3 @@ export default function SurveyAnalysisPage() {
     );
 }
 
-```
