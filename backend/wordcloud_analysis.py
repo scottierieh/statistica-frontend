@@ -13,6 +13,23 @@ import warnings
 import os
 import platform
 import matplotlib.font_manager as fm
+from pathlib import Path
+
+# NLTK for English sentiment
+try:
+    import nltk
+    from nltk.sentiment.vader import SentimentIntensityAnalyzer
+    nltk.download('vader_lexicon', quiet=True)
+    NLTK_AVAILABLE = True
+except ImportError:
+    NLTK_AVAILABLE = False
+
+# Konlpy for Korean sentiment
+try:
+    from konlpy.tag import Okt
+    KONLPY_AVAILABLE = True
+except ImportError:
+    KONLPY_AVAILABLE = False
 
 warnings.filterwarnings('ignore')
 
@@ -21,12 +38,6 @@ try:
     WORDCLOUD_AVAILABLE = True
 except ImportError:
     WORDCLOUD_AVAILABLE = False
-
-try:
-    from konlpy.tag import Okt
-    KONLPY_AVAILABLE = True
-except ImportError:
-    KONLPY_AVAILABLE = False
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -145,8 +156,13 @@ class WordCloudGenerator:
         wc = WordCloud(**wc_params)
         wordcloud_image = wc.generate(text)
         
+        fig, ax = plt.subplots(figsize=(wc_params['width']/100, wc_params['height']/100))
+        ax.imshow(wordcloud_image, interpolation='bilinear')
+        ax.axis('off')
+        
         buf = io.BytesIO()
-        wordcloud_image.to_image().save(buf, format='PNG')
+        plt.savefig(buf, format='PNG', bbox_inches='tight', pad_inches=0)
+        plt.close(fig)
         buf.seek(0)
         
         return base64.b64encode(buf.read()).decode('utf-8')

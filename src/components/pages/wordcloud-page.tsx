@@ -14,16 +14,10 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import dynamic from 'next/dynamic';
-
-const Plot = dynamic(() => import('react-plotly.js'), {
-  ssr: false,
-  loading: () => <Skeleton className="w-full h-[400px]" />,
-});
 
 interface WordCloudResponse {
     plots: {
-        wordcloud: string; // Now a JSON string from Plotly
+        wordcloud: string;
         frequency_bar: string;
     };
     frequencies: { [key: string]: number };
@@ -88,7 +82,6 @@ export default function WordCloudPage() {
     
     const frequencyData = analysisResult ? Object.entries(analysisResult.frequencies).map(([word, count]) => ({ word, count })) : [];
     const stats = analysisResult?.statistics;
-    const wordCloudPlotData = analysisResult ? JSON.parse(analysisResult.plots.wordcloud) : null;
 
     return (
         <div className="space-y-4">
@@ -176,14 +169,7 @@ export default function WordCloudPage() {
                              <Card>
                                 <CardHeader><CardTitle>Generated Word Cloud</CardTitle></CardHeader>
                                 <CardContent>
-                                    {wordCloudPlotData ? (
-                                        <Plot
-                                            data={wordCloudPlotData.data}
-                                            layout={{ ...wordCloudPlotData.layout, autosize: true }}
-                                            useResizeHandler={true}
-                                            className="w-full h-[400px]"
-                                        />
-                                    ) : <p>Could not render word cloud.</p>}
+                                    <Image src={analysisResult.plots.wordcloud} alt="Generated Word Cloud" width={800} height={400} className="rounded-md border"/>
                                 </CardContent>
                             </Card>
                              <Card>
