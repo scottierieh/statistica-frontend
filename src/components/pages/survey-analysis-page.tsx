@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Customized } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
@@ -271,14 +272,20 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
 
     const chartData = [{ name: 'NPS', promoters: promoterPct, passives: passivePct, detractors: detractorPct }];
     
+    const Needle = ({ cx, cy, radius, angle }: any) => {
+        if (cx === undefined || cy === undefined) return null;
+        const length = radius * 0.8;
+        const x2 = cx + length * Math.cos(-angle * Math.PI / 180);
+        const y2 = cy + length * Math.sin(-angle * Math.PI / 180);
+        return <line x1={cx} y1={cy} x2={x2} y2={y2} stroke="black" strokeWidth="2" />;
+    };
+    
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted">
-                    <p className="text-sm text-muted-foreground">NPS Score</p>
-                    <p className="text-6xl font-bold">{data.npsScore.toFixed(0)}</p>
-                     <ChartContainer config={{}} className="w-full h-32 -mt-4">
+                     <ChartContainer config={{}} className="w-full h-48 -mb-8">
                         <ResponsiveContainer>
                             <PieChart>
                                 <Pie 
@@ -296,8 +303,19 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
                                      <Cell fill="#f1c40f" />
                                      <Cell fill="#2ecc71" />
                                 </Pie>
+                                <Customized component={
+                                    (props) => {
+                                        const { cx, cy, outerRadius } = props;
+                                        if (!cx || !cy || !outerRadius) return null;
+                                        const angle = 180 - (data.npsScore + 100) / 200 * 180;
+                                        return <Needle cx={cx} cy={cy} radius={outerRadius} angle={angle} />;
+                                    }
+                                }/>
                                  <text x="50%" y="75%" textAnchor="middle" dominantBaseline="middle" className="text-2xl font-bold fill-foreground">
                                     {data.npsScore.toFixed(0)}
+                                </text>
+                                 <text x="50%" y="90%" textAnchor="middle" dominantBaseline="middle" className="text-sm fill-muted-foreground">
+                                    NPS Score
                                 </text>
                             </PieChart>
                         </ResponsiveContainer>
@@ -369,7 +387,7 @@ const BestWorstChart = ({ data, title }: { data: {name: string, netScore: number
         <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
         <CardContent>
             <Tabs defaultValue="net_score">
-                <TabsList>
+                <TabsList className="grid grid-cols-2">
                     <TabsTrigger value="net_score">Net Score</TabsTrigger>
                     <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
                 </TabsList>
