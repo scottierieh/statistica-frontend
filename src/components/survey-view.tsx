@@ -10,8 +10,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, AlertCircle, Star, ThumbsUp, ThumbsDown } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2, AlertCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X } from "lucide-react";
+import { motion, AnimatePresence } from 'framer-motion';
 import { Textarea } from './ui/textarea';
 import { Progress } from './ui/progress';
 import { produce } from 'immer';
@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Question } from '@/entities/Survey';
+import { Switch } from './ui/switch';
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; }) => (
     <div className="p-4">
@@ -73,25 +74,87 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { 
    );
 };
 
-const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; }) => {
+const DropdownQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string; onAnswerChange?: (value: string) => void; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => {
+    const handleOptionChange = (index: number, value: string) => {
+        const newOptions = [...question.options];
+        newOptions[index] = value;
+        onUpdate?.({ ...question, options: newOptions });
+    };
+
+    const addOption = () => {
+        const newOptions = [...question.options, `Option ${question.options.length + 1}`];
+        onUpdate?.({ ...question, options: newOptions });
+    };
+
+    const deleteOption = (index: number) => {
+        const newOptions = question.options.filter((_:any, i:number) => i !== index);
+        onUpdate?.({ ...question, options: newOptions });
+    };
+    
+    if (isPreview) {
+        return (
+            <div className={cn("p-4", cardClassName)}>
+                <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+                {question.imageUrl && (
+                    <div className="my-4">
+                        <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
+                    </div>
+                )}
+                <Select value={answer} onValueChange={onAnswerChange}>
+                    <SelectTrigger><SelectValue placeholder="Select an option..." /></SelectTrigger>
+                    <SelectContent>
+                        {question.options.map((option: string, index: number) => (
+                            <SelectItem key={index} value={option}>{option}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        );
+    }
+    
     return (
-        <div className="p-4">
-            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-            {question.imageUrl && (
-                <div className="my-4">
-                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+        <div className={cn("p-4", cardClassName)}>
+            <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+                     {question.required && <span className="text-destructive text-xs">* Required</span>}
                 </div>
-            )}
-            <Select value={answer} onValueChange={onAnswerChange}>
-                <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select an option..." />
-                </SelectTrigger>
-                <SelectContent>
-                    {question.options?.map((option: string, index: number) => (
-                        <SelectItem key={index} value={option}>{option}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+                {!isPreview && (
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                          <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                          <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
+                            <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                            <Info className="w-5 h-5 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}>
+                            <Trash2 className="w-5 h-5 text-destructive" />
+                        </Button>
+                    </div>
+                )}
+            </div>
+             <div className="space-y-2">
+                {question.options.map((option: string, index: number) => (
+                    <div key={index} className="flex items-center space-x-2 group">
+                        <Input 
+                            placeholder={`Option ${index + 1}`} 
+                            className="border-t-0 border-x-0 border-b focus:ring-0" 
+                            value={option}
+                            onChange={(e) => handleOptionChange(index, e.target.value)}
+                        />
+                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => deleteOption(index)}>
+                            <Trash2 className="w-4 h-4 text-destructive"/>
+                        </Button>
+                    </div>
+                ))}
+            </div>
+            <Button variant="link" size="sm" className="mt-2" onClick={addOption}>
+                <PlusCircle className="w-4 h-4 mr-2" /> Add Option
+            </Button>
         </div>
     );
 };
@@ -525,6 +588,3 @@ export default function SurveyView() {
         </div>
     );
 }
-
-
-    
