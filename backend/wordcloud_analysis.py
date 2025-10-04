@@ -153,8 +153,7 @@ class WordCloudGenerator:
         else:
              warnings.warn("A suitable font was not found. Non-English characters may not render correctly.")
 
-        wc = WordCloud(**wc_params)
-        wordcloud_image = wc.generate(text)
+        wordcloud_image = WordCloud(**wc_params).generate(text)
         
         fig, ax = plt.subplots(figsize=(wc_params['width']/100, wc_params['height']/100))
         ax.imshow(wordcloud_image, interpolation='bilinear')
