@@ -259,7 +259,7 @@ const RatingChart = ({ data, title }: { data: { name: string, count: number, per
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">Average Rating</p>
                 </div>
-                <Table>
+                 <Table>
                     <TableHeader><TableRow><TableHead>Rating</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
                     <TableBody>
                         {data.map((item) => (
@@ -281,69 +281,121 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
     const passivePct = data.total > 0 ? (data.passives / data.total) * 100 : 0;
     const detractorPct = data.total > 0 ? (data.detractors / data.total) * 100 : 0;
 
-    const Needle = ({ cx, cy, midAngle, outerRadius }: any) => {
-        const npsAngle = 180 * (1 - (data.npsScore + 100) / 200);
-        const RADIAN = Math.PI / 180;
-        const x = cx + outerRadius * 0.8 * Math.cos(-npsAngle * RADIAN);
-        const y = cy + outerRadius * 0.8 * Math.sin(-npsAngle * RADIAN);
-      
+    const NPSGauge = () => {
+        const [npsScore, setNpsScore] = useState(data.npsScore);
+
+        const getColor = (score: number) => {
+            if (score >= 50) return '#22c55e'; // Excellent
+            if (score >= 30) return '#84cc16'; // Good
+            if (score >= 0) return '#eab308'; // Fair
+            if (score >= -50) return '#f97316'; // Needs Improvement
+            return '#ef4444'; // Poor
+        };
+
+        const getLevel = (score: number) => {
+            if (score >= 50) return 'Excellent';
+            if (score >= 30) return 'Good';
+            if (score >= 0) return 'Fair';
+            if (score > -50) return 'Needs Improvement';
+            return 'Poor';
+        };
+
+        const gaugeData = [
+            { value: npsScore + 100 },
+            { value: 200 - (npsScore + 100) }
+        ];
+        const color = getColor(npsScore);
+
         return (
-          <g>
-            <circle cx={cx} cy={cy} r={5} fill="hsl(var(--primary))" stroke="white" strokeWidth={2} />
-            <path d={`M ${cx} ${cy} L ${x} ${y}`} stroke="hsl(var(--primary))" strokeWidth={2} fill="none" strokeLinecap="round" />
-          </g>
+            <div className="flex flex-col items-center justify-center p-4">
+                <div className="relative flex flex-col items-center">
+                    <PieChart width={250} height={150}>
+                        <Pie
+                            data={gaugeData}
+                            cx={125}
+                            cy={150}
+                            startAngle={180}
+                            endAngle={0}
+                            innerRadius={70}
+                            outerRadius={100}
+                            dataKey="value"
+                            stroke="none"
+                        >
+                            <Cell fill={color} />
+                            <Cell fill="#e5e7eb" />
+                        </Pie>
+                    </PieChart>
+                    <div className="absolute top-16 flex flex-col items-center">
+                        <div className="text-4xl font-bold" style={{ color }}>
+                            {npsScore.toFixed(0)}
+                        </div>
+                        <div className="text-md text-gray-600 mt-1">
+                            {getLevel(npsScore)}
+                        </div>
+                    </div>
+                </div>
+                 <div className="w-full max-w-xs mt-4">
+                    <input
+                        type="range"
+                        min="-100"
+                        max="100"
+                        value={npsScore}
+                        onChange={(e) => setNpsScore(Number(e.target.value))}
+                        className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                        style={{
+                        background: `linear-gradient(to right, #ef4444 0%, #f97316 25%, #eab308 50%, #84cc16 75%, #10b981 100%)`
+                        }}
+                    />
+                     <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>-100</span>
+                        <span>0</span>
+                        <span>100</span>
+                    </div>
+                </div>
+            </div>
         );
-      };
-      
-    const gaugeData = [
-        { name: 'Detractors', value: 30, color: '#ef4444' }, // 0 to 6
-        { name: 'Passives', value: 20, color: '#f97316' },   // 7 to 8
-        { name: 'Promoters', value: 50, color: '#22c55e' }, // 9 to 10
-      ];
+    };
 
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div className="relative flex flex-col items-center justify-center">
-                    <PieChart width={300} height={200}>
-                        <Pie data={gaugeData} dataKey="value" startAngle={180} endAngle={0} innerRadius={80} outerRadius={120}>
-                            {gaugeData.map((entry) => <Cell key={entry.name} fill={entry.color} stroke="none" />)}
-                        </Pie>
-                        <Customized component={<Needle />} />
-                    </PieChart>
-                    <div className="absolute top-2/3 flex flex-col items-center">
-                        <div className="text-5xl font-bold" style={{ color: gaugeData.find(d=> (data.npsScore + 100)/2 >= (100 - d.value))?.color }}>
-                            {data.npsScore.toFixed(0)}
-                        </div>
+                <GaugeChart />
+                <div>
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Group</TableHead>
+                                <TableHead className="text-right">Count</TableHead>
+                                <TableHead className="text-right">%</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell>Promoters (9-10)</TableCell>
+                                <TableCell className="text-right">{data.promoters}</TableCell>
+                                <TableCell className="text-right">{promoterPct.toFixed(1)}%</TableCell>
+                            </TableRow>
+                             <TableRow>
+                                <TableCell>Passives (7-8)</TableCell>
+                                <TableCell className="text-right">{data.passives}</TableCell>
+                                <TableCell className="text-right">{passivePct.toFixed(1)}%</TableCell>
+                            </TableRow>
+                             <TableRow>
+                                <TableCell>Detractors (0-6)</TableCell>
+                                <TableCell className="text-right">{data.detractors}</TableCell>
+                                <TableCell className="text-right">{detractorPct.toFixed(1)}%</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                     <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-600 space-y-1">
+                        <div className="flex justify-between"><span>🔴 Poor:</span><span>-100 ~ -51</span></div>
+                        <div className="flex justify-between"><span>🟠 Needs Improvement:</span><span>-50 ~ -1</span></div>
+                        <div className="flex justify-between"><span>🟡 Fair:</span><span>0 ~ 29</span></div>
+                        <div className="flex justify-between"><span>🟢 Good:</span><span>30 ~ 69</span></div>
+                        <div className="flex justify-between"><span>💚 Excellent:</span><span>70 ~ 100</span></div>
                     </div>
                 </div>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Group</TableHead>
-                            <TableHead className="text-right">Count</TableHead>
-                            <TableHead className="text-right">%</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        <TableRow>
-                            <TableCell>Promoters (9-10)</TableCell>
-                            <TableCell className="text-right">{data.promoters}</TableCell>
-                            <TableCell className="text-right">{promoterPct.toFixed(1)}%</TableCell>
-                        </TableRow>
-                         <TableRow>
-                            <TableCell>Passives (7-8)</TableCell>
-                            <TableCell className="text-right">{data.passives}</TableCell>
-                            <TableCell className="text-right">{passivePct.toFixed(1)}%</TableCell>
-                        </TableRow>
-                         <TableRow>
-                            <TableCell>Detractors (0-6)</TableCell>
-                            <TableCell className="text-right">{data.detractors}</TableCell>
-                            <TableCell className="text-right">{detractorPct.toFixed(1)}%</TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
             </CardContent>
         </Card>
     );
@@ -445,49 +497,39 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-            <CardContent>
-                 <Tabs defaultValue="stacked_bar">
-                    <TabsList>
-                        <TabsTrigger value="stacked_bar">Stacked Bar</TabsTrigger>
-                        <TabsTrigger value="heatmap">Heatmap</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="stacked_bar">
-                        <ChartContainer config={{}} className="w-full h-[400px]">
-                            <ResponsiveContainer>
-                                <BarChart data={data.chartData} layout="vertical">
-                                    <XAxis type="number" stackId="a" domain={[0, 100]} unit="%"/>
-                                    <YAxis type="category" dataKey="name" width={120} />
-                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
-                                    <Legend />
-                                    {data.columns.map((col: string, i: number) => (
-                                        <Bar key={col} dataKey={`${col}_pct`} name={col} stackId="a" fill={COLORS[i % COLORS.length]} />
-                                    ))}
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </TabsContent>
-                    <TabsContent value="heatmap">
-                         <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow><TableHead>{title}</TableHead>{data.columns.map((c: string) => <TableHead key={c} className="text-center">{c}</TableHead>)}</TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {data.rows.map((r: string) => (
-                                        <TableRow key={r}><TableCell>{r}</TableCell>
-                                            {data.columns.map((c: string) => {
-                                                const value = data.heatmapData[r]?.[c] || 0;
-                                                const total = Object.values(data.heatmapData[r] || {}).reduce((s: any, v: any) => s+v, 0);
-                                                const pct = total > 0 ? (value / total) * 100 : 0;
-                                                return <TableCell key={c} className="text-center" style={{backgroundColor: `rgba(132, 204, 22, ${pct / 100})`}}>{value}</TableCell>
-                                            })}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </TabsContent>
-                 </Tabs>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <ChartContainer config={{}} className="w-full h-[400px]">
+                    <ResponsiveContainer>
+                        <BarChart data={data.chartData} layout="vertical">
+                            <XAxis type="number" stackId="a" domain={[0, 100]} unit="%"/>
+                            <YAxis type="category" dataKey="name" width={120} />
+                            <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
+                            <Legend />
+                            {data.columns.map((col: string, i: number) => (
+                                <Bar key={col} dataKey={`${col}_pct`} name={col} stackId="a" fill={COLORS[i % COLORS.length]} />
+                            ))}
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow><TableHead>{title}</TableHead>{data.columns.map((c: string) => <TableHead key={c} className="text-center">{c}</TableHead>)}</TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {data.rows.map((r: string) => (
+                                <TableRow key={r}><TableCell>{r}</TableCell>
+                                    {data.columns.map((c: string) => {
+                                        const value = data.heatmapData[r]?.[c] || 0;
+                                        const total = Object.values(data.heatmapData[r] || {}).reduce((s: any, v: any) => s+v, 0);
+                                        const pct = total > 0 ? (value / total) * 100 : 0;
+                                        return <TableCell key={c} className="text-center" style={{backgroundColor: `rgba(132, 204, 22, ${pct / 100})`}}>{value}</TableCell>
+                                    })}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
         </Card>
     );
