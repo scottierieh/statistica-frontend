@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -16,6 +15,8 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
+import { Star } from 'lucide-react';
 
 // --- Data Processing Functions ---
 const processTextResponses = (responses: SurveyResponse[], questionId: string) => {
@@ -162,11 +163,12 @@ const processMatrixResponses = (responses: SurveyResponse[], question: Question)
 // --- Chart Components ---
 const CategoricalChart = ({ data, title }: { data: {name: string, count: number, percentage: number}[], title: string }) => {
     const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+    const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Tabs defaultValue="bar" className="col-span-1">
+                <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
                     <TabsList>
                         <TabsTrigger value="bar"><BarChartIcon className="w-4 h-4 mr-2"/>Bar</TabsTrigger>
                         <TabsTrigger value="pie"><PieChartIcon className="w-4 h-4 mr-2"/>Pie</TabsTrigger>
@@ -239,89 +241,36 @@ const NumericChart = ({ data, title }: { data: { mean: number, median: number, s
     </Card>
 );
 
-const RatingChart = ({ data, title }: { data: {name: string, count: number}[], title: string }) => (
-    <Card>
-        <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <ChartContainer config={{}} className="w-full h-64">
-                <ResponsiveContainer>
-                    <BarChart data={data}>
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="count" name="Count" fill="hsl(var(--primary))" />
-                    </BarChart>
-                </ResponsiveContainer>
-            </ChartContainer>
-            <div>
-                 <Table>
-                    <TableHeader><TableRow><TableHead>Rating</TableHead><TableHead className="text-right">Count</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        {data.map(item => <TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell></TableRow>)}
-                    </TableBody>
-                </Table>
-            </div>
-        </CardContent>
-    </Card>
-);
-
-const GaugeChart = ({ score }: { score: number }) => {
-    const width = 300;
-    const height = 200;
+const RatingChart = ({ data, title }: { data: {name: string, count: number}[], title: string }) => {
+    const totalResponses = data.reduce((sum, item) => sum + item.count, 0);
+    const weightedSum = data.reduce((sum, item) => sum + Number(item.name) * item.count, 0);
+    const averageRating = totalResponses > 0 ? weightedSum / totalResponses : 0;
     
-    const colorData = [
-        { value: 40, color: "#e74c3c" }, // Detractors -40%
-        { value: 20, color: "#f1c40f" }, // Passives 20%
-        { value: 40, color: "#2ecc71" }  // Promoters 40%
-    ];
-
-    const normalizedScore = score + 100; // a value between 0 and 200
-    
-    // Convert score to angle. 0 score is 90 degrees, 200 score is -90 degrees
-    const angle = 180 - (normalizedScore / 200) * 180;
-    
-    const pieProps = {
-        startAngle: 180,
-        endAngle: 0,
-        cx: width / 2,
-        cy: height,
-    };
-
-    const pieRadius = {
-        innerRadius: "65%",
-        outerRadius: "90%",
-    };
-
-    const Needle = ({ cx, cy, midAngle, outerRadius}: any) => {
-        if (cx === undefined || cy === undefined) return null;
-        const RADIAN = Math.PI / 180;
-        const length = outerRadius * 0.8;
-        const x1 = cx;
-        const y1 = cy;
-        const x2 = cx + length * Math.cos(-angle * RADIAN);
-        const y2 = cy + length * Math.sin(-angle * RADIAN);
-
-        return (
-            <g>
-                <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="black" strokeWidth="2" />
-                <circle cx={x1} cy={y1} r={5} fill="black" stroke="none" />
-            </g>
-        );
-    };
-
     return (
-        <div className="relative w-full h-full">
-            <PieChart width={width} height={height}>
-                <Pie data={colorData} dataKey="value" fill="#eee" {...pieRadius} {...pieProps} isAnimationActive={false}>
-                    {colorData.map((entry, index) => <Cell key={`cell-${index}`} fill={colorData[index].color} />)}
-                </Pie>
-                <Customized component={Needle} />
-            </PieChart>
-             <div className="absolute bottom-4 w-full text-center">
-                <p className="text-3xl font-bold">{score.toFixed(0)}</p>
-                <p className="text-sm text-muted-foreground">NPS Score</p>
-            </div>
-        </div>
+        <Card>
+            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="flex flex-col items-center justify-center">
+                     <p className="text-5xl font-bold">{averageRating.toFixed(2)}</p>
+                     <div className="flex items-center mt-2">
+                        {[...Array(5)].map((_, i) => (
+                           <Star key={i} className={cn("w-7 h-7 text-yellow-300", averageRating > i && "fill-yellow-400")} />
+                        ))}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">Average Rating</p>
+                </div>
+                 <ChartContainer config={{}} className="w-full h-64">
+                    <ResponsiveContainer>
+                        <BarChart data={data}>
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="count" name="Count" fill="hsl(var(--primary))" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            </CardContent>
+        </Card>
     );
 };
 
@@ -336,8 +285,9 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted">
-                    <GaugeChart score={data.npsScore} />
+                <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-muted">
+                    <p className="text-6xl font-bold">{data.npsScore.toFixed(0)}</p>
+                    <p className="text-lg text-muted-foreground">NPS Score</p>
                 </div>
                  <ChartContainer config={{}} className="w-full h-64">
                     <ResponsiveContainer>
@@ -356,7 +306,6 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
         </Card>
     );
 };
-
 
 const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
     const wordFrequency = useMemo(() => {
@@ -600,3 +549,4 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+```
