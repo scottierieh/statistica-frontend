@@ -169,7 +169,7 @@ export default function WordCloudPage() {
                              <Card>
                                 <CardHeader><CardTitle>Generated Word Cloud</CardTitle></CardHeader>
                                 <CardContent>
-                                    <Image src={analysisResult.plots.wordcloud} alt="Generated Word Cloud" width={800} height={400} className="rounded-md border"/>
+                                    <Image src={`data:image/png;base64,${analysisResult.plots.wordcloud}`} alt="Generated Word Cloud" width={800} height={400} className="rounded-md border"/>
                                 </CardContent>
                             </Card>
                              <Card>
