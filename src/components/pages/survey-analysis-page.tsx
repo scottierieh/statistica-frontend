@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -248,71 +248,20 @@ const CategoricalChart = ({ data, title }: { data: {name: string, count: number,
 };
 
 const NumericChart = ({ data, title, questionId }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], values: number[] }, title: string, questionId: string }) => {
-    const [chartType, setChartType] = useState<'histogram' | 'boxplot'>('histogram');
-    const [boxPlotImage, setBoxPlotImage] = useState<string | null>(null);
-    const [isPlotLoading, setIsPlotLoading] = useState(false);
-    const { toast } = useToast();
-
-    const generateBoxPlot = useCallback(async () => {
-        if (boxPlotImage || isPlotLoading) return;
-        setIsPlotLoading(true);
-        try {
-            const response = await fetch('/api/analysis/visualization', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    data: data.values.map(v => ({ [title]: v })),
-                    chartType: 'box',
-                    config: { x_col: title }
-                }),
-            });
-            if (!response.ok) throw new Error('Failed to generate box plot');
-            const result = await response.json();
-             if (result.plot) {
-              setBoxPlotImage(result.plot);
-            }
-        } catch (error: any) {
-            toast({variant: 'destructive', title: 'Plot Error', description: error.message});
-        } finally {
-            setIsPlotLoading(false);
-        }
-    }, [boxPlotImage, isPlotLoading, data.values, title, toast]);
-
-    useEffect(() => {
-        if (chartType === 'boxplot') {
-            generateBoxPlot();
-        }
-    }, [chartType, generateBoxPlot]);
-    
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
-                    <TabsList>
-                        <TabsTrigger value="histogram"><BarChartIcon className="w-4 h-4 mr-2"/>Histogram</TabsTrigger>
-                        <TabsTrigger value="boxplot"><Box className="w-4 h-4 mr-2"/>Box Plot</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="histogram">
-                        <ChartContainer config={{}} className="w-full h-64">
-                            <ResponsiveContainer>
-                                <BarChart data={data.histogram}>
-                                    <XAxis dataKey="name" />
-                                    <YAxis />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </TabsContent>
-                     <TabsContent value="boxplot">
-                        <div className="w-full h-64 flex items-center justify-center">
-                            {isPlotLoading ? <Skeleton className="h-full w-full" /> : 
-                            boxPlotImage ? <Image src={boxPlotImage} alt="Box plot" width={400} height={256} className="object-contain"/> : 
-                            <p>Could not load box plot.</p>}
-                        </div>
-                    </TabsContent>
-                </Tabs>
+                 <ChartContainer config={{}} className="w-full h-64">
+                    <ResponsiveContainer>
+                        <BarChart data={data.histogram}>
+                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={50} />
+                            <YAxis />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
                  <div className="grid grid-cols-2 gap-4 text-center">
                     <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Mean</p><p className="text-2xl font-bold">{data.mean.toFixed(2)}</p></div>
                     <div className="p-4 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Median</p><p className="text-2xl font-bold">{data.median.toFixed(2)}</p></div>
@@ -484,87 +433,18 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
     );
 };
 
-const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
-    const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
-    const [wordCloudPlot, setWordCloudPlot] = useState<string | null>(null);
-    const [wordFrequencies, setWordFrequencies] = useState<{ [key: string]: number }>({});
-    const [excludedWords, setExcludedWords] = useState<string[]>([]);
-  
-    const generateWordCloud = useCallback(async (text: string, stopwords: string[] = []) => {
-      setIsLoading(true);
-      try {
-        const response = await fetch('/api/analysis/wordcloud', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, customStopwords: stopwords.join(',') }),
-        });
-        if (!response.ok) throw new Error('Failed to generate word cloud.');
-        const result = await response.json();
-        if (result.error) throw new Error(result.error);
-        setWordCloudPlot(result.plots.wordcloud);
-        setWordFrequencies(result.frequencies);
-      } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Word Cloud Error', description: error.message });
-      } finally {
-        setIsLoading(false);
-      }
-    }, [toast]);
-  
-    useEffect(() => {
-      if (data.length > 0) {
-        generateWordCloud(data.join('\n'));
-      }
-    }, [data, generateWordCloud]);
-
-    const handleWordDelete = (word: string) => {
-        const newExcluded = [...excludedWords, word];
-        setExcludedWords(newExcluded);
-        generateWordCloud(data.join('\n'), newExcluded);
-    }
-  
-    const plotData = useMemo(() => {
-        if (!wordCloudPlot) return null;
-        try {
-            return JSON.parse(wordCloudPlot);
-        } catch (e) { return null; }
-    }, [wordCloudPlot]);
-
-    const frequencyData = useMemo(() => {
-        return Object.entries(wordFrequencies)
-            .map(([text, value]) => ({ text, value }))
-            .sort((a,b) => b.value - a.value);
-    }, [wordFrequencies]);
-  
-    return (
-      <Card>
+const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => (
+    <Card>
         <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
-             {isLoading ? <Skeleton className="h-80 w-full" /> : 
-                plotData ? <Plot data={plotData.data} layout={plotData.layout} useResizeHandler style={{width: '100%', height: '100%'}}/> 
-                : <p>No word cloud to display.</p>}
-            <ScrollArea className="h-80 border rounded-md">
-                <Table>
-                    <TableHeader><TableRow><TableHead>Word</TableHead><TableHead className="text-right">Frequency</TableHead><TableHead></TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        {frequencyData.map(({ text, value }) => (
-                            <TableRow key={text}>
-                                <TableCell>{text}</TableCell>
-                                <TableCell className="text-right">{value}</TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleWordDelete(text)}><X className="h-4 w-4"/></Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+            <ScrollArea className="h-64 p-4 border rounded-md">
+                <ul className="space-y-4">
+                    {data.map((text, i) => <li key={i} className="text-sm border-b pb-2">{text}</li>)}
+                </ul>
             </ScrollArea>
-          </div>
         </CardContent>
-      </Card>
-    );
-  };
+    </Card>
+);
 
 const BestWorstChart = ({ data, title }: { data: { name: string, netScore: number, bestPct: number, worstPct: number }[], title: string }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
@@ -848,4 +728,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
