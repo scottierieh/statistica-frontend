@@ -79,13 +79,18 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
     const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / (values.length > 1 ? values.length -1 : 1) );
 
     const histogramBinsResult = jStat.histogram(values, 10);
-    const histogramData = histogramBinsResult ? histogramBinsResult.map((binData: { x: number; y: number; dx: number; }) => ({
-        name: `${binData.x.toFixed(1)}-${(binData.x + binData.dx).toFixed(1)}`,
-        count: binData.y,
-    })) : [];
+    const histogramData = histogramBinsResult ? histogramBinsResult.map((bin: number[]) => {
+        if (!bin || bin.length === 0) return { name: "N/A", count: 0 };
+        const min = Math.min(...bin).toFixed(1);
+        const max = Math.max(...bin).toFixed(1);
+        return {
+            name: `${min}-${max}`,
+            count: bin.length,
+        }
+    }) : [];
 
-    const q1 = sorted[Math.floor(0.25 * sorted.length)];
-    const q3 = sorted[Math.floor(0.75 * sorted.length)];
+    const q1 = jStat.percentile(sorted, 0.25);
+    const q3 = jStat.percentile(sorted, 0.75);
     const boxplot = [{
         name: questionId,
         box: [q1, median, q3],
@@ -832,7 +837,8 @@ export default function SurveyAnalysisPage() {
               case 'rating':
                   return { type: 'rating', title: q.title, data: processNumericResponses(responses, questionId) };
               case 'nps':
-                  return { type: 'nps', title: q.title, data: await processNPS(responses, questionId) };
+                  const npsData = await processNPS(responses, questionId);
+                  return { type: 'nps', title: q.title, data: npsData };
               case 'text':
                    return { type: 'text', title: q.title, data: processTextResponses(responses, questionId) };
               case 'best-worst':
@@ -964,3 +970,189 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
+```
+- src/hooks/use-local-storage.ts:
+```ts
+import { useState, useEffect } from 'react';
+
+function useLocalStorage<T>(key: string, initialValue: T) {
+  // Get from local storage then
+  // parse stored json or return initialValue
+  const readValue = () => {
+    // Prevent build error "window is not defined" but keep keep working
+    if (typeof window === 'undefined') {
+      return initialValue;
+    }
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.warn(`Error reading localStorage key “${key}”:`, error);
+      return initialValue;
+    }
+  };
+
+  // State to store our value
+  // Pass initial state function to useState so logic is only executed once
+  const [storedValue, setStoredValue] = useState<T>(readValue);
+
+  // Return a wrapped version of useState's setter function that ...
+  // ... persists the new value to localStorage.
+  const setValue = (value: T | ((val: T) => T)) => {
+    // Prevent build error "window is not defined" but keep working
+    if (typeof window == 'undefined') {
+      console.warn(
+        `Tried setting localStorage key “${key}” even though environment is not a client`
+      );
+    }
+    try {
+      // Allow value to be a function so we have same API as useState
+      const valueToStore =
+        value instanceof Function ? value(storedValue) : value;
+      // Save state
+      setStoredValue(valueToStore);
+      // Save to local storage
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.warn(`Error setting localStorage key “${key}”:`, error);
+    }
+  };
+  
+  useEffect(() => {
+    setStoredValue(readValue());
+  }, []);
+
+  return [storedValue, setValue] as const;
+}
+
+export default useLocalStorage;
+```
+- tailwind.config.ts:
+```ts
+import type {Config} from 'tailwindcss';
+import {fontFamily} from 'tailwindcss/defaultTheme';
+
+export default {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)', ...fontFamily.sans],
+        mono: ['var(--font-geist-mono)', ...fontFamily.mono],
+      },
+      colors: {
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: {
+            height: '0',
+          },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+        },
+        'accordion-up': {
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+          to: {
+            height: '0',
+          },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+} satisfies Config;
+
+```
+- tsconfig.json:
+```json
+{
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+, "src/components/ui/date-range-picker.jsx"  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+```
