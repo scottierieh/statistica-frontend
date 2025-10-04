@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -121,6 +120,7 @@ import RepeatedMeasuresAnovaPage from './pages/repeated-measures-anova-page';
 import TTestPage from './pages/t-test-page';
 import { cn } from '@/lib/utils';
 import OneSampleTTestPage from './pages/one-sample-t-test-page';
+import WordCloudPage from './pages/wordcloud-page';
 
 
 const analysisCategories = [
@@ -229,6 +229,7 @@ const analysisCategories = [
       items: [
         { id: 'sentiment', label: 'Sentiment Analysis', icon: Smile, component: SentimentAnalysisPage },
         { id: 'topic-modeling', label: 'Topic Modeling (LDA)', icon: MessagesSquare, component: TopicModelingPage },
+        { id: 'wordcloud', label: 'Word Cloud', icon: Feather, component: WordCloudPage },
       ]
     },
     {
