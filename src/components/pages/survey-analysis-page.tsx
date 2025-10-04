@@ -1,4 +1,5 @@
-'use client';
+
+      'use client';
 
 import { useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -268,7 +269,7 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
             if (!response.ok) throw new Error('Failed to generate box plot');
             const result = await response.json();
              if (result.plot) {
-              setBoxPlotImage(`data:image/png;base64,${result.plot}`);
+              setBoxPlotImage(result.plot);
             }
         } catch (error: any) {
             toast({variant: 'destructive', title: 'Plot Error', description: error.message});
@@ -483,114 +484,45 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
     );
 };
 
-const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
-    const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
-    const [wordCloudPlot, setWordCloudPlot] = useState<any | null>(null);
-    const [frequencyPlot, setFrequencyPlot] = useState<string | null>(null);
-    const [frequencies, setFrequencies] = useState<{[key: string]: number} | null>(null);
-    const [excludedWords, setExcludedWords] = useState<string[]>([]);
-
-    const runWordCloudAnalysis = useCallback(async () => {
-        const textToAnalyze = data.join('\n');
-        if (!textToAnalyze) return;
-        setIsLoading(true);
-        try {
-            const response = await fetch('/api/analysis/wordcloud', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: textToAnalyze, customStopwords: excludedWords.join(',') }),
-            });
-            if (!response.ok) throw new Error("Failed to generate word cloud");
-            const result = await response.json();
-            if(result.error) throw new Error(result.error);
-
-            if (result.plots?.wordcloud) setWordCloudPlot(JSON.parse(result.plots.wordcloud));
-            if (result.plots?.frequency_bar) setFrequencyPlot(`data:image/png;base64,${result.plots.frequency_bar}`);
-            if (result.frequencies) setFrequencies(result.frequencies);
-
-        } catch (error: any) {
-            toast({ title: 'Word Cloud Error', description: error.message, variant: 'destructive' });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [data, toast, excludedWords]);
-    
-    useEffect(() => {
-        runWordCloudAnalysis();
-    }, [runWordCloudAnalysis]);
-
-    const handleWordDelete = (word: string) => {
-        setExcludedWords(prev => [...prev, word]);
-    }
-
-    return (
-        <Card>
-            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-4">
-                 <div>
-                    {isLoading ? <Skeleton className="h-80 w-full" /> : 
-                    wordCloudPlot ? (
-                         <Plot
-                            data={wordCloudPlot.data}
-                            layout={{...wordCloudPlot.layout, autosize: true}}
-                            useResizeHandler={true}
-                            className="w-full h-full"
-                        />
-                    ) : (
-                        <p>Could not render word cloud.</p>
-                    )}
-                </div>
-                 <ScrollArea className="h-80 border rounded-md">
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Word</TableHead><TableHead className="text-right">Frequency</TableHead><TableHead></TableHead></TableRow></TableHeader>
-                        <TableBody>
-                            {frequencies && Object.entries(frequencies).map(([word, count]) => (
-                                <TableRow key={word}>
-                                    <TableCell>{word}</TableCell>
-                                    <TableCell className="text-right">{count}</TableCell>
-                                    <TableCell><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleWordDelete(word)}><Trash2 className="w-4 h-4 text-destructive"/></Button></TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </ScrollArea>
-            </CardContent>
-        </Card>
-    );
-};
+const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => (
+    <Card>
+        <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+        <CardContent>
+            <ScrollArea className="h-64 p-4 border rounded-md">
+                <ul className="space-y-4">
+                    {data.map((text, i) => <li key={i} className="text-sm border-b pb-2">{text}</li>)}
+                </ul>
+            </ScrollArea>
+        </CardContent>
+    </Card>
+);
 
 const BestWorstChart = ({ data, title }: { data: { name: string, netScore: number, bestPct: number, worstPct: number }[], title: string }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
 
     return (
         <Card>
-            <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-            <CardContent>
-                <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)}>
-                    <TabsList className="grid w-full grid-cols-2">
+            <CardHeader>
+                <CardTitle>{title}</CardTitle>
+                <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-full mt-2">
+                    <TabsList>
                         <TabsTrigger value="net_score">Net Score</TabsTrigger>
                         <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="net_score" className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <ChartContainer config={{}} className="w-full h-[300px]">
-                            <ResponsiveContainer>
+                </Tabs>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ChartContainer config={{}} className="w-full h-[300px]">
+                        <ResponsiveContainer>
+                            {chartType === 'net_score' ? (
                                 <BarChart data={[...data].sort((a, b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
                                     <YAxis type="category" dataKey="name" width={100} />
                                     <XAxis type="number" />
                                     <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
                                     <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))" />
                                 </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Net Score</TableHead></TableRow></TableHeader>
-                            <TableBody>{[...data].sort((a, b) => b.netScore - a.netScore).map(item => (<TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.netScore.toFixed(1)}</TableCell></TableRow>))}</TableBody>
-                        </Table>
-                    </TabsContent>
-                    <TabsContent value="best_vs_worst" className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <ChartContainer config={{}} className="w-full h-[300px]">
-                            <ResponsiveContainer>
+                            ) : (
                                 <BarChart data={data} margin={{ left: 100 }}>
                                     <YAxis />
                                     <XAxis type="category" dataKey="name" />
@@ -599,14 +531,14 @@ const BestWorstChart = ({ data, title }: { data: { name: string, netScore: numbe
                                     <Bar dataKey="bestPct" name="Best %" fill="hsl(var(--chart-2))" />
                                     <Bar dataKey="worstPct" name="Worst %" fill="hsl(var(--chart-5))" />
                                 </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Best %</TableHead><TableHead className="text-right">Worst %</TableHead></TableRow></TableHeader>
-                            <TableBody>{data.map(item => (<TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.bestPct.toFixed(1)}%</TableCell><TableCell className="text-right">{item.worstPct.toFixed(1)}%</TableCell></TableRow>))}</TableBody>
-                        </Table>
-                    </TabsContent>
-                </Tabs>
+                            )}
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Net Score</TableHead></TableRow></TableHeader>
+                        <TableBody>{[...data].sort((a, b) => b.netScore - a.netScore).map(item => (<TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.netScore.toFixed(1)}</TableCell></TableRow>))}</TableBody>
+                    </Table>
+                </div>
             </CardContent>
         </Card>
     );
@@ -793,34 +725,58 @@ export default function SurveyAnalysisPage() {
                     <ArrowLeft className="w-4 h-4" />
                 </Button>
                 <div>
-                    <h1 className="font-headline text-3xl">{survey.title} - Analysis Report</h1>
+                    <h1 className="font-headline text-3xl">{survey.title}</h1>
                     <p className="text-muted-foreground">
                         A summary of <Badge variant="secondary">{responses.length} responses</Badge>.
                     </p>
                 </div>
             </div>
-
-            {analysisData.map((result, index) => {
-                if (!result) return null;
-                switch (result.type) {
-                    case 'categorical':
-                        return <CategoricalChart key={index} data={result.data} title={result.title} />;
-                    case 'numeric':
-                        return <NumericChart key={index} data={result.data} title={result.title} questionId={result.questionId} />;
-                    case 'rating':
-                        return <RatingChart key={index} data={result.data} title={result.title} />;
-                    case 'nps':
-                        return <NPSChart key={index} data={result.data} title={result.title} />;
-                    case 'text':
-                         return <TextResponsesDisplay key={index} data={result.data} title={result.title} />;
-                    case 'best-worst':
-                        return <BestWorstChart key={index} data={result.data} title={result.title} />;
-                    case 'matrix':
-                        return <MatrixChart key={index} data={result.data} title={result.title} rows={result.rows!} columns={result.columns!} />;
-                    default:
-                        return null;
-                }
-            })}
+            
+            <Tabs defaultValue="results" className="w-full">
+                <TabsList>
+                    <TabsTrigger value="results">Result</TabsTrigger>
+                    <TabsTrigger value="further_analysis">Further Analysis</TabsTrigger>
+                </TabsList>
+                <TabsContent value="results" className="mt-4">
+                    <div className="space-y-6">
+                        {analysisData.map((result, index) => {
+                            if (!result) return null;
+                            switch (result.type) {
+                                case 'categorical':
+                                    return <CategoricalChart key={index} data={result.data} title={result.title} />;
+                                case 'numeric':
+                                    return <NumericChart key={index} data={result.data} title={result.title} questionId={result.questionId} />;
+                                case 'rating':
+                                    return <RatingChart key={index} data={result.data} title={result.title} />;
+                                case 'nps':
+                                    return <NPSChart key={index} data={result.data} title={result.title} />;
+                                case 'text':
+                                     return <TextResponsesDisplay key={index} data={result.data} title={result.title} />;
+                                case 'best-worst':
+                                    return <BestWorstChart key={index} data={result.data} title={result.title} />;
+                                case 'matrix':
+                                    return <MatrixChart key={index} data={result.data} title={result.title} rows={result.rows!} columns={result.columns!} />;
+                                default:
+                                    return null;
+                            }
+                        })}
+                    </div>
+                </TabsContent>
+                <TabsContent value="further_analysis" className="mt-4">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Further Analysis</CardTitle>
+                            <CardDescription>This section is under construction. More advanced analysis tools are coming soon!</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <p className="text-muted-foreground">Stay tuned for updates.</p>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
+
+
+    
