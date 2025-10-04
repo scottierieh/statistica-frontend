@@ -123,7 +123,7 @@ const processBestWorst = (responses: SurveyResponse[], question: Question) => {
 const processMatrixResponses = (responses: SurveyResponse[], question: Question) => {
     const questionId = String(question.id);
     const rows = question.rows || [];
-    const columns = question.columns || [];
+    const columns = question.scale || question.columns || [];
 
     const result: {[row: string]: {[col: string]: number}} = {};
     rows.forEach(row => {
@@ -134,9 +134,14 @@ const processMatrixResponses = (responses: SurveyResponse[], question: Question)
     responses.forEach(response => {
         const answer = (response.answers as any)[questionId];
         if (answer && typeof answer === 'object') {
-            Object.entries(answer).forEach(([row, col]) => {
-                if (result[row] && col in result[row]) {
-                    result[row][col as string]++;
+            Object.entries(answer).forEach(([row, colValue]) => {
+                // Find the column label that corresponds to the stored column value (e.g., '1', '2')
+                const colIndex = question.columns?.indexOf(colValue as string);
+                if (colIndex !== -1 && colIndex !== undefined) {
+                    const colLabel = columns[colIndex];
+                     if (result[row] && colLabel in result[row]) {
+                        result[row][colLabel]++;
+                    }
                 }
             });
         }
@@ -152,7 +157,7 @@ const processMatrixResponses = (responses: SurveyResponse[], question: Question)
         });
         // Calculate percentages
         columns.forEach(col => {
-            entry[`${col}_pct`] = total > 0 ? (entry[col] as number / total) * 100 : 0;
+            entry[`${col}_pct`] = total > 0 ? ((entry[col] as number / total) * 100) : 0;
         });
         return entry;
     });
@@ -288,17 +293,14 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
         
         const getColor = (score: number) => {
             if (score >= 50) return '#10b981'; // Excellent (green-500)
-            if (score >= 30) return '#84cc16'; // Good (lime-500)
-            if (score >= 0) return '#eab308'; // Fair (yellow-500)
-            if (score >= -50) return '#f97316'; // Needs Improvement (orange-500)
-            return '#ef4444'; // Poor (red-500)
+            if (score >= 0) return '#eab308'; // Good (yellow-500)
+            return '#ef4444'; // Needs Improvement (red-500)
         };
         
         const getLevel = (score: number) => {
-            if (score >= 70) return 'Excellent';
-            if (score >= 50) return 'Good';
-            if (score >= 0) return 'Fair';
-            return 'Poor';
+            if (score >= 50) return 'Excellent';
+            if (score >= 0) return 'Good';
+            return 'Needs Improvement';
         };
 
         const gaugeData = [
@@ -336,6 +338,11 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
                         {getLevel(npsScore)}
                     </div>
                     </div>
+                </div>
+                 <div className="mt-4 flex justify-between w-full max-w-[250px] text-xs text-muted-foreground">
+                    <span>Poor</span>
+                    <span>Good</span>
+                    <span>Excellent</span>
                 </div>
             </div>
         );
@@ -472,15 +479,67 @@ const BestWorstChart = ({ data, title }: { data: {name: string, netScore: number
 
 const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string, rows: string[], columns: string[] }) => {
     const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked');
+    const [tableFormat, setTableFormat] = useState('counts');
     const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e']; // red to green
+    
+    const renderContingencyTable = () => {
+        if (!data) return null;
+
+        const { heatmapData, rows, columns } = data;
+        
+        const total = Object.values(heatmapData).flatMap(Object.values).reduce((sum: number, val: any) => sum + val, 0);
+        const rowTotals = rows.map((row: string) => columns.reduce((sum: number, col: string) => sum + (heatmapData[row]?.[col] || 0), 0));
+        const colTotals = columns.map((col: string) => rows.reduce((sum: number, row: string) => sum + (heatmapData[row]?.[col] || 0), 0));
+
+        const getCellContent = (row: string, col: string, rowIndex: number, colIndex: number) => {
+            const count = heatmapData[row]?.[col] || 0;
+            switch(tableFormat) {
+                case 'row_percent':
+                    return `${((count / rowTotals[rowIndex]) * 100 || 0).toFixed(1)}%`;
+                case 'col_percent':
+                     return `${((count / colTotals[colIndex]) * 100 || 0).toFixed(1)}%`;
+                case 'total_percent':
+                     return `${((count / total) * 100 || 0).toFixed(1)}%`;
+                default: // counts
+                    return count;
+            }
+        };
+
+        return (
+             <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>{title}</TableHead>
+                        {columns.map((c: string) => <TableHead key={c} className="text-right">{c}</TableHead>)}
+                        <TableHead className="text-right font-bold">Total</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {rows.map((r: string, rowIndex: number) => (
+                        <TableRow key={r}>
+                            <TableHead>{r}</TableHead>
+                            {columns.map((c: string, colIndex: number) => <TableCell key={c} className="text-right font-mono">{getCellContent(r, c, rowIndex, colIndex)}</TableCell>)}
+                            <TableCell className="text-right font-bold font-mono">{tableFormat === 'counts' ? rowTotals[rowIndex] : '100.0%'}</TableCell>
+                        </TableRow>
+                    ))}
+                    <TableRow className="font-bold bg-muted/50">
+                        <TableHead>Total</TableHead>
+                         {columns.map((c: string, colIndex: number) => <TableCell key={c} className="text-right font-mono">{tableFormat === 'counts' ? colTotals[colIndex] : '100.0%'}</TableCell>)}
+                        <TableCell className="text-right font-mono">{tableFormat === 'counts' ? total : ''}</TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+        );
+    }
+    
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
                     <TabsList>
-                        <TabsTrigger value="stacked">Stacked Bar</TabsTrigger>
-                        <TabsTrigger value="grouped">Grouped Bar</TabsTrigger>
+                        <TabsTrigger value="stacked">Stacked</TabsTrigger>
+                        <TabsTrigger value="grouped">Grouped</TabsTrigger>
                     </TabsList>
                     <TabsContent value="stacked">
                         <ChartContainer config={{}} className="w-full h-[400px]">
@@ -514,21 +573,15 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
                     </TabsContent>
                 </Tabs>
                 <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow><TableHead>{title}</TableHead>{data.columns.map((c: string) => <TableHead key={c} className="text-center">{c}</TableHead>)}</TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {data.rows.map((r: string) => (
-                                <TableRow key={r}><TableCell>{r}</TableCell>
-                                    {data.columns.map((c: string) => {
-                                        const value = data.heatmapData[r]?.[c] || 0;
-                                        return <TableCell key={c} className="text-center font-mono">{value}</TableCell>
-                                    })}
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                    <Tabs value={tableFormat} onValueChange={setTableFormat} className="w-full">
+                        <TabsList>
+                            <TabsTrigger value="counts">Counts</TabsTrigger>
+                            <TabsTrigger value="row_percent">Row %</TabsTrigger>
+                            <TabsTrigger value="col_percent">Col %</TabsTrigger>
+                            <TabsTrigger value="total_percent">Total %</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                    {renderContingencyTable()}
                 </div>
             </CardContent>
         </Card>
@@ -580,7 +633,7 @@ export default function SurveyAnalysisPage() {
                 case 'best-worst':
                     return { type: 'best-worst', title: q.title, data: processBestWorst(responses, q) };
                 case 'matrix':
-                    return { type: 'matrix', title: q.title, data: processMatrixResponses(responses, q), rows: q.rows, columns: q.columns };
+                    return { type: 'matrix', title: q.title, data: processMatrixResponses(responses, q), rows: q.rows, columns: q.scale || q.columns };
                 default:
                     return null;
             }
@@ -633,3 +686,5 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
+    
