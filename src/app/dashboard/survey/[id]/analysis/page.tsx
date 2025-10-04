@@ -1,7 +1,6 @@
-
 'use client';
 import { Suspense } from 'react';
-import SurveyAnalysisPage from '@/components/survey-analysis';
+import SurveyAnalysisPage from '@/components/pages/survey-analysis-page';
 
 export default function Page() {
   return (
