@@ -1,5 +1,4 @@
 
-      
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -91,7 +90,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
                 </div>
             )}
             <div className="space-y-2">
-                {question.options.map((option: string, index: number) => (
+                {(question.options || []).map((option: string, index: number) => (
                     <div key={index} className="flex items-center space-x-2 group">
                         <RadioGroupItem value={option} id={`q${question.id}-o${index}`} disabled />
                         <Input 
@@ -118,7 +117,23 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
     );
 };
 
-const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { question: Question; answer?: string[]; onAnswerChange: (newAnswer: string[]) => void; }) => {
+const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string[]; onAnswerChange?: (newAnswer: string[]) => void; onDelete?: (id: number) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: number) => void; cardClassName?: string; }) => {
+   const handleOptionChange = (index: number, value: string) => {
+       const newOptions = [...question.options];
+       newOptions[index] = value;
+       onUpdate?.({ ...question, options: newOptions });
+   };
+
+   const addOption = () => {
+       const newOptions = [...question.options, `Option ${question.options.length + 1}`];
+       onUpdate?.({ ...question, options: newOptions });
+   };
+
+   const deleteOption = (index: number) => {
+       const newOptions = question.options.filter((_:any, i:number) => i !== index);
+       onUpdate?.({ ...question, options: newOptions });
+   };
+
    const handleCheckChange = (checked: boolean, opt: string) => {
        if (!onAnswerChange) return;
        const currentAnswers = answer || [];
@@ -129,15 +144,37 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { 
    }
    
    return (
-       <div className="p-4">
-           <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+       <div className={cn("p-4", cardClassName)}>
+           <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
+                     {question.required && <span className="text-destructive text-xs">* Required</span>}
+                </div>
+               {!isPreview && (
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                          <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
+                          <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
+                            <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                        </Button>
+                       <Button variant="ghost" size="icon">
+                           <Info className="w-5 h-5 text-muted-foreground" />
+                       </Button>
+                       <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}>
+                           <Trash2 className="w-5 h-5 text-destructive" />
+                       </Button>
+                   </div>
+               )}
+           </div>
            {question.imageUrl && (
                  <div className="my-4">
-                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto" />
+                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
                 </div>
             )}
            <div className="space-y-2">
-                {question.options?.map((option: string, index: number) => (
+                {question.options.map((option: string, index: number) => (
                    <Label key={index} htmlFor={`q${question.id}-o${index}`} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
                        <Checkbox
                            id={`q${question.id}-o${index}`}
@@ -160,7 +197,7 @@ const DropdownQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate
     };
 
     const addOption = () => {
-        const newOptions = [...question.options, `Option ${question.options.length + 1}`];
+        const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
         onUpdate?.({ ...question, options: newOptions });
     };
 
@@ -666,5 +703,3 @@ export default function SurveyView() {
         </div>
     );
 }
-
-    
