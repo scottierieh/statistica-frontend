@@ -1,12 +1,12 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Customized } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -16,6 +16,7 @@ import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { Star } from 'lucide-react';
+import { Button } from '../ui/button';
 
 // --- Data Processing Functions ---
 const processTextResponses = (responses: SurveyResponse[], questionId: string) => {
@@ -235,8 +236,8 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
     const [boxPlotImage, setBoxPlotImage] = useState<string | null>(null);
     const [isPlotLoading, setIsPlotLoading] = useState(false);
 
-    const generateBoxPlot = async () => {
-        if (boxPlotImage) return; // Don't re-generate if we already have it
+    const generateBoxPlot = useCallback(async () => {
+        if (boxPlotImage || isPlotLoading) return;
         setIsPlotLoading(true);
         try {
             const response = await fetch('/api/analysis/visualization', {
@@ -256,7 +257,7 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
         } finally {
             setIsPlotLoading(false);
         }
-    };
+    }, [boxPlotImage, isPlotLoading, data.values, title]);
     
     return (
         <Card>
@@ -648,6 +649,7 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
 
 export default function SurveyAnalysisPage() {
     const params = useParams();
+    const router = useRouter();
     const surveyId = params.id as string;
     const [survey, setSurvey] = useState<Survey | null>(null);
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
@@ -709,14 +711,17 @@ export default function SurveyAnalysisPage() {
 
     return (
         <div className="space-y-6 p-4 md:p-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline text-3xl">{survey.title} - Analysis Report</CardTitle>
-                    <CardDescription>
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" onClick={() => router.push("/dashboard/survey2")}>
+                    <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <div>
+                    <h1 className="font-headline text-3xl">{survey.title} - Analysis Report</h1>
+                    <p className="text-muted-foreground">
                         A summary of <Badge variant="secondary">{responses.length} responses</Badge>.
-                    </CardDescription>
-                </CardHeader>
-            </Card>
+                    </p>
+                </div>
+            </div>
 
             {analysisData.map((result, index) => {
                 if (!result) return null;
@@ -744,3 +749,4 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
