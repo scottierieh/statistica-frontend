@@ -695,12 +695,8 @@ export default function SurveyAnalysisPage() {
                 case 'number':
                     return { type: 'numeric', title: q.title, data: processNumericResponses(responses, questionId), questionId };
                 case 'rating':
-                    const ratingData = processNumericResponses(responses, questionId);
-                    const tableData = (q.scale || []).map(opt => ({
-                        name: opt,
-                        count: ratingData.values.filter(v => String(v) === opt).length
-                    })).map(item => ({ ...item, percentage: ratingData.count > 0 ? (item.count / ratingData.count) * 100 : 0 }));
-                    return { type: 'rating', title: q.title, data: { ...ratingData, table: tableData } };
+                    const ratingData = processCategoricalResponses(responses, q);
+                    return { type: 'rating', title: q.title, data: { table: ratingData } };
                 case 'nps':
                     return { type: 'nps', title: q.title, data: processNPS(responses, questionId) };
                 case 'text':
