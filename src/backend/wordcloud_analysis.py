@@ -14,6 +14,8 @@ import os
 import platform
 import matplotlib.font_manager as fm
 from pathlib import Path
+import plotly.express as px
+import plotly.io as pio
 
 # NLTK for English sentiment
 try:
@@ -153,20 +155,14 @@ class WordCloudGenerator:
         else:
              warnings.warn("A suitable font was not found. Non-English characters may not render correctly.")
 
-        wc = WordCloud(**wc_params)
-        wordcloud_image = wc.generate(text)
+        wordcloud = WordCloud(**wc_params).generate(text)
         
-        fig, ax = plt.subplots(figsize=(settings.get('width', 800)/100, settings.get('height', 400)/100))
-        ax.imshow(wordcloud_image, interpolation='bilinear')
-        ax.axis('off')
-        plt.tight_layout(pad=0)
+        fig = px.imshow(wordcloud, title='Word Cloud of Titles')
+        fig.update_layout(showlegend=False)
+        fig.update_xaxes(visible=False)
+        fig.update_yaxes(visible=False)
         
-        buf = io.BytesIO()
-        plt.savefig(buf, format='PNG')
-        plt.close(fig)
-        buf.seek(0)
-        
-        return base64.b64encode(buf.read()).decode('utf-8')
+        return pio.to_json(fig)
 
     def generate_frequency_plot(self, frequencies, top_n=20):
         top_freq = dict(list(frequencies.items())[:top_n])
@@ -221,12 +217,12 @@ def main():
             'colormap': colormap, 'max_words': max_words
         }
 
-        wordcloud_img = generator.generate_wordcloud_image(processed_text, settings)
+        wordcloud_json = generator.generate_wordcloud_image(processed_text, settings)
         frequency_plot_img = generator.generate_frequency_plot(frequencies)
 
         response = {
             "plots": {
-                "wordcloud": f"data:image/png;base64,{wordcloud_img}",
+                "wordcloud": wordcloud_json,
                 "frequency_bar": f"data:image/png;base64,{frequency_plot_img}",
             },
             "frequencies": frequencies,
