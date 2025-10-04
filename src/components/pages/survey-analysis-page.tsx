@@ -284,14 +284,14 @@ const RatingChart = ({ data, title }: { data: { name: string, count: number, per
 
 const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number, passives: number, detractors: number, total: number }, title: string }) => {
     const NPSGauge = () => {
-        const [npsScore, setNpsScore] = useState(data.npsScore);
+        const npsScore = data.npsScore;
         
         const getColor = (score: number) => {
-            if (score >= 50) return '#10b981'; // Excellent
-            if (score >= 30) return '#84cc16'; // Good
-            if (score >= 0) return '#eab308'; // Fair
-            if (score >= -50) return '#f97316'; // Needs Improvement
-            return '#ef4444'; // Poor
+            if (score >= 50) return '#10b981'; // Excellent (green-500)
+            if (score >= 30) return '#84cc16'; // Good (lime-500)
+            if (score >= 0) return '#eab308'; // Fair (yellow-500)
+            if (score >= -50) return '#f97316'; // Needs Improvement (orange-500)
+            return '#ef4444'; // Poor (red-500)
         };
         
         const getLevel = (score: number) => {
@@ -310,59 +310,33 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
         
         return (
             <div className="flex flex-col items-center justify-center p-4">
-            <div className="relative flex flex-col items-center">
-                <PieChart width={250} height={150}>
-                <Pie
-                    data={gaugeData}
-                    cx={125}
-                    cy={150}
-                    startAngle={180}
-                    endAngle={0}
-                    innerRadius={80}
-                    outerRadius={120}
-                    dataKey="value"
-                    stroke="none"
-                >
-                    <Cell fill={color} />
-                    <Cell fill="#e5e7eb" />
-                </Pie>
-                </PieChart>
-                
-                <div className="absolute top-20 flex flex-col items-center">
-                <div className="text-5xl font-bold" style={{ color }}>
-                    {npsScore.toFixed(0)}
+                <div className="relative flex flex-col items-center">
+                    <PieChart width={250} height={150}>
+                    <Pie
+                        data={gaugeData}
+                        cx={125}
+                        cy={150}
+                        startAngle={180}
+                        endAngle={0}
+                        innerRadius={80}
+                        outerRadius={120}
+                        dataKey="value"
+                        stroke="none"
+                    >
+                        <Cell fill={color} />
+                        <Cell fill="#e5e7eb" />
+                    </Pie>
+                    </PieChart>
+                    
+                    <div className="absolute top-20 flex flex-col items-center">
+                    <div className="text-5xl font-bold" style={{ color }}>
+                        {npsScore.toFixed(0)}
+                    </div>
+                    <div className="text-lg text-gray-600 mt-2">
+                        {getLevel(npsScore)}
+                    </div>
+                    </div>
                 </div>
-                <div className="text-lg text-gray-600 mt-2">
-                    {getLevel(npsScore)}
-                </div>
-                </div>
-            </div>
-            
-            <div className="mt-8 w-full max-w-xs">
-                <input
-                    type="range"
-                    min="-100"
-                    max="100"
-                    value={npsScore}
-                    onChange={(e) => setNpsScore(Number(e.target.value))}
-                    className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                    style={{
-                    background: `linear-gradient(to right, #ef4444 0%, #f97316 25%, #eab308 50%, #84cc16 75%, #10b981 100%)`
-                    }}
-                />
-                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>-100</span>
-                    <span>0</span>
-                    <span>100</span>
-                </div>
-            </div>
-            
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg text-xs text-gray-600 space-y-1 w-full max-w-xs">
-                <div className="flex justify-between"><span>🔴 Poor:</span><span>-100 to -1</span></div>
-                <div className="flex justify-between"><span>🟠 Fair:</span><span>0 to 49</span></div>
-                <div className="flex justify-between"><span>🟢 Good:</span><span>50 to 69</span></div>
-                <div className="flex justify-between"><span>💚 Excellent:</span><span>70 to 100</span></div>
-            </div>
             </div>
         );
     };
@@ -497,24 +471,48 @@ const BestWorstChart = ({ data, title }: { data: {name: string, netScore: number
 );
 
 const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string, rows: string[], columns: string[] }) => {
+    const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked');
     const COLORS = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e']; // red to green
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <ChartContainer config={{}} className="w-full h-[400px]">
-                    <ResponsiveContainer>
-                        <BarChart data={data.chartData} layout="vertical">
-                            <XAxis type="number" stackId="a" domain={[0, 100]} unit="%"/>
-                            <YAxis type="category" dataKey="name" width={120} />
-                            <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
-                            <Legend />
-                            {data.columns.map((col: string, i: number) => (
-                                <Bar key={col} dataKey={`${col}_pct`} name={col} stackId="a" fill={COLORS[i % COLORS.length]} />
-                            ))}
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
+                <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
+                    <TabsList>
+                        <TabsTrigger value="stacked">Stacked Bar</TabsTrigger>
+                        <TabsTrigger value="grouped">Grouped Bar</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="stacked">
+                        <ChartContainer config={{}} className="w-full h-[400px]">
+                            <ResponsiveContainer>
+                                <BarChart data={data.chartData} layout="vertical">
+                                    <XAxis type="number" stackId="a" domain={[0, 100]} unit="%"/>
+                                    <YAxis type="category" dataKey="name" width={120} />
+                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
+                                    <Legend />
+                                    {data.columns.map((col: string, i: number) => (
+                                        <Bar key={col} dataKey={`${col}_pct`} name={col} stackId="a" fill={COLORS[i % COLORS.length]} />
+                                    ))}
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </TabsContent>
+                    <TabsContent value="grouped">
+                        <ChartContainer config={{}} className="w-full h-[400px]">
+                            <ResponsiveContainer>
+                                <BarChart data={data.chartData}>
+                                    <XAxis dataKey="name" />
+                                    <YAxis unit="%"/>
+                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`}/>} />
+                                    <Legend />
+                                    {data.columns.map((col: string, i: number) => (
+                                        <Bar key={col} dataKey={`${col}_pct`} name={col} fill={COLORS[i % COLORS.length]} />
+                                    ))}
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </TabsContent>
+                </Tabs>
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
@@ -525,9 +523,7 @@ const MatrixChart = ({ data, title, rows, columns }: { data: any, title: string,
                                 <TableRow key={r}><TableCell>{r}</TableCell>
                                     {data.columns.map((c: string) => {
                                         const value = data.heatmapData[r]?.[c] || 0;
-                                        const total = Object.values(data.heatmapData[r] || {}).reduce((s: any, v: any) => s+v, 0);
-                                        const pct = total > 0 ? (value / total) * 100 : 0;
-                                        return <TableCell key={c} className="text-center" style={{backgroundColor: `rgba(132, 204, 22, ${pct / 100})`}}>{value}</TableCell>
+                                        return <TableCell key={c} className="text-center font-mono">{value}</TableCell>
                                     })}
                                 </TableRow>
                             ))}
