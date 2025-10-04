@@ -100,18 +100,18 @@ const QuestionTypePalette = ({ onSelectType }: { onSelectType: (type: string) =>
 // --- Individual Question Type Components ---
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string; onAnswerChange?: (value: string) => void; onDelete?: (id: string) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: string) => void; cardClassName?: string; }) => {
     const handleOptionChange = (index: number, value: string) => {
-        const newOptions = [...question.options];
+        const newOptions = [...(question.options || [])];
         newOptions[index] = value;
         onUpdate?.({ ...question, options: newOptions });
     };
 
     const addOption = () => {
-        const newOptions = [...question.options, `Option ${question.options.length + 1}`];
+        const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
         onUpdate?.({ ...question, options: newOptions });
     };
 
     const deleteOption = (index: number) => {
-        const newOptions = question.options.filter((_:any, i:number) => i !== index);
+        const newOptions = (question.options || []).filter((_:any, i:number) => i !== index);
         onUpdate?.({ ...question, options: newOptions });
     };
 
@@ -125,7 +125,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
                     </div>
                 )}
                 <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-3">
-                    {question.options?.map((option: string, index: number) => (
+                    {(question.options || []).map((option: string, index: number) => (
                         <Label key={index} htmlFor={`q${question.id}-o${index}`} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
                             <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
                             <span className="flex-1">{option}</span>
@@ -166,7 +166,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
                     <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
                 </div>
             )}
-            <RadioGroup className="space-y-2">
+             <RadioGroup className="space-y-2">
                 {(question.options || []).map((option: string, index: number) => (
                     <div key={index} className="flex items-center space-x-2 group">
                         <RadioGroupItem value={option} id={`q${question.id}-o${index}-edit`} disabled />
@@ -553,7 +553,14 @@ const NPSQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isP
 
 const DescriptionBlock = ({ question, onDelete, onUpdate, isPreview, cardClassName }: { question: any; onDelete?: (id: string) => void; onUpdate?: (q:any) => void; isPreview?: boolean; cardClassName?: string; }) => (
     <div className={cn("p-4 bg-muted/20", cardClassName)}>
-      <div className="flex justify-end items-center mb-2">
+      <div className="flex justify-between items-start mb-2">
+        <Input 
+          placeholder="Optional Title" 
+          value={question.title} 
+          onChange={(e) => onUpdate?.({...question, title: e.target.value})} 
+          className="text-lg font-semibold border-none focus:ring-0 p-0 bg-transparent" 
+          readOnly={isPreview} 
+        />
         {!isPreview && onDelete && (
           <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}>
               <Trash2 className="w-5 h-5 text-destructive" />
@@ -605,7 +612,7 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdat
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {question.items?.map((item: string, index: number) => (
+                        {(question.items || []).map((item: string, index: number) => (
                             <TableRow key={index}>
                                 <TableCell>{item}</TableCell>
                                 <TableCell className="text-center">
@@ -655,7 +662,7 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdat
             <div>
                 <h4 className="font-semibold mb-2">Items to evaluate</h4>
                 <div className="space-y-2">
-                    {question.items?.map((item: string, index: number) => (
+                    {(question.items || []).map((item: string, index: number) => (
                          <div key={index} className="flex items-center space-x-2 group">
                             <Input value={item} onChange={e => handleItemChange(index, e.target.value)} readOnly={isPreview} />
                             {!isPreview && <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={() => deleteItem(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>}
@@ -723,7 +730,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-1/3"></TableHead>
-                        {question.columns.map((col: string, colIndex: number) => (
+                        {(question.columns || []).map((col: string, colIndex: number) => (
                             <TableHead key={colIndex} className="text-center text-xs w-[80px] group relative">
                                 <Input 
                                     value={question.scale?.[colIndex] || col} 
@@ -752,7 +759,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, 
                                     </Button>
                                 )}
                             </TableCell>
-                            {question.columns.map((col: string, colIndex: number) => (
+                            {(question.columns || []).map((col: string, colIndex: number) => (
                                 <TableCell key={colIndex} className="text-center">
                                      <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange?.(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
                                         <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`}/>
