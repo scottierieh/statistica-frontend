@@ -131,7 +131,10 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
         if (survey.endDate) {
             return `Ends ${format(new Date(survey.endDate), 'LLL dd, y')}`;
         }
-        return `Created on ${new Date(survey.created_date).toLocaleDateString()}`;
+        if (survey.created_date) {
+            return `Created on ${new Date(survey.created_date).toLocaleDateString()}`;
+        }
+        return `No dates set`;
     }, [survey.startDate, survey.endDate, survey.created_date]);
 
     return (
@@ -175,7 +178,7 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
                 <Link href={`/dashboard/survey/${survey.id}/analysis`} className="flex-1">
                     <Button variant="outline" className="w-full gap-2 hover:bg-slate-50">
                         <BarChart className="w-4 h-4" />
-                        Result
+                        Analyze
                     </Button>
                 </Link>
                 <Link href={`/dashboard/createsurvey?id=${survey.id}`} className="flex-1">
