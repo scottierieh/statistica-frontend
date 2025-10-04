@@ -4,7 +4,7 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, ComposedChart, Line, Legend } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, ComposedChart, Line, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
@@ -273,6 +273,9 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
     const detractorPct = data.total > 0 ? (data.detractors / data.total) * 100 : 0;
 
     const chartData = [{ name: 'NPS', promoters: promoterPct, passives: passivePct, detractors: detractorPct }];
+    
+    const gaugeData = [{ value: data.npsScore }];
+    const needleValue = data.npsScore;
 
     return (
         <Card>
@@ -281,6 +284,30 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
                 <div className="flex flex-col items-center justify-center">
                     <p className="text-sm text-muted-foreground">NPS Score</p>
                     <p className="text-6xl font-bold">{data.npsScore.toFixed(0)}</p>
+                    <ChartContainer config={{}} className="w-full h-32 -mt-4">
+                        <ResponsiveContainer>
+                            <PieChart>
+                                <Pie 
+                                    data={[{value:1},{value:1},{value:1}]} 
+                                    dataKey="value"
+                                    cx="50%" 
+                                    cy="80%" 
+                                    startAngle={180} 
+                                    endAngle={0} 
+                                    innerRadius={60} 
+                                    outerRadius={80}
+                                    paddingAngle={2}
+                                >
+                                     <Cell fill="#e74c3c" />
+                                     <Cell fill="#f1c40f" />
+                                     <Cell fill="#2ecc71" />
+                                </Pie>
+                                <text x="50%" y="75%" textAnchor="middle" dominantBaseline="middle" className="text-2xl font-bold fill-foreground">
+                                    {data.npsScore.toFixed(0)}
+                                </text>
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
                 </div>
                  <ChartContainer config={{}} className="w-full h-64">
                     <ResponsiveContainer>
@@ -288,9 +315,10 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
                             <XAxis type="number" hide domain={[0, 100]} />
                             <YAxis type="category" dataKey="name" hide />
                             <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(1)}%`} />} />
-                            <Bar dataKey="detractors" fill="#e74c3c" stackId="a" radius={[10,0,0,10]}/>
-                            <Bar dataKey="passives" fill="#f1c40f" stackId="a" />
-                            <Bar dataKey="promoters" fill="#2ecc71" stackId="a" radius={[0,10,10,0]} />
+                            <Legend layout="vertical" verticalAlign="middle" align="right" />
+                            <Bar dataKey="detractors" fill="#e74c3c" stackId="a" name={`Detractors (${detractorPct.toFixed(1)}%)`} />
+                            <Bar dataKey="passives" fill="#f1c40f" stackId="a" name={`Passives (${passivePct.toFixed(1)}%)`} />
+                            <Bar dataKey="promoters" fill="#2ecc71" stackId="a" name={`Promoters (${promoterPct.toFixed(1)}%)`} />
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -351,43 +379,39 @@ const BestWorstChart = ({ data, title }: { data: {name: string, netScore: number
                     <TabsTrigger value="net_score">Net Score</TabsTrigger>
                     <TabsTrigger value="best_vs_worst">Best vs Worst</TabsTrigger>
                 </TabsList>
-                <TabsContent value="net_score">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <ChartContainer config={{}} className="w-full h-[300px]">
-                            <ResponsiveContainer>
-                                <BarChart data={[...data].sort((a,b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
-                                    <YAxis type="category" dataKey="name" />
-                                    <XAxis type="number" />
-                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>}/>
-                                    <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Net Score</TableHead></TableRow></TableHeader>
-                            <TableBody>{[...data].sort((a,b) => b.netScore - a.netScore).map(item => (<TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.netScore.toFixed(1)}</TableCell></TableRow>))}</TableBody>
-                        </Table>
-                    </div>
+                <TabsContent value="net_score" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ChartContainer config={{}} className="w-full h-[300px]">
+                        <ResponsiveContainer>
+                            <BarChart data={[...data].sort((a,b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
+                                <YAxis type="category" dataKey="name" />
+                                <XAxis type="number" />
+                                <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>}/>
+                                <Bar dataKey="netScore" name="Net Score" fill="hsl(var(--primary))" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Net Score</TableHead></TableRow></TableHeader>
+                        <TableBody>{[...data].sort((a,b) => b.netScore - a.netScore).map(item => (<TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.netScore.toFixed(1)}</TableCell></TableRow>))}</TableBody>
+                    </Table>
                 </TabsContent>
-                <TabsContent value="best_vs_worst">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <ChartContainer config={{}} className="w-full h-[300px]">
-                            <ResponsiveContainer>
-                                <BarChart data={data} margin={{ left: 100 }}>
-                                    <YAxis />
-                                    <XAxis type="category" dataKey="name" />
-                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>}/>
-                                    <Legend />
-                                    <Bar dataKey="bestPct" name="Best %" fill="hsl(var(--chart-2))" />
-                                    <Bar dataKey="worstPct" name="Worst %" fill="hsl(var(--chart-5))" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Best %</TableHead><TableHead className="text-right">Worst %</TableHead></TableRow></TableHeader>
-                            <TableBody>{data.map(item => (<TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.bestPct.toFixed(1)}%</TableCell><TableCell className="text-right">{item.worstPct.toFixed(1)}%</TableCell></TableRow>))}</TableBody>
-                        </Table>
-                     </div>
+                <TabsContent value="best_vs_worst" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ChartContainer config={{}} className="w-full h-[300px]">
+                        <ResponsiveContainer>
+                            <BarChart data={data} margin={{ left: 100 }}>
+                                <YAxis />
+                                <XAxis type="category" dataKey="name" />
+                                <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>}/>
+                                <Legend />
+                                <Bar dataKey="bestPct" name="Best %" fill="hsl(var(--chart-2))" />
+                                <Bar dataKey="worstPct" name="Worst %" fill="hsl(var(--chart-5))" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Best %</TableHead><TableHead className="text-right">Worst %</TableHead></TableRow></TableHeader>
+                        <TableBody>{data.map(item => (<TableRow key={item.name}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.bestPct.toFixed(1)}%</TableCell><TableCell className="text-right">{item.worstPct.toFixed(1)}%</TableCell></TableRow>))}</TableBody>
+                    </Table>
                 </TabsContent>
             </Tabs>
         </CardContent>
@@ -490,8 +514,9 @@ export default function SurveyAnalysisPage() {
                     return { type: 'numeric', title: q.title, data: processNumericResponses(responses, questionId) };
                 case 'nps':
                     return { type: 'nps', title: q.title, data: processNPS(responses, questionId) };
+    
                 case 'text':
-                    return { type: 'text', title: q.title, data: processTextResponses(responses, questionId) };
+                     return { type: 'text', title: q.title, data: processTextResponses(responses, questionId) };
                 case 'best-worst':
                     return { type: 'best-worst', title: q.title, data: processBestWorst(responses, q) };
                 case 'matrix':
@@ -531,7 +556,7 @@ export default function SurveyAnalysisPage() {
                     case 'numeric':
                         return <NumericChart key={index} data={result.data} title={result.title} />;
                     case 'rating':
-                        return <RatingChart key={index} data={result.data} title={result.title} />;
+                         return <RatingChart key={index} data={result.data} title={result.title} />;
                     case 'nps':
                         return <NPSChart key={index} data={result.data} title={result.title} />;
     
@@ -548,3 +573,5 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
+```)
