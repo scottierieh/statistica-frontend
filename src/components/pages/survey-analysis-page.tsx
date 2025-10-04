@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -269,7 +268,7 @@ const NumericChart = ({ data, title, questionId }: { data: { mean: number, media
             if (!response.ok) throw new Error('Failed to generate box plot');
             const result = await response.json();
              if (result.plot) {
-              setBoxPlotImage(result.plot);
+              setBoxPlotImage(`data:image/png;base64,${result.plot}`);
             }
         } catch (error: any) {
             toast({variant: 'destructive', title: 'Plot Error', description: error.message});
@@ -487,55 +486,75 @@ const NPSChart = ({ data, title }: { data: { npsScore: number, promoters: number
 const TextResponsesDisplay = ({ data, title }: { data: string[], title: string }) => {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
-    const [plotData, setPlotData] = useState<any | null>(null);
+    const [wordCloudPlot, setWordCloudPlot] = useState<any | null>(null);
+    const [frequencyPlot, setFrequencyPlot] = useState<string | null>(null);
+    const [frequencies, setFrequencies] = useState<{[key: string]: number} | null>(null);
+    const [excludedWords, setExcludedWords] = useState<string[]>([]);
 
     const runWordCloudAnalysis = useCallback(async () => {
-        if (!data || data.length === 0) return;
+        const textToAnalyze = data.join('\n');
+        if (!textToAnalyze) return;
         setIsLoading(true);
         try {
             const response = await fetch('/api/analysis/wordcloud', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: data.join('\n') }),
+                body: JSON.stringify({ text: textToAnalyze, customStopwords: excludedWords.join(',') }),
             });
             if (!response.ok) throw new Error("Failed to generate word cloud");
             const result = await response.json();
             if(result.error) throw new Error(result.error);
 
-            if (result.plots?.wordcloud) {
-                setPlotData(JSON.parse(result.plots.wordcloud));
-            }
+            if (result.plots?.wordcloud) setWordCloudPlot(JSON.parse(result.plots.wordcloud));
+            if (result.plots?.frequency_bar) setFrequencyPlot(`data:image/png;base64,${result.plots.frequency_bar}`);
+            if (result.frequencies) setFrequencies(result.frequencies);
 
         } catch (error: any) {
             toast({ title: 'Word Cloud Error', description: error.message, variant: 'destructive' });
         } finally {
             setIsLoading(false);
         }
-    }, [data, toast]);
+    }, [data, toast, excludedWords]);
     
     useEffect(() => {
         runWordCloudAnalysis();
     }, [runWordCloudAnalysis]);
 
+    const handleWordDelete = (word: string) => {
+        setExcludedWords(prev => [...prev, word]);
+    }
+
     return (
         <Card>
             <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
-            <CardContent>
-                {isLoading ? <Skeleton className="h-80 w-full" /> : 
-                plotData ? (
-                     <Plot
-                        data={plotData.data}
-                        layout={plotData.layout}
-                        useResizeHandler={true}
-                        className="w-full h-[400px]"
-                    />
-                ) : (
-                    <ScrollArea className="h-64 p-4 border rounded-md">
-                        <ul className="space-y-4">
-                            {data.map((text, i) => <li key={i} className="text-sm border-b pb-2">{text}</li>)}
-                        </ul>
-                    </ScrollArea>
-                )}
+            <CardContent className="grid md:grid-cols-2 gap-4">
+                 <div>
+                    {isLoading ? <Skeleton className="h-80 w-full" /> : 
+                    wordCloudPlot ? (
+                         <Plot
+                            data={wordCloudPlot.data}
+                            layout={{...wordCloudPlot.layout, autosize: true}}
+                            useResizeHandler={true}
+                            className="w-full h-full"
+                        />
+                    ) : (
+                        <p>Could not render word cloud.</p>
+                    )}
+                </div>
+                 <ScrollArea className="h-80 border rounded-md">
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Word</TableHead><TableHead className="text-right">Frequency</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {frequencies && Object.entries(frequencies).map(([word, count]) => (
+                                <TableRow key={word}>
+                                    <TableCell>{word}</TableCell>
+                                    <TableCell className="text-right">{count}</TableCell>
+                                    <TableCell><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleWordDelete(word)}><Trash2 className="w-4 h-4 text-destructive"/></Button></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </ScrollArea>
             </CardContent>
         </Card>
     );
@@ -805,4 +824,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
