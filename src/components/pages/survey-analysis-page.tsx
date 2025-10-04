@@ -3,11 +3,11 @@
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2 } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -248,7 +248,6 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
 
 
 const NumericChart = ({ data, title, questionId, onDownload }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], values: number[] }, title: string, questionId: string, onDownload: () => void }) => {
-    const [chartType, setChartType] = useState('histogram');
     
     return (
         <Card>
@@ -804,34 +803,6 @@ export default function SurveyAnalysisPage() {
     const [error, setError] = useState("");
     const [analysisData, setAnalysisData] = useState<any[]>([]);
 
-    useEffect(() => {
-        const loadData = async () => {
-            if (surveyId) {
-                try {
-                    const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
-                    const currentSurvey = storedSurveys.find((s: any) => s.id === surveyId);
-                    setSurvey(currentSurvey || null);
-
-                    const storedResponses = JSON.parse(localStorage.getItem(`${surveyId}_responses`) || '[]');
-                    setResponses(storedResponses);
-
-                    if (currentSurvey) {
-                      const processed = await processAllData(currentSurvey.questions, storedResponses);
-                      setAnalysisData(processed);
-                    } else {
-                        setError("Survey not found.");
-                    }
-                } catch (error) {
-                    console.error("Failed to load survey data:", error);
-                    setError("Failed to load survey.");
-                } finally {
-                    setLoading(false);
-                }
-            }
-        };
-        loadData();
-    }, [surveyId]);
-    
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
       return Promise.all((questions || []).map(async (q: Question) => {
           const questionId = String(q.id);
@@ -858,12 +829,40 @@ export default function SurveyAnalysisPage() {
           }
       }).filter(Boolean));
     }, []);
+    
+    useEffect(() => {
+        const loadData = async () => {
+            if (surveyId) {
+                try {
+                    const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
+                    const currentSurvey = storedSurveys.find((s: any) => s.id === surveyId);
+                    setSurvey(currentSurvey || null);
 
+                    const storedResponses = JSON.parse(localStorage.getItem(`${surveyId}_responses`) || '[]');
+                    setResponses(storedResponses);
+
+                    if (currentSurvey) {
+                      const processed = await processAllData(currentSurvey.questions, storedResponses);
+                      setAnalysisData(processed);
+                    } else {
+                        setError("Survey not found.");
+                    }
+                } catch (error) {
+                    console.error("Failed to load survey data:", error);
+                    setError("Failed to load survey.");
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+        loadData();
+    }, [surveyId, processAllData]);
+    
     const downloadChartAsPng = useCallback((chartId: string, title: string) => {
         const chartElement = chartRefs.current[chartId];
         if (chartElement) {
             import('html2canvas').then(html2canvas => {
-                html2canvas(chartElement, { scale: 2 }).then(canvas => {
+                html2canvas.default(chartElement, { scale: 2 }).then(canvas => {
                     const image = canvas.toDataURL("image/png", 1.0);
                     const link = document.createElement('a');
                     link.download = `${title.replace(/ /g, '_')}.png`;
