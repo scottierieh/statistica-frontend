@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -256,8 +257,7 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
         </Card>
     );
 };
-
-
+  
 const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'bar' | 'pie' | 'treemap'>('bar');
     
@@ -1183,13 +1183,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode, varName: string }) => {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{varName}</CardTitle>
-            </CardHeader>
-            <CardContent>{children}</CardContent>
-        </Card>
-    );
-};
