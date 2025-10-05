@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -97,12 +96,18 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
             return [];
         }
         
-        const counts = jStat.histogram(values, numBins);
-        const binEdges = jStat.arange(numBins + 1, minVal, binWidth);
+        const binEdges = jStat.arange(numBins).map((_, i) => minVal + i * binWidth);
+        binEdges.push(minVal + numBins * binWidth);
 
-        return binEdges.slice(0,-1).map((binStart: number, i: number) => ({
-            name: `${binStart.toFixed(1)}-${(binStart + binWidth).toFixed(1)}`,
-            count: counts[i] || 0,
+        const counts = Array(numBins).fill(0);
+        values.forEach(val => {
+            const binIndex = Math.min(Math.floor((val - minVal) / binWidth), numBins - 1);
+            if(binIndex >= 0) counts[binIndex]++;
+        });
+
+        return counts.map((count: number, i: number) => ({
+            name: `${binEdges[i].toFixed(1)}-${binEdges[i+1]?.toFixed(1)}`,
+            count
         }));
     })();
 
@@ -326,7 +331,7 @@ const NumericChart = ({ data, title, questionId, onDownload }: { data: { mean: n
 
 
 
-const RatingChart = ({ data, title, onDownload }: { data: { values: number[], count: number }, title: string, onDownload: () => void }) => {
+const RatingChart = ({ data, title, onDownload }: { data: { values: number[], count: number, mean: number }, title: string, onDownload: () => void }) => {
     if (!data || data.values.length === 0) {
         return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent><p>No data available for this rating question.</p></CardContent></Card>;
     }
@@ -346,9 +351,14 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
         percentage: data.count > 0 ? (count / data.count) * 100 : 0
     }));
 
-    const totalResponses = data.count;
-    const weightedSum = data.values.reduce((sum, val) => sum + val, 0);
-    const averageRating = totalResponses > 0 ? weightedSum / totalResponses : 0;
+    const averageRating = data.mean;
+
+    const interpretation = useMemo(() => {
+        if (averageRating >= 4.5) return { text: "Excellent satisfaction. The vast majority of responses are positive.", variant: "default" };
+        if (averageRating >= 3.5) return { text: "Good satisfaction. Most responses are positive, but there is room for improvement.", variant: "default" };
+        if (averageRating >= 2.5) return { text: "Mixed feedback. Responses are varied, indicating inconsistent experiences.", variant: "secondary" };
+        return { text: "Low satisfaction. A significant portion of responses are negative, signaling potential issues.", variant: "destructive" };
+    }, [averageRating]);
     
     return (
         <Card>
@@ -387,6 +397,13 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
                     </TableBody>
                 </Table>
             </CardContent>
+            <CardFooter>
+                 <Alert variant={interpretation.variant as any}>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Interpretation</AlertTitle>
+                    <AlertDescription>{interpretation.text}</AlertDescription>
+                </Alert>
+            </CardFooter>
         </Card>
     );
 };
@@ -582,6 +599,8 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
         bestPct: item.best_pct,
         worstPct: item.worst_pct,
     }));
+    
+    const formattedInterpretation = data.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
     return (
         <Card>
@@ -652,7 +671,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
                         </Table>
                          <Alert>
                             <AlertTitle className="flex items-center gap-2"><Bot/> Interpretation</AlertTitle>
-                            <AlertDescription dangerouslySetInnerHTML={{ __html: data.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}} />
+                            <AlertDescription dangerouslySetInnerHTML={{ __html: formattedInterpretation}} />
                         </Alert>
                     </div>
                 </div>
