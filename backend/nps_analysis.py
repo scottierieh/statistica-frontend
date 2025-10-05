@@ -22,14 +22,12 @@ def get_nps_interpretation(score, promoters, passives, detractors, total):
     level = ""
     if score >= 70:
         level = "Excellent"
-    elif score >= 50:
-        level = "Very Good"
     elif score >= 30:
         level = "Good"
     elif score >= 0:
         level = "Fair"
     else:
-        level = "Poor"
+        level = "Needs Improvement"
 
     interpretation = (
         f"The Net Promoter Score (NPS) is calculated by subtracting the percentage of Detractors from the percentage of Promoters. "
@@ -39,13 +37,11 @@ def get_nps_interpretation(score, promoters, passives, detractors, total):
 
     if level == "Excellent":
         interpretation += "Your customers are highly loyal and are actively promoting your brand, which is a strong indicator of future growth."
-    elif level == "Very Good":
-        interpretation += "You have a strong base of satisfied customers. Focusing on converting Passives can elevate your score further."
     elif level == "Good":
-        interpretation += "A solid performance, but there is clear room for improvement. Investigate feedback from Passives and Detractors."
+        interpretation += "You have a strong base of satisfied customers. Focusing on converting Passives can elevate your score further."
     elif level == "Fair":
         interpretation += "Your customer base is lukewarm. It's crucial to understand the reasons for dissatisfaction among Detractors to prevent negative word-of-mouth."
-    else: # Poor
+    else: # Needs Improvement
         interpretation += "Your company has more detractors than promoters, indicating significant issues with customer satisfaction that need immediate attention."
 
     return interpretation
