@@ -377,9 +377,7 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
                         <CardContent>
                              <Alert>
                                 <AlertTitle>Analysis Summary</AlertTitle>
-                                <AlertDescription className="whitespace-pre-wrap">
-                                    {results.interpretation}
-                                </AlertDescription>
+                                <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}/>
                             </Alert>
                         </CardContent>
                     </Card>
@@ -525,4 +523,3 @@ export default function DeaPage({ data, allHeaders, numericHeaders, onLoadExampl
         </div>
     );
 }
-

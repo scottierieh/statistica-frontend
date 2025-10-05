@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Columns, AlertTriangle, HelpCircle, CheckCircle2, MoveRight, FileSearch, Settings, BarChart as BarChartIcon, Users, Handshake } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -186,6 +186,8 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
         if (!results?.interpretation) return null;
         return results.interpretation
             .replace(/\n/g, '<br />')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<i>$1</i>')
             .replace(/χ²\((.*?)\)\s*=\s*(.*?),/g, '<i>χ</i>²($1) = $2,')
             .replace(/p\s*=\s*(\.\d+)/g, '<i>p</i> = $1')
             .replace(/p\s*<\s*(\.\d+)/g, '<i>p</i> < $1')
@@ -224,6 +226,44 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
             }
         };
 
+        const getRowTotal = (rowIndex: number) => {
+            switch(tableFormat) {
+                case 'row_percent':
+                    return '100.0%';
+                case 'col_percent':
+                    return ''; // 열 % 모드에서는 행 합계 숨김
+                case 'total_percent':
+                    return ((rowTotals[rowIndex] / total) * 100 || 0).toFixed(1) + '%';
+                default:
+                    return rowTotals[rowIndex];
+            }
+        };
+
+        const getColTotal = (colIndex: number) => {
+            switch(tableFormat) {
+                case 'row_percent':
+                    return ''; // 행%/열% 모드에서는 열 합계 숨김
+                case 'col_percent':
+                    return '100.0%';
+                case 'total_percent':
+                    return ((colTotals[colIndex] / total) * 100 || 0).toFixed(1) + '%';
+                default:
+                    return colTotals[colIndex];
+            }
+        };
+
+        const getGrandTotal = () => {
+            switch(tableFormat) {
+                case 'row_percent':
+                case 'col_percent':
+                    return ''; // 행%/열% 모드에서는 전체 합계 숨김
+                case 'total_percent':
+                    return '100.0%';
+                default:
+                    return total;
+            }
+        };
+
         return (
              <Table>
                 <TableHeader>
@@ -238,13 +278,13 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                         <TableRow key={r}>
                             <TableHead>{r}</TableHead>
                             {col_levels.map((c, colIndex) => <TableCell key={c} className="text-right font-mono">{getCellContent(r, c, rowIndex, colIndex)}</TableCell>)}
-                            <TableCell className="text-right font-bold font-mono">{tableFormat === 'counts' ? rowTotals[rowIndex] : '100.0%'}</TableCell>
+                            <TableCell className="text-right font-bold font-mono">{getRowTotal(rowIndex)}</TableCell>
                         </TableRow>
                     ))}
                     <TableRow className="font-bold bg-muted/50">
                         <TableHead>Total</TableHead>
-                         {col_levels.map((c, colIndex) => <TableCell key={c} className="text-right font-mono">{tableFormat === 'counts' ? colTotals[colIndex] : '100.0%'}</TableCell>)}
-                        <TableCell className="text-right font-mono">{tableFormat === 'counts' ? total : '100.0%'}</TableCell>
+                         {col_levels.map((c, colIndex) => <TableCell key={c} className="text-right font-mono">{getColTotal(colIndex)}</TableCell>)}
+                        <TableCell className="text-right font-mono">{getGrandTotal()}</TableCell>
                     </TableRow>
                 </TableBody>
             </Table>
@@ -291,8 +331,8 @@ export default function CrosstabPage({ data, categoricalHeaders, onLoadExample }
                         <CardContent className="grid lg:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                 <Alert variant={results.chi_squared.p_value < 0.05 ? 'default' : 'destructive'}>
-                                    {results.chi_squared.p_value < 0.05 ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <AlertTriangle className="h-4 w-4" />}
-                                    <AlertTitle>
+                                  {results.chi_squared.p_value < 0.05 ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <AlertTriangle className="h-4 w-4" />}
+                                  <AlertTitle>
                                         {results.chi_squared.p_value < 0.05 ? 'Statistically Significant Association' : 'No Significant Association Found'}
                                     </AlertTitle>
                                     <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }}/>

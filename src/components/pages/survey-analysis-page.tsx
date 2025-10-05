@@ -77,31 +77,34 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
     const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
     const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / (values.length > 1 ? values.length -1 : 1) );
     
-    const n = values.length;
-    const iqr = jStat.percentile(values, 0.75) - jStat.percentile(values, 0.25);
-    let binWidth;
-    if (iqr > 0) {
-        binWidth = 2 * iqr * Math.pow(n, -1/3); // Freedman-Diaconis rule
-    } else {
-        const range = Math.max(...values) - Math.min(...values);
-        binWidth = range > 0 ? range / 10 : 1;
-    }
+    const histogramData = (() => {
+        if (!values || values.length === 0) return [];
+        const n = values.length;
+        const iqr = jStat.percentile(values, 0.75) - jStat.percentile(values, 0.25);
+        let binWidth;
+        if (iqr > 0) {
+            binWidth = 2 * iqr * Math.pow(n, -1/3); // Freedman-Diaconis rule
+        } else {
+            const range = Math.max(...values) - Math.min(...values);
+            binWidth = range > 0 ? range / 10 : 1;
+        }
 
-    const minVal = Math.min(...values);
-    const maxVal = Math.max(...values);
-    const numBins = binWidth > 0 ? Math.min(50, Math.ceil((maxVal - minVal) / binWidth)) : 10;
-    
-    if (numBins <= 0 || !isFinite(numBins)) {
-        return { mean: 0, median: 0, std: 0, count: 0, histogram: [], boxplot: [], values: [] };
-    }
-    
-    const histogramBinsResult = jStat.histogram(values, numBins);
-    const binEdges = jStat.arange(numBins + 1, minVal, binWidth);
+        const minVal = Math.min(...values);
+        const maxVal = Math.max(...values);
+        const numBins = binWidth > 0 ? Math.min(50, Math.ceil((maxVal - minVal) / binWidth)) : 10;
+        
+        if (numBins <= 0 || !isFinite(numBins)) {
+            return [];
+        }
+        
+        const counts = jStat.histogram(values, numBins);
+        const binEdges = jStat.arange(numBins + 1, minVal, binWidth);
 
-    const histogramData = histogramBinsResult ? binEdges.slice(0,-1).map((binStart: number, i: number) => ({
-        name: `${binStart.toFixed(1)}-${binEdges[i+1]?.toFixed(1)}`,
-        count: histogramBinsResult[i] || 0,
-    })) : [];
+        return binEdges.slice(0,-1).map((binStart: number, i: number) => ({
+            name: `${binStart.toFixed(1)}-${(binStart + binWidth).toFixed(1)}`,
+            count: counts[i] || 0,
+        }));
+    })();
 
     const q1 = jStat.percentile(sorted, 0.25);
     const q3 = jStat.percentile(sorted, 0.75);
@@ -649,7 +652,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
                         </Table>
                          <Alert>
                             <AlertTitle className="flex items-center gap-2"><Bot/> Interpretation</AlertTitle>
-                            <AlertDescription>{data.interpretation}</AlertDescription>
+                            <AlertDescription dangerouslySetInnerHTML={{ __html: data.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}} />
                         </Alert>
                     </div>
                 </div>
@@ -702,7 +705,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
         const getColTotal = (colIndex: number) => {
             switch(tableFormat) {
                 case 'row_percent':
-                    return ''; // 행 % 모드에서는 열 합계 숨김
+                    return ''; // 행%/열% 모드에서는 열 합계 숨김
                 case 'col_percent':
                     return '100.0%';
                 case 'total_percent':
