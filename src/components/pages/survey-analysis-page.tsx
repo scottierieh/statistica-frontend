@@ -1048,7 +1048,7 @@ export default function SurveyAnalysisPage() {
     
     const categoricalQuestions = useMemo(() => {
         if (!survey) return [];
-        return survey.questions.filter((q: Question) => ['single', 'multiple', 'dropdown'].includes(q.type));
+        return survey.questions.filter((q: Question) => ['single', 'multiple', 'dropdown'].includes(q.type) && q.title);
     }, [survey]);
 
     if (loading) {
