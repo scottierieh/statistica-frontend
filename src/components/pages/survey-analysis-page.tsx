@@ -8,7 +8,8 @@ import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pi
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns } from 'lucide-react';
-import type { Survey, SurveyResponse, Question } from '@/types/survey';
+import type { Survey, SurveyResponse } from '@/types/survey';
+import type { Question } from '@/entities/Survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
@@ -392,7 +393,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
-                <div className="space-y-4">
+                 <div className="space-y-4">
                     <Table>
                         <TableHeader><TableRow><TableHead>Metric</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
                         <TableBody>
@@ -599,7 +600,6 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
         </Card>
       );
 };
-
 
 
 const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], title: string, onDownload: () => void }) => {
@@ -855,51 +855,48 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
             <CardHeader>
                 <div className="flex justify-between items-center">
                     <CardTitle>{title}</CardTitle>
-                    <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+                    <div className="flex items-top gap-2">
+                       <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="w-auto">
+                            <TabsList>
+                                <TabsTrigger value="stacked">Stacked</TabsTrigger>
+                                <TabsTrigger value="grouped">Grouped</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                        <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+                    </div>
                 </div>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
-                        <TabsList>
-                            <TabsTrigger value="stacked">Stacked</TabsTrigger>
-                            <TabsTrigger value="grouped">Grouped</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="stacked">
-                            <ChartContainer config={{}} className="w-full h-[400px]">
-                                <ResponsiveContainer>
-                                    <BarChart data={data.chartData} layout="vertical" margin={{ left: 100 }}>
-                                        <XAxis type="number" stackId="a" domain={[0, 100]} unit="%"/>
-                                        <YAxis type="category" dataKey="name" width={120} />
-                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
-                                        <Legend />
-                                        {data.columns.map((col: string, i: number) => (
-                                            <Bar key={col} dataKey={`${col}_pct`} name={col} stackId="a" fill={COLORS[i % COLORS.length]}>
-                                                <LabelList dataKey={`${col}_pct`} position="center" formatter={(value: number) => value > 5 ? `${value.toFixed(1)}%` : ''} style={{ fill: '#fff', fontSize: 12, fontWeight: 'bold' }} />
-                                            </Bar>
-                                        ))}
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        </TabsContent>
-                        <TabsContent value="grouped">
-                            <ChartContainer config={{}} className="w-full h-[400px]">
-                                <ResponsiveContainer>
-                                    <BarChart data={data.chartData}>
-                                        <XAxis dataKey="name" />
-                                        <YAxis unit="%"/>
-                                        <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
-                                        <Legend />
-                                        {data.columns.map((col: string, i: number) => (
-                                            <Bar key={col} dataKey={`${col}_pct`} name={col} fill={COLORS[i % COLORS.length]}>
-                                                <LabelList dataKey={`${col}_pct`} position="top" formatter={(value: number) => `${value.toFixed(1)}%`} style={{ fontSize: 11 }} />
-                                            </Bar>
-                                        ))}
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                        </TabsContent>
-                    </Tabs>
+                    <ChartContainer config={{}} className="w-full h-[400px]">
+                        <ResponsiveContainer>
+                            {chartType === 'stacked' ? (
+                                <BarChart data={data.chartData} layout="vertical" margin={{ left: 100 }}>
+                                    <XAxis type="number" stackId="a" domain={[0, 100]} unit="%"/>
+                                    <YAxis type="category" dataKey="name" width={120} />
+                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
+                                    <Legend />
+                                    {data.columns.map((col: string, i: number) => (
+                                        <Bar key={col} dataKey={`${col}_pct`} name={col} stackId="a" fill={COLORS[i % COLORS.length]}>
+                                            <LabelList dataKey={`${col}_pct`} position="center" formatter={(value: number) => value > 5 ? `${value.toFixed(1)}%` : ''} style={{ fill: '#fff', fontSize: 12, fontWeight: 'bold' }} />
+                                        </Bar>
+                                    ))}
+                                </BarChart>
+                            ) : (
+                                <BarChart data={data.chartData}>
+                                    <XAxis dataKey="name" />
+                                    <YAxis unit="%"/>
+                                    <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(1)}%`} />} />
+                                    <Legend />
+                                    {data.columns.map((col: string, i: number) => (
+                                        <Bar key={col} dataKey={`${col}_pct`} name={col} fill={COLORS[i % COLORS.length]}>
+                                            <LabelList dataKey={`${col}_pct`} position="top" formatter={(value: number) => `${value.toFixed(1)}%`} style={{ fontSize: 11 }} />
+                                        </Bar>
+                                    ))}
+                                </BarChart>
+                            )}
+                        </ResponsiveContainer>
+                    </ChartContainer>
                     <div className="overflow-x-auto">
                         {interpretation && (
                             <Alert variant={interpretation.variant as any}>
@@ -1017,10 +1014,15 @@ export default function SurveyAnalysisPage() {
         setCrosstabResult(null);
 
         try {
-            const crosstabData = responses.map(r => ({
-                [crosstabRow]: (r.answers as any)[crosstabRow],
-                [crosstabCol]: (r.answers as any)[crosstabCol],
-            }));
+            const crosstabData = responses.map(r => {
+                 const rowQuestion = survey.questions.find((q: Question) => q.title === crosstabRow);
+                 const colQuestion = survey.questions.find((q: Question) => q.title === crosstabCol);
+
+                return {
+                    [crosstabRow]: (r.answers as any)[rowQuestion.id],
+                    [crosstabCol]: (r.answers as any)[colQuestion.id],
+                }
+            });
             
             const response = await fetch('/api/analysis/crosstab', {
                 method: 'POST',
@@ -1041,7 +1043,7 @@ export default function SurveyAnalysisPage() {
         } finally {
             setIsCrosstabLoading(false);
         }
-    }, [crosstabRow, crosstabCol, responses, toast]);
+    }, [crosstabRow, crosstabCol, responses, toast, survey]);
     
     const categoricalQuestions = useMemo(() => {
         if (!survey) return [];
@@ -1124,7 +1126,7 @@ export default function SurveyAnalysisPage() {
                                     <Select value={crosstabRow} onValueChange={setCrosstabRow}>
                                         <SelectTrigger><SelectValue placeholder="Select Row..."/></SelectTrigger>
                                         <SelectContent>
-                                            {categoricalQuestions.map((q: Question) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}
+                                            {categoricalQuestions.map((q: Question) => <SelectItem key={q.id} value={q.title}>{q.title}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -1133,7 +1135,7 @@ export default function SurveyAnalysisPage() {
                                     <Select value={crosstabCol} onValueChange={setCrosstabCol} disabled={!crosstabRow}>
                                         <SelectTrigger><SelectValue placeholder="Select Column..."/></SelectTrigger>
                                         <SelectContent>
-                                            {categoricalQuestions.filter((q: Question) => String(q.id) !== crosstabRow).map((q: Question) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}
+                                            {categoricalQuestions.filter((q: Question) => q.title !== crosstabRow).map((q: Question) => <SelectItem key={q.id} value={q.title}>{q.title}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -1158,62 +1160,75 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-```
-- src/hooks/use-localstorage.ts:
-```ts
-'use client';
-    
-    import { useState, useEffect } from 'react';
-    
-    export function useLocalStorage<T>(key: string, initialValue: T) {
-      const [storedValue, setStoredValue] = useState<T>(() => {
-        if (typeof window === 'undefined') {
-          return initialValue;
-        }
-        try {
-          const item = window.localStorage.getItem(key);
-          return item ? JSON.parse(item) : initialValue;
-        } catch (error) {
-          console.log(error);
-          return initialValue;
-        }
-      });
-    
-      const setValue = (value: T | ((val: T) => T)) => {
-        try {
-          const valueToStore =
-            value instanceof Function ? value(storedValue) : value;
-          setStoredValue(valueToStore);
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem(key, JSON.stringify(valueToStore));
-          }
-        } catch (error) {
-          console.log(error);
-        }
-      };
-    
-      useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const item = window.localStorage.getItem(key);
-            if (item) {
-                try {
-                    setStoredValue(JSON.parse(item));
-                } catch (e) {
-                    // If parsing fails, it might be a raw string
-                    // Or could be corrupted, best to fall back to initial
-                    console.warn(`Could not parse stored json for key "${key}"`);
-                }
-            }
-        }
-      }, [key]);
-    
-      return [storedValue, setValue] as const;
-    }
 
+```
+- src/components/user-nav.tsx:
+```tsx
+"use client"
+
+import { LogOut } from "lucide-react"
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
+
+export function UserNav() {
+  const { user, logout } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = () => {
+    logout()
+    router.push("/login")
+  }
+
+  if (!user) {
+    return null
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={"/avatars/01.png"} alt={user.name} />
+            <AvatarFallback>{user.name?.[0].toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user.email}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup></DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Log out</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
 ```
 - src/hooks/use-toast.ts:
-```ts
+```tsx
 "use client"
 
 // Inspired by react-hot-toast library
@@ -1413,6 +1428,7 @@ export { useToast, toast }
 - src/lib/stats.ts:
 ```ts
 
+
 import Papa from 'papaparse';
 
 export type DataPoint = Record<string, number | string>;
@@ -1450,7 +1466,7 @@ export const parseData = (
     const values = data.map(row => row[header]).filter(val => val !== null && val !== undefined && val !== '');
     
     // Check if every non-empty value is a number
-    const isNumericColumn = values.length > 0 && values.every(val => typeof val === 'number' && isFinite(val));
+    const isNumericColumn = values.every(val => typeof val === 'number' && isFinite(val));
 
     if (isNumericColumn) {
         numericHeaders.push(header);
@@ -1645,10 +1661,9 @@ export const calculateDescriptiveStats = (data: DataSet, headers: string[]) => {
 export const calculateCorrelationMatrix = (data: DataSet, headers: string[]) => {
     return [];
 };
-
 ```
-- src/lib/utils.ts:
-```ts
+- src/lib/utils.tsx:
+```tsx
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
  
@@ -1681,35 +1696,42 @@ export interface SurveyResponse {
 }
 
 export type Question = {
-    id: string;
-    type: string;
-    title: string;
-    description?: string;
-    options?: string[];
-    items?: string[];
-    columns?: string[];
-    scale?: string[];
-    required?: boolean;
-    content?: string;
-    imageUrl?: string;
-    rows?: string[];
-    text?: string;
-};
-
-
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  options?: string[];
+  items?: string[];
+  columns?: string[];
+  scale?: string[];
+  required?: boolean;
+  content?: string;
+  imageUrl?: string;
+  rows?: string[];
+  text?: string;
+}
 ```
 - tailwind.config.ts:
 ```ts
-import type {Config} from 'tailwindcss';
+import type { Config } from "tailwindcss"
 
-export default {
-  darkMode: ['class'],
+const config = {
+  darkMode: ["class"],
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+	],
+  prefix: "",
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
@@ -1769,66 +1791,28 @@ export default {
         },
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
-        'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
-        'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
-} satisfies Config;
+  plugins: [require("tailwindcss-animate")],
+} satisfies Config
 
-```
-- tsconfig.json:
-```json
-{
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
-}
-
+export default config
 ```
