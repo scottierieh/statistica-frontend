@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -567,8 +568,17 @@ const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], tit
 };
 
 
-const BestWorstChart = ({ data, title, onDownload }: { data: { name: string, netScore: number, bestPct: number, worstPct: number }[], title: string, onDownload: () => void }) => {
+const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], interpretation: string }, title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
+
+    if (!data || !data.scores) return null;
+
+    const chartData = data.scores.map(item => ({
+        name: item.item,
+        netScore: item.net_score,
+        bestPct: item.best_pct,
+        worstPct: item.worst_pct,
+    }));
 
     return (
         <Card>
@@ -591,7 +601,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { name: string, net
                     <ChartContainer config={{}} className="w-full h-[300px]">
                         <ResponsiveContainer>
                             {chartType === 'net_score' ? (
-                                <BarChart data={[...data].sort((a, b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
+                                <BarChart data={[...chartData].sort((a, b) => b.netScore - a.netScore)} layout="vertical" margin={{ left: 100 }}>
                                     <YAxis type="category" dataKey="name" width={100} />
                                     <XAxis type="number" />
                                     <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
@@ -600,7 +610,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { name: string, net
                                     </Bar>
                                 </BarChart>
                             ) : (
-                                <BarChart data={data} margin={{ left: 100 }}>
+                                <BarChart data={chartData} margin={{ left: 20 }}>
                                     <YAxis />
                                     <XAxis type="category" dataKey="name" />
                                     <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
@@ -616,48 +626,38 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { name: string, net
                         </ResponsiveContainer>
                     </ChartContainer>
                     
-                    {chartType === 'net_score' ? (
+                    <div className="space-y-4">
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Item</TableHead>
                                     <TableHead className="text-right">Net Score</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {[...data].sort((a, b) => b.netScore - a.netScore).map(item => (
-                                    <TableRow key={item.name}>
-                                        <TableCell>{item.name}</TableCell>
-                                        <TableCell className="text-right">{item.netScore.toFixed(1)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Item</TableHead>
                                     <TableHead className="text-right">Best %</TableHead>
                                     <TableHead className="text-right">Worst %</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {data.map(item => (
+                                {[...chartData].sort((a, b) => b.netScore - a.netScore).map(item => (
                                     <TableRow key={item.name}>
                                         <TableCell>{item.name}</TableCell>
-                                        <TableCell className="text-right">{item.bestPct.toFixed(1)}%</TableCell>
-                                        <TableCell className="text-right">{item.worstPct.toFixed(1)}%</TableCell>
+                                        <TableCell className="text-right font-mono">{item.netScore.toFixed(1)}</TableCell>
+                                        <TableCell className="text-right font-mono">{item.bestPct.toFixed(1)}%</TableCell>
+                                        <TableCell className="text-right font-mono">{item.worstPct.toFixed(1)}%</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
-                    )}
+                         <Alert>
+                            <AlertTitle className="flex items-center gap-2"><Bot/> Interpretation</AlertTitle>
+                            <AlertDescription>{data.interpretation}</AlertDescription>
+                        </Alert>
+                    </div>
                 </div>
             </CardContent>
         </Card>
     );
 };
+
 
 const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, title: string, rows: string[], columns: string[], onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked');
@@ -980,4 +980,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
