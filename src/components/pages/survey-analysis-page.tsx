@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -27,7 +27,7 @@ import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -159,12 +159,10 @@ const processMatrixResponses = (responses: SurveyResponse[], question: Question)
         const answer = (response.answers as any)[questionId];
         if (answer && typeof answer === 'object') {
             Object.entries(answer).forEach(([row, colValue]) => {
-                const colIndex = question.columns?.indexOf(colValue as string);
-                if (colIndex !== -1 && colIndex !== undefined) {
-                    const colLabel = columns[colIndex];
-                     if (result[row] && colLabel in result[row]) {
-                        result[row][colLabel]++;
-                    }
+                if (result[row] && colValue in result[row]) {
+                    result[row][colValue as string]++;
+                } else if (result[row]) { // Handle cases where column might not be pre-initialized if scale/columns differ
+                    result[row][colValue as string] = 1;
                 }
             });
         }
@@ -174,7 +172,7 @@ const processMatrixResponses = (responses: SurveyResponse[], question: Question)
         const entry: {[key: string]: string | number} = { name: row };
         let total = 0;
         columns.forEach(col => {
-            const count = result[row][col] || 0;
+            const count = result[row]?.[col] || 0;
             entry[col] = count;
             total += count;
         });
@@ -919,13 +917,13 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                     {rows.map((r: string, rowIndex: number) => (
                         <TableRow key={r}>
                             <TableHead>{r}</TableHead>
-                            {columns.map((c: string, colIndex: number) => <TableCell key={c} className="text-right font-mono">{getCellContent(r, c, rowIndex, colIndex)}</TableCell>)}
+                            {columns.map((c: string, colIndex: number) => <TableCell key={`${r}-${c}`} className="text-right font-mono">{getCellContent(r, c, rowIndex, colIndex)}</TableCell>)}
                             <TableCell className="text-right font-bold font-mono">{getRowTotal(rowIndex)}</TableCell>
                         </TableRow>
                     ))}
                     <TableRow className="font-bold bg-muted/50">
                         <TableHead>Total</TableHead>
-                         {columns.map((c: string, colIndex: number) => <TableCell key={c} className="text-right font-mono">{getColTotal(colIndex)}</TableCell>)}
+                         {columns.map((c: string, colIndex: number) => <TableCell key={`total-${c}`} className="text-right font-mono">{getColTotal(colIndex)}</TableCell>)}
                         <TableCell className="text-right font-mono">{getGrandTotal()}</TableCell>
                     </TableRow>
                 </TableBody>
@@ -1121,7 +1119,7 @@ export default function SurveyAnalysisPage() {
             
              <Tabs defaultValue="results" className="w-full">
                 <TabsList>
-                    <TabsTrigger value="results">Result</TabsTrigger>
+                    <TabsTrigger value="results">Results</TabsTrigger>
                     <TabsTrigger value="further_analysis">Further Analysis</TabsTrigger>
                 </TabsList>
                 <TabsContent value="results" className="mt-4">
