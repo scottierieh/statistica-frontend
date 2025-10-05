@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -229,7 +230,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                   <Tooltip content={<ChartTooltipContent formatter={(value) => `${value} (${(data.find(d=>d.count === value)?.percentage || 0).toFixed(1)}%)`} />} cursor={{fill: 'hsl(var(--muted))'}} />
                                   <Bar dataKey="count" name="Frequency" radius={4}>
                                     <LabelList dataKey="count" position="insideRight" style={{ fill: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 'bold' }} />
-                                    {data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                    {data.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                   </Bar>
                             </BarChart>
                             </ResponsiveContainer>
@@ -685,6 +686,52 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
     const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked');
     const [tableFormat, setTableFormat] = useState('counts');
     
+    const interpretation = useMemo(() => {
+        if (!data || !data.chartData) return null;
+        
+        const numericColumns = columns.map(c => parseFloat(c)).filter(c => !isNaN(c));
+        const useNumericScores = numericColumns.length === columns.length;
+
+        if (!useNumericScores) {
+            // Find most chosen category for each row
+            const topChoices = data.rows.map((rowName: string) => {
+                const rowData = data.heatmapData[rowName];
+                const topChoice = Object.entries(rowData).reduce((a, b) => (b[1] as number) > (a[1] as number) ? b : a, ['', 0]);
+                return { row: rowName, choice: topChoice[0], count: topChoice[1] };
+            });
+            const mostCommonChoice = topChoices.reduce((a, b) => a.count > b.count ? a : b);
+            return {
+                title: "Most Frequent Selections",
+                text: `The most frequently selected option overall is <strong>'${mostCommonChoice.choice}'</strong> for the item <strong>'${mostCommonChoice.row}'</strong>. This suggests a strong preference or perception for this combination.`,
+                variant: 'default',
+            };
+        }
+
+        const averageScores = data.rows.map((rowName: string) => {
+            const rowData = data.heatmapData[rowName];
+            let totalScore = 0;
+            let totalCount = 0;
+            numericColumns.forEach((score, index) => {
+                const colLabel = columns[index];
+                const count = rowData[colLabel] || 0;
+                totalScore += score * count;
+                totalCount += count;
+            });
+            return { row: rowName, avgScore: totalCount > 0 ? totalScore / totalCount : 0 };
+        }).sort((a,b) => b.avgScore - a.avgScore);
+
+        if (averageScores.length < 2) return null;
+
+        const highest = averageScores[0];
+        const lowest = averageScores[averageScores.length - 1];
+
+        return {
+            title: "Performance Summary",
+            text: `<strong>'${highest.row}'</strong> received the highest average rating (${highest.avgScore.toFixed(2)}), indicating strong performance. In contrast, <strong>'${lowest.row}'</strong> received the lowest average rating (${lowest.avgScore.toFixed(2)}), suggesting it may be an area for improvement.`,
+            variant: 'default',
+        }
+    }, [data, columns]);
+    
     const renderContingencyTable = () => {
         if (!data) return null;
 
@@ -834,6 +881,15 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                     {renderContingencyTable()}
                 </div>
             </CardContent>
+            {interpretation && (
+                <CardFooter>
+                    <Alert variant={interpretation.variant as any}>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>{interpretation.title}</AlertTitle>
+                        <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
+                    </Alert>
+                </CardFooter>
+            )}
         </Card>
     );
 };
@@ -1002,3 +1058,4 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
