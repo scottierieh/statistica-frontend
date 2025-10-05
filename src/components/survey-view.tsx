@@ -412,6 +412,8 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Que
 
 
 const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: any, onAnswerChange: (value: any) => void }) => {
+    const headers = question.scale && question.scale.length > 0 ? question.scale : question.columns || [];
+
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
@@ -419,11 +421,11 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-1/3"></TableHead>
-                        {question.columns?.map((col: string, colIndex: number) => {
-                            const showLabel = colIndex === 0 || colIndex === (question.columns?.length || 0) - 1;
+                        {headers.map((header, colIndex) => {
+                            const showLabel = colIndex === 0 || colIndex === headers.length - 1;
                             return (
-                                <TableHead key={colIndex} className={cn("text-center text-xs w-[60px]", !showLabel && "hidden sm:table-cell")}>
-                                    {showLabel ? question.scale?.[colIndex] : col}
+                                <TableHead key={`header-${colIndex}`} className={cn("text-center text-xs w-[60px]", !showLabel && "hidden sm:table-cell")}>
+                                    {showLabel ? header : question.columns?.[colIndex]}
                                 </TableHead>
                             );
                         })}
@@ -431,12 +433,12 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
                 </TableHeader>
                 <TableBody>
                      {(question.rows || []).map((row: string, rowIndex: number) => (
-                         <TableRow key={rowIndex}>
+                         <TableRow key={`row-${rowIndex}`}>
                             <TableCell>{row}</TableCell>
-                            {question.columns?.map((col: string, colIndex: number) => (
-                                <TableCell key={colIndex} className="text-center">
+                            {(question.columns || []).map((col: string, colIndex: number) => (
+                                <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
                                      <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                        <RadioGroupItem value={col}/>
+                                        <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`}/>
                                     </RadioGroup>
                                 </TableCell>
                             ))}
