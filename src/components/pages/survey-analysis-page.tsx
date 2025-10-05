@@ -915,8 +915,8 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
 
 export default function SurveyAnalysisPage() {
     const params = useParams();
-    const router = useRouter();
     const { toast } = useToast();
+    const router = useRouter();
     const chartRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
     const surveyId = params.id as string;
     const [survey, setSurvey] = useState<any>(null);
@@ -1048,8 +1048,11 @@ export default function SurveyAnalysisPage() {
     
     const categoricalQuestions = useMemo(() => {
         if (!survey) return [];
-        return survey.questions.filter((q: Question) => ['single', 'multiple', 'dropdown'].includes(q.type) && q.title);
+        return survey.questions.filter((q: Question) => 
+            ['single', 'multiple', 'dropdown'].includes(q.type) && q.title && q.title.trim() !== ''
+        );
     }, [survey]);
+
 
     if (loading) {
         return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-96 w-full" /></div>;
