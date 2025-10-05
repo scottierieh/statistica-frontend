@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
@@ -243,6 +244,17 @@ const CustomizedTreemapContent = (props: any) => {
 
 const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'bar' | 'pie' | 'treemap'>('bar');
+    
+    const interpretation = useMemo(() => {
+        if (!data || data.length === 0) return null;
+        const mode = data[0];
+        return {
+            title: "Most Frequent Response",
+            text: `The most common response was <strong>'${mode.name}'</strong>, accounting for <strong>${mode.percentage.toFixed(1)}%</strong> of all answers.`,
+            variant: "default"
+        };
+    }, [data]);
+    
     return (
         <Card>
             <CardHeader>
@@ -251,7 +263,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                     <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
                 </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
                     <TabsList>
                         <TabsTrigger value="bar"><BarChartIcon className="w-4 h-4 mr-2"/>Bar</TabsTrigger>
@@ -301,8 +313,8 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                         </ChartContainer>
                     </TabsContent>
                 </Tabs>
-                <div className="col-span-1">
-                    <Table>
+                <div className="col-span-1 space-y-4">
+                     <Table>
                         <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
                         <TableBody>
                             {data.map((item) => (
@@ -314,6 +326,13 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                             ))}
                         </TableBody>
                     </Table>
+                    {interpretation && (
+                        <Alert variant={interpretation.variant as any}>
+                            <Info className="h-4 w-4" />
+                            <AlertTitle>{interpretation.title}</AlertTitle>
+                            <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
+                        </Alert>
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -497,10 +516,9 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
     const GaugeChart = ({ score }: { score: number }) => {
       const getLevel = (s: number) => {
           if (s >= 70) return { level: 'Excellent', color: '#10b981' };
-          if (s >= 50) return { level: 'Good', color: '#84cc16' };
-          if (s >= 30) return { level: 'Fair', color: '#eab308' };
-          if (s >= 0) return { level: 'Needs Improvement', color: '#f97316' };
-          return { level: 'Poor', color: '#ef4444' };
+          if (s >= 30) return { level: 'Good', color: '#84cc16' };
+          if (s >= 0) return { level: 'Fair', color: '#eab308' };
+          return { level: 'Needs Improvement', color: '#ef4444' };
       };
 
       const { level, color } = getLevel(score);
@@ -550,11 +568,8 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
               <div className="flex flex-col items-center justify-center">
                 <GaugeChart score={data.npsScore} />
                  <Alert className="mt-4">
-                    <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Summary</AlertTitle>
-                    <AlertDescription>
-                        {data.interpretation}
-                    </AlertDescription>
+                    <AlertDescription dangerouslySetInnerHTML={{ __html: data.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
                  </Alert>
               </div>
               <div className="space-y-4">
