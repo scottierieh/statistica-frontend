@@ -404,7 +404,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                         </TableBody>
                     </Table>
                      {interpretation && (
-                        <Alert variant={interpretation.variant as any}>
+                        <Alert>
                             <Info className="h-4 w-4" />
                             <AlertTitle>{interpretation.title}</AlertTitle>
                             <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
@@ -416,28 +416,91 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
     );
 };
 
+const RatingChart = ({ data, title, onDownload }: { data: { values: number[], count: number }, title: string, onDownload: () => void }) => {
+    if (!data || data.values.length === 0) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+                <CardContent><p>No data available for this rating question.</p></CardContent>
+            </Card>
+        );
+    }
+    const ratingCounts: {[key: number]: number} = {};
+    const scale = Array.from({length: 5}, (_, i) => i + 1);
+    scale.forEach(s => ratingCounts[s] = 0);
+    
+    data.values.forEach(value => {
+        if (value >= 1 && value <= 5) {
+            ratingCounts[Math.round(value)]++;
+        }
+    });
 
+    const tableData = Object.entries(ratingCounts).map(([rating, count]) => ({
+        name: rating,
+        count: count,
+        percentage: data.count > 0 ? (count / data.count) * 100 : 0
+    }));
 
+    const totalResponses = data.count;
+    const weightedSum = data.values.reduce((sum, val) => sum + val, 0);
+    const averageRating = totalResponses > 0 ? weightedSum / totalResponses : 0;
+    
+    const interpretation = useMemo(() => {
+        const mode = tableData.reduce((prev, current) => (prev.count > current.count) ? prev : current);
+        return {
+            title: "Rating Summary",
+            text: `The average rating is <strong>${averageRating.toFixed(2)} out of 5</strong>. The most common rating was <strong>${mode.name} stars</strong>, given by <strong>${mode.percentage.toFixed(1)}%</strong> of respondents.`,
+            variant: "default"
+        };
+    }, [tableData, averageRating]);
 
-const RatingChart = ({ data, title, onDownload }: { data: { values: number[], count: number, mean: number }, title: string, onDownload: () => void }) => {
     return (
-      <Card>
-        <CardHeader>
-            <div className="flex justify-between items-center">
-                <CardTitle>{title}</CardTitle>
-                <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
-            </div>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center">
-            <p className="text-5xl font-bold">{data.mean.toFixed(2)} <span className="text-2xl text-muted-foreground">/ 5</span></p>
-            <div className="flex items-center gap-1 mt-2">
-                {[...Array(5)].map((_, index) => (
-                    <Star key={index} className={cn("w-8 h-8", index < Math.round(data.mean) ? "text-yellow-400 fill-yellow-400" : "text-gray-300")} />
-                ))}
-            </div>
-            <p className="text-sm text-muted-foreground mt-2">Based on {data.count} ratings</p>
-        </CardContent>
-      </Card>
+        <Card>
+            <CardHeader>
+                 <div className="flex justify-between items-center">
+                    <CardTitle>{title}</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
+                </div>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col items-center justify-center">
+                    <p className="text-5xl font-bold">{averageRating.toFixed(2)}</p>
+                    <div className="flex items-center mt-2">
+                        {[...Array(5)].map((_, i) => (
+                           <Star key={i} className={cn("w-7 h-7 text-yellow-300", averageRating > i && "fill-yellow-400")} />
+                        ))}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">Average Rating</p>
+                </div>
+                 <div className="space-y-4">
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Rating</TableHead>
+                                <TableHead className="text-right">Count</TableHead>
+                                <TableHead className="text-right">%</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {tableData.map((item) => (
+                                <TableRow key={item.name}>
+                                    <TableCell>{item.name}</TableCell>
+                                    <TableCell className="text-right">{item.count}</TableCell>
+                                    <TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                      {interpretation && (
+                        <Alert variant={interpretation.variant as any}>
+                            <Info className="h-4 w-4" />
+                            <AlertTitle>{interpretation.title}</AlertTitle>
+                            <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
+                        </Alert>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
     );
 };
 
@@ -485,7 +548,7 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
         </div>
       );
     };
-
+    
     const formattedInterpretation = data.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
     return (
@@ -536,6 +599,8 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
         </Card>
       );
     };
+
+
 
 const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], title: string, onDownload: () => void }) => {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
@@ -954,7 +1019,6 @@ export default function SurveyAnalysisPage() {
     const params = useParams();
     const router = useRouter();
     const chartRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
-    const { toast } = useToast();
     const surveyId = params.id as string;
     const [survey, setSurvey] = useState<any>(null);
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
@@ -1114,3 +1178,101 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
+```
+- src/hooks/use-local-storage.ts:
+```ts
+'use client';
+    
+    import { useState, useEffect } from 'react';
+    
+    export function useLocalStorage<T>(key: string, initialValue: T) {
+      const [storedValue, setStoredValue] = useState<T>(() => {
+        if (typeof window === 'undefined') {
+          return initialValue;
+        }
+        try {
+          const item = window.localStorage.getItem(key);
+          return item ? JSON.parse(item) : initialValue;
+        } catch (error) {
+          console.log(error);
+          return initialValue;
+        }
+      });
+    
+      const setValue = (value: T | ((val: T) => T)) => {
+        try {
+          const valueToStore = value instanceof Function ? value(storedValue) : value;
+          setStoredValue(valueToStore);
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      };
+    
+      useEffect(() => {
+        // This effect will run on the client side after the initial render,
+        // ensuring the state is updated with the value from localStorage.
+        try {
+            const item = window.localStorage.getItem(key);
+            if (item) {
+                setStoredValue(JSON.parse(item));
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    }, [key]);
+
+    
+      return [storedValue, setValue] as const;
+    }
+```
+- src/types/analysis.ts:
+```ts
+
+export type AnalysisResult = {
+  results: any;
+  plot?: string;
+  [key: string]: any; 
+};
+```
+- src/types/survey.ts:
+```ts
+
+export interface Survey {
+  id: string;
+  title: string; // Changed from name to title
+  status: 'active' | 'draft' | 'closed';
+  created_date: string;
+  startDate?: string;
+  endDate?: string;
+  questions?: any[]; // Keep questions for saving logic
+  description?: string; // Keep for saving logic
+}
+
+export interface SurveyResponse {
+  id: string;
+  survey_id: string;
+  submitted_at: string;
+  answers: Record<string, any>;
+}
+
+export type Question = {
+    id: string;
+    type: string;
+    title: string;
+    text: string; // Keep for backward compatibility, but prefer title
+    description?: string;
+    options?: string[];
+    items?: string[];
+    columns?: string[];
+    scale?: string[];
+    required?: boolean;
+    content?: string;
+    imageUrl?: string;
+    rows?: string[];
+};
+
+```
