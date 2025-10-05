@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -264,13 +263,13 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                 </div>
             </CardHeader>
             <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
+                 <Tabs value={chartType} onValueChange={(v) => setChartType(v as any)} className="col-span-1">
                     <TabsList>
                         <TabsTrigger value="bar"><BarChartIcon className="w-4 h-4 mr-2"/>Bar</TabsTrigger>
                         <TabsTrigger value="pie"><PieChartIcon className="w-4 h-4 mr-2"/>Pie</TabsTrigger>
                         <TabsTrigger value="treemap"><Grid3x3 className="w-4 h-4 mr-2"/>Treemap</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="bar">
+                    <TabsContent value="bar" className="mt-4">
                          <ChartContainer config={{}} className="w-full h-64">
                             <ResponsiveContainer>
                                 <BarChart data={data} layout="vertical" margin={{ left: 100 }}>
@@ -286,7 +285,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                             </ResponsiveContainer>
                         </ChartContainer>
                     </TabsContent>
-                     <TabsContent value="pie">
+                     <TabsContent value="pie" className="mt-4">
                         <ChartContainer config={{}} className="w-full h-64">
                             <ResponsiveContainer>
                                 <PieChart>
@@ -298,7 +297,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                             </ResponsiveContainer>
                         </ChartContainer>
                     </TabsContent>
-                    <TabsContent value="treemap">
+                    <TabsContent value="treemap" className="mt-4">
                         <ChartContainer config={{}} className="w-full h-64">
                             <ResponsiveContainer>
                                 <Treemap
@@ -786,62 +785,68 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
     const [tableFormat, setTableFormat] = useState('counts');
     
     const interpretation = useMemo(() => {
-        if (!data || !data.chartData) return null;
-        
-        const numericColumns = columns.map(c => parseFloat(c)).filter(c => !isNaN(c));
-        const useNumericScores = numericColumns.length === columns.length;
+        if (!data || !data.heatmapData) return null;
 
-        if (!useNumericScores) {
-            let detailedBreakdown = data.rows.map((rowName: string) => {
+        const numericColumns = columns.map(c => parseFloat(c)).filter(c => !isNaN(c));
+        const useNumericScores = numericColumns.length > 0 && numericColumns.length === columns.length;
+        
+        let detailedBreakdown = "";
+
+        if (useNumericScores) {
+             const averageScores = data.rows.map((rowName: string) => {
+                const rowData = data.heatmapData[rowName];
+                let totalScore = 0;
+                let totalCount = 0;
+                numericColumns.forEach((score, index) => {
+                    const colLabel = columns[index];
+                    const count = rowData[colLabel] || 0;
+                    totalScore += score * count;
+                    totalCount += count;
+                });
+                return { row: rowName, avgScore: totalCount > 0 ? totalScore / totalCount : 0 };
+            }).sort((a,b) => b.avgScore - a.avgScore);
+
+            if (averageScores.length < 2) return { title: "Not enough data for summary.", text: "", variant: "default"};
+            const highest = averageScores[0];
+            const lowest = averageScores[averageScores.length - 1];
+
+            detailedBreakdown = data.rows.map((rowName: string) => {
+                 const distributionData = columns.map(colName => {
+                    const count = data.heatmapData[rowName][colName] || 0;
+                    const total = data.chartData.find((d: any) => d.name === rowName)?.total || 1;
+                    return { col: colName, pct: total > 0 ? (count / total * 100) : 0 };
+                }).sort((a,b) => b.pct - a.pct);
+                
+                const avgScore = averageScores.find(s => s.row === rowName)?.avgScore ?? 0;
+                
+                return `For <strong>'${rowName}'</strong>, the average score was ${avgScore.toFixed(2)}. The response distribution was: ${distributionData.map(d => `'${d.col}' (${d.pct.toFixed(1)}%)`).join(', ')}.`;
+
+            }).join('<br><br>');
+             return {
+                title: "Performance Summary",
+                text: `<strong>Overall: '${highest.row}'</strong> received the highest average rating (${highest.avgScore.toFixed(2)}), while <strong>'${lowest.row}'</strong> received the lowest (${lowest.avgScore.toFixed(2)}). <br><br><strong>Detailed Breakdown:</strong><br>${detailedBreakdown}`,
+                variant: 'default',
+            }
+
+        } else {
+            detailedBreakdown = data.rows.map((rowName: string) => {
                 const rowData = data.heatmapData[rowName];
                 const totalResponses = Object.values(rowData).reduce((acc: number, val: any) => acc + val, 0);
                 if (totalResponses === 0) return `For <strong>'${rowName}'</strong>, there were no responses.`;
-                const topChoice = Object.entries(rowData).reduce((a, b) => (b[1] as number) > (a[1] as number) ? b : a, ['', 0]);
-                const topChoicePercent = (topChoice[1] as number / totalResponses) * 100;
-                return `For <strong>'${rowName}'</strong>, the most common response was <strong>'${topChoice[0]}'</strong> (${topChoicePercent.toFixed(1)}%).`;
+                
+                const distributionData = Object.entries(rowData).map(([col, count]) => ({
+                    col,
+                    count: count as number,
+                    pct: totalResponses > 0 ? (count as number / totalResponses * 100) : 0
+                })).sort((a,b) => b.count - a.count);
+
+                return `For <strong>'${rowName}'</strong>, the responses were distributed as follows: ${distributionData.map(d => `<strong>'${d.col}'</strong> (${d.pct.toFixed(1)}%)`).join(', ')}.`;
             }).join('<br><br>');
-            return {
+             return {
                 title: "Response Distribution by Item",
                 text: detailedBreakdown,
                 variant: 'default',
             };
-        }
-
-        const averageScores = data.rows.map((rowName: string) => {
-            const rowData = data.heatmapData[rowName];
-            let totalScore = 0;
-            let totalCount = 0;
-            numericColumns.forEach((score, index) => {
-                const colLabel = columns[index];
-                const count = rowData[colLabel] || 0;
-                totalScore += score * count;
-                totalCount += count;
-            });
-            return { row: rowName, avgScore: totalCount > 0 ? totalScore / totalCount : 0 };
-        }).sort((a,b) => b.avgScore - a.avgScore);
-
-        if (averageScores.length < 2) return null;
-        const highest = averageScores[0];
-        const lowest = averageScores[averageScores.length - 1];
-        
-        let detailedBreakdown = data.rows.map((rowName: string) => {
-            const rowData = data.heatmapData[rowName];
-            const totalResponses = Object.values(rowData).reduce((acc: number, val: any) => acc + val, 0);
-            if (totalResponses === 0) return `For <strong>'${rowName}'</strong>, there were no responses.`;
-            
-            const distributionText = columns.map(colName => {
-                const count = rowData[colName] || 0;
-                const percent = totalResponses > 0 ? (count / totalResponses * 100).toFixed(1) : 0;
-                return count > 0 ? `${percent}% rated as '${colName}'` : null;
-            }).filter(Boolean).join(', ');
-            
-            return `For <strong>'${rowName}'</strong>, the average score was ${averageScores.find(s=>s.row===rowName)?.avgScore.toFixed(2)}. The response distribution was: ${distributionText}.`;
-        }).join('<br><br>');
-
-        return {
-            title: "Performance Summary",
-            text: `<strong>Overall: '${highest.row}'</strong> received the highest average rating (${highest.avgScore.toFixed(2)}), while <strong>'${lowest.row}'</strong> received the lowest (${lowest.avgScore.toFixed(2)}). <br><br><strong>Detailed Breakdown:</strong><br>${detailedBreakdown}`,
-            variant: 'default',
         }
     }, [data, columns]);
     
@@ -1171,3 +1176,4 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
