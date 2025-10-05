@@ -12,17 +12,44 @@ def _to_native_type(obj):
     elif isinstance(obj, np.ndarray): return obj.tolist()
     return obj
 
-def get_nps_interpretation(score):
+def get_nps_interpretation(score, promoters, passives, detractors, total):
+    if total == 0:
+        return "Not enough data to generate an interpretation."
+
+    promoter_pct = (promoters / total) * 100
+    detractor_pct = (detractors / total) * 100
+
+    level = ""
     if score >= 70:
-        return "Excellent: Your customers are highly loyal and are actively promoting your brand, which is a strong indicator of future growth."
+        level = "Excellent"
     elif score >= 50:
-        return "Very Good: You have a strong base of satisfied customers. Focusing on converting Passives can elevate your score further."
+        level = "Very Good"
     elif score >= 30:
-        return "Good: A solid performance, but there is clear room for improvement. Investigate feedback from Passives and Detractors."
+        level = "Good"
     elif score >= 0:
-        return "Fair: Your customer base is lukewarm. It's crucial to understand the reasons for dissatisfaction among Detractors to prevent negative word-of-mouth."
+        level = "Fair"
     else:
-        return "Poor: Your company has more detractors than promoters, indicating significant issues with customer satisfaction that need immediate attention."
+        level = "Poor"
+
+    interpretation = (
+        f"The Net Promoter Score (NPS) is calculated by subtracting the percentage of Detractors from the percentage of Promoters. "
+        f"Out of {total} respondents, there were **{promoters} Promoters** ({promoter_pct:.1f}%), **{passives} Passives**, and **{detractors} Detractors** ({detractor_pct:.1f}%).\n\n"
+        f"This results in an NPS of **{score:.1f}**, which is considered **{level}**. "
+    )
+
+    if level == "Excellent":
+        interpretation += "Your customers are highly loyal and are actively promoting your brand, which is a strong indicator of future growth."
+    elif level == "Very Good":
+        interpretation += "You have a strong base of satisfied customers. Focusing on converting Passives can elevate your score further."
+    elif level == "Good":
+        interpretation += "A solid performance, but there is clear room for improvement. Investigate feedback from Passives and Detractors."
+    elif level == "Fair":
+        interpretation += "Your customer base is lukewarm. It's crucial to understand the reasons for dissatisfaction among Detractors to prevent negative word-of-mouth."
+    else: # Poor
+        interpretation += "Your company has more detractors than promoters, indicating significant issues with customer satisfaction that need immediate attention."
+
+    return interpretation
+
 
 def calculate_nps(scores):
     if not scores:
@@ -39,15 +66,13 @@ def calculate_nps(scores):
     
     nps_score = promotersP - detractorsP
 
-    score_counts = {str(i): int(np.sum(scores == i)) for i in range(11)}
-
     return {
         "npsScore": nps_score,
         "promoters": int(promoters),
         "passives": int(passives),
         "detractors": int(detractors),
         "total": int(total),
-        "interpretation": get_nps_interpretation(nps_score)
+        "interpretation": get_nps_interpretation(nps_score, promoters, passives, detractors, total)
     }
 
 def main():
