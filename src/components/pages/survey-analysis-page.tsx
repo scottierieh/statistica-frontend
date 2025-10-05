@@ -916,6 +916,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
 export default function SurveyAnalysisPage() {
     const params = useParams();
     const router = useRouter();
+    const { toast } = useToast();
     const chartRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
     const surveyId = params.id as string;
     const [survey, setSurvey] = useState<any>(null);
@@ -1043,7 +1044,7 @@ export default function SurveyAnalysisPage() {
         } finally {
             setIsCrosstabLoading(false);
         }
-    }, [crosstabRow, crosstabCol, responses, toast, survey]);
+    }, [crosstabRow, crosstabCol, responses, survey, toast]);
     
     const categoricalQuestions = useMemo(() => {
         if (!survey) return [];
