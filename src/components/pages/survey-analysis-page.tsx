@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -16,7 +17,7 @@ import Image from 'next/image';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
-import { Progress } from './../ui/progress';
+import { Progress } from '../ui/progress';
 import { produce } from 'immer';
 import { jStat } from 'jstat';
 import dynamic from 'next/dynamic';
@@ -206,6 +207,40 @@ const processNPS = async (responses: SurveyResponse[], questionId: string) => {
 // --- Chart Components ---
 const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
+const CustomizedTreemapContent = (props: any) => {
+  const { root, depth, x, y, width, height, index, payload, rank, name, percentage } = props;
+
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        style={{
+          fill: COLORS[index % COLORS.length],
+          stroke: '#fff',
+          strokeWidth: 2,
+        }}
+      />
+      {width > 80 && height > 40 && (
+        <text
+          x={x + width / 2}
+          y={y + height / 2}
+          textAnchor="middle"
+          fill="#fff"
+          fontSize={14}
+          dominantBaseline="middle"
+        >
+          <tspan x={x + width / 2} dy="-0.5em">{name}</tspan>
+          <tspan x={x + width / 2} dy="1.2em">{percentage?.toFixed(1)}%</tspan>
+        </text>
+      )}
+    </g>
+  );
+};
+
+
 const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'bar' | 'pie' | 'treemap'>('bar');
     return (
@@ -258,12 +293,10 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                     data={data}
                                     dataKey="count"
                                     nameKey="name"
-                                    aspectRatio={4 / 3}
+                                    aspectRatio={16 / 9}
                                     stroke="#fff"
-                                    fill="#8884d8"
-                                >
-                                     {data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                                </Treemap>
+                                    content={<CustomizedTreemapContent />}
+                                />
                             </ResponsiveContainer>
                         </ChartContainer>
                     </TabsContent>
@@ -293,18 +326,21 @@ const NumericChart = ({ data, title, questionId, onDownload }: { data: { mean: n
     const interpretation = useMemo(() => {
         if (!data || isNaN(data.mean)) return null;
         let skewText = '';
-        if (Math.abs(data.skewness) > 1) {
-            skewText = `The distribution is <strong>highly ${data.skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong> (skewness = ${data.skewness.toFixed(2)}).`;
-        } else if (Math.abs(data.skewness) > 0.5) {
-            skewText = `The data is <strong>moderately ${data.skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong>.`;
-        } else {
-            skewText = `The data appears to be roughly <strong>symmetrical</strong>.`;
+        const skewness = data.skewness;
+        if (!isNaN(skewness)) {
+          if (Math.abs(skewness) > 1) {
+              skewText = `The distribution is <strong>highly ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong> (skewness = ${skewness.toFixed(2)}). This suggests the presence of outliers or a non-symmetrical pattern in responses.`;
+          } else if (Math.abs(skewness) > 0.5) {
+              skewText = `The data is <strong>moderately ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong>.`;
+          } else {
+              skewText = `The data appears to be roughly <strong>symmetrical</strong>.`;
+          }
         }
         
         return {
             title: "Distribution Summary",
             text: `The average response is <strong>${data.mean.toFixed(2)}</strong> with a standard deviation of <strong>${data.std.toFixed(2)}</strong>. ${skewText}`,
-            variant: Math.abs(data.skewness) > 1 ? "destructive" : "default"
+            variant: Math.abs(skewness) > 1 ? "destructive" : "default"
         };
     }, [data]);
     
@@ -415,7 +451,7 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
                     <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
                 </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div className="flex flex-col items-center justify-center">
                     <p className="text-5xl font-bold">{averageRating.toFixed(2)}</p>
                     <div className="flex items-center mt-2">
@@ -444,13 +480,15 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
                     </TableBody>
                 </Table>
             </CardContent>
-            <CardFooter>
-                 <Alert variant={interpretation.variant as any}>
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Interpretation</AlertTitle>
-                    <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
-                </Alert>
-            </CardFooter>
+            {interpretation && (
+                <CardFooter>
+                     <Alert variant={interpretation.variant as any}>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>Interpretation</AlertTitle>
+                        <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
+                    </Alert>
+                </CardFooter>
+            )}
         </Card>
     );
 };
@@ -746,7 +784,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                 const topChoice = Object.entries(rowData).reduce((a, b) => (b[1] as number) > (a[1] as number) ? b : a, ['', 0]);
                 const topChoicePercent = (topChoice[1] as number / totalResponses) * 100;
                 return `For <strong>'${rowName}'</strong>, the most common response was <strong>'${topChoice[0]}'</strong> (${topChoicePercent.toFixed(1)}%).`;
-            }).join('<br>');
+            }).join('<br><br>');
             return {
                 title: "Response Distribution by Item",
                 text: detailedBreakdown,
