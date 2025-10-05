@@ -316,14 +316,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                      <Table>
                         <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {data.map((item) => (
-                                <TableRow key={item.name}>
-                                    <TableCell>{item.name}</TableCell>
-                                    <TableCell className="text-right">{item.count}</TableCell>
-                                    <TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
+                            {data.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell></TableRow> ))}</TableBody>
                     </Table>
                     {interpretation && (
                         <Alert variant={interpretation.variant as any}>
@@ -383,42 +376,38 @@ const NumericChart = ({ data, title, questionId, onDownload }: { data: { mean: n
                     <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
                 </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <ChartContainer config={{}} className="w-full h-64">
+            <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <ChartContainer config={{count: {label: 'Freq.'}}} className="w-full h-64">
                     <ResponsiveContainer>
                         <BarChart data={data.histogram}>
                             <CartesianGrid />
                             <XAxis dataKey="name" angle={-45} textAnchor="end" height={50} />
                             <YAxis />
                             <Tooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))">
-                                <LabelList dataKey="count" position="top" style={{ fontSize: 11 }} />
-                            </Bar>
+                            <Bar dataKey="count" name="Frequency" fill="hsl(var(--primary))" />
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
-                <div className="grid grid-cols-2 gap-4 text-center">
-                    <div className="p-4 bg-muted rounded-lg flex flex-col justify-center items-center">
-                        <p className="text-sm text-muted-foreground">Mean</p>
-                        <p className="text-2xl font-bold">{data.mean.toFixed(2)}</p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg flex flex-col justify-center items-center">
-                        <p className="text-sm text-muted-foreground">Median</p>
-                        <p className="text-2xl font-bold">{data.median.toFixed(2)}</p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg flex flex-col justify-center items-center">
-                        <p className="text-sm text-muted-foreground">Std. Dev.</p>
-                        <p className="text-2xl font-bold">{data.std.toFixed(2)}</p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg flex flex-col justify-center items-center">
-                        <p className="text-sm text-muted-foreground">Responses</p>
-                        <p className="text-2xl font-bold">{data.count}</p>
-                    </div>
+                <div className="space-y-4">
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Metric</TableHead>
+                                <TableHead className="text-right">Value</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{data.mean.toFixed(3)}</TableCell></TableRow>
+                            <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{data.median}</TableCell></TableRow>
+                            <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{data.std.toFixed(3)}</TableCell></TableRow>
+                            <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{data.count}</TableCell></TableRow>
+                        </TableBody>
+                    </Table>
                 </div>
             </CardContent>
-             {interpretation && (
+            {interpretation && (
                 <CardFooter>
-                    <Alert variant={interpretation.variant as any}>
+                     <Alert variant={interpretation.variant as any}>
                         <Info className="h-4 w-4" />
                         <AlertTitle>{interpretation.title}</AlertTitle>
                         <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
@@ -811,7 +800,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
             const lowest = averageScores[averageScores.length - 1];
 
             detailedBreakdown = data.rows.map((rowName: string) => {
-                 const distributionData = columns.map(colName => {
+                const distributionData = columns.map(colName => {
                     const count = data.heatmapData[rowName][colName] || 0;
                     const total = data.chartData.find((d: any) => d.name === rowName)?.total || 1;
                     return { col: colName, pct: total > 0 ? (count / total * 100) : 0 };
@@ -819,7 +808,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                 
                 const avgScore = averageScores.find(s => s.row === rowName)?.avgScore ?? 0;
                 
-                return `For <strong>'${rowName}'</strong>, the average score was ${avgScore.toFixed(2)}. The response distribution was: ${distributionData.map(d => `'${d.col}' (${d.pct.toFixed(1)}%)`).join(', ')}.`;
+                 return `For <strong>'${rowName}'</strong>, the response distribution was: ${distributionData.map(d => `'${d.col}' (${d.pct.toFixed(1)}%)`).join(', ')}.`;
 
             }).join('<br><br>');
              return {
@@ -840,7 +829,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                     pct: totalResponses > 0 ? (count as number / totalResponses * 100) : 0
                 })).sort((a,b) => b.count - a.count);
 
-                return `For <strong>'${rowName}'</strong>, the responses were distributed as follows: ${distributionData.map(d => `<strong>'${d.col}'</strong> (${d.pct.toFixed(1)}%)`).join(', ')}.`;
+                 return `For <strong>'${rowName}'</strong>, the responses were distributed as follows: ${distributionData.map(d => `<strong>'${d.col}'</strong> (${d.pct.toFixed(1)}%)`).join(', ')}.`;
             }).join('<br><br>');
              return {
                 title: "Response Distribution by Item",
@@ -1176,4 +1165,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
