@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, BarChart3, Users, FileText, TrendingUp } from "lucide-react";
+import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatsCard from "@/components/dashboard/survey2/StatsCard";
@@ -12,12 +12,35 @@ import SurveyCard from "@/components/dashboard/survey2/SurveyCard";
 import EmptyState from "@/components/dashboard/survey2/EmptyState";
 import AIAnalysisCard from "@/components/dashboard/survey2/AIAnalysisCard";
 import type { Survey, SurveyResponse } from '@/types/survey';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+const TemplateCard = ({ icon: Icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) => (
+    <Link href={href} className="block">
+        <div className="p-4 border rounded-lg hover:bg-accent hover:shadow-md transition-all h-full flex flex-col">
+            <div className="flex items-center gap-3 mb-2">
+                <Icon className="w-6 h-6 text-primary"/>
+                <h4 className="font-semibold">{title}</h4>
+            </div>
+            <p className="text-xs text-muted-foreground flex-1">{description}</p>
+             <Button variant="link" size="sm" className="mt-2 p-0 h-auto self-start">Use Template</Button>
+        </div>
+    </Link>
+);
+
 
 export default function Survey2Dashboard() {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -76,15 +99,40 @@ export default function Survey2Dashboard() {
             </h1>
             <p className="text-slate-600">Manage surveys and analyze results</p>
           </div>
-          <Link href="/dashboard/createsurvey">
-            <Button 
-              size="lg"
-              className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-cyan-500/30 gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Create New Survey
-            </Button>
-          </Link>
+           <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+            <DialogTrigger asChild>
+                 <Button 
+                    size="lg"
+                    className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-cyan-500/30 gap-2"
+                >
+                    <Plus className="w-5 h-5" />
+                    Create New Survey
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Create a New Survey</DialogTitle>
+                    <DialogDescription>Start from scratch or use one of our expert-designed templates.</DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                     <Link href="/dashboard/createsurvey">
+                        <div className="p-6 mb-6 rounded-lg border bg-card hover:bg-accent cursor-pointer">
+                            <h3 className="font-semibold text-lg flex items-center gap-2"><Plus className="w-5 h-5"/>Start from Scratch</h3>
+                            <p className="text-sm text-muted-foreground">Build a custom survey for your specific needs.</p>
+                        </div>
+                    </Link>
+                    <h4 className="font-semibold mb-4">Or use a template</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                         <TemplateCard icon={Target} title="IPA Survey" description="Measure Importance vs. Performance to find key improvement areas." href="/dashboard/createsurvey?template=ipa"/>
+                         <TemplateCard icon={Handshake} title="Conjoint Analysis" description="Understand how customers value different attributes of a product." href="/dashboard/createsurvey?template=conjoint"/>
+                         <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
+                         <TemplateCard icon={DollarSign} title="Price Sensitivity" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=psm"/>
+                         <TemplateCard icon={Users} title="Employee Engagement" description="Gauge employee satisfaction and identify areas for cultural improvement." href="/dashboard/createsurvey?template=employee"/>
+                         <TemplateCard icon={ClipboardList} title="Customer Satisfaction" description="Measure overall customer satisfaction (CSAT) and drivers." href="/dashboard/createsurvey?template=csat"/>
+                    </div>
+                </div>
+            </DialogContent>
+           </Dialog>
         </motion.div>
       </div>
 
