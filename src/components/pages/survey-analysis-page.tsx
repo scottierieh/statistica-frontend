@@ -1,10 +1,9 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart as BarChartIcon, BrainCircuit, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck } from 'lucide-react';
@@ -208,7 +207,7 @@ const processNPS = async (responses: SurveyResponse[], questionId: string) => {
 const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
 const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, count: number, percentage: number}[], title: string, onDownload: () => void }) => {
-    const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
+    const [chartType, setChartType] = useState<'bar' | 'pie' | 'treemap'>('bar');
     return (
         <Card>
             <CardHeader>
@@ -222,6 +221,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                     <TabsList>
                         <TabsTrigger value="bar"><BarChartIcon className="w-4 h-4 mr-2"/>Bar</TabsTrigger>
                         <TabsTrigger value="pie"><PieChartIcon className="w-4 h-4 mr-2"/>Pie</TabsTrigger>
+                        <TabsTrigger value="treemap"><Grid3x3 className="w-4 h-4 mr-2"/>Treemap</TabsTrigger>
                     </TabsList>
                     <TabsContent value="bar">
                          <ChartContainer config={{}} className="w-full h-64">
@@ -248,6 +248,22 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                     </Pie>
                                     <Tooltip content={<ChartTooltipContent />} />
                                 </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </TabsContent>
+                    <TabsContent value="treemap">
+                        <ChartContainer config={{}} className="w-full h-64">
+                            <ResponsiveContainer>
+                                <Treemap
+                                    data={data}
+                                    dataKey="count"
+                                    nameKey="name"
+                                    aspectRatio={4 / 3}
+                                    stroke="#fff"
+                                    fill="#8884d8"
+                                >
+                                     {data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                </Treemap>
                             </ResponsiveContainer>
                         </ChartContainer>
                     </TabsContent>
@@ -928,7 +944,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
             {interpretation && (
                 <CardFooter>
                     <Alert variant={interpretation.variant as any}>
-                        <AlertTriangle className="h-4 w-4" />
+                        <Info className="h-4 w-4" />
                         <AlertTitle>{interpretation.title}</AlertTitle>
                         <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
                     </Alert>
