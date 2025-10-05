@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -119,18 +118,18 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
 
 const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string[]; onAnswerChange?: (newAnswer: string[]) => void; onDelete?: (id: string) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: string) => void; cardClassName?: string; }) => {
    const handleOptionChange = (index: number, value: string) => {
-       const newOptions = [...question.options];
+       const newOptions = [...(question.options || [])];
        newOptions[index] = value;
        onUpdate?.({ ...question, options: newOptions });
    };
 
    const addOption = () => {
-       const newOptions = [...question.options, `Option ${question.options.length + 1}`];
+       const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
        onUpdate?.({ ...question, options: newOptions });
    };
 
    const deleteOption = (index: number) => {
-       const newOptions = question.options.filter((_:any, i:number) => i !== index);
+       const newOptions = (question.options || []).filter((_:any, i:number) => i !== index);
        onUpdate?.({ ...question, options: newOptions });
    };
 
@@ -174,7 +173,7 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, onDe
                 </div>
             )}
            <div className="space-y-2">
-                {question.options.map((option: string, index: number) => (
+                {(question.options || []).map((option: string, index: number) => (
                    <Label key={index} htmlFor={`q${question.id}-o${index}`} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
                        <Checkbox
                            id={`q${question.id}-o${index}`}
@@ -425,7 +424,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
                             const showLabel = colIndex === 0 || colIndex === headers.length - 1;
                             return (
                                 <TableHead key={`header-${colIndex}`} className={cn("text-center text-xs w-[60px]", !showLabel && "hidden sm:table-cell")}>
-                                    {showLabel ? header : question.columns?.[colIndex]}
+                                    {header}
                                 </TableHead>
                             );
                         })}
@@ -434,7 +433,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
                 <TableBody>
                      {(question.rows || []).map((row: string, rowIndex: number) => (
                          <TableRow key={`row-${rowIndex}`}>
-                            <TableCell>{row}</TableCell>
+                            <TableHead>{row}</TableHead>
                             {(question.columns || []).map((col: string, colIndex: number) => (
                                 <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
                                      <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
