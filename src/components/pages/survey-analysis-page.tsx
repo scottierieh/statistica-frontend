@@ -353,13 +353,13 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
     }));
 
     const averageRating = data.mean;
+    const mode = tableData.reduce((prev, current) => (prev.count > current.count) ? prev : current);
 
     const interpretation = useMemo(() => {
-        if (averageRating >= 4.5) return { text: "Excellent satisfaction. The vast majority of responses are positive.", variant: "default" };
-        if (averageRating >= 3.5) return { text: "Good satisfaction. Most responses are positive, but there is room for improvement.", variant: "default" };
-        if (averageRating >= 2.5) return { text: "Mixed feedback. Responses are varied, indicating inconsistent experiences.", variant: "secondary" };
-        return { text: "Low satisfaction. A significant portion of responses are negative, signaling potential issues.", variant: "destructive" };
-    }, [averageRating]);
+        const avgText = `The average rating is <strong>${averageRating.toFixed(2)}</strong> out of 5.`;
+        const modeText = `The most frequent rating (mode) is <strong>${mode.name}</strong>, which was chosen by <strong>${mode.percentage.toFixed(1)}%</strong> of respondents.`;
+        return { text: `${avgText} ${modeText}`, variant: "default" };
+    }, [averageRating, mode]);
     
     return (
         <Card>
@@ -400,9 +400,9 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
             </CardContent>
             <CardFooter>
                  <Alert variant={interpretation.variant as any}>
-                    <AlertTriangle className="h-4 w-4" />
+                    <Info className="h-4 w-4" />
                     <AlertTitle>Interpretation</AlertTitle>
-                    <AlertDescription>{interpretation.text}</AlertDescription>
+                    <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
                 </Alert>
             </CardFooter>
         </Card>
