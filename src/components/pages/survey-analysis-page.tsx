@@ -693,16 +693,17 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
         const useNumericScores = numericColumns.length === columns.length;
 
         if (!useNumericScores) {
-            // Find most chosen category for each row
-            const topChoices = data.rows.map((rowName: string) => {
+            let detailedBreakdown = data.rows.map((rowName: string) => {
                 const rowData = data.heatmapData[rowName];
+                const totalResponses = Object.values(rowData).reduce((acc: number, val: any) => acc + val, 0);
+                if (totalResponses === 0) return `For <strong>'${rowName}'</strong>, there were no responses.`;
                 const topChoice = Object.entries(rowData).reduce((a, b) => (b[1] as number) > (a[1] as number) ? b : a, ['', 0]);
-                return { row: rowName, choice: topChoice[0], count: topChoice[1] };
-            });
-            const mostCommonChoice = topChoices.reduce((a, b) => a.count > b.count ? a : b);
+                const topChoicePercent = (topChoice[1] as number / totalResponses) * 100;
+                return `For <strong>'${rowName}'</strong>, the most common response was <strong>'${topChoice[0]}'</strong> (${topChoicePercent.toFixed(1)}%).`;
+            }).join('<br>');
             return {
-                title: "Most Frequent Selections",
-                text: `The most frequently selected option overall is <strong>'${mostCommonChoice.choice}'</strong> for the item <strong>'${mostCommonChoice.row}'</strong>. This suggests a strong preference or perception for this combination.`,
+                title: "Response Distribution by Item",
+                text: detailedBreakdown,
                 variant: 'default',
             };
         }
@@ -721,13 +722,26 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
         }).sort((a,b) => b.avgScore - a.avgScore);
 
         if (averageScores.length < 2) return null;
-
         const highest = averageScores[0];
         const lowest = averageScores[averageScores.length - 1];
+        
+        let detailedBreakdown = data.rows.map((rowName: string) => {
+            const rowData = data.heatmapData[rowName];
+            const totalResponses = Object.values(rowData).reduce((acc: number, val: any) => acc + val, 0);
+            if (totalResponses === 0) return `For <strong>'${rowName}'</strong>, there were no responses.`;
+            
+            const distributionText = columns.map(colName => {
+                const count = rowData[colName] || 0;
+                const percent = totalResponses > 0 ? (count / totalResponses * 100).toFixed(1) : 0;
+                return count > 0 ? `${percent}% rated as '${colName}'` : null;
+            }).filter(Boolean).join(', ');
+            
+            return `For <strong>'${rowName}'</strong>, the average score was ${averageScores.find(s=>s.row===rowName)?.avgScore.toFixed(2)}. The response distribution was: ${distributionText}.`;
+        }).join('<br><br>');
 
         return {
             title: "Performance Summary",
-            text: `<strong>'${highest.row}'</strong> received the highest average rating (${highest.avgScore.toFixed(2)}), indicating strong performance. In contrast, <strong>'${lowest.row}'</strong> received the lowest average rating (${lowest.avgScore.toFixed(2)}), suggesting it may be an area for improvement.`,
+            text: `<strong>Overall: '${highest.row}'</strong> received the highest average rating (${highest.avgScore.toFixed(2)}), while <strong>'${lowest.row}'</strong> received the lowest (${lowest.avgScore.toFixed(2)}). <br><br><strong>Detailed Breakdown:</strong><br>${detailedBreakdown}`,
             variant: 'default',
         }
     }, [data, columns]);
