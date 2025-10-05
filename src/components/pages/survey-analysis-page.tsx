@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -29,10 +30,19 @@ import { useToast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
-const Plot = dynamic(() => import('react-plotly.js'), {
-  ssr: false,
-  loading: () => <Skeleton className="w-full h-[300px]" />,
-});
+const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
+
+interface CrosstabResults {
+    contingency_table: { [key: string]: { [key: string]: number } };
+    chi_squared: {
+        statistic: number;
+        p_value: number;
+        degrees_of_freedom: number;
+    };
+    cramers_v: number;
+    plot: string;
+    interpretation: string;
+}
 
 // --- Data Processing Functions ---
 const processTextResponses = (responses: SurveyResponse[], questionId: string) => {
@@ -159,10 +169,8 @@ const processMatrixResponses = (responses: SurveyResponse[], question: Question)
         const answer = (response.answers as any)[questionId];
         if (answer && typeof answer === 'object') {
             Object.entries(answer).forEach(([row, colValue]) => {
-                if (result[row] && colValue in result[row]) {
-                    result[row][colValue as string]++;
-                } else if (result[row]) { // Handle cases where column might not be pre-initialized if scale/columns differ
-                    result[row][colValue as string] = 1;
+                if(result[row] && typeof colValue === 'string' && colValue in result[row]) {
+                    result[row][colValue]++;
                 }
             });
         }
@@ -771,7 +779,6 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
 
 const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, title: string, rows: string[], columns: string[], onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked');
-    const [tableFormat, setTableFormat] = useState('counts');
     
     const interpretation = useMemo(() => {
         if (!data || !data.heatmapData) return null;
@@ -843,94 +850,6 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
         }
     }, [data, columns]);
     
-    const renderContingencyTable = () => {
-        if (!data) return null;
-
-        const { heatmapData, rows, columns } = data;
-        
-        const total = Object.values(heatmapData).flatMap(Object.values).reduce((sum: number, val: any) => sum + val, 0);
-        const rowTotals = rows.map((row: string) => columns.reduce((sum: number, col: string) => sum + (heatmapData[row]?.[col] || 0), 0));
-        const colTotals = columns.map((col: string) => rows.reduce((sum: number, row: string) => sum + (heatmapData[row]?.[col] || 0), 0));
-
-        const getCellContent = (row: string, col: string, rowIndex: number, colIndex: number) => {
-            const count = heatmapData[row]?.[col] || 0;
-            switch(tableFormat) {
-                case 'row_percent':
-                    return `${((count / rowTotals[rowIndex]) * 100 || 0).toFixed(1)}%`;
-                case 'col_percent':
-                     return `${((count / colTotals[colIndex]) * 100 || 0).toFixed(1)}%`;
-                case 'total_percent':
-                     return `${((count / total) * 100 || 0).toFixed(1)}%`;
-                default: // counts
-                    return count;
-            }
-        };
-
-        const getRowTotal = (rowIndex: number) => {
-            switch(tableFormat) {
-                case 'row_percent':
-                    return '100.0%';
-                case 'col_percent':
-                    return ''; // 열 % 모드에서는 행 합계 숨김
-                case 'total_percent':
-                    return ((rowTotals[rowIndex] / total) * 100 || 0).toFixed(1) + '%';
-                default:
-                    return rowTotals[rowIndex];
-            }
-        };
-
-        const getColTotal = (colIndex: number) => {
-            switch(tableFormat) {
-                case 'row_percent':
-                    return ''; // 행%/열% 모드에서는 열 합계 숨김
-                case 'col_percent':
-                    return '100.0%';
-                case 'total_percent':
-                    return ((colTotals[colIndex] / total) * 100 || 0).toFixed(1) + '%';
-                default:
-                    return colTotals[colIndex];
-            }
-        };
-
-        const getGrandTotal = () => {
-            switch(tableFormat) {
-                case 'row_percent':
-                case 'col_percent':
-                    return ''; // 행%/열% 모드에서는 전체 합계 숨김
-                case 'total_percent':
-                    return '100.0%';
-                default:
-                    return total;
-            }
-        };
-
-        return (
-             <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>{title}</TableHead>
-                        {columns.map((c: string) => <TableHead key={c} className="text-right">{c}</TableHead>)}
-                        <TableHead className="text-right font-bold">Total</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {rows.map((r: string, rowIndex: number) => (
-                        <TableRow key={r}>
-                            <TableHead>{r}</TableHead>
-                            {columns.map((c: string, colIndex: number) => <TableCell key={`${r}-${c}`} className="text-right font-mono">{getCellContent(r, c, rowIndex, colIndex)}</TableCell>)}
-                            <TableCell className="text-right font-bold font-mono">{getRowTotal(rowIndex)}</TableCell>
-                        </TableRow>
-                    ))}
-                    <TableRow className="font-bold bg-muted/50">
-                        <TableHead>Total</TableHead>
-                         {columns.map((c: string, colIndex: number) => <TableCell key={`total-${c}`} className="text-right font-mono">{getColTotal(colIndex)}</TableCell>)}
-                        <TableCell className="text-right font-mono">{getGrandTotal()}</TableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-        );
-    }
-    
     return (
         <Card>
             <CardHeader>
@@ -981,17 +900,8 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                             </ChartContainer>
                         </TabsContent>
                     </Tabs>
-                    <div className="overflow-x-auto space-y-4">
-                        <Tabs value={tableFormat} onValueChange={setTableFormat} className="w-full">
-                            <TabsList>
-                                <TabsTrigger value="counts">Counts</TabsTrigger>
-                                <TabsTrigger value="row_percent">Row %</TabsTrigger>
-                                <TabsTrigger value="col_percent">Col %</TabsTrigger>
-                                <TabsTrigger value="total_percent">Total %</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                        {renderContingencyTable()}
-                         {interpretation && (
+                    <div className="overflow-x-auto">
+                        {interpretation && (
                             <Alert variant={interpretation.variant as any}>
                                 <Info className="h-4 w-4" />
                                 <AlertTitle>{interpretation.title}</AlertTitle>
@@ -1016,6 +926,12 @@ export default function SurveyAnalysisPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [analysisData, setAnalysisData] = useState<any[]>([]);
+    
+    // States for "Further Analysis"
+    const [crosstabRow, setCrosstabRow] = useState<string | undefined>();
+    const [crosstabCol, setCrosstabCol] = useState<string | undefined>();
+    const [isCrosstabLoading, setIsCrosstabLoading] = useState(false);
+    const [crosstabResult, setCrosstabResult] = useState<CrosstabResults | null>(null);
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
       if (!questions || !responses) {
@@ -1091,6 +1007,47 @@ export default function SurveyAnalysisPage() {
         }
     }, []);
 
+    const handleRunCrosstab = useCallback(async () => {
+        if (!crosstabRow || !crosstabCol) {
+            toast({ title: 'Error', description: 'Please select both a row and a column variable for crosstabulation.', variant: 'destructive' });
+            return;
+        }
+
+        setIsCrosstabLoading(true);
+        setCrosstabResult(null);
+
+        try {
+            const crosstabData = responses.map(r => ({
+                [crosstabRow]: (r.answers as any)[crosstabRow],
+                [crosstabCol]: (r.answers as any)[crosstabCol],
+            }));
+            
+            const response = await fetch('/api/analysis/crosstab', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: crosstabData, rowVar: crosstabRow, colVar: crosstabCol })
+            });
+
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            setCrosstabResult(result.results);
+
+        } catch (e: any) {
+            toast({ title: 'Crosstab Analysis Error', description: e.message, variant: 'destructive' });
+        } finally {
+            setIsCrosstabLoading(false);
+        }
+    }, [crosstabRow, crosstabCol, responses, toast]);
+    
+    const categoricalQuestions = useMemo(() => {
+        if (!survey) return [];
+        return survey.questions.filter((q: Question) => ['single', 'multiple', 'dropdown'].includes(q.type));
+    }, [survey]);
+
     if (loading) {
         return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-96 w-full" /></div>;
     }
@@ -1157,11 +1114,43 @@ export default function SurveyAnalysisPage() {
                 <TabsContent value="further_analysis" className="mt-4">
                      <Card>
                         <CardHeader>
-                            <CardTitle>Further Analysis</CardTitle>
-                            <CardDescription>This section is under construction. More advanced analysis tools are coming soon!</CardDescription>
+                            <CardTitle>Crosstabulation Analysis</CardTitle>
+                             <CardDescription>Analyze the relationship between two categorical survey questions.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <p className="text-muted-foreground">Stay tuned for updates.</p>
+                             <div className="grid md:grid-cols-3 gap-4">
+                                <div>
+                                    <Label>Row Variable</Label>
+                                    <Select value={crosstabRow} onValueChange={setCrosstabRow}>
+                                        <SelectTrigger><SelectValue placeholder="Select Row..."/></SelectTrigger>
+                                        <SelectContent>
+                                            {categoricalQuestions.map((q: Question) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label>Column Variable</Label>
+                                    <Select value={crosstabCol} onValueChange={setCrosstabCol} disabled={!crosstabRow}>
+                                        <SelectTrigger><SelectValue placeholder="Select Column..."/></SelectTrigger>
+                                        <SelectContent>
+                                            {categoricalQuestions.filter((q: Question) => String(q.id) !== crosstabRow).map((q: Question) => <SelectItem key={q.id} value={String(q.id)}>{q.title}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                 <div className="self-end">
+                                    <Button onClick={handleRunCrosstab} disabled={isCrosstabLoading || !crosstabRow || !crosstabCol}>
+                                        {isCrosstabLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sigma className="mr-2 h-4 w-4" />}
+                                        Run Crosstab
+                                    </Button>
+                                </div>
+                            </div>
+                            {isCrosstabLoading && <Skeleton className="h-64 mt-4"/>}
+                            {crosstabResult && (
+                                <div className="mt-6">
+                                     <h3 className="font-semibold text-lg mb-4">Crosstab Results</h3>
+                                      <Image src={`data:image/png;base64,${crosstabResult.plot}`} alt="Crosstabulation Plot" width={800} height={500} className="w-full rounded-md border" />
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -1169,3 +1158,677 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+```
+- src/hooks/use-localstorage.ts:
+```ts
+'use client';
+    
+    import { useState, useEffect } from 'react';
+    
+    export function useLocalStorage<T>(key: string, initialValue: T) {
+      const [storedValue, setStoredValue] = useState<T>(() => {
+        if (typeof window === 'undefined') {
+          return initialValue;
+        }
+        try {
+          const item = window.localStorage.getItem(key);
+          return item ? JSON.parse(item) : initialValue;
+        } catch (error) {
+          console.log(error);
+          return initialValue;
+        }
+      });
+    
+      const setValue = (value: T | ((val: T) => T)) => {
+        try {
+          const valueToStore =
+            value instanceof Function ? value(storedValue) : value;
+          setStoredValue(valueToStore);
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      };
+    
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const item = window.localStorage.getItem(key);
+            if (item) {
+                try {
+                    setStoredValue(JSON.parse(item));
+                } catch (e) {
+                    // If parsing fails, it might be a raw string
+                    // Or could be corrupted, best to fall back to initial
+                    console.warn(`Could not parse stored json for key "${key}"`);
+                }
+            }
+        }
+      }, [key]);
+    
+      return [storedValue, setValue] as const;
+    }
+
+
+```
+- src/hooks/use-toast.ts:
+```ts
+"use client"
+
+// Inspired by react-hot-toast library
+import * as React from "react"
+
+import type {
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast"
+
+const TOAST_LIMIT = 1
+const TOAST_REMOVE_DELAY = 1000000
+
+type ToasterToast = ToastProps & {
+  id: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  action?: ToastActionElement
+}
+
+const actionTypes = {
+  ADD_TOAST: "ADD_TOAST",
+  UPDATE_TOAST: "UPDATE_TOAST",
+  DISMISS_TOAST: "DISMISS_TOAST",
+  REMOVE_TOAST: "REMOVE_TOAST",
+} as const
+
+let count = 0
+
+function genId() {
+  count = (count + 1) % Number.MAX_SAFE_INTEGER
+  return count.toString()
+}
+
+type ActionType = typeof actionTypes
+
+type Action =
+  | {
+      type: ActionType["ADD_TOAST"]
+      toast: ToasterToast
+    }
+  | {
+      type: ActionType["UPDATE_TOAST"]
+      toast: Partial<ToasterToast>
+    }
+  | {
+      type: ActionType["DISMISS_TOAST"]
+      toastId?: ToasterToast["id"]
+    }
+  | {
+      type: ActionType["REMOVE_TOAST"]
+      toastId?: ToasterToast["id"]
+    }
+
+interface State {
+  toasts: ToasterToast[]
+}
+
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
+
+const addToRemoveQueue = (toastId: string) => {
+  if (toastTimeouts.has(toastId)) {
+    return
+  }
+
+  const timeout = setTimeout(() => {
+    toastTimeouts.delete(toastId)
+    dispatch({
+      type: "REMOVE_TOAST",
+      toastId: toastId,
+    })
+  }, TOAST_REMOVE_DELAY)
+
+  toastTimeouts.set(toastId, timeout)
+}
+
+export const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case "ADD_TOAST":
+      return {
+        ...state,
+        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+      }
+
+    case "UPDATE_TOAST":
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? { ...t, ...action.toast } : t
+        ),
+      }
+
+    case "DISMISS_TOAST": {
+      const { toastId } = action
+
+      // ! Side effects ! - This could be extracted into a dismissToast() action,
+      // but I'll keep it here for simplicity
+      if (toastId) {
+        addToRemoveQueue(toastId)
+      } else {
+        state.toasts.forEach((toast) => {
+          addToRemoveQueue(toast.id)
+        })
+      }
+
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === toastId || toastId === undefined
+            ? {
+                ...t,
+                open: false,
+              }
+            : t
+        ),
+      }
+    }
+    case "REMOVE_TOAST":
+      if (action.toastId === undefined) {
+        return {
+          ...state,
+          toasts: [],
+        }
+      }
+      return {
+        ...state,
+        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+      }
+  }
+}
+
+const listeners: Array<(state: State) => void> = []
+
+let memoryState: State = { toasts: [] }
+
+function dispatch(action: Action) {
+  memoryState = reducer(memoryState, action)
+  listeners.forEach((listener) => {
+    listener(memoryState)
+  })
+}
+
+type Toast = Omit<ToasterToast, "id">
+
+function toast({ ...props }: Toast) {
+  const id = genId()
+
+  const update = (props: ToasterToast) =>
+    dispatch({
+      type: "UPDATE_TOAST",
+      toast: { ...props, id },
+    })
+  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+
+  dispatch({
+    type: "ADD_TOAST",
+    toast: {
+      ...props,
+      id,
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) dismiss()
+      },
+    },
+  })
+
+  return {
+    id: id,
+    dismiss,
+    update,
+  }
+}
+
+function useToast() {
+  const [state, setState] = React.useState<State>(memoryState)
+
+  React.useEffect(() => {
+    listeners.push(setState)
+    return () => {
+      const index = listeners.indexOf(setState)
+      if (index > -1) {
+        listeners.splice(index, 1)
+      }
+    }
+  }, [state])
+
+  return {
+    ...state,
+    toast,
+    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+  }
+}
+
+export { useToast, toast }
+
+```
+- src/lib/stats.ts:
+```ts
+
+import Papa from 'papaparse';
+
+export type DataPoint = Record<string, number | string>;
+export type DataSet = DataPoint[];
+
+export const parseData = (
+  fileContent: string
+): { headers: string[]; data: DataSet; numericHeaders: string[]; categoricalHeaders: string[] } => {
+  const result = Papa.parse(fileContent, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: true,
+  });
+
+  if (result.errors.length > 0) {
+    console.error("Parsing errors:", result.errors);
+    // Optionally throw an error for the first critical error
+    const firstError = result.errors[0];
+    if (firstError.code !== 'UndetectableDelimiter') {
+       throw new Error(`CSV Parsing Error: ${firstError.message} on row ${firstError.row}`);
+    }
+  }
+
+  if (!result.data || result.data.length === 0) {
+    throw new Error("No parsable data rows found in the file.");
+  }
+  
+  const rawHeaders = result.meta.fields || [];
+  const data: DataSet = result.data as DataSet;
+
+  const numericHeaders: string[] = [];
+  const categoricalHeaders: string[] = [];
+
+  rawHeaders.forEach(header => {
+    const values = data.map(row => row[header]).filter(val => val !== null && val !== undefined && val !== '');
+    
+    // Check if every non-empty value is a number
+    const isNumericColumn = values.length > 0 && values.every(val => typeof val === 'number' && isFinite(val));
+
+    if (isNumericColumn) {
+        numericHeaders.push(header);
+    } else {
+        categoricalHeaders.push(header);
+    }
+  });
+
+  // Ensure types are correct, PapaParse does a good job but we can enforce it.
+  const sanitizedData = data.map(row => {
+    const newRow: DataPoint = {};
+    rawHeaders.forEach(header => {
+      const value = row[header];
+      if (numericHeaders.includes(header)) {
+        if (typeof value === 'number' && isFinite(value)) {
+            newRow[header] = value;
+        } else if (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value))) {
+            newRow[header] = parseFloat(value);
+        } else {
+            newRow[header] = NaN; // Use NaN for non-numeric values in numeric columns
+        }
+      } else { // Categorical
+        newRow[header] = String(value ?? '');
+      }
+    });
+    return newRow;
+  });
+
+  return { headers: rawHeaders, data: sanitizedData, numericHeaders, categoricalHeaders };
+};
+
+export const unparseData = (
+    { headers, data }: { headers: string[]; data: DataSet }
+): string => {
+    return Papa.unparse(data, {
+        columns: headers,
+        header: true,
+    });
+};
+
+
+const getColumn = (data: DataSet, column: string): (number | string)[] => {
+    return data.map(row => row[column]).filter(val => val !== undefined && val !== null && val !== '');
+};
+
+const getNumericColumn = (data: DataSet, column: string): number[] => {
+    return data.map(row => row[column]).filter(val => typeof val === 'number' && !isNaN(val)) as number[];
+}
+
+const mean = (arr: number[]): number => arr.length === 0 ? NaN : arr.reduce((a, b) => a + b, 0) / arr.length;
+
+const median = (arr: number[]): number => {
+    if (arr.length === 0) return NaN;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+
+const variance = (arr: number[]): number => {
+    if (arr.length < 2) return NaN;
+    const m = mean(arr);
+    if(isNaN(m)) return NaN;
+    return mean(arr.map(x => Math.pow(x - m, 2)));
+};
+
+const stdDev = (arr: number[]): number => Math.sqrt(variance(arr));
+
+const percentile = (arr: number[], p: number): number => {
+    if (arr.length === 0) return NaN;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const index = (p / 100) * (sorted.length - 1);
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    if (lower === upper) return sorted[lower];
+    if(sorted[lower] === undefined || sorted[upper] === undefined) return NaN;
+    return sorted[lower] * (upper - index) + sorted[upper] * (index - lower);
+};
+
+const mode = (arr: (number|string)[]): (number|string)[] => {
+    if (arr.length === 0) return [];
+    const counts: {[key: string]: number} = {};
+    arr.forEach(val => {
+        const key = String(val);
+        counts[key] = (counts[key] || 0) + 1;
+    });
+
+    let maxFreq = 0;
+    for (const key in counts) {
+        if (counts[key] > maxFreq) {
+            maxFreq = counts[key];
+        }
+    }
+
+    if (maxFreq <= 1 && new Set(arr).size === arr.length) return []; // No mode if all unique
+
+    const modes = Object.keys(counts)
+        .filter(key => counts[key] === maxFreq)
+        .map(key => {
+            const num = parseFloat(key);
+            return isNaN(num) ? key : num;
+        });
+    
+    return modes;
+}
+
+const skewness = (arr: number[]): number => {
+    if (arr.length < 3) return NaN;
+    const m = mean(arr);
+    const s = stdDev(arr);
+    if (s === 0 || isNaN(s) || isNaN(m)) return 0;
+    const n = arr.length;
+    return (n / ((n - 1) * (n - 2))) * arr.reduce((acc, val) => acc + Math.pow((val - m) / s, 3), 0);
+};
+
+const kurtosis = (arr: number[]): number => {
+    if (arr.length < 4) return NaN;
+    const m = mean(arr);
+    const s = stdDev(arr);
+    if (s === 0 || isNaN(s) || isNaN(m)) return 0;
+    const n = arr.length;
+    const term1 = (n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3));
+    const term2 = arr.reduce((acc, val) => acc + Math.pow((val - m) / s, 4), 0);
+    const term3 = (3 * Math.pow(n - 1, 2)) / ((n - 2) * (n - 3));
+    return term1 * term2 - term3; // Excess kurtosis
+};
+
+export const findIntersection = (x1: number[], y1: number[], x2: number[], y2: number[]): number | null => {
+    for (let i = 0; i < x1.length - 1; i++) {
+        for (let j = 0; j < x2.length - 1; j++) {
+            const p1 = { x: x1[i], y: y1[i] };
+            const p2 = { x: x1[i+1], y: y1[i+1] };
+            const p3 = { x: x2[j], y: y2[j] };
+            const p4 = { x: x2[j+1], y: y2[j+1] };
+
+            const denominator = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+            if (denominator === 0) continue;
+
+            const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denominator;
+            const ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denominator;
+
+            if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
+                return p1.x + ua * (p2.x - p1.x); // Return intersection X value
+            }
+        }
+    }
+    return null;
+};
+
+
+export const calculateDescriptiveStats = (data: DataSet, headers: string[]) => {
+    const stats: Record<string, any> = {};
+    headers.forEach(header => {
+        const numericColumn = data.every(row => typeof row[header] === 'number');
+
+        if (numericColumn) {
+            const columnData = getNumericColumn(data, header);
+            if (columnData.length > 0) {
+                const p25 = percentile(columnData, 25);
+                const p75 = percentile(columnData, 75);
+                stats[header] = {
+                    mean: mean(columnData),
+                    median: median(columnData),
+                    stdDev: stdDev(columnData),
+                    variance: variance(columnData),
+                    min: Math.min(...columnData),
+                    max: Math.max(...columnData),
+                    range: Math.max(...columnData) - Math.min(...columnData),
+                    iqr: p75 - p25,
+                    count: columnData.length,
+                    mode: mode(columnData),
+                    skewness: skewness(columnData),
+                    kurtosis: kurtosis(columnData),
+                    p25: p25,
+                    p75: p75,
+                };
+            }
+        } else {
+             const catColumnData = getColumn(data, header);
+             if(catColumnData.length > 0) {
+                 stats[header] = {
+                     count: catColumnData.length,
+                     unique: new Set(catColumnData).size,
+                     mode: mode(catColumnData),
+                 }
+             }
+        }
+    });
+    return stats;
+};
+
+// Deprecated: Correlation calculation is now handled by the Python backend.
+export const calculateCorrelationMatrix = (data: DataSet, headers: string[]) => {
+    return [];
+};
+
+```
+- src/lib/utils.ts:
+```ts
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+ 
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+```
+- src/types/survey.ts:
+```ts
+
+export interface Survey {
+  id: string;
+  title: string;
+  description: string;
+  questions: Question[];
+  status: 'draft' | 'active' | 'closed';
+  created_date: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface SurveyResponse {
+  id: string;
+  survey_id: string;
+  submittedAt: string; // Changed from submitted_at
+  answers: {
+    [questionId: string]: any;
+  };
+}
+
+export type Question = {
+    id: string;
+    type: string;
+    title: string;
+    description?: string;
+    options?: string[];
+    items?: string[];
+    columns?: string[];
+    scale?: string[];
+    required?: boolean;
+    content?: string;
+    imageUrl?: string;
+    rows?: string[];
+    text?: string;
+};
+
+
+```
+- tailwind.config.ts:
+```ts
+import type {Config} from 'tailwindcss';
+
+export default {
+  darkMode: ['class'],
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        body: ['Inter', 'sans-serif'],
+        headline: ['Space Grotesk', 'sans-serif'],
+        code: ['monospace'],
+      },
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
+        },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'accordion-down': {
+          from: {
+            height: '0',
+          },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+        },
+        'accordion-up': {
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+          },
+          to: {
+            height: '0',
+          },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
+    },
+  },
+  plugins: [require('tailwindcss-animate')],
+} satisfies Config;
+
+```
+- tsconfig.json:
+```json
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+
+```
