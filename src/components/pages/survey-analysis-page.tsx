@@ -315,8 +315,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                 <div className="col-span-1 space-y-4">
                      <Table>
                         <TableHeader><TableRow><TableHead>Option</TableHead><TableHead className="text-right">Count</TableHead><TableHead className="text-right">%</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                            {data.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell></TableRow> ))}</TableBody>
+                        <TableBody>{data.map((item, index) => ( <TableRow key={`${item.name}-${index}`}><TableCell>{item.name}</TableCell><TableCell className="text-right">{item.count}</TableCell><TableCell className="text-right">{item.percentage.toFixed(1)}%</TableCell></TableRow> ))}</TableBody>
                     </Table>
                     {interpretation && (
                         <Alert variant={interpretation.variant as any}>
@@ -377,7 +376,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                 </div>
             </CardHeader>
             <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                 <ChartContainer config={{count: {label: 'Freq.'}}} className="w-full h-64">
+                <ChartContainer config={{count: {label: 'Freq.'}}} className="w-full h-64">
                     <ResponsiveContainer>
                         <BarChart data={data.histogram}>
                             <CartesianGrid />
@@ -389,13 +388,8 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                     </ResponsiveContainer>
                 </ChartContainer>
                 <div className="space-y-4">
-                     <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Metric</TableHead>
-                                <TableHead className="text-right">Value</TableHead>
-                            </TableRow>
-                        </TableHeader>
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Metric</TableHead><TableHead className="text-right">Value</TableHead></TableRow></TableHeader>
                         <TableBody>
                             <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{data.mean.toFixed(3)}</TableCell></TableRow>
                             <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{data.median}</TableCell></TableRow>
@@ -403,7 +397,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                             <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{data.count}</TableCell></TableRow>
                         </TableBody>
                     </Table>
-                     {interpretation && (
+                    {interpretation && (
                         <Alert>
                             <Info className="h-4 w-4" />
                             <AlertTitle>{interpretation.title}</AlertTitle>
@@ -416,7 +410,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
     );
 };
 
-const RatingChart = ({ data, title, onDownload }: { data: { values: number[], count: number }, title: string, onDownload: () => void }) => {
+const RatingChart = ({ data, title, onDownload }: { data: { values: number[], count: number, mean: number, std: number }, title: string, onDownload: () => void }) => {
     if (!data || data.values.length === 0) {
         return (
             <Card>
@@ -441,11 +435,10 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
         percentage: data.count > 0 ? (count / data.count) * 100 : 0
     }));
 
-    const totalResponses = data.count;
-    const weightedSum = data.values.reduce((sum, val) => sum + val, 0);
-    const averageRating = totalResponses > 0 ? weightedSum / totalResponses : 0;
+    const averageRating = data.mean;
     
     const interpretation = useMemo(() => {
+        if (!tableData || tableData.length === 0) return null;
         const mode = tableData.reduce((prev, current) => (prev.count > current.count) ? prev : current);
         return {
             title: "Rating Summary",
@@ -462,7 +455,7 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
                     <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
                 </div>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div className="flex flex-col items-center justify-center">
                     <p className="text-5xl font-bold">{averageRating.toFixed(2)}</p>
                     <div className="flex items-center mt-2">
@@ -1179,100 +1172,3 @@ export default function SurveyAnalysisPage() {
     );
 }
 
-```
-- src/hooks/use-local-storage.ts:
-```ts
-'use client';
-    
-    import { useState, useEffect } from 'react';
-    
-    export function useLocalStorage<T>(key: string, initialValue: T) {
-      const [storedValue, setStoredValue] = useState<T>(() => {
-        if (typeof window === 'undefined') {
-          return initialValue;
-        }
-        try {
-          const item = window.localStorage.getItem(key);
-          return item ? JSON.parse(item) : initialValue;
-        } catch (error) {
-          console.log(error);
-          return initialValue;
-        }
-      });
-    
-      const setValue = (value: T | ((val: T) => T)) => {
-        try {
-          const valueToStore = value instanceof Function ? value(storedValue) : value;
-          setStoredValue(valueToStore);
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem(key, JSON.stringify(valueToStore));
-          }
-        } catch (error) {
-          console.log(error);
-        }
-      };
-    
-      useEffect(() => {
-        // This effect will run on the client side after the initial render,
-        // ensuring the state is updated with the value from localStorage.
-        try {
-            const item = window.localStorage.getItem(key);
-            if (item) {
-                setStoredValue(JSON.parse(item));
-            }
-        } catch (error) {
-            console.log(error);
-        }
-    }, [key]);
-
-    
-      return [storedValue, setValue] as const;
-    }
-```
-- src/types/analysis.ts:
-```ts
-
-export type AnalysisResult = {
-  results: any;
-  plot?: string;
-  [key: string]: any; 
-};
-```
-- src/types/survey.ts:
-```ts
-
-export interface Survey {
-  id: string;
-  title: string; // Changed from name to title
-  status: 'active' | 'draft' | 'closed';
-  created_date: string;
-  startDate?: string;
-  endDate?: string;
-  questions?: any[]; // Keep questions for saving logic
-  description?: string; // Keep for saving logic
-}
-
-export interface SurveyResponse {
-  id: string;
-  survey_id: string;
-  submitted_at: string;
-  answers: Record<string, any>;
-}
-
-export type Question = {
-    id: string;
-    type: string;
-    title: string;
-    text: string; // Keep for backward compatibility, but prefer title
-    description?: string;
-    options?: string[];
-    items?: string[];
-    columns?: string[];
-    scale?: string[];
-    required?: boolean;
-    content?: string;
-    imageUrl?: string;
-    rows?: string[];
-};
-
-```
