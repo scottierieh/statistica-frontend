@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -28,6 +26,7 @@ import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
+import html2canvas from 'html2canvas';
 
 
 const Plot = dynamic(() => import('react-plotly.js'), {
@@ -95,13 +94,13 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
         return { mean: 0, median: 0, std: 0, count: 0, histogram: [], boxplot: [], values: [] };
     }
     
-    const counts = jStat.histogram(values, numBins);
+    const histogramBinsResult = jStat.histogram(values, numBins);
     const binEdges = jStat.arange(numBins + 1, minVal, binWidth);
 
-    const histogramData = binEdges.slice(0, -1).map((binStart: number, i: number) => ({
-      name: `${binStart.toFixed(1)}-${binEdges[i+1]?.toFixed(1)}`,
-      count: counts[i] || 0
-    }));
+    const histogramData = histogramBinsResult ? binEdges.slice(0,-1).map((binStart: number, i: number) => ({
+        name: `${binStart.toFixed(1)}-${binEdges[i+1]?.toFixed(1)}`,
+        count: histogramBinsResult[i] || 0,
+    })) : [];
 
     const q1 = jStat.percentile(sorted, 0.25);
     const q3 = jStat.percentile(sorted, 0.75);
@@ -116,29 +115,21 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
 };
 
 
-const processBestWorst = (responses: SurveyResponse[], question: Question) => {
+const processBestWorst = async (responses: SurveyResponse[], question: Question) => {
     const questionId = String(question.id);
-    const items = question.items || [];
-    const bestCounts: { [key: string]: number } = {};
-    const worstCounts: { [key: string]: number } = {};
+    const data = responses.map(r => r.answers[questionId]).filter(Boolean);
 
-    responses.forEach((response: any) => {
-        const answer = response.answers[questionId];
-        if (answer) {
-            if (answer.best) bestCounts[answer.best] = (bestCounts[answer.best] || 0) + 1;
-            if (answer.worst) worstCounts[answer.worst] = (worstCounts[answer.worst] || 0) + 1;
-        }
+    const response = await fetch('/api/analysis/maxdiff', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ data: data, bestCol: 'best', worstCol: 'worst' })
     });
-
-    const totalResponses = responses.length;
-    return items.map(item => ({
-        name: item,
-        best: bestCounts[item] || 0,
-        worst: worstCounts[item] || 0,
-        bestPct: ((bestCounts[item] || 0) / totalResponses) * 100,
-        worstPct: ((worstCounts[item] || 0) / totalResponses) * 100,
-        netScore: (((bestCounts[item] || 0) - (worstCounts[item] || 0)) / totalResponses) * 100
-    }));
+    if (!response.ok) {
+        console.error("MaxDiff analysis failed");
+        return null;
+    }
+    const result = await response.json();
+    return result.results;
 };
 
 const processMatrixResponses = (responses: SurveyResponse[], question: Question) => {
@@ -860,7 +851,8 @@ export default function SurveyAnalysisPage() {
               case 'text':
                    return { type: 'text', title: q.title, data: processTextResponses(responses, questionId) };
               case 'best-worst':
-                  return { type: 'best-worst', title: q.title, data: processBestWorst(responses, q) };
+                  const bestWorstData = await processBestWorst(responses, q);
+                  return { type: 'best-worst', title: q.title, data: bestWorstData };
               case 'matrix':
                   return { type: 'matrix', title: q.title, data: processMatrixResponses(responses, q), rows: q.rows, columns: q.scale || q.columns };
               default:
@@ -900,14 +892,12 @@ export default function SurveyAnalysisPage() {
     const downloadChartAsPng = useCallback((chartId: string, title: string) => {
         const chartElement = chartRefs.current[chartId];
         if (chartElement) {
-            import('html2canvas').then(html2canvas => {
-                html2canvas.default(chartElement, { scale: 2 }).then(canvas => {
-                    const image = canvas.toDataURL("image/png", 1.0);
-                    const link = document.createElement('a');
-                    link.download = `${title.replace(/ /g, '_')}.png`;
-                    link.href = image;
-                    link.click();
-                });
+            html2canvas(chartElement, { scale: 2 }).then(canvas => {
+                const image = canvas.toDataURL("image/png", 1.0);
+                const link = document.createElement('a');
+                link.download = `${title.replace(/ /g, '_')}.png`;
+                link.href = image;
+                link.click();
             });
         }
     }, []);

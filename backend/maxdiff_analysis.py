@@ -1,4 +1,3 @@
-
 import sys
 import json
 import pandas as pd
@@ -18,6 +17,21 @@ def _to_native_type(obj):
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     return obj
+
+def get_interpretation(sorted_scores):
+    if not sorted_scores:
+        return "No data available for interpretation."
+
+    top_item = sorted_scores[0]['item']
+    bottom_item = sorted_scores[-1]['item']
+    
+    interpretation = (
+        f"The MaxDiff analysis reveals a clear preference hierarchy among the evaluated items.\n\n"
+        f"**Top Preference:** '{top_item}' emerges as the most preferred item with the highest net score. This indicates it was chosen as 'Best' far more often than 'Worst', making it a key strength or a highly desired feature.\n\n"
+        f"**Bottom Preference:** Conversely, '{bottom_item}' is the least preferred item, with a significantly negative net score. This item was frequently chosen as 'Worst' and should be a primary candidate for review, improvement, or deprioritization.\n\n"
+        "The ranking of the items in between provides a roadmap for prioritizing product features, marketing messages, or service improvements."
+    )
+    return interpretation.strip()
 
 def main():
     try:
@@ -55,9 +69,12 @@ def main():
         # Sort results by net score
         sorted_scores = sorted(scores.items(), key=lambda x: x[1]['net_score'], reverse=True)
         
-        results_df = pd.DataFrame([{'item': item, **metrics} for item, metrics in sorted_scores])
+        results_list = [{'item': item, **metrics} for item, metrics in sorted_scores]
+        
+        interpretation = get_interpretation(results_list)
 
         # --- Plotting ---
+        results_df = pd.DataFrame(results_list)
         plt.figure(figsize=(10, 6))
         sns.barplot(x='net_score', y='item', data=results_df, palette='viridis', orient='h')
         plt.title('MaxDiff Analysis: Net Preference Score')
@@ -72,7 +89,10 @@ def main():
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
 
         response = {
-            'results': results_df.to_dict('records'),
+            'results': {
+                'scores': results_list,
+                'interpretation': interpretation
+            },
             'plot': f"data:image/png;base64,{plot_image}"
         }
 
