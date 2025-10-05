@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -245,6 +244,17 @@ const CustomizedTreemapContent = (props: any) => {
       )}
     </g>
   );
+};
+
+const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode, varName: string }) => {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{varName}</CardTitle>
+            </CardHeader>
+            <CardContent>{children}</CardContent>
+        </Card>
+    );
 };
 
 
@@ -1173,3 +1183,13 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode, varName: string }) => {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{varName}</CardTitle>
+            </CardHeader>
+            <CardContent>{children}</CardContent>
+        </Card>
+    );
+};
