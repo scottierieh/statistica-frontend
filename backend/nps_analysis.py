@@ -22,12 +22,15 @@ def get_nps_interpretation(score, promoters, passives, detractors, total):
     level = ""
     if score >= 70:
         level = "Excellent"
-    elif score >= 30:
+    elif score >= 50:
         level = "Good"
+    elif score >= 30:
+        level = "Fair"
     elif score >= 0:
         level = "Fair"
     else:
-        level = "Needs Improvement"
+        level = "Poor"
+
 
     interpretation = (
         f"The Net Promoter Score (NPS) is calculated by subtracting the percentage of Detractors from the percentage of Promoters. "
