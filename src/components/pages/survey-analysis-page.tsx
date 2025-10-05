@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -551,46 +550,46 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
                 <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
             </div>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-              <div className="flex flex-col items-center justify-center">
-                <GaugeChart score={data.npsScore} />
-                <div className="mt-4 space-y-2 text-sm text-gray-700 text-center">
-                  <p><strong>NPS Score</strong> is calculated as<br/>(% Promoters - % Detractors).</p>
+           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div className="flex flex-col items-center justify-center">
+                    <GaugeChart score={data.npsScore} />
+                    <div className="mt-4 space-y-2 text-sm text-gray-700 text-center">
+                        <p><strong>NPS Score</strong> is calculated as<br/>(% Promoters - % Detractors).</p>
+                    </div>
                 </div>
-              </div>
-              <div className="space-y-4">
-                  <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Group</TableHead>
-                            <TableHead className="text-right">Count</TableHead>
-                            <TableHead className="text-right">Percentage</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        <TableRow>
-                            <TableCell><Badge className="bg-green-500 hover:bg-green-600">Promoters (9-10)</Badge></TableCell>
-                            <TableCell className="text-right font-mono">{data.promoters}</TableCell>
-                            <TableCell className="text-right font-mono">{data.total > 0 ? ((data.promoters / data.total) * 100).toFixed(1) : 0}%</TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell><Badge className="bg-yellow-500 hover:bg-yellow-600">Passives (7-8)</Badge></TableCell>
-                            <TableCell className="text-right font-mono">{data.passives}</TableCell>
-                            <TableCell className="text-right font-mono">{data.total > 0 ? ((data.passives / data.total) * 100).toFixed(1) : 0}%</TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell><Badge variant="destructive">Detractors (0-6)</Badge></TableCell>
-                            <TableCell className="text-right font-mono">{data.detractors}</TableCell>
-                            <TableCell className="text-right font-mono">{data.total > 0 ? ((data.detractors / data.total) * 100).toFixed(1) : 0}%</TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
-                <Alert>
-                    <AlertTitle>Summary</AlertTitle>
-                    <AlertDescription dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />
-                </Alert>
-              </div>
-          </CardContent>
+                <div className="space-y-4">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Group</TableHead>
+                                <TableHead className="text-right">Count</TableHead>
+                                <TableHead className="text-right">Percentage</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell><Badge className="bg-green-500 hover:bg-green-600">Promoters (9-10)</Badge></TableCell>
+                                <TableCell className="text-right font-mono">{data.promoters}</TableCell>
+                                <TableCell className="text-right font-mono">{data.total > 0 ? ((data.promoters / data.total) * 100).toFixed(1) : 0}%</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell><Badge className="bg-yellow-500 hover:bg-yellow-600">Passives (7-8)</Badge></TableCell>
+                                <TableCell className="text-right font-mono">{data.passives}</TableCell>
+                                <TableCell className="text-right font-mono">{data.total > 0 ? ((data.passives / data.total) * 100).toFixed(1) : 0}%</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell><Badge variant="destructive">Detractors (0-6)</Badge></TableCell>
+                                <TableCell className="text-right font-mono">{data.detractors}</TableCell>
+                                <TableCell className="text-right font-mono">{data.total > 0 ? ((data.detractors / data.total) * 100).toFixed(1) : 0}%</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                    <Alert>
+                        <AlertTitle>Summary</AlertTitle>
+                        <AlertDescription dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />
+                    </Alert>
+                </div>
+            </CardContent>
         </Card>
       );
 };
@@ -984,7 +983,7 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                             </ChartContainer>
                         </TabsContent>
                     </Tabs>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto space-y-4">
                         <Tabs value={tableFormat} onValueChange={setTableFormat} className="w-full">
                             <TabsList>
                                 <TabsTrigger value="counts">Counts</TabsTrigger>
@@ -994,17 +993,15 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
                             </TabsList>
                         </Tabs>
                         {renderContingencyTable()}
+                         {interpretation && (
+                            <Alert variant={interpretation.variant as any}>
+                                <Info className="h-4 w-4" />
+                                <AlertTitle>{interpretation.title}</AlertTitle>
+                                <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
+                            </Alert>
+                        )}
                     </div>
                 </div>
-                 {interpretation && (
-                    <div className="mt-4">
-                        <Alert variant={interpretation.variant as any}>
-                            <Info className="h-4 w-4" />
-                            <AlertTitle>{interpretation.title}</AlertTitle>
-                            <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
-                        </Alert>
-                    </div>
-                )}
             </CardContent>
         </Card>
     );
@@ -1174,327 +1171,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
-```
-- src/entities/Survey.ts:
-```ts
-// A mock entity to simulate data persistence
-// In a real app, this would interact with a database.
-
-export type Question = {
-    id: string;
-    type: string;
-    title: string;
-    text: string; // Keep for backward compatibility, but prefer title
-    description?: string;
-    options?: string[];
-    items?: string[];
-    columns?: string[];
-    scale?: string[];
-    required?: boolean;
-    content?: string;
-    imageUrl?: string;
-    rows?: string[];
-};
-
-
-type SurveyData = {
-    title: string;
-    description?: string;
-    questions?: Question[];
-    status?: 'draft' | 'active' | 'closed';
-    response_count?: number;
-    id?: string;
-    created_at?: string;
-}
-
-// In-memory store
-let surveys: (SurveyData & { id: string, created_at: string })[] = [];
-
-if (typeof window !== 'undefined' && localStorage.getItem('surveys')) {
-    try {
-        surveys = JSON.parse(localStorage.getItem('surveys') || '[]');
-    } catch (e) {
-        surveys = [];
-    }
-}
-
-const saveToLocalStorage = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('surveys', JSON.stringify(surveys));
-    }
-}
-
-export const SurveyEntity = {
-    async list(): Promise<(SurveyData & { id: string, created_at: string })[]> {
-        return Promise.resolve(surveys);
-    },
-
-    async create(data: SurveyData): Promise<SurveyData> {
-        const newSurvey = {
-            ...data,
-            id: Date.now().toString(),
-            created_at: new Date().toISOString()
-        };
-        surveys.push(newSurvey);
-        saveToLocalStorage();
-        return Promise.resolve(newSurvey);
-    },
-
-    async update(id: string, data: SurveyData): Promise<SurveyData | null> {
-        const index = surveys.findIndex(s => s.id === id);
-        if (index > -1) {
-            surveys[index] = { ...surveys[index], ...data };
-            saveToLocalStorage();
-            return Promise.resolve(surveys[index]);
-        }
-        return Promise.resolve(null);
-    }
-};
-
-```
-- src/hooks/use-local-storage.ts:
-```ts
-'use client';
-    
-    import { useState, useEffect } from 'react';
-    
-    export function useLocalStorage<T>(key: string, initialValue: T) {
-      const [storedValue, setStoredValue] = useState<T>(() => {
-        if (typeof window === 'undefined') {
-          return initialValue;
-        }
-        try {
-          const item = window.localStorage.getItem(key);
-          return item ? JSON.parse(item) : initialValue;
-        } catch (error) {
-          console.log(error);
-          return initialValue;
-        }
-      });
-    
-      const setValue = (value: T | ((val: T) => T)) => {
-        try {
-          const valueToStore =
-            value instanceof Function ? value(storedValue) : value;
-          setStoredValue(valueToStore);
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem(key, JSON.stringify(valueToStore));
-          }
-        } catch (error) {
-          console.log(error);
-        }
-      };
-    
-      useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const item = window.localStorage.getItem(key);
-            if (item) {
-                try {
-                    setStoredValue(JSON.parse(item));
-                } catch (e) {
-                    // If parsing fails, it might be a raw string
-                    // Or could be corrupted, best to fall back to initial
-                    console.warn(`Could not parse stored json for key "${key}"`);
-                }
-            }
-        }
-      }, [key]);
-    
-      return [storedValue, setValue] as const;
-    }
-
-```
-- src/types/analysis.ts:
-```ts
-
-export type AnalysisResult = {
-  results: any;
-  plot?: string;
-  [key: string]: any;
-};
-
-```
-- src/types/survey.ts:
-```ts
-
-export interface Survey {
-  id: string;
-  title: string;
-  description: string;
-  questions: Question[];
-  status: 'draft' | 'active' | 'closed';
-  created_date: string;
-  startDate?: string;
-  endDate?: string;
-}
-
-export interface SurveyResponse {
-  id: string;
-  survey_id: string;
-  submittedAt: string; // Changed from submitted_at
-  answers: {
-    [questionId: string]: any;
-  };
-}
-
-export interface Question {
-  id: string;
-  type: string;
-  title: string;
-  description?: string;
-  options?: string[];
-  items?: string[];
-  columns?: string[];
-  scale?: string[];
-  required?: boolean;
-  content?: string;
-  imageUrl?: string;
-  rows?: string[];
-  text?: string;
-}
-
-```
-- tailwind.config.ts:
-```ts
-import type {Config} from 'tailwindcss';
-const {fontFamily} = require('tailwindcss/defaultTheme');
-
-export default {
-  darkMode: ['class'],
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    container: {
-      center: true,
-      padding: '2rem',
-      screens: {
-        '2xl': '1400px',
-      },
-    },
-    extend: {
-      fontFamily: {
-        sans: ['var(--font-sans)', ...fontFamily.sans],
-        body: ['Inter', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
-        code: ['monospace'],
-      },
-      colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
-        },
-        sidebar: {
-          DEFAULT: 'hsl(var(--sidebar-background))',
-          foreground: 'hsl(var(--sidebar-foreground))',
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-          border: 'hsl(var(--sidebar-border))',
-          ring: 'hsl(var(--sidebar-ring))',
-        },
-      },
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
-      },
-      keyframes: {
-        'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-        },
-        'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
-        },
-      },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
-      },
-    },
-  },
-  plugins: [require('tailwindcss-animate')],
-} satisfies Config;
-
-```
-- tsconfig.json:
-```json
-{
-  "compilerOptions": {
-    "target": "ESNext",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/backend/src/backend/regression_analysis.py", "src/backend/src/backend/sem_analysis.py", "src/backend/src/backend/cfa_analysis.py", "src/components/pages/financial-modeling-app.jsx", "src/components/pages/regression-page.tsx", "src/components/financial-modeling-app.tsx"],
-  "exclude": ["node_modules"]
-}
-
-```
