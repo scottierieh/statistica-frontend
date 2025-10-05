@@ -68,7 +68,7 @@ const processCategoricalResponses = (responses: SurveyResponse[], question: Ques
 
 const processNumericResponses = (responses: SurveyResponse[], questionId: string) => {
     const values = responses.map((r: any) => Number(r.answers[questionId])).filter(v => !isNaN(v));
-    if (values.length === 0) return { mean: 0, median: 0, std: 0, count: 0, histogram: [], boxplot: [], values: [] };
+    if (values.length === 0) return { mean: 0, median: 0, std: 0, count: 0, skewness: 0, histogram: [], boxplot: [], values: [] };
     
     const sum = values.reduce((a, b) => a + b, 0);
     const mean = sum / values.length;
@@ -76,6 +76,9 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
     const mid = Math.floor(sorted.length / 2);
     const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
     const std = Math.sqrt(values.map(x => Math.pow(x - mean, 2)).reduce((a,b) => a+b, 0) / (values.length > 1 ? values.length -1 : 1) );
+    
+    const n = values.length;
+    const skewness = n > 2 && std > 0 ? (n / ((n - 1) * (n - 2))) * values.reduce((acc, val) => acc + Math.pow((val - mean) / std, 3), 0) : 0;
     
     const histogramData = (() => {
         if (!values || values.length === 0) return [];
@@ -121,7 +124,7 @@ const processNumericResponses = (responses: SurveyResponse[], questionId: string
         outliers: [] // Placeholder for outlier detection
     }];
 
-    return { mean, median, std, count: values.length, histogram: histogramData, boxplot, values };
+    return { mean, median, std, count: values.length, skewness, histogram: histogramData, boxplot, values };
 };
 
 
@@ -270,7 +273,24 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
 
 
 
-const NumericChart = ({ data, title, questionId, onDownload }: { data: { mean: number, median: number, std: number, count: number, histogram: {name: string, count: number}[], values: number[] }, title: string, questionId: string, onDownload: () => void }) => {
+const NumericChart = ({ data, title, questionId, onDownload }: { data: { mean: number, median: number, std: number, count: number, skewness: number, histogram: {name: string, count: number}[], values: number[] }, title: string, questionId: string, onDownload: () => void }) => {
+    const interpretation = useMemo(() => {
+        if (!data || isNaN(data.mean)) return null;
+        let skewText = '';
+        if (Math.abs(data.skewness) > 1) {
+            skewText = `The distribution is <strong>highly ${data.skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong> (skewness = ${data.skewness.toFixed(2)}).`;
+        } else if (Math.abs(data.skewness) > 0.5) {
+            skewText = `The data is <strong>moderately ${data.skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong>.`;
+        } else {
+            skewText = `The data appears to be roughly <strong>symmetrical</strong>.`;
+        }
+        
+        return {
+            title: "Distribution Summary",
+            text: `The average response is <strong>${data.mean.toFixed(2)}</strong> with a standard deviation of <strong>${data.std.toFixed(2)}</strong>. ${skewText}`,
+            variant: Math.abs(data.skewness) > 1 ? "destructive" : "default"
+        };
+    }, [data]);
     
     if (!data || !data.histogram) {
       return (
@@ -297,6 +317,7 @@ const NumericChart = ({ data, title, questionId, onDownload }: { data: { mean: n
                  <ChartContainer config={{}} className="w-full h-64">
                     <ResponsiveContainer>
                         <BarChart data={data.histogram}>
+                            <CartesianGrid />
                             <XAxis dataKey="name" angle={-45} textAnchor="end" height={50} />
                             <YAxis />
                             <Tooltip content={<ChartTooltipContent />} />
@@ -325,6 +346,15 @@ const NumericChart = ({ data, title, questionId, onDownload }: { data: { mean: n
                     </div>
                 </div>
             </CardContent>
+             {interpretation && (
+                <CardFooter>
+                    <Alert variant={interpretation.variant as any}>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>{interpretation.title}</AlertTitle>
+                        <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
+                    </Alert>
+                </CardFooter>
+            )}
         </Card>
     );
 };
@@ -1072,4 +1102,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
