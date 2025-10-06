@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -28,7 +27,7 @@ export default function SurveyStylePanel({ styles, setStyles }: SurveyStylePanel
             </CardHeader>
             <CardContent className="space-y-6">
                 <div>
-                    <Label>Theme</Label>
+                    <Label>Visual Theme</Label>
                     <Select value={styles.theme} onValueChange={v => handleStyleChange('theme', v)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -39,21 +38,21 @@ export default function SurveyStylePanel({ styles, setStyles }: SurveyStylePanel
                     </Select>
                 </div>
                 <div>
-                    <Label>Primary Color</Label>
+                    <Label>Accent Color</Label>
                     <div className="flex items-center gap-2">
                         <Input type="color" value={styles.primaryColor} onChange={e => handleStyleChange('primaryColor', e.target.value)} className="p-1 h-10"/>
                         <Input value={styles.primaryColor} onChange={e => handleStyleChange('primaryColor', e.target.value)} />
                     </div>
                 </div>
                 <div>
-                    <Label>Secondary Color</Label>
+                    <Label>Background Shade</Label>
                      <div className="flex items-center gap-2">
                         <Input type="color" value={styles.secondaryColor} onChange={e => handleStyleChange('secondaryColor', e.target.value)} className="p-1 h-10"/>
                         <Input value={styles.secondaryColor} onChange={e => handleStyleChange('secondaryColor', e.target.value)} />
                     </div>
                 </div>
                 <div>
-                    <Label>Font</Label>
+                    <Label>Typography</Label>
                     <Select value={styles.font} onValueChange={v => handleStyleChange('font', v)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -64,7 +63,7 @@ export default function SurveyStylePanel({ styles, setStyles }: SurveyStylePanel
                     </Select>
                 </div>
                  <div>
-                    <Label>Foreground Contrast</Label>
+                    <Label>Text Contrast</Label>
                     <Select value={styles.foregroundColor} onValueChange={v => handleStyleChange('foregroundColor', v)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -75,7 +74,7 @@ export default function SurveyStylePanel({ styles, setStyles }: SurveyStylePanel
                     </Select>
                 </div>
                 <div>
-                    <Label>Question Spacing</Label>
+                    <Label>Layout Spacing</Label>
                     <Select value={styles.questionSpacing} onValueChange={v => handleStyleChange('questionSpacing', v)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -86,7 +85,7 @@ export default function SurveyStylePanel({ styles, setStyles }: SurveyStylePanel
                     </Select>
                 </div>
                 <div>
-                    <Label>Question Font Size</Label>
+                    <Label>Title Font Size</Label>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" onClick={() => handleFontSizeChange('questionTextSize', -1)}><Minus/></Button>
                         <Input type="number" value={styles.questionTextSize} onChange={e => handleStyleChange('questionTextSize', parseInt(e.target.value, 10))} className="w-20 text-center"/>
@@ -94,7 +93,7 @@ export default function SurveyStylePanel({ styles, setStyles }: SurveyStylePanel
                     </div>
                 </div>
                  <div>
-                    <Label>Answer Font Size</Label>
+                    <Label>Option Font Size</Label>
                      <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" onClick={() => handleFontSizeChange('answerTextSize', -1)}><Minus/></Button>
                         <Input type="number" value={styles.answerTextSize} onChange={e => handleStyleChange('answerTextSize', parseInt(e.target.value, 10))} className="w-20 text-center"/>
