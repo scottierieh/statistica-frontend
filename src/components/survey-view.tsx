@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -226,11 +227,17 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
     );
 };
 
+interface SurveyViewProps {
+  survey?: any; // For preview mode
+  isPreview?: boolean;
+  previewStyles?: any;
+}
 
-export default function SurveyView() {
+
+export default function SurveyView({ survey: surveyProp, isPreview = false, previewStyles }: SurveyViewProps) {
     const params = useParams();
     const surveyId = params.id as string;
-    const [survey, setSurvey] = useState<any>(null);
+    const [survey, setSurvey] = useState<any>(surveyProp);
     const [answers, setAnswers] = useState<any>({});
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(-1);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -238,11 +245,15 @@ export default function SurveyView() {
     const [error, setError] = useState("");
     const [respondentName, setRespondentName] = useState("");
     const [respondentEmail, setRespondentEmail] = useState("");
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!isPreview);
     const [isSurveyActive, setIsSurveyActive] = useState(false);
 
     useEffect(() => {
-        if (surveyId) {
+        if (isPreview) {
+            setSurvey(surveyProp);
+            setIsSurveyActive(true);
+            setLoading(false);
+        } else if (surveyId) {
             try {
                 const surveys = JSON.parse(localStorage.getItem('surveys') || '[]');
                 const loadedSurvey = surveys.find((s: any) => s.id === surveyId);
@@ -272,7 +283,7 @@ export default function SurveyView() {
                 setLoading(false);
             }
         }
-    }, [surveyId]);
+    }, [surveyId, isPreview, surveyProp]);
     
     const handleAnswerChange = (questionId: string, value: any) => {
         setAnswers((prev: any) => ({
@@ -352,6 +363,23 @@ export default function SurveyView() {
 
     if (error) {
         return <div className="min-h-screen flex items-center justify-center">{error}</div>;
+    }
+    
+    if (isPreview) {
+        return (
+            <Card className="w-full h-[800px] overflow-y-auto">
+                <CardHeader className="text-center p-6 md:p-8">
+                    <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
+                    {survey.description && <CardDescription>{survey.description}</CardDescription>}
+                </CardHeader>
+                <CardContent>
+                    {survey.questions.map((q: Question) => {
+                        const QuestionComp = questionComponents[q.type];
+                        return QuestionComp ? <div key={q.id} className="mb-4 border-b pb-4"><QuestionComp question={q} answer={answers[q.id]} onAnswerChange={() => {}} isPreview={true} /></div> : null;
+                    })}
+                </CardContent>
+            </Card>
+        );
     }
 
     if (!isSurveyActive) {

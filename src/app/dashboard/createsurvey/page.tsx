@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -9,6 +10,7 @@ import type { Question } from '@/entities/Survey';
 import QuestionList from '@/components/survey/QuestionList';
 import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
+import SurveyView from '@/components/survey-view';
 
 export default function CreateSurveyPage() {
   const router = useRouter();
@@ -120,6 +122,13 @@ export default function CreateSurveyPage() {
                     />
                     <div className="lg:sticky lg:top-24 space-y-6">
                         <SurveyStylePanel styles={styles} setStyles={setStyles} />
+                        <div className="mt-6 border p-2 rounded-2xl bg-white shadow-inner">
+                            <SurveyView 
+                                survey={{ id: 'preview', title, description, questions, status: 'active', created_date: '' }}
+                                isPreview={true}
+                                previewStyles={styles}
+                             />
+                        </div>
                     </div>
                 </div>
             </motion.div>
