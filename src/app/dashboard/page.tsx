@@ -30,7 +30,6 @@ function ToolCard({ icon: Icon, title, description, href, cta }: { icon: React.E
           <Button asChild className="w-full group">
             <Link href={href}>
               {cta}
-              <Zap className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
         </CardContent>
