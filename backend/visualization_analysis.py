@@ -57,6 +57,12 @@ def plot_scatter(df, config):
         sns.regplot(data=df, x=config['x_col'], y=config['y_col'], scatter=False, color='red')
     plt.title(f"Scatter Plot of {config['y_col']} vs {config['x_col']}")
 
+def plot_line(df, config):
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df, x=config['x_col'], y=config['y_col'], marker='o')
+    plt.title(f"Line Chart of {config['y_col']} vs {config['x_col']}")
+    plt.xticks(rotation=45, ha='right')
+
 def plot_heatmap(df, config):
     plt.figure(figsize=(10, 8))
     corr = df[config['variables']].corr(numeric_only=True)
@@ -95,6 +101,7 @@ PLOT_MAP = {
     'density': plot_density,
     'bar': plot_bar,
     'scatter': plot_scatter,
+    'line': plot_line,
     'heatmap': plot_heatmap,
     'pie': plot_pie,
     'donut': lambda df, config: plot_pie(df, {**config, 'donut': True}),
