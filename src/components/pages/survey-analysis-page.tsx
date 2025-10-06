@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns, Network } from 'lucide-react';
 import type { Survey, SurveyResponse } from '@/types/survey';
 import type { Question } from '@/entities/Survey';
 import { Skeleton } from '../ui/skeleton';
@@ -30,6 +30,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import CbcAnalysisPage from './cbc-analysis-page';
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
 
@@ -948,6 +949,8 @@ export default function SurveyAnalysisPage() {
     const [isCrosstabLoading, setIsCrosstabLoading] = useState(false);
     const [crosstabResult, setCrosstabResult] = useState<CrosstabResults | null>(null);
 
+    const hasConjoint = useMemo(() => survey?.questions.some((q: Question) => q.type === 'conjoint'), [survey]);
+
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
       if (!questions || !responses) {
         return [];
@@ -1102,6 +1105,7 @@ export default function SurveyAnalysisPage() {
              <Tabs defaultValue="results" className="w-full">
                 <TabsList>
                     <TabsTrigger value="results">Results</TabsTrigger>
+                    {hasConjoint && <TabsTrigger value="conjoint">Conjoint (CBC)</TabsTrigger>}
                     <TabsTrigger value="further_analysis">Further Analysis</TabsTrigger>
                 </TabsList>
                 <TabsContent value="results" className="mt-4">
@@ -1136,6 +1140,11 @@ export default function SurveyAnalysisPage() {
                         })}
                     </div>
                 </TabsContent>
+                 {hasConjoint && (
+                    <TabsContent value="conjoint" className="mt-4">
+                        <CbcAnalysisPage data={responses} allHeaders={survey.questions.find((q:Question) => q.type === 'conjoint')?.attributes?.flatMap((a:any) => a.levels) || []} onLoadExample={() => {}} />
+                    </TabsContent>
+                )}
                 <TabsContent value="further_analysis" className="mt-4">
                      <Card>
                         <CardHeader>

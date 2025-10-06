@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, SlidersHorizontal, HelpCircle, MoveRight, FileJson, DollarSign } from 'lucide-react';
+import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, HelpCircle, MoveRight, FileJson, DollarSign } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter } from 'recharts';
 import { Label } from '../ui/label';
@@ -127,7 +127,7 @@ interface CbcPageProps {
 
 export default function CbcAnalysisPage({ data, allHeaders, onLoadExample }: CbcPageProps) {
     const { toast } = useToast();
-    const [view, setView] = useState('intro');
+    const [view, setView] = useState('main');
     const [respondentIdCol, setRespondentIdCol] = useState<string | undefined>();
     const [altIdCol, setAltIdCol] = useState<string | undefined>();
     const [choiceCol, setChoiceCol] = useState<string | undefined>();
