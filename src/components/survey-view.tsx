@@ -20,16 +20,34 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Question } from '@/entities/Survey';
 
-const SingleSelectionQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; }) => {
+const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
+    const theme = styles.theme || 'default';
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
             <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-3">
                 {(question.options || []).map((option: string, index: number) => (
-                    <Label key={index} htmlFor={`q${question.id}-o${index}`} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
-                        <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
+                     <Label
+                        key={index}
+                        htmlFor={`q${question.id}-o${index}`}
+                        className={cn(
+                          "flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer",
+                          theme === 'flat' && "bg-slate-100",
+                          theme === 'modern' && "justify-between",
+                          answer === option && theme === 'flat' && "border-primary ring-2 ring-primary bg-primary/10",
+                           answer === option && theme === 'modern' && "bg-primary text-primary-foreground",
+                        )}
+                      >
+                         {theme !== 'modern' && (
+                            <RadioGroupItem
+                              value={option}
+                              id={`q${question.id}-o${index}`}
+                              className={cn(theme === 'flat' && answer === option && "border-primary text-primary")}
+                            />
+                        )}
                         <span className="flex-1">{option}</span>
+                         {answer === option && theme === 'modern' && <CheckCircle2 className="w-6 h-6" />}
                     </Label>
                 ))}
             </RadioGroup>
@@ -250,7 +268,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
 
     useEffect(() => {
         if (isPreview) {
-            setSurvey(surveyProp);
+            setSurvey({...surveyProp, styles: previewStyles});
             setIsSurveyActive(true);
             setLoading(false);
         } else if (surveyId) {
@@ -283,7 +301,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                 setLoading(false);
             }
         }
-    }, [surveyId, isPreview, surveyProp]);
+    }, [surveyId, isPreview, surveyProp, previewStyles]);
     
     const handleAnswerChange = (questionId: string, value: any) => {
         setAnswers((prev: any) => ({
@@ -365,9 +383,11 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         return <div className="min-h-screen flex items-center justify-center">{error}</div>;
     }
     
+    const surveyStyles = isPreview ? previewStyles : survey?.styles;
+
     if (isPreview) {
         return (
-            <Card className="w-full h-full overflow-y-auto border-0 shadow-none">
+             <div className="w-full h-full overflow-y-auto bg-card" style={{ backgroundColor: surveyStyles?.secondaryColor, color: surveyStyles?.primaryColor }}>
                 <CardHeader className="text-center p-6 md:p-8">
                     <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
                     {survey.description && <CardDescription>{survey.description}</CardDescription>}
@@ -375,10 +395,10 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                 <CardContent className="h-full">
                     {survey.questions.map((q: Question) => {
                         const QuestionComp = questionComponents[q.type];
-                        return QuestionComp ? <div key={q.id} className="mb-4 border-b pb-4 last:border-b-0"><QuestionComp question={q} answer={answers[q.id]} onAnswerChange={() => {}} isPreview={true} /></div> : null;
+                        return QuestionComp ? <div key={q.id} className="mb-4 border-b pb-4 last:border-b-0"><QuestionComp question={q} answer={answers[q.id]} onAnswerChange={() => {}} styles={surveyStyles} /></div> : null;
                     })}
                 </CardContent>
-            </Card>
+            </div>
         );
     }
 
@@ -482,7 +502,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                                         question={currentQuestion}
                                         answer={answers[currentQuestion.id]}
                                         onAnswerChange={(value: any) => handleAnswerChange(currentQuestion.id, value)}
-                                        isPreview={true}
+                                        styles={survey.styles || {}}
                                     />
                                 </div>
                             )}

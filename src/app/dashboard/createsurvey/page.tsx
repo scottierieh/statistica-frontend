@@ -24,6 +24,7 @@ export default function CreateSurveyPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [styles, setStyles] = useState({
+    theme: 'default',
     primaryColor: '#3C5462',
     secondaryColor: '#E0E0E0',
     font: 'Default',
@@ -42,7 +43,7 @@ export default function CreateSurveyPage() {
         setDescription(survey.description || "");
         setQuestions(survey.questions || []);
         if (survey.styles) {
-            setStyles(survey.styles);
+            setStyles(prev => ({...prev, ...survey.styles}));
         }
       }
     };

@@ -15,8 +15,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma } from "lucide-react";
-import { motion, AnimatePresence } from 'framer-motion';
+import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2 } from "lucide-react";
+import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { type Question } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
@@ -46,6 +46,8 @@ const SortableCard = ({ id, children }: { id: any; children: React.ReactNode }) 
 
 // --- Individual Question Type Components ---
 const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+    const [answer, setAnswer] = React.useState<string | undefined>();
+    
     const handleOptionChange = (index: number, value: string) => {
         const newOptions = [...question.options];
         newOptions[index] = value;
@@ -65,6 +67,8 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     const choiceStyle = { fontSize: `${styles.answerTextSize}px` };
 
+    const theme = styles.theme || 'default';
+    
     return (
         <Card className="w-full">
         <div className="p-4">
@@ -94,21 +98,42 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
                     <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
                 </div>
             )}
-            <RadioGroup className="space-y-2">
+            <RadioGroup value={answer} onValueChange={setAnswer} className="space-y-2">
                 {(question.options || []).map((option: string, index: number) => (
-                    <div key={index} className="flex items-center space-x-2 group">
-                        <RadioGroupItem value={option} id={`q${question.id}-o${index}`} disabled />
+                    <Label
+                        key={index}
+                        htmlFor={`q${question.id}-o${index}`}
+                        className={cn(
+                          "flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer",
+                          theme === 'flat' && "bg-slate-100",
+                          theme === 'modern' && "justify-between",
+                          answer === option && theme === 'flat' && "border-primary ring-2 ring-primary bg-primary/10",
+                          answer === option && theme === 'modern' && "bg-primary text-primary-foreground",
+                        )}
+                      >
+                         {theme !== 'modern' && (
+                            <RadioGroupItem
+                              value={option}
+                              id={`q${question.id}-o${index}`}
+                              className={cn(theme === 'flat' && answer === option && "border-primary text-primary")}
+                            />
+                        )}
                         <Input
                             placeholder={`Option ${index + 1}`}
-                            className="border-none focus:ring-0 p-0 h-auto"
+                            className={cn(
+                                "border-none focus:ring-0 p-0 h-auto bg-transparent",
+                                theme === 'flat' && "bg-transparent",
+                                theme === 'modern' && "bg-transparent placeholder:text-inherit"
+                            )}
                             style={choiceStyle}
                             value={option}
                             onChange={(e) => handleOptionChange(index, e.target.value)}
                         />
-                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => deleteOption(index)}>
+                         {answer === option && theme === 'modern' && <CheckCircle2 className="w-6 h-6" />}
+                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={(e) => { e.preventDefault(); deleteOption(index); }}>
                             <Trash2 className="w-4 h-4 text-destructive"/>
                         </Button>
-                    </div>
+                    </Label>
                 ))}
             </RadioGroup>
             <Button variant="link" size="sm" className="mt-2" onClick={addOption}>

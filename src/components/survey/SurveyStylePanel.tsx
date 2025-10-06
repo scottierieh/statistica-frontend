@@ -28,6 +28,17 @@ export default function SurveyStylePanel({ styles, setStyles }: SurveyStylePanel
             </CardHeader>
             <CardContent className="space-y-6">
                 <div>
+                    <Label>Theme</Label>
+                    <Select value={styles.theme} onValueChange={v => handleStyleChange('theme', v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="default">Default</SelectItem>
+                            <SelectItem value="flat">Flat</SelectItem>
+                            <SelectItem value="modern">Modern</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
                     <Label>Primary Color</Label>
                     <div className="flex items-center gap-2">
                         <Input type="color" value={styles.primaryColor} onChange={e => handleStyleChange('primaryColor', e.target.value)} className="p-1 h-10"/>
