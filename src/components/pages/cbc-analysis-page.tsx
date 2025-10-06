@@ -184,9 +184,50 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     }, [analysisResult, attributeCols, allAttributes]);
 
     
-    const calculateUtility = useCallback((scenario: Scenario) => { /* ... (implementation) ... */ return 0; }, []);
-    const runSimulation = () => { /* ... (implementation) ... */ };
-    const handleScenarioChange = (scenarioIndex: number, attrName: string, value: string) => { /* ... (implementation) ... */ };
+    const calculateUtility = useCallback((scenario: Scenario) => {
+        if (!analysisResult) return 0;
+
+        let totalUtility = analysisResult.results.regression.intercept || 0;
+        for (const attrName in scenario) {
+            if (attrName === 'name') continue;
+
+            const level = scenario[attrName];
+            const partWorth = analysisResult.results.partWorths.find(
+                p => p.attribute === attrName && p.level === level
+            );
+            if (partWorth) {
+                totalUtility += partWorth.value;
+            }
+        }
+        return totalUtility;
+    }, [analysisResult]);
+
+    const runSimulation = () => {
+        if (!analysisResult) return;
+        
+        const scenarioUtilities = scenarios.map(calculateUtility);
+        const expUtilities = scenarioUtilities.map(u => Math.exp(u));
+        const sumExpUtilities = expUtilities.reduce((a, b) => a + b, 0);
+
+        if (sumExpUtilities === 0) {
+            toast({title: "Simulation Error", description: "Cannot calculate market share, utilities might be too low."})
+            return;
+        }
+
+        const marketShares = expUtilities.map(expU => (expU / sumExpUtilities) * 100);
+
+        setSimulationResult(scenarios.map((sc, i) => ({
+            name: sc.name,
+            marketShare: marketShares[i]
+        })));
+    };
+    const handleScenarioChange = (scenarioIndex: number, attrName: string, value: string) => {
+        setScenarios(prev => {
+            const newScenarios = [...prev];
+            newScenarios[scenarioIndex] = { ...newScenarios[scenarioIndex], [attrName]: value };
+            return newScenarios;
+        });
+    };
     const runSensitivityAnalysis = async () => { /* ... (implementation) ... */ };
     
     // Moved these hooks to the top level
@@ -371,6 +412,7 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
   );
 
     
+
 
 
 
