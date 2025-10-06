@@ -1,27 +1,30 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowRight, BarChart2, CheckCircle, ClipboardList, Cpu, MoveRight, Users, TrendingUp, Link2, GitBranch, Network, Layers, Map, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, FlaskConical, LineChart, Target, Calculator, Handshake } from 'lucide-react';
+import { ArrowRight, BarChart2, CheckCircle, ClipboardList, Cpu, MoveRight, Users, TrendingUp, Link2, GitBranch, Network, Layers, Map, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, FlaskConical, LineChart, Target, Calculator, Handshake, Palette, FileUp, Database, BrainCircuit, Activity, ZoomIn, HeartPulse } from 'lucide-react';
 import Link from 'next/link';
 
 const features = {
   stats: [
     { icon: BarChart2, text: 'Descriptive Statistics' },
-    { icon: TrendingUp, text: 'Regression Analysis' },
+    { icon: TrendingUp, text: 'Advanced Regression Models' },
     { icon: Users, text: 'ANOVA & T-Tests' },
-    { icon: Link2, text: 'Correlation Analysis' },
+    { icon: Link2, text: 'Correlation & Partial Correlation' },
     { icon: GitBranch, text: 'Mediation & Moderation' },
     { icon: Cpu, text: 'Factor Analysis (EFA, CFA)' },
     { icon: Layers, text: 'MANOVA & ANCOVA' },
-    { icon: LineChart, text: 'Time Series Analysis' },
-    { icon: Network, text: 'Social Network Analysis' },
+    { icon: LineChart, text: 'Time Series Forecasting' },
+    { icon: Network, text: 'Social Network Analysis (SNA)' },
+    { icon: BrainCircuit, text: 'Clustering (K-Means, DBSCAN)'},
+    { icon: HeartPulse, text: 'Survival Analysis'},
+    { icon: Target, text: 'And 30+ more...' },
   ],
   surveys: [
-    { icon: Target, text: 'Importance-Performance (IPA)' },
-    { icon: Handshake, text: 'Conjoint Analysis' },
+    { icon: Target, text: 'Importance-Performance Analysis' },
+    { icon: Handshake, text: 'Conjoint & CBC Analysis' },
     { icon: ThumbsUp, text: 'MaxDiff Scaling' },
     { icon: Share2, text: 'Net Promoter Score (NPS)' },
-    { icon: DollarSign, text: 'Price Sensitivity (PSM)' },
+    { icon: DollarSign, text: 'Price Sensitivity Meter (PSM)' },
     { icon: ClipboardList, text: 'Customer Satisfaction (CSAT)' },
   ]
 }
@@ -29,7 +32,7 @@ const features = {
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800">
-      <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="w-full max-w-7xl mx-auto flex items-center">
             <div className="flex-1 flex justify-start">
                  <Link href="/" className="flex items-center justify-center gap-2">
@@ -85,41 +88,81 @@ export default function LandingPage() {
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="overflow-hidden shadow-lg hover:shadow-2xl transition-shadow">
+              <Card className="overflow-hidden shadow-lg hover:shadow-2xl transition-shadow flex flex-col">
                 <CardHeader className="bg-muted/50 p-6">
                   <div className="flex items-center gap-4">
                       <div className="p-3 bg-primary/10 rounded-lg text-primary"><BarChart2 className="w-8 h-8"/></div>
                       <div>
                           <CardTitle className="font-headline text-2xl">Statistical Analysis</CardTitle>
-                          <CardDescription>From basic summaries to advanced modeling.</CardDescription>
+                          <CardDescription>From data to decision with a comprehensive statistical toolkit.</CardDescription>
                       </div>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <ul className="grid grid-cols-2 gap-x-6 gap-y-3">
-                    {features.stats.map((feature, i) => (
-                       <li key={i} className="flex items-center gap-2 text-muted-foreground"><CheckCircle className="w-4 h-4 text-primary"/><span>{feature.text}</span></li>
-                    ))}
-                  </ul>
+                <CardContent className="p-6 flex-1 flex flex-col">
+                  <div className="space-y-4 mb-6">
+                      <div className="flex items-start gap-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-secondary-foreground"><FileUp className="w-5 h-5"/></div>
+                          <div>
+                              <h4 className="font-semibold">Intuitive & Powerful</h4>
+                              <p className="text-sm text-muted-foreground">Upload data via CSV/Excel or use example datasets. Get complex analyses with one click.</p>
+                          </div>
+                      </div>
+                      <div className="flex items-start gap-4">
+                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-secondary-foreground"><BrainCircuit className="w-5 h-5"/></div>
+                           <div>
+                              <h4 className="font-semibold">AI-Powered Insights</h4>
+                              <p className="text-sm text-muted-foreground">Go beyond numbers with AI-generated interpretations, APA-style reports, and actionable recommendations.</p>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="flex-1">
+                      <h4 className="font-semibold text-center mb-4">Extensive Toolkit: Over 40 Analyses</h4>
+                      <ul className="grid grid-cols-2 gap-x-6 gap-y-3">
+                        {features.stats.map((feature, i) => (
+                           <li key={i} className="flex items-center gap-2 text-muted-foreground"><CheckCircle className="w-4 h-4 text-primary"/><span>{feature.text}</span></li>
+                        ))}
+                      </ul>
+                  </div>
                 </CardContent>
               </Card>
 
-               <Card className="overflow-hidden shadow-lg hover:shadow-2xl transition-shadow">
+               <Card className="overflow-hidden shadow-lg hover:shadow-2xl transition-shadow flex flex-col">
                 <CardHeader className="bg-muted/50 p-6">
                    <div className="flex items-center gap-4">
                       <div className="p-3 bg-primary/10 rounded-lg text-primary"><ClipboardList className="w-8 h-8"/></div>
                       <div>
-                          <CardTitle className="font-headline text-2xl">Survey & Feedback</CardTitle>
+                          <CardTitle className="font-headline text-2xl">Survey & Feedback Platform</CardTitle>
                           <CardDescription>Build, distribute, and analyze surveys with purpose-built tools.</CardDescription>
                       </div>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <ul className="grid grid-cols-2 gap-x-6 gap-y-3">
-                    {features.surveys.map((feature, i) => (
-                       <li key={i} className="flex items-center gap-2 text-muted-foreground"><CheckCircle className="w-4 h-4 text-primary"/><span>{feature.text}</span></li>
-                    ))}
-                  </ul>
+                <CardContent className="p-6 flex-1 flex flex-col">
+                   <div className="space-y-4 mb-6">
+                      <div className="flex items-start gap-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-secondary-foreground"><Activity className="w-5 h-5"/></div>
+                          <div>
+                              <h4 className="font-semibold">Integrated Workflow</h4>
+                              <p className="text-sm text-muted-foreground">Design your survey, collect responses, and analyze the results all within a single, seamless interface.</p>
+                          </div>
+                      </div>
+                      <div className="flex items-start gap-4">
+                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-secondary-foreground"><Palette className="w-5 h-5"/></div>
+                           <div>
+                              <h4 className="font-semibold">Effortless Customization</h4>
+                              <p className="text-sm text-muted-foreground">Tailor the look and feel of your surveys with customizable themes, colors, fonts, and layouts to match your brand.</p>
+                          </div>
+                      </div>
+                  </div>
+
+                   <div className="flex-1">
+                      <h4 className="font-semibold text-center mb-4">Purpose-Built Analysis Templates</h4>
+                      <ul className="grid grid-cols-2 gap-x-6 gap-y-3">
+                        {features.surveys.map((feature, i) => (
+                           <li key={i} className="flex items-center gap-2 text-muted-foreground"><CheckCircle className="w-4 h-4 text-primary"/><span>{feature.text}</span></li>
+                        ))}
+                      </ul>
+                  </div>
                 </CardContent>
               </Card>
             </div>
