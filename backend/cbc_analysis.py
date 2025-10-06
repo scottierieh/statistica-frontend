@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
+from statsmodels.formula.api import ols
 import warnings
 import re
 
@@ -38,50 +39,65 @@ def main():
         df.dropna(subset=[target_variable], inplace=True)
         y = df[target_variable]
 
-        X_dfs = []
-        feature_names = []
+        # Sanitize column names for the formula
+        original_to_sanitized = {col: re.sub(r'[^A-Za-z0-9_]', '_', str(col)) for col in df.columns}
+        sanitized_to_original = {v: k for k, v in original_to_sanitized.items()}
+        
+        df_clean = df.rename(columns=original_to_sanitized)
+        
+        target_var_clean = original_to_sanitized.get(target_variable, target_variable)
+        
+        formula_parts = []
+        all_analysis_vars_set = {target_var_clean}
         
         independent_vars = [attr for attr, props in attributes_def.items() if props.get('includeInAnalysis', True) and attr != target_variable]
 
         for attr_name in independent_vars:
-            props = attributes_def[attr_name]
-            # Create dummy variables, dropping the first level to create a baseline
-            dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True, dtype=float)
-            X_dfs.append(dummies)
-            feature_names.extend(dummies.columns.tolist())
-        
-        if not X_dfs:
-            raise ValueError("No independent variables selected for analysis.")
+            attr_name_clean = original_to_sanitized.get(attr_name, attr_name)
+            all_analysis_vars_set.add(attr_name_clean)
             
-        X = pd.concat(X_dfs, axis=1)
-        X = sm.add_constant(X) # Add intercept
+            # --- CRITICAL CHANGE: Convert all attribute columns to string type ---
+            # This ensures that numeric attributes like 'Price' are treated as categories
+            df_clean[attr_name_clean] = df_clean[attr_name_clean].astype(str)
+            
+            formula_parts.append(f'C(Q("{attr_name_clean}"))')
+        
+        if not formula_parts:
+            raise ValueError("No independent variables selected for analysis.")
 
+        formula = f'Q("{target_var_clean}") ~ {" + ".join(formula_parts)}'
+        
         # --- Fit the Logit model for choice data ---
-        model = sm.Logit(y, X).fit(disp=0)
+        model = ols(formula, data=df_clean).fit()
         
         # --- Regression Results ---
         regression_results = {
-            'rSquared': getattr(model, 'prsquared', 0.0),
-            'adjustedRSquared': getattr(model, 'prsquared_adj', 0.0),
-            'predictions': model.predict().tolist(),
-            'residuals': model.resid_response.tolist(),
-            'intercept': model.params.get('const', 0.0),
-            'coefficients': model.params.to_dict()
+            'rSquared': model.rsquared,
+            'adjustedRSquared': model.rsquared_adj,
+            'rmse': np.sqrt(model.mse_resid),
+            'mae': np.mean(np.abs(model.resid)),
+            'predictions': model.predict(df_clean).tolist(),
+            'residuals': model.resid.tolist(),
+            'intercept': model.params.get('Intercept', 0.0),
+            'coefficients': {k: v for k, v in model.params.items()}
         }
-
+        
         # --- Part-Worths and Importance ---
         part_worths = []
         attribute_ranges = {}
         
         for attr_name in independent_vars:
             props = attributes_def[attr_name]
+            attr_name_clean = original_to_sanitized[attr_name]
+
+            # The first level is the baseline, its utility is 0
             base_level = props['levels'][0]
             part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
             
             level_worths = [0]
             for level in props['levels'][1:]:
-                param_name = f"{attr_name}_{level}"
-                worth = model.params.get(param_name, 0)
+                param_name = f"C(Q(\"{attr_name_clean}\"))[T.{level}]"
+                worth = regression_results['coefficients'].get(param_name, 0)
                 part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
                 level_worths.append(worth)
             
@@ -99,7 +115,7 @@ def main():
 
         final_results = {
             'regression': regression_results,
-            'part_worths': part_worths,
+            'partWorths': part_worths,
             'importance': importance,
             'targetVariable': target_variable
         }
