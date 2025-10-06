@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -95,21 +95,17 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             if (!answer || typeof answer !== 'string' || !answer.startsWith('profile_')) return;
             
             const chosenProfileId = answer;
-
-            // Simplified reconstruction of profiles shown to the user
-            // In a real app, this should be stored with the response.
+            
             const allLevels = conjointQuestion.attributes!.flatMap(a => a.levels);
             const profiles = allLevels.map((level, index) => {
                  const profile: any = { 'resp.id': resp.id, 'alt': `profile_${index}` };
                  conjointQuestion.attributes!.forEach(attr => {
-                    // This logic is still a simplification but ensures each profile is complete.
                     const levelIndex = (index + attr.levels.indexOf(level)) % attr.levels.length;
                     profile[attr.name] = attr.levels[levelIndex];
                  });
                  return profile;
             });
             
-            // Now, we create the rows for the analysis
             profiles.forEach(p => {
                 const isChosen = p.alt === chosenProfileId;
                 if (isChosen) choiceCount++;
@@ -375,3 +371,5 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
   );
 
     
+
+
