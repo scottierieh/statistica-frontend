@@ -563,25 +563,80 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
 };
 
 const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onUpdate?: any, onDelete?: any }) => {
-    // This is just a display component for the editor; logic is similar to ConjointQuestion
     const { attributes = [] } = question;
+
+    const handleAttributeNameChange = (attrIndex: number, newName: string) => {
+        onUpdate(produce(question, (draft: any) => {
+            draft.attributes[attrIndex].name = newName;
+        }));
+    };
+    
+    const handleLevelChange = (attrIndex: number, levelIndex: number, newLevel: string) => {
+        onUpdate(produce(question, (draft: any) => {
+            draft.attributes[attrIndex].levels[levelIndex] = newLevel;
+        }));
+    };
+
+    const addAttribute = () => {
+        onUpdate(produce(question, (draft: any) => {
+            draft.attributes.push({ id: `attr-${Date.now()}`, name: `Attribute ${draft.attributes.length + 1}`, levels: ['Level 1', 'Level 2'] });
+        }));
+    };
+
+    const addLevel = (attrIndex: number) => {
+        onUpdate(produce(question, (draft: any) => {
+            draft.attributes[attrIndex].levels.push(`Level ${draft.attributes[attrIndex].levels.length + 1}`);
+        }));
+    };
+
+    const removeAttribute = (attrIndex: number) => {
+        onUpdate(produce(question, (draft: any) => {
+            draft.attributes.splice(attrIndex, 1);
+        }));
+    };
+
+    const removeLevel = (attrIndex: number, levelIndex: number) => {
+        onUpdate(produce(question, (draft: any) => {
+            if (draft.attributes[attrIndex].levels.length > 2) {
+                draft.attributes[attrIndex].levels.splice(levelIndex, 1);
+            }
+        }));
+    };
+
     return (
-         <Card>
+        <Card>
             <CardHeader>
                 <div className="flex justify-between items-center">
                     <CardTitle>Rating-based Conjoint</CardTitle>
                     <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
                 </div>
-                 <CardDescription>Respondents will rate different product profiles on a numeric scale.</CardDescription>
+                 <CardDescription>Respondents will rate different product profiles on a numeric scale. Define attributes and levels below.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground">Attributes and profiles are configured in the same way as Choice-Based Conjoint.</p>
-                {/* Attribute/Level editing UI can be reused from ConjointQuestion */}
+            <CardContent className="space-y-4">
+                 <div className="space-y-4">
+                    {attributes.map((attr: ConjointAttribute, attrIndex: number) => (
+                        <div key={attr.id} className="p-4 border rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                                <Input value={attr.name} onChange={(e) => handleAttributeNameChange(attrIndex, e.target.value)} className="text-md font-semibold"/>
+                                <Button variant="ghost" size="icon" onClick={() => removeAttribute(attrIndex)}><Trash2 className="w-4 h-4 text-muted-foreground"/></Button>
+                            </div>
+                            <div className="space-y-2">
+                                {attr.levels.map((level, levelIndex) => (
+                                    <div key={levelIndex} className="flex items-center gap-2">
+                                        <Input value={level} onChange={(e) => handleLevelChange(attrIndex, levelIndex, e.target.value)} />
+                                        <Button variant="ghost" size="icon" onClick={() => removeLevel(attrIndex, levelIndex)} disabled={attr.levels.length <= 2}><X className="w-4 h-4 text-muted-foreground"/></Button>
+                                    </div>
+                                ))}
+                                <Button variant="link" size="sm" onClick={() => addLevel(attrIndex)}><PlusCircle className="w-4 h-4 mr-2"/>Add Level</Button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <Button onClick={addAttribute}><PlusCircle className="mr-2"/> Add Attribute</Button>
             </CardContent>
         </Card>
     );
 };
-
 
 interface QuestionListProps {
     title: string;
