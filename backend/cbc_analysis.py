@@ -5,7 +5,6 @@ import json
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import warnings
 import re
@@ -43,32 +42,28 @@ def main():
         
         independent_vars = [attr for attr, props in attributes.items() if props.get('includeInAnalysis', True) and attr != target_variable]
 
+        all_original_levels = {}
+
         for attr_name in independent_vars:
-            props = attributes[attr_name]
-            # 모든 속성을 문자열로 취급하고, 숫자/통화 기호를 제거하여 명확한 범주로 만듭니다.
-            df[attr_name] = df[attr_name].astype(str).apply(lambda x: re.sub(r'[^a-zA-Z0-9]', '', str(x)))
-            
-            # 여기서 레벨도 동일하게 정리해야 합니다.
-            cleaned_levels = [re.sub(r'[^a-zA-Z0-9]', '', str(level)) for level in props['levels']]
-            
+            df[attr_name] = df[attr_name].astype(str)
+            all_original_levels[attr_name] = sorted(df[attr_name].unique())
             dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True).astype(int)
             
-            # 생성된 더미 컬럼 이름이 정리된 레벨 이름과 일치하는지 확인
-            expected_dummy_cols = [f"{attr_name}_{cleaned_level}" for cleaned_level in cleaned_levels[1:]]
-            
-            # 실제 생성된 더미 컬럼만 X_list에 추가
-            for col in dummies.columns:
-                if col in expected_dummy_cols:
-                    X_list.append(dummies[[col]])
-                    feature_names.append(col)
-
+            X_list.append(dummies)
+            feature_names.extend(dummies.columns.tolist())
+        
         if not X_list:
              raise ValueError("No valid features to process for regression.")
 
         X = pd.concat(X_list, axis=1)
         y = df[target_variable]
+        y = pd.to_numeric(y, errors='coerce').fillna(0)
         
+        # Align data after all processing
         y, X = y.align(X, join='inner', axis=0)
+        
+        if X.empty or y.empty:
+            raise ValueError("Data is empty after processing and alignment.")
 
 
         # --- 2. 회귀 분석 수행 ---
@@ -98,20 +93,18 @@ def main():
         # --- 4. 부분가치(Part-Worths) 계산 ---
         part_worths = []
         for attr_name in independent_vars:
-            props = attributes[attr_name]
+            original_levels = all_original_levels[attr_name]
             
-            # 기준 레벨(첫 번째)의 부분가치는 0
+            # Baseline level (the first one) has a part-worth of 0
             part_worths.append({
                 'attribute': attr_name,
-                'level': str(props['levels'][0]),
+                'level': str(original_levels[0]),
                 'value': 0
             })
             
-            # 나머지 레벨의 부분가치는 회귀 계수
-            for i in range(1, len(props['levels'])):
-                level = props['levels'][i]
-                cleaned_level = re.sub(r'[^a-zA-Z0-9]', '', str(level))
-                feature_name = f"{attr_name}_{cleaned_level}"
+            # Other levels' part-worths are the regression coefficients
+            for level in original_levels[1:]:
+                feature_name = f"{attr_name}_{level}"
                 part_worths.append({
                     'attribute': attr_name,
                     'level': str(level),
