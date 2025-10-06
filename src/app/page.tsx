@@ -9,7 +9,7 @@ const features = {
     { icon: BarChart2, text: 'Descriptive Statistics' },
     { icon: TrendingUp, text: 'Regression Analysis' },
     { icon: Users, text: 'ANOVA & T-Tests' },
-    { icon: Link2, text: 'Correlation' },
+    { icon: Link2, text: 'Correlation Analysis' },
     { icon: GitBranch, text: 'Mediation & Moderation' },
     { icon: Cpu, text: 'Factor Analysis (EFA, CFA)' },
     { icon: Layers, text: 'MANOVA & ANCOVA' },
