@@ -31,6 +31,11 @@ interface CbcResults {
         coefficients: {[key: string]: number};
     };
     targetVariable: string;
+    optimalProduct?: {
+        config: {[key: string]: string};
+        totalUtility: number;
+    };
+    simulation?: any;
 }
 
 interface FullAnalysisResponse {
@@ -77,7 +82,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
 
     const attributeCols = useMemo(() => Object.keys(allAttributes), [allAttributes]);
 
-    const handleAnalysis = useCallback(async () => {
+    const handleAnalysis = useCallback(async (simulationScenarios?: Scenario[]) => {
         if (!conjointQuestion || !responses || responses.length === 0) {
             toast({ variant: 'destructive', title: 'Data Error', description: 'No conjoint question or responses found for this survey.' });
             setIsLoading(false);
@@ -120,7 +125,9 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         }
 
         setIsLoading(true);
-        setAnalysisResult(null);
+        if (!simulationScenarios) {
+            setAnalysisResult(null);
+        }
 
         const attributesForBackend = attributeCols.reduce((acc, attrName) => {
             if (allAttributes[attrName]) {
@@ -136,7 +143,8 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                 body: JSON.stringify({
                     data: analysisData,
                     attributes: attributesForBackend,
-                    targetVariable: 'choice'
+                    targetVariable: 'choice',
+                    scenarios: simulationScenarios
                 })
             });
 
@@ -148,8 +156,13 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             const result: FullAnalysisResponse = await response.json();
             if (result.error) throw new Error(result.error);
 
-            setAnalysisResult(result);
-            toast({ title: 'CBC Analysis Complete', description: 'Part-worths and importance have been calculated.' });
+            if (simulationScenarios && result.results.simulation) {
+                setSimulationResult(result.results.simulation);
+                toast({ title: 'Simulation Complete', description: 'Market shares have been predicted.'});
+            } else {
+                setAnalysisResult(result);
+                toast({ title: 'CBC Analysis Complete', description: 'Part-worths and importance have been calculated.' });
+            }
 
         } catch (e: any) {
             console.error('CBC error:', e);
@@ -162,7 +175,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     useEffect(() => {
         handleAnalysis();
     }, [handleAnalysis]);
-
+    
     useEffect(() => {
         if (analysisResult && attributeCols.length > 0) {
             setSensitivityAttribute(attributeCols[0]);
@@ -181,34 +194,8 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     }, [analysisResult, attributeCols, allAttributes]);
 
     
-    const calculateUtility = useCallback((scenario: Scenario) => {
-        if (!analysisResult?.results) return 0;
-        let totalUtility = analysisResult.results.regression.intercept || 0;
-        for (const attrName in scenario) {
-            if (attrName === 'name') continue;
-            const level = scenario[attrName];
-            const partWorth = analysisResult.results.partWorths.find(p => p.attribute === attrName && p.level === level);
-            if (partWorth) {
-                totalUtility += partWorth.value;
-            }
-        }
-        return totalUtility;
-    }, [analysisResult]);
-
     const runSimulation = () => {
-        if (!analysisResult) return;
-        const scenarioUtilities = scenarios.map(calculateUtility);
-        const expUtilities = scenarioUtilities.map(u => Math.exp(u));
-        const sumExpUtilities = expUtilities.reduce((a, b) => a + b, 0);
-        if (sumExpUtilities === 0) {
-            toast({title: "Simulation Error", description: "Cannot calculate market share, utilities might be too low."})
-            return;
-        }
-        const marketShares = expUtilities.map(expU => (expU / sumExpUtilities) * 100);
-        setSimulationResult(scenarios.map((sc, i) => ({
-            name: sc.name,
-            marketShare: marketShares[i]
-        })));
+        handleAnalysis(scenarios);
     };
 
     const handleScenarioChange = (scenarioIndex: number, attrName: string, value: string) => {
@@ -260,7 +247,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
 
     const partWorthChartConfig = { value: { label: "Part-Worth" } };
 
-    if (isLoading) {
+    if (isLoading && !analysisResult) {
         return (
             <Card>
                 <CardContent className="p-6 text-center">
@@ -289,8 +276,8 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                 <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="importance"><PieIcon className="mr-2"/>Importance</TabsTrigger>
                     <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
+                    <TabsTrigger value="optimal"><Star className="mr-2"/>Optimal</TabsTrigger>
                     <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
-                    <TabsTrigger value="sensitivity"><LineChart className="mr-2"/>Sensitivity</TabsTrigger>
                 </TabsList>
                 <TabsContent value="importance" className="mt-4">
                     <Card>
@@ -334,9 +321,32 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                         </CardContent>
                     </Card>
                 </TabsContent>
+                <TabsContent value="optimal" className="mt-4">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Optimal Product Profile</CardTitle>
+                            <CardDescription>The combination of attributes that yields the highest preference.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {results.optimalProduct ? (
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Attribute</TableHead><TableHead>Best Level</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {Object.entries(results.optimalProduct.config).map(([attr, level]) => (
+                                            <TableRow key={attr}><TableCell>{attr}</TableCell><TableCell>{level}</TableCell></TableRow>
+                                        ))}
+                                    </TableBody>
+                                    <CardFooter className="text-center justify-center p-4">
+                                        <p className="text-lg">Total Utility Score: <strong className="text-primary text-xl">{results.optimalProduct.totalUtility.toFixed(2)}</strong></p>
+                                    </CardFooter>
+                                </Table>
+                            ) : <p>Could not determine optimal profile.</p>}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
                  <TabsContent value="simulation" className="mt-4">
                     <Card>
-                        <CardHeader><CardTitle>Market Share Simulation</CardTitle><CardDescription>Build product scenarios to predict market preference.</CardDescription></CardHeader>
+                        <CardHeader><CardTitle>Market Share Simulation</CardTitle><CardDescription>Build product scenarios to predict market preference shares.</CardDescription></CardHeader>
                         <CardContent>
                             <div className="grid md:grid-cols-3 gap-4 mb-4">
                                 {scenarios.map((scenario, index) => (
@@ -356,7 +366,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                                     </Card>
                                 ))}
                             </div>
-                            <Button onClick={runSimulation}>Run Simulation</Button>
+                            <Button onClick={runSimulation} disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin mr-2"/> : null} Run Simulation</Button>
                             {simulationResult && (
                                 <div className="mt-4">
                                     <ChartContainer config={{marketShare: {label: 'Market Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
@@ -375,49 +385,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                         </CardContent>
                     </Card>
                 </TabsContent>
-                 <TabsContent value="sensitivity" className="mt-4">
-                    <Card>
-                        <CardHeader><CardTitle>Sensitivity Analysis</CardTitle><CardDescription>See how utility changes as you vary one attribute's level.</CardDescription></CardHeader>
-                        <CardContent>
-                            <div className="flex items-center gap-4 mb-4">
-                                <Label>Attribute to Analyze</Label>
-                                <Select value={sensitivityAttribute} onValueChange={setSensitivityAttribute}>
-                                    <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-                                    <SelectContent>{attributeCols.map((attr) => <SelectItem key={attr} value={attr}>{attr}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </div>
-                            {sensitivityData.length > 0 && (
-                                <ChartContainer config={{utility: {label: 'Utility'}}} className="w-full h-[300px]">
-                                    <ResponsiveContainer>
-                                        <LineChart data={sensitivityData}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="level" />
-                                            <YAxis />
-                                            <Tooltip content={<ChartTooltipContent />} />
-                                            <LineChart dataKey="utility" stroke="hsl(var(--primary))" name="Utility" />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </ChartContainer>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
             </Tabs>
         </div>
     );
 }
-
-// --- STEP INDICATOR (re-usable but kept here for component self-containment) --- //
-const StepIndicator = ({ currentStep }: { currentStep: number }) => (
-    <div className="flex items-center justify-center p-4">
-      {[ 'Select Variables', 'Configure Attributes', 'Review Results'].map((step, index) => (
-        <React.Fragment key={index}>
-          <div className="flex flex-col items-center">
-             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${currentStep >= index ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{index + 1}</div>
-            <p className={`mt-2 text-xs text-center ${currentStep >= index ? 'font-semibold' : 'text-muted-foreground'}`}>{step}</p>
-          </div>
-          {index < 2 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > index ? 'bg-primary' : 'bg-border'}`} />}
-        </React.Fragment>
-      ))}
-    </div>
-);
