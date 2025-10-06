@@ -5,7 +5,6 @@ import json
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-from statsmodels.formula.api import ols, logit
 import warnings
 import re
 
@@ -34,64 +33,56 @@ def main():
 
         df = pd.DataFrame(data)
 
-        # Ensure target is numeric and drop rows with invalid target values
-        df[target_variable] = pd.to_numeric(df[target_variable], errors='coerce')
-        df.dropna(subset=[target_variable], inplace=True)
+        # --- 데이터 전처리 및 설계 행렬 생성 ---
+        y = df[target_variable]
         
-        # Sanitize column names for the formula
-        original_to_sanitized = {col: re.sub(r'[^A-Za-z0-9_]', '_', str(col)) for col in df.columns}
-        sanitized_to_original = {v: k for k, v in original_to_sanitized.items()}
-        
-        df_clean = df.rename(columns=original_to_sanitized)
-        
-        target_var_clean = original_to_sanitized.get(target_variable, target_variable)
-        
-        formula_parts = []
-        all_analysis_vars_set = {target_var_clean}
-        
+        X_parts = []
+        feature_names = []
+
         independent_vars = [attr for attr, props in attributes_def.items() if props.get('includeInAnalysis', True) and attr != target_variable]
 
         for attr_name in independent_vars:
-            attr_name_clean = original_to_sanitized.get(attr_name, attr_name)
-            all_analysis_vars_set.add(attr_name_clean)
-            
-            df_clean[attr_name_clean] = df_clean[attr_name_clean].astype(str)
-            
-            formula_parts.append(f'C(Q("{attr_name_clean}"))')
-        
-        if not formula_parts:
-            raise ValueError("No independent variables selected for analysis.")
+            props = attributes_def[attr_name]
+            # 모든 속성을 범주형으로 취급하여 더미 변수 생성
+            df[attr_name] = df[attr_name].astype(str)
+            dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True, dtype=float)
+            X_parts.append(dummies)
+            feature_names.extend(dummies.columns.tolist())
 
-        formula = f'Q("{target_var_clean}") ~ {" + ".join(formula_parts)}'
+        if not X_parts:
+            raise ValueError("No independent variables to analyze.")
+
+        X = pd.concat(X_parts, axis=1)
+        X = sm.add_constant(X, has_constant='add')
+
+        # --- 로지스틱 회귀 모델 학습 ---
+        model = sm.Logit(y, X).fit(disp=0)
         
-        # --- Fit the Logit model for choice data ---
-        model = logit(formula, data=df_clean).fit()
-        
-        # --- Regression Results ---
+        # --- 회귀 분석 결과 ---
         regression_results = {
             'rSquared': model.prsquared,
-            'adjustedRSquared': 1 - (1 - model.prsquared) * (len(df_clean) - 1) / (len(df_clean) - len(model.params) - 1),
-            'predictions': model.predict(df_clean).tolist(),
+            'adjustedRSquared': 1 - (1 - model.prsquared) * (len(df) - 1) / (len(df) - len(model.params) - 1),
+            'predictions': model.predict(X).tolist(),
             'residuals': model.resid_response.tolist(),
-            'intercept': model.params.get('Intercept', 0.0),
+            'intercept': model.params.get('const', 0.0),
             'coefficients': {k: v for k, v in model.params.items()}
         }
         
-        # --- Part-Worths and Importance ---
+        # --- 부분가치(Part-Worths) 및 중요도 계산 ---
         part_worths = []
         attribute_ranges = {}
         
         for attr_name in independent_vars:
             props = attributes_def[attr_name]
-            attr_name_clean = original_to_sanitized[attr_name]
-
-            # The first level is the baseline, its utility is 0
+            
+            # 기준 레벨(첫 번째)의 부분가치는 0
             base_level = props['levels'][0]
             part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
             
             level_worths = [0]
             for level in props['levels'][1:]:
-                param_name = f"C(Q(\"{attr_name_clean}\"))[T.{level}]"
+                # 더미 변수 이름 형식에 맞게 파라미터 이름 생성
+                param_name = f"{attr_name}_{level}"
                 worth = regression_results['coefficients'].get(param_name, 0)
                 part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
                 level_worths.append(worth)
@@ -125,5 +116,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
