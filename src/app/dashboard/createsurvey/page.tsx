@@ -9,6 +9,7 @@ import type { Question } from '@/entities/Survey';
 import QuestionList from '@/components/survey/QuestionList';
 import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import SurveyPreview from '@/components/survey/SurveyPreview';
+import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 
 export default function CreateSurveyPage() {
   const router = useRouter();
@@ -77,6 +78,22 @@ export default function CreateSurveyPage() {
     }
   };
 
+  const handleSelectQuestionType = (type: string) => {
+    const newQuestion: Question = {
+      id: Date.now().toString(),
+      type,
+      title: "",
+      required: true,
+      options: ['single', 'multiple', 'dropdown', 'best-worst'].includes(type) ? ['Option 1', 'Option 2'] : [],
+      items: type === 'best-worst' ? ['Item 1', 'Item 2', 'Item 3'] : [],
+      rows: type === 'matrix' ? ['Row 1', 'Row 2'] : [],
+      columns: type === 'matrix' ? ['1', '2', '3'] : [],
+      scale: type === 'matrix' ? ['Bad', 'Neutral', 'Good'] : type === 'rating' ? ['1','2','3','4','5'] : [],
+      content: type === 'description' ? 'This is a description block.' : '',
+    };
+    setQuestions(prev => [...prev, newQuestion]);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -89,7 +106,10 @@ export default function CreateSurveyPage() {
                      <Button onClick={() => saveSurvey("draft")} disabled={isSaving} className="max-w-fit"><Save className="w-5 h-5 mr-2" />Save Survey</Button>
                 </div>
 
-                <div className="grid lg:grid-cols-[1fr,420px] gap-8 items-start">
+                <div className="grid lg:grid-cols-[320px,1fr,420px] gap-8 items-start">
+                     <div className="lg:sticky lg:top-24">
+                        <QuestionTypePalette onSelectType={handleSelectQuestionType} />
+                    </div>
                     <QuestionList 
                         title={title}
                         setTitle={setTitle}

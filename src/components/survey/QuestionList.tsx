@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -12,11 +12,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { GripVertical, Plus, Trash2, CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, Info, ImageIcon, X, Phone, Mail, Share2, ThumbsUp, Grid3x3, ChevronDown, Sigma } from "lucide-react";
-import { motion } from 'framer-motion';
+import { GripVertical, PlusCircle, Trash2, Info, ImageIcon } from "lucide-react";
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { type Question } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
@@ -40,59 +38,6 @@ const SortableCard = ({ id, children }: { id: any; children: React.ReactNode }) 
             </div>
         </div>
     );
-};
-
-const QuestionTypePalette = ({ onSelectType }: { onSelectType: (type: string) => void }) => {
-    const questionTypeCategories = {
-    'Choice': [
-        { type: 'single', label: 'Single Selection', icon: CircleDot, color: 'text-blue-500' },
-        { type: 'multiple', label: 'Multiple Selection', icon: CheckSquare, color: 'text-green-500' },
-        { type: 'dropdown', label: 'Dropdown', icon: ChevronDown, color: 'text-cyan-500' },
-        { type: 'best-worst', label: 'Best/Worst Choice', icon: ThumbsUp, color: 'text-amber-500' },
-    ],
-    'Input': [
-        { type: 'text', label: 'Text Input', icon: CaseSensitive, color: 'text-slate-500' },
-        { type: 'number', label: 'Number Input', icon: Sigma, color: 'text-fuchsia-500' },
-        { type: 'phone', label: 'Phone Input', icon: Phone, color: 'text-indigo-500' },
-        { type: 'email', label: 'Email Input', icon: Mail, color: 'text-rose-500' },
-    ],
-    'Scale': [
-        { type: 'rating', label: 'Rating', icon: Star, color: 'text-yellow-500' },
-        { type: 'nps', label: 'Net Promoter Score', icon: Share2, color: 'text-sky-500' },
-    ],
-    'Structure': [
-         { type: 'description', label: 'Description Block', icon: FileText, color: 'text-gray-400' },
-         { type: 'matrix', label: 'Matrix', icon: Grid3x3, color: 'text-purple-500' },
-    ]
-};
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200"
-    >
-      <h3 className="text-lg font-bold text-slate-900 mb-4">Add a Question</h3>
-       <div className="space-y-2">
-            {Object.entries(questionTypeCategories).map(([category, types]) => (
-                <div key={category}>
-                    <h4 className="text-sm font-semibold text-muted-foreground px-2 my-2">{category}</h4>
-                    {types.map((qType) => (
-                        <div key={qType.type} className="group relative">
-                            <Button
-                                variant="ghost"
-                                className="w-full justify-start h-12 text-base"
-                                onClick={() => onSelectType(qType.type)}
-                            >
-                                <qType.icon className={`w-5 h-5 mr-3 ${qType.color}`} />
-                                {qType.label}
-                            </Button>
-                        </div>
-                    ))}
-                </div>
-            ))}
-        </div>
-    </motion.div>
-  );
 };
 
 
@@ -304,7 +249,6 @@ const DescriptionBlock = ({ question, onDelete, onUpdate, isPreview, cardClassNa
 const BestWorstQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: Question, answer: { best?: string, worst?: string }, onAnswerChange: (value: any) => void, onDelete?: (id: string) => void; onUpdate?: (q: any) => void; isPreview?: boolean; onImageUpload?: (id: string) => void; cardClassName?: string; }) => { return <div>Best/Worst (Not Implemented)</div>};
 const MatrixQuestion = ({ question, answer, onAnswerChange, onUpdate, onDelete, isPreview, cardClassName }: { question: any, answer: any, onAnswerChange?: (value: any) => void, onUpdate?: (q:any) => void, onDelete?: (id: string) => void, isPreview?: boolean, cardClassName?: string }) => { return <div>Matrix (Not Implemented)</div>};
 
-
 interface QuestionListProps {
     title: string;
     setTitle: (title: string) => void;
@@ -317,22 +261,6 @@ interface QuestionListProps {
 export default function QuestionList({ title, setTitle, description, setDescription, questions, setQuestions }: QuestionListProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const handleSelectQuestionType = (type: string) => {
-    const newQuestion: Question = {
-      id: Date.now().toString(),
-      type,
-      title: "",
-      required: true,
-      options: ['single', 'multiple', 'dropdown', 'best-worst'].includes(type) ? ['Option 1', 'Option 2'] : [],
-      items: type === 'best-worst' ? ['Item 1', 'Item 2', 'Item 3'] : [],
-      rows: type === 'matrix' ? ['Row 1', 'Row 2'] : [],
-      columns: type === 'matrix' ? ['1', '2', '3'] : [],
-      scale: type === 'matrix' ? ['Bad', 'Neutral', 'Good'] : type === 'rating' ? ['1','2','3','4','5'] : [],
-      content: type === 'description' ? 'This is a description block.' : '',
-    };
-    setQuestions(prev => [...prev, newQuestion]);
-  };
 
   const handleUpdateQuestion = (updatedQuestion: Question) => {
     setQuestions(prev => prev.map(q => q.id === updatedQuestion.id ? { ...q, ...updatedQuestion } : q));
@@ -386,6 +314,7 @@ export default function QuestionList({ title, setTitle, description, setDescript
     matrix: MatrixQuestion,
   };
 
+
   return (
     <div className="space-y-6">
        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
@@ -413,23 +342,25 @@ export default function QuestionList({ title, setTitle, description, setDescript
         onDragCancel={() => setActiveId(null)}
       >
         <SortableContext items={questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
-            {questions.map((q) => {
-              const QuestionComponent = QuestionComponents[q.type];
-              return (
-                <SortableCard key={q.id} id={q.id}>
-                  {QuestionComponent ? (
-                    <Card className="w-full">
-                      <QuestionComponent 
-                        question={q} 
-                        onUpdate={handleUpdateQuestion} 
-                        onDelete={() => handleDeleteQuestion(q.id)}
-                        onImageUpload={() => handleImageUploadClick(q.id)}
-                      />
-                    </Card>
-                  ) : <p>Unknown question type: {q.type}</p>}
-                </SortableCard>
-              );
-            })}
+            <AnimatePresence>
+                {questions.map((q) => {
+                    const QuestionComponent = QuestionComponents[q.type];
+                    return (
+                        <SortableCard key={q.id} id={q.id}>
+                            {QuestionComponent ? (
+                                <Card className="w-full">
+                                <QuestionComponent 
+                                    question={q} 
+                                    onUpdate={handleUpdateQuestion} 
+                                    onDelete={() => handleDeleteQuestion(q.id)}
+                                    onImageUpload={() => handleImageUploadClick(q.id)}
+                                />
+                                </Card>
+                            ) : <p>Unknown question type: {q.type}</p>}
+                        </SortableCard>
+                    );
+                })}
+            </AnimatePresence>
         </SortableContext>
       </DndContext>
     </div>
