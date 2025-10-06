@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -32,6 +31,8 @@ import { useToast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import CbcAnalysisPage from './cbc-analysis-page';
+import RatingConjointAnalysisPage from './rating-conjoint-analysis-page';
+
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
 
@@ -951,6 +952,7 @@ export default function SurveyAnalysisPage() {
     const [crosstabResult, setCrosstabResult] = useState<CrosstabResults | null>(null);
 
     const hasConjoint = useMemo(() => survey?.questions.some((q: Question) => q.type === 'conjoint'), [survey]);
+    const hasRatingConjoint = useMemo(() => survey?.questions.some((q: Question) => q.type === 'rating-conjoint'), [survey]);
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
       if (!questions || !responses) {
@@ -1107,6 +1109,7 @@ export default function SurveyAnalysisPage() {
                 <TabsList>
                     <TabsTrigger value="results">Results</TabsTrigger>
                     {hasConjoint && <TabsTrigger value="conjoint">Conjoint (CBC)</TabsTrigger>}
+                    {hasRatingConjoint && <TabsTrigger value="rating-conjoint">Conjoint (Rating)</TabsTrigger>}
                     <TabsTrigger value="further_analysis">Further Analysis</TabsTrigger>
                 </TabsList>
                 <TabsContent value="results" className="mt-4">
@@ -1123,7 +1126,7 @@ export default function SurveyAnalysisPage() {
                                         case 'numeric':
                                             return <NumericChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)} />;
                                         case 'rating':
-                                            return <RatingChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
+                                           return <RatingChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                         case 'nps':
                                             return <NPSChart data={result.data} title={result.title} onDownload={() => downloadChartAsPng(chartId, result.title)}/>;
                                         case 'text':
@@ -1144,6 +1147,11 @@ export default function SurveyAnalysisPage() {
                  {hasConjoint && (
                     <TabsContent value="conjoint" className="mt-4">
                         <CbcAnalysisPage survey={survey} responses={responses} />
+                    </TabsContent>
+                )}
+                 {hasRatingConjoint && (
+                    <TabsContent value="rating-conjoint" className="mt-4">
+                        <RatingConjointAnalysisPage survey={survey} responses={responses} />
                     </TabsContent>
                 )}
                 <TabsContent value="further_analysis" className="mt-4">
@@ -1193,3 +1201,5 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
+    
