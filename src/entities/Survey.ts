@@ -1,5 +1,3 @@
-/ A mock entity to simulate data persistence
-// In a real app, this would interact with a database.
 
 export type Question = {
     id: string;
@@ -14,6 +12,12 @@ export type Question = {
     content?: string;
     imageUrl?: string;
     rows?: string[];
+    // For Conjoint Analysis
+    attributes?: ConjointAttribute[];
+    designMethod?: 'full-factorial' | 'random';
+    sets?: number;
+    cardsPerSet?: number;
+    profiles?: any[]; // For generated profiles
 };
 
 
@@ -70,3 +74,29 @@ export const SurveyEntity = {
         return Promise.resolve(null);
     }
 };
+
+export interface Survey {
+  id: string;
+  title: string;
+  description: string;
+  questions: Question[];
+  status: 'draft' | 'active' | 'closed';
+  created_date: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface SurveyResponse {
+  id: string;
+  survey_id: string;
+  submittedAt: string;
+  answers: {
+    [questionId: string]: any;
+  };
+}
+
+export interface ConjointAttribute {
+  id: string;
+  name: string;
+  levels: string[];
+}

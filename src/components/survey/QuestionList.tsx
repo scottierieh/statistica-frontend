@@ -15,10 +15,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X } from "lucide-react";
+import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X, Shuffle, RefreshCw } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
-import { type Question, type ConjointAttribute } from '@/entities/Survey';
+import type { Question, ConjointAttribute } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -487,44 +487,44 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }:
 };
 
 const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onUpdate?: any, onDelete?: any }) => {
-    const { attributes = [] } = question;
+    const { attributes = [], designMethod = 'full-factorial', sets = 3, cardsPerSet = 3, profiles = [] } = question;
 
     const handleAttributeNameChange = (attrIndex: number, newName: string) => {
-        onUpdate(produce(question, (draft: any) => {
-            draft.attributes[attrIndex].name = newName;
-        }));
+        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].name = newName; }));
     };
-    
     const handleLevelChange = (attrIndex: number, levelIndex: number, newLevel: string) => {
-        onUpdate(produce(question, (draft: any) => {
-            draft.attributes[attrIndex].levels[levelIndex] = newLevel;
-        }));
+        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].levels[levelIndex] = newLevel; }));
     };
-
     const addAttribute = () => {
-        onUpdate(produce(question, (draft: any) => {
-            draft.attributes.push({ id: `attr-${Date.now()}`, name: `Attribute ${draft.attributes.length + 1}`, levels: ['Level 1', 'Level 2'] });
-        }));
+        onUpdate(produce(question, (draft: any) => { draft.attributes.push({ id: `attr-${Date.now()}`, name: `Attribute ${draft.attributes.length + 1}`, levels: ['Level 1', 'Level 2'] }); }));
     };
-
     const addLevel = (attrIndex: number) => {
-        onUpdate(produce(question, (draft: any) => {
-            draft.attributes[attrIndex].levels.push(`Level ${draft.attributes[attrIndex].levels.length + 1}`);
-        }));
+        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].levels.push(`Level ${draft.attributes[attrIndex].levels.length + 1}`); }));
     };
-
     const removeAttribute = (attrIndex: number) => {
-        onUpdate(produce(question, (draft: any) => {
-            draft.attributes.splice(attrIndex, 1);
-        }));
+        onUpdate(produce(question, (draft: any) => { draft.attributes.splice(attrIndex, 1); }));
     };
-
     const removeLevel = (attrIndex: number, levelIndex: number) => {
-        onUpdate(produce(question, (draft: any) => {
-            if (draft.attributes[attrIndex].levels.length > 2) {
-                draft.attributes[attrIndex].levels.splice(levelIndex, 1);
-            }
-        }));
+        onUpdate(produce(question, (draft: any) => { if (draft.attributes[attrIndex].levels.length > 2) draft.attributes[attrIndex].levels.splice(levelIndex, 1); }));
+    };
+    const generateProfiles = () => {
+        const allCombinations = attributes.reduce((acc: any[], attr: ConjointAttribute) => {
+            if (acc.length === 0) return attr.levels.map(level => ({ [attr.name]: level }));
+            return acc.flatMap((combo: any) => attr.levels.map(level => ({ ...combo, [attr.name]: level })));
+        }, []);
+        
+        // Shuffle combinations
+        for (let i = allCombinations.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allCombinations[i], allCombinations[j]] = [allCombinations[j], allCombinations[i]];
+        }
+
+        const numQuestions = sets * cardsPerSet;
+        const finalProfiles = Array.from({ length: sets }, (_, i) => 
+            allCombinations.slice(i * cardsPerSet, (i + 1) * cardsPerSet).map((p, j) => ({id: `q${i}_p${j}`, ...p}))
+        );
+
+        onUpdate(produce(question, (draft: any) => { draft.profiles = finalProfiles; }));
     };
 
     return (
@@ -534,17 +534,18 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
                     <CardTitle>Conjoint Analysis Setup</CardTitle>
                     <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
                 </div>
-                 <CardDescription>Define the attributes and levels for the product profiles.</CardDescription>
+                 <CardDescription>Define attributes, levels, and design, then generate product profiles.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                 <div className="space-y-4">
+                 <div className="space-y-4 p-4 border rounded-lg">
+                    <h4 className="font-semibold">1. Define Attributes and Levels</h4>
                     {attributes.map((attr: ConjointAttribute, attrIndex: number) => (
-                        <div key={attr.id} className="p-4 border rounded-lg">
+                        <div key={attr.id} className="p-2 border rounded">
                             <div className="flex justify-between items-center mb-2">
                                 <Input value={attr.name} onChange={(e) => handleAttributeNameChange(attrIndex, e.target.value)} className="text-md font-semibold"/>
                                 <Button variant="ghost" size="icon" onClick={() => removeAttribute(attrIndex)}><Trash2 className="w-4 h-4 text-muted-foreground"/></Button>
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-2 pl-4">
                                 {attr.levels.map((level, levelIndex) => (
                                     <div key={levelIndex} className="flex items-center gap-2">
                                         <Input value={level} onChange={(e) => handleLevelChange(attrIndex, levelIndex, e.target.value)} />
@@ -555,72 +556,91 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
                             </div>
                         </div>
                     ))}
+                    <Button onClick={addAttribute}><PlusCircle className="mr-2"/> Add Attribute</Button>
                 </div>
-                <Button onClick={addAttribute}><PlusCircle className="mr-2"/> Add Attribute</Button>
+
+                 <div className="space-y-4 p-4 border rounded-lg">
+                     <h4 className="font-semibold">2. Configure Design</h4>
+                     <div className="grid grid-cols-3 gap-4">
+                        <div><Label>Design Method</Label><Select value={designMethod} onValueChange={(v) => onUpdate({...question, designMethod: v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="full-factorial">Full Factorial</SelectItem><SelectItem value="random" disabled>Random</SelectItem></SelectContent></Select></div>
+                        <div><Label>Question Sets</Label><Input type="number" value={sets} onChange={e => onUpdate({...question, sets: Number(e.target.value)})} /></div>
+                        <div><Label>Cards per Set</Label><Input type="number" value={cardsPerSet} onChange={e => onUpdate({...question, cardsPerSet: Number(e.target.value)})}/></div>
+                     </div>
+                 </div>
+
+                 <Button onClick={generateProfiles} className="w-full"><RefreshCw className="mr-2"/> Generate Profiles</Button>
+
+                 {profiles && profiles.length > 0 && (
+                    <div className="space-y-2">
+                        <Label>Generated Profile Preview</Label>
+                        <pre className="text-xs p-2 bg-muted rounded h-32 overflow-auto">
+                            {JSON.stringify(profiles, null, 2)}
+                        </pre>
+                    </div>
+                 )}
+
             </CardContent>
         </Card>
     );
 };
 
 const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onUpdate?: any, onDelete?: any }) => {
-    const { attributes = [] } = question;
+    const { attributes = [], designMethod = 'full-factorial', sets = 3, cardsPerSet = 3, profiles = [] } = question;
 
     const handleAttributeNameChange = (attrIndex: number, newName: string) => {
-        onUpdate(produce(question, (draft: any) => {
-            draft.attributes[attrIndex].name = newName;
-        }));
+        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].name = newName; }));
     };
-    
     const handleLevelChange = (attrIndex: number, levelIndex: number, newLevel: string) => {
-        onUpdate(produce(question, (draft: any) => {
-            draft.attributes[attrIndex].levels[levelIndex] = newLevel;
-        }));
+        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].levels[levelIndex] = newLevel; }));
     };
-
     const addAttribute = () => {
-        onUpdate(produce(question, (draft: any) => {
-            draft.attributes.push({ id: `attr-${Date.now()}`, name: `Attribute ${draft.attributes.length + 1}`, levels: ['Level 1', 'Level 2'] });
-        }));
+        onUpdate(produce(question, (draft: any) => { draft.attributes.push({ id: `attr-${Date.now()}`, name: `Attribute ${draft.attributes.length + 1}`, levels: ['Level 1', 'Level 2'] }); }));
     };
-
     const addLevel = (attrIndex: number) => {
-        onUpdate(produce(question, (draft: any) => {
-            draft.attributes[attrIndex].levels.push(`Level ${draft.attributes[attrIndex].levels.length + 1}`);
-        }));
+        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].levels.push(`Level ${draft.attributes[attrIndex].levels.length + 1}`); }));
     };
-
     const removeAttribute = (attrIndex: number) => {
-        onUpdate(produce(question, (draft: any) => {
-            draft.attributes.splice(attrIndex, 1);
-        }));
+        onUpdate(produce(question, (draft: any) => { draft.attributes.splice(attrIndex, 1); }));
     };
-
     const removeLevel = (attrIndex: number, levelIndex: number) => {
-        onUpdate(produce(question, (draft: any) => {
-            if (draft.attributes[attrIndex].levels.length > 2) {
-                draft.attributes[attrIndex].levels.splice(levelIndex, 1);
-            }
-        }));
+        onUpdate(produce(question, (draft: any) => { if (draft.attributes[attrIndex].levels.length > 2) draft.attributes[attrIndex].levels.splice(levelIndex, 1); }));
+    };
+    const generateProfiles = () => {
+        const allCombinations = attributes.reduce((acc: any[], attr: ConjointAttribute) => {
+            if (acc.length === 0) return attr.levels.map(level => ({ [attr.name]: level }));
+            return acc.flatMap((combo: any) => attr.levels.map(level => ({ ...combo, [attr.name]: level })));
+        }, []);
+        
+        for (let i = allCombinations.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allCombinations[i], allCombinations[j]] = [allCombinations[j], allCombinations[i]];
+        }
+
+        const numQuestions = sets * cardsPerSet;
+        const finalProfiles = allCombinations.slice(0, numQuestions).map((p, i) => ({id: `profile_${i}`, ...p}));
+
+        onUpdate(produce(question, (draft: any) => { draft.profiles = finalProfiles; }));
     };
 
     return (
-        <Card>
+         <Card>
             <CardHeader>
                 <div className="flex justify-between items-center">
                     <CardTitle>Rating-based Conjoint</CardTitle>
                     <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
                 </div>
-                 <CardDescription>Respondents will rate different product profiles on a numeric scale. Define attributes and levels below.</CardDescription>
+                 <CardDescription>Define attributes and levels, then generate profiles for rating.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                 <div className="space-y-4">
+                  <div className="space-y-4 p-4 border rounded-lg">
+                    <h4 className="font-semibold">1. Define Attributes and Levels</h4>
                     {attributes.map((attr: ConjointAttribute, attrIndex: number) => (
-                        <div key={attr.id} className="p-4 border rounded-lg">
+                        <div key={attr.id} className="p-2 border rounded">
                             <div className="flex justify-between items-center mb-2">
                                 <Input value={attr.name} onChange={(e) => handleAttributeNameChange(attrIndex, e.target.value)} className="text-md font-semibold"/>
                                 <Button variant="ghost" size="icon" onClick={() => removeAttribute(attrIndex)}><Trash2 className="w-4 h-4 text-muted-foreground"/></Button>
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-2 pl-4">
                                 {attr.levels.map((level, levelIndex) => (
                                     <div key={levelIndex} className="flex items-center gap-2">
                                         <Input value={level} onChange={(e) => handleLevelChange(attrIndex, levelIndex, e.target.value)} />
@@ -631,8 +651,27 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: an
                             </div>
                         </div>
                     ))}
+                    <Button onClick={addAttribute}><PlusCircle className="mr-2"/> Add Attribute</Button>
                 </div>
-                <Button onClick={addAttribute}><PlusCircle className="mr-2"/> Add Attribute</Button>
+
+                 <div className="space-y-4 p-4 border rounded-lg">
+                     <h4 className="font-semibold">2. Configure Design</h4>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div><Label>Design Method</Label><Select value={designMethod} onValueChange={(v) => onUpdate({...question, designMethod: v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="full-factorial">Full Factorial</SelectItem><SelectItem value="random">Random</SelectItem></SelectContent></Select></div>
+                        <div><Label>Number of Profiles</Label><Input type="number" value={sets * cardsPerSet} onChange={e => onUpdate({...question, sets: Number(e.target.value), cardsPerSet: 1})} /></div>
+                     </div>
+                 </div>
+
+                 <Button onClick={generateProfiles} className="w-full"><RefreshCw className="mr-2"/> Generate Profiles</Button>
+
+                 {profiles && profiles.length > 0 && (
+                    <div className="space-y-2">
+                        <Label>Generated Profile Preview</Label>
+                        <pre className="text-xs p-2 bg-muted rounded h-32 overflow-auto">
+                            {JSON.stringify(profiles, null, 2)}
+                        </pre>
+                    </div>
+                 )}
             </CardContent>
         </Card>
     );

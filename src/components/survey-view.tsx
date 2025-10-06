@@ -18,7 +18,7 @@ import { produce } from 'immer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import type { Question, ConjointAttribute } from '@/entities/Survey';
+import type { Question, ConjointAttribute, Survey, SurveyResponse } from '@/entities/Survey';
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
     const theme = styles.theme || 'default';
@@ -248,36 +248,26 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
 };
 
 const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: string; onAnswerChange: (value: string) => void; }) => {
-    const { attributes = [] } = question;
+    const { attributes = [], profiles = [] } = question;
     
-    // This is a simplified display logic. A real conjoint would generate specific profiles.
-    const profiles = useMemo(() => {
-        if (attributes.length === 0) return [];
-        const numProfiles = 4;
-        const generated = [];
-        for (let i = 0; i < numProfiles; i++) {
-            const profile: { [key: string]: string } = {};
-            attributes.forEach(attr => {
-                profile[attr.name] = attr.levels[i % attr.levels.length];
-            });
-            generated.push({ id: `profile_${i}`, ...profile });
-        }
-        return generated;
-    }, [attributes]);
+    if (profiles.length === 0) return <div className="p-4">Conjoint profiles not generated.</div>;
+    
+    // Assuming profiles are structured in sets
+    const profileSet = profiles[0] || [];
 
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
              <div className="flex gap-4 overflow-x-auto pb-4">
                  <div className="flex-shrink-0 w-32 pr-2">
-                    {attributes.map(attr => (
+                    {(attributes || []).map(attr => (
                         <div key={attr.id} className="h-16 flex items-center font-semibold text-sm text-muted-foreground">{attr.name}:</div>
                     ))}
                  </div>
-                {profiles.map((profile, index) => (
+                {profileSet.map((profile: any, index: number) => (
                     <Card key={profile.id} className={cn("w-48 flex-shrink-0 text-center transition-all", answer === profile.id && "ring-2 ring-primary")}>
                         <CardContent className="p-4 space-y-2">
-                             {attributes.map(attr => (
+                             {(attributes || []).map(attr => (
                                 <div key={attr.id} className="h-16 flex items-center justify-center text-sm">{profile[attr.name]}</div>
                             ))}
                         </CardContent>
@@ -303,19 +293,21 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
         }
     };
 
+    if (profiles.length === 0) return <div className="p-4">Conjoint profiles not generated.</div>;
+
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
              <div className="flex gap-4 overflow-x-auto pb-4">
                  <div className="flex-shrink-0 w-32 pr-2">
-                    {attributes.map(attr => (
+                    {(attributes || []).map(attr => (
                         <div key={attr.id} className="h-16 flex items-center font-semibold text-sm text-muted-foreground">{attr.name}:</div>
                     ))}
                  </div>
                 {profiles.map((profile: any) => (
                     <Card key={profile.id} className="w-48 flex-shrink-0 text-center">
                         <CardContent className="p-4 space-y-2">
-                             {attributes.map(attr => (
+                             {(attributes || []).map(attr => (
                                 <div key={attr.id} className="h-16 flex items-center justify-center text-sm">{profile[attr.name]}</div>
                             ))}
                         </CardContent>
@@ -347,6 +339,7 @@ interface SurveyViewProps {
 
 export default function SurveyView({ survey: surveyProp, isPreview = false, previewStyles }: SurveyViewProps) {
     const params = useParams();
+    const { toast } = useToast();
     const surveyId = params.id as string;
     const [survey, setSurvey] = useState<any>(surveyProp);
     const [answers, setAnswers] = useState<any>({});
@@ -412,7 +405,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
 
     const handlePrev = () => {
         if (currentQuestionIndex > -1) {
-            setCurrentQuestionIndex(prev => prev + 1);
+            setCurrentQuestionIndex(prev => prev - 1);
         }
     };
 
