@@ -9,9 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users } from 'lucide-react';
+import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart as LineChartIcon, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { BarChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -59,13 +59,14 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     
+    // Advanced features state
     const [scenarios, setScenarios] = useState<Scenario[]>([
         { name: 'My Product' }, { name: 'Competitor A' }, { name: 'Competitor B' }
     ]);
     const [simulationResult, setSimulationResult] = useState<any>(null);
     const [sensitivityAttribute, setSensitivityAttribute] = useState<string | undefined>();
     
-    const conjointQuestion = useMemo(() => survey.questions.find(q => q.type === 'rating-conjoint'), [survey]);
+    const conjointQuestion = useMemo(() => survey.questions.find((q: Question) => q.type === 'rating-conjoint'), [survey]);
     const allAttributes = useMemo(() => {
         if (!conjointQuestion || !conjointQuestion.attributes) return {};
         const attributesObj: any = {};
@@ -404,4 +405,3 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
         </div>
     );
 }
-
