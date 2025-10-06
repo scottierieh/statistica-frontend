@@ -117,7 +117,6 @@ export default function CreateSurveyPage() {
                         questions={questions}
                         setQuestions={setQuestions}
                         styles={styles}
-                        isPreview={true}
                     />
                     <div className="lg:sticky lg:top-24 space-y-6">
                         <SurveyStylePanel styles={styles} setStyles={setStyles} />
