@@ -519,7 +519,6 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
             [allCombinations[i], allCombinations[j]] = [allCombinations[j], allCombinations[i]];
         }
 
-        const numQuestions = sets * cardsPerSet;
         const finalProfiles = Array.from({ length: sets }, (_, i) => 
             allCombinations.slice(i * cardsPerSet, (i + 1) * cardsPerSet).map((p, j) => ({id: `q${i}_p${j}`, ...p}))
         );
@@ -572,10 +571,23 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
 
                  {profiles && profiles.length > 0 && (
                     <div className="space-y-2">
-                        <Label>Generated Profile Preview</Label>
-                        <pre className="text-xs p-2 bg-muted rounded h-32 overflow-auto">
-                            {JSON.stringify(profiles, null, 2)}
-                        </pre>
+                        <Label>Generated Profile Preview (Set 1)</Label>
+                        <div className="flex gap-4 overflow-x-auto pb-4 p-2 bg-muted rounded-lg">
+                            <div className="flex-shrink-0 w-32 pr-2">
+                                {(attributes || []).map((attr: ConjointAttribute) => (
+                                    <div key={attr.id} className="h-12 flex items-center font-semibold text-sm text-muted-foreground">{attr.name}:</div>
+                                ))}
+                            </div>
+                            {(profiles[0] || []).map((profile: any, index: number) => (
+                                <Card key={profile.id} className="w-48 flex-shrink-0 text-center bg-card">
+                                    <CardContent className="p-2 space-y-1">
+                                        {(attributes || []).map((attr: ConjointAttribute) => (
+                                            <div key={attr.id} className="h-12 flex items-center justify-center text-sm p-1 border-b last:border-b-0">{profile[attr.name]}</div>
+                                        ))}
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
                     </div>
                  )}
 
@@ -585,7 +597,8 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
 };
 
 const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onUpdate?: any, onDelete?: any }) => {
-    const { attributes = [], designMethod = 'full-factorial', sets = 3, cardsPerSet = 3, profiles = [] } = question;
+    const { attributes = [], designMethod = 'full-factorial', profiles = [] } = question;
+    const cardsPerSet = profiles.length;
 
     const handleAttributeNameChange = (attrIndex: number, newName: string) => {
         onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].name = newName; }));
@@ -616,8 +629,7 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: an
             [allCombinations[i], allCombinations[j]] = [allCombinations[j], allCombinations[i]];
         }
 
-        const numQuestions = sets * cardsPerSet;
-        const finalProfiles = allCombinations.slice(0, numQuestions).map((p, i) => ({id: `profile_${i}`, ...p}));
+        const finalProfiles = allCombinations.slice(0, cardsPerSet).map((p, i) => ({id: `profile_${i}`, ...p}));
 
         onUpdate(produce(question, (draft: any) => { draft.profiles = finalProfiles; }));
     };
@@ -656,9 +668,9 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: an
 
                  <div className="space-y-4 p-4 border rounded-lg">
                      <h4 className="font-semibold">2. Configure Design</h4>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 gap-4">
                         <div><Label>Design Method</Label><Select value={designMethod} onValueChange={(v) => onUpdate({...question, designMethod: v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="full-factorial">Full Factorial</SelectItem><SelectItem value="random">Random</SelectItem></SelectContent></Select></div>
-                        <div><Label>Number of Profiles</Label><Input type="number" value={sets * cardsPerSet} onChange={e => onUpdate({...question, sets: Number(e.target.value), cardsPerSet: 1})} /></div>
+                        <div><Label>Number of Profiles</Label><Input type="number" value={cardsPerSet} onChange={e => onUpdate({...question, sets: 1, cardsPerSet: Number(e.target.value)})} /></div>
                      </div>
                  </div>
 
@@ -666,10 +678,27 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: an
 
                  {profiles && profiles.length > 0 && (
                     <div className="space-y-2">
-                        <Label>Generated Profile Preview</Label>
-                        <pre className="text-xs p-2 bg-muted rounded h-32 overflow-auto">
-                            {JSON.stringify(profiles, null, 2)}
-                        </pre>
+                         <Label>Generated Profile Preview</Label>
+                         <div className="flex gap-4 overflow-x-auto pb-4 p-2 bg-muted rounded-lg">
+                             <div className="flex-shrink-0 w-32 pr-2">
+                                {(attributes || []).map((attr: ConjointAttribute) => (
+                                    <div key={attr.id} className="h-12 flex items-center font-semibold text-sm text-muted-foreground">{attr.name}:</div>
+                                ))}
+                                <div className="h-12 flex items-center font-semibold text-sm text-muted-foreground">Rating (1-10):</div>
+                             </div>
+                            {profiles.map((profile: any, index: number) => (
+                                <Card key={profile.id} className="w-48 flex-shrink-0 text-center bg-card">
+                                    <CardContent className="p-2 space-y-1">
+                                        {(attributes || []).map((attr: ConjointAttribute) => (
+                                            <div key={attr.id} className="h-12 flex items-center justify-center text-sm p-1 border-b last:border-b-0">{profile[attr.name]}</div>
+                                        ))}
+                                    </CardContent>
+                                    <CardFooter className="p-2">
+                                        <Input type="number" min="1" max="10" placeholder="1-10" disabled/>
+                                    </CardFooter>
+                                </Card>
+                            ))}
+                         </div>
                     </div>
                  )}
             </CardContent>
