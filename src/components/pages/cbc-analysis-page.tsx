@@ -230,51 +230,52 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     };
     
     const runSensitivityAnalysis = useCallback(async () => {
-        if (!analysisResult || !sensitivityAttribute) return;
-    
-        setIsSensitivityLoading(true);
-        setSensitivityPlot(null);
-    
-        try {
-            const otherAttributes = attributeCols.filter(attr => attr !== sensitivityAttribute);
-            
-            const sensitivityData = allAttributes[sensitivityAttribute].levels.map((level: string) => {
-                let utilitySum = 0;
-                otherAttributes.forEach(attr => {
-                    const worths = analysisResult.results.partWorths.filter(p => p.attribute === attr);
-                    if(worths.length > 0) {
-                        const avgWorth = worths.reduce((sum, p) => sum + p.value, 0) / worths.length;
-                        utilitySum += avgWorth;
-                    }
-                });
-                const levelWorth = analysisResult.results.partWorths.find(p => p.attribute === sensitivityAttribute && p.level === level)?.value || 0;
-                return {
-                    level: level,
-                    utility: utilitySum + levelWorth
-                };
+    if (!analysisResult || !sensitivityAttribute) return;
+
+    setIsSensitivityLoading(true);
+    setSensitivityPlot(null);
+
+    try {
+        const otherAttributes = attributeCols.filter(attr => attr !== sensitivityAttribute);
+        
+        const sensitivityData = allAttributes[sensitivityAttribute].levels.map((level: string) => {
+            let otherAttrsUtilitySum = 0;
+            otherAttributes.forEach(attr => {
+                const worths = analysisResult.results.partWorths.filter(p => p.attribute === attr);
+                if(worths.length > 0) {
+                    const avgWorth = worths.reduce((sum, p) => sum + p.value, 0) / worths.length;
+                    otherAttrsUtilitySum += avgWorth;
+                }
             });
-            
-            const response = await fetch('/api/analysis/visualization', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    data: sensitivityData,
-                    chartType: 'line',
-                    config: {
-                        x_col: 'level',
-                        y_col: 'utility',
-                    },
-                })
-            });
-            if (!response.ok) throw new Error('Failed to generate sensitivity plot.');
-            const plotResult = await response.json();
-            setSensitivityPlot(plotResult.plot);
-        } catch (error: any) {
-            toast({ title: "Sensitivity Analysis Error", description: error.message, variant: 'destructive' });
-        } finally {
-            setIsSensitivityLoading(false);
-        }
-    }, [analysisResult, sensitivityAttribute, attributeCols, allAttributes, toast]);
+            const levelWorth = analysisResult.results.partWorths.find(p => p.attribute === sensitivityAttribute && p.level === level)?.value || 0;
+            return {
+                level: level,
+                level_worth: levelWorth,
+                utility: otherAttrsUtilitySum + levelWorth
+            };
+        });
+        
+        const response = await fetch('/api/analysis/visualization', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                data: sensitivityData,
+                chartType: 'line',
+                config: {
+                    x_col: 'level_worth',
+                    y_col: 'utility',
+                },
+            })
+        });
+        if (!response.ok) throw new Error('Failed to generate sensitivity plot.');
+        const plotResult = await response.json();
+        setSensitivityPlot(plotResult.plot);
+    } catch (error: any) {
+        toast({ title: "Sensitivity Analysis Error", description: error.message, variant: 'destructive' });
+    } finally {
+        setIsSensitivityLoading(false);
+    }
+}, [analysisResult, sensitivityAttribute, attributeCols, allAttributes, toast]);
 
     const importanceData = useMemo(() => {
         if (!analysisResult) return [];
@@ -457,9 +458,3 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
   );
 
     
-
-
-
-
-
-
