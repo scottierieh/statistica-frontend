@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network } from "lucide-react";
+import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { type Question, type ConjointAttribute } from '@/entities/Survey';
@@ -114,7 +114,7 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
                                   value={option}
                                   id={`q${question.id}-o${index}`}
                                   disabled
-                                  className={cn(theme === 'flat' && "border-primary text-primary")}
+                                  className={cn(theme === 'flat' && answer === option && "border-primary text-primary")}
                                 />
                             )}
                             <Input
@@ -671,7 +671,7 @@ export default function QuestionList({ title, setTitle, description, setDescript
                     return (
                         <SortableCard key={q.id} id={q.id}>
                             {QuestionComponent ? (
-                                <QuestionComponent 
+                                 <QuestionComponent 
                                     question={q} 
                                     onUpdate={handleUpdateQuestion} 
                                     onDelete={() => handleDeleteQuestion(q.id)}
@@ -688,3 +688,4 @@ export default function QuestionList({ title, setTitle, description, setDescript
     </div>
   );
 }
+
