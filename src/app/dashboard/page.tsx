@@ -1,40 +1,36 @@
 
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Zap, Target, MoveRight } from "lucide-react";
+import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
 import DashboardClientLayout from "@/components/dashboard-client-layout";
 import { motion } from "framer-motion";
 
-function ToolCard({ icon: Icon, title, description, href, cta }: { icon: React.ElementType, title: string, description: string, href: string, cta: string }) {
+function ToolCard({ icon: Icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) {
   return (
-    <motion.div
-      whileHover={{ scale: 1.05 }}
-      transition={{ type: "spring", stiffness: 400, damping: 10 }}
-      className="h-full"
-    >
-      <Card className="flex flex-col h-full text-center items-center justify-between p-6 bg-gradient-to-br from-card to-muted/30 hover:shadow-2xl hover:shadow-primary/10 transition-shadow duration-300">
-        <CardHeader className="p-0 mb-4">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
-            <Icon size={32} />
-          </div>
-          <CardTitle className="font-headline text-xl">{title}</CardTitle>
-          <CardDescription className="mt-2 text-sm">
-            {description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0 w-full">
-          <Button asChild className="w-full group">
-            <Link href={href}>
-              {cta}
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
-    </motion.div>
+    <Link href={href} className="h-full block">
+      <motion.div
+        whileHover={{ scale: 1.05 }}
+        transition={{ type: "spring", stiffness: 400, damping: 10 }}
+        className="h-full"
+      >
+        <Card className="flex flex-col h-full text-center items-center justify-start p-6 bg-gradient-to-br from-card to-muted/30 hover:shadow-2xl hover:shadow-primary/10 transition-shadow duration-300">
+          <CardHeader className="p-0">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
+              <Icon size={32} />
+            </div>
+            <CardTitle className="font-headline text-xl">{title}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 mt-2">
+            <CardDescription className="text-sm">
+              {description}
+            </CardDescription>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </Link>
   )
 }
 
@@ -43,12 +39,12 @@ function DashboardHub() {
   const { user } = useAuth();
 
   const tools = [
-      { icon: Calculator, title: "Statistica", description: "Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.", href: "/dashboard/statistica", cta: "Launch Statistica" },
-      { icon: BrainCircuit, title: "Machine Learning", description: "Build, train, and deploy machine learning models for regression, classification, and more.", href: "/dashboard/machine-learning", cta: "Launch ML Tool" },
-      { icon: FastForward, title: "Simulation", description: "Model and simulate complex systems to predict outcomes and test scenarios.", href: "/dashboard/simulation", cta: "Launch Simulation" },
-      { icon: ClipboardList, title: "Survey Tool", description: "Design, distribute, and analyze surveys with an integrated, easy-to-use tool.", href: "/dashboard/survey2", cta: "Launch Survey Tool" },
-      { icon: DollarSign, title: "Financial Modeling", description: "Conduct portfolio analysis, company valuation, and financial forecasting.", href: "/dashboard/financial-modeling", cta: "Launch Finance Tool" },
-      { icon: Target, title: "Decision Analytics", description: "Solve complex optimization problems and perform quantitative analysis for decision making.", href: "/dashboard/optimization", cta: "Launch Analytics" },
+      { icon: Calculator, title: "Statistica", description: "Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.", href: "/dashboard/statistica" },
+      { icon: BrainCircuit, title: "Machine Learning", description: "Build, train, and deploy machine learning models for regression, classification, and more.", href: "/dashboard/machine-learning" },
+      { icon: FastForward, title: "Simulation", description: "Model and simulate complex systems to predict outcomes and test scenarios.", href: "/dashboard/simulation" },
+      { icon: ClipboardList, title: "Survey Tool", description: "Design, distribute, and analyze surveys with an integrated, easy-to-use tool.", href: "/dashboard/survey2" },
+      { icon: DollarSign, title: "Financial Modeling", description: "Conduct portfolio analysis, company valuation, and financial forecasting.", href: "/dashboard/financial-modeling" },
+      { icon: Target, title: "Decision Analytics", description: "Solve complex optimization problems and perform quantitative analysis for decision making.", href: "/dashboard/optimization" },
   ];
 
   return (
