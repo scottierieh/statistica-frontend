@@ -19,6 +19,7 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
+import { Input } from '../ui/input';
 
 interface RatingConjointResults {
     partWorths: { attribute: string, level: string, value: number }[];
@@ -59,7 +60,7 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
     const [isLoading, setIsLoading] = useState(true);
     
     const [scenarios, setScenarios] = useState<Scenario[]>([
-        { name: 'Scenario 1' }, { name: 'Scenario 2' }, { name: 'Scenario 3' }
+        { name: 'My Product' }, { name: 'Competitor A' }, { name: 'Competitor B' }
     ]);
     const [simulationResult, setSimulationResult] = useState<any>(null);
     const [sensitivityAttribute, setSensitivityAttribute] = useState<string | undefined>();
@@ -83,7 +84,7 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
 
     const handleAnalysis = useCallback(async (simulationScenarios?: Scenario[]) => {
         if (!conjointQuestion || !responses || responses.length === 0) {
-            toast({ variant: 'destructive', title: 'Data Error', description: 'No rating-based conjoint question or responses found.' });
+            toast({ variant: 'destructive', title: 'Data Error', description: 'No rating-based conjoint question or responses found for this survey.' });
             setIsLoading(false);
             return;
         }
@@ -94,7 +95,7 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
             if (!answer || typeof answer !== 'object') return;
             
             Object.entries(answer).forEach(([profileId, rating]) => {
-                const profile = conjointQuestion.profiles?.find(p => p.id === profileId);
+                const profile = conjointQuestion.profiles?.find((p: any) => p.id === profileId);
                 if (profile) {
                     analysisData.push({
                         ...profile,
@@ -113,6 +114,7 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
         setIsLoading(true);
         if (!simulationScenarios) {
             setAnalysisResult(null);
+            setSimulationResult(null);
         }
 
         const attributesForBackend = attributeCols.reduce((acc, attrName) => {
@@ -167,11 +169,11 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
             setSensitivityAttribute(attributeCols[0]);
 
             const initialScenarios = [
-                { name: 'Scenario 1' }, { name: 'Scenario 2' }, { name: 'Scenario 3' }
+                { name: 'My Product' }, { name: 'Competitor A' }, { name: 'Competitor B' }
             ].map(sc => {
                 const newSc: Scenario = { ...sc };
-                attributeCols.forEach(attrName => {
-                     newSc[attrName] = allAttributes[attrName].levels[0];
+                attributeCols.forEach((attrName, i) => {
+                     newSc[attrName] = allAttributes[attrName].levels[i % allAttributes[attrName].levels.length];
                 });
                 return newSc;
             });
@@ -258,11 +260,12 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
     return (
         <div className="space-y-4">
              <Tabs defaultValue="importance" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="importance"><PieIcon className="mr-2"/>Importance</TabsTrigger>
                     <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
                     <TabsTrigger value="optimal"><Star className="mr-2"/>Optimal Product</TabsTrigger>
                     <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
+                    <TabsTrigger value="sensitivity">Sensitivity</TabsTrigger>
                 </TabsList>
                 <TabsContent value="importance" className="mt-4">
                     <Card>
@@ -336,7 +339,7 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
                             <div className="grid md:grid-cols-3 gap-4 mb-4">
                                 {scenarios.map((scenario, index) => (
                                     <Card key={index}>
-                                        <CardHeader><CardTitle>{scenario.name}</CardTitle></CardHeader>
+                                        <CardHeader><Input value={scenario.name} onChange={(e) => handleScenarioChange(index, 'name', e.target.value)} /></CardHeader>
                                         <CardContent className="space-y-2">
                                             {attributeCols.map((attrName) => (
                                                 <div key={attrName}>
@@ -370,7 +373,35 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
                         </CardContent>
                     </Card>
                 </TabsContent>
+                 <TabsContent value="sensitivity" className="mt-4">
+                    <Card>
+                        <CardHeader><CardTitle>Sensitivity Analysis</CardTitle><CardDescription>See how the overall utility changes as you vary the levels of a single attribute.</CardDescription></CardHeader>
+                        <CardContent>
+                            <div className="grid md:grid-cols-2 gap-4 items-center">
+                                <div>
+                                    <Label>Attribute to Analyze</Label>
+                                    <Select value={sensitivityAttribute} onValueChange={setSensitivityAttribute}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>{attributeCols.map(attr => <SelectItem key={attr} value={attr}>{attr}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                 <ChartContainer config={{utility: {label: 'Utility'}}} className="w-full h-[300px]">
+                                  <ResponsiveContainer>
+                                      <LineChart data={sensitivityData}>
+                                          <CartesianGrid strokeDasharray="3 3" />
+                                          <XAxis dataKey="level" />
+                                          <YAxis />
+                                          <Tooltip content={<ChartTooltipContent />} />
+                                          <Line type="monotone" dataKey="utility" stroke="hsl(var(--primary))" strokeWidth={2} />
+                                      </LineChart>
+                                  </ResponsiveContainer>
+                                </ChartContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
             </Tabs>
         </div>
     );
 }
+
