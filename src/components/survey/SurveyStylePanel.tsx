@@ -86,7 +86,7 @@ export default function SurveyStylePanel({ styles, setStyles }: SurveyStylePanel
                     </Select>
                 </div>
                 <div>
-                    <Label>Question Text (px)</Label>
+                    <Label>Question Font Size</Label>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" onClick={() => handleFontSizeChange('questionTextSize', -1)}><Minus/></Button>
                         <Input type="number" value={styles.questionTextSize} onChange={e => handleStyleChange('questionTextSize', parseInt(e.target.value, 10))} className="w-20 text-center"/>
@@ -94,7 +94,7 @@ export default function SurveyStylePanel({ styles, setStyles }: SurveyStylePanel
                     </div>
                 </div>
                  <div>
-                    <Label>Answer Text (px)</Label>
+                    <Label>Answer Font Size</Label>
                      <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" onClick={() => handleFontSizeChange('answerTextSize', -1)}><Minus/></Button>
                         <Input type="number" value={styles.answerTextSize} onChange={e => handleStyleChange('answerTextSize', parseInt(e.target.value, 10))} className="w-20 text-center"/>
