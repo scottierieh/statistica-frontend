@@ -5,6 +5,7 @@ import React from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { produce } from 'immer';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +21,6 @@ import Image from 'next/image';
 import { type Question } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { produce } from 'immer';
 
 
 // --- Reusable UI Components ---
@@ -271,9 +271,7 @@ const TextQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, is
                 <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
                 <Label htmlFor={`required-${question.id}`}>Required</Label>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
-                  <ImageIcon className="w-5 h-5 text-muted-foreground" />
-              </Button>
+              <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}><ImageIcon className="w-5 h-5 text-muted-foreground" /></Button>
               <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
               <Button variant="ghost" size="icon" onClick={() => onDelete(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
           </div>
@@ -642,7 +640,7 @@ export default function QuestionList({ title, setTitle, description, setDescript
                     return (
                         <SortableCard key={q.id} id={q.id}>
                             {QuestionComponent ? (
-                                <Card className="w-full">
+                                 <Card className="w-full">
                                 <QuestionComponent 
                                     question={q} 
                                     onUpdate={handleUpdateQuestion} 
@@ -661,5 +659,3 @@ export default function QuestionList({ title, setTitle, description, setDescript
     </div>
   );
 }
-
-```
