@@ -259,7 +259,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     data: sensitivityData,
-                    chartType: 'bar',
+                    chartType: 'line',
                     config: {
                         x_col: 'level',
                         y_col: 'utility',
@@ -457,6 +457,7 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
   );
 
     
+
 
 
 
