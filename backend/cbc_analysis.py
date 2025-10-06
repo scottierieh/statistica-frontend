@@ -5,9 +5,12 @@ import json
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
+from statsmodels.formula.api import ols, logit
 import matplotlib.pyplot as plt
+import seaborn as sns
 import base64
 import io
+import re
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -56,59 +59,70 @@ def main():
 
         df = pd.DataFrame(data)
 
-        # --- Data Cleaning and Preparation ---
-        y = pd.to_numeric(df[target_variable], errors='coerce')
-
-        X_parts = []
-        feature_names_map = {}
+        # Sanitize column names for the formula
+        sanitized_cols = {col: re.sub(r'[^A-Za-z0-9_]', '_', col) for col in df.columns}
+        df.rename(columns=sanitized_cols, inplace=True)
         
-        independent_vars = [attr for attr, props in attributes_def.items() if props.get('includeInAnalysis', True) and attr != target_variable]
-
-        for attr_name in independent_vars:
-            props = attributes_def[attr_name]
-            dummies = pd.get_dummies(df[attr_name].astype(str), prefix=attr_name, drop_first=True, dtype=float)
-            X_parts.append(dummies)
-            feature_names_map.update({col: col for col in dummies.columns})
+        target_var_clean = sanitized_cols[target_variable]
         
-        X = pd.concat(X_parts, axis=1)
-        
-        full_df = pd.concat([y, X], axis=1).dropna()
-        y_clean = full_df[target_variable]
-        X_clean = full_df.drop(columns=[target_variable])
-        
-        if y_clean.empty or X_clean.empty:
-            raise ValueError("Not enough valid data after cleaning. Check for non-numeric values.")
+        formula_parts = []
+        all_analysis_vars_set = {target_var_clean}
 
-        X_with_const = sm.add_constant(X_clean)
+        for attr_name, props in attributes_def.items():
+            attr_name_clean = sanitized_cols.get(attr_name, attr_name)
+            if props.get('includeInAnalysis', True) and attr_name_clean != target_var_clean:
+                all_analysis_vars_set.add(attr_name_clean)
+                formula_parts.append(f'C(Q("{attr_name_clean}"))')
+        
+        all_analysis_vars = list(all_analysis_vars_set)
+        
+        # --- Data Cleaning and Type Conversion ---
+        df_clean = df[all_analysis_vars].copy()
+        
+        df_clean[target_var_clean] = pd.to_numeric(df_clean[target_var_clean], errors='coerce')
+        for col in df_clean.columns:
+            if col != target_var_clean:
+                df_clean[col] = df_clean[col].astype(str)
 
+        df_clean.dropna(subset=[target_var_clean], inplace=True)
+        
+        if df_clean.empty:
+            raise ValueError("No valid data left after cleaning.")
+
+        formula = f'Q("{target_var_clean}") ~ {" + ".join(formula_parts)}'
+        
         # --- Fit the Logit model for choice data ---
-        model = sm.Logit(y_clean, X_with_const).fit(disp=0)
+        model = logit(formula, data=df_clean).fit(disp=0)
         
         # --- Regression Results ---
         regression_results = {
             'rSquared': getattr(model, 'prsquared', 0.0),
-            'adjustedRSquared': getattr(model, 'prsquared', 0.0), # Logit doesn't have a direct adjusted R^2
-            'rmse': np.nan, # Not applicable for Logit
-            'mae': np.nan,  # Not applicable for Logit
+            'adjustedRSquared': getattr(model, 'prsquared_adj', 0.0),
+            'rmse': np.nan, 
+            'mae': np.nan,
             'predictions': model.predict().tolist(),
             'residuals': model.resid_response.tolist(),
-            'intercept': model.params.get('const', 0.0),
-            'coefficients': model.params.drop('const').to_dict()
+            'intercept': model.params.get('Intercept', 0.0),
+            'coefficients': model.params.to_dict()
         }
 
         # --- Part-Worths and Importance ---
         part_worths = []
         attribute_ranges = {}
         
+        independent_vars = [attr for attr, props in attributes_def.items() if props.get('includeInAnalysis', True) and attr != target_variable]
+
         for attr_name in independent_vars:
             props = attributes_def[attr_name]
+            attr_name_clean = sanitized_cols.get(attr_name, attr_name)
+
             base_level = props['levels'][0]
             part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
             
             level_worths = [0]
             for level in props['levels'][1:]:
-                param_name = f"{attr_name}_{level}"
-                worth = regression_results['coefficients'].get(param_name, 0)
+                param_name = f"C(Q(\"{attr_name_clean}\"))[T.{level}]"
+                worth = model.params.get(param_name, 0)
                 part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
                 level_worths.append(worth)
             
