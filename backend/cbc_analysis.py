@@ -5,12 +5,10 @@ import json
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-from statsmodels.formula.api import ols, logit
-import matplotlib.pyplot as plt
-import seaborn as sns
-import base64
-import io
+import warnings
 import re
+
+warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -22,29 +20,6 @@ def _to_native_type(obj):
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     return obj
-    
-def generate_sensitivity_plot(sensitivity_results):
-    if not sensitivity_results:
-        return None
-    
-    import seaborn as sns
-    levels = [item['level'] for item in sensitivity_results]
-    utilities = [item['utility'] for item in sensitivity_results]
-    
-    fig, ax = plt.subplots(figsize=(8, 5))
-    sns.barplot(x=levels, y=utilities, ax=ax, palette='viridis')
-    ax.set_title(f"Sensitivity Analysis for {sensitivity_results[0].get('attribute', 'Attribute')}")
-    ax.set_xlabel('Level')
-    ax.set_ylabel('Calculated Utility')
-    ax.grid(True, axis='y', linestyle='--', alpha=0.6)
-    
-    plt.tight_layout()
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    plt.close(fig)
-    buf.seek(0)
-    return base64.b64encode(buf.read()).decode('utf-8')
-
 
 def main():
     try:
@@ -52,47 +27,37 @@ def main():
         data = payload.get('data')
         attributes_def = payload.get('attributes')
         target_variable = payload.get('targetVariable')
-        sensitivity_analysis_request = payload.get('sensitivityAnalysis')
 
         if not all([data, attributes_def, target_variable]):
             raise ValueError("Missing 'data', 'attributes', or 'targetVariable'")
 
         df = pd.DataFrame(data)
 
-        # Sanitize column names for the formula
-        sanitized_cols = {col: re.sub(r'[^A-Za-z0-9_]', '_', col) for col in df.columns}
-        df.rename(columns=sanitized_cols, inplace=True)
-        
-        target_var_clean = sanitized_cols[target_variable]
-        
-        formula_parts = []
-        all_analysis_vars_set = {target_var_clean}
+        # Ensure target is numeric and drop rows with invalid target values
+        df[target_variable] = pd.to_numeric(df[target_variable], errors='coerce')
+        df.dropna(subset=[target_variable], inplace=True)
+        y = df[target_variable]
 
-        for attr_name, props in attributes_def.items():
-            attr_name_clean = sanitized_cols.get(attr_name, attr_name)
-            if props.get('includeInAnalysis', True) and attr_name_clean != target_var_clean:
-                all_analysis_vars_set.add(attr_name_clean)
-                formula_parts.append(f'C(Q("{attr_name_clean}"))')
+        X_dfs = []
+        feature_names = []
         
-        all_analysis_vars = list(all_analysis_vars_set)
-        
-        # --- Data Cleaning and Type Conversion ---
-        df_clean = df[all_analysis_vars].copy()
-        
-        df_clean[target_var_clean] = pd.to_numeric(df_clean[target_var_clean], errors='coerce')
-        for col in df_clean.columns:
-            if col != target_var_clean:
-                df_clean[col] = df_clean[col].astype(str)
+        independent_vars = [attr for attr, props in attributes_def.items() if props.get('includeInAnalysis', True) and attr != target_variable]
 
-        df_clean.dropna(subset=[target_var_clean], inplace=True)
+        for attr_name in independent_vars:
+            props = attributes_def[attr_name]
+            # Create dummy variables, dropping the first level to create a baseline
+            dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True, dtype=float)
+            X_dfs.append(dummies)
+            feature_names.extend(dummies.columns.tolist())
         
-        if df_clean.empty:
-            raise ValueError("No valid data left after cleaning.")
+        if not X_dfs:
+            raise ValueError("No independent variables selected for analysis.")
+            
+        X = pd.concat(X_dfs, axis=1)
+        X = sm.add_constant(X) # Add intercept
 
-        formula = f'Q("{target_var_clean}") ~ {" + ".join(formula_parts)}'
-        
         # --- Fit the Logit model for choice data ---
-        model = logit(formula, data=df_clean).fit(disp=0)
+        model = sm.Logit(y, X).fit(disp=0)
         
         # --- Regression Results ---
         regression_results = {
@@ -102,7 +67,7 @@ def main():
             'mae': np.nan,
             'predictions': model.predict().tolist(),
             'residuals': model.resid_response.tolist(),
-            'intercept': model.params.get('Intercept', 0.0),
+            'intercept': model.params.get('const', 0.0),
             'coefficients': model.params.to_dict()
         }
 
@@ -110,18 +75,14 @@ def main():
         part_worths = []
         attribute_ranges = {}
         
-        independent_vars = [attr for attr, props in attributes_def.items() if props.get('includeInAnalysis', True) and attr != target_variable]
-
         for attr_name in independent_vars:
             props = attributes_def[attr_name]
-            attr_name_clean = sanitized_cols.get(attr_name, attr_name)
-
             base_level = props['levels'][0]
             part_worths.append({'attribute': attr_name, 'level': str(base_level), 'value': 0})
             
             level_worths = [0]
             for level in props['levels'][1:]:
-                param_name = f"C(Q(\"{attr_name_clean}\"))[T.{level}]"
+                param_name = f"{attr_name}_{level}"
                 worth = model.params.get(param_name, 0)
                 part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
                 level_worths.append(worth)
@@ -147,10 +108,6 @@ def main():
         
         response = {'results': final_results}
         
-        if sensitivity_analysis_request:
-            sensitivity_plot_img = generate_sensitivity_plot(sensitivity_analysis_request)
-            response['sensitivity_plot'] = f"data:image/png;base64,{sensitivity_plot_img}" if sensitivity_plot_img else None
-
         print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
