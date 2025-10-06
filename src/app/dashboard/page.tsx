@@ -25,7 +25,6 @@ function DashboardHub() {
       { id: "simulation", icon: FastForward, title: "Simulation", component: <SimulationApp /> },
       { id: "survey", icon: ClipboardList, title: "Survey Tool", component: <Survey2Dashboard /> },
       { id: "financial-modeling", icon: DollarSign, title: "Financial Modeling", component: <FinancialModelingApp /> },
-      { id: "optimization", icon: Target, title: "Decision Analytics", component: <OptimizationApp /> },
   ];
 
   return (
@@ -42,7 +41,7 @@ function DashboardHub() {
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
         <Tabs defaultValue="statistica" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mb-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mb-6">
             {tools.map(tool => (
               <TabsTrigger key={tool.id} value={tool.id}>
                 <tool.icon className="w-4 h-4 mr-2" />
