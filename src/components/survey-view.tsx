@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -281,16 +282,17 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                     const now = new Date();
                     const startDate = loadedSurvey.startDate ? new Date(loadedSurvey.startDate) : null;
                     const endDate = loadedSurvey.endDate ? new Date(loadedSurvey.endDate) : null;
-
-                    if (!startDate && !endDate) {
-                        setIsSurveyActive(loadedSurvey.status === 'active');
+                    
+                    if (loadedSurvey.status === 'closed') {
+                        setIsSurveyActive(false);
+                    } else if (startDate && now < startDate) {
+                        setIsSurveyActive(false); // Scheduled for later
+                    } else if (endDate && now > endDate) {
+                        setIsSurveyActive(false); // Ended
                     } else {
-                         setIsSurveyActive(
-                            loadedSurvey.status === 'active' &&
-                            (!startDate || now >= startDate) &&
-                            (!endDate || now <= endDate)
-                        );
+                        setIsSurveyActive(true); // Active now
                     }
+
                 } else {
                     setError("Survey not found.");
                 }
