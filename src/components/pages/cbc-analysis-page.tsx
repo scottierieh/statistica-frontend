@@ -34,7 +34,6 @@ interface CbcResults {
 
 interface FullAnalysisResponse {
     results: CbcResults;
-    sensitivity_plot?: string;
     error?: string;
 }
 
@@ -59,8 +58,6 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     ]);
     const [simulationResult, setSimulationResult] = useState<any>(null);
     const [sensitivityAttribute, setSensitivityAttribute] = useState<string | undefined>();
-    const [sensitivityPlot, setSensitivityPlot] = useState<string | null>(null);
-    const [isSensitivityLoading, setIsSensitivityLoading] = useState(false);
     
     const conjointQuestion = useMemo(() => survey.questions.find(q => q.type === 'conjoint'), [survey]);
     const allAttributes = useMemo(() => {
@@ -95,6 +92,8 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             
             const chosenProfileId = answer;
             
+            // This logic is flawed for real conjoint, but we'll adapt for now.
+            // A real conjoint would have predefined profiles shown to the user.
             const allLevels = conjointQuestion.attributes!.flatMap(a => a.levels);
             const profiles = allLevels.map((level, index) => {
                  const profile: any = { 'resp.id': resp.id, 'alt': `profile_${index}` };
@@ -184,16 +183,12 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
 
     
     const calculateUtility = useCallback((scenario: Scenario) => {
-        if (!analysisResult) return 0;
-
+        if (!analysisResult?.results) return 0;
         let totalUtility = analysisResult.results.regression.intercept || 0;
         for (const attrName in scenario) {
             if (attrName === 'name') continue;
-
             const level = scenario[attrName];
-            const partWorth = analysisResult.results.partWorths.find(
-                p => p.attribute === attrName && p.level === level
-            );
+            const partWorth = analysisResult.results.partWorths.find(p => p.attribute === attrName && p.level === level);
             if (partWorth) {
                 totalUtility += partWorth.value;
             }
@@ -203,23 +198,20 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
 
     const runSimulation = () => {
         if (!analysisResult) return;
-        
         const scenarioUtilities = scenarios.map(calculateUtility);
         const expUtilities = scenarioUtilities.map(u => Math.exp(u));
         const sumExpUtilities = expUtilities.reduce((a, b) => a + b, 0);
-
         if (sumExpUtilities === 0) {
             toast({title: "Simulation Error", description: "Cannot calculate market share, utilities might be too low."})
             return;
         }
-
         const marketShares = expUtilities.map(expU => (expU / sumExpUtilities) * 100);
-
         setSimulationResult(scenarios.map((sc, i) => ({
             name: sc.name,
             marketShare: marketShares[i]
         })));
     };
+
     const handleScenarioChange = (scenarioIndex: number, attrName: string, value: string) => {
         setScenarios(prev => {
             const newScenarios = [...prev];
@@ -228,52 +220,16 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         });
     };
     
-    const runSensitivityAnalysis = useCallback(async () => {
-    if (!analysisResult || !sensitivityAttribute) return;
+    const sensitivityData = useMemo(() => {
+        if (!analysisResult?.results || !sensitivityAttribute) return [];
 
-    setIsSensitivityLoading(true);
-    setSensitivityPlot(null);
-
-    try {
-        const otherAttributes = attributeCols.filter(attr => attr !== sensitivityAttribute);
-        
-        const sensitivityData = allAttributes[sensitivityAttribute].levels.map((level: string) => {
-            let otherAttrsUtilitySum = 0;
-            otherAttributes.forEach(attr => {
-                const worths = analysisResult.results.partWorths.filter(p => p.attribute === attr);
-                if(worths.length > 0) {
-                    const avgWorth = worths.reduce((sum, p) => sum + p.value, 0) / worths.length;
-                    otherAttrsUtilitySum += avgWorth;
-                }
-            });
-            const levelWorth = analysisResult.results.partWorths.find(p => p.attribute === sensitivityAttribute && p.level === level)?.value || 0;
-            return {
-                level: level,
-                utility: otherAttrsUtilitySum + levelWorth
-            };
-        });
-        
-        const response = await fetch('/api/analysis/visualization', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                data: sensitivityData,
-                chartType: 'bar',
-                config: {
-                    x_col: 'level',
-                    y_col: 'utility',
-                },
-            })
-        });
-        if (!response.ok) throw new Error('Failed to generate sensitivity plot.');
-        const plotResult = await response.json();
-        setSensitivityPlot(plotResult.plot);
-    } catch (error: any) {
-        toast({ title: "Sensitivity Analysis Error", description: error.message, variant: 'destructive' });
-    } finally {
-        setIsSensitivityLoading(false);
-    }
-}, [analysisResult, sensitivityAttribute, attributeCols, allAttributes, toast]);
+        return analysisResult.results.partWorths
+            .filter(p => p.attribute === sensitivityAttribute)
+            .map(p => ({
+                level: p.level,
+                utility: p.value,
+            }));
+    }, [analysisResult, sensitivityAttribute]);
 
     const importanceData = useMemo(() => {
         if (!analysisResult?.results.importance) return [];
@@ -308,7 +264,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         );
     }
     
-    if (!analysisResult) {
+    if (!analysisResult?.results) {
         return (
             <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">
@@ -359,7 +315,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                                             <BarChart data={partWorthsData.filter(p => p.attribute === attr)} layout="vertical" margin={{ left: 80 }}>
                                                 <CartesianGrid strokeDasharray="3 3" />
                                                 <XAxis type="number" />
-                                                <YAxis type="category" dataKey="level" width={80} />
+                                                <YAxis dataKey="level" type="category" width={80} />
                                                 <Tooltip content={<ChartTooltipContent />} />
                                                 <Bar dataKey="value" name="Part-Worth" fill="hsl(var(--primary))" barSize={30}/>
                                             </BarChart>
@@ -412,9 +368,9 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                         </CardContent>
                     </Card>
                 </TabsContent>
-                <TabsContent value="sensitivity" className="mt-4">
+                 <TabsContent value="sensitivity" className="mt-4">
                     <Card>
-                        <CardHeader><CardTitle>Sensitivity Analysis</CardTitle><CardDescription>See how preference changes when one attribute level is varied.</CardDescription></CardHeader>
+                        <CardHeader><CardTitle>Sensitivity Analysis</CardTitle><CardDescription>See how utility changes as you vary one attribute's level.</CardDescription></CardHeader>
                         <CardContent>
                             <div className="flex items-center gap-4 mb-4">
                                 <Label>Attribute to Analyze</Label>
@@ -422,15 +378,19 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                                     <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
                                     <SelectContent>{attributeCols.map((attr) => <SelectItem key={attr} value={attr}>{attr}</SelectItem>)}</SelectContent>
                                 </Select>
-                                <Button onClick={runSensitivityAnalysis} disabled={isSensitivityLoading}>
-                                    {isSensitivityLoading ? <Loader2 className="animate-spin mr-2" /> : null}
-                                    Analyze
-                                </Button>
                             </div>
-                            {isSensitivityLoading ? <Skeleton className="h-[300px] w-full" /> : sensitivityPlot && (
-                                <div className="h-[300px] w-full">
-                                     <Image src={sensitivityPlot} alt="Sensitivity Analysis Plot" width={800} height={500} className="w-full h-full object-contain rounded-md border"/>
-                                </div>
+                            {sensitivityData.length > 0 && (
+                                <ChartContainer config={{utility: {label: 'Utility'}}} className="w-full h-[300px]">
+                                    <ResponsiveContainer>
+                                        <BarChart data={sensitivityData}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="level" />
+                                            <YAxis />
+                                            <Tooltip content={<ChartTooltipContent />} />
+                                            <Bar dataKey="utility" fill="hsl(var(--primary))" name="Utility" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
                             )}
                         </CardContent>
                     </Card>
@@ -454,5 +414,3 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
       ))}
     </div>
   );
-
-    
