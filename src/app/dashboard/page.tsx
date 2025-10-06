@@ -1,50 +1,31 @@
 
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target } from "lucide-react";
+import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
 import DashboardClientLayout from "@/components/dashboard-client-layout";
 import { motion } from "framer-motion";
-
-function ToolCard({ icon: Icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) {
-  return (
-    <Link href={href} className="h-full block">
-      <motion.div
-        whileHover={{ scale: 1.05 }}
-        transition={{ type: "spring", stiffness: 400, damping: 10 }}
-        className="h-full"
-      >
-        <Card className="flex flex-col h-full text-center items-center justify-start p-6 bg-gradient-to-br from-card to-muted/30 hover:shadow-2xl hover:shadow-primary/10 transition-shadow duration-300">
-          <CardHeader className="p-0">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
-              <Icon size={32} />
-            </div>
-            <CardTitle className="font-headline text-xl">{title}</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 mt-2">
-            <CardDescription className="text-sm">
-              {description}
-            </CardDescription>
-          </CardContent>
-        </Card>
-      </motion.div>
-    </Link>
-  )
-}
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import StatisticaApp from "@/components/statistica-app";
+import MachineLearningApp from "@/components/machine-learning-app";
+import SimulationApp from "@/components/simulation-app";
+import Survey2Dashboard from "./survey2/page";
+import FinancialModelingApp from "@/components/financial-modeling-app";
+import OptimizationApp from "@/components/optimization-app";
 
 
 function DashboardHub() {
   const { user } = useAuth();
 
   const tools = [
-      { icon: Calculator, title: "Statistica", description: "Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.", href: "/dashboard/statistica" },
-      { icon: BrainCircuit, title: "Machine Learning", description: "Build, train, and deploy machine learning models for regression, classification, and more.", href: "/dashboard/machine-learning" },
-      { icon: FastForward, title: "Simulation", description: "Model and simulate complex systems to predict outcomes and test scenarios.", href: "/dashboard/simulation" },
-      { icon: ClipboardList, title: "Survey Tool", description: "Design, distribute, and analyze surveys with an integrated, easy-to-use tool.", href: "/dashboard/survey2" },
-      { icon: DollarSign, title: "Financial Modeling", description: "Conduct portfolio analysis, company valuation, and financial forecasting.", href: "/dashboard/financial-modeling" },
-      { icon: Target, title: "Decision Analytics", description: "Solve complex optimization problems and perform quantitative analysis for decision making.", href: "/dashboard/optimization" },
+      { id: "statistica", icon: Calculator, title: "Statistica", component: <StatisticaApp /> },
+      { id: "machine-learning", icon: BrainCircuit, title: "Machine Learning", component: <MachineLearningApp /> },
+      { id: "simulation", icon: FastForward, title: "Simulation", component: <SimulationApp /> },
+      { id: "survey", icon: ClipboardList, title: "Survey Tool", component: <Survey2Dashboard /> },
+      { id: "financial-modeling", icon: DollarSign, title: "Financial Modeling", component: <FinancialModelingApp /> },
+      { id: "optimization", icon: Target, title: "Decision Analytics", component: <OptimizationApp /> },
   ];
 
   return (
@@ -60,14 +41,21 @@ function DashboardHub() {
         </div>
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
-        <div className="container">
-            <h2 className="text-3xl font-bold tracking-tight mb-8 text-center">Available Tools</h2>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-               {tools.map(tool => (
-                  <ToolCard key={tool.title} {...tool} />
-               ))}
-            </div>
-        </div>
+        <Tabs defaultValue="statistica" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mb-6">
+            {tools.map(tool => (
+              <TabsTrigger key={tool.id} value={tool.id}>
+                <tool.icon className="w-4 h-4 mr-2" />
+                {tool.title}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+           {tools.map(tool => (
+              <TabsContent key={tool.id} value={tool.id}>
+                {tool.component}
+              </TabsContent>
+            ))}
+        </Tabs>
       </main>
     </div>
   );
