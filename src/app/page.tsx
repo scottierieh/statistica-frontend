@@ -6,12 +6,12 @@ import Link from 'next/link';
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-white text-gray-800">
-      <header className="px-4 lg:px-6 h-16 flex items-center justify-between border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="relative px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <Link href="/" className="flex items-center gap-2">
           <Calculator className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-headline font-bold">Skarii</h1>
         </Link>
-        <nav className="hidden lg:flex items-center gap-4 sm:gap-6">
+        <nav className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center gap-4 sm:gap-6">
           <Link
             className="text-sm font-medium hover:underline underline-offset-4"
             href="#features"
@@ -31,7 +31,7 @@ export default function LandingPage() {
             About
           </Link>
         </nav>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 ml-auto">
           <Button variant="ghost" asChild>
             <Link href="/login">Login</Link>
           </Button>
