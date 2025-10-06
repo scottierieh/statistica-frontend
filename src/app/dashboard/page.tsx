@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
 import DashboardClientLayout from "@/components/dashboard-client-layout";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 const tools = [
   {
@@ -15,20 +16,23 @@ const tools = [
     icon: Calculator,
     title: "Statistica",
     description: "Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.",
+    disabled: false,
   },
   {
     id: "machine-learning",
-    href: "/dashboard/machine-learning",
+    href: "#",
     icon: BrainCircuit,
     title: "Machine Learning",
-    description: "Build, train, and deploy machine learning models for regression, classification, and more.",
+    description: "Coming soon...",
+    disabled: true,
   },
   {
     id: "simulation",
-    href: "/dashboard/simulation",
+    href: "#",
     icon: FastForward,
     title: "Simulation",
-    description: "Model and simulate complex systems to predict outcomes and test scenarios.",
+    description: "Coming soon...",
+    disabled: true,
   },
   {
     id: "survey",
@@ -36,20 +40,23 @@ const tools = [
     icon: ClipboardList,
     title: "Survey Tool",
     description: "Design, distribute, and analyze surveys with an integrated, easy-to-use tool.",
+    disabled: false,
   },
   {
     id: "financial-modeling",
-    href: "/dashboard/financial-modeling",
+    href: "#",
     icon: DollarSign,
     title: "Financial Modeling",
-    description: "Conduct portfolio analysis, company valuation, and financial forecasting.",
+    description: "Coming soon...",
+    disabled: true,
   },
   {
     id: "decision-analytics",
-    href: "/dashboard/decision-analytics",
+    href: "#",
     icon: Target,
     title: "Decision Analytics",
-    description: "Solve complex optimization problems and perform quantitative analysis for decision making.",
+    description: "Coming soon...",
+    disabled: true,
   },
 ];
 
@@ -59,13 +66,28 @@ function ToolCard({ tool }: { tool: typeof tools[0] }) {
     visible: { opacity: 1, y: 0 },
   };
 
+  const CardWrapper = ({ children }: { children: React.ReactNode }) => 
+    tool.disabled ? (
+        <div className="h-full">{children}</div>
+    ) : (
+        <Link href={tool.href} className="block h-full">
+            {children}
+        </Link>
+    );
+
   return (
     <motion.div variants={cardVariants} className="h-full">
-      <Link href={tool.href} className="block h-full">
-        <Card className="group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-card to-muted/50 p-6 text-center shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+      <CardWrapper>
+        <Card className={cn(
+          "group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-card to-muted/50 p-6 text-center shadow-lg transition-all duration-300",
+          tool.disabled ? "cursor-not-allowed bg-muted/70 opacity-60" : "hover:scale-[1.02] hover:shadow-2xl"
+        )}>
+          {!tool.disabled && <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>}
           <div className="relative z-10 flex flex-col items-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground">
+            <div className={cn(
+              "mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-all duration-300",
+              !tool.disabled && "group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground"
+            )}>
               <tool.icon className="h-8 w-8" />
             </div>
             <CardTitle className="font-headline text-2xl">{tool.title}</CardTitle>
@@ -74,7 +96,7 @@ function ToolCard({ tool }: { tool: typeof tools[0] }) {
             </CardDescription>
           </div>
         </Card>
-      </Link>
+      </CardWrapper>
     </motion.div>
   );
 }
