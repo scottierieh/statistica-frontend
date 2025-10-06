@@ -63,7 +63,12 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
             return 'closed';
         }
         
-        // If no dates are set or if it's within the active period, respect the saved status
+        // If dates are set and we are within the active period, it should be active.
+        if (startDate && (!endDate || now <= endDate)) {
+            return 'active';
+        }
+
+        // If no dates are set, fall back to the saved status.
         return survey.status === 'draft' ? 'draft' : 'active';
 
     }, [survey.status, survey.startDate, survey.endDate]);
