@@ -42,6 +42,13 @@ def main():
         
         independent_vars = [attr for attr, props in attributes.items() if props.get('includeInAnalysis', True) and attr != target_variable]
 
+        # Drop rows with NaN in any of the relevant columns before processing
+        all_cols_to_check = independent_vars + [target_variable]
+        df.dropna(subset=all_cols_to_check, inplace=True)
+
+        if df.empty:
+            raise ValueError("Data is empty after removing rows with missing values.")
+
         all_original_levels = {}
 
         for attr_name in independent_vars:
@@ -57,7 +64,6 @@ def main():
 
         X = pd.concat(X_list, axis=1)
         y = df[target_variable]
-        y = pd.to_numeric(y, errors='coerce').fillna(0)
         
         # Align data after all processing
         y, X = y.align(X, join='inner', axis=0)
