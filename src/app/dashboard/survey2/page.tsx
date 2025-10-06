@@ -77,10 +77,36 @@ export default function Survey2Dashboard() {
 
   const filteredSurveys = filter === "all" 
     ? surveys 
-    : surveys.filter(s => s.status === filter);
+    : surveys.filter(s => {
+        const now = new Date();
+        const startDate = s.startDate ? new Date(s.startDate) : null;
+        const endDate = s.endDate ? new Date(s.endDate) : null;
+
+        let effectiveStatus = s.status;
+
+        if (s.status !== 'closed') {
+            if (startDate && now < startDate) {
+                effectiveStatus = 'scheduled';
+            } else if (endDate && now > endDate) {
+                effectiveStatus = 'closed';
+            } else if (startDate && (!endDate || now <= endDate)) {
+                effectiveStatus = 'active';
+            }
+        }
+        return effectiveStatus === filter;
+    });
 
   const totalResponses = responses.length;
-  const activeSurveys = surveys.filter(s => s.status === "active").length;
+  const activeSurveys = surveys.filter(s => {
+      const now = new Date();
+      const startDate = s.startDate ? new Date(s.startDate) : null;
+      const endDate = s.endDate ? new Date(s.endDate) : null;
+      if (s.status === 'closed') return false;
+      if (startDate && now < startDate) return false;
+      if (endDate && now > endDate) return false;
+      return s.status === 'active' || (s.status === 'draft' && !!s.startDate);
+  }).length;
+  
   const avgResponseRate = surveys.length > 0 
     ? (totalResponses / surveys.length).toFixed(1) 
     : "0";
@@ -175,7 +201,9 @@ export default function Survey2Dashboard() {
             onClick={() => setFilter(tab.key)}
             className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-200 whitespace-nowrap ${
               filter === tab.key
-                ? "bg-gradient-to-r from-cyan-500 to-purple-500 text-white shadow-lg shadow-cyan-500/30"
+                ? tab.key === 'all'
+                  ? 'bg-slate-700 text-white shadow-lg'
+                  : 'bg-primary text-primary-foreground shadow-lg'
                 : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
             }`}
           >
