@@ -25,11 +25,10 @@ const generateRatingProfiles = (): Question[] => {
 
     return selectedProfiles.map((profile, index) => ({
         id: `conjoint_q_${index}`,
-        type: 'rating',
-        title: `Profile ${index + 1}: How likely are you to purchase this phone?`,
-        description: `Brand: ${profile.brand}, Price: ${profile.price}, Screen: ${profile.screen}, Battery: ${profile.battery}`,
+        type: 'number', // Changed from 'rating' to 'number'
+        title: `Profile ${index + 1}`,
+        description: `Brand: ${profile.brand}, Price: ${profile.price}, Screen: ${profile.screen}, Battery: ${profile.battery}\n\nPlease rate this profile on a scale from 1 (Very Unlikely to Buy) to 10 (Very Likely to Buy).`,
         required: true,
-        scale: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
     }));
 };
 
@@ -61,7 +60,7 @@ export const choiceBasedConjointTemplate = {
 
 export const ratingBasedConjointTemplate = {
     title: "Smartphone Profile Rating (Conjoint)",
-    description: "Please rate the following smartphone profiles based on your likelihood to purchase.",
+    description: "Please rate the following smartphone profiles based on your likelihood to purchase on a 1-10 scale.",
     questions: [
         {
             id: 'rating_desc',

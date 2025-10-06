@@ -186,14 +186,11 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                 {question.imageUrl && <div className="my-4"><Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" /></div>}
                 <div className="space-y-2">
                     {(question.options || []).map((option: string, index: number) => (
-                        <div key={index} className="flex items-center group">
-                           <Label htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer", theme === 'flat' && "bg-slate-100")}>
-                               <Checkbox id={`q${question.id}-o${index}`} disabled />
-                                <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
-                           </Label>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={(e) => { e.preventDefault(); deleteOption(index); }}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                        </div>
-                    ))}
+                       <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer", theme === 'flat' && "bg-slate-100")}>
+                           <Checkbox id={`q${question.id}-o${index}`} disabled/>
+                           <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
+                       </Label>
+                   ))}
                 </div>
                 <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
             </div>
@@ -277,6 +274,7 @@ const NumberQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }:
                         <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
                     </div>
                 </div>
+                {question.description && <p className="text-sm text-muted-foreground mb-4 whitespace-pre-wrap">{question.description}</p>}
                 <Input type="number" placeholder="Enter a number..." disabled />
             </div>
         </Card>
@@ -688,4 +686,3 @@ export default function QuestionList({ title, setTitle, description, setDescript
     </div>
   );
 }
-
