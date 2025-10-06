@@ -8,6 +8,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import warnings
+import re
 
 warnings.filterwarnings('ignore')
 
@@ -40,21 +41,33 @@ def main():
         X_list = []
         feature_names = []
         
-        # 분석에 포함될 독립변수만 필터링
         independent_vars = [attr for attr, props in attributes.items() if props.get('includeInAnalysis', True) and attr != target_variable]
 
         for attr_name in independent_vars:
             props = attributes[attr_name]
-            # 모든 속성을 문자열로 취급하여 올바른 더미 변수 생성 보장
-            df[attr_name] = df[attr_name].astype(str)
+            # 모든 속성을 문자열로 취급하고, 숫자/통화 기호를 제거하여 명확한 범주로 만듭니다.
+            df[attr_name] = df[attr_name].astype(str).apply(lambda x: re.sub(r'[^a-zA-Z0-9]', '', str(x)))
+            
+            # 여기서 레벨도 동일하게 정리해야 합니다.
+            cleaned_levels = [re.sub(r'[^a-zA-Z0-9]', '', str(level)) for level in props['levels']]
+            
             dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True).astype(int)
-            X_list.append(dummies)
-            feature_names.extend(dummies.columns.tolist())
+            
+            # 생성된 더미 컬럼 이름이 정리된 레벨 이름과 일치하는지 확인
+            expected_dummy_cols = [f"{attr_name}_{cleaned_level}" for cleaned_level in cleaned_levels[1:]]
+            
+            # 실제 생성된 더미 컬럼만 X_list에 추가
+            for col in dummies.columns:
+                if col in expected_dummy_cols:
+                    X_list.append(dummies[[col]])
+                    feature_names.append(col)
+
+        if not X_list:
+             raise ValueError("No valid features to process for regression.")
 
         X = pd.concat(X_list, axis=1)
         y = df[target_variable]
         
-        # Align data after potential row drops from dummy creation if any
         y, X = y.align(X, join='inner', axis=0)
 
 
@@ -86,15 +99,19 @@ def main():
         part_worths = []
         for attr_name in independent_vars:
             props = attributes[attr_name]
+            
             # 기준 레벨(첫 번째)의 부분가치는 0
             part_worths.append({
                 'attribute': attr_name,
                 'level': str(props['levels'][0]),
                 'value': 0
             })
+            
             # 나머지 레벨의 부분가치는 회귀 계수
-            for level in props['levels'][1:]:
-                feature_name = f"{attr_name}_{level}"
+            for i in range(1, len(props['levels'])):
+                level = props['levels'][i]
+                cleaned_level = re.sub(r'[^a-zA-Z0-9]', '', str(level))
+                feature_name = f"{attr_name}_{cleaned_level}"
                 part_worths.append({
                     'attribute': attr_name,
                     'level': str(level),
@@ -105,7 +122,8 @@ def main():
         attribute_ranges = {}
         for attr_name in independent_vars:
             level_worths = [pw['value'] for pw in part_worths if pw['attribute'] == attr_name]
-            attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
+            if level_worths:
+                attribute_ranges[attr_name] = max(level_worths) - min(level_worths)
 
         total_range = sum(attribute_ranges.values())
         
@@ -137,3 +155,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
