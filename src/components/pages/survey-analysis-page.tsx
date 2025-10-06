@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -937,7 +938,7 @@ export default function SurveyAnalysisPage() {
     const router = useRouter();
     const chartRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
     const surveyId = params.id as string;
-    const [survey, setSurvey] = useState<any>(null);
+    const [survey, setSurvey] = useState<Survey | null>(null);
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -1142,7 +1143,7 @@ export default function SurveyAnalysisPage() {
                 </TabsContent>
                  {hasConjoint && (
                     <TabsContent value="conjoint" className="mt-4">
-                        <CbcAnalysisPage data={responses} allHeaders={survey.questions.find((q:Question) => q.type === 'conjoint')?.attributes?.flatMap((a:any) => a.levels) || []} onLoadExample={() => {}} />
+                        <CbcAnalysisPage survey={survey} responses={responses} />
                     </TabsContent>
                 )}
                 <TabsContent value="further_analysis" className="mt-4">
