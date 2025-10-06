@@ -31,6 +31,11 @@ interface RatingConjointResults {
         coefficients: {[key: string]: number};
     };
     targetVariable: string;
+    optimalProduct?: {
+        config: {[key: string]: string};
+        totalUtility: number;
+    };
+    simulation?: any;
 }
 
 interface FullAnalysisResponse {
@@ -76,7 +81,7 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
 
     const attributeCols = useMemo(() => Object.keys(allAttributes), [allAttributes]);
 
-    const handleAnalysis = useCallback(async () => {
+    const handleAnalysis = useCallback(async (simulationScenarios?: Scenario[]) => {
         if (!conjointQuestion || !responses || responses.length === 0) {
             toast({ variant: 'destructive', title: 'Data Error', description: 'No rating-based conjoint question or responses found.' });
             setIsLoading(false);
@@ -106,7 +111,9 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
         }
 
         setIsLoading(true);
-        setAnalysisResult(null);
+        if (!simulationScenarios) {
+            setAnalysisResult(null);
+        }
 
         const attributesForBackend = attributeCols.reduce((acc, attrName) => {
             if (allAttributes[attrName]) {
@@ -122,7 +129,8 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
                 body: JSON.stringify({
                     data: analysisData,
                     attributes: attributesForBackend,
-                    targetVariable: 'rating'
+                    targetVariable: 'rating',
+                    scenarios: simulationScenarios
                 })
             });
 
@@ -133,9 +141,14 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
 
             const result: FullAnalysisResponse = await response.json();
             if (result.error) throw new Error(result.error);
-
-            setAnalysisResult(result);
-            toast({ title: 'Analysis Complete', description: 'Rating-based conjoint analysis finished.' });
+            
+            if (simulationScenarios && result.results.simulation) {
+                setSimulationResult(result.results.simulation);
+                toast({ title: 'Simulation Complete', description: 'Market shares have been predicted.'});
+            } else {
+                setAnalysisResult(result);
+                toast({ title: 'Analysis Complete', description: 'Rating-based conjoint analysis finished.' });
+            }
 
         } catch (e: any) {
             console.error('Rating Conjoint error:', e);
@@ -149,7 +162,54 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
         handleAnalysis();
     }, [handleAnalysis]);
     
-    // Memos for chart data (similar to CBC page, can be abstracted later)
+    useEffect(() => {
+        if (analysisResult && attributeCols.length > 0) {
+            setSensitivityAttribute(attributeCols[0]);
+
+            const initialScenarios = [
+                { name: 'Scenario 1' }, { name: 'Scenario 2' }, { name: 'Scenario 3' }
+            ].map(sc => {
+                const newSc: Scenario = { ...sc };
+                attributeCols.forEach(attrName => {
+                     newSc[attrName] = allAttributes[attrName].levels[0];
+                });
+                return newSc;
+            });
+            setScenarios(initialScenarios);
+        }
+    }, [analysisResult, attributeCols, allAttributes]);
+
+    const runSimulation = () => {
+        handleAnalysis(scenarios);
+    };
+
+    const handleScenarioChange = (scenarioIndex: number, attrName: string, value: string) => {
+        setScenarios(prev => {
+            const newScenarios = [...prev];
+            newScenarios[scenarioIndex] = { ...newScenarios[scenarioIndex], [attrName]: value };
+            return newScenarios;
+        });
+    };
+    
+    const sensitivityData = useMemo(() => {
+        if (!analysisResult?.results || !sensitivityAttribute) return [];
+        const otherAttributes = attributeCols.filter(attr => attr !== sensitivityAttribute);
+        
+        return analysisResult.results.partWorths
+            .filter(p => p.attribute === sensitivityAttribute)
+            .map(p => {
+                let otherUtility = 0;
+                otherAttributes.forEach(otherAttr => {
+                    const baseLevelWorth = analysisResult.results.partWorths.find(pw => pw.attribute === otherAttr && pw.level === allAttributes[otherAttr].levels[0]);
+                    otherUtility += baseLevelWorth?.value || 0;
+                });
+                return {
+                    level: p.level,
+                    utility: (analysisResult.results.regression.intercept || 0) + p.value + otherUtility,
+                };
+            });
+    }, [analysisResult, sensitivityAttribute, attributeCols, allAttributes]);
+
     const importanceData = useMemo(() => {
         if (!analysisResult?.results.importance) return [];
         return analysisResult.results.importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value);
@@ -172,7 +232,7 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
 
     const partWorthChartConfig = { value: { label: "Part-Worth" } };
 
-    if (isLoading) {
+    if (isLoading && !analysisResult) {
         return (
             <Card>
                 <CardContent className="p-6 text-center">
@@ -198,9 +258,11 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
     return (
         <div className="space-y-4">
              <Tabs defaultValue="importance" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="importance"><PieIcon className="mr-2"/>Attribute Importance</TabsTrigger>
-                    <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worth Utilities</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="importance"><PieIcon className="mr-2"/>Importance</TabsTrigger>
+                    <TabsTrigger value="partworths"><BarIcon className="mr-2"/>Part-Worths</TabsTrigger>
+                    <TabsTrigger value="optimal"><Star className="mr-2"/>Optimal Product</TabsTrigger>
+                    <TabsTrigger value="simulation"><Activity className="mr-2"/>Simulation</TabsTrigger>
                 </TabsList>
                 <TabsContent value="importance" className="mt-4">
                     <Card>
@@ -244,22 +306,71 @@ export default function RatingConjointAnalysisPage({ survey, responses }: Rating
                         </CardContent>
                     </Card>
                 </TabsContent>
+                <TabsContent value="optimal" className="mt-4">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Optimal Product Profile</CardTitle>
+                            <CardDescription>The combination of attributes that yields the highest predicted preference rating.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {results.optimalProduct ? (
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Attribute</TableHead><TableHead>Best Level</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                        {Object.entries(results.optimalProduct.config).map(([attr, level]) => (
+                                            <TableRow key={attr}><TableCell>{attr}</TableCell><TableCell>{level}</TableCell></TableRow>
+                                        ))}
+                                    </TableBody>
+                                    <CardFooter className="text-center justify-center p-4">
+                                        <p className="text-lg">Predicted Rating: <strong className="text-primary text-xl">{results.optimalProduct.totalUtility.toFixed(2)}</strong></p>
+                                    </CardFooter>
+                                </Table>
+                            ) : <p>Could not determine optimal profile.</p>}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="simulation" className="mt-4">
+                    <Card>
+                        <CardHeader><CardTitle>Market Share Simulation</CardTitle><CardDescription>Build product scenarios to predict market preference.</CardDescription></CardHeader>
+                        <CardContent>
+                            <div className="grid md:grid-cols-3 gap-4 mb-4">
+                                {scenarios.map((scenario, index) => (
+                                    <Card key={index}>
+                                        <CardHeader><CardTitle>{scenario.name}</CardTitle></CardHeader>
+                                        <CardContent className="space-y-2">
+                                            {attributeCols.map((attrName) => (
+                                                <div key={attrName}>
+                                                    <Label>{attrName}</Label>
+                                                    <Select value={scenario[attrName]} onValueChange={(v) => handleScenarioChange(index, attrName, v)}>
+                                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                                        <SelectContent>{allAttributes[attrName].levels.map((l:any) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                                                    </Select>
+                                                </div>
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                            <Button onClick={runSimulation} disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin mr-2"/> : null} Run Simulation</Button>
+                            {simulationResult && (
+                                <div className="mt-4">
+                                    <ChartContainer config={{marketShare: {label: 'Market Share', color: 'hsl(var(--chart-1))'}}} className="w-full h-[300px]">
+                                      <ResponsiveContainer>
+                                          <BarChart data={simulationResult}>
+                                              <CartesianGrid strokeDasharray="3 3" />
+                                              <XAxis dataKey="name" />
+                                              <YAxis unit="%"/>
+                                              <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`}/>} />
+                                              <Bar dataKey="marketShare" name="Market Share (%)" fill="var(--color-marketShare)" radius={4} />
+                                          </BarChart>
+                                      </ResponsiveContainer>
+                                    </ChartContainer>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
             </Tabs>
         </div>
     );
 }
-
-// --- STEP INDICATOR (re-usable but kept here for component self-containment) --- //
-const StepIndicator = ({ currentStep }: { currentStep: number }) => (
-    <div className="flex items-center justify-center p-4">
-      {[ 'Select Variables', 'Configure Attributes', 'Review Results'].map((step, index) => (
-        <React.Fragment key={index}>
-          <div className="flex flex-col items-center">
-             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${currentStep >= index ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>{index + 1}</div>
-            <p className={`mt-2 text-xs text-center ${currentStep >= index ? 'font-semibold' : 'text-muted-foreground'}`}>{step}</p>
-          </div>
-          {index < 2 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > index ? 'bg-primary' : 'bg-border'}`} />}
-        </React.Fragment>
-      ))}
-    </div>
-);
