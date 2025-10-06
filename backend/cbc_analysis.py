@@ -37,8 +37,7 @@ def main():
         # Ensure target is numeric and drop rows with invalid target values
         df[target_variable] = pd.to_numeric(df[target_variable], errors='coerce')
         df.dropna(subset=[target_variable], inplace=True)
-        y = df[target_variable]
-
+        
         # Sanitize column names for the formula
         original_to_sanitized = {col: re.sub(r'[^A-Za-z0-9_]', '_', str(col)) for col in df.columns}
         sanitized_to_original = {v: k for k, v in original_to_sanitized.items()}
@@ -56,8 +55,6 @@ def main():
             attr_name_clean = original_to_sanitized.get(attr_name, attr_name)
             all_analysis_vars_set.add(attr_name_clean)
             
-            # --- CRITICAL CHANGE: Convert all attribute columns to string type ---
-            # This ensures that numeric attributes like 'Price' are treated as categories
             df_clean[attr_name_clean] = df_clean[attr_name_clean].astype(str)
             
             formula_parts.append(f'C(Q("{attr_name_clean}"))')
@@ -73,7 +70,7 @@ def main():
         # --- Regression Results ---
         regression_results = {
             'rSquared': model.prsquared,
-            'adjustedRSquared': model.prsquared, # Logit doesn't have a direct adjusted R^2
+            'adjustedRSquared': 1 - (1 - model.prsquared) * (len(df_clean) - 1) / (len(df_clean) - len(model.params) - 1),
             'predictions': model.predict(df_clean).tolist(),
             'residuals': model.resid_response.tolist(),
             'intercept': model.params.get('Intercept', 0.0),
@@ -128,3 +125,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
