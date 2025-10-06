@@ -3,7 +3,7 @@ import type { Question } from '@/entities/Survey';
 
 const generateRatingProfiles = (): Question[] => {
     const brands = ['Apple', 'Samsung', 'Google'];
-    const prices = ['$999', '$799'];
+    const prices = ['$999', '$799', '159,000원'];
     const screens = ['6.1"', '6.7"'];
     const batteries = ['4000mAh', '5000mAh'];
 
@@ -29,7 +29,7 @@ const generateRatingProfiles = (): Question[] => {
         title: `How likely are you to purchase this phone? (Profile ${index + 1})`,
         description: `Brand: ${profile.brand}, Price: ${profile.price}, Screen: ${profile.screen}, Battery: ${profile.battery}`,
         required: true,
-        scale: ['1', '2', '3', '4', '5', '6', '7'], // Using a 7-point scale
+        scale: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
     }));
 };
 
@@ -67,7 +67,7 @@ export const ratingBasedConjointTemplate = {
             id: 'rating_desc',
             type: 'description',
             title: 'Instructions',
-            content: 'On the following screens, you will be presented with several different smartphone concepts. Please rate each one on a scale of 1 (Very Unlikely to Buy) to 7 (Very Likely to Buy).'
+            content: 'On the following screens, you will be presented with several different smartphone concepts. Please rate each one on a scale of 1 (Very Unlikely to Buy) to 10 (Very Likely to Buy).'
         },
         ...generateRatingProfiles(),
     ],
