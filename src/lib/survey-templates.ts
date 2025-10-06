@@ -26,7 +26,7 @@ const generateRatingProfiles = (): Question[] => {
     return selectedProfiles.map((profile, index) => ({
         id: `conjoint_q_${index}`,
         type: 'rating',
-        title: `How likely are you to purchase this phone? (Profile ${index + 1})`,
+        title: `Profile ${index + 1}: How likely are you to purchase this phone?`,
         description: `Brand: ${profile.brand}, Price: ${profile.price}, Screen: ${profile.screen}, Battery: ${profile.battery}`,
         required: true,
         scale: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
