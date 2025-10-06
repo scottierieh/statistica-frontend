@@ -192,6 +192,10 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                 if (!scatterX || !scatterY) { toast({ title: "Error", description: "Please select X and Y variables."}); return; }
                 config.config = { x_col: scatterX, y_col: scatterY, trend_line: scatterTrend, group_col: scatterGroup };
                 break;
+            case 'line':
+                 if (!scatterX || !scatterY) { toast({ title: "Error", description: "Please select X and Y variables."}); return; }
+                config.config = { x_col: scatterX, y_col: scatterY };
+                break;
             case 'bubble':
                  if (!bubbleX || !bubbleY || !bubbleZ) { toast({ title: "Error", description: "Please select X, Y, and Size variables."}); return; }
                 config.config = { x_col: bubbleX, y_col: bubbleY, size_col: bubbleZ };
@@ -260,6 +264,7 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
         { id: 'scatter', label: 'Scatter Plot', icon: ScatterIcon, disabled: numericHeaders.length < 2 },
         { id: 'bubble', label: 'Bubble Chart', icon: Dot, disabled: numericHeaders.length < 3 },
         { id: 'heatmap', label: 'Heatmap', icon: Heater, disabled: numericHeaders.length < 2 },
+         { id: 'line', label: 'Line Chart', icon: LineChartIcon, disabled: numericHeaders.length < 2 },
       ],
       categorical: [
         { id: 'bar', label: 'Bar Chart', icon: BarChartIcon, disabled: categoricalHeaders.length === 0 },
@@ -310,6 +315,12 @@ export default function VisualizationPage({ data, allHeaders, numericHeaders, ca
                             <div><Label>Y-Axis:</Label><Select value={scatterY} onValueChange={setScatterY}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h=>h !== scatterX).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                              <div><Label>Color By (Group):</Label><Select value={scatterGroup} onValueChange={v => setScatterGroup(v === 'none' ? undefined : v)}><SelectTrigger><SelectValue placeholder="None"/></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{categoricalHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                             <div className="flex items-center space-x-2 pt-6"><Checkbox id="trendline" checked={scatterTrend} onCheckedChange={c => setScatterTrend(!!c)}/><Label htmlFor="trendline">Show Trend Line</Label></div>
+                        </div>
+                    )}
+                     {activeChart === 'line' && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <div><Label>X-Axis:</Label><Select value={scatterX} onValueChange={setScatterX}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
+                            <div><Label>Y-Axis:</Label><Select value={scatterY} onValueChange={setScatterY}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{numericHeaders.filter(h=>h !== scatterX).map(h=><SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select></div>
                         </div>
                     )}
                     {activeChart === 'bubble' && (

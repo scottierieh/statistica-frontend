@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -250,7 +249,6 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             const levelWorth = analysisResult.results.partWorths.find(p => p.attribute === sensitivityAttribute && p.level === level)?.value || 0;
             return {
                 level: level,
-                level_worth: levelWorth,
                 utility: otherAttrsUtilitySum + levelWorth
             };
         });
@@ -260,9 +258,9 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 data: sensitivityData,
-                chartType: 'line',
+                chartType: 'bar',
                 config: {
-                    x_col: 'level_worth',
+                    x_col: 'level',
                     y_col: 'utility',
                 },
             })
@@ -278,12 +276,12 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
 }, [analysisResult, sensitivityAttribute, attributeCols, allAttributes, toast]);
 
     const importanceData = useMemo(() => {
-        if (!analysisResult) return [];
+        if (!analysisResult?.results.importance) return [];
         return analysisResult.results.importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value);
     }, [analysisResult]);
 
     const partWorthsData = useMemo(() => {
-        if (!analysisResult) return [];
+        if (!analysisResult?.results.partWorths) return [];
         return analysisResult.results.partWorths;
     }, [analysisResult]);
     
