@@ -1,48 +1,87 @@
 
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap } from "lucide-react";
+import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
 import DashboardClientLayout from "@/components/dashboard-client-layout";
 import { motion } from "framer-motion";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import StatisticaApp from "@/components/statistica-app";
-import Survey2Dashboard from "./survey2/page";
 
-function UnderConstructionCard({ title, icon: Icon }: { title: string, icon: React.ElementType }) {
+const tools = [
+  {
+    id: "statistica",
+    href: "/dashboard/statistica",
+    icon: Calculator,
+    title: "Statistica",
+    description: "Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.",
+  },
+  {
+    id: "machine-learning",
+    href: "/dashboard/machine-learning",
+    icon: BrainCircuit,
+    title: "Machine Learning",
+    description: "Build, train, and deploy machine learning models for regression, classification, and more.",
+  },
+  {
+    id: "simulation",
+    href: "/dashboard/simulation",
+    icon: FastForward,
+    title: "Simulation",
+    description: "Model and simulate complex systems to predict outcomes and test scenarios.",
+  },
+  {
+    id: "survey",
+    href: "/dashboard/survey2",
+    icon: ClipboardList,
+    title: "Survey Tool",
+    description: "Design, distribute, and analyze surveys with an integrated, easy-to-use tool.",
+  },
+  {
+    id: "financial-modeling",
+    href: "/dashboard/financial-modeling",
+    icon: DollarSign,
+    title: "Financial Modeling",
+    description: "Conduct portfolio analysis, company valuation, and financial forecasting.",
+  },
+  {
+    id: "decision-analytics",
+    href: "/dashboard/decision-analytics",
+    icon: Target,
+    title: "Decision Analytics",
+    description: "Solve complex optimization problems and perform quantitative analysis for decision making.",
+  },
+];
+
+function ToolCard({ tool }: { tool: typeof tools[0] }) {
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
   return (
-    <div className="flex flex-1 items-center justify-center h-full pt-10">
-      <Card className="w-full max-w-2xl text-center">
-        <CardHeader>
-          <div className="flex justify-center items-center mb-4">
-            <Icon className="h-12 w-12 text-primary" />
+    <motion.div variants={cardVariants} className="h-full">
+      <Link href={tool.href} className="block h-full">
+        <Card className="group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-card to-muted/50 p-6 text-center shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground">
+              <tool.icon className="h-8 w-8" />
+            </div>
+            <CardTitle className="font-headline text-2xl">{tool.title}</CardTitle>
+            <CardDescription className="mt-2 text-base text-muted-foreground">
+              {tool.description}
+            </CardDescription>
           </div>
-          <CardTitle className="font-headline">{title}</CardTitle>
-          <CardDescription>
-            This section is under construction. Powerful tools for {title.toLowerCase()} are coming soon!
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <p className="text-muted-foreground">Stay tuned for updates.</p>
-        </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </Link>
+    </motion.div>
   );
 }
 
 
 function DashboardHub() {
   const { user } = useAuth();
-
-  const tools = [
-      { id: "statistica", icon: Calculator, title: "Statistica", component: <StatisticaApp /> },
-      { id: "machine-learning", icon: BrainCircuit, title: "Machine Learning", component: <UnderConstructionCard title="Machine Learning" icon={BrainCircuit} /> },
-      { id: "simulation", icon: FastForward, title: "Simulation", component: <UnderConstructionCard title="Simulation" icon={FastForward} /> },
-      { id: "survey", icon: ClipboardList, title: "Survey Tool", component: <Survey2Dashboard /> },
-      { id: "financial-modeling", icon: DollarSign, title: "Financial Modeling", component: <UnderConstructionCard title="Financial Modeling" icon={DollarSign} /> },
-  ];
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
@@ -57,21 +96,14 @@ function DashboardHub() {
         </div>
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
-        <Tabs defaultValue="statistica" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mb-6">
-            {tools.map(tool => (
-              <TabsTrigger key={tool.id} value={tool.id}>
-                <tool.icon className="w-4 h-4 mr-2" />
-                {tool.title}
-              </TabsTrigger>
+        <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
+          <h2 className="text-3xl font-bold font-headline mb-8 text-center">Available Tools</h2>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {tools.map((tool) => (
+              <ToolCard key={tool.id} tool={tool} />
             ))}
-          </TabsList>
-           {tools.map(tool => (
-              <TabsContent key={tool.id} value={tool.id}>
-                {tool.component}
-              </TabsContent>
-            ))}
-        </Tabs>
+          </div>
+        </motion.div>
       </main>
     </div>
   );
