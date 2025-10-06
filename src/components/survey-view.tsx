@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Question, ConjointAttribute, Survey, SurveyResponse } from '@/entities/Survey';
+import { useToast } from '@/hooks/use-toast';
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
     const theme = styles.theme || 'default';
