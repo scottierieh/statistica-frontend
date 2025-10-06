@@ -1,62 +1,73 @@
+
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
-import { motion, AnimatePresence } from 'framer-motion';
-import { type Question } from '@/entities/Survey';
+import { Monitor, Smartphone } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Label } from '../ui/label';
 
-// Dummy question components for preview
-const PreviewQuestion = ({ question }: { question: Question }) => (
-  <div className="mb-6 p-6 bg-white rounded-xl shadow-sm border border-slate-200">
-    <h4 className="font-semibold text-lg mb-4 text-slate-800">{question.title || question.text}</h4>
-    <div className="text-slate-600">
-      {/* This is a simplified preview. A full implementation would render the actual question type. */}
-      <p>Type: {question.type}</p>
-      {question.options && question.options.length > 0 && (
-        <ul className="list-disc list-inside mt-2">
-          {question.options.map((opt: string, i: number) => <li key={i}>{opt}</li>)}
-        </ul>
-      )}
-    </div>
-  </div>
-);
-
-export default function SurveyPreview({ title, description, questions, onClose }: { title: string, description: string, questions: any[], onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-slate-50 rounded-2xl w-full max-w-2xl h-[90vh] flex flex-col"
-      >
-        <header className="p-6 border-b border-slate-200 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-slate-900">Survey Preview</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-5 h-5" />
-          </Button>
-        </header>
-
-        <div className="flex-1 overflow-y-auto p-6 md:p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">{title}</h1>
-            <p className="text-slate-600">{description}</p>
-          </div>
-          
-          <AnimatePresence>
-            {questions.map((q, index) => (
-              <motion.div
-                key={q.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0, transition: { delay: index * 0.1 } }}
-              >
-                <PreviewQuestion question={q} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      </motion.div>
-    </div>
-  );
+interface SurveyPreviewProps {
+    styles: any;
 }
+
+export default function SurveyPreview({ styles }: SurveyPreviewProps) {
+    const [view, setView] = useState<'desktop' | 'mobile'>('desktop');
+
+    const questionStyle = {
+        fontSize: `${styles.questionTextSize}px`,
+        color: styles.primaryColor,
+    };
+    
+    const choiceStyle = {
+        fontSize: `${styles.answerTextSize}px`,
+    };
+
+    const spacingClasses = {
+        Compact: 'space-y-2',
+        Comfortable: 'space-y-3',
+        Spacious: 'space-y-4'
+    };
+
+    return (
+        <Card className="h-full">
+            <CardHeader className="flex-row justify-between items-center">
+                <CardTitle>Preview</CardTitle>
+                <div className="flex items-center gap-2">
+                    <Button variant={view === 'desktop' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('desktop')}><Monitor/></Button>
+                    <Button variant={view === 'mobile' ? 'secondary' : 'ghost'} size="icon" onClick={() => setView('mobile')}><Smartphone/></Button>
+                </div>
+            </CardHeader>
+            <CardContent className="bg-muted h-[calc(100%-78px)] flex items-center justify-center">
+                <div 
+                    className={cn(
+                        "bg-white shadow-lg rounded-lg overflow-hidden transition-all duration-300",
+                        view === 'desktop' ? 'w-full max-w-2xl' : 'w-[375px] h-[667px]'
+                    )}
+                >
+                    <div className="p-8">
+                        <h2 style={questionStyle} className="font-bold text-center mb-6">Click to write the question text</h2>
+                        <RadioGroup defaultValue="choice2" className={cn(spacingClasses[styles.questionSpacing as keyof typeof spacingClasses])}>
+                            <Label style={choiceStyle} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 cursor-pointer">
+                                <RadioGroupItem value="choice1" />
+                                <span className="flex-1">Click to write Choice 1</span>
+                            </Label>
+                            <Label style={choiceStyle} className="flex items-center space-x-3 p-3 rounded-lg border-2 border-primary bg-primary/10 cursor-pointer">
+                                <RadioGroupItem value="choice2" />
+                                <span className="flex-1">Click to write Choice 2</span>
+                            </Label>
+                            <Label style={choiceStyle} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 cursor-pointer">
+                                <RadioGroupItem value="choice3" />
+                                <span className="flex-1">Click to write Choice 3</span>
+                            </Label>
+                        </RadioGroup>
+                         <div className="flex justify-end mt-8">
+                            <Button style={{ backgroundColor: styles.primaryColor }}>Submit</Button>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
