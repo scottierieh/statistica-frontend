@@ -47,17 +47,25 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
     const surveyUrl = typeof window !== 'undefined' ? `${window.location.origin}/survey/view/general/${survey.id}` : '';
 
     const effectiveStatus = useMemo(() => {
-        if (survey.status === 'draft' || survey.status === 'closed') {
-            return survey.status;
-        }
         const now = new Date();
         const startDate = survey.startDate ? new Date(survey.startDate) : null;
         const endDate = survey.endDate ? new Date(survey.endDate) : null;
-        
-        if (startDate && now < startDate) return 'scheduled';
-        if (endDate && now > endDate) return 'closed';
 
-        return 'active';
+        if (survey.status === 'closed') {
+            return 'closed';
+        }
+
+        if (startDate && now < startDate) {
+            return 'scheduled';
+        }
+        
+        if (endDate && now > endDate) {
+            return 'closed';
+        }
+        
+        // If no dates are set or if it's within the active period, respect the saved status
+        return survey.status === 'draft' ? 'draft' : 'active';
+
     }, [survey.status, survey.startDate, survey.endDate]);
 
     const statusConfig: { [key: string]: { color: string; label: string; icon?: React.ElementType } } = {
