@@ -260,35 +260,37 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-             <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-1/3"></TableHead>
-                        {(headers).map((header, colIndex) => {
-                            const showLabel = colIndex === 0 || colIndex === headers.length - 1;
-                            return (
-                                <TableHead key={`header-${colIndex}`} className={cn("text-center text-xs w-[60px]", !showLabel && "hidden sm:table-cell")}>
-                                    {header}
-                                </TableHead>
-                            );
-                        })}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                     {(question.rows || []).map((row: string, rowIndex: number) => (
-                         <TableRow key={`row-${rowIndex}`}>
-                            <TableHead>{row}</TableHead>
-                            {(question.columns || []).map((col: string, colIndex: number) => (
-                                <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
-                                     <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                        <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`}/>
-                                    </RadioGroup>
-                                </TableCell>
-                            ))}
+            <div className="overflow-x-auto">
+                 <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-1/3 min-w-[150px]"></TableHead>
+                            {(headers).map((header, colIndex) => {
+                                const showLabel = colIndex === 0 || colIndex === headers.length - 1;
+                                return (
+                                    <TableHead key={`header-${colIndex}`} className={cn("text-center text-xs min-w-[60px]", !showLabel && "hidden sm:table-cell")}>
+                                        {header}
+                                    </TableHead>
+                                );
+                            })}
                         </TableRow>
-                     ))}
-                </TableBody>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {(question.rows || []).map((row: string, rowIndex: number) => (
+                            <TableRow key={`row-${rowIndex}`}>
+                                <TableHead>{row}</TableHead>
+                                {(question.columns || []).map((col: string, colIndex: number) => (
+                                    <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
+                                        <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
+                                            <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`}/>
+                                        </RadioGroup>
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
         </div>
     );
 };
@@ -464,10 +466,10 @@ export default function SurveyView() {
     const progress = survey ? ((currentQuestionIndex + 2) / (survey.questions.length + 1)) * 100 : 0;
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-muted/40">
-             <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-sm">
-                <CardHeader className="text-center">
-                    <CardTitle className="font-headline text-3xl">{survey.title}</CardTitle>
+        <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-muted/40">
+             <Card className="w-full max-w-md md:max-w-2xl bg-card/80 backdrop-blur-sm rounded-2xl md:rounded-3xl shadow-lg">
+                <CardHeader className="text-center p-6 md:p-8">
+                    <CardTitle className="font-headline text-2xl md:text-3xl">{survey.title}</CardTitle>
                     <CardDescription>{survey.description}</CardDescription>
                      <Progress value={progress} className="mt-4" />
                 </CardHeader>
@@ -479,7 +481,7 @@ export default function SurveyView() {
                           initial={{ opacity: 0, x: 50 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -50 }}
-                          className="p-8 md:p-12"
+                          className="p-4 md:p-8"
                         >
                           <div className="space-y-6">
                             <div>
@@ -513,7 +515,7 @@ export default function SurveyView() {
                            initial={{ opacity: 0, x: 50 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -50 }}
-                           className="p-4"
+                           className="p-2 sm:p-4"
                         >
                             {QuestionComponent && survey && (
                                 <div key={currentQuestion.id}>
@@ -529,7 +531,7 @@ export default function SurveyView() {
                     )}
                     </AnimatePresence>
                 </CardContent>
-                <CardFooter className="flex justify-between">
+                <CardFooter className="flex justify-between p-6 md:p-8">
                     <Button onClick={handlePrev} disabled={currentQuestionIndex === -1} variant="outline" className="transition-transform active:scale-95">
                         Previous
                     </Button>
