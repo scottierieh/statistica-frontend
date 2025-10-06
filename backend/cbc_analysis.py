@@ -5,7 +5,7 @@ import json
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-from statsmodels.formula.api import ols
+from statsmodels.formula.api import ols, logit
 import warnings
 import re
 
@@ -68,16 +68,14 @@ def main():
         formula = f'Q("{target_var_clean}") ~ {" + ".join(formula_parts)}'
         
         # --- Fit the Logit model for choice data ---
-        model = ols(formula, data=df_clean).fit()
+        model = logit(formula, data=df_clean).fit()
         
         # --- Regression Results ---
         regression_results = {
-            'rSquared': model.rsquared,
-            'adjustedRSquared': model.rsquared_adj,
-            'rmse': np.sqrt(model.mse_resid),
-            'mae': np.mean(np.abs(model.resid)),
+            'rSquared': model.prsquared,
+            'adjustedRSquared': model.prsquared, # Logit doesn't have a direct adjusted R^2
             'predictions': model.predict(df_clean).tolist(),
-            'residuals': model.resid.tolist(),
+            'residuals': model.resid_response.tolist(),
             'intercept': model.params.get('Intercept', 0.0),
             'coefficients': {k: v for k, v in model.params.items()}
         }
