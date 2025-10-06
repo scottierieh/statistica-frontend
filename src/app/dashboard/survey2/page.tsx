@@ -101,10 +101,7 @@ export default function Survey2Dashboard() {
           </div>
            <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
             <DialogTrigger asChild>
-                 <Button 
-                    size="lg"
-                    className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-cyan-500/30 gap-2"
-                >
+                 <Button size="lg" className="gap-2">
                     <Plus className="w-5 h-5" />
                     Create New Survey
                 </Button>
