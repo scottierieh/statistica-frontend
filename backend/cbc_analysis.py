@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
 import warnings
 import re
 
@@ -33,38 +34,33 @@ def main():
 
         df = pd.DataFrame(data)
 
-        # --- 데이터 전처리 및 설계 행렬 생성 ---
-        y = df[target_variable]
-        
-        X_parts = []
-        feature_names = []
-
+        # --- 데이터 전처리 및 포뮬러 생성 ---
         independent_vars = [attr for attr, props in attributes_def.items() if props.get('includeInAnalysis', True) and attr != target_variable]
 
-        for attr_name in independent_vars:
-            # 모든 속성을 범주형으로 취급하여 더미 변수 생성
-            df[attr_name] = df[attr_name].astype(str)
-            dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True, dtype=float)
-            X_parts.append(dummies)
-            feature_names.extend(dummies.columns.tolist())
-
-        if not X_parts:
+        if not independent_vars:
             raise ValueError("No independent variables to analyze.")
 
-        X = pd.concat(X_parts, axis=1)
-        X = sm.add_constant(X, has_constant='add')
+        # Sanitize column names for the formula
+        sanitized_cols = {col: re.sub(r'[^A-Za-z0-9_]', '_', str(col)) for col in df.columns}
+        df_sanitized = df.rename(columns=sanitized_cols)
+        
+        target_clean = sanitized_cols.get(target_variable, target_variable)
+        independent_vars_clean = [sanitized_cols.get(var, var) for var in independent_vars]
 
+        formula_parts = [f'C(Q("{var}"))' for var in independent_vars_clean]
+        formula = f'Q("{target_clean}") ~ ' + ' + '.join(formula_parts)
+        
         # --- 로지스틱 회귀 모델 학습 ---
-        model = sm.Logit(y, X).fit(disp=0)
+        model = smf.logit(formula=formula, data=df_sanitized).fit(disp=0)
         
         # --- 회귀 분석 결과 ---
         regression_results = {
             'rSquared': model.prsquared,
             'adjustedRSquared': 1 - (1 - model.prsquared) * (len(df) - 1) / (len(df) - len(model.params) - 1),
-            'predictions': model.predict(X).tolist(),
+            'predictions': model.predict().tolist(),
             'residuals': model.resid_response.tolist(),
-            'intercept': model.params.get('const', 0.0),
-            'coefficients': {k: v for k, v in model.params.items()}
+            'intercept': model.params.get('Intercept', 0.0),
+            'coefficients': {k: v for k, v in model.params.to_dict().items()}
         }
         
         # --- 부분가치(Part-Worths) 및 중요도 계산 ---
@@ -80,9 +76,11 @@ def main():
             
             level_worths = [0]
             for level in props['levels'][1:]:
-                # 더미 변수 이름 형식에 맞게 파라미터 이름 생성
-                param_name = f"{attr_name}_{level}"
-                worth = regression_results['coefficients'].get(param_name, 0)
+                # statsmodels 포뮬러 형식에 맞는 파라미터 이름 검색
+                clean_attr_name = sanitized_cols.get(attr_name, attr_name)
+                param_key_pattern = f'C(Q("{clean_attr_name}"))[T.{level}]'
+                
+                worth = regression_results['coefficients'].get(param_key_pattern, 0.0)
                 part_worths.append({'attribute': attr_name, 'level': str(level), 'value': worth})
                 level_worths.append(worth)
             
