@@ -1,6 +1,7 @@
 
 'use client';
-import React, { useState } from 'react';
+import React from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Monitor, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,7 @@ interface SurveyPreviewProps {
 }
 
 export default function SurveyPreview({ styles }: SurveyPreviewProps) {
-    const [view, setView] = useState<'desktop' | 'mobile'>('desktop');
+    const [view, setView] = React.useState<'desktop' | 'mobile'>('desktop');
 
     const questionStyle = {
         fontSize: `${styles.questionTextSize}px`,
@@ -70,4 +71,3 @@ export default function SurveyPreview({ styles }: SurveyPreviewProps) {
         </Card>
     );
 }
-

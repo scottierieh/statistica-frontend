@@ -22,9 +22,9 @@ export default function SurveyStylePanel({ styles, setStyles }: SurveyStylePanel
     };
 
     return (
-         <Card className="lg:sticky lg:top-24 lg:self-start">
+         <Card>
             <CardHeader>
-                <CardTitle>Style</CardTitle>
+                <CardTitle>Survey Styling</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div>
