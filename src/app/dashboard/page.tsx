@@ -12,7 +12,7 @@ import { motion } from "framer-motion";
 function ToolCard({ icon: Icon, title, description, href, cta }: { icon: React.ElementType, title: string, description: string, href: string, cta: string }) {
   return (
     <motion.div
-      whileHover={{ scale: 1.03, y: -5 }}
+      whileHover={{ scale: 1.03 }}
       transition={{ type: "spring", stiffness: 300 }}
       className="h-full"
     >
@@ -28,9 +28,9 @@ function ToolCard({ icon: Icon, title, description, href, cta }: { icon: React.E
         </CardHeader>
         <CardContent className="p-0 w-full">
           <Button asChild className="w-full group">
-            <Link href={href} target="_blank" rel="noopener noreferrer">
+            <Link href={href}>
               {cta}
-              <MoveRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <Zap className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
         </CardContent>
