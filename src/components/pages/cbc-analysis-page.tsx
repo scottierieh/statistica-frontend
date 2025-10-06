@@ -1,3 +1,4 @@
+
 'use client';
 import React from 'react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -131,7 +132,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
         }, {} as any);
 
         try {
-            const response = await fetch('/api/analysis/cbc', {
+            const response = await fetch('/api/analysis/conjoint', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -390,13 +391,13 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                             {sensitivityData.length > 0 && (
                                 <ChartContainer config={{utility: {label: 'Utility'}}} className="w-full h-[300px]">
                                     <ResponsiveContainer>
-                                        <RechartsLineChart data={sensitivityData}>
+                                        <LineChart data={sensitivityData}>
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis dataKey="level" />
                                             <YAxis />
                                             <Tooltip content={<ChartTooltipContent />} />
                                             <LineChart dataKey="utility" stroke="hsl(var(--primary))" name="Utility" />
-                                        </RechartsLineChart>
+                                        </LineChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
                             )}
@@ -408,7 +409,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     );
 }
 
-// --- STEP INDICATOR (unchanged) --- //
+// --- STEP INDICATOR (re-usable but kept here for component self-containment) --- //
 const StepIndicator = ({ currentStep }: { currentStep: number }) => (
     <div className="flex items-center justify-center p-4">
       {[ 'Select Variables', 'Configure Attributes', 'Review Results'].map((step, index) => (
