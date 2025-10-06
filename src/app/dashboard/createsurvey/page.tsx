@@ -4,13 +4,15 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Eye } from "lucide-react";
 import { motion } from 'framer-motion';
 import type { Question } from '@/entities/Survey';
 import QuestionList from '@/components/survey/QuestionList';
 import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import SurveyView from '@/components/survey-view';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+
 
 export default function CreateSurveyPage() {
   const router = useRouter();
@@ -104,6 +106,18 @@ export default function CreateSurveyPage() {
                     <div className="flex-1">
                         <h1 className="text-3xl font-bold text-slate-900">{surveyId ? "Edit Survey" : "Create New Survey"}</h1>
                     </div>
+                     <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline"><Eye className="w-5 h-5 mr-2" />Preview</Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+                           <SurveyView 
+                                survey={{ id: 'preview', title, description, questions, status: 'active', created_date: '' }}
+                                isPreview={true}
+                                previewStyles={styles}
+                             />
+                        </DialogContent>
+                    </Dialog>
                      <Button onClick={() => saveSurvey("draft")} disabled={isSaving} className="max-w-fit"><Save className="w-5 h-5 mr-2" />Save Survey</Button>
                 </div>
 
@@ -122,13 +136,6 @@ export default function CreateSurveyPage() {
                     />
                     <div className="lg:sticky lg:top-24 space-y-6">
                         <SurveyStylePanel styles={styles} setStyles={setStyles} />
-                        <div className="mt-6 border p-2 rounded-2xl bg-white shadow-inner">
-                            <SurveyView 
-                                survey={{ id: 'preview', title, description, questions, status: 'active', created_date: '' }}
-                                isPreview={true}
-                                previewStyles={styles}
-                             />
-                        </div>
                     </div>
                 </div>
             </motion.div>

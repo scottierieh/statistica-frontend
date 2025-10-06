@@ -367,15 +367,15 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     
     if (isPreview) {
         return (
-            <Card className="w-full h-[800px] overflow-y-auto">
+            <Card className="w-full h-full overflow-y-auto border-0 shadow-none">
                 <CardHeader className="text-center p-6 md:p-8">
                     <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
                     {survey.description && <CardDescription>{survey.description}</CardDescription>}
                 </CardHeader>
-                <CardContent>
+                <CardContent className="h-full">
                     {survey.questions.map((q: Question) => {
                         const QuestionComp = questionComponents[q.type];
-                        return QuestionComp ? <div key={q.id} className="mb-4 border-b pb-4"><QuestionComp question={q} answer={answers[q.id]} onAnswerChange={() => {}} isPreview={true} /></div> : null;
+                        return QuestionComp ? <div key={q.id} className="mb-4 border-b pb-4 last:border-b-0"><QuestionComp question={q} answer={answers[q.id]} onAnswerChange={() => {}} isPreview={true} /></div> : null;
                     })}
                 </CardContent>
             </Card>
