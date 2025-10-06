@@ -8,7 +8,6 @@ import { motion } from 'framer-motion';
 import type { Question } from '@/entities/Survey';
 import QuestionList from '@/components/survey/QuestionList';
 import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
-import SurveyPreview from '@/components/survey/SurveyPreview';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 
 export default function CreateSurveyPage() {
@@ -117,10 +116,11 @@ export default function CreateSurveyPage() {
                         setDescription={setDescription}
                         questions={questions}
                         setQuestions={setQuestions}
+                        styles={styles}
+                        isPreview={true}
                     />
                     <div className="lg:sticky lg:top-24 space-y-6">
                         <SurveyStylePanel styles={styles} setStyles={setStyles} />
-                        <SurveyPreview styles={styles} />
                     </div>
                 </div>
             </motion.div>
