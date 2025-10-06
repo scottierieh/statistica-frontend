@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -52,7 +53,6 @@ def main():
                 if props['type'] == 'categorical':
                     sub_df_clean[attr_name] = sub_df_clean[attr_name].astype('category')
                     original_levels_map[attr_name] = sub_df_clean[attr_name].cat.categories.tolist()
-                    # drop_first is False to get coefficients for all levels relative to the intercept
                     dummies = pd.get_dummies(sub_df_clean[attr_name], prefix=attr_name, drop_first=False).astype(int)
                     X_list.append(dummies)
                     feature_names.extend(dummies.columns.tolist())
@@ -79,16 +79,22 @@ def main():
                 'predictions': y_pred.tolist(), 'residuals': (y - y_pred).tolist()
             }
             
-            # Use regression coefficients directly as part-worths
+            # Zero-centered part-worths
             part_worths = []
             for attr_name in independent_vars:
                 props = sub_attributes[attr_name]
                 if props['type'] == 'categorical':
                     level_names = original_levels_map.get(attr_name, [])
+                    level_worths = []
                     for level in level_names:
                         coef_name = f"{attr_name}_{level}"
-                        utility_value = regression_results['coefficients'].get(coef_name, 0)
-                        part_worths.append({'attribute': attr_name, 'level': level, 'value': utility_value})
+                        level_worths.append(regression_results['coefficients'].get(coef_name, 0))
+                    
+                    mean_worth = np.mean(level_worths) if level_worths else 0
+                    zero_centered_worths = [w - mean_worth for w in level_worths]
+
+                    for i, level in enumerate(level_names):
+                        part_worths.append({'attribute': attr_name, 'level': level, 'value': zero_centered_worths[i]})
 
             attribute_ranges = {}
             for attr_name in independent_vars:
