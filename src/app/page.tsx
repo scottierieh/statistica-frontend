@@ -6,38 +6,44 @@ import Link from 'next/link';
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-white text-gray-800">
-      <header className="relative px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <Link href="/" className="flex items-center gap-2">
-          <Calculator className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-headline font-bold">Skarii</h1>
-        </Link>
-        <nav className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center gap-4 sm:gap-6">
-          <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="#features"
-          >
-            Features
-          </Link>
-          <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="#"
-          >
-            Pricing
-          </Link>
-          <Link
-            className="text-sm font-medium hover:underline underline-offset-4"
-            href="#"
-          >
-            About
-          </Link>
-        </nav>
-        <div className="flex items-center gap-4 ml-auto">
-          <Button variant="ghost" asChild>
-            <Link href="/login">Login</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/register">Sign Up</Link>
-          </Button>
+      <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="w-full max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex-1 flex justify-start">
+            <Link href="/" className="flex items-center gap-2">
+              <Calculator className="h-6 w-6 text-primary" />
+              <h1 className="text-xl font-headline font-bold">Skarii</h1>
+            </Link>
+          </div>
+
+          <nav className="hidden lg:flex flex-1 justify-center items-center gap-4 sm:gap-6">
+            <Link
+              className="text-sm font-medium hover:underline underline-offset-4"
+              href="#features"
+            >
+              Features
+            </Link>
+            <Link
+              className="text-sm font-medium hover:underline underline-offset-4"
+              href="#"
+            >
+              Pricing
+            </Link>
+            <Link
+              className="text-sm font-medium hover:underline underline-offset-4"
+              href="#"
+            >
+              About
+            </Link>
+          </nav>
+
+          <div className="flex-1 flex justify-end items-center gap-4">
+            <Button variant="ghost" asChild>
+              <Link href="/login">Login</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/register">Sign Up</Link>
+            </Button>
+          </div>
         </div>
       </header>
       <main className="flex-1">
@@ -132,5 +138,3 @@ export default function LandingPage() {
 const GridBackground = () => (
   <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
 )
-
-    
