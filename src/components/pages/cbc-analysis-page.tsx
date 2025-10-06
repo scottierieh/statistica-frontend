@@ -9,9 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, HelpCircle, MoveRight, FileJson, DollarSign } from 'lucide-react';
+import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter } from 'recharts';
+import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -90,43 +90,41 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             return;
         }
 
-        // Transform data for backend
         const analysisData: any[] = [];
         let choiceCount = 0;
-        responses.forEach((resp, respIndex) => {
-            const answer = resp.answers[conjointQuestion.id];
-            if (!answer) return;
 
-            // Here we need to reconstruct the presented profiles. This is a simplification.
-            // A real app would store the generated profiles shown to each user.
-            // For now, we'll assume a fixed set of profiles were generated and one was chosen.
-            // Let's assume the `answer` is the ID of the chosen profile, and we need to reconstruct the set.
-            // This is a major simplification.
+        responses.forEach((resp) => {
+            const answer = resp.answers[conjointQuestion.id];
+            if (!answer || typeof answer !== 'string' || !answer.startsWith('profile_')) return;
+            
+            const chosenProfileId = answer;
+
+            // Simplified reconstruction of profiles shown to the user
+            // In a real app, this should be stored with the response.
             const allLevels = conjointQuestion.attributes!.flatMap(a => a.levels);
-            const profiles = allLevels.map(level => {
-                 const profile: any = { 'resp.id': resp.id, 'alt': level, 'choice': 0 };
+            const profiles = allLevels.map((level, index) => {
+                 const profile: any = { 'resp.id': resp.id, 'alt': `profile_${index}` };
                  conjointQuestion.attributes!.forEach(attr => {
-                     if (attr.levels.includes(level)) {
-                        profile[attr.name] = level;
-                     } else {
-                        // This logic is flawed. A real CBC would have full profiles.
-                        // We will simulate it by assigning the first level of other attributes.
-                        profile[attr.name] = attr.levels[0];
-                     }
+                    // This logic is still a simplification but ensures each profile is complete.
+                    const levelIndex = (index + attr.levels.indexOf(level)) % attr.levels.length;
+                    profile[attr.name] = attr.levels[levelIndex];
                  });
                  return profile;
             });
             
-            const chosenProfileIndex = profiles.findIndex(p => p.alt === answer);
-            if (chosenProfileIndex > -1) {
-                profiles[chosenProfileIndex].choice = 1;
-                choiceCount++;
-            }
-            analysisData.push(...profiles);
+            // Now, we create the rows for the analysis
+            profiles.forEach(p => {
+                const isChosen = p.alt === chosenProfileId;
+                if (isChosen) choiceCount++;
+                analysisData.push({
+                    ...p,
+                    choice: isChosen ? 1 : 0
+                });
+            });
         });
-
+        
         if (choiceCount === 0) {
-            toast({ variant: 'destructive', title: 'Data Error', description: 'No valid choices found in responses.' });
+            toast({ variant: 'destructive', title: 'Data Error', description: 'No valid choices found in responses. The data might not be structured correctly for CBC analysis.' });
             setIsLoading(false);
             return;
         }
@@ -368,3 +366,5 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
       ))}
     </div>
   );
+
+    
