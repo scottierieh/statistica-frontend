@@ -1,14 +1,56 @@
+
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Zap, Target } from "lucide-react";
+import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Zap, Target, MoveRight } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
 import DashboardClientLayout from "@/components/dashboard-client-layout";
+import { motion } from "framer-motion";
+
+function ToolCard({ icon: Icon, title, description, href, cta }: { icon: React.ElementType, title: string, description: string, href: string, cta: string }) {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.03, y: -5 }}
+      transition={{ type: "spring", stiffness: 300 }}
+      className="h-full"
+    >
+      <Card className="flex flex-col h-full text-center items-center justify-between p-6 bg-gradient-to-br from-card to-muted/30 hover:shadow-2xl hover:shadow-primary/10 transition-shadow duration-300">
+        <CardHeader className="p-0 mb-4">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
+            <Icon size={32} />
+          </div>
+          <CardTitle className="font-headline text-xl">{title}</CardTitle>
+          <CardDescription className="mt-2 text-sm">
+            {description}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0 w-full">
+          <Button asChild className="w-full group">
+            <Link href={href} target="_blank" rel="noopener noreferrer">
+              {cta}
+              <MoveRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+}
+
 
 function DashboardHub() {
   const { user } = useAuth();
+
+  const tools = [
+      { icon: Calculator, title: "Statistica", description: "Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.", href: "/dashboard/statistica", cta: "Launch Statistica" },
+      { icon: BrainCircuit, title: "Machine Learning", description: "Build, train, and deploy machine learning models for regression, classification, and more.", href: "/dashboard/machine-learning", cta: "Launch ML Tool" },
+      { icon: FastForward, title: "Simulation", description: "Model and simulate complex systems to predict outcomes and test scenarios.", href: "/dashboard/simulation", cta: "Launch Simulation" },
+      { icon: ClipboardList, title: "Survey Tool", description: "Design, distribute, and analyze surveys with an integrated, easy-to-use tool.", href: "/dashboard/survey2", cta: "Launch Survey Tool" },
+      { icon: DollarSign, title: "Financial Modeling", description: "Conduct portfolio analysis, company valuation, and financial forecasting.", href: "/dashboard/financial-modeling", cta: "Launch Finance Tool" },
+      { icon: Target, title: "Decision Analytics", description: "Solve complex optimization problems and perform quantitative analysis for decision making.", href: "/dashboard/optimization", cta: "Launch Analytics" },
+  ];
 
   return (
     <div className="flex flex-col min-h-screen bg-muted/40">
@@ -24,136 +66,11 @@ function DashboardHub() {
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
         <div className="container">
-            <h2 className="text-2xl font-bold tracking-tight mb-4">Available Tools</h2>
+            <h2 className="text-3xl font-bold tracking-tight mb-8 text-center">Available Tools</h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2">
-                            <Calculator className="h-5 w-5 text-primary"/>
-                            Statistica
-                        </CardTitle>
-                        <CardDescription>
-                            Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/statistica" target="_blank" rel="noopener noreferrer">Launch Statistica</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2">
-                            <BrainCircuit className="h-5 w-5 text-primary"/>
-                            Machine Learning
-                        </CardTitle>
-                        <CardDescription>
-                            Build, train, and deploy machine learning models for regression, classification, and more.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/machine-learning" target="_blank" rel="noopener noreferrer">Launch Machine Learning</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2">
-                            <FastForward className="h-5 w-5 text-primary"/>
-                            Simulation
-                        </CardTitle>
-                        <CardDescription>
-                           Model and simulate complex systems to predict outcomes and test scenarios.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/simulation" target="_blank" rel="noopener noreferrer">Launch Simulation</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2">
-                            <ClipboardList className="h-5 w-5 text-primary"/>
-                            Survey Tool
-                        </CardTitle>
-                        <CardDescription>
-                            Design, distribute, and analyze surveys with an integrated, easy-to-use tool.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/survey?id=1" target="_blank" rel="noopener noreferrer">Launch Survey Tool</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-                 <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2">
-                            <ClipboardList className="h-5 w-5 text-primary"/>
-                            Survey1
-                        </CardTitle>
-                        <CardDescription>
-                            Design, distribute, and analyze surveys with an integrated, easy-to-use tool.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/survey1" target="_blank" rel="noopener noreferrer">Launch Survey Tool</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2">
-                            <ClipboardList className="h-5 w-5 text-primary"/>
-                            Survey2
-                        </CardTitle>
-                        <CardDescription>
-                            Design, distribute, and analyze surveys with an integrated, easy-to-use tool.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/survey2" target="_blank" rel="noopener noreferrer">Launch Survey Tool</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-                 <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2">
-                            <DollarSign className="h-5 w-5 text-primary"/>
-                            Financial Modeling
-                        </CardTitle>
-                        <CardDescription>
-                           Conduct portfolio analysis, company valuation, and financial forecasting.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/financial-modeling" target="_blank" rel="noopener noreferrer">Launch Financial Modeling</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-                <Card className="transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center gap-2">
-                            <Target className="h-5 w-5 text-primary"/>
-                            Decision Analytics
-                        </CardTitle>
-                        <CardDescription>
-                            Solve complex optimization problems and perform quantitative analysis for decision making.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild className="w-full">
-                            <Link href="/dashboard/optimization" target="_blank" rel="noopener noreferrer">Launch Tool</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
+               {tools.map(tool => (
+                  <ToolCard key={tool.title} {...tool} />
+               ))}
             </div>
         </div>
       </main>
