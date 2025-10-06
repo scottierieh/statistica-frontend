@@ -206,7 +206,7 @@ const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles 
             <div className="p-4">
                  <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                     <div className="flex items-center">
@@ -274,8 +274,8 @@ const NumberQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }:
                         <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
                     </div>
                 </div>
-                {question.description && <p className="text-sm text-muted-foreground mb-4 whitespace-pre-wrap">{question.description}</p>}
-                <Input type="number" placeholder="Enter a number..." disabled />
+                {question.description && <Textarea value={question.description} onChange={(e) => onUpdate?.({ ...question, description: e.target.value })} placeholder="Enter your description text here."/>}
+                <Input type="number" placeholder="Enter a number..." disabled className="mt-2" />
             </div>
         </Card>
     );
@@ -562,6 +562,26 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
     );
 };
 
+const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onUpdate?: any, onDelete?: any }) => {
+    // This is just a display component for the editor; logic is similar to ConjointQuestion
+    const { attributes = [] } = question;
+    return (
+         <Card>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle>Rating-based Conjoint</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                </div>
+                 <CardDescription>Respondents will rate different product profiles on a numeric scale.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-muted-foreground">Attributes and profiles are configured in the same way as Choice-Based Conjoint.</p>
+                {/* Attribute/Level editing UI can be reused from ConjointQuestion */}
+            </CardContent>
+        </Card>
+    );
+};
+
 
 interface QuestionListProps {
     title: string;
@@ -633,6 +653,7 @@ export default function QuestionList({ title, setTitle, description, setDescript
     'best-worst': BestWorstQuestion,
     matrix: MatrixQuestion,
     conjoint: ConjointQuestion,
+    'rating-conjoint': RatingConjointQuestion,
   };
 
 

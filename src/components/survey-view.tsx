@@ -251,7 +251,6 @@ const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Ques
     const { attributes = [] } = question;
     
     // This is a simplified display logic. A real conjoint would generate specific profiles.
-    // Here, we just create a few example cards.
     const profiles = useMemo(() => {
         if (attributes.length === 0) return [];
         const numProfiles = 4;
@@ -293,6 +292,50 @@ const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Ques
         </div>
     );
 };
+
+const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: { [profileId: string]: number }, onAnswerChange: (value: any) => void; }) => {
+    const { attributes = [], profiles = [] } = question;
+
+    const handleRatingChange = (profileId: string, value: string) => {
+        const rating = parseInt(value, 10);
+        if (rating >= 1 && rating <= 10) {
+             onAnswerChange(produce(answer || {}, (draft: any) => { draft[profileId] = rating; }));
+        }
+    };
+
+    return (
+        <div className="p-4">
+            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+             <div className="flex gap-4 overflow-x-auto pb-4">
+                 <div className="flex-shrink-0 w-32 pr-2">
+                    {attributes.map(attr => (
+                        <div key={attr.id} className="h-16 flex items-center font-semibold text-sm text-muted-foreground">{attr.name}:</div>
+                    ))}
+                 </div>
+                {profiles.map((profile: any) => (
+                    <Card key={profile.id} className="w-48 flex-shrink-0 text-center">
+                        <CardContent className="p-4 space-y-2">
+                             {attributes.map(attr => (
+                                <div key={attr.id} className="h-16 flex items-center justify-center text-sm">{profile[attr.name]}</div>
+                            ))}
+                        </CardContent>
+                        <CardFooter className="p-2">
+                            <Input
+                                type="number"
+                                min="1"
+                                max="10"
+                                placeholder="1-10"
+                                value={answer?.[profile.id] || ''}
+                                onChange={(e) => handleRatingChange(profile.id, e.target.value)}
+                            />
+                        </CardFooter>
+                    </Card>
+                ))}
+             </div>
+        </div>
+    );
+};
+
 
 
 interface SurveyViewProps {
@@ -425,6 +468,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         'best-worst': BestWorstQuestion,
         matrix: MatrixQuestion,
         conjoint: ConjointQuestion,
+        'rating-conjoint': RatingConjointQuestion,
     };
     
     const currentQuestion = survey?.questions[currentQuestionIndex];

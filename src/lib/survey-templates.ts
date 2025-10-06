@@ -1,37 +1,6 @@
 
 import type { Question } from '@/entities/Survey';
 
-const generateRatingProfiles = (): Question[] => {
-    const brands = ['Apple', 'Samsung', 'Google'];
-    const prices = ['$999', '$799', '159,000원'];
-    const screens = ['6.1"', '6.7"'];
-    const batteries = ['4000mAh', '5000mAh'];
-
-    // This is a simplified full factorial design. Real conjoint uses fractional factorial.
-    const profiles: { [key: string]: string }[] = [];
-    for (const brand of brands) {
-        for (const price of prices) {
-            for (const screen of screens) {
-                for (const battery of batteries) {
-                    profiles.push({ brand, price, screen, battery });
-                }
-            }
-        }
-    }
-
-    // Shuffle and pick a few profiles
-    const shuffled = profiles.sort(() => 0.5 - Math.random());
-    const selectedProfiles = shuffled.slice(0, 8); // Let's create 8 rating questions
-
-    return selectedProfiles.map((profile, index) => ({
-        id: `conjoint_q_${index}`,
-        type: 'number', // Changed from 'rating' to 'number'
-        title: `Profile ${index + 1}`,
-        description: `Brand: ${profile.brand}, Price: ${profile.price}, Screen: ${profile.screen}, Battery: ${profile.battery}\n\nPlease rate this profile on a scale from 1 (Very Unlikely to Buy) to 10 (Very Likely to Buy).`,
-        required: true,
-    }));
-};
-
 export const choiceBasedConjointTemplate = {
     title: "Smartphone Feature Preference (Choice-Based)",
     description: "Please choose the smartphone you would be most likely to purchase from each set.",
@@ -68,6 +37,21 @@ export const ratingBasedConjointTemplate = {
             title: 'Instructions',
             content: 'On the following screens, you will be presented with several different smartphone concepts. Please rate each one on a scale of 1 (Very Unlikely to Buy) to 10 (Very Likely to Buy).'
         },
-        ...generateRatingProfiles(),
+        {
+            id: 'rating_conjoint_q_1',
+            type: 'rating-conjoint',
+            title: 'Please rate each of these smartphone profiles.',
+            required: true,
+            attributes: [
+                { id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung', 'Google'] },
+                { id: `attr-2`, name: 'Price', levels: ['$999', '$799', '$699'] },
+                { id: `attr-3`, name: 'Screen Size', levels: ['6.1"', '6.7"'] },
+            ],
+            profiles: [
+                { id: 'profile_1', Brand: 'Apple', Price: '$999', 'Screen Size': '6.7"' },
+                { id: 'profile_2', Brand: 'Samsung', Price: '$799', 'Screen Size': '6.7"' },
+                { id: 'profile_3', Brand: 'Google', Price: '$699', 'Screen Size': '6.1"' },
+            ]
+        }
     ],
 };
