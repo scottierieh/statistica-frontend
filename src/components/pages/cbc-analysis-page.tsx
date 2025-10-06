@@ -21,7 +21,7 @@ import Image from 'next/image';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 
 interface CbcResults {
-    part_worths: { attribute: string, level: string, value: number }[];
+    partWorths: { attribute: string, level: string, value: number }[];
     importance: { attribute: string, importance: number }[];
     regression: {
         rSquared: number;
@@ -197,7 +197,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
 
     const partWorthsData = useMemo(() => {
         if (!analysisResult) return [];
-        return analysisResult.results.part_worths;
+        return analysisResult.results.partWorths;
     }, [analysisResult]);
     
     const COLORS = useMemo(() => ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'], []);
@@ -371,5 +371,6 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
   );
 
     
+
 
 
