@@ -89,7 +89,7 @@ def main():
             # 기준 레벨(첫 번째)의 부분가치는 0
             part_worths.append({
                 'attribute': attr_name,
-                'level': props['levels'][0],
+                'level': str(props['levels'][0]),
                 'value': 0
             })
             # 나머지 레벨의 부분가치는 회귀 계수
@@ -97,7 +97,7 @@ def main():
                 feature_name = f"{attr_name}_{level}"
                 part_worths.append({
                     'attribute': attr_name,
-                    'level': level,
+                    'level': str(level),
                     'value': regression_results['coefficients'].get(feature_name, 0)
                 })
 
