@@ -9,11 +9,28 @@ import DashboardClientLayout from "@/components/dashboard-client-layout";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StatisticaApp from "@/components/statistica-app";
-import MachineLearningApp from "@/components/machine-learning-app";
-import SimulationApp from "@/components/simulation-app";
 import Survey2Dashboard from "./survey2/page";
-import FinancialModelingApp from "@/components/financial-modeling-app";
-import OptimizationApp from "@/components/optimization-app";
+
+function UnderConstructionCard({ title, icon: Icon }: { title: string, icon: React.ElementType }) {
+  return (
+    <div className="flex flex-1 items-center justify-center h-full pt-10">
+      <Card className="w-full max-w-2xl text-center">
+        <CardHeader>
+          <div className="flex justify-center items-center mb-4">
+            <Icon className="h-12 w-12 text-primary" />
+          </div>
+          <CardTitle className="font-headline">{title}</CardTitle>
+          <CardDescription>
+            This section is under construction. Powerful tools for {title.toLowerCase()} are coming soon!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <p className="text-muted-foreground">Stay tuned for updates.</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 
 function DashboardHub() {
@@ -21,10 +38,10 @@ function DashboardHub() {
 
   const tools = [
       { id: "statistica", icon: Calculator, title: "Statistica", component: <StatisticaApp /> },
-      { id: "machine-learning", icon: BrainCircuit, title: "Machine Learning", component: <MachineLearningApp /> },
-      { id: "simulation", icon: FastForward, title: "Simulation", component: <SimulationApp /> },
+      { id: "machine-learning", icon: BrainCircuit, title: "Machine Learning", component: <UnderConstructionCard title="Machine Learning" icon={BrainCircuit} /> },
+      { id: "simulation", icon: FastForward, title: "Simulation", component: <UnderConstructionCard title="Simulation" icon={FastForward} /> },
       { id: "survey", icon: ClipboardList, title: "Survey Tool", component: <Survey2Dashboard /> },
-      { id: "financial-modeling", icon: DollarSign, title: "Financial Modeling", component: <FinancialModelingApp /> },
+      { id: "financial-modeling", icon: DollarSign, title: "Financial Modeling", component: <UnderConstructionCard title="Financial Modeling" icon={DollarSign} /> },
   ];
 
   return (

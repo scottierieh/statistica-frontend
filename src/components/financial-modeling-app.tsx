@@ -34,7 +34,7 @@ import { getSummaryReport } from '@/app/actions';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import DataUploader from './data-uploader';
 import DataPreview from './data-preview';
-import PortfolioAnalysisPage from '@/components/pages/portfolio-analysis-page';
+import PortfolioAnalysisPage from './pages/portfolio-analysis-page';
 
 type AnalysisType = 'portfolio-analysis' | 'valuation' | 'forecasting';
 
