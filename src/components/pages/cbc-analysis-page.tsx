@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { BarChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -222,14 +222,22 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     
     const sensitivityData = useMemo(() => {
         if (!analysisResult?.results || !sensitivityAttribute) return [];
-
+        const otherAttributes = attributeCols.filter(attr => attr !== sensitivityAttribute);
+        
         return analysisResult.results.partWorths
             .filter(p => p.attribute === sensitivityAttribute)
-            .map(p => ({
-                level: p.level,
-                utility: p.value,
-            }));
-    }, [analysisResult, sensitivityAttribute]);
+            .map(p => {
+                let otherUtility = 0;
+                otherAttributes.forEach(otherAttr => {
+                    const baseLevelWorth = analysisResult.results.partWorths.find(pw => pw.attribute === otherAttr && pw.level === allAttributes[otherAttr].levels[0]);
+                    otherUtility += baseLevelWorth?.value || 0;
+                });
+                return {
+                    level: p.level,
+                    utility: (analysisResult.results.regression.intercept || 0) + p.value + otherUtility,
+                };
+            });
+    }, [analysisResult, sensitivityAttribute, attributeCols, allAttributes]);
 
     const importanceData = useMemo(() => {
         if (!analysisResult?.results.importance) return [];
@@ -382,13 +390,13 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
                             {sensitivityData.length > 0 && (
                                 <ChartContainer config={{utility: {label: 'Utility'}}} className="w-full h-[300px]">
                                     <ResponsiveContainer>
-                                        <BarChart data={sensitivityData}>
+                                        <RechartsLineChart data={sensitivityData}>
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis dataKey="level" />
                                             <YAxis />
                                             <Tooltip content={<ChartTooltipContent />} />
-                                            <Bar dataKey="utility" fill="hsl(var(--primary))" name="Utility" />
-                                        </BarChart>
+                                            <LineChart dataKey="utility" stroke="hsl(var(--primary))" name="Utility" />
+                                        </RechartsLineChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
                             )}
@@ -400,7 +408,7 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     );
 }
 
-// Re-add the StepIndicator if it was removed, it seems useful
+// --- STEP INDICATOR (unchanged) --- //
 const StepIndicator = ({ currentStep }: { currentStep: number }) => (
     <div className="flex items-center justify-center p-4">
       {[ 'Select Variables', 'Configure Attributes', 'Review Results'].map((step, index) => (
@@ -414,3 +422,4 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
       ))}
     </div>
   );
+
