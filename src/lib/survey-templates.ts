@@ -1,7 +1,7 @@
 
 import type { Question } from '@/entities/Survey';
 
-const generateProfiles = (): Question[] => {
+const generateRatingProfiles = (): Question[] => {
     const brands = ['Apple', 'Samsung', 'Google'];
     const prices = ['$999', '$799'];
     const screens = ['6.1"', '6.7"'];
@@ -33,16 +33,42 @@ const generateProfiles = (): Question[] => {
     }));
 };
 
-export const conjointTemplate = {
-    title: "Smartphone Preference Survey (Conjoint)",
+export const choiceBasedConjointTemplate = {
+    title: "Smartphone Feature Preference (Choice-Based)",
+    description: "Please choose the smartphone you would be most likely to purchase from each set.",
+    questions: [
+        {
+            id: 'cbc_desc',
+            type: 'description',
+            title: 'Instructions',
+            content: 'In the following questions, you will be presented with a few different smartphone options. From each set, please choose the one you would be most likely to purchase.'
+        },
+        {
+            id: 'cbc_q_1',
+            type: 'conjoint',
+            title: 'Which of these smartphones would you choose?',
+            required: true,
+            attributes: [
+                { id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung', 'Google'] },
+                { id: `attr-2`, name: 'Price', levels: ['$999', '$799', '$699'] },
+                { id: `attr-3`, name: 'Screen Size', levels: ['6.1"', '6.7"'] },
+                { id: `attr-4`, name: 'Battery', levels: ['4000mAh', '5000mAh'] },
+            ],
+        },
+    ],
+};
+
+
+export const ratingBasedConjointTemplate = {
+    title: "Smartphone Profile Rating (Conjoint)",
     description: "Please rate the following smartphone profiles based on your likelihood to purchase.",
     questions: [
         {
-            id: 'desc1',
+            id: 'rating_desc',
             type: 'description',
             title: 'Instructions',
             content: 'On the following screens, you will be presented with several different smartphone concepts. Please rate each one on a scale of 1 (Very Unlikely to Buy) to 7 (Very Likely to Buy).'
         },
-        ...generateProfiles(),
+        ...generateRatingProfiles(),
     ],
 };

@@ -147,7 +147,8 @@ export default function Survey2Dashboard() {
                     <h4 className="font-semibold mb-4">Or use a template</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                          <TemplateCard icon={Target} title="IPA Survey" description="Measure Importance vs. Performance to find key improvement areas." href="/dashboard/createsurvey?template=ipa"/>
-                         <TemplateCard icon={Handshake} title="Conjoint Analysis" description="Understand how customers value different attributes of a product." href="/dashboard/createsurvey?template=conjoint"/>
+                         <TemplateCard icon={Handshake} title="Choice-Based Conjoint" description="Understand how customers value different attributes of a product using choices." href="/dashboard/createsurvey?template=cbc"/>
+                         <TemplateCard icon={ClipboardList} title="Rating Conjoint" description="Analyze customer preferences using a rating-based approach." href="/dashboard/createsurvey?template=rating-conjoint"/>
                          <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
                          <TemplateCard icon={DollarSign} title="Price Sensitivity" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=psm"/>
                          <TemplateCard icon={Users} title="Employee Engagement" description="Gauge employee satisfaction and identify areas for cultural improvement." href="/dashboard/createsurvey?template=employee"/>

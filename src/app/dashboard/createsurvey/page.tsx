@@ -13,7 +13,7 @@ import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import SurveyView from '@/components/survey-view';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { conjointTemplate } from '@/lib/survey-templates';
+import { choiceBasedConjointTemplate, ratingBasedConjointTemplate } from '@/lib/survey-templates';
 
 
 export default function CreateSurveyPage() {
@@ -52,10 +52,14 @@ export default function CreateSurveyPage() {
     };
     
     const loadTemplate = (templateName: string) => {
-        if(templateName === 'conjoint') {
-            setTitle(conjointTemplate.title);
-            setDescription(conjointTemplate.description);
-            setQuestions(conjointTemplate.questions);
+        if(templateName === 'cbc') {
+            setTitle(choiceBasedConjointTemplate.title);
+            setDescription(choiceBasedConjointTemplate.description);
+            setQuestions(choiceBasedConjointTemplate.questions);
+        } else if (templateName === 'rating-conjoint') {
+            setTitle(ratingBasedConjointTemplate.title);
+            setDescription(ratingBasedConjointTemplate.description);
+            setQuestions(ratingBasedConjointTemplate.questions);
         }
         // Add other templates here
     }
