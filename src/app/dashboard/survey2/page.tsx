@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import StatsCard from "@/components/dashboard/survey2/StatsCard";
 import SurveyCard from "@/components/dashboard/survey2/SurveyCard";
 import EmptyState from "@/components/dashboard/survey2/EmptyState";
-import AIAnalysisCard from "@/components/dashboard/survey2/AIAnalysisCard";
 import type { Survey, SurveyResponse } from '@/types/survey';
 import {
   Dialog,
@@ -166,10 +165,6 @@ export default function Survey2Dashboard() {
           gradient="from-orange-400 to-amber-400"
         />
       </div>
-
-      {surveys.length > 0 && responses.length > 0 && (
-        <AIAnalysisCard surveys={surveys} responses={responses} />
-      )}
 
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
         {[
