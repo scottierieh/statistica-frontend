@@ -1,11 +1,10 @@
-// A mock entity to simulate data persistence
+/ A mock entity to simulate data persistence
 // In a real app, this would interact with a database.
 
 export type Question = {
     id: string;
     type: string;
     title: string;
-    text: string; // Keep for backward compatibility, but prefer title
     description?: string;
     options?: string[];
     items?: string[];

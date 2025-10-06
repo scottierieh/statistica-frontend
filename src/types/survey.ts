@@ -22,6 +22,7 @@ export interface Question {
   id: string;
   type: string;
   title: string;
+  text?: string;
   description?: string;
   options?: string[];
   items?: string[];
@@ -31,5 +32,4 @@ export interface Question {
   content?: string;
   imageUrl?: string;
   rows?: string[];
-  text?: string;
 }

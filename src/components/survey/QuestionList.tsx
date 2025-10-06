@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -15,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2 } from "lucide-react";
+import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { type Question } from '@/entities/Survey';
@@ -100,40 +99,40 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
             )}
             <RadioGroup value={answer} onValueChange={setAnswer} className="space-y-2">
                 {(question.options || []).map((option: string, index: number) => (
-                    <Label
-                        key={index}
-                        htmlFor={`q${question.id}-o${index}`}
-                        className={cn(
-                          "flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer",
-                          theme === 'flat' && "bg-slate-100",
-                          theme === 'modern' && "justify-between",
-                          answer === option && theme === 'flat' && "border-primary ring-2 ring-primary bg-primary/10",
-                          answer === option && theme === 'modern' && "bg-primary text-primary-foreground",
-                        )}
-                      >
-                         {theme !== 'modern' && (
-                            <RadioGroupItem
-                              value={option}
-                              id={`q${question.id}-o${index}`}
-                              className={cn(theme === 'flat' && answer === option && "border-primary text-primary")}
-                            />
-                        )}
-                        <Input
-                            placeholder={`Option ${index + 1}`}
+                    <div key={index} className="flex items-center group">
+                        <Label
+                            htmlFor={`q${question.id}-o${index}`}
                             className={cn(
-                                "border-none focus:ring-0 p-0 h-auto bg-transparent",
-                                theme === 'flat' && "bg-transparent",
-                                theme === 'modern' && "bg-transparent placeholder:text-inherit"
+                              "flex flex-1 items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer",
+                              theme === 'flat' && "bg-slate-100",
+                              theme === 'modern' && "justify-between",
                             )}
-                            style={choiceStyle}
-                            value={option}
-                            onChange={(e) => handleOptionChange(index, e.target.value)}
-                        />
-                         {answer === option && theme === 'modern' && <CheckCircle2 className="w-6 h-6" />}
+                          >
+                             {theme !== 'modern' && (
+                                <RadioGroupItem
+                                  value={option}
+                                  id={`q${question.id}-o${index}`}
+                                  disabled
+                                  className={cn(theme === 'flat' && "border-primary text-primary")}
+                                />
+                            )}
+                            <Input
+                                placeholder={`Option ${index + 1}`}
+                                className={cn(
+                                    "border-none focus:ring-0 p-0 h-auto bg-transparent",
+                                    theme === 'flat' && "bg-transparent",
+                                    theme === 'modern' && "bg-transparent placeholder:text-inherit"
+                                )}
+                                style={choiceStyle}
+                                value={option}
+                                onChange={(e) => handleOptionChange(index, e.target.value)}
+                            />
+                             {theme === 'modern' && <CheckCircle2 className="w-6 h-6 opacity-0" />}
+                        </Label>
                         <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={(e) => { e.preventDefault(); deleteOption(index); }}>
                             <Trash2 className="w-4 h-4 text-destructive"/>
                         </Button>
-                    </Label>
+                    </div>
                 ))}
             </RadioGroup>
             <Button variant="link" size="sm" className="mt-2" onClick={addOption}>
@@ -144,7 +143,349 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
     );
 };
 
-// All other question components are defined here...
+const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+    const handleOptionChange = (index: number, value: string) => {
+        const newOptions = [...(question.options || [])];
+        newOptions[index] = value;
+        onUpdate?.({ ...question, options: newOptions });
+    };
+
+    const addOption = () => {
+        const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
+        onUpdate?.({ ...question, options: newOptions });
+    };
+
+    const deleteOption = (index: number) => {
+        const newOptions = (question.options || []).filter((_: any, i: number) => i !== index);
+        onUpdate?.({ ...question, options: newOptions });
+    };
+
+    const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    const choiceStyle = { fontSize: `${styles.answerTextSize}px` };
+    const theme = styles.theme || 'default';
+
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                            <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}><ImageIcon className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                {question.imageUrl && <div className="my-4"><Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" /></div>}
+                <div className="space-y-2">
+                    {(question.options || []).map((option: string, index: number) => (
+                        <div key={index} className="flex items-center group">
+                            <Label htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer", theme === 'flat' && "bg-slate-100")}>
+                                <Checkbox id={`q${question.id}-o${index}`} disabled />
+                                <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
+                            </Label>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={(e) => { e.preventDefault(); deleteOption(index); }}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                        </div>
+                    ))}
+                </div>
+                <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
+            </div>
+        </Card>
+    );
+};
+
+const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+    // Similar implementation as Single/Multiple choice for editing options
+    const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                            <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}><ImageIcon className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                <Select disabled>
+                    <SelectTrigger><SelectValue placeholder="Select an option..." /></SelectTrigger>
+                </Select>
+                 {/* Option editing logic would be similar to other choice components */}
+            </div>
+        </Card>
+    );
+};
+
+const TextQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                            <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}><ImageIcon className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                <Textarea placeholder="Your answer..." disabled />
+            </div>
+        </Card>
+    );
+};
+
+const NumberQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                            <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}><ImageIcon className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                <Input type="number" placeholder="Enter a number..." disabled />
+            </div>
+        </Card>
+    );
+};
+
+const PhoneQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                            <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}><ImageIcon className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                <Input type="tel" placeholder="Enter phone number..." disabled />
+            </div>
+        </Card>
+    );
+};
+
+const EmailQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                            <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}><ImageIcon className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                <Input type="email" placeholder="Enter email address..." disabled />
+            </div>
+        </Card>
+    );
+};
+
+const RatingQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                            <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}><ImageIcon className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    {[...Array(5)].map((_, i) => <Star key={i} className="w-8 h-8 text-yellow-300" />)}
+                </div>
+            </div>
+        </Card>
+    );
+};
+
+const NPSQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                            <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}><ImageIcon className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon"><Info className="w-5 h-5 text-muted-foreground" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                 <div className="flex items-center justify-between gap-1 flex-wrap">
+                    {[...Array(11)].map((_, i) => <Button key={i} variant='outline' size="icon" className="h-10 w-8 text-xs">{i}</Button>)}
+                </div>
+            </div>
+        </Card>
+    );
+};
+
+
+const DescriptionBlock = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
+    const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your title (optional)" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                </div>
+                <Textarea value={question.content} onChange={(e) => onUpdate?.({ ...question, content: e.target.value })} placeholder="Enter your description text here."/>
+            </div>
+        </Card>
+    );
+};
+
+const BestWorstQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+    // Simplified view for editor
+    const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                    <div className="flex items-center">
+                         <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                            <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                <Table>
+                    <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-center">Best</TableHead><TableHead className="text-center">Worst</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                        {(question.items || []).map((item: string, index: number) => (
+                            <TableRow key={index}>
+                                <TableCell>{item}</TableCell>
+                                <TableCell className="text-center"><RadioGroup><RadioGroupItem value="best" disabled /></RadioGroup></TableCell>
+                                <TableCell className="text-center"><RadioGroup><RadioGroupItem value="worst" disabled /></RadioGroup></TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </Card>
+    );
+};
+
+const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+    const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                    <div className="flex items-center">
+                         <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                            <Label htmlFor={`required-${question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                <Table>
+                     <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-1/3 min-w-[150px]"></TableHead>
+                            {(question.columns || []).map((header: string, colIndex: number) => <TableHead key={`header-${colIndex}`} className="text-center text-xs min-w-[60px]">{header}</TableHead>)}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {(question.rows || []).map((row: string, rowIndex: number) => (
+                            <TableRow key={`row-${rowIndex}`}>
+                                <TableHead>{row}</TableHead>
+                                {(question.columns || []).map((col: string, colIndex: number) => (
+                                    <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
+                                        <RadioGroup><RadioGroupItem value={col} disabled /></RadioGroup>
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </Card>
+    );
+};
 
 interface QuestionListProps {
     title: string;
@@ -203,17 +544,17 @@ export default function QuestionList({ title, setTitle, description, setDescript
 
   const QuestionComponents: { [key: string]: React.ComponentType<any> } = {
     single: SingleSelectionQuestion,
-    multiple: (props) => <SingleSelectionQuestion {...props} />, // Placeholder
-    dropdown: (props) => <SingleSelectionQuestion {...props} />, // Placeholder
-    text: (props) => <SingleSelectionQuestion {...props} />, // Placeholder
-    number: (props) => <SingleSelectionQuestion {...props} />, // Placeholder
-    phone: (props) => <SingleSelectionQuestion {...props} />, // Placeholder
-    email: (props) => <SingleSelectionQuestion {...props} />, // Placeholder
-    rating: (props) => <SingleSelectionQuestion {...props} />, // Placeholder
-    nps: (props) => <SingleSelectionQuestion {...props} />, // Placeholder
-    description: (props) => <SingleSelectionQuestion {...props} />, // Placeholder
-    'best-worst': (props) => <SingleSelectionQuestion {...props} />, // Placeholder
-    matrix: (props) => <SingleSelectionQuestion {...props} />, // Placeholder
+    multiple: MultipleSelectionQuestion,
+    dropdown: DropdownQuestion,
+    text: TextQuestion,
+    number: NumberQuestion,
+    phone: PhoneQuestion,
+    email: EmailQuestion,
+    rating: RatingQuestion,
+    nps: NPSQuestion,
+    description: DescriptionBlock,
+    'best-worst': BestWorstQuestion,
+    matrix: MatrixQuestion,
   };
 
 

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -213,6 +212,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
             <div className="overflow-x-auto">
                  <Table>
                     <TableHeader>
@@ -323,7 +323,10 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     };
 
     const handleSubmit = () => {
-        if (!surveyId) return;
+        if (isPreview || !surveyId) {
+            setIsCompleted(true);
+            return;
+        }
         const newResponse = {
             id: `resp-${Date.now()}`,
             survey_id: surveyId,
@@ -385,12 +388,12 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     
     const surveyStyles = isPreview ? previewStyles : survey?.styles;
 
-    if (isPreview) {
+    if (isPreview && survey) {
         return (
              <div className="w-full h-full overflow-y-auto bg-card" style={{ backgroundColor: surveyStyles?.secondaryColor, color: surveyStyles?.primaryColor }}>
                 <CardHeader className="text-center p-6 md:p-8">
-                    <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
-                    {survey.description && <CardDescription>{survey.description}</CardDescription>}
+                    <CardTitle className="font-headline text-xl" style={{color: surveyStyles?.primaryColor}}>{survey.title}</CardTitle>
+                    {survey.description && <CardDescription style={{color: surveyStyles?.primaryColor}}>{survey.description}</CardDescription>}
                 </CardHeader>
                 <CardContent className="h-full">
                     {survey.questions.map((q: Question) => {

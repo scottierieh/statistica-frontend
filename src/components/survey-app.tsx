@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
 import type { Question } from '@/entities/Survey';
 import QuestionList from '@/components/survey/QuestionList';
 import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
-import SurveyPreview from '@/components/survey/SurveyPreview';
+import { QuestionTypePalette } from './survey/QuestionTypePalette';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
@@ -27,8 +27,9 @@ export default function SurveyApp() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [styles, setStyles] = useState({
+    theme: 'default',
     primaryColor: '#3C5462',
-    secondaryColor: '#3C5462',
+    secondaryColor: '#E0E0E0',
     font: 'Default',
     foregroundColor: 'Medium',
     questionSpacing: 'Comfortable',
@@ -45,7 +46,7 @@ export default function SurveyApp() {
         setDescription(survey.description || "");
         setQuestions(survey.questions || []);
         if (survey.styles) {
-            setStyles(survey.styles);
+            setStyles(prev => ({...prev, ...survey.styles}));
         }
       }
     };
@@ -59,17 +60,19 @@ export default function SurveyApp() {
     setIsSaving(true);
     try {
         const allSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
-        const surveyData = { title, description, questions, status, styles, created_date: new Date().toISOString() };
         
+        let created_date = new Date().toISOString();
+
         if (surveyId) {
             const index = allSurveys.findIndex((s: any) => s.id === surveyId);
             if (index > -1) {
-                allSurveys[index] = { ...allSurveys[index], ...surveyData };
+                created_date = allSurveys[index].created_date; // Preserve original creation date
+                allSurveys[index] = { ...allSurveys[index], title, description, questions, status, styles, created_date };
             } else {
-                 allSurveys.push({ ...surveyData, id: surveyId });
+                 allSurveys.push({ title, description, questions, status, styles, id: surveyId, created_date });
             }
         } else {
-            allSurveys.push({ ...surveyData, id: Date.now().toString() });
+            allSurveys.push({ title, description, questions, status, styles, id: Date.now().toString(), created_date });
         }
 
         localStorage.setItem('surveys', JSON.stringify(allSurveys));
@@ -80,6 +83,22 @@ export default function SurveyApp() {
     } finally {
         setIsSaving(false);
     }
+  };
+
+    const handleSelectQuestionType = (type: string) => {
+    const newQuestion: Question = {
+      id: Date.now().toString(),
+      type,
+      title: "",
+      required: true,
+      options: ['single', 'multiple', 'dropdown', 'best-worst'].includes(type) ? ['Option 1', 'Option 2'] : [],
+      items: type === 'best-worst' ? ['Item 1', 'Item 2', 'Item 3'] : [],
+      rows: type === 'matrix' ? ['Row 1', 'Row 2'] : [],
+      columns: type === 'matrix' ? ['1', '2', '3'] : [],
+      scale: type === 'matrix' ? ['Bad', 'Neutral', 'Good'] : type === 'rating' ? ['1','2','3','4','5'] : [],
+      content: type === 'description' ? 'This is a description block.' : '',
+    };
+    setQuestions(prev => [...prev, newQuestion]);
   };
   
 
@@ -92,7 +111,7 @@ export default function SurveyApp() {
                     <div className="flex-1">
                         <h1 className="text-3xl font-bold text-slate-900">{surveyId ? "Edit Survey" : "Create New Survey"}</h1>
                     </div>
-                     <Button onClick={() => saveSurvey("draft")} disabled={isSaving} className="flex-1 max-w-fit"><Save className="w-5 h-5 mr-2" />Save as Draft</Button>
+                     <Button onClick={() => saveSurvey("draft")} disabled={isSaving} className="max-w-fit"><Save className="w-5 h-5 mr-2" />Save as Draft</Button>
                 </div>
                  <Tabs defaultValue="questions">
                     <TabsList>
@@ -100,19 +119,42 @@ export default function SurveyApp() {
                         <TabsTrigger value="design">Design</TabsTrigger>
                     </TabsList>
                      <TabsContent value="questions">
-                        <QuestionList 
-                            title={title}
-                            setTitle={setTitle}
-                            description={description}
-                            setDescription={setDescription}
-                            questions={questions}
-                            setQuestions={setQuestions}
-                        />
+                        <div className="grid lg:grid-cols-[320px,1fr] gap-6 items-start">
+                             <div className="lg:sticky lg:top-24">
+                                <QuestionTypePalette onSelectType={handleSelectQuestionType} />
+                            </div>
+                            <QuestionList 
+                                title={title}
+                                setTitle={setTitle}
+                                description={description}
+                                setDescription={setDescription}
+                                questions={questions}
+                                setQuestions={setQuestions}
+                                styles={styles}
+                            />
+                        </div>
                     </TabsContent>
                     <TabsContent value="design">
                         <div className="grid lg:grid-cols-[380px,1fr] gap-6">
                             <SurveyStylePanel styles={styles} setStyles={setStyles} />
-                            <SurveyPreview styles={styles} />
+                            <div className="bg-white rounded-2xl shadow-lg border">
+                                {questions.length > 0 ? (
+                                    <div className="p-8">
+                                         <QuestionList 
+                                            title={title}
+                                            setTitle={() => {}}
+                                            description={description}
+                                            setDescription={() => {}}
+                                            questions={questions}
+                                            setQuestions={() => {}}
+                                            isPreview={true}
+                                            styles={styles}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-muted-foreground">Add questions to see a preview.</div>
+                                )}
+                            </div>
                         </div>
                     </TabsContent>
                 </Tabs>
