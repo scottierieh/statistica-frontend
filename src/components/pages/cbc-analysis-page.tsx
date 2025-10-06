@@ -93,8 +93,6 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
             
             const chosenProfileId = answer;
             
-            // This logic is flawed for real conjoint, but we'll adapt for now.
-            // A real conjoint would have predefined profiles shown to the user.
             const allLevels = conjointQuestion.attributes!.flatMap(a => a.levels);
             const profiles = allLevels.map((level, index) => {
                  const profile: any = { 'resp.id': resp.id, 'alt': `profile_${index}` };
@@ -422,5 +420,4 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => (
         </React.Fragment>
       ))}
     </div>
-  );
-
+);
