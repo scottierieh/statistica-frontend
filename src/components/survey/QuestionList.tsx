@@ -14,10 +14,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown } from "lucide-react";
+import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
-import { type Question } from '@/entities/Survey';
+import { type Question, type ConjointAttribute } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -186,10 +186,10 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                 <div className="space-y-2">
                     {(question.options || []).map((option: string, index: number) => (
                         <div key={index} className="flex items-center group">
-                            <Label htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer", theme === 'flat' && "bg-slate-100")}>
-                                <Checkbox id={`q${question.id}-o${index}`} disabled />
+                           <Label htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer", theme === 'flat' && "bg-slate-100")}>
+                               <Checkbox id={`q${question.id}-o${index}`} disabled />
                                 <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
-                            </Label>
+                           </Label>
                             <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={(e) => { e.preventDefault(); deleteOption(index); }}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                         </div>
                     ))}
@@ -487,6 +487,83 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }:
     );
 };
 
+const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onUpdate?: any, onDelete?: any }) => {
+    const { attributes = [] } = question;
+
+    const handleAttributeNameChange = (attrIndex: number, newName: string) => {
+        onUpdate(produce(question, (draft: any) => {
+            draft.attributes[attrIndex].name = newName;
+        }));
+    };
+    
+    const handleLevelChange = (attrIndex: number, levelIndex: number, newLevel: string) => {
+        onUpdate(produce(question, (draft: any) => {
+            draft.attributes[attrIndex].levels[levelIndex] = newLevel;
+        }));
+    };
+
+    const addAttribute = () => {
+        onUpdate(produce(question, (draft: any) => {
+            draft.attributes.push({ id: `attr-${Date.now()}`, name: `Attribute ${draft.attributes.length + 1}`, levels: ['Level 1', 'Level 2'] });
+        }));
+    };
+
+    const addLevel = (attrIndex: number) => {
+        onUpdate(produce(question, (draft: any) => {
+            draft.attributes[attrIndex].levels.push(`Level ${draft.attributes[attrIndex].levels.length + 1}`);
+        }));
+    };
+
+    const removeAttribute = (attrIndex: number) => {
+        onUpdate(produce(question, (draft: any) => {
+            draft.attributes.splice(attrIndex, 1);
+        }));
+    };
+
+    const removeLevel = (attrIndex: number, levelIndex: number) => {
+        onUpdate(produce(question, (draft: any) => {
+            if (draft.attributes[attrIndex].levels.length > 2) {
+                draft.attributes[attrIndex].levels.splice(levelIndex, 1);
+            }
+        }));
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle>Conjoint Analysis Setup</CardTitle>
+                    <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                </div>
+                 <CardDescription>Define the attributes and levels for the product profiles.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="space-y-4">
+                    {attributes.map((attr: ConjointAttribute, attrIndex: number) => (
+                        <div key={attr.id} className="p-4 border rounded-lg">
+                            <div className="flex justify-between items-center mb-2">
+                                <Input value={attr.name} onChange={(e) => handleAttributeNameChange(attrIndex, e.target.value)} className="text-md font-semibold"/>
+                                <Button variant="ghost" size="icon" onClick={() => removeAttribute(attrIndex)}><Trash2 className="w-4 h-4 text-muted-foreground"/></Button>
+                            </div>
+                            <div className="space-y-2">
+                                {attr.levels.map((level, levelIndex) => (
+                                    <div key={levelIndex} className="flex items-center gap-2">
+                                        <Input value={level} onChange={(e) => handleLevelChange(attrIndex, levelIndex, e.target.value)} />
+                                        <Button variant="ghost" size="icon" onClick={() => removeLevel(attrIndex, levelIndex)} disabled={attr.levels.length <= 2}><X className="w-4 h-4 text-muted-foreground"/></Button>
+                                    </div>
+                                ))}
+                                <Button variant="link" size="sm" onClick={() => addLevel(attrIndex)}><PlusCircle className="w-4 h-4 mr-2"/>Add Level</Button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <Button onClick={addAttribute}><PlusCircle className="mr-2"/> Add Attribute</Button>
+            </CardContent>
+        </Card>
+    );
+};
+
+
 interface QuestionListProps {
     title: string;
     setTitle: (title: string) => void;
@@ -495,9 +572,10 @@ interface QuestionListProps {
     questions: Question[];
     setQuestions: (questions: Question[] | ((prev: Question[]) => Question[])) => void;
     styles: any;
+    isPreview?: boolean;
 }
 
-export default function QuestionList({ title, setTitle, description, setDescription, questions, setQuestions, styles }: QuestionListProps) {
+export default function QuestionList({ title, setTitle, description, setDescription, questions, setQuestions, styles, isPreview = false }: QuestionListProps) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -555,6 +633,7 @@ export default function QuestionList({ title, setTitle, description, setDescript
     description: DescriptionBlock,
     'best-worst': BestWorstQuestion,
     matrix: MatrixQuestion,
+    conjoint: ConjointQuestion,
   };
 
 
@@ -568,11 +647,11 @@ export default function QuestionList({ title, setTitle, description, setDescript
         <CardContent className="space-y-4">
           <div>
             <Label>Title *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} readOnly={isPreview} />
           </div>
           <div>
             <Label>Description</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} readOnly={isPreview}/>
           </div>
         </CardContent>
       </Card>

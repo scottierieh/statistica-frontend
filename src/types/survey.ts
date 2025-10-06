@@ -18,6 +18,12 @@ export interface SurveyResponse {
   };
 }
 
+export interface ConjointAttribute {
+  id: string;
+  name: string;
+  levels: string[];
+}
+
 export interface Question {
   id: string;
   type: string;
@@ -32,4 +38,6 @@ export interface Question {
   content?: string;
   imageUrl?: string;
   rows?: string[];
+  // For Conjoint Analysis
+  attributes?: ConjointAttribute[];
 }

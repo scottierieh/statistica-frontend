@@ -111,6 +111,7 @@ export default function CreateSurveyPage() {
       columns: type === 'matrix' ? ['1', '2', '3'] : [],
       scale: type === 'matrix' ? ['Bad', 'Neutral', 'Good'] : type === 'rating' ? ['1','2','3','4','5'] : [],
       content: type === 'description' ? 'This is a description block.' : '',
+      attributes: type === 'conjoint' ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
     };
     setQuestions(prev => [...prev, newQuestion]);
   };
