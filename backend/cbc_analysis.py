@@ -63,8 +63,6 @@ def main():
         regression_results = {
             'rSquared': getattr(model, 'prsquared', 0.0),
             'adjustedRSquared': getattr(model, 'prsquared_adj', 0.0),
-            'rmse': np.nan, 
-            'mae': np.nan,
             'predictions': model.predict().tolist(),
             'residuals': model.resid_response.tolist(),
             'intercept': model.params.get('const', 0.0),
