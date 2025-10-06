@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -50,8 +51,9 @@ def get_full_interpretation(chi2_stat, p_val, df, cramers_v, n_total, row_var, c
                 if abs(z) > 1.96: # Corresponds to p < 0.05
                     p_z = 2 * (1 - norm.cdf(abs(z)))
                     direction = "significantly more likely" if z > 0 else "significantly less likely"
+                    p_z_text = "< .001" if p_z < 0.001 else f"{p_z:.3f}"
                     residual_interp_parts.append(
-                        f"respondents in the '{r_name}' group were {direction} to be in the '{c_name}' group (z = {z:.2f}, p < {p_z:.3f if p_z > 0.001 else '.001'})"
+                        f"respondents in the '{r_name}' group were {direction} to be in the '{c_name}' group (z = {z:.2f}, p = {p_z_text})"
                     )
         
         if residual_interp_parts:
