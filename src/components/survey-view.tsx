@@ -259,6 +259,7 @@ const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Ques
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
              <div className="flex gap-4 overflow-x-auto pb-4">
                  <div className="flex-shrink-0 w-32 pr-2">
                     {(attributes || []).map(attr => (
@@ -299,11 +300,13 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
              <div className="flex gap-4 overflow-x-auto pb-4">
                  <div className="flex-shrink-0 w-32 pr-2">
                     {(attributes || []).map(attr => (
                         <div key={attr.id} className="h-16 flex items-center font-semibold text-sm text-muted-foreground">{attr.name}:</div>
                     ))}
+                     <div className="h-12 flex items-center font-semibold text-sm text-muted-foreground">Rating (1-10):</div>
                  </div>
                 {profiles.map((profile: any) => (
                     <Card key={profile.id} className="w-48 flex-shrink-0 text-center">
@@ -406,7 +409,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
 
     const handlePrev = () => {
         if (currentQuestionIndex > -1) {
-            setCurrentQuestionIndex(prev => prev - 1);
+            setCurrentQuestionIndex(prev => prev + 1);
         }
     };
 

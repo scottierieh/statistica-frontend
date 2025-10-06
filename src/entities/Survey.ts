@@ -89,7 +89,7 @@ export interface Survey {
 export interface SurveyResponse {
   id: string;
   survey_id: string;
-  submittedAt: string;
+  submittedAt: string; // Changed from submitted_at
   answers: {
     [questionId: string]: any;
   };

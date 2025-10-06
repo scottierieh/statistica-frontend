@@ -9,7 +9,7 @@ import { produce } from 'immer';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -487,7 +487,7 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }:
 };
 
 const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onUpdate?: any, onDelete?: any }) => {
-    const { attributes = [], designMethod = 'full-factorial', sets = 3, cardsPerSet = 3, profiles = [] } = question;
+    const { attributes = [], designMethod = 'full-factorial', sets = 3, cardsPerSet = 3, profiles = [], title, description } = question;
 
     const handleAttributeNameChange = (attrIndex: number, newName: string) => {
         onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].name = newName; }));
@@ -513,7 +513,6 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
             return acc.flatMap((combo: any) => attr.levels.map(level => ({ ...combo, [attr.name]: level })));
         }, []);
         
-        // Shuffle combinations
         for (let i = allCombinations.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [allCombinations[i], allCombinations[j]] = [allCombinations[j], allCombinations[i]];
@@ -533,9 +532,17 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
                     <CardTitle>Conjoint Analysis Setup</CardTitle>
                     <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
                 </div>
-                 <CardDescription>Define attributes, levels, and design, then generate product profiles.</CardDescription>
+                 <CardDescription>Define attributes and levels, then generate product profiles for choice-based tasks.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+                 <div>
+                    <Label>Question Title</Label>
+                    <Input value={title} onChange={(e) => onUpdate({...question, title: e.target.value })} placeholder="e.g., Which smartphone would you choose?" />
+                </div>
+                <div>
+                    <Label>Question Description / Instructions</Label>
+                    <Textarea value={description} onChange={(e) => onUpdate({...question, description: e.target.value })} placeholder="e.g., From the options below, please select the one you would be most likely to purchase." />
+                </div>
                  <div className="space-y-4 p-4 border rounded-lg">
                     <h4 className="font-semibold">1. Define Attributes and Levels</h4>
                     {attributes.map((attr: ConjointAttribute, attrIndex: number) => (
@@ -571,7 +578,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
 
                  {profiles && profiles.length > 0 && (
                     <div className="space-y-2">
-                        <Label>Generated Profile Preview (Set 1)</Label>
+                        <Label>Generated Profile Preview (Set 1 of {profiles.length})</Label>
                         <div className="flex gap-4 overflow-x-auto pb-4 p-2 bg-muted rounded-lg">
                             <div className="flex-shrink-0 w-32 pr-2">
                                 {(attributes || []).map((attr: ConjointAttribute) => (
@@ -585,6 +592,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
                                             <div key={attr.id} className="h-12 flex items-center justify-center text-sm p-1 border-b last:border-b-0">{profile[attr.name]}</div>
                                         ))}
                                     </CardContent>
+                                    <CardFooter className="p-2"><Button className="w-full" variant="outline" disabled>Select</Button></CardFooter>
                                 </Card>
                             ))}
                         </div>
@@ -597,7 +605,7 @@ const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onU
 };
 
 const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onUpdate?: any, onDelete?: any }) => {
-    const { attributes = [], designMethod = 'full-factorial', profiles = [] } = question;
+    const { attributes = [], designMethod = 'full-factorial', profiles = [], title, description } = question;
     const cardsPerSet = profiles.length;
 
     const handleAttributeNameChange = (attrIndex: number, newName: string) => {
@@ -644,6 +652,14 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: an
                  <CardDescription>Define attributes and levels, then generate profiles for rating.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+                  <div>
+                    <Label>Question Title</Label>
+                    <Input value={title} onChange={(e) => onUpdate({...question, title: e.target.value })} placeholder="e.g., Please rate the following smartphone profiles." />
+                </div>
+                <div>
+                    <Label>Question Description / Instructions</Label>
+                    <Textarea value={description} onChange={(e) => onUpdate({...question, description: e.target.value })} placeholder="e.g., On a scale of 1 to 10, how likely are you to purchase each of these products?" />
+                </div>
                   <div className="space-y-4 p-4 border rounded-lg">
                     <h4 className="font-semibold">1. Define Attributes and Levels</h4>
                     {attributes.map((attr: ConjointAttribute, attrIndex: number) => (
@@ -670,7 +686,7 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: an
                      <h4 className="font-semibold">2. Configure Design</h4>
                       <div className="grid grid-cols-2 gap-4">
                         <div><Label>Design Method</Label><Select value={designMethod} onValueChange={(v) => onUpdate({...question, designMethod: v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="full-factorial">Full Factorial</SelectItem><SelectItem value="random">Random</SelectItem></SelectContent></Select></div>
-                        <div><Label>Number of Profiles</Label><Input type="number" value={cardsPerSet} onChange={e => onUpdate({...question, sets: 1, cardsPerSet: Number(e.target.value)})} /></div>
+                        <div><Label>Number of Profiles</Label><Input type="number" value={cardsPerSet} onChange={e => onUpdate({...question, sets: 1, profiles: Array.from({length: Number(e.target.value)}) })} /></div>
                      </div>
                  </div>
 
@@ -687,7 +703,7 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: an
                                 <div className="h-12 flex items-center font-semibold text-sm text-muted-foreground">Rating (1-10):</div>
                              </div>
                             {profiles.map((profile: any, index: number) => (
-                                <Card key={profile.id} className="w-48 flex-shrink-0 text-center bg-card">
+                                <Card key={profile.id || `profile-${index}`} className="w-48 flex-shrink-0 text-center bg-card">
                                     <CardContent className="p-2 space-y-1">
                                         {(attributes || []).map((attr: ConjointAttribute) => (
                                             <div key={attr.id} className="h-12 flex items-center justify-center text-sm p-1 border-b last:border-b-0">{profile[attr.name]}</div>
