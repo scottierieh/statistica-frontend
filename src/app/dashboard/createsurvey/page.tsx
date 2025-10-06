@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -12,13 +13,15 @@ import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import SurveyView from '@/components/survey-view';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { conjointTemplate } from '@/lib/survey-templates';
 
 
 export default function CreateSurveyPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const surveyId = searchParams.get("id");
-  
+  const template = searchParams.get("template");
+
   const [title, setTitle] = useState("My New Survey");
   const [description, setDescription] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -47,8 +50,22 @@ export default function CreateSurveyPage() {
         }
       }
     };
-    if (surveyId) loadSurvey();
-  }, [surveyId]);
+    
+    const loadTemplate = (templateName: string) => {
+        if(templateName === 'conjoint') {
+            setTitle(conjointTemplate.title);
+            setDescription(conjointTemplate.description);
+            setQuestions(conjointTemplate.questions);
+        }
+        // Add other templates here
+    }
+
+    if (surveyId) {
+        loadSurvey();
+    } else if (template) {
+        loadTemplate(template);
+    }
+  }, [surveyId, template]);
 
   const saveSurvey = async (status = "draft") => {
     if (!title.trim()) { alert("Please enter a survey title"); return; }
