@@ -1,4 +1,3 @@
-
 export interface Survey {
   id: string;
   title: string;
@@ -34,6 +33,3 @@ export interface Question {
   rows?: string[];
   text?: string;
 }
-
-
-    
