@@ -42,7 +42,6 @@ def main():
         independent_vars = [attr for attr, props in attributes_def.items() if props.get('includeInAnalysis', True) and attr != target_variable]
 
         for attr_name in independent_vars:
-            props = attributes_def[attr_name]
             # 모든 속성을 범주형으로 취급하여 더미 변수 생성
             df[attr_name] = df[attr_name].astype(str)
             dummies = pd.get_dummies(df[attr_name], prefix=attr_name, drop_first=True, dtype=float)
