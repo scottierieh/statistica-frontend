@@ -8,14 +8,12 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen bg-white text-gray-800">
       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="w-full max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex-1 flex justify-start">
-            <Link href="/" className="flex items-center gap-2">
-              <Calculator className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-headline font-bold">Skarii</h1>
-            </Link>
-          </div>
+          <Link href="/" className="flex items-center gap-2">
+            <Calculator className="h-6 w-6 text-primary" />
+            <h1 className="text-xl font-headline font-bold">Skarii</h1>
+          </Link>
 
-          <nav className="hidden lg:flex flex-1 justify-center items-center gap-4 sm:gap-6">
+          <nav className="hidden lg:flex items-center gap-4 sm:gap-6">
             <Link
               className="text-sm font-medium hover:underline underline-offset-4"
               href="#features"
@@ -36,7 +34,7 @@ export default function LandingPage() {
             </Link>
           </nav>
 
-          <div className="flex-1 flex justify-end items-center gap-4">
+          <div className="flex items-center gap-4">
             <Button variant="ghost" asChild>
               <Link href="/login">Login</Link>
             </Button>
