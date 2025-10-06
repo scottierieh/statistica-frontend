@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -9,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, AlertCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X } from "lucide-react";
+import { CheckCircle2, AlertCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, FileText as FileTextIcon } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Textarea } from './ui/textarea';
 import { Progress } from './ui/progress';
@@ -20,22 +21,7 @@ import { cn } from '@/lib/utils';
 import type { Question } from '@/entities/Survey';
 import { Switch } from './ui/switch';
 
-const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string; onAnswerChange?: (value: string) => void; onDelete?: (id: string) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: string) => void; cardClassName?: string; }) => {
-    const handleOptionChange = (index: number, value: string) => {
-        const newOptions = [...(question.options || [])];
-        newOptions[index] = value;
-        onUpdate?.({ ...question, options: newOptions });
-    };
-
-    const addOption = () => {
-        const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
-        onUpdate?.({ ...question, options: newOptions });
-    };
-
-    const deleteOption = (index: number) => {
-        const newOptions = (question.options || []).filter((_:any, i:number) => i !== index);
-        onUpdate?.({ ...question, options: newOptions });
-    };
+const SingleSelectionQuestion = ({ question, answer, onAnswerChange, isPreview, cardClassName }: { question: any; answer?: string; onAnswerChange?: (value: string) => void; isPreview?: boolean; cardClassName?: string; }) => {
 
     if (isPreview) {
         return (
@@ -60,78 +46,12 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, onDelete, o
 
     return (
         <div className={cn("p-4", cardClassName)}>
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
-                     {question.required && <span className="text-destructive text-xs">* Required</span>}
-                </div>
-                {!isPreview && (
-                    <div className="flex items-center">
-                        <div className="flex items-center space-x-2 mr-2">
-                          <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
-                          <Label htmlFor={`required-${question.id}`}>Required</Label>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
-                            <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                            <Info className="w-5 h-5 text-muted-foreground" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}>
-                            <Trash2 className="w-5 h-5 text-destructive" />
-                        </Button>
-                    </div>
-                )}
-            </div>
-            {question.imageUrl && (
-                 <div className="my-4">
-                    <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" />
-                </div>
-            )}
-            <RadioGroup className="space-y-2">
-                {(question.options || []).map((option: string, index: number) => (
-                    <div key={index} className="flex items-center space-x-2 group">
-                        <RadioGroupItem value={option} id={`q${question.id}-o${index}`} disabled />
-                        <Input 
-                            placeholder={`Option ${index + 1}`} 
-                            className="border-none focus:ring-0 p-0" 
-                            readOnly={isPreview} 
-                            value={option}
-                            onChange={(e) => handleOptionChange(index, e.target.value)}
-                        />
-                         {!isPreview && (
-                             <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => deleteOption(index)}>
-                                <Trash2 className="w-4 h-4 text-destructive"/>
-                            </Button>
-                        )}
-                    </div>
-                ))}
-            </RadioGroup>
-             {!isPreview && (
-                <Button variant="link" size="sm" className="mt-2" onClick={addOption}>
-                    <PlusCircle className="w-4 h-4 mr-2" /> Add Option
-                </Button>
-            )}
+            {/* Editor view not needed in survey view */}
         </div>
     );
 };
 
-const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string[]; onAnswerChange?: (newAnswer: string[]) => void; onDelete?: (id: string) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: string) => void; cardClassName?: string; }) => {
-   const handleOptionChange = (index: number, value: string) => {
-       const newOptions = [...(question.options || [])];
-       newOptions[index] = value;
-       onUpdate?.({ ...question, options: newOptions });
-   };
-
-   const addOption = () => {
-       const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
-       onUpdate?.({ ...question, options: newOptions });
-   };
-
-   const deleteOption = (index: number) => {
-       const newOptions = (question.options || []).filter((_:any, i:number) => i !== index);
-       onUpdate?.({ ...question, options: newOptions });
-   };
+const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, isPreview, cardClassName }: { question: any; answer?: string[]; onAnswerChange?: (newAnswer: string[]) => void; isPreview?: boolean; cardClassName?: string; }) => {
 
    const handleCheckChange = (checked: boolean, opt: string) => {
        if (!onAnswerChange) return;
@@ -146,26 +66,8 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, onDe
        <div className={cn("p-4", cardClassName)}>
            <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
-                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
-                     {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    <h3 className="text-lg font-semibold">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
                 </div>
-               {!isPreview && (
-                    <div className="flex items-center">
-                        <div className="flex items-center space-x-2 mr-2">
-                          <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
-                          <Label htmlFor={`required-${question.id}`}>Required</Label>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
-                            <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                        </Button>
-                       <Button variant="ghost" size="icon">
-                           <Info className="w-5 h-5 text-muted-foreground" />
-                       </Button>
-                       <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}>
-                           <Trash2 className="w-5 h-5 text-destructive" />
-                       </Button>
-                   </div>
-               )}
            </div>
            {question.imageUrl && (
                  <div className="my-4">
@@ -188,22 +90,7 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, onDe
    );
 };
 
-const DropdownQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate, isPreview, onImageUpload, cardClassName }: { question: any; answer?: string; onAnswerChange?: (value: string) => void; onDelete?: (id: string) => void; onUpdate?: (question: any) => void; isPreview?: boolean; onImageUpload?: (id: string) => void; cardClassName?: string; }) => {
-    const handleOptionChange = (index: number, value: string) => {
-        const newOptions = [...(question.options || [])];
-        newOptions[index] = value;
-        onUpdate?.({ ...question, options: newOptions });
-    };
-
-    const addOption = () => {
-        const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
-        onUpdate?.({ ...question, options: newOptions });
-    };
-
-    const deleteOption = (index: number) => {
-        const newOptions = (question.options || []).filter((_:any, i:number) => i !== index);
-        onUpdate?.({ ...question, options: newOptions });
-    };
+const DropdownQuestion = ({ question, answer, onAnswerChange, isPreview, cardClassName }: { question: any; answer?: string; onAnswerChange?: (value: string) => void; isPreview?: boolean;  cardClassName?: string; }) => {
     
     if (isPreview) {
         return (
@@ -226,51 +113,7 @@ const DropdownQuestion = ({ question, answer, onAnswerChange, onDelete, onUpdate
         );
     }
     
-    return (
-        <div className={cn("p-4", cardClassName)}>
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0" readOnly={isPreview} />
-                     {question.required && <span className="text-destructive text-xs">* Required</span>}
-                </div>
-                {!isPreview && (
-                    <div className="flex items-center">
-                        <div className="flex items-center space-x-2 mr-2">
-                          <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({...question, required: checked})} />
-                          <Label htmlFor={`required-${question.id}`}>Required</Label>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => onImageUpload?.(question.id)}>
-                            <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                            <Info className="w-5 h-5 text-muted-foreground" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}>
-                            <Trash2 className="w-5 h-5 text-destructive" />
-                        </Button>
-                    </div>
-                )}
-            </div>
-             <div className="space-y-2">
-                {(question.options || []).map((option: string, index: number) => (
-                    <div key={index} className="flex items-center space-x-2 group">
-                        <Input 
-                            placeholder={`Option ${index + 1}`} 
-                            className="border-t-0 border-x-0 border-b focus:ring-0" 
-                            value={option}
-                            onChange={(e) => handleOptionChange(index, e.target.value)}
-                        />
-                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => deleteOption(index)}>
-                            <Trash2 className="w-4 h-4 text-destructive"/>
-                        </Button>
-                    </div>
-                ))}
-            </div>
-            <Button variant="link" size="sm" className="mt-2" onClick={addOption}>
-                <PlusCircle className="w-4 h-4 mr-2" /> Add Option
-            </Button>
-        </div>
-    );
+    return null; // Editor view not needed here
 };
 
 
@@ -366,6 +209,7 @@ const NPSQuestion = ({ question, answer, onAnswerChange }: { question: Question;
 
 const DescriptionBlock = ({ question }: { question: Question }) => (
     <div className="p-4 prose dark:prose-invert">
+      <h3 className="text-lg font-semibold">{question.title}</h3>
       <p>{question.content}</p>
     </div>
 );
@@ -388,7 +232,7 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Que
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {question.items?.map((item: string, index: number) => (
+                    {(question.items || []).map((item: string, index: number) => (
                         <TableRow key={index}>
                             <TableCell>{item}</TableCell>
                             <TableCell className="text-center">
@@ -411,7 +255,7 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Que
 
 
 const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: any, onAnswerChange: (value: any) => void }) => {
-    const headers = question.scale && question.scale.length > 0 ? question.scale : question.columns || [];
+    const headers = question.scale && question.scale.length > 0 ? question.scale : (question.columns || []);
 
     return (
         <div className="p-4">
@@ -420,7 +264,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-1/3"></TableHead>
-                        {headers.map((header, colIndex) => {
+                        {(headers).map((header, colIndex) => {
                             const showLabel = colIndex === 0 || colIndex === headers.length - 1;
                             return (
                                 <TableHead key={`header-${colIndex}`} className={cn("text-center text-xs w-[60px]", !showLabel && "hidden sm:table-cell")}>
