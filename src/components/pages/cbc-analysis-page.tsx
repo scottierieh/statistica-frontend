@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Target, Settings, Brain, BarChart as BarIcon, PieChart as PieIcon, Network, LineChart, Activity, HelpCircle, MoveRight, Star, TrendingUp, CheckCircle, Users } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, PieChart, Pie, Cell, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { BarChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { ScrollArea } from '../ui/scroll-area';
@@ -26,10 +26,7 @@ interface CbcResults {
     regression: {
         rSquared: number;
         adjustedRSquared: number;
-        rmse: number;
-        mae: number;
         predictions: number[];
-        residuals: number[];
         intercept: number;
         coefficients: {[key: string]: number};
     };
@@ -196,6 +193,29 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     const handleScenarioChange = (scenarioIndex: number, attrName: string, value: string) => { /* ... (implementation) ... */ };
     const runSensitivityAnalysis = async () => { /* ... (implementation) ... */ };
     
+    // Moved these hooks to the top level
+    const importanceData = useMemo(() => {
+        if (!analysisResult) return [];
+        return analysisResult.results.importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value);
+    }, [analysisResult]);
+
+    const partWorthsData = useMemo(() => {
+        if (!analysisResult) return [];
+        return analysisResult.results.part_worths;
+    }, [analysisResult]);
+    
+    const COLORS = useMemo(() => ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'], []);
+    
+    const importanceChartConfig = useMemo(() => {
+      if (!analysisResult) return {};
+      return importanceData.reduce((acc, item, index) => {
+        acc[item.name] = { label: item.name, color: COLORS[index % COLORS.length] };
+        return acc;
+      }, {} as any);
+    }, [analysisResult, importanceData, COLORS]);
+
+    const partWorthChartConfig = { value: { label: "Part-Worth" } };
+
     if (isLoading) {
         return (
             <Card>
@@ -218,19 +238,6 @@ export default function CbcAnalysisPage({ survey, responses }: CbcPageProps) {
     }
 
     const results = analysisResult.results;
-    const importanceData = results.importance.map(({ attribute, importance }) => ({ name: attribute, value: importance })).sort((a,b) => b.value - a.value);
-    const partWorthsData = results.part_worths;
-    
-    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
-    const importanceChartConfig = useMemo(() => {
-      if (!analysisResult) return {};
-      return importanceData.reduce((acc, item, index) => {
-        acc[item.name] = { label: item.name, color: COLORS[index % COLORS.length] };
-        return acc;
-      }, {} as any);
-    }, [analysisResult, importanceData]);
-
-    const partWorthChartConfig = { value: { label: "Part-Worth" } };
     
     return (
         <div className="space-y-4">
