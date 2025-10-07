@@ -12,7 +12,7 @@ import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import type { Survey, SurveyResponse } from '@/types/survey';
+import type { Survey, SurveyResponse, Question } from '@/types/survey';
 
 interface AnalysisResults {
     pme: number | null; // Point of Marginal Expensiveness
