@@ -444,55 +444,74 @@ const BestWorstQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles
 };
 
 const AHPComparisonEditor = ({ question, onUpdate }: { question: Question, onUpdate?: (q: Question) => void }) => {
-  const [leftItem, rightItem] = (question.rows && question.rows.length > 0) ? (question.rows[0] || '').split(' vs ') : ['', ''];
-  const scaleDescriptions: {[key: string]: string} = {
-      '9': `Left is absolutely more important`,
-      '7': `Left is very strongly more important`,
-      '5': `Left is strongly more important`,
-      '3': `Left is moderately more important`,
-      '1': `Equal importance`,
-      '-3': `Right is moderately more important`,
-      '-5': `Right is strongly more important`,
-      '-7': `Right is very strongly more important`,
-      '-9': `Right is absolutely more important`
-  };
     
-  return (
-        <div className="p-4 space-y-6">
-            <Textarea value={question.description} onChange={(e) => onUpdate?.({...question, description: e.target.value})} placeholder="Enter a description for this comparison set."/>
-            
-            {(question.rows || []).map((row: string, rowIndex: number) => {
-                const [left, right] = row.split(' vs ');
-                return (
-                    <div key={rowIndex} className="bg-slate-50 p-6 rounded-xl border">
-                        <div className="flex justify-between items-center mb-4">
-                            <Input className="flex-1 text-center font-bold text-lg text-primary bg-transparent border-none" value={left} onChange={e => {
-                                const newRows = [...question.rows!];
-                                newRows[rowIndex] = `${e.target.value} vs ${right}`;
-                                onUpdate?.({...question, rows: newRows});
-                            }}/>
-                            <div className="mx-4 text-muted-foreground">vs</div>
-                             <Input className="flex-1 text-center font-bold text-lg text-primary bg-transparent border-none" value={right} onChange={e => {
-                                const newRows = [...question.rows!];
-                                newRows[rowIndex] = `${left} vs ${e.target.value}`;
-                                onUpdate?.({...question, rows: newRows});
-                            }}/>
-                        </div>
+    const handleItemChange = (index: number, value: string) => {
+        const newItems = produce(question.items || [], (draft: string[]) => {
+            draft[index] = value;
+        });
+        updateRows(newItems);
+    };
 
-                        <div className="relative py-5">
-                            <div className="flex justify-between items-center px-2">
-                                {[9, 7, 5, 3, 1, -3, -5, -7, -9].map(value => (
-                                    <div key={value} className="w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center cursor-pointer transition-all z-10 border-slate-300">
-                                        {Math.abs(value)}
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 -translate-y-1/2"></div>
-                        </div>
+    const addItem = () => {
+        const newItems = [...(question.items || []), `Item ${(question.items?.length || 0) + 1}`];
+        updateRows(newItems);
+    };
+
+    const removeItem = (index: number) => {
+        const newItems = (question.items || []).filter((_, i) => i !== index);
+        updateRows(newItems);
+    };
+
+    const updateRows = (items: string[]) => {
+        const newRows = [];
+        for (let i = 0; i < items.length; i++) {
+            for (let j = i + 1; j < items.length; j++) {
+                newRows.push(`${items[i]} vs ${items[j]}`);
+            }
+        }
+        onUpdate?.({ ...question, items, rows: newRows });
+    };
+
+    return (
+        <div className="p-4 space-y-6">
+            <Textarea value={question.description} onChange={(e) => onUpdate?.({ ...question, description: e.target.value })} placeholder="Enter a description for this comparison set."/>
+            
+            <div className="space-y-2">
+                <Label>Items to Compare</Label>
+                 {(question.items || []).map((item, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                        <Input value={item} onChange={e => handleItemChange(index, e.target.value)} />
+                        <Button variant="ghost" size="icon" onClick={() => removeItem(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
                     </div>
-                )
-            })}
-             <Button variant="outline" size="sm" onClick={() => onUpdate?.({...question, rows: [...(question.rows || []), 'New Item vs Another']})}><PlusCircle className="w-4 h-4 mr-2" /> Add Comparison</Button>
+                 ))}
+                 <Button variant="outline" size="sm" onClick={addItem}><PlusCircle className="mr-2"/> Add Item</Button>
+            </div>
+
+            <div className="bg-slate-50 p-6 rounded-xl border">
+                <h4 className="font-semibold mb-4 text-center">Preview of Comparisons</h4>
+                 {(question.rows || []).map((row: string, rowIndex: number) => {
+                    const [left, right] = row.split(' vs ');
+                    return (
+                        <div key={rowIndex} className="mb-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="flex-1 text-center font-bold text-lg text-primary">{left}</div>
+                                <div className="mx-4 text-muted-foreground">vs</div>
+                                <div className="flex-1 text-center font-bold text-lg text-primary">{right}</div>
+                            </div>
+                            <div className="relative py-5">
+                                <div className="flex justify-between items-center px-2">
+                                    {[9, 7, 5, 3, 1, -3, -5, -7, -9].map(value => (
+                                        <div key={value} className="w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center font-bold text-sm text-slate-600 z-10 border-slate-300">
+                                            {Math.abs(value)}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 -translate-y-1/2"></div>
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
         </div>
     )
 };
@@ -517,7 +536,7 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
         onUpdate?.({ ...question, [type]: newArr });
     };
 
-    const isAHP = (question.columns || []).length === 9 && question.rows && question.rows.some(r => r.includes('vs'));
+    const isAHP = (question.columns || []).length === 9 && question.rows && question.rows.some((r: string) => r.includes('vs'));
 
     if (isAHP) {
         return (
