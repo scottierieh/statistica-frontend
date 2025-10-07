@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -7,84 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, Settings, BarChart as BarChartIcon, HelpCircle, MoveRight, FileSearch, ShoppingCart, Award } from 'lucide-react';
-import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import { Sigma, Loader2, Target, HelpCircle } from 'lucide-react';
 import Image from 'next/image';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const ipaExample = exampleDatasets.find(d => d.id === 'ipa-restaurant');
-    return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                    <div className="flex justify-center items-center gap-3 mb-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <Target size={36} />
-                        </div>
-                    </div>
-                    <CardTitle className="font-headline text-4xl font-bold">Importance-Performance Analysis (IPA)</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        A strategic tool to identify and prioritize areas for improvement by comparing customer satisfaction (Performance) with attribute importance.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-10 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use IPA?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">
-                            Not all product or service attributes are created equal. Some are critical to customer satisfaction, while others are less impactful. IPA helps you focus your limited resources on what matters most to customers. By plotting attribute performance against their importance, you can instantly see which areas are strengths, which are weaknesses, and where you might be wasting effort.
-                        </p>
-                    </div>
-                    <div className="flex justify-center">
-                        {ipaExample && (
-                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ipaExample)}>
-                                <ShoppingCart className="mx-auto h-8 w-8 text-primary"/>
-                                <div>
-                                    <h4 className="font-semibold">{ipaExample.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{ipaExample.description}</p>
-                                </div>
-                            </Card>
-                        )}
-                    </div>
-                     <div className="grid md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Data Requirements</h3>
-                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li>
-                                    <strong>Overall Satisfaction:</strong> Your dataset must contain a numeric column named exactly <strong>`Overall_Satisfaction`</strong> which represents the overall outcome metric.
-                                </li>
-                                <li>
-                                    <strong>Attribute Performance:</strong> All other numeric columns in the dataset will be treated as performance attributes to be analyzed.
-                                </li>
-                            </ul>
-                        </div>
-                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
-                             <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li>
-                                    <strong>Concentrate Here (High Importance, Low Performance):</strong> Your top priority. Improving these attributes will likely have the biggest impact on overall satisfaction.
-                                </li>
-                                <li>
-                                    <strong>Keep Up the Good Work (High Importance, High Performance):</strong> Your key strengths. Maintain your performance in these areas.
-                                </li>
-                                <li>
-                                    <strong>Low Priority (Low Importance, Low Performance):</strong> Don't worry too much about these. Resources are better spent elsewhere.
-                                </li>
-                                 <li>
-                                    <strong>Possible Overkill (Low Importance, High Performance):</strong> You may be investing too many resources here for little return in satisfaction.
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
-                </CardFooter>
-            </Card>
-        </div>
-    );
-};
+import type { Survey, SurveyResponse } from '@/types/survey';
 
 interface IpaMatrixItem {
     attribute: string;
@@ -116,43 +41,67 @@ interface FullAnalysisResponse {
 }
 
 interface IpaPageProps {
-    data: DataSet;
-    numericHeaders: string[];
-    onLoadExample: (example: ExampleDataSet) => void;
+    survey: Survey;
+    responses: SurveyResponse[];
 }
 
-export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPageProps) {
+export default function IpaPage({ survey, responses }: IpaPageProps) {
     const { toast } = useToast();
-    const [view, setView] = useState('intro');
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-
-    const canRun = useMemo(() => {
-        if (!data || !numericHeaders) return false;
-        const hasSatisfaction = numericHeaders.some(h => h.toLowerCase().includes('overall_satisfaction'));
-        return data.length > 0 && numericHeaders.length >= 2 && hasSatisfaction;
-    }, [data, numericHeaders]);
-    
-    useEffect(() => {
-        setAnalysisResult(null);
-        setView(canRun ? 'main' : 'intro');
-    }, [data, numericHeaders, canRun]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const handleAnalysis = useCallback(async () => {
         setIsLoading(true);
+        setError(null);
         setAnalysisResult(null);
 
         try {
-            const dependentVar = numericHeaders.find(h => h.toLowerCase() === 'overall_satisfaction');
-            if (!dependentVar) {
-                throw new Error("Dataset must contain a numeric column named 'Overall_Satisfaction'.");
+            // Find the Overall Satisfaction question (assuming it's a matrix question with a single row)
+            const overallQuestion = survey.questions.find(q => q.type === 'matrix' && q.rows?.some(r => r.toLowerCase().includes('overall')));
+            if (!overallQuestion) {
+                throw new Error("An 'Overall_Satisfaction' question (as a matrix type) is required for IPA.");
             }
-            const independentVars = numericHeaders.filter(h => h.toLowerCase() !== 'overall_satisfaction');
+            const overallQuestionId = overallQuestion.id;
+            const overallRowName = overallQuestion.rows![0];
+
+            // Find attribute questions (matrix questions that are not the overall one)
+            const attributeQuestions = survey.questions.filter(q => q.type === 'matrix' && q.id !== overallQuestionId);
+            if (attributeQuestions.length === 0) {
+                 throw new Error("At least one attribute matrix question is required for IPA.");
+            }
+            
+            // Transform responses into a flat DataFrame-like structure
+            const analysisData = responses.map(response => {
+                const row: { [key: string]: number | string } = {};
+                
+                // Get overall satisfaction
+                const overallAnswer = response.answers[overallQuestionId];
+                row['Overall_Satisfaction'] = overallAnswer ? Number(overallAnswer[overallRowName]) : NaN;
+
+                // Get attribute satisfactions
+                attributeQuestions.forEach(q => {
+                    const attrAnswers = response.answers[q.id];
+                    if (q.rows && attrAnswers) {
+                        q.rows.forEach(rowName => {
+                             row[rowName] = attrAnswers[rowName] ? Number(attrAnswers[rowName]) : NaN;
+                        });
+                    }
+                });
+                return row;
+            });
+
+            const dependentVar = 'Overall_Satisfaction';
+            const independentVars = Array.from(new Set(attributeQuestions.flatMap(q => q.rows || [])));
+            
+            if (independentVars.length === 0) {
+                throw new Error("No attribute variables found in the matrix questions.");
+            }
 
             const response = await fetch('/api/analysis/ipa', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data, dependentVar, independentVars })
+                body: JSON.stringify({ data: analysisData, dependentVar, independentVars })
             });
 
             if (!response.ok) {
@@ -168,98 +117,98 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
 
         } catch (e: any) {
             console.error('IPA Analysis error:', e);
+            setError(e.message);
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
             setIsLoading(false);
         }
-    }, [data, numericHeaders, toast]);
+    }, [survey, responses, toast]);
     
     useEffect(() => {
-        if (view === 'main' && canRun && !analysisResult && !isLoading) {
+        if (survey && responses) {
             handleAnalysis();
         }
-    }, [view, canRun, analysisResult, isLoading, handleAnalysis]);
+    }, [survey, responses, handleAnalysis]);
     
-    if (view === 'intro' || !canRun) {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+
+    if (isLoading) {
+        return (
+            <Card>
+                <CardContent className="p-6 text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <p className="mt-4 text-muted-foreground">Running Importance-Performance Analysis...</p>
+                </CardContent>
+            </Card>
+        );
     }
     
-    const results = analysisResult?.results;
+    if (error) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="text-destructive">Analysis Failed</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    if (!analysisResult) {
+        return (
+             <Card>
+                <CardContent className="p-6 text-center">
+                    <p className="text-muted-foreground">No analysis results to display.</p>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    const results = analysisResult.results;
 
     return (
         <div className="space-y-4">
-            {isLoading && (
-                <Card>
-                    <CardContent className="p-6 text-center">
-                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                        <p className="mt-4 text-muted-foreground">Running Importance-Performance Analysis...</p>
-                    </CardContent>
-                </Card>
-            )}
-
-            {results && analysisResult?.plot && (
-                <Tabs defaultValue="dashboard" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="dashboard">IPA Dashboard</TabsTrigger>
-                        <TabsTrigger value="details">Detailed Tables</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="dashboard" className="mt-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">IPA Dashboard</CardTitle>
-                                <CardDescription>A comprehensive visual overview of the Importance-Performance Analysis.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.plot} alt="IPA Dashboard" width={1800} height={1200} className="w-full rounded-md border" />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="details" className="mt-4">
-                         <Card>
-                            <CardHeader><CardTitle>Quadrant Summary & Detailed Results</CardTitle></CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Attribute</TableHead>
-                                            <TableHead>Quadrant</TableHead>
-                                            <TableHead className="text-right">Importance (Corr.)</TableHead>
-                                            <TableHead className="text-right">Performance (Mean)</TableHead>
-                                            <TableHead className="text-right">Priority Score</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {results.ipa_matrix.map(item => (
-                                            <TableRow key={item.attribute}>
-                                                <TableCell className="font-semibold">{item.attribute}</TableCell>
-                                                <TableCell>{item.quadrant}</TableCell>
-                                                <TableCell className="text-right font-mono">{item.importance.toFixed(3)}</TableCell>
-                                                <TableCell className="text-right font-mono">{item.performance.toFixed(3)}</TableCell>
-                                                <TableCell className="text-right font-mono">{item.priority_score.toFixed(2)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
-            )}
-             {!isLoading && !results && (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Ready to Analyze</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p>Click the button below to run the analysis on the loaded data.</p>
-                    </CardContent>
-                    <CardFooter>
-                         <Button onClick={handleAnalysis} disabled={isLoading}>
-                            {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2" />Run IPA</>}
-                        </Button>
-                    </CardFooter>
-                </Card>
-             )}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">IPA Dashboard</CardTitle>
+                    <CardDescription>A comprehensive visual overview of the Importance-Performance Analysis.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Image src={analysisResult.plot} alt="IPA Dashboard" width={1800} height={1200} className="w-full rounded-md border" />
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader><CardTitle>Quadrant Summary & Detailed Results</CardTitle></CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Attribute</TableHead>
+                                <TableHead>Quadrant</TableHead>
+                                <TableHead className="text-right">Importance (Corr.)</TableHead>
+                                <TableHead className="text-right">Performance (Mean)</TableHead>
+                                <TableHead className="text-right">Priority Score</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {results.ipa_matrix.map(item => (
+                                <TableRow key={item.attribute}>
+                                    <TableCell className="font-semibold">{item.attribute}</TableCell>
+                                    <TableCell>{item.quadrant}</TableCell>
+                                    <TableCell className="text-right font-mono">{item.importance.toFixed(3)}</TableCell>
+                                    <TableCell className="text-right font-mono">{item.performance.toFixed(3)}</TableCell>
+                                    <TableCell className="text-right font-mono">{item.priority_score.toFixed(2)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
         </div>
     );
 }
