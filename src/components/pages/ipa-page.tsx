@@ -3,19 +3,15 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, Target, Settings, BarChart, TrendingUp, HelpCircle, MoveRight, FileSearch, ShoppingCart, Award } from 'lucide-react';
+import { Sigma, Loader2, Target, Settings, BarChart as BarChartIcon, HelpCircle, MoveRight, FileSearch, ShoppingCart, Award } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Label } from '../ui/label';
-import { ScrollArea } from '../ui/scroll-area';
-import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const ipaExample = exampleDatasets.find(d => d.id === 'ipa-restaurant');
@@ -51,27 +47,17 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                             </Card>
                         )}
                     </div>
-                    <div className="grid md:grid-cols-2 gap-8">
+                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="space-y-6">
-                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Setup Guide</h3>
-                            <ol className="list-decimal list-inside space-y-4 text-muted-foreground">
+                            <h3 className="font-semibold text-2xl flex items-center gap-2"><Settings className="text-primary"/> Data Requirements</h3>
+                            <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
                                 <li>
-                                    <strong>Prepare Data</strong>
-                                    <p className="text-sm pl-5">Your dataset should contain numeric ratings. Include one column for 'Overall Satisfaction' and multiple columns for the performance ratings of specific attributes (e.g., Food Quality, Service Speed).</p>
+                                    <strong>Overall Satisfaction:</strong> Your dataset must contain a numeric column named exactly <strong>`Overall_Satisfaction`</strong> which represents the overall outcome metric.
                                 </li>
                                 <li>
-                                    <strong>Select Dependent Variable</strong>
-                                    <p className="text-sm pl-5">Choose the column representing 'Overall Satisfaction' or a similar overall evaluation metric.</p>
+                                    <strong>Attribute Performance:</strong> All other numeric columns in the dataset will be treated as performance attributes to be analyzed.
                                 </li>
-                                <li>
-                                    <strong>Select Independent Variables</strong>
-                                    <p className="text-sm pl-5">Choose the columns representing the performance of individual attributes. These will be used to derive the 'implicit importance'.</p>
-                                </li>
-                                <li>
-                                    <strong>Run Analysis</strong>
-                                    <p className="text-sm pl-5">The tool will calculate importance and plot it against the average performance of each attribute.</p>
-                                </li>
-                            </ol>
+                            </ul>
                         </div>
                          <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
@@ -93,7 +79,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
+                    <Button size="lg" onClick={onStart}>Start Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
@@ -108,20 +94,22 @@ interface IpaMatrixItem {
     priority_score: number;
     gap: number;
     r_squared: number;
+    relative_importance: number;
 }
-
-interface ValidationResults {
+interface RegressionSummary {
     r2: number;
     adj_r2: number;
-    beta_coefficients: { attribute: string; beta: number }[];
+    f_stat: number;
+    f_pvalue: number;
 }
-
 interface IpaResults {
     ipa_matrix: IpaMatrixItem[];
-    means: { performance: number; importance: number };
-    validation: ValidationResults;
+    regression_summary: RegressionSummary;
+    advanced_metrics: {
+        sensitivity: { [key: string]: { r2_change: number; relative_importance: number; } };
+        outliers: { standardized_residuals: number[]; cooks_distance: number[]; };
+    };
 }
-
 interface FullAnalysisResponse {
     results: IpaResults;
     plot: string;
@@ -136,45 +124,30 @@ interface IpaPageProps {
 export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPageProps) {
     const { toast } = useToast();
     const [view, setView] = useState('intro');
-    const [dependentVar, setDependentVar] = useState<string | undefined>();
-    const [independentVars, setIndependentVars] = useState<string[]>([]);
-    
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const canRun = useMemo(() => Array.isArray(data) && data.length > 0 && Array.isArray(numericHeaders) && numericHeaders.length >= 2, [data, numericHeaders]);
+    const canRun = useMemo(() => {
+        const hasSatisfaction = numericHeaders.some(h => h.toLowerCase().includes('overall_satisfaction'));
+        return data.length > 0 && numericHeaders.length >= 2 && hasSatisfaction;
+    }, [data, numericHeaders]);
     
     useEffect(() => {
-        if (canRun) {
-            const satisfactionCols = numericHeaders.filter(h => h.toLowerCase().includes('satisfaction') || h.toLowerCase().includes('rating'));
-            const defaultDepVar = satisfactionCols.find(h => h.toLowerCase().includes('overall')) || satisfactionCols[satisfactionCols.length - 1] || numericHeaders[numericHeaders.length - 1];
-            setDependentVar(defaultDepVar);
-    
-            const defaultIndepVars = numericHeaders.filter(h => h !== defaultDepVar && !h.toLowerCase().includes('id'));
-            setIndependentVars(defaultIndepVars);
-            setAnalysisResult(null);
-            setView('main');
-        } else {
-            setView('intro');
-        }
+        setAnalysisResult(null);
+        setView(canRun ? 'main' : 'intro');
     }, [data, numericHeaders, canRun]);
 
-    const availableFeatures = useMemo(() => numericHeaders ? numericHeaders.filter(h => h !== dependentVar) : [], [numericHeaders, dependentVar]);
-    
-    const handleIndepVarChange = (header: string, checked: boolean) => {
-        setIndependentVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
-    };
-
     const handleAnalysis = useCallback(async () => {
-        if (!dependentVar || independentVars.length === 0) {
-            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select a dependent variable and at least one independent variable.' });
-            return;
-        }
-
         setIsLoading(true);
         setAnalysisResult(null);
 
         try {
+            const dependentVar = numericHeaders.find(h => h.toLowerCase() === 'overall_satisfaction');
+            if (!dependentVar) {
+                throw new Error("Dataset must contain a numeric column named 'Overall_Satisfaction'.");
+            }
+            const independentVars = numericHeaders.filter(h => h.toLowerCase() !== 'overall_satisfaction');
+
             const response = await fetch('/api/analysis/ipa', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -190,6 +163,7 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
             if (result.error) throw new Error(result.error);
 
             setAnalysisResult(result);
+            toast({ title: 'Analysis Complete', description: 'IPA results generated successfully.' });
 
         } catch (e: any) {
             console.error('IPA Analysis error:', e);
@@ -197,13 +171,16 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
         } finally {
             setIsLoading(false);
         }
-    }, [data, dependentVar, independentVars, toast]);
-
-    if (!canRun && view === 'main') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
-    }
+    }, [data, numericHeaders, toast]);
     
-    if (view === 'intro') {
+    useEffect(() => {
+        // Automatically run analysis if data is present and page is loaded
+        if (view === 'main' && canRun && !analysisResult) {
+            handleAnalysis();
+        }
+    }, [view, canRun, analysisResult, handleAnalysis]);
+    
+    if (view === 'intro' || !canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
     
@@ -211,49 +188,19 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
 
     return (
         <div className="space-y-4">
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">IPA Setup</CardTitle>
-                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
-                    </div>
-                    <CardDescription>Select your dependent variable (overall satisfaction) and independent variables (attributes).</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <Label>Dependent Variable (Overall Satisfaction)</Label>
-                            <Select value={dependentVar} onValueChange={setDependentVar}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>Independent Variables (Attributes)</Label>
-                            <ScrollArea className="h-40 border rounded-md p-4">
-                                {availableFeatures.map(h => (
-                                    <div key={h} className="flex items-center space-x-2">
-                                        <Checkbox id={`iv-${h}`} checked={independentVars.includes(h)} onCheckedChange={(c) => handleIndepVarChange(h, c as boolean)}/>
-                                        <Label htmlFor={`iv-${h}`}>{h}</Label>
-                                    </div>
-                                ))}
-                            </ScrollArea>
-                        </div>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={!dependentVar || independentVars.length === 0 || isLoading}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2" />Run Analysis</>}
-                    </Button>
-                </CardFooter>
-            </Card>
-
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[500px] w-full"/></CardContent></Card>}
+            {isLoading && (
+                <Card>
+                    <CardContent className="p-6 text-center">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                        <p className="mt-4 text-muted-foreground">Running Importance-Performance Analysis...</p>
+                    </CardContent>
+                </Card>
+            )}
 
             {results && analysisResult?.plot && (
                 <Tabs defaultValue="dashboard" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="dashboard">Analysis Dashboard</TabsTrigger>
+                        <TabsTrigger value="dashboard">IPA Dashboard</TabsTrigger>
                         <TabsTrigger value="details">Detailed Tables</TabsTrigger>
                     </TabsList>
                     <TabsContent value="dashboard" className="mt-4">
@@ -276,9 +223,8 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
                                         <TableRow>
                                             <TableHead>Attribute</TableHead>
                                             <TableHead>Quadrant</TableHead>
-                                            <TableHead className="text-right">Importance</TableHead>
-                                            <TableHead className="text-right">Performance</TableHead>
-                                            <TableHead className="text-right">Gap</TableHead>
+                                            <TableHead className="text-right">Importance (Corr.)</TableHead>
+                                            <TableHead className="text-right">Performance (Mean)</TableHead>
                                             <TableHead className="text-right">Priority Score</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -289,7 +235,6 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
                                                 <TableCell>{item.quadrant}</TableCell>
                                                 <TableCell className="text-right font-mono">{item.importance.toFixed(3)}</TableCell>
                                                 <TableCell className="text-right font-mono">{item.performance.toFixed(3)}</TableCell>
-                                                <TableCell className={`text-right font-mono ${item.gap < 0 ? 'text-red-500' : 'text-green-600'}`}>{item.gap.toFixed(3)}</TableCell>
                                                 <TableCell className="text-right font-mono">{item.priority_score.toFixed(2)}</TableCell>
                                             </TableRow>
                                         ))}
@@ -300,6 +245,21 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
                     </TabsContent>
                 </Tabs>
             )}
+             {!isLoading && !results && (
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Ready to Analyze</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p>Click the button below to run the analysis on the loaded data.</p>
+                    </CardContent>
+                    <CardFooter>
+                         <Button onClick={handleAnalysis} disabled={isLoading}>
+                            {isLoading ? <><Loader2 className="mr-2 animate-spin" /> Running...</> : <><Sigma className="mr-2" />Run IPA</>}
+                        </Button>
+                    </CardFooter>
+                </Card>
+             )}
         </div>
     );
 }
