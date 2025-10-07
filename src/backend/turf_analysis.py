@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -13,7 +14,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -81,6 +82,7 @@ def main():
         if not data or not selection_col:
             raise ValueError("Missing 'data' or 'selectionCol'")
 
+        # Data preprocessing: One-hot encode the comma-separated selections
         df_raw = pd.DataFrame(data)
         df_raw.dropna(subset=[selection_col], inplace=True)
         
@@ -149,7 +151,6 @@ def main():
         }
         results_dict['interpretation'] = get_interpretation(results_dict)
 
-
         # 4. Visualization
         fig, axes = plt.subplots(2, 2, figsize=(16, 12))
         fig.suptitle('TURF Analysis Results', fontsize=16)
@@ -187,7 +188,6 @@ def main():
         
         buf = io.BytesIO()
         plt.savefig(buf, format='png')
-        plt.close(fig)
         buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
         
