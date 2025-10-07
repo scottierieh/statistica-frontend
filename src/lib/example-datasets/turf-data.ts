@@ -1,0 +1,23 @@
+
+export const turfData = `respondent_id,flavor_choice
+1,"Classic Cola,Lemon Lime,Orange Soda"
+2,"Lemon Lime,Grape Soda"
+3,"Root Beer"
+4,"Classic Cola,Ginger Ale,Cherry Cola"
+5,"Orange Soda,Grape Soda,Cream Soda"
+6,"Lemon Lime"
+7,"Classic Cola,Root Beer"
+8,"Orange Soda,Ginger Ale"
+9,"Grape Soda"
+10,"Classic Cola,Lemon Lime,Cherry Cola,Cream Soda"
+11,"Root Beer,Ginger Ale"
+12,"Orange Soda"
+13,"Lemon Lime,Grape Soda,Root Beer"
+14,"Classic Cola"
+15,"Cherry Cola,Cream Soda"
+16,"Lemon Lime,Orange Soda"
+17,"Grape Soda,Ginger Ale"
+18,"Classic Cola,Root Beer,Cream Soda"
+19,"Orange Soda,Cherry Cola"
+20,"Lemon Lime,Grape Soda"
+`.trim();

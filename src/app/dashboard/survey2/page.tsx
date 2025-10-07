@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate } from "@/lib/survey-templates";
+import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate } from "@/lib/survey-templates";
 
 const TemplateCard = ({ icon: Icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) => (
     <Link href={href} className="block">
@@ -152,6 +152,7 @@ export default function Survey2Dashboard() {
                          <TemplateCard icon={ClipboardList} title="Rating Conjoint" description="Analyze customer preferences using a rating-based approach." href="/dashboard/createsurvey?template=rating-conjoint"/>
                          <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
                          <TemplateCard icon={DollarSign} title="Price Sensitivity" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=van-westendorp"/>
+                         <TemplateCard icon={Users} title="TURF Analysis" description="Identify the best combination of items to maximize reach." href="/dashboard/createsurvey?template=turf"/>
                          <TemplateCard icon={Users} title="Employee Engagement" description="Gauge employee satisfaction and identify areas for cultural improvement." href="/dashboard/createsurvey?template=employee"/>
                          <TemplateCard icon={ClipboardList} title="Customer Satisfaction" description="Measure overall customer satisfaction (CSAT) and drivers." href="/dashboard/createsurvey?template=csat"/>
                     </div>

@@ -131,3 +131,33 @@ export const vanWestendorpTemplate = {
         },
     ] as Question[]
 };
+
+export const turfTemplate = {
+    title: "Product Line Optimization (TURF)",
+    description: "Help us understand which combination of potential new product flavors you find most appealing.",
+    questions: [
+        {
+            id: 'turf_desc',
+            type: 'description',
+            title: 'Instructions',
+            content: 'From the list below, please select ALL of the new soda flavors you would be interested in purchasing if they were available.'
+        },
+        {
+            id: 'turf_q_1',
+            type: 'multiple',
+            title: 'Which of the following soda flavors would you consider buying?',
+            description: 'Select all that apply.',
+            required: true,
+            options: [
+                'Classic Cola',
+                'Lemon Lime',
+                'Orange Soda',
+                'Grape Soda',
+                'Root Beer',
+                'Ginger Ale',
+                'Cherry Cola',
+                'Cream Soda'
+            ],
+        },
+    ] as Question[],
+};
