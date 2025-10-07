@@ -12,7 +12,7 @@ import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import SurveyView from '@/components/survey-view';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate } from '@/lib/survey-templates';
+import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate } from '@/lib/survey-templates';
 
 
 export default function CreateSurveyPage() {
@@ -64,6 +64,9 @@ export default function CreateSurveyPage() {
                 break;
             case 'van-westendorp':
                 selectedTemplate = vanWestendorpTemplate;
+                break;
+            case 'turf':
+                selectedTemplate = turfTemplate;
                 break;
             default:
                 return;
