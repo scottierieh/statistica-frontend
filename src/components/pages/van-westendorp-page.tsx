@@ -76,16 +76,16 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     
-    const requiredQuestions = useMemo(() => ['too cheap', 'cheap/bargain', 'expensive/high side', 'too expensive'], []);
+    const requiredQuestions = useMemo(() => ['too cheap', 'cheap', 'expensive', 'too expensive'], []);
     
     const questionMap = useMemo(() => {
         const mapping: {[key: string]: string} = {};
         if (!survey) return mapping;
         
         requiredQuestions.forEach(q_title => {
-            const question = survey.questions.find(q => q.title.toLowerCase().trim() === q_title.toLowerCase().trim());
+            const question = survey.questions.find(q => q.title.toLowerCase().includes(q_title));
             if(question) {
-                const key = q_title.replace(/\//g, '_').replace(/\s/g, '_');
+                const key = q_title.replace(/\s/g, '_');
                 mapping[key] = question.id;
             }
         });
@@ -96,7 +96,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
 
     const handleAnalysis = useCallback(async () => {
         if (!canRun) {
-            setError("Not all required Van Westendorp questions were found in the survey. Please ensure questions titled 'Too Cheap', 'Cheap/Bargain', 'Expensive/High Side', and 'Too Expensive' exist and are of 'number' type.");
+            setError("Not all required Van Westendorp questions were found. Please ensure questions containing 'Too Cheap', 'Cheap', 'Expensive', and 'Too Expensive' exist and are of 'number' type.");
             setIsLoading(false);
             return;
         }
@@ -108,24 +108,23 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         const analysisData: any[] = responses.map(r => {
             const answers = r.answers as any;
             return {
-                [questionMap.too_cheap]: answers[questionMap.too_cheap],
-                [questionMap.cheap_bargain]: answers[questionMap.cheap_bargain],
-                [questionMap.expensive_high_side]: answers[questionMap.expensive_high_side],
-                [questionMap.too_expensive]: answers[questionMap.too_expensive],
+                too_cheap: answers[questionMap.too_cheap],
+                cheap: answers[questionMap.cheap],
+                expensive: answers[questionMap.expensive],
+                too_expensive: answers[questionMap.too_expensive],
             };
-        }).filter(row => Object.values(row).every(val => val !== undefined && val !== null));
-
-
+        }).filter(row => Object.values(row).every(val => val !== undefined && val !== null && !isNaN(Number(val))));
+        
         try {
             const response = await fetch('/api/analysis/van-westendorp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     data: analysisData,
-                    too_cheap_col: questionMap.too_cheap,
-                    cheap_col: questionMap.cheap_bargain,
-                    expensive_col: questionMap.expensive_high_side,
-                    too_expensive_col: questionMap.too_expensive,
+                    too_cheap_col: 'too_cheap',
+                    cheap_col: 'cheap',
+                    expensive_col: 'expensive',
+                    too_expensive_col: 'too_expensive',
                 })
             });
 
