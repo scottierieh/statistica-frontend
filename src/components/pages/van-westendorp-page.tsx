@@ -8,26 +8,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, DollarSign, Brain, LineChart, AlertTriangle, HelpCircle, MoveRight } from 'lucide-react';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import dynamic from 'next/dynamic';
-import type { Survey, SurveyResponse, Question } from '@/types/survey';
-import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
+import type { Survey, SurveyResponse } from '@/types/survey';
 
-const Plot = dynamic(() => import('react-plotly.js'), {
-  ssr: false,
-  loading: () => <Skeleton className="w-full h-[500px]" />,
-});
+interface AnalysisResults {
+    pme: number | null; // Point of Marginal Expensiveness
+    pmc: number | null; // Point of Marginal Cheapness
+    opp: number | null; // Optimal Price Point
+    idp: number | null; // Indifference Price Point
+    interpretation: string;
+}
 
-
-interface AnalysisResponse {
-    results: {
-        opp: number | null;
-        pme: number | null;
-        mdp: number | null;
-        ipp: number | null;
-    };
-    plotData: any;
+interface FullAnalysisResponse {
+    results: AnalysisResults;
+    plot: string;
 }
 
 interface VanWestendorpPageProps {
@@ -42,9 +39,34 @@ const StatCard = ({ title, value, unit = '$' }: { title: string, value: number |
     </div>
 );
 
+const InterpretationDisplay = ({ interpretation }: { interpretation: string | undefined }) => {
+  const formattedInterpretation = useMemo(() => {
+    if (!interpretation) return null;
+    return interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  }, [interpretation]);
+
+  if (!interpretation) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline flex items-center gap-2"><Brain /> AI Interpretation</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Strategic Pricing Insights</AlertTitle>
+          <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
+        </Alert>
+      </CardContent>
+    </Card>
+  );
+};
+
+
 export default function VanWestendorpPage({ survey, responses }: VanWestendorpPageProps) {
     const { toast } = useToast();
-    const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
+    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     
@@ -57,7 +79,6 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         requiredQuestions.forEach(q_title => {
             const question = survey.questions.find(q => q.title.toLowerCase().includes(q_title));
             if(question) {
-                // Use a consistent key format that is valid in JS
                 const key = q_title.toLowerCase().replace(/[\s/]/g, '_');
                 mapping[key] = question.id;
             }
@@ -65,7 +86,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         return mapping;
     }, [survey, requiredQuestions]);
 
-    const canRun = useMemo(() => requiredQuestions.every(q => Object.values(questionMap).length === requiredQuestions.length), [questionMap, requiredQuestions]);
+    const canRun = useMemo(() => Object.keys(questionMap).length === requiredQuestions.length, [questionMap, requiredQuestions]);
 
     const handleAnalysis = useCallback(async () => {
         if (!canRun) {
@@ -78,12 +99,14 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         setError(null);
         setAnalysisResult(null);
 
-        const analysisData = responses.map(r => ({
-            too_cheap: Number(r.answers[questionMap.too_cheap]),
-            cheap: Number(r.answers[questionMap.cheap_bargain]),
-            expensive: Number(r.answers[questionMap.expensive_high_side]),
-            too_expensive: Number(r.answers[questionMap.too_expensive]),
-        })).filter(row => !Object.values(row).some(isNaN));
+        const analysisData = responses.map(r => {
+            return {
+                too_cheap: Number((r.answers as any)[questionMap.too_cheap]),
+                cheap: Number((r.answers as any)[questionMap.cheap_bargain]),
+                expensive: Number((r.answers as any)[questionMap.expensive_high_side]),
+                too_expensive: Number((r.answers as any)[questionMap.too_expensive]),
+            }
+        }).filter(row => !Object.values(row).some(v => isNaN(v) || v === null || v === undefined));
         
         if (analysisData.length === 0) {
             setError("No valid numeric responses found for the price sensitivity questions.");
@@ -109,7 +132,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                 throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
             }
 
-            const result: AnalysisResponse = await response.json();
+            const result: FullAnalysisResponse = await response.json();
             if ((result as any).error) throw new Error((result as any).error);
             
             setAnalysisResult(result);
@@ -129,64 +152,6 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
     }, [handleAnalysis]);
     
     const results = analysisResult?.results;
-    
-    const plotData = useMemo(() => {
-        if (!analysisResult?.plotData) return null;
-        try {
-            const { prices, too_cheap, cheap, expensive, too_expensive } = analysisResult.plotData;
-            
-            const traces = [
-                { x: prices, y: too_expensive, mode: 'lines', name: 'Too Expensive', line: { color: 'red'} },
-                { x: prices, y: expensive, mode: 'lines', name: 'Expensive', line: { color: 'orange'} },
-                { x: prices, y: cheap.map((v: number) => 100 - v), mode: 'lines', name: 'Not Cheap', line: { color: 'blue'} },
-                { x: prices, y: too_cheap.map((v: number) => 100 - v), mode: 'lines', name: 'Not Too Cheap', line: { color: 'skyblue', dash: 'dash' } }
-            ];
-
-            return { data: traces };
-        } catch(e) {
-            console.error("Failed to parse plot data", e);
-            return null;
-        }
-    }, [analysisResult]);
-
-
-    const layout = useMemo(() => {
-      if (!results) return {};
-      
-      const shapes: any[] = [];
-      const annotations: any[] = [];
-      const addAnnotation = (x: number | null, y: number, text: string) => {
-        if(x === null) return;
-        annotations.push({ x: x, y: y, text: text, showarrow: true, arrowhead: 4, ax: 0, ay: -40, bgcolor: 'rgba(255, 255, 255, 0.7)' });
-      };
-
-      if (results.pme) {
-          shapes.push({ type: 'line', x0: results.pme, x1: results.pme, y0: 0, y1: 100, line: { color: 'grey', width: 1, dash: 'dot' } });
-          addAnnotation(results.pme, 95, 'Point of Marginal<br>Expensiveness (PME)');
-      }
-      if (results.ipp) {
-          shapes.push({ type: 'line', x0: results.ipp, x1: results.ipp, y0: 0, y1: 100, line: { color: 'grey', width: 1, dash: 'dot' } });
-          addAnnotation(results.ipp, 85, 'Indifference Price (IPP)');
-      }
-       if (results.mdp) {
-          shapes.push({ type: 'line', x0: results.mdp, x1: results.mdp, y0: 0, y1: 100, line: { color: 'purple', width: 2, dash: 'dash' } });
-           addAnnotation(results.mdp, 75, 'Point of Marginal<br>Cheapness (PMC)');
-      }
-      if (results.opp) {
-          shapes.push({ type: 'line', x0: results.opp, x1: results.opp, y0: 0, y1: 100, line: { color: 'green', width: 2, dash: 'dash' } });
-           addAnnotation(results.opp, 65, 'Optimal Price Point (OPP)');
-      }
-      
-      return {
-        title: 'Van Westendorp Price Sensitivity Meter',
-        xaxis: { title: 'Price' },
-        yaxis: { title: 'Percentage of Respondents (%)', range: [0, 100] },
-        shapes: shapes,
-        annotations: annotations,
-        legend: { x: 0.01, y: 0.99 },
-        autosize: true
-      };
-    }, [results]);
 
     if (error) {
          return (
@@ -215,28 +180,23 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                     <CardTitle className="font-headline">Price Sensitivity Meter</CardTitle>
                 </CardHeader>
                 <CardContent>
-                     {plotData ? (
-                         <Plot
-                            data={plotData.data}
-                            layout={layout}
-                            useResizeHandler={true}
-                            className="w-full h-[500px]"
-                            config={{ scrollZoom: true }}
-                        />
+                     {analysisResult.plot ? (
+                         <Image src={analysisResult.plot} alt="Van Westendorp Plot" width={1000} height={600} className="w-full rounded-md border"/>
                      ) : <p>Could not render plot.</p>}
                 </CardContent>
             </Card>
-             <Card>
+            <Card>
                 <CardHeader>
                     <CardTitle>Key Price Points</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                     <StatCard title="Optimal Price (OPP)" value={results.opp} />
-                     <StatCard title="Indifference Price (IPP)" value={results.ipp} />
-                     <StatCard title="Marginal Cheapness (PMC)" value={results.mdp} />
-                     <StatCard title="Marginal Expensiveness (PME)" value={results.pme} />
+                     <StatCard title="Optimal Price (OPP)" value={results?.opp} />
+                     <StatCard title="Indifference Price (IDP)" value={results?.idp} />
+                     <StatCard title="Marginal Cheapness (PMC)" value={results?.pmc} />
+                     <StatCard title="Marginal Expensiveness (PME)" value={results?.pme} />
                 </CardContent>
             </Card>
+            <InterpretationDisplay interpretation={results?.interpretation} />
         </div>
     );
 }
