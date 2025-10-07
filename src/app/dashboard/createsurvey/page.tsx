@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -12,8 +11,10 @@ import QuestionList from '@/components/survey/QuestionList';
 import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import SurveyView from '@/components/survey-view';
+import SurveyPreview from '@/components/survey/SurveyPreview';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate } from '@/lib/survey-templates';
+import { Tabs, TabsTrigger, TabsContent, TabsList } from '@/components/ui/tabs';
 
 
 export default function CreateSurveyPage() {
@@ -29,7 +30,7 @@ export default function CreateSurveyPage() {
   const [styles, setStyles] = useState({
     theme: 'default',
     primaryColor: '#3C5462',
-    secondaryColor: '#E0E0E0',
+    secondaryColor: '#F3F4F6', // Changed to a slightly different gray
     font: 'Default',
     foregroundColor: 'Medium',
     questionSpacing: 'Comfortable',
@@ -135,6 +136,8 @@ export default function CreateSurveyPage() {
       scale: type === 'matrix' ? ['Bad', 'Neutral', 'Good'] : type === 'rating' ? ['1','2','3','4','5'] : [],
       content: type === 'description' ? 'This is a description block.' : '',
       attributes: type === 'conjoint' ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
+      criteria: type === 'ahp' ? ['Quality', 'Price', 'Service'] : [],
+      alternatives: type === 'ahp' ? ['Alternative A', 'Alternative B'] : [],
     };
     setQuestions(prev => [...prev, newQuestion]);
   };
@@ -162,24 +165,36 @@ export default function CreateSurveyPage() {
                     </Dialog>
                      <Button onClick={() => saveSurvey("draft")} disabled={isSaving} className="max-w-fit"><Save className="w-5 h-5 mr-2" />Save Survey</Button>
                 </div>
-
-                <div className="grid lg:grid-cols-[320px,1fr,420px] gap-8 items-start">
-                     <div className="lg:sticky lg:top-24">
-                        <QuestionTypePalette onSelectType={handleSelectQuestionType} />
-                    </div>
-                    <QuestionList 
-                        title={title}
-                        setTitle={setTitle}
-                        description={description}
-                        setDescription={setDescription}
-                        questions={questions}
-                        setQuestions={setQuestions}
-                        styles={styles}
-                    />
-                    <div className="lg:sticky lg:top-24 space-y-6">
-                        <SurveyStylePanel styles={styles} setStyles={setStyles} />
-                    </div>
-                </div>
+                 <Tabs defaultValue="questions">
+                    <TabsList>
+                        <TabsTrigger value="questions">Questions</TabsTrigger>
+                        <TabsTrigger value="design">Design</TabsTrigger>
+                    </TabsList>
+                     <TabsContent value="questions" className="mt-6">
+                        <div className="grid lg:grid-cols-[320px,1fr] gap-8 items-start">
+                             <div className="lg:sticky lg:top-24">
+                                <QuestionTypePalette onSelectType={handleSelectQuestionType} />
+                            </div>
+                            <QuestionList 
+                                title={title}
+                                setTitle={setTitle}
+                                description={description}
+                                setDescription={setDescription}
+                                questions={questions}
+                                setQuestions={setQuestions}
+                                styles={styles}
+                            />
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="design" className="mt-6">
+                        <div className="grid lg:grid-cols-[420px,1fr] gap-8 items-start">
+                           <div className="lg:sticky lg:top-24 space-y-6">
+                                <SurveyStylePanel styles={styles} setStyles={setStyles} />
+                            </div>
+                            <SurveyPreview styles={styles} />
+                        </div>
+                    </TabsContent>
+                </Tabs>
             </motion.div>
         </div>
     </div>

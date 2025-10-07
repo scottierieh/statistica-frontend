@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -567,6 +566,28 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete, styles }: { ques
     return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} styles={styles} />;
 };
 
+const ScaleButton = ({ value, comparisonValue, onClick }: { value: number, comparisonValue: number, onClick: () => void }) => {
+      const isSelected = Math.abs(comparisonValue - value) < 0.01;
+      return (
+        <div className="flex flex-col items-center">
+            <button
+            onClick={onClick}
+            className={`w-12 h-12 rounded-full border-2 transition-all ${
+                isSelected 
+                ? 'bg-blue-600 border-blue-600 shadow-lg scale-110' 
+                : 'bg-white border-gray-300 hover:border-blue-400 hover:scale-105'
+            }`}
+            >
+            <span className={`text-sm font-semibold ${
+                isSelected ? 'text-white' : 'text-gray-600'
+            }`}>
+                {Math.abs(value) === 1 ? 1 : Math.round(1/value) > 1 ? Math.round(1/value) : value}
+            </span>
+            </button>
+        </div>
+      )
+  }
+
 const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, onUpdate?: (question: any) => void, onDelete?: (id: string) => void, styles: any }) => {
   const { toast } = useToast();
 
@@ -611,6 +632,36 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, 
     }
     onUpdate?.({ ...question, rows: newRows });
   };
+  
+  const renderScaleButtons = (comparison: any, index: number, updateFunc: any, criterionName: string | null = null) => {
+    const scaleValues = [1/9, 1/7, 1/5, 1/3, 1, 3, 5, 7, 9];
+
+    return (
+      <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+        <div className="flex items-center justify-between mb-6">
+          <span className="font-semibold text-blue-700 text-lg">{comparison.criterion1 || comparison.alternative1}</span>
+          <span className="text-gray-400 text-sm">vs</span>
+          <span className="font-semibold text-indigo-700 text-lg">{comparison.criterion2 || comparison.alternative2}</span>
+        </div>
+
+        <div className="flex items-center justify-between mb-4">
+          {scaleValues.map((value, idx) => (
+            <ScaleButton
+              key={idx}
+              value={value}
+              comparisonValue={comparison.value}
+              onClick={() => {}} // This is a preview, so no update function
+            />
+          ))}
+        </div>
+
+        <div className="flex justify-between text-xs text-gray-600 mb-2 px-2">
+          <span className="font-medium">{comparison.criterion1 || comparison.alternative1}</span>
+          <span className="font-medium">{comparison.criterion2 || comparison.alternative2}</span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Card className="w-full">
@@ -650,7 +701,7 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, 
         {question.rows && question.rows.length > 0 && (
           <div className="mt-6">
             <h4 className="font-semibold mb-2">Generated Comparison Preview</h4>
-            <MatrixQuestion question={{ ...question, columns: ['-9','-7','-5','-3','1','3','5','7','9'], scale: [] }} onUpdate={() => {}} onDelete={() => {}} styles={styles} />
+             {renderScaleButtons({criterion1: "Example 1", criterion2: "Example 2", value: 1}, 0, () => {})}
           </div>
         )}
       </div>
