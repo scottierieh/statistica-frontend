@@ -109,14 +109,24 @@ const TextQuestion = ({ question, answer, onAnswerChange }: { question: Question
     </div>
 );
 
-const NumberQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
+const NumberQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: any) => void }) => (
     <div className="p-4">
         <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
         {question.description && <p className="text-sm text-muted-foreground mb-4 whitespace-pre-wrap">{question.description}</p>}
-        <Input type="number" placeholder="Enter a number..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} />
+        <Input 
+            type="number" 
+            placeholder="Enter a number..." 
+            value={answer || ''} 
+            onChange={e => {
+                const value = e.target.value;
+                const parsed = parseFloat(value);
+                onAnswerChange(value === '' ? null : (isNaN(parsed) ? value : parsed));
+            }}
+        />
     </div>
 );
+
 
 const PhoneQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
     <div className="p-4">
