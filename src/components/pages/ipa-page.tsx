@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -30,7 +31,14 @@ interface RegressionSummary {
 }
 interface IpaResults {
     ipa_matrix: IpaMatrixItem[];
+    means: {
+        performance: number;
+        importance: number;
+    };
     regression_summary: RegressionSummary;
+    quadrant_details: { [key: string]: { description: string, attributes: string[] }};
+    actionable_recommendations: { [key: string]: any[] };
+    detailed_interpretations: { [key: string]: string };
 }
 interface FullAnalysisResponse {
     results: IpaResults;
@@ -99,7 +107,9 @@ export default function IpaPage({ survey, responses }: IpaPageProps) {
             const analysisData: any[] = responses.map(response => {
                 const row: { [key: string]: number | string } = {};
                 const overallAnswer = response.answers[overallQuestionId];
-                row['Overall_Satisfaction'] = overallAnswer ? Number(overallAnswer[overallRowName]) : NaN;
+                if (overallAnswer && overallAnswer[overallRowName]) {
+                    row['Overall_Satisfaction'] = Number(overallAnswer[overallRowName]);
+                }
                 
                 attributeQuestions.forEach(q => {
                     const attrAnswers = response.answers[q.id];
@@ -110,7 +120,7 @@ export default function IpaPage({ survey, responses }: IpaPageProps) {
                     }
                 });
                 return row;
-            });
+            }).filter(row => row['Overall_Satisfaction'] && !isNaN(row['Overall_Satisfaction']));
 
             const dependentVar = 'Overall_Satisfaction';
             const independentVars = Array.from(new Set(attributeQuestions.flatMap(q => q.rows || [])));
@@ -187,17 +197,6 @@ export default function IpaPage({ survey, responses }: IpaPageProps) {
     }
 
     const results = analysisResult.results;
-    const quadrants: { [key: string]: IpaMatrixItem[] } = {
-        'Q1: Keep Up Good Work': [],
-        'Q2: Concentrate Here': [],
-        'Q3: Low Priority': [],
-        'Q4: Possible Overkill': [],
-    };
-    results.ipa_matrix.forEach(item => {
-        if (quadrants[item.quadrant]) {
-            quadrants[item.quadrant].push(item);
-        }
-    });
 
     return (
         <div className="space-y-4">
@@ -207,15 +206,14 @@ export default function IpaPage({ survey, responses }: IpaPageProps) {
                     <CardDescription>Visualizing attribute performance against importance.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Image src={`data:image/png;base64,${analysisResult.main_plot}`} alt="IPA Matrix" width={1200} height={800} className="w-full h-auto rounded-md border" />
+                    <Image src={`data:image/png;base64,${analysisResult.main_plot}`} alt="IPA Matrix" width={1000} height={800} className="mx-auto rounded-md border" />
                 </CardContent>
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {Object.entries(quadrants).map(([quadrantName, items]) => {
-                     const config = quadrantConfig[quadrantName as keyof typeof quadrantConfig];
-                     if (!config) return null;
-                     const Icon = config.icon;
+                {Object.entries(quadrantConfig).map(([quadrantName, config]) => {
+                     const items = results.ipa_matrix.filter(item => item.quadrant === quadrantName);
+                     const { icon: Icon } = config;
                     return (
                         <Card key={quadrantName}>
                             <CardHeader>
@@ -279,7 +277,7 @@ export default function IpaPage({ survey, responses }: IpaPageProps) {
                     <CardDescription>A dashboard of supplementary charts for deeper analysis.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Image src={`data:image/png;base64,${analysisResult.dashboard_plot}`} alt="IPA Dashboard" width={1800} height={800} className="w-full rounded-md border" />
+                    <Image src={`data:image/png;base64,${analysisResult.dashboard_plot}`} alt="IPA Dashboard" width={1800} height={800} className="rounded-md border" />
                 </CardContent>
             </Card>
             
