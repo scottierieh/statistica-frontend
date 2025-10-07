@@ -1,3 +1,4 @@
+
 import sys
 import json
 import pandas as pd
@@ -72,17 +73,22 @@ def generate_interpretation(results):
 def create_psm_plot(price_range, too_cheap_cumulative, cheap_cumulative, expensive_cumulative, too_expensive_cumulative, results):
     fig, ax1 = plt.subplots(figsize=(10, 7))
     
-    pmc_price, opp_price, idp_price, pme_price = results['pmc'], results['opp'], results['idp'], results['pme']
+    pmc_price, opp_price, idp_price, pme_price = results.get('pmc'), results.get('opp'), results.get('idp'), results.get('pme')
 
-    ax1.plot(price_range, too_cheap_cumulative, label='Too Cheap', color='blue', linewidth=2, linestyle='--')
-    ax1.plot(price_range, cheap_cumulative, label='Cheap', color='lightblue', linewidth=2)
+    # Correct curves for PSM: "Too Cheap" and "Cheap" are descending, "Expensive" and "Too Expensive" are ascending.
+    # The original script had this logic reversed.
+    not_too_cheap = 100 - too_cheap_cumulative 
+    not_cheap = 100 - cheap_cumulative
+
+    ax1.plot(price_range, not_too_cheap, label='Not Too Cheap', color='skyblue', linewidth=2, linestyle='--')
+    ax1.plot(price_range, not_cheap, label='Not Cheap', color='blue', linewidth=2)
     ax1.plot(price_range, expensive_cumulative, label='Expensive', color='orange', linewidth=2)
-    ax1.plot(price_range, too_expensive_cumulative, label='Too Expensive', color='red', linewidth=2)
+    ax1.plot(price_range, too_expensive_cumulative, label='Too Expensive', color='red', linewidth=2, linestyle='--')
 
-    ax1.axvline(pmc_price, color='purple', linestyle='--', alpha=0.7, label=f'PMC: ${pmc_price:.2f}')
-    ax1.axvline(opp_price, color='green', linestyle='-', linewidth=2, alpha=0.9, label=f'OPP: ${opp_price:.2f}')
-    ax1.axvline(idp_price, color='black', linestyle='--', alpha=0.7, label=f'IDP: ${idp_price:.2f}')
-    ax1.axvline(pme_price, color='darkred', linestyle='--', alpha=0.7, label=f'PME: ${pme_price:.2f}')
+    if pmc_price: ax1.axvline(pmc_price, color='purple', linestyle='--', alpha=0.7, label=f'PMC: ${pmc_price:.2f}')
+    if opp_price: ax1.axvline(opp_price, color='green', linestyle='-', linewidth=2, alpha=0.9, label=f'OPP: ${opp_price:.2f}')
+    if idp_price: ax1.axvline(idp_price, color='black', linestyle='--', alpha=0.7, label=f'IDP: ${idp_price:.2f}')
+    if pme_price: ax1.axvline(pme_price, color='darkred', linestyle='--', alpha=0.7, label=f'PME: ${pme_price:.2f}')
 
     ax1.set_xlabel('Price ($)')
     ax1.set_ylabel('Cumulative Percentage (%)')
@@ -98,9 +104,9 @@ def create_psm_plot(price_range, too_cheap_cumulative, cheap_cumulative, expensi
     buf.seek(0)
     return base64.b64encode(buf.read()).decode('utf-8')
 
-def create_acceptance_plot(price_range, too_cheap_cumulative, expensive_cumulative):
+def create_acceptance_plot(price_range, too_cheap_cumulative, too_expensive_cumulative):
     not_too_cheap = 100 - too_cheap_cumulative
-    not_too_expensive = 100 - expensive_cumulative
+    not_too_expensive = 100 - too_expensive_cumulative
     acceptance = np.minimum(not_too_cheap, not_too_expensive)
     max_acceptance_idx = np.argmax(acceptance)
     max_acceptance_price = price_range[max_acceptance_idx]
@@ -167,22 +173,21 @@ def main():
         price_range = np.linspace(df[price_cols].min().min(), df[price_cols].max().max(), 500)
         n = len(df)
         
-        too_cheap_cumulative = np.array([(df[too_cheap_col] <= p).sum() for p in price_range]) / n * 100
-        cheap_cumulative = np.array([(df[cheap_col] <= p).sum() for p in price_range]) / n * 100
+        # CORRECTED CUMULATIVE LOGIC
+        # 'Too Cheap'/'Cheap': % of people who think this price or HIGHER is acceptable (descending curve)
+        # 'Expensive'/'Too Expensive': % of people who think this price or LOWER is acceptable (ascending curve)
+        too_cheap_cumulative = np.array([(df[too_cheap_col] > p).sum() for p in price_range]) / n * 100
+        cheap_cumulative = np.array([(df[cheap_col] > p).sum() for p in price_range]) / n * 100
         expensive_cumulative = np.array([(df[expensive_col] <= p).sum() for p in price_range]) / n * 100
         too_expensive_cumulative = np.array([(df[too_expensive_col] <= p).sum() for p in price_range]) / n * 100
         
-        # Note: The original provided script had an error in logic for the "Not" curves.
-        # "Not Cheap" should be the percentage of people who think the price is *not cheap or lower*.
-        # The correct interpretation is to use the inverse cumulative distribution for 'Too Expensive' and 'Expensive'
-        not_too_cheap = 100 - too_cheap_cumulative
+        # These are the classic PSM curves
         not_cheap = 100 - cheap_cumulative
         not_expensive = 100 - expensive_cumulative
-        not_too_expensive = 100 - too_expensive_cumulative
         
         pmc_price = find_intersection(price_range, too_cheap_cumulative, not_cheap)
         pme_price = find_intersection(price_range, expensive_cumulative, not_expensive)
-        opp_price = find_intersection(price_range, not_cheap, not_expensive)
+        opp_price = find_intersection(price_range, too_expensive_cumulative, not_too_cheap) # Correct intersection for OPP
         idp_price = find_intersection(price_range, cheap_cumulative, expensive_cumulative)
         
         results = {
@@ -192,9 +197,30 @@ def main():
             'idp': idp_price,
         }
         results['interpretation'] = generate_interpretation(results)
+        
+        # Regenerate plot data with the correct curves for visualization
+        psm_plot_data = {
+            'price_range': price_range,
+            'too_cheap_cumulative': too_cheap_cumulative,
+            'cheap_cumulative': not_cheap, # Plot "Not Cheap"
+            'expensive_cumulative': expensive_cumulative,
+            'too_expensive_cumulative': too_expensive_cumulative,
+        }
+        
+        psm_plot = create_psm_plot(
+            price_range, 
+            psm_plot_data['too_cheap_cumulative'], 
+            psm_plot_data['cheap_cumulative'], 
+            psm_plot_data['expensive_cumulative'],
+            psm_plot_data['too_expensive_cumulative'], 
+            results
+        )
 
-        psm_plot = create_psm_plot(price_range, too_cheap_cumulative, cheap_cumulative, expensive_cumulative, too_expensive_cumulative, results)
-        acceptance_plot = create_acceptance_plot(price_range, too_cheap_cumulative, expensive_cumulative)
+        # Recalculate for acceptance plot
+        acceptance_too_cheap_cumulative = np.array([(df[too_cheap_col] <= p).sum() for p in price_range]) / n * 100
+        acceptance_too_expensive_cumulative = np.array([(df[too_expensive_col] <= p).sum() for p in price_range]) / n * 100
+        acceptance_plot = create_acceptance_plot(price_range, acceptance_too_cheap_cumulative, acceptance_too_expensive_cumulative)
+
 
         response = {
             'results': results,
@@ -212,3 +238,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
