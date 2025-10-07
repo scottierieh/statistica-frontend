@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -14,13 +14,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X, Shuffle, RefreshCw } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X, Shuffle, RefreshCw, Save } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import type { Question, ConjointAttribute } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
 
 // --- Reusable UI Components ---
@@ -566,24 +567,20 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete, styles }: { ques
 };
 
 const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, onUpdate?: (question: any) => void, onDelete?: (id: string) => void, styles: any }) => {
-  const [showPreview, setShowPreview] = useState(false);
   const { toast } = useToast();
 
   const handleItemChange = (type: 'criteria' | 'alternatives', index: number, value: string) => {
     const newItems = [...(question[type] || [])];
     newItems[index] = value;
     onUpdate?.({ ...question, [type]: newItems, rows: [] }); // Reset rows when items change
-    setShowPreview(false);
   };
   const addItem = (type: 'criteria' | 'alternatives') => {
     const newItems = [...(question[type] || []), `New ${type.slice(0, -1)}`];
     onUpdate?.({ ...question, [type]: newItems, rows: [] });
-    setShowPreview(false);
   };
   const removeItem = (type: 'criteria' | 'alternatives', index: number) => {
     const newItems = (question[type] || []).filter((_: any, i: number) => i !== index);
     onUpdate?.({ ...question, [type]: newItems, rows: [] });
-    setShowPreview(false);
   };
 
   const generatePairs = () => {
@@ -612,7 +609,6 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, 
       });
     }
     onUpdate?.({ ...question, rows: newRows });
-    setShowPreview(true);
   };
 
   return (
@@ -650,9 +646,9 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, 
           <Button onClick={generatePairs}><RefreshCw className="mr-2"/>Generate Pairwise Comparisons</Button>
         </div>
 
-        {showPreview && question.rows && (
+        {question.rows && question.rows.length > 0 && (
           <div className="mt-6">
-            <h4 className="font-semibold mb-2">Preview</h4>
+            <h4 className="font-semibold mb-2">Generated Comparison Preview</h4>
             <MatrixQuestion question={{ ...question, columns: ['-9','-7','-5','-3','1','3','5','7','9'], scale: [] }} onUpdate={() => {}} onDelete={() => {}} styles={styles} />
           </div>
         )}
@@ -661,8 +657,6 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, 
   );
 };
 
-
-// ... other question components
 
 interface QuestionListProps {
     title: string;
@@ -786,6 +780,15 @@ export default function QuestionList({ title, setTitle, setDescription, descript
             </AnimatePresence>
         </SortableContext>
       </DndContext>
+      
+      {questions.length > 0 && !isPreview && (
+          <div className="flex gap-3 sticky bottom-6 bg-white rounded-2xl p-4 shadow-lg border">
+              <Button variant="outline" size="lg" disabled={true} className="flex-1"><Save className="w-5 h-5 mr-2" />Save as Draft</Button>
+              <Button size="lg" disabled={true} className="flex-1">Publish Survey</Button>
+          </div>
+      )}
     </div>
   );
 }
+
+    
