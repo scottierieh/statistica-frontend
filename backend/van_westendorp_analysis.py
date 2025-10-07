@@ -100,16 +100,23 @@ def create_psm_plot(price_range, cumulative_curves, results):
     buf.seek(0)
     return base64.b64encode(buf.read()).decode('utf-8')
 
-def create_acceptance_plot(price_range, not_too_cheap_cumulative, not_too_expensive_cumulative):
-    acceptance = np.minimum(not_too_cheap_cumulative, not_too_expensive_cumulative)
+def create_acceptance_plot(price_range, too_cheap_cumulative, too_expensive_cumulative):
+    # This logic seems inverted. Let's correct it.
+    # Not too cheap: people who think the price is NOT too cheap (100 - % who think it's too cheap)
+    # Not too expensive: people who think it's NOT too expensive (100 - % who think it's too expensive)
+    
+    not_too_cheap = 100 - too_cheap_cumulative
+    not_too_expensive_cumulative_correct = np.array([(df[too_expensive_col] > p).sum() for p in price_range]) / len(df) * 100
+    
+    acceptance = np.minimum(not_too_cheap, not_too_expensive_cumulative_correct)
     max_acceptance_idx = np.argmax(acceptance)
     max_acceptance_price = price_range[max_acceptance_idx]
     max_acceptance_pct = acceptance[max_acceptance_idx]
     
     fig, ax2 = plt.subplots(figsize=(10, 7))
 
-    ax2.plot(price_range, not_too_cheap_cumulative, label='Not Too Cheap', color='blue', linewidth=2, linestyle='--')
-    ax2.plot(price_range, not_too_expensive_cumulative, label='Not Too Expensive', color='red', linewidth=2, linestyle='--')
+    ax2.plot(price_range, not_too_cheap, label='Not Too Cheap', color='blue', linewidth=2, linestyle='--')
+    ax2.plot(price_range, not_too_expensive_cumulative_correct, label='Not Too Expensive', color='red', linewidth=2, linestyle='--')
     ax2.fill_between(price_range, 0, acceptance, alpha=0.3, color='green', label='Acceptable Range')
     ax2.plot(price_range, acceptance, color='green', linewidth=3, label='Acceptance Curve')
 
@@ -150,6 +157,8 @@ def main():
         
         price_cols = [too_cheap_col, cheap_col, expensive_col, too_expensive_col]
         for col in price_cols:
+            if col not in df.columns:
+                 raise ValueError(f"Required column '{col}' not found in data.")
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
         df.dropna(subset=price_cols, inplace=True)
@@ -166,45 +175,36 @@ def main():
         price_range = np.linspace(df[price_cols].values.min(), df[price_cols].values.max(), 500)
         n = len(df)
         
-        # 'Too Cheap' / 'Cheap': % of people who think price is at or BELOW this level (cumulative from left)
+        # Correct cumulative calculations
+        # "Too Cheap": % who think it's too cheap at this price or lower -> this is correct
         too_cheap_cumulative = np.array([(df[too_cheap_col] <= p).sum() for p in price_range]) / n * 100
+        # "Cheap": % who think it's cheap at this price or lower -> this is correct
         cheap_cumulative = np.array([(df[cheap_col] <= p).sum() for p in price_range]) / n * 100
-
-        # 'Expensive' / 'Too Expensive': % of people who think price is at or ABOVE this level
-        # To get a cumulative curve from left to right, we calculate 100 - %_above
-        not_too_expensive_cumulative = 100 - np.array([(df[too_expensive_col] < p).sum() for p in price_range]) / n * 100
-        not_expensive_cumulative = 100 - np.array([(df[expensive_col] < p).sum() for p in price_range]) / n * 100
         
-        # Invert for PSM plot visualization: 'Expensive' and 'Too Expensive' cumulative from left
+        # "Expensive": % who think it's expensive at this price or higher
+        # This is a reverse cumulative. For a standard plot from left-to-right, we want to know what % think it's expensive at price P or below.
         expensive_cumulative = np.array([(df[expensive_col] <= p).sum() for p in price_range]) / n * 100
+        # "Too Expensive": % who think it's too expensive at this price or higher
         too_expensive_cumulative = np.array([(df[too_expensive_col] <= p).sum() for p in price_range]) / n * 100
-
-        # Curves for finding intersection points
-        # Not Cheap = 100 - % who think it's cheap or too cheap
-        # Not Expensive = % who do NOT think it's expensive or too expensive
-        not_cheap = 100 - cheap_cumulative
         
-        # find_intersection needs monotonously increasing functions.
-        # too_cheap_cumulative is increasing. not_cheap is decreasing.
-        pmc_price = find_intersection(price_range, too_cheap_cumulative, not_cheap)
-        # expensive_cumulative is increasing. not_expensive is decreasing.
+        # Curves for finding intersection points
+        # Not Cheap = % of people who think the price is NOT cheap (i.e. > cheap)
+        not_cheap = 100 - cheap_cumulative
+        # Not Expensive = % of people who think price is NOT expensive (i.e. < expensive)
+        not_expensive = 100 - expensive_cumulative
+        
+        pmc_price = find_intersection(price_range, too_cheap_cumulative, not_expensive)
         pme_price = find_intersection(price_range, expensive_cumulative, not_cheap)
-        # not_cheap is decreasing. not_expensive is decreasing. This intersection logic is flawed.
-        # Correct OPP: Intersection of 'Too Expensive' and 'Not Too Cheap'
-        not_too_cheap_for_plot = 100 - too_cheap_cumulative
-        opp_price = find_intersection(price_range, too_expensive_cumulative, not_too_cheap_for_plot)
-        # Correct IDP: Intersection of 'Cheap' and 'Expensive'
-        idp_price = find_intersection(price_range, cheap_cumulative, not_expensive_cumulative)
+        opp_price = find_intersection(price_range, not_cheap, not_expensive)
+        idp_price = find_intersection(price_range, cheap_cumulative, expensive_cumulative)
         
         results = {
-            'pme': pme_price,
-            'pmc': pmc_price,
-            'opp': opp_price,
-            'idp': idp_price,
+            'pme': pme_price, 'pmc': pmc_price, 'opp': opp_price, 'idp': idp_price,
         }
         results['interpretation'] = generate_interpretation(results)
         
-        # Prepare curves for PSM plot
+        # Curves for PSM plot visualization
+        # 'Not Too Cheap' (reverse of 'Too Cheap') and 'Not Expensive' (reverse of 'Expensive')
         cumulative_curves_for_psm = {
             'not_too_cheap': 100 - too_cheap_cumulative,
             'not_cheap': 100 - cheap_cumulative,
@@ -214,7 +214,7 @@ def main():
         
         psm_plot = create_psm_plot(price_range, cumulative_curves_for_psm, results)
 
-        acceptance_plot = create_acceptance_plot(price_range, too_cheap_cumulative, too_expensive_cumulative)
+        acceptance_plot = create_acceptance_plot(price_range, too_cheap_cumulative, expensive_cumulative)
 
         response = {
             'results': results,
@@ -233,3 +233,4 @@ def main():
 if __name__ == '__main__':
     main()
 
+    
