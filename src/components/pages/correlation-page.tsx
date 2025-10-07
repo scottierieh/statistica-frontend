@@ -30,7 +30,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 
-const Plot = dynamic(() => import('react-plotly.js'), {
+const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), {
   ssr: false,
   loading: () => <Skeleton className="w-full h-[600px]" />,
 });
@@ -315,7 +315,7 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
                     <Label>Variables for Correlation</Label>
                     <ScrollArea className="h-40 border rounded-md p-4">
                     <div className="grid grid-cols-2 gap-4">
-                        {numericHeaders.map(header => (
+                        {numericHeaders.filter(h => h).map(header => (
                         <div key={header} className="flex items-center space-x-2">
                             <Checkbox
                             id={`corr-${header}`}
@@ -336,7 +336,7 @@ export default function CorrelationPage({ data, numericHeaders, categoricalHeade
                         <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="none">None</SelectItem>
-                            {categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                            {categoricalHeaders.filter(h => h).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                         </SelectContent>
                     </Select>
                  </div>

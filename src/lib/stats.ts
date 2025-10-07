@@ -17,7 +17,7 @@ export const parseData = (
     console.error("Parsing errors:", result.errors);
     // Optionally throw an error for the first critical error
     const firstError = result.errors[0];
-    if (firstError.code !== 'UndetectableDelimiter') {
+    if (firstError && firstError.code !== 'UndetectableDelimiter') {
        throw new Error(`CSV Parsing Error: ${firstError.message} on row ${firstError.row}`);
     }
   }
@@ -33,9 +33,9 @@ export const parseData = (
   const categoricalHeaders: string[] = [];
 
   rawHeaders.forEach(header => {
+    if (!header) return;
     const values = data.map(row => row[header]).filter(val => val !== null && val !== undefined && val !== '');
     
-    // Check if every non-empty value is a number
     const isNumericColumn = values.length > 0 && values.every(val => typeof val === 'number' && isFinite(val));
 
     if (isNumericColumn) {
@@ -49,6 +49,7 @@ export const parseData = (
   const sanitizedData = data.map(row => {
     const newRow: DataPoint = {};
     rawHeaders.forEach(header => {
+      if (!header) return;
       const value = row[header];
       if (numericHeaders.includes(header)) {
         if (typeof value === 'number' && isFinite(value)) {
@@ -59,7 +60,7 @@ export const parseData = (
             newRow[header] = NaN; // Use NaN for non-numeric values in numeric columns
         }
       } else { // Categorical
-        newRow[header] = String(value ?? '');
+        newRow[header] = value === null || value === undefined ? '' : String(value);
       }
     });
     return newRow;
@@ -189,6 +190,7 @@ export const findIntersection = (x1: number[], y1: number[], x2: number[], y2: n
 export const calculateDescriptiveStats = (data: DataSet, headers: string[]) => {
     const stats: Record<string, any> = {};
     headers.forEach(header => {
+        if (!header) return;
         const numericColumn = data.every(row => typeof row[header] === 'number');
 
         if (numericColumn) {
