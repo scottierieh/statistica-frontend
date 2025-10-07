@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns, Network } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns, Network, DollarSign } from 'lucide-react';
 import type { Survey, SurveyResponse } from '@/types/survey';
 import type { Question } from '@/entities/Survey';
 import { Skeleton } from '../ui/skeleton';
@@ -32,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import CbcAnalysisPage from './cbc-analysis-page';
 import RatingConjointAnalysisPage from './rating-conjoint-analysis-page';
 import IpaPage from './ipa-page';
+import VanWestendorpPage from './van-westendorp-page';
 
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
@@ -960,6 +962,11 @@ export default function SurveyAnalysisPage() {
         const hasAttributes = matrixQuestions.some(q => q.rows && q.rows.length > 1 && !q.rows.some(r => r.toLowerCase().includes('overall')));
         return hasOverall && hasAttributes;
     }, [survey]);
+     const hasVanWestendorp = useMemo(() => {
+        if (!survey) return false;
+        const titles = survey.questions.map(q => q.title.toLowerCase());
+        return titles.includes('too cheap') && titles.includes('cheap/bargain') && titles.includes('expensive/high side') && titles.includes('too expensive');
+    }, [survey]);
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
       if (!questions || !responses) {
@@ -1118,6 +1125,7 @@ export default function SurveyAnalysisPage() {
                     {hasConjoint && <TabsTrigger value="conjoint">Conjoint (CBC)</TabsTrigger>}
                     {hasRatingConjoint && <TabsTrigger value="rating-conjoint">Conjoint (Rating)</TabsTrigger>}
                     {hasIPA && <TabsTrigger value="ipa">IPA</TabsTrigger>}
+                    {hasVanWestendorp && <TabsTrigger value="van-westendorp">Price Sensitivity</TabsTrigger>}
                     <TabsTrigger value="further_analysis">Further Analysis</TabsTrigger>
                 </TabsList>
                 <TabsContent value="results" className="mt-4">
@@ -1166,6 +1174,11 @@ export default function SurveyAnalysisPage() {
                     <TabsContent value="ipa" className="mt-4">
                         {/* IPA Page content will go here */}
                         <IpaPage survey={survey} responses={responses} />
+                    </TabsContent>
+                )}
+                {hasVanWestendorp && (
+                     <TabsContent value="van-westendorp" className="mt-4">
+                        <VanWestendorpPage survey={survey} responses={responses} />
                     </TabsContent>
                 )}
                 <TabsContent value="further_analysis" className="mt-4">

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -14,6 +15,7 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Input } from '../ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import dynamic from 'next/dynamic';
+import type { Survey, SurveyResponse } from '@/types/survey';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -28,13 +30,12 @@ interface AnalysisResponse {
         mdp: number | null;
         ipp: number | null;
     };
-    plotData: any; // Keep this flexible for plotly data structure
+    plotData: any;
 }
 
 interface VanWestendorpPageProps {
-    data: DataSet;
-    numericHeaders: string[];
-    onLoadExample: (example: ExampleDataSet) => void;
+    survey: Survey;
+    responses: SurveyResponse[];
 }
 
 const StatCard = ({ title, value, unit = '$' }: { title: string, value: number | undefined | null, unit?: string }) => (
@@ -44,47 +45,54 @@ const StatCard = ({ title, value, unit = '$' }: { title: string, value: number |
     </div>
 );
 
-export default function VanWestendorpPage({ data, numericHeaders, onLoadExample }: VanWestendorpPageProps) {
+export default function VanWestendorpPage({ survey, responses }: VanWestendorpPageProps) {
     const { toast } = useToast();
-    const [view, setView] = useState('intro');
-    const [tooCheapCol, setTooCheapCol] = useState<string | undefined>();
-    const [cheapCol, setCheapCol] = useState<string | undefined>();
-    const [expensiveCol, setExpensiveCol] = useState<string | undefined>();
-    const [tooExpensiveCol, setTooExpensiveCol] = useState<string | undefined>();
-    
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 4, [data, numericHeaders]);
+    const requiredQuestions = ['too cheap', 'cheap/bargain', 'expensive/high side', 'too expensive'];
     
-    useEffect(() => {
-        setTooCheapCol(numericHeaders.find(h => h.toLowerCase().includes('toocheap')));
-        setCheapCol(numericHeaders.find(h => h.toLowerCase().includes('cheap')));
-        setExpensiveCol(numericHeaders.find(h => h.toLowerCase().includes('expensive')));
-        setTooExpensiveCol(numericHeaders.find(h => h.toLowerCase().includes('tooexpensive')));
-        setAnalysisResult(null);
-        setView(canRun ? 'main' : 'intro');
-    }, [data, numericHeaders, canRun]);
+    const questionMap = useMemo(() => {
+        const mapping: {[key: string]: string} = {};
+        if (!survey) return mapping;
+        
+        requiredQuestions.forEach(q_title => {
+            const question = survey.questions.find(q => q.title.toLowerCase().includes(q_title));
+            if(question) {
+                mapping[q_title.replace('/','_')] = question.id;
+            }
+        });
+        return mapping;
+    }, [survey]);
+
+    const canRun = useMemo(() => requiredQuestions.every(q => Object.keys(questionMap).includes(q.replace('/','_'))), [questionMap]);
 
     const handleAnalysis = useCallback(async () => {
-        if (!tooCheapCol || !cheapCol || !expensiveCol || !tooExpensiveCol) {
-            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select all four price perception columns.' });
+        if (!canRun) {
+            toast({ variant: 'destructive', title: 'Setup Error', description: 'Not all required Van Westendorp questions were found in the survey.' });
             return;
         }
 
         setIsLoading(true);
         setAnalysisResult(null);
 
+        const analysisData = responses.map(r => ({
+            too_cheap: Number(r.answers[questionMap.too_cheap]),
+            cheap: Number(r.answers[questionMap.cheap_bargain]),
+            expensive: Number(r.answers[questionMap.expensive_high_side]),
+            too_expensive: Number(r.answers[questionMap.too_expensive]),
+        })).filter(row => !Object.values(row).some(isNaN));
+
         try {
             const response = await fetch('/api/analysis/van-westendorp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    data, 
-                    too_cheap_col: tooCheapCol,
-                    cheap_col: cheapCol,
-                    expensive_col: expensiveCol,
-                    too_expensive_col: tooExpensiveCol,
+                    data: analysisData, 
+                    too_cheap_col: 'too_cheap',
+                    cheap_col: 'cheap',
+                    expensive_col: 'expensive',
+                    too_expensive_col: 'too_expensive',
                 })
             });
 
@@ -105,7 +113,13 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
         } finally {
             setIsLoading(false);
         }
-    }, [data, tooCheapCol, cheapCol, expensiveCol, tooExpensiveCol, toast]);
+    }, [responses, canRun, questionMap, toast]);
+    
+    useEffect(() => {
+        if (canRun) {
+            handleAnalysis();
+        }
+    }, [canRun, handleAnalysis]);
     
     const results = analysisResult?.results;
     
@@ -167,109 +181,55 @@ export default function VanWestendorpPage({ data, numericHeaders, onLoadExample 
       };
     }, [results]);
 
-    useEffect(() => {
-        setTooCheapCol(numericHeaders.find(h => h.toLowerCase().includes('toocheap')));
-        setCheapCol(numericHeaders.find(h => h.toLowerCase().includes('cheap')));
-        setExpensiveCol(numericHeaders.find(h => h.toLowerCase().includes('expensive')));
-        setTooExpensiveCol(numericHeaders.find(h => h.toLowerCase().includes('tooexpensive')));
-        setAnalysisResult(null);
-    }, [data, numericHeaders]);
-
     if (!canRun) {
-        const psmExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('van-westendorp'));
         return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Van Westendorp Price Sensitivity Meter</CardTitle>
-                        <CardDescription>
-                           To perform this analysis, you need data with four price perception columns (Too Cheap, Cheap, Expensive, Too Expensive).
-                        </CardDescription>
-                    </CardHeader>
-                    {psmExamples.length > 0 && (
-                        <CardContent>
-                             <Button onClick={() => onLoadExample(psmExamples[0])} className="w-full" size="sm">
-                                Load {psmExamples[0].name}
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Incomplete Survey Setup</AlertTitle>
+                <AlertDescription>
+                    This survey does not contain all four required questions for Van Westendorp analysis: "Too Cheap", "Cheap/Bargain", "Expensive/High Side", and "Too Expensive".
+                </AlertDescription>
+            </Alert>
         );
+    }
+    
+    if (isLoading) {
+        return <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /> <p>Analyzing price sensitivity...</p></CardContent></Card>;
+    }
+    
+    if (!analysisResult) {
+         return <Card><CardContent className="p-6 text-center text-muted-foreground"><p>Could not load analysis results.</p></CardContent></Card>;
     }
 
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Van Westendorp Analysis Setup</CardTitle>
-                    <CardDescription>Map the four price perception columns from your data.</CardDescription>
+                    <CardTitle className="font-headline">Price Sensitivity Meter</CardTitle>
                 </CardHeader>
                 <CardContent>
-                     <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>How to Set Up Your Data</AlertTitle>
-                        <AlertDescription>
-                            Each row should represent a single respondent. The four selected columns should contain the price points they indicated for each category: 'Too Cheap', 'Cheap', 'Expensive', and 'Too Expensive'.
-                        </AlertDescription>
-                    </Alert>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                        <div>
-                            <Label>Too Cheap Column</Label>
-                            <Select value={tooCheapCol} onValueChange={setTooCheapCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                         <div>
-                            <Label>Cheap Column</Label>
-                            <Select value={cheapCol} onValueChange={setCheapCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                         <div>
-                            <Label>Expensive Column</Label>
-                            <Select value={expensiveCol} onValueChange={setExpensiveCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                        <div>
-                            <Label>Too Expensive Column</Label>
-                            <Select value={tooExpensiveCol} onValueChange={setTooExpensiveCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                    </div>
+                     {plotData && (
+                         <Plot
+                            data={plotData.data}
+                            layout={layout}
+                            useResizeHandler={true}
+                            className="w-full h-[500px]"
+                            config={{ scrollZoom: true }}
+                        />
+                     )}
                 </CardContent>
-                <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={isLoading || !tooCheapCol || !cheapCol || !expensiveCol || !tooExpensiveCol}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Analyzing...</> : <><Sigma className="mr-2"/>Run Analysis</>}
-                    </Button>
-                </CardFooter>
             </Card>
-
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
-
-            {results && plotData && (
-                <div className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Price Sensitivity Meter</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Plot
-                                data={plotData.data}
-                                layout={layout}
-                                useResizeHandler={true}
-                                className="w-full h-[500px]"
-                                config={{ scrollZoom: true }}
-                            />
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Key Price Points</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                             <StatCard title="Optimal Price (OPP)" value={results.opp} />
-                             <StatCard title="Indifference Price (IPP)" value={results.ipp} />
-                             <StatCard title="Marginal Cheapness (PMC)" value={results.mdp} />
-                             <StatCard title="Marginal Expensiveness (PME)" value={results.pme} />
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+             <Card>
+                <CardHeader>
+                    <CardTitle>Key Price Points</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                     <StatCard title="Optimal Price (OPP)" value={results.opp} />
+                     <StatCard title="Indifference Price (IPP)" value={results.ipp} />
+                     <StatCard title="Marginal Cheapness (PMC)" value={results.mdp} />
+                     <StatCard title="Marginal Expensiveness (PME)" value={results.pme} />
+                </CardContent>
+            </Card>
         </div>
     );
 }
