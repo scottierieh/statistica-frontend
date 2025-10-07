@@ -122,6 +122,7 @@ import TTestPage from './pages/t-test-page';
 import { cn } from '@/lib/utils';
 import OneSampleTTestPage from './pages/one-sample-t-test-page';
 import WordCloudPage from './pages/wordcloud-page';
+import IpaPage from './pages/ipa-page';
 
 
 const analysisCategories = [
@@ -239,6 +240,13 @@ const analysisCategories = [
         items: [
             { id: 'normality-test', label: 'Normality Test', icon: BarChart, component: NormalityTestPage },
             { id: 'homogeneity-test', label: 'Homogeneity of Variance', icon: Layers, component: HomogeneityTestPage },
+        ],
+    },
+     {
+        name: 'Marketing',
+        icon: Target,
+        items: [
+            { id: 'ipa', label: 'IPA', icon: Target, component: IpaPage },
         ],
     },
 ];
@@ -539,4 +547,3 @@ export default function StatisticaApp() {
     </SidebarProvider>
   );
 }
-
