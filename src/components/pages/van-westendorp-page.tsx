@@ -12,6 +12,7 @@ import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import dynamic from 'next/dynamic';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -56,17 +57,19 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         requiredQuestions.forEach(q_title => {
             const question = survey.questions.find(q => q.title.toLowerCase().includes(q_title));
             if(question) {
-                mapping[q_title.replace('/','_')] = question.id;
+                // Use a consistent key format that is valid in JS
+                const key = q_title.toLowerCase().replace(/[\s/]/g, '_');
+                mapping[key] = question.id;
             }
         });
         return mapping;
     }, [survey, requiredQuestions]);
 
-    const canRun = useMemo(() => requiredQuestions.every(q => Object.keys(questionMap).includes(q.replace('/','_'))), [questionMap, requiredQuestions]);
+    const canRun = useMemo(() => requiredQuestions.every(q => Object.values(questionMap).length === requiredQuestions.length), [questionMap, requiredQuestions]);
 
     const handleAnalysis = useCallback(async () => {
         if (!canRun) {
-            setError("Not all required Van Westendorp questions were found in the survey.");
+            setError("Not all required Van Westendorp questions were found in the survey. Please ensure questions titled 'Too Cheap', 'Cheap/Bargain', 'Expensive/High Side', and 'Too Expensive' exist.");
             setIsLoading(false);
             return;
         }
@@ -237,4 +240,3 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         </div>
     );
 }
-
