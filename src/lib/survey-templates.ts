@@ -84,7 +84,7 @@ export const ipaTemplate = {
             type: 'matrix',
             title: 'Overall Satisfaction',
             required: true,
-            rows: ['Overall, how satisfied were you with your visit?'],
+            rows: ['Overall_Satisfaction'],
             columns: ['1', '2', '3', '4', '5'],
             scale: ['Very Dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very Satisfied']
         }
@@ -109,14 +109,14 @@ export const vanWestendorpTemplate = {
             required: true,
         },
          {
-            id: 'psm_cheap',
+            id: 'psm_expensive',
             type: 'number',
             title: 'Expensive/High Side',
             description: 'At what price would you consider the product starting to get expensive, so that it is not out of the question, but you would have to give some thought to buying it?',
             required: true,
         },
         {
-            id: 'psm_cheap_bargain',
+            id: 'psm_cheap',
             type: 'number',
             title: 'Cheap/Bargain',
             description: 'At what price would you consider the product to be a bargain—a great buy for the money?',
@@ -161,8 +161,8 @@ export const turfTemplate = {
 };
 
 export const ahpTemplate = {
-    title: "AHP: Choosing a New Laptop",
-    description: "This survey uses the Analytic Hierarchy Process (AHP) to determine the best laptop choice by comparing criteria and alternatives.",
+    title: "AHP: Choosing a New Smartphone",
+    description: "This survey uses the Analytic Hierarchy Process (AHP) to determine the best smartphone choice by comparing criteria and alternatives.",
     questions: [
         {
             id: 'ahp_desc',
@@ -174,7 +174,7 @@ export const ahpTemplate = {
             id: 'ahp_q_criteria',
             type: 'matrix',
             title: 'Pairwise Comparison of Criteria',
-            description: 'For the goal of "Choosing a New Laptop", how important is each criterion relative to the others?',
+            description: 'For the goal of "Choosing a New Smartphone", how important is each criterion relative to the others?',
             required: true,
             rows: ['Price vs Performance', 'Price vs Design', 'Performance vs Design'],
             columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
@@ -184,9 +184,9 @@ export const ahpTemplate = {
             id: 'ahp_q_price',
             type: 'matrix',
             title: 'Pairwise Comparison of Alternatives by Price',
-            description: 'Based on PRICE, how much do you prefer each laptop over the others?',
+            description: 'Based on PRICE, how much do you prefer each smartphone over the others?',
             required: true,
-            rows: ['Laptop A vs Laptop B', 'Laptop A vs Laptop C', 'Laptop B vs Laptop C'],
+            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
             columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
             scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
@@ -194,9 +194,9 @@ export const ahpTemplate = {
             id: 'ahp_q_performance',
             type: 'matrix',
             title: 'Pairwise Comparison of Alternatives by Performance',
-            description: 'Based on PERFORMANCE, how much do you prefer each laptop over the others?',
+            description: 'Based on PERFORMANCE, how much do you prefer each smartphone over the others?',
             required: true,
-            rows: ['Laptop A vs Laptop B', 'Laptop A vs Laptop C', 'Laptop B vs Laptop C'],
+            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
             columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
             scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
@@ -204,9 +204,9 @@ export const ahpTemplate = {
             id: 'ahp_q_design',
             type: 'matrix',
             title: 'Pairwise Comparison of Alternatives by Design',
-            description: 'Based on DESIGN, how much do you prefer each laptop over the others?',
+            description: 'Based on DESIGN, how much do you prefer each smartphone over the others?',
             required: true,
-            rows: ['Laptop A vs Laptop B', 'Laptop A vs Laptop C', 'Laptop B vs Laptop C'],
+            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
             columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
             scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
