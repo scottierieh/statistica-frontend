@@ -34,6 +34,7 @@ import CbcAnalysisPage from './cbc-analysis-page';
 import RatingConjointAnalysisPage from './rating-conjoint-analysis-page';
 import IpaPage from './ipa-page';
 import VanWestendorpPage from './van-westendorp-page';
+import TurfAnalysisPage from './turf-analysis-page';
 
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
@@ -965,8 +966,9 @@ export default function SurveyAnalysisPage() {
      const hasVanWestendorp = useMemo(() => {
         if (!survey) return false;
         const titles = survey.questions.map(q => q.title.toLowerCase());
-        return titles.includes('too cheap') && titles.includes('cheap/bargain') && titles.includes('expensive/high side') && titles.includes('too expensive');
+        return titles.includes('too cheap') && titles.includes('cheap') && titles.includes('expensive') && titles.includes('too expensive');
     }, [survey]);
+    const hasTurf = useMemo(() => survey?.questions.some(q => q.type === 'multiple'), [survey]);
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
       if (!questions || !responses) {
@@ -1126,6 +1128,7 @@ export default function SurveyAnalysisPage() {
                     {hasRatingConjoint && <TabsTrigger value="rating-conjoint">Conjoint (Rating)</TabsTrigger>}
                     {hasIPA && <TabsTrigger value="ipa">IPA</TabsTrigger>}
                     {hasVanWestendorp && <TabsTrigger value="van-westendorp">Price Sensitivity</TabsTrigger>}
+                    {hasTurf && <TabsTrigger value="turf">TURF Analysis</TabsTrigger>}
                     <TabsTrigger value="further_analysis">Further Analysis</TabsTrigger>
                 </TabsList>
                 <TabsContent value="results" className="mt-4">
@@ -1172,13 +1175,17 @@ export default function SurveyAnalysisPage() {
                 )}
                 {hasIPA && (
                     <TabsContent value="ipa" className="mt-4">
-                        {/* IPA Page content will go here */}
                         <IpaPage survey={survey} responses={responses} />
                     </TabsContent>
                 )}
                 {hasVanWestendorp && (
                      <TabsContent value="van-westendorp" className="mt-4">
                         <VanWestendorpPage survey={survey} responses={responses} />
+                    </TabsContent>
+                )}
+                 {hasTurf && (
+                    <TabsContent value="turf" className="mt-4">
+                        <TurfAnalysisPage survey={survey} responses={responses} />
                     </TabsContent>
                 )}
                 <TabsContent value="further_analysis" className="mt-4">
@@ -1228,3 +1235,4 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+```
