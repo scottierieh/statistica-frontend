@@ -102,12 +102,13 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         setAnalysisResult(null);
         
         const analysisData = responses.map(r => {
-            const row: {[key: string]: any} = {};
-            row['too_cheap'] = (r.answers as any)[questionMap.too_cheap];
-            row['cheap'] = (r.answers as any)[questionMap.cheap_bargain];
-            row['expensive'] = (r.answers as any)[questionMap.expensive_high_side];
-            row['too_expensive'] = (r.answers as any)[questionMap.too_expensive];
-            return row;
+            const answers = r.answers as any;
+            return {
+                'too_cheap': answers[questionMap.too_cheap],
+                'cheap': answers[questionMap.cheap_bargain],
+                'expensive': answers[questionMap.expensive_high_side],
+                'too_expensive': answers[questionMap.too_expensive],
+            };
         }).filter(row => !Object.values(row).some(v => v === undefined || v === null || isNaN(Number(v))));
         
         if (analysisData.length === 0) {
@@ -154,11 +155,6 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
     }, [handleAnalysis]);
     
     const results = analysisResult?.results;
-
-    const formattedInterpretation = useMemo(() => {
-        if (!results?.interpretation) return [];
-        return results.interpretation.split('\n').filter(line => line.trim() !== '');
-    }, [results]);
 
     if (error) {
          return (
