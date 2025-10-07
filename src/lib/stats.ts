@@ -26,7 +26,7 @@ export const parseData = (
     throw new Error("No parsable data rows found in the file.");
   }
   
-  const rawHeaders = result.meta.fields || [];
+  const rawHeaders = (result.meta.fields || []).filter(h => h && h.trim() !== '');
   const data: DataSet = result.data as DataSet;
 
   const numericHeaders: string[] = [];

@@ -1,7 +1,8 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Treemap, LabelList } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -20,7 +21,7 @@ import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { Skeleton } from '../ui/skeleton';
 
 
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
 
 // --- Statistical Helper Functions ---
 const getQuantile = (arr: number[], q: number) => {
@@ -134,7 +135,7 @@ const AnalysisDisplayShell = ({ children, varName }: { children: React.ReactNode
   
 const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: { chartData: any, tableData: any[], insightsData: string[], varName: string }) => {
     const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
-    const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
+    const [chartType, setChartType] = useState<'bar' | 'pie' | 'treemap'>('bar');
 
     return (
         <AnalysisDisplayShell varName={varName}>
@@ -146,6 +147,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                              <Tabs value={chartType} onValueChange={(value) => setChartType(value as any)}><TabsList>
                                 <TabsTrigger value="bar"><BarChartIcon className="w-4 h-4" /></TabsTrigger>
                                 <TabsTrigger value="pie"><PieChartIcon className="w-4 h-4" /></TabsTrigger>
+                                <TabsTrigger value="treemap"><Grid3x3 className="w-4 h-4" /></TabsTrigger>
                             </TabsList></Tabs>
                         </CardTitle>
                     </CardHeader>
@@ -156,9 +158,10 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                                <RechartsBarChart data={chartData} layout="vertical" margin={{ left: 80 }}>
                                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                  <XAxis type="number" dataKey="count" />
-                                 <YAxis dataKey="name" type="category" width={80} />
+                                 <YAxis dataKey="name" type="category" width={100} />
                                  <Tooltip content={<ChartTooltipContent />} cursor={{fill: 'hsl(var(--muted))'}} />
                                  <Bar dataKey="count" name="Frequency" radius={4}>
+                                   <LabelList dataKey="count" position="insideRight" style={{ fill: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 'bold' }} />
                                    {chartData.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                  </Bar>
                                </RechartsBarChart>
@@ -446,7 +449,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
                     const stats = getCategoricalStats(columnData);
                     results[varName] = {
                         type: 'categorical', stats: stats,
-                        plotData: stats.map(s => ({ name: s.name, count: s.count, percentage: parseFloat(s.percentage) })),
+                        plotData: stats.map(s => ({ name: s.name, count: s.count, percentage: parseFloat(s.percentage as any) })),
                         insights: generateCategoricalInsights(stats),
                     };
                 }
@@ -485,7 +488,6 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
                                 tableData={result.stats}
                                 insightsData={result.insights}
                                 varName={header}
-                                comparisonData={null}
                             />
                         </div>
                     );
@@ -494,7 +496,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         );
     };
 
-    if(view === 'intro') {
+    if (view === 'intro') {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
     }
 
@@ -535,7 +537,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="none">None</SelectItem>
-                                {categoricalHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                {categoricalHeaders.filter(h => h).map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <p className="text-xs text-muted-foreground mt-2">Select a categorical variable to see statistics for each group.</p>
@@ -578,3 +580,4 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         </div>
     );
 }
+
