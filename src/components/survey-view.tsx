@@ -221,11 +221,18 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Que
 };
 
 const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: any, onAnswerChange: (value: any) => void }) => {
-    const headers = question.scale && question.scale.length > 0 ? question.scale : (question.columns || []);
+    const isAHP = (question.columns || []).length === 9 && question.rows && question.rows.some(r => r.includes('vs'));
 
+    if (isAHP) {
+        return <AHPComparison question={question} answer={answer} onAnswerChange={onAnswerChange} />;
+    }
+
+    const headers = question.scale && question.scale.length > 0 ? question.scale : (question.columns || []);
+    
     return (
         <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
             <div className="overflow-x-auto">
                  <Table>
@@ -258,6 +265,76 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
         </div>
     );
 };
+
+const AHPComparison = ({ question, answer, onAnswerChange }: { question: Question, answer: any, onAnswerChange: (value: any) => void }) => {
+    
+    const scaleDescriptions: {[key: string]: string} = {
+        '9': `Left is absolutely more important`,
+        '7': `Left is very strongly more important`,
+        '5': `Left is strongly more important`,
+        '3': `Left is moderately more important`,
+        '1': `Equal importance`,
+        '-3': `Right is moderately more important`,
+        '-5': `Right is strongly more important`,
+        '-7': `Right is very strongly more important`,
+        '-9': `Right is absolutely more important`
+    };
+
+    return (
+        <div className="p-4 space-y-6">
+            <h3 className="text-lg font-semibold mb-2">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.description && <p className="text-sm text-muted-foreground">{question.description}</p>}
+            
+            {(question.rows || []).map((row: string, rowIndex: number) => {
+                const [left, right] = row.split(' vs ');
+                const selectedValue = answer?.[row];
+                
+                return (
+                    <div key={rowIndex} className="bg-slate-50 p-6 rounded-xl border">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex-1 text-center font-bold text-lg text-primary">{left}</div>
+                            <div className="mx-4 text-muted-foreground">vs</div>
+                            <div className="flex-1 text-center font-bold text-lg text-primary">{right}</div>
+                        </div>
+
+                        <div className="relative py-5">
+                            <div className="flex justify-between items-center px-2">
+                                {[9, 7, 5, 3, 1, -3, -5, -7, -9].map(value => (
+                                    <div 
+                                        key={value}
+                                        onClick={() => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = String(value); }))}
+                                        className={cn(
+                                            "w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center cursor-pointer transition-all z-10",
+                                            selectedValue === String(value) 
+                                                ? "bg-primary text-white border-primary-dark scale-110 shadow-lg"
+                                                : "border-slate-300 hover:border-primary hover:scale-110"
+                                        )}
+                                    >
+                                        {Math.abs(value)}
+                                    </div>
+                                ))}
+                            </div>
+                             <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 -translate-y-1/2">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-blue-400 via-purple-300 to-pink-400"
+                                    style={{ 
+                                        width: selectedValue ? `${((9 - Number(selectedValue)) / 18) * 100}%` : '50%',
+                                        marginLeft: selectedValue && Number(selectedValue) < 0 ? `${((9 + Number(selectedValue)) / 18) * 100}%` : '0%',
+                                    }}
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div className="text-center text-sm text-muted-foreground min-h-[20px] mt-2">
+                            {selectedValue && scaleDescriptions[selectedValue]}
+                        </div>
+                    </div>
+                )
+            })}
+        </div>
+    )
+};
+
 
 const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: string; onAnswerChange: (value: string) => void; }) => {
     const { attributes = [], profiles = [] } = question;

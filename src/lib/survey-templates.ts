@@ -184,14 +184,14 @@ export const ahpCriteriaOnlyTemplate = {
 };
 
 export const ahpWithAlternativesTemplate = {
-    title: "AHP: Full Hierarchy (Criteria & Alternatives)",
+    title: "AHP: Smartphone Selection",
     description: "Make a complex decision by comparing criteria and then evaluating alternatives against each criterion.",
     questions: [
         {
             id: 'ahp_full_desc',
             type: 'description',
             title: 'AHP Instructions',
-            content: 'First, you will compare the importance of the main criteria. Then, for each criterion, you will compare the alternatives. Use the 9-point scale to indicate your preference.'
+            content: 'You will first compare the importance of the main criteria for choosing a smartphone. Then, for each criterion, you will compare the alternatives. Use the 9-point scale to indicate your preference.'
         },
         {
             id: 'ahp_q_criteria',
@@ -209,7 +209,7 @@ export const ahpWithAlternativesTemplate = {
             title: 'Pairwise Comparison of Alternatives by Price',
             description: 'Based on PRICE, how much do you prefer each smartphone?',
             required: true,
-            rows: ['Notebook A vs Notebook B', 'Notebook A vs Notebook C', 'Notebook B vs Notebook C'],
+            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
             columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
             scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
@@ -219,7 +219,7 @@ export const ahpWithAlternativesTemplate = {
             title: 'Pairwise Comparison of Alternatives by Performance',
             description: 'Based on PERFORMANCE, how much do you prefer each smartphone?',
             required: true,
-            rows: ['Notebook A vs Notebook B', 'Notebook A vs Notebook C', 'Notebook B vs Notebook C'],
+            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
             columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
             scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
@@ -229,7 +229,7 @@ export const ahpWithAlternativesTemplate = {
             title: 'Pairwise Comparison of Alternatives by Design',
             description: 'Based on DESIGN, how much do you prefer each smartphone?',
             required: true,
-            rows: ['Notebook A vs Notebook B', 'Notebook A vs Notebook C', 'Notebook B vs Notebook C'],
+            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
             columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
             scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
