@@ -366,7 +366,8 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
 };
   
 const NumericChart = ({ data, title, onDownload }: { data: { mean: number, median: number, std: number, count: number, skewness: number, histogram: {name: string, count: number}[], values: number[] }, title: string, onDownload: () => void }) => {
-     const interpretation = useMemo(() => {
+     const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+    const interpretation = useMemo(() => {
         if (!data || isNaN(data.mean)) return null;
         let skewText = '';
         const skewness = data.skewness;
@@ -723,19 +724,19 @@ const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], tit
 };
 
 
-const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], interpretation: string }, title: string, onDownload: () => void }) => {
+const BestWorstChart = ({ data, title, onDownload }: { data: { results: { scores: any[], interpretation: string }}, title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
 
-    if (!data || !data.scores) return null;
+    if (!data || !data.results.scores) return null;
 
-    const chartData = data.scores.map(item => ({
+    const chartData = data.results.scores.map(item => ({
         name: item.item,
         netScore: item.net_score,
         bestPct: item.best_pct,
         worstPct: item.worst_pct,
     }));
     
-    const formattedInterpretation = data.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    const formattedInterpretation = data.results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
     return (
         <Card>
@@ -1242,12 +1243,12 @@ export default function SurveyAnalysisPage() {
                         <VanWestendorpPage survey={survey} responses={responses} />
                     </TabsContent>
                 )}
-                {hasTurf && (
+                 {hasTurf && (
                     <TabsContent value="turf" className="mt-4">
                         <Card>
                             <CardHeader>
                                 <CardTitle>TURF Analysis</CardTitle>
-                                <CardDescription>Analyze Total Unduplicated Reach and Frequency to find the optimal product/feature combination. The analysis will automatically use the first multiple-choice question found in the survey.</CardDescription>
+                                <CardDescription>Analyze Total Unduplicated Reach and Frequency. This will use the first multiple-choice question in the survey.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex justify-center">
@@ -1259,8 +1260,8 @@ export default function SurveyAnalysisPage() {
                                 {isTurfLoading && <Skeleton className="h-64 mt-4" />}
                                 {turfResult?.results && (
                                     <div className="mt-6 space-y-4">
-                                         <Alert>
-                                            <AlertTitle>AI Interpretation</AlertTitle>
+                                        <Alert>
+                                            <AlertTitle className="font-semibold">AI Interpretation</AlertTitle>
                                             <AlertDescription dangerouslySetInnerHTML={{ __html: turfResult.results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
                                         </Alert>
                                         <Image src={`data:image/png;base64,${turfResult.plot}`} alt="TURF Analysis Plots" width={1600} height={1200} className="w-full rounded-md border" />
@@ -1318,4 +1319,3 @@ export default function SurveyAnalysisPage() {
     );
 }
 
-```
