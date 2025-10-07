@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -32,11 +33,11 @@ def _to_native_type(obj):
 def create_main_plot(df_ipa, perf_mean, imp_mean, quadrant_colors):
     fig, ax1 = plt.subplots(figsize=(10, 8))
     for quadrant, color in quadrant_colors.items():
-        data = df_ipa[df_ipa['Quadrant'] == quadrant]
+        data = df_ipa[df_ipa['quadrant'] == quadrant]
         if not data.empty:
-            ax1.scatter(data['Performance'], data['Importance'], c=color, s=300, alpha=0.7, label=quadrant, edgecolors='black', linewidth=1.5)
+            ax1.scatter(data['performance'], data['importance'], c=color, s=300, alpha=0.7, label=quadrant, edgecolors='black', linewidth=1.5)
     for _, row in df_ipa.iterrows():
-        ax1.text(row['Performance'], row['Importance'], row['Attribute'], fontsize=10, ha='center', va='center', fontweight='bold')
+        ax1.text(row['performance'], row['importance'], row['attribute'], fontsize=10, ha='center', va='center', fontweight='bold')
     
     ax1.axhline(y=imp_mean, color='black', linestyle='--', linewidth=1.5, alpha=0.7)
     ax1.axvline(x=perf_mean, color='black', linestyle='--', linewidth=1.5, alpha=0.7)
@@ -58,17 +59,17 @@ def create_dashboard_plot(df, df_ipa, perf_mean, quadrant_colors, attributes, de
 
     # Importance Ranking
     ax2 = fig.add_subplot(gs[0, 0])
-    df_imp_sorted = df_ipa.sort_values('Relative_Importance', ascending=True)
-    colors_imp = [quadrant_colors.get(q, '#cccccc') for q in df_imp_sorted['Quadrant']]
-    ax2.barh(df_imp_sorted['Attribute'], df_imp_sorted['Relative_Importance'], color=colors_imp, alpha=0.7, edgecolor='black')
+    df_imp_sorted = df_ipa.sort_values('relative_importance', ascending=True)
+    colors_imp = [quadrant_colors.get(q, '#cccccc') for q in df_imp_sorted['quadrant']]
+    ax2.barh(df_imp_sorted['attribute'], df_imp_sorted['relative_importance'], color=colors_imp, alpha=0.7, edgecolor='black')
     ax2.set_title('Attribute Importance Ranking')
     ax2.set_xlabel('Relative Importance (%)')
     
     # Performance Ranking
     ax3 = fig.add_subplot(gs[1, 0])
-    df_perf_sorted = df_ipa.sort_values('Performance', ascending=True)
-    colors_perf = [quadrant_colors.get(q, '#cccccc') for q in df_perf_sorted['Quadrant']]
-    ax3.barh(df_perf_sorted['Attribute'], df_perf_sorted['Performance'], color=colors_perf, alpha=0.7, edgecolor='black')
+    df_perf_sorted = df_ipa.sort_values('performance', ascending=True)
+    colors_perf = [quadrant_colors.get(q, '#cccccc') for q in df_perf_sorted['quadrant']]
+    ax3.barh(df_perf_sorted['attribute'], df_perf_sorted['performance'], color=colors_perf, alpha=0.7, edgecolor='black')
     ax3.axvline(perf_mean, color='r', ls='--');
     ax3.set_title('Attribute Performance Ranking')
     ax3.set_xlabel('Performance Score')
@@ -76,8 +77,8 @@ def create_dashboard_plot(df, df_ipa, perf_mean, quadrant_colors, attributes, de
     # Bubble Chart
     ax4 = fig.add_subplot(gs[0, 1])
     overall_mean = df[dependent_var].mean()
-    scatter = ax4.scatter(df_ipa['Performance'], [overall_mean] * len(df_ipa), s=df_ipa['R_Squared']*1000, c=df_ipa['R_Squared'], cmap='viridis', alpha=0.6)
-    for _, row in df_ipa.iterrows(): ax4.text(row['Performance'], overall_mean, row['Attribute'], ha='center', va='center', fontsize=8)
+    scatter = ax4.scatter(df_ipa['performance'], [overall_mean] * len(df_ipa), s=df_ipa['r_squared']*1000, c=df_ipa['r_squared'], cmap='viridis', alpha=0.6)
+    for _, row in df_ipa.iterrows(): ax4.text(row['performance'], overall_mean, row['attribute'], ha='center', va='center', fontsize=8)
     plt.colorbar(scatter, ax=ax4, label='R²')
     ax4.set_title('Performance vs. R² (Bubble Size)')
 
@@ -85,12 +86,12 @@ def create_dashboard_plot(df, df_ipa, perf_mean, quadrant_colors, attributes, de
     ax5 = fig.add_subplot(gs[1, 1])
     df_gap_sorted = df_ipa.sort_values('gap')
     colors_gap = ['red' if g < 0 else 'green' for g in df_gap_sorted['gap']]
-    ax5.barh(df_gap_sorted['Attribute'], df_gap_sorted['gap'], color=colors_gap, alpha=0.7)
+    ax5.barh(df_gap_sorted['attribute'], df_gap_sorted['gap'], color=colors_gap, alpha=0.7)
     ax5.axvline(0, color='k', lw=1); ax5.set_title('Performance-Importance Gap')
 
     # Correlation Heatmap
     ax6 = fig.add_subplot(gs[:, 2])
-    corr_matrix = df.corr(numeric_only=True)[[dependent_var]].sort_values(dependent_var, ascending=False)
+    corr_matrix = df[[dependent_var] + attributes].corr(numeric_only=True)[[dependent_var]].sort_values(dependent_var, ascending=False)
     sns.heatmap(corr_matrix, annot=True, fmt='.3f', cmap='RdYlGn', center=0, ax=ax6)
     ax6.set_title(f'Correlation with {dependent_var}')
     
@@ -201,3 +202,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
