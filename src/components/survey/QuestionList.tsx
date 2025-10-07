@@ -567,26 +567,26 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete, styles }: { ques
 };
 
 const ScaleButton = ({ value, comparisonValue, onClick }: { value: number, comparisonValue: number, onClick: () => void }) => {
-      const isSelected = Math.abs(comparisonValue - value) < 0.01;
-      return (
+    const isSelected = Math.abs(comparisonValue - value) < 0.01;
+    return (
         <div className="flex flex-col items-center">
             <button
-            onClick={onClick}
-            className={`w-12 h-12 rounded-full border-2 transition-all ${
-                isSelected 
-                ? 'bg-blue-600 border-blue-600 shadow-lg scale-110' 
-                : 'bg-white border-gray-300 hover:border-blue-400 hover:scale-105'
-            }`}
+                onClick={onClick}
+                className={`w-12 h-12 rounded-full border-2 transition-all ${
+                    isSelected 
+                        ? 'bg-blue-600 border-blue-600 shadow-lg scale-110' 
+                        : 'bg-white border-gray-300 hover:border-blue-400 hover:scale-105'
+                }`}
             >
-            <span className={`text-sm font-semibold ${
-                isSelected ? 'text-white' : 'text-gray-600'
-            }`}>
-                {Math.abs(value) === 1 ? 1 : Math.round(1/value) > 1 ? Math.round(1/value) : value}
-            </span>
+                <span className={`text-sm font-semibold ${
+                    isSelected ? 'text-white' : 'text-gray-600'
+                }`}>
+                    {Math.abs(value) === 1 ? 1 : Math.round(1/value) > 1 ? Math.round(1/value) : value}
+                </span>
             </button>
         </div>
-      )
-  }
+    );
+};
 
 const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, onUpdate?: (question: any) => void, onDelete?: (id: string) => void, styles: any }) => {
   const { toast } = useToast();
@@ -594,30 +594,45 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, 
   const handleItemChange = (type: 'criteria' | 'alternatives', index: number, value: string) => {
     const newItems = [...(question[type] || [])];
     newItems[index] = value;
-    onUpdate?.({ ...question, [type]: newItems, rows: [] }); // Reset rows when items change
+    onUpdate?.({ ...question, [type]: newItems });
   };
   const addItem = (type: 'criteria' | 'alternatives') => {
     const newItems = [...(question[type] || []), `New ${type.slice(0, -1)}`];
-    onUpdate?.({ ...question, [type]: newItems, rows: [] });
+    onUpdate?.({ ...question, [type]: newItems });
   };
   const removeItem = (type: 'criteria' | 'alternatives', index: number) => {
     const newItems = (question[type] || []).filter((_: any, i: number) => i !== index);
-    onUpdate?.({ ...question, [type]: newItems, rows: [] });
+    onUpdate?.({ ...question, [type]: newItems });
   };
 
   const generatePairs = () => {
     const criteria = question.criteria || [];
     const alternatives = question.alternatives || [];
+    
+    // Get existing comparisons to preserve them
+    const existingRows = question.rows || [];
+    const existingData: { [key: string]: number } = {};
+    if (question.answers) { // Assuming answers are stored in a simple object in the question for the builder
+        Object.keys(question.answers).forEach((key, index) => {
+            if(existingRows[index]) {
+                existingData[existingRows[index]] = question.answers[key];
+            }
+        });
+    }
+
+    const newRows: string[] = [];
+    const newAnswers: { [key: string]: number } = {};
+
     if (criteria.length < 2) {
       toast({ title: "Error", description: "Please define at least 2 criteria."});
       return;
     }
-
-    const newRows: string[] = [];
     // Criteria pairs
     for (let i = 0; i < criteria.length; i++) {
       for (let j = i + 1; j < criteria.length; j++) {
-        newRows.push(`${criteria[i]} vs ${criteria[j]}`);
+        const key = `${criteria[i]} vs ${criteria[j]}`;
+        newRows.push(key);
+        newAnswers[key] = existingData[key] || 1;
       }
     }
     // Alternative pairs for each criterion
@@ -625,23 +640,30 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, 
       criteria.forEach((criterion: string) => {
         for (let i = 0; i < alternatives.length; i++) {
           for (let j = i + 1; j < alternatives.length; j++) {
-            newRows.push(`[${criterion}] ${alternatives[i]} vs ${alternatives[j]}`);
+            const key = `[${criterion}] ${alternatives[i]} vs ${alternatives[j]}`;
+            newRows.push(key);
+            newAnswers[key] = existingData[key] || 1;
           }
         }
       });
     }
-    onUpdate?.({ ...question, rows: newRows });
+    
+    // Re-map answers to a simple array based on new row order
+    const answerArray = newRows.map(row => newAnswers[row]);
+    onUpdate?.({ ...question, rows: newRows, answers: answerArray });
   };
   
-  const renderScaleButtons = (comparison: any, index: number, updateFunc: any, criterionName: string | null = null) => {
+  const renderScaleButtons = (row: string) => {
+    const [left, right] = row.replace(/\[.*?\]\s/,'').split(' vs ');
     const scaleValues = [1/9, 1/7, 1/5, 1/3, 1, 3, 5, 7, 9];
+    const comparisonValue = 1; // Preview is static
 
     return (
       <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
         <div className="flex items-center justify-between mb-6">
-          <span className="font-semibold text-blue-700 text-lg">{comparison.criterion1 || comparison.alternative1}</span>
+          <span className="font-semibold text-blue-700 text-lg">{left}</span>
           <span className="text-gray-400 text-sm">vs</span>
-          <span className="font-semibold text-indigo-700 text-lg">{comparison.criterion2 || comparison.alternative2}</span>
+          <span className="font-semibold text-indigo-700 text-lg">{right}</span>
         </div>
 
         <div className="flex items-center justify-between mb-4">
@@ -649,15 +671,14 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, 
             <ScaleButton
               key={idx}
               value={value}
-              comparisonValue={comparison.value}
-              onClick={() => {}} // This is a preview, so no update function
+              comparisonValue={comparisonValue}
+              onClick={() => {}}
             />
           ))}
         </div>
-
         <div className="flex justify-between text-xs text-gray-600 mb-2 px-2">
-          <span className="font-medium">{comparison.criterion1 || comparison.alternative1}</span>
-          <span className="font-medium">{comparison.criterion2 || comparison.alternative2}</span>
+          <span className="font-medium">{left}</span>
+          <span className="font-medium">{right}</span>
         </div>
       </div>
     );
@@ -701,7 +722,8 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, 
         {question.rows && question.rows.length > 0 && (
           <div className="mt-6">
             <h4 className="font-semibold mb-2">Generated Comparison Preview</h4>
-             {renderScaleButtons({criterion1: "Example 1", criterion2: "Example 2", value: 1}, 0, () => {})}
+             {renderScaleButtons(question.rows[0])}
+             {question.rows.length > 1 && <p className="text-xs text-center mt-2 text-muted-foreground">+ {question.rows.length - 1} more comparisons</p>}
           </div>
         )}
       </div>
@@ -789,7 +811,9 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     <div className="space-y-6">
        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
       <Card>
-        <CardHeader><CardTitle>Survey Details</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Survey Details</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} readOnly={isPreview} /></div>
           <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} readOnly={isPreview}/></div>
