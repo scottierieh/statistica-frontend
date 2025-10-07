@@ -12,7 +12,7 @@ import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import SurveyView from '@/components/survey-view';
 import SurveyPreview from '@/components/survey/SurveyPreview';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate } from '@/lib/survey-templates';
 import { Tabs, TabsTrigger, TabsContent, TabsList } from '@/components/ui/tabs';
 
@@ -155,7 +155,10 @@ export default function CreateSurveyPage() {
                         <DialogTrigger asChild>
                             <Button variant="outline"><Eye className="w-5 h-5 mr-2" />Preview</Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+                        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+                           <DialogHeader className="sr-only">
+                            <DialogTitle>Survey Preview</DialogTitle>
+                           </DialogHeader>
                            <SurveyView 
                                 survey={{ id: 'preview', title, description, questions, status: 'active', created_date: '' }}
                                 isPreview={true}
