@@ -17,8 +17,13 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface TurfResults {
     individual_reach: { Product: string; 'Reach (%)': number }[];
-    optimal_portfolios: { [key: string]: { combination: string; reach: number; frequency: number; } };
-    incremental_reach: { Order: number; Product: string; 'Incremental Reach': number; 'Cumulative Reach': number; }[];
+    optimal_portfolios: { [key: string]: { combination: string; reach: number; frequency: number; n_products: number } };
+    top_combinations: { [key: string]: any[] };
+    incremental_reach: { Order: number; Product: string; 'Incremental Reach (%)': number; 'Incremental Reach (count)': number; 'Cumulative Reach (%)': number }[];
+    recommendation: { size: number; products: string[]; reach: number; };
+    overlap_matrix: { [key: string]: { [key: string]: number } };
+    reach_target: number;
+    interpretation: string;
 }
 
 interface FullAnalysisResponse {
@@ -38,10 +43,10 @@ export default function TurfPage({ data, categoricalHeaders, onLoadExample }: Tu
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const canRun = useMemo(() => data.length > 0 && categoricalHeaders.length > 0, [data, categoricalHeaders]);
+    const canRun = useMemo(() => data && data.length > 0 && categoricalHeaders && categoricalHeaders.length > 0, [data, categoricalHeaders]);
 
     useEffect(() => {
-        setSelectionCol(categoricalHeaders[0]);
+        setSelectionCol(categoricalHeaders?.[0]);
         setAnalysisResult(null);
     }, [data, categoricalHeaders]);
 
@@ -70,6 +75,7 @@ export default function TurfPage({ data, categoricalHeaders, onLoadExample }: Tu
             if ((result as any).error) throw new Error((result as any).error);
             
             setAnalysisResult(result);
+            toast({ title: "Analysis Complete", description: "TURF analysis finished successfully." });
 
         } catch (e: any) {
             console.error('TURF Analysis error:', e);
@@ -134,13 +140,25 @@ export default function TurfPage({ data, categoricalHeaders, onLoadExample }: Tu
                          <Card>
                             <CardHeader><CardTitle className="font-headline">TURF Analysis Dashboard</CardTitle></CardHeader>
                             <CardContent>
-                                <Image src={analysisResult.plot} alt="TURF Analysis Plots" width={2000} height={1200} className="w-full rounded-md border" />
+                                <Image src={`data:image/png;base64,${analysisResult.plot}`} alt="TURF Analysis Plots" width={1600} height={1200} className="w-full rounded-md border" />
+                            </CardContent>
+                        </Card>
+                    )}
+                    {results.interpretation && (
+                        <Card>
+                            <CardHeader><CardTitle className="font-headline">Strategic Recommendations</CardTitle></CardHeader>
+                            <CardContent>
+                                <Alert>
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Key Insights</AlertTitle>
+                                    <AlertDescription dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br />') }} />
+                                </Alert>
                             </CardContent>
                         </Card>
                     )}
                     <div className="grid lg:grid-cols-2 gap-4">
                         <Card>
-                            <CardHeader><CardTitle>Optimal Portfolios</CardTitle></CardHeader>
+                            <CardHeader><CardTitle>Optimal Portfolios by Size</CardTitle></CardHeader>
                             <CardContent>
                                 <Table>
                                     <TableHeader><TableRow><TableHead>Size</TableHead><TableHead>Best Combination</TableHead><TableHead className="text-right">Reach (%)</TableHead><TableHead className="text-right">Frequency</TableHead></TableRow></TableHeader>
@@ -158,7 +176,7 @@ export default function TurfPage({ data, categoricalHeaders, onLoadExample }: Tu
                             </CardContent>
                         </Card>
                          <Card>
-                            <CardHeader><CardTitle>Incremental Reach</CardTitle></CardHeader>
+                            <CardHeader><CardTitle>Incremental Reach Analysis</CardTitle></CardHeader>
                             <CardContent>
                                  <Table>
                                     <TableHeader><TableRow><TableHead>Product</TableHead><TableHead className="text-right">Incremental Reach</TableHead><TableHead className="text-right">Cumulative Reach</TableHead></TableRow></TableHeader>
@@ -166,10 +184,27 @@ export default function TurfPage({ data, categoricalHeaders, onLoadExample }: Tu
                                         {results.incremental_reach.map(r => (
                                             <TableRow key={r.Order}>
                                                 <TableCell>{r.Order}. {r.Product}</TableCell>
-                                                <TableCell className="text-right font-mono text-green-600">+{r['Incremental Reach'].toFixed(2)}%</TableCell>
-                                                <TableCell className="text-right font-mono">{r['Cumulative Reach'].toFixed(2)}%</TableCell>
+                                                <TableCell className="text-right font-mono text-green-600">+{r['Incremental Reach (%)'].toFixed(2)}% ({r['Incremental Reach (count)']})</TableCell>
+                                                <TableCell className="text-right font-mono">{r['Cumulative Reach (%)'].toFixed(2)}%</TableCell>
                                             </TableRow>
                                         ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                         <Card className="lg:col-span-2">
+                            <CardHeader><CardTitle>Top 10 Three-Product Combinations</CardTitle></CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader><TableRow><TableHead>Combination</TableHead><TableHead className="text-right">Reach (%)</TableHead><TableHead className="text-right">Frequency</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                    {results.top_combinations['3']?.map((c: any, i: number) => (
+                                        <TableRow key={i}>
+                                            <TableCell>{c.combination}</TableCell>
+                                            <TableCell className="text-right font-mono">{c.reach.toFixed(2)}%</TableCell>
+                                            <TableCell className="text-right font-mono">{c.frequency.toFixed(2)}</TableCell>
+                                        </TableRow>
+                                    ))}
                                     </TableBody>
                                 </Table>
                             </CardContent>

@@ -1056,7 +1056,13 @@ export default function SurveyAnalysisPage() {
             ['single', 'multiple', 'dropdown'].includes(q.type) && q.title && q.title.trim() !== ''
         );
     }, [survey]);
-
+    
+    const turfQuestion = useMemo(() => survey?.questions.find(q => q.type === 'multiple'), [survey]);
+    const turfData = useMemo(() => {
+        if (!turfQuestion) return [];
+        return responses.map(r => ({ selection: (r.answers as any)[turfQuestion.id] })).filter(r => r.selection);
+    }, [turfQuestion, responses]);
+    
     if (loading) {
         return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-96 w-full" /></div>;
     }
@@ -1145,9 +1151,9 @@ export default function SurveyAnalysisPage() {
                         <VanWestendorpPage survey={survey} responses={responses} />
                     </TabsContent>
                 )}
-                {hasTurf && (
+                {hasTurf && turfData && turfQuestion && (
                     <TabsContent value="turf" className="mt-4">
-                       <TurfPage survey={survey} responses={responses} />
+                       <TurfPage data={turfData} categoricalHeaders={[turfQuestion.title]} onLoadExample={() => {}} />
                     </TabsContent>
                 )}
                 <TabsContent value="further_analysis" className="mt-4">
