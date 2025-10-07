@@ -45,7 +45,9 @@ def find_intersection(x, y1, y2):
 
         return x_a - y_a * (x_b - x_a) / (y_b - y_a)
     except Exception:
+        # Fallback to minimum difference if interpolation fails
         diff = np.abs(np.array(y1) - np.array(y2))
+        if len(diff) == 0: return None
         idx = np.argmin(diff)
         return x[idx]
 
@@ -75,9 +77,8 @@ def create_psm_plot(price_range, cumulative_curves, results):
     
     pmc_price, opp_price, idp_price, pme_price = results.get('pmc'), results.get('opp'), results.get('idp'), results.get('pme')
 
-    # PSM plot uses reversed cumulative for "not cheap" and "not expensive"
-    ax1.plot(price_range, cumulative_curves['not_too_cheap'], label='Not Too Cheap', color='skyblue', linewidth=2, linestyle='--')
-    ax1.plot(price_range, cumulative_curves['not_cheap'], label='Not Cheap', color='blue', linewidth=2)
+    ax1.plot(price_range, cumulative_curves['too_cheap'], label='Too Cheap', color='lightblue', linewidth=2)
+    ax1.plot(price_range, cumulative_curves['cheap'], label='Cheap', color='blue', linewidth=2, linestyle='--')
     ax1.plot(price_range, cumulative_curves['expensive'], label='Expensive', color='orange', linewidth=2)
     ax1.plot(price_range, cumulative_curves['too_expensive'], label='Too Expensive', color='red', linewidth=2, linestyle='--')
 
@@ -151,16 +152,18 @@ def main():
         df = pd.DataFrame(data)
         
         price_cols = [too_cheap_col, cheap_col, expensive_col, too_expensive_col]
+        
         for col in price_cols:
-            if col not in df.columns:
+            if col is None or col not in df.columns:
                  raise ValueError(f"Required column '{col}' not found in data.")
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
         df.dropna(subset=price_cols, inplace=True)
 
         if df.shape[0] < 10:
-            raise ValueError("No valid numeric responses found for the price sensitivity questions.")
+            raise ValueError(f"No valid numeric responses found. Need at least 10 complete responses, but found {df.shape[0]}.")
 
+        # Validate that prices are ordered correctly
         for i in range(len(df)):
             prices = df.iloc[i][price_cols].values.tolist()
             if not all(x <= y for x, y in zip(prices, prices[1:])):
@@ -170,30 +173,43 @@ def main():
         price_range = np.linspace(df[price_cols].values.min(), df[price_cols].values.max(), 500)
         n = len(df)
         
-        too_cheap_cumulative = np.array([(df[too_cheap_col] >= p).sum() for p in price_range]) / n * 100
-        cheap_cumulative = np.array([(df[cheap_col] >= p).sum() for p in price_range]) / n * 100
+        too_cheap_cumulative = np.array([(df[too_cheap_col] <= p).sum() for p in price_range]) / n * 100
+        cheap_cumulative = np.array([(df[cheap_col] <= p).sum() for p in price_range]) / n * 100
         expensive_cumulative = np.array([(df[expensive_col] <= p).sum() for p in price_range]) / n * 100
         too_expensive_cumulative = np.array([(df[too_expensive_col] <= p).sum() for p in price_range]) / n * 100
         
-        # Curves for finding intersection points
+        # Inverted curves
         not_cheap = 100 - cheap_cumulative
-        not_expensive = expensive_cumulative
+        not_expensive = 100 - expensive_cumulative
         
-        pmc_price = find_intersection(price_range, too_cheap_cumulative, not_cheap)
-        pme_price = find_intersection(price_range, too_expensive_cumulative, not_expensive)
-        opp_price = find_intersection(price_range, too_expensive_cumulative, too_cheap_cumulative)
-        idp_price = find_intersection(price_range, not_cheap, not_expensive)
-        
+        # Find intersection points using the correct curves for each point
+        pmc_price = find_intersection(price_range, too_cheap_cumulative, not_expensive)
+        pme_price = find_intersection(price_range, expensive_cumulative, not_cheap)
+        opp_price = find_intersection(price_range, too_expensive_cumulative, not_cheap)
+        idp_price = find_intersection(price_range, expensive_cumulative, not_cheap)
+
+        # The user provided script has a different logic for intersections, let's correct it based on standard PSM.
+        # OPP: 'Too Expensive' and 'Not Too Cheap'
+        # IDP: 'Expensive' and 'Cheap' (not their inverted counterparts)
+        opp_price_correct = find_intersection(price_range, too_expensive_cumulative, 100 - too_cheap_cumulative)
+        idp_price_correct = find_intersection(price_range, expensive_cumulative, cheap_cumulative)
+        pmc_price_correct = find_intersection(price_range, too_cheap_cumulative, 100 - cheap_cumulative)
+        pme_price_correct = find_intersection(price_range, expensive_cumulative, 100 - too_expensive_cumulative)
+
+
         results = {
-            'pme': pme_price, 'pmc': pmc_price, 'opp': opp_price, 'idp': idp_price,
+            'pme': pme_price_correct,
+            'pmc': pmc_price_correct,
+            'opp': opp_price_correct,
+            'idp': idp_price_correct,
         }
         results['interpretation'] = generate_interpretation(results)
         
         cumulative_curves_for_psm = {
-            'not_too_cheap': 100 - too_cheap_cumulative,
-            'not_cheap': not_cheap,
-            'expensive': not_expensive,
-            'too_expensive': 100 - not_too_expensive,
+            'too_cheap': too_cheap_cumulative,
+            'cheap': cheap_cumulative,
+            'expensive': expensive_cumulative,
+            'too_expensive': too_expensive_cumulative,
         }
         
         psm_plot = create_psm_plot(price_range, cumulative_curves_for_psm, results)
@@ -216,3 +232,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
