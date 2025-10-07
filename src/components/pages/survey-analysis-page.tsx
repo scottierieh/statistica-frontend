@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -35,6 +34,7 @@ import CbcAnalysisPage from './cbc-analysis-page';
 import RatingConjointAnalysisPage from './rating-conjoint-analysis-page';
 import IpaPage from './ipa-page';
 import VanWestendorpPage from './van-westendorp-page';
+import TurfPage from './turf-page';
 
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
@@ -50,19 +50,6 @@ interface CrosstabResults {
     plot: string;
     interpretation: string;
 }
-
-interface TurfResults {
-    individual_reach: { Product: string; 'Reach (%)': number }[];
-    optimal_portfolios: { [key: string]: { combination: string; reach: number; frequency: number; n_products: number;} };
-    incremental_reach: { Order: number; Product: string; 'Incremental Reach': number; 'Cumulative Reach': number; }[];
-    interpretation: string;
-}
-
-interface FullTurfResponse {
-    results: TurfResults;
-    plot: string;
-}
-
 
 // --- Data Processing Functions ---
 const processTextResponses = (responses: SurveyResponse[], questionId: string) => {
@@ -707,7 +694,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { results: { scores
                             </TabsList>
                         </Tabs>
                         <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
-                   </div>
+                    </div>
                 </div>
             </CardHeader>
             <CardContent>
@@ -1204,32 +1191,7 @@ export default function SurveyAnalysisPage() {
                 )}
                 {hasTurf && (
                     <TabsContent value="turf" className="mt-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>TURF Analysis</CardTitle>
-                                <CardDescription>Analyze Total Unduplicated Reach and Frequency using the first multiple-choice question in the survey.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex justify-center">
-                                    <Button onClick={handleRunTurf} disabled={isTurfLoading}>
-                                        {isTurfLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sigma className="mr-2 h-4 w-4" />}
-                                        Run TURF Analysis
-                                    </Button>
-                                </div>
-                                {isTurfLoading && <Skeleton className="h-64 mt-4" />}
-                                {turfResult?.results && (
-                                     <div className="mt-6 space-y-4">
-                                         {turfResult.results.interpretation && (
-                                            <Alert>
-                                                <AlertTitle className="font-semibold">AI Interpretation</AlertTitle>
-                                                <AlertDescription dangerouslySetInnerHTML={{ __html: turfResult.results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-                                            </Alert>
-                                        )}
-                                        {turfResult.plot && <Image src={`data:image/png;base64,${turfResult.plot}`} alt="TURF Analysis Plots" width={1600} height={1200} className="w-full rounded-md border" />}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                       <TurfPage survey={survey} responses={responses} />
                     </TabsContent>
                 )}
                 <TabsContent value="further_analysis" className="mt-4">
