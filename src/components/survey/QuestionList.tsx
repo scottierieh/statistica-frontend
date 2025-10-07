@@ -449,27 +449,28 @@ const AHPComparisonEditor = ({ question, onUpdate }: { question: Question, onUpd
         const newItems = produce(question.items || [], (draft: string[]) => {
             draft[index] = value;
         });
-        updateRows(newItems);
+        onUpdate?.({ ...question, items: newItems });
     };
 
     const addItem = () => {
         const newItems = [...(question.items || []), `Item ${(question.items?.length || 0) + 1}`];
-        updateRows(newItems);
+        onUpdate?.({ ...question, items: newItems });
     };
 
     const removeItem = (index: number) => {
         const newItems = (question.items || []).filter((_, i) => i !== index);
-        updateRows(newItems);
+        onUpdate?.({ ...question, items: newItems });
     };
 
-    const updateRows = (items: string[]) => {
+    const generatePairs = () => {
+        const items = question.items || [];
         const newRows = [];
         for (let i = 0; i < items.length; i++) {
             for (let j = i + 1; j < items.length; j++) {
                 newRows.push(`${items[i]} vs ${items[j]}`);
             }
         }
-        onUpdate?.({ ...question, items, rows: newRows });
+        onUpdate?.({ ...question, rows: newRows });
     };
 
     return (
@@ -486,32 +487,36 @@ const AHPComparisonEditor = ({ question, onUpdate }: { question: Question, onUpd
                  ))}
                  <Button variant="outline" size="sm" onClick={addItem}><PlusCircle className="mr-2"/> Add Item</Button>
             </div>
+            
+            <Button onClick={generatePairs}>Generate Pairwise Comparisons</Button>
 
-            <div className="bg-slate-50 p-6 rounded-xl border">
-                <h4 className="font-semibold mb-4 text-center">Preview of Comparisons</h4>
-                 {(question.rows || []).map((row: string, rowIndex: number) => {
-                    const [left, right] = row.split(' vs ');
-                    return (
-                        <div key={rowIndex} className="mb-4">
-                            <div className="flex justify-between items-center mb-4">
-                                <div className="flex-1 text-center font-bold text-lg text-primary">{left}</div>
-                                <div className="mx-4 text-muted-foreground">vs</div>
-                                <div className="flex-1 text-center font-bold text-lg text-primary">{right}</div>
-                            </div>
-                            <div className="relative py-5">
-                                <div className="flex justify-between items-center px-2">
-                                    {[9, 7, 5, 3, 1, -3, -5, -7, -9].map(value => (
-                                        <div key={value} className="w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center font-bold text-sm text-slate-600 z-10 border-slate-300">
-                                            {Math.abs(value)}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 -translate-y-1/2"></div>
-                            </div>
-                        </div>
-                    )
-                })}
-            </div>
+            {question.rows && question.rows.length > 0 && (
+              <div className="bg-slate-50 p-6 rounded-xl border mt-4">
+                  <h4 className="font-semibold mb-4 text-center">Preview of Comparisons</h4>
+                   {(question.rows || []).map((row: string, rowIndex: number) => {
+                      const [left, right] = row.split(' vs ');
+                      return (
+                          <div key={rowIndex} className="mb-4">
+                              <div className="flex justify-between items-center mb-4">
+                                  <div className="flex-1 text-center font-bold text-lg text-primary">{left}</div>
+                                  <div className="mx-4 text-muted-foreground">vs</div>
+                                  <div className="flex-1 text-center font-bold text-lg text-primary">{right}</div>
+                              </div>
+                              <div className="relative py-5">
+                                  <div className="flex justify-between items-center px-2">
+                                      {[9, 7, 5, 3, 1, -3, -5, -7, -9].map(value => (
+                                          <div key={value} className="w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center font-bold text-sm text-slate-600 z-10 border-slate-300">
+                                              {Math.abs(value)}
+                                          </div>
+                                      ))}
+                                  </div>
+                                  <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 -translate-y-1/2"></div>
+                              </div>
+                          </div>
+                      )
+                  })}
+              </div>
+            )}
         </div>
     )
 };
