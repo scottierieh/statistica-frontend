@@ -149,14 +149,14 @@ export const turfTemplate = {
             description: 'Select all that apply.',
             required: true,
             options: [
-                'Classic Cola - The timeless, original flavor.',
-                'Lemon Lime - A crisp and refreshing citrus blast.',
-                'Orange Soda - Sweet, tangy, and full of sunshine.',
-                'Grape Soda - Bold and fruity grape flavor.',
-                'Root Beer - Creamy, classic, and nostalgic.',
-                'Ginger Ale - Spicy and soothing, perfect on its own or as a mixer.',
-                'Cherry Cola - A sweet twist on a classic favorite.',
-                'Cream Soda - Smooth, sweet, and velvety vanilla flavor.'
+                'Product A: A refreshing classic cola flavor.',
+                'Product B: A zesty and crisp lemon-lime combination.',
+                'Product C: A sweet and tangy orange soda.',
+                'Product D: A bold and fruity grape taste.',
+                'Product E: A creamy and nostalgic root beer.',
+                'Product F: A spicy and soothing ginger ale.',
+                'Product G: A classic cola with a sweet cherry twist.',
+                'Product H: A smooth, sweet, and velvety cream soda.'
             ],
         },
     ] as Question[],
