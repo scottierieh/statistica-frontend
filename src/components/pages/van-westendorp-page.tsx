@@ -95,7 +95,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         requiredQuestions.forEach(q_title => {
             const question = survey.questions.find(q => q.title.toLowerCase().includes(q_title));
             if(question) {
-                mapping[q_title] = question.id;
+                mapping[q_title.replace(' ', '_')] = question.id;
             }
         });
         return mapping;
@@ -117,10 +117,10 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         const analysisData = responses.map(r => {
             const answers = r.answers as any;
             return {
-                too_cheap: answers[questionMap['too cheap']],
+                too_cheap: answers[questionMap['too_cheap']],
                 cheap: answers[questionMap['cheap']],
                 expensive: answers[questionMap['expensive']],
-                too_expensive: answers[questionMap['too expensive']],
+                too_expensive: answers[questionMap['too_expensive']],
             };
         });
         
@@ -197,19 +197,28 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Price Sensitivity & Acceptance Curves</CardTitle>
-                </CardHeader>
-                <CardContent className="grid md:grid-cols-1 gap-4">
-                     {analysisResult.plots.psm_plot ? (
-                         <Image src={`data:image/png;base64,${analysisResult.plots.psm_plot}`} alt="Van Westendorp Plot" width={1000} height={700} className="w-full rounded-md border" />
-                     ) : <p>Could not render PSM plot.</p>}
-                      {analysisResult.plots.acceptance_plot ? (
-                         <Image src={`data:image/png;base64,${analysisResult.plots.acceptance_plot}`} alt="Price Acceptance Plot" width={1000} height={700} className="w-full rounded-md border" />
-                     ) : <p>Could not render Acceptance plot.</p>}
-                </CardContent>
-            </Card>
+            <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Price Sensitivity Meter</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {analysisResult.plots.psm_plot ? (
+                            <Image src={`data:image/png;base64,${analysisResult.plots.psm_plot}`} alt="Van Westendorp Plot" width={1000} height={700} className="w-full rounded-md border" />
+                        ) : <p>Could not render PSM plot.</p>}
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Price Acceptance Curve</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {analysisResult.plots.acceptance_plot ? (
+                            <Image src={`data:image/png;base64,${analysisResult.plots.acceptance_plot}`} alt="Price Acceptance Plot" width={1000} height={700} className="w-full rounded-md border" />
+                        ) : <p>Could not render Acceptance plot.</p>}
+                    </CardContent>
+                </Card>
+            </div>
 
             <InterpretationDisplay interpretation={results?.interpretation} />
 
