@@ -140,26 +140,24 @@ export const turfTemplate = {
             id: 'turf_desc',
             type: 'description',
             title: 'Instructions',
-            content: 'For each of the following potential new soda flavors, please indicate if you would be interested in purchasing it.'
+            content: 'From the list below, please select all the soda flavors you would be interested in purchasing.'
         },
         {
             id: 'turf_q_1',
-            type: 'matrix',
+            type: 'multiple',
             title: 'Which of the following soda flavors would you consider buying?',
-            description: 'Select one option for each flavor.',
+            description: 'Select all that apply.',
             required: true,
-            rows: [
-                'Classic Cola',
-                'Lemon Lime',
-                'Orange Soda',
-                'Grape Soda',
-                'Root Beer',
-                'Ginger Ale',
-                'Cherry Cola',
-                'Cream Soda'
+            options: [
+                'Classic Cola - The timeless, original flavor.',
+                'Lemon Lime - A crisp and refreshing citrus blast.',
+                'Orange Soda - Sweet, tangy, and full of sunshine.',
+                'Grape Soda - Bold and fruity grape flavor.',
+                'Root Beer - Creamy, classic, and nostalgic.',
+                'Ginger Ale - Spicy and soothing, perfect on its own or as a mixer.',
+                'Cherry Cola - A sweet twist on a classic favorite.',
+                'Cream Soda - Smooth, sweet, and velvety vanilla flavor.'
             ],
-            columns: ['Yes', 'No'],
-            scale: [],
         },
     ] as Question[],
 };
