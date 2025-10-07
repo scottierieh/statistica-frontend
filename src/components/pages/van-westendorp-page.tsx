@@ -110,10 +110,15 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                 expensive: answers[questionMap.expensive_high_side],
                 too_expensive: answers[questionMap.too_expensive],
             };
-        }).filter(row => row.too_cheap != null && row.cheap != null && row.expensive != null && row.too_expensive != null);
+        }).filter(row => 
+            row.too_cheap != null && !isNaN(Number(row.too_cheap)) &&
+            row.cheap != null && !isNaN(Number(row.cheap)) &&
+            row.expensive != null && !isNaN(Number(row.expensive)) &&
+            row.too_expensive != null && !isNaN(Number(row.too_expensive))
+        );
         
-        if (analysisData.length === 0) {
-            setError("No valid numeric responses found for the price sensitivity questions.");
+        if (analysisData.length < 10) {
+            setError(`Not enough valid numeric responses found. Need at least 10 complete responses, but found ${analysisData.length}.`);
             setIsLoading(false);
             return;
         }
@@ -137,7 +142,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
             }
 
             const result: FullAnalysisResponse = await response.json();
-            if ((result as any).error) throw new Error((result as any).error);
+            if (result.error) throw new Error(result.error);
             
             setAnalysisResult(result);
             toast({ title: "Analysis Complete", description: "Van Westendorp analysis finished successfully." });
@@ -219,4 +224,3 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         </div>
     );
 }
-
