@@ -499,7 +499,7 @@ const RatingChart = ({ data, title, onDownload }: { data: { values: number[], co
                     <Button variant="ghost" size="icon" onClick={onDownload}><Download className="w-4 h-4" /></Button>
                 </div>
           </CardHeader>
-           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                 <div className="flex flex-col items-center justify-center">
                     <p className="text-5xl font-bold">{averageRating.toFixed(2)}</p>
                     <div className="flex items-center mt-2">
@@ -767,7 +767,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { scores: any[], in
                                 </BarChart>
                             ) : (
                                 <BarChart data={chartData} margin={{ left: 20 }}>
-                                    <YAxis />
+                                    <YAxis unit="%"/>
                                     <XAxis type="category" dataKey="name" />
                                     <Tooltip content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}%`} />} />
                                     <Legend />
@@ -969,7 +969,6 @@ export default function SurveyAnalysisPage() {
     const [isCrosstabLoading, setIsCrosstabLoading] = useState(false);
     const [crosstabResult, setCrosstabResult] = useState<CrosstabResults | null>(null);
     
-    const [turfQuestion, setTurfQuestion] = useState<string | undefined>();
     const [isTurfLoading, setIsTurfLoading] = useState(false);
     const [turfResult, setTurfResult] = useState<FullTurfResponse | null>(null);
 
@@ -1106,9 +1105,12 @@ export default function SurveyAnalysisPage() {
         }
     }, [crosstabRow, crosstabCol, responses, toast, survey]);
     
-    const handleRunTurf = useCallback(async () => {
+     const handleRunTurf = useCallback(async () => {
+        if (!survey) return;
+        const turfQuestion = survey.questions.find(q => q.type === 'multiple');
+        
         if (!turfQuestion) {
-            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select a multiple choice question to analyze.' });
+            toast({ variant: 'destructive', title: 'Question not found', description: 'No multiple choice question available for TURF analysis.' });
             return;
         }
 
@@ -1116,11 +1118,8 @@ export default function SurveyAnalysisPage() {
         setTurfResult(null);
         
         try {
-            const questionData = survey?.questions.find(q => q.title === turfQuestion);
-            if (!questionData || questionData.type !== 'multiple') throw new Error("Invalid question selected for TURF analysis.");
-
             const turfData = responses.map(r => ({
-                selections: (r.answers as any)[questionData.id]?.join(',') || ''
+                selections: (r.answers as any)[turfQuestion.id]?.join(',') || ''
             }));
 
             const response = await fetch('/api/analysis/turf', {
@@ -1145,7 +1144,7 @@ export default function SurveyAnalysisPage() {
         } finally {
             setIsTurfLoading(false);
         }
-    }, [survey, responses, turfQuestion, toast]);
+    }, [survey, responses, toast]);
     
     const categoricalQuestions = useMemo(() => {
         if (!survey) return [];
@@ -1256,22 +1255,11 @@ export default function SurveyAnalysisPage() {
                                 <CardDescription>Analyze Total Unduplicated Reach and Frequency to find the optimal product/feature combination.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <div>
-                                        <Label>Select a Multiple Choice Question</Label>
-                                        <Select value={turfQuestion} onValueChange={setTurfQuestion}>
-                                            <SelectTrigger><SelectValue placeholder="Select question..." /></SelectTrigger>
-                                            <SelectContent>
-                                                {multipleChoiceQuestions.map((q: Question) => <SelectItem key={q.id} value={q.title}>{q.title}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="self-end">
-                                        <Button onClick={handleRunTurf} disabled={isTurfLoading || !turfQuestion}>
-                                            {isTurfLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sigma className="mr-2 h-4 w-4" />}
-                                            Run TURF Analysis
-                                        </Button>
-                                    </div>
+                                <div className="flex justify-center">
+                                    <Button onClick={handleRunTurf} disabled={isTurfLoading}>
+                                        {isTurfLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sigma className="mr-2 h-4 w-4" />}
+                                        Run TURF Analysis for '{multipleChoiceQuestions[0]?.title}'
+                                    </Button>
                                 </div>
                                 {isTurfLoading && <Skeleton className="h-64 mt-4" />}
                                 {turfResult?.results && (
@@ -1330,3 +1318,7 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
+```
+- src/lib/stats.ts
+- src/lib/survey-templates.ts
