@@ -103,13 +103,13 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         setAnalysisResult(null);
         
         const analysisData = responses.map(r => {
-            return {
-                too_cheap: Number((r.answers as any)[questionMap.too_cheap]),
-                cheap: Number((r.answers as any)[questionMap.cheap_bargain]),
-                expensive: Number((r.answers as any)[questionMap.expensive_high_side]),
-                too_expensive: Number((r.answers as any)[questionMap.too_expensive]),
-            }
-        }).filter(row => !Object.values(row).some(v => isNaN(v) || v === null || v === undefined));
+            const row: {[key: string]: any} = {};
+            row['too_cheap'] = (r.answers as any)[questionMap.too_cheap];
+            row['cheap'] = (r.answers as any)[questionMap.cheap_bargain];
+            row['expensive'] = (r.answers as any)[questionMap.expensive_high_side];
+            row['too_expensive'] = (r.answers as any)[questionMap.too_expensive];
+            return row;
+        }).filter(row => !Object.values(row).some(v => v === undefined || v === null || isNaN(Number(v))));
         
         if (analysisData.length === 0) {
             setError("No valid numeric responses found for the price sensitivity questions.");
@@ -155,6 +155,11 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
     }, [handleAnalysis]);
     
     const results = analysisResult?.results;
+
+    const formattedInterpretation = useMemo(() => {
+        if (!results?.interpretation) return [];
+        return results.interpretation.split('\n').filter(line => line.trim() !== '');
+    }, [results]);
 
     if (error) {
          return (
@@ -211,3 +216,10 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                                 <StatCard title="Marginal Expensiveness (PME)" value={results?.pme} />
                             </CardContent>
                         </Card>
+                        <InterpretationDisplay interpretation={results?.interpretation} />
+                    </div>
+                 </TabsContent>
+            </Tabs>
+        </div>
+    );
+}
