@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -52,15 +52,15 @@ interface IpaPageProps {
 }
 
 const quadrantConfig = {
-    'Q1: Keep Up Good Work': {
-        icon: Star,
-        color: "text-green-600",
-        description: "High importance and high performance. These are your key strengths. Continue to invest in these areas to maintain your competitive advantage."
-    },
     'Q2: Concentrate Here': {
         icon: Flame,
         color: "text-red-600",
         description: "High importance but low performance. These are critical weaknesses and should be your top priority for improvement."
+    },
+    'Q1: Keep Up Good Work': {
+        icon: Star,
+        color: "text-green-600",
+        description: "High importance and high performance. These are your key strengths. Continue to invest in these areas to maintain your competitive advantage."
     },
     'Q3: Low Priority': {
         icon: ThumbsDown,
@@ -206,7 +206,7 @@ export default function IpaPage({ survey, responses }: IpaPageProps) {
                     <CardDescription>Visualizing attribute performance against importance.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Image src={`data:image/png;base64,${analysisResult.main_plot}`} alt="IPA Matrix" width={1000} height={800} className="mx-auto rounded-md border" />
+                    <Image src={`data:image/png;base64,${analysisResult.main_plot}`} alt="IPA Matrix" width={800} height={640} className="mx-auto rounded-md border" />
                 </CardContent>
             </Card>
 
