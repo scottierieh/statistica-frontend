@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -365,7 +366,6 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
 };
   
 const NumericChart = ({ data, title, onDownload }: { data: { mean: number, median: number, std: number, count: number, skewness: number, histogram: {name: string, count: number}[], values: number[] }, title: string, onDownload: () => void }) => {
-     const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
     const interpretation = useMemo(() => {
         if (!data || isNaN(data.mean)) return null;
         let skewText = '';
@@ -432,7 +432,6 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                                 <TableBody>
                                     <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{data.mean.toFixed(3)}</TableCell></TableRow>
                                     <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{data.median}</TableCell></TableRow>
-                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{data.mode}</TableCell></TableRow>
                                     <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{data.std.toFixed(3)}</TableCell></TableRow>
                                     <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{data.count}</TableCell></TableRow>
                                 </TableBody>
@@ -978,16 +977,19 @@ export default function SurveyAnalysisPage() {
     const hasIPA = useMemo(() => {
         if (!survey) return false;
         const matrixQuestions = survey.questions.filter(q => q.type === 'matrix');
+        if (matrixQuestions.length < 2) return false;
         const hasOverall = matrixQuestions.some(q => q.rows?.some(r => r.toLowerCase().includes('overall')));
-        const hasAttributes = matrixQuestions.some(q => q.rows && q.rows.length > 1 && !q.rows.some(r => r.toLowerCase().includes('overall')));
+        const hasAttributes = matrixQuestions.some(q => q.rows && q.rows.length > 0 && !q.rows.some(r => r.toLowerCase().includes('overall')));
         return hasOverall && hasAttributes;
     }, [survey]);
-     const hasVanWestendorp = useMemo(() => {
+    const hasVanWestendorp = useMemo(() => {
         if (!survey) return false;
-        const titles = survey.questions.map(q => q.title.toLowerCase());
-        return titles.includes('too cheap') && titles.includes('cheap') && titles.includes('expensive') && titles.includes('too expensive');
+        const questionTitles = survey.questions.map(q => q.title.toLowerCase());
+        const required = ['too cheap', 'cheap', 'expensive', 'too expensive'];
+        return required.every(keyword => questionTitles.some(title => title.includes(keyword)));
     }, [survey]);
     const hasTurf = useMemo(() => survey?.questions.some(q => q.type === 'multiple'), [survey]);
+
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
       if (!questions || !responses) {
@@ -1242,12 +1244,12 @@ export default function SurveyAnalysisPage() {
                         <VanWestendorpPage survey={survey} responses={responses} />
                     </TabsContent>
                 )}
-                 {hasTurf && (
+                {hasTurf && (
                     <TabsContent value="turf" className="mt-4">
                         <Card>
                             <CardHeader>
                                 <CardTitle>TURF Analysis</CardTitle>
-                                <CardDescription>Analyze Total Unduplicated Reach and Frequency. This will use the first multiple-choice question in the survey.</CardDescription>
+                                <CardDescription>Analyze Total Unduplicated Reach and Frequency using the first multiple-choice question in the survey.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex justify-center">
@@ -1259,10 +1261,12 @@ export default function SurveyAnalysisPage() {
                                 {isTurfLoading && <Skeleton className="h-64 mt-4" />}
                                 {turfResult?.results && (
                                     <div className="mt-6 space-y-4">
-                                        <Alert>
-                                            <AlertTitle className="font-semibold">AI Interpretation</AlertTitle>
-                                            <AlertDescription dangerouslySetInnerHTML={{ __html: turfResult.results.interpretation?.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-                                        </Alert>
+                                        {turfResult.results.interpretation && (
+                                            <Alert>
+                                                <AlertTitle className="font-semibold">AI Interpretation</AlertTitle>
+                                                <AlertDescription dangerouslySetInnerHTML={{ __html: turfResult.results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                                            </Alert>
+                                        )}
                                         <Image src={`data:image/png;base64,${turfResult.plot}`} alt="TURF Analysis Plots" width={1600} height={1200} className="w-full rounded-md border" />
                                     </div>
                                 )}
