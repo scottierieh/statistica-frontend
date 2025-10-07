@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -442,7 +443,7 @@ const BestWorstQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles
     );
 };
 
-const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     
     const handleUpdate = (type: 'rows' | 'columns' | 'scale', index: number, value: string) => {
@@ -480,37 +481,83 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }:
                         <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
                     </div>
                 </div>
-                <Table>
-                     <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-1/3 min-w-[150px]"></TableHead>
-                            {columns.map((header: string, colIndex: number) => (
-                                <TableHead key={`header-${colIndex}`} className="text-center text-xs min-w-[80px]">
-                                    <Input value={header} onChange={e => handleUpdate(hasScale ? 'scale' : 'columns', colIndex, e.target.value)} className="text-center bg-transparent border-none p-0" />
-                                </TableHead>
-                            ))}
-                             <TableHead><Button variant="ghost" size="icon" onClick={() => handleAdd(hasScale ? 'scale' : 'columns')}><PlusCircle className="w-4"/></Button></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {(question.rows || []).map((row: string, rowIndex: number) => (
-                            <TableRow key={`row-${rowIndex}`}>
-                                <TableHead><Input value={row} onChange={e => handleUpdate('rows', rowIndex, e.target.value)} className="font-semibold bg-transparent border-none p-0" /></TableHead>
-                                {(question.columns || []).map((col: string, colIndex: number) => (
-                                    <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
-                                        <RadioGroup><RadioGroupItem value={col} disabled /></RadioGroup>
-                                    </TableCell>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-1/3 min-w-[150px]"></TableHead>
+                                {columns.map((header: string, colIndex: number) => (
+                                    <TableHead key={`header-${colIndex}`} className="text-center text-xs min-w-[80px]">
+                                        <Input value={header} onChange={e => handleUpdate(hasScale ? 'scale' : 'columns', colIndex, e.target.value)} className="text-center bg-transparent border-none p-0" />
+                                    </TableHead>
                                 ))}
-                                 <TableCell><Button variant="ghost" size="icon" onClick={() => handleRemove('rows', rowIndex)}><Trash2 className="w-4"/></Button></TableCell>
+                                <TableHead><Button variant="ghost" size="icon" onClick={() => handleAdd(hasScale ? 'scale' : 'columns')}><PlusCircle className="w-4"/></Button></TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {(question.rows || []).map((row: string, rowIndex: number) => (
+                                <TableRow key={`row-${rowIndex}`}>
+                                    <TableHead><Input value={row} onChange={e => handleUpdate('rows', rowIndex, e.target.value)} className="font-semibold bg-transparent border-none p-0" /></TableHead>
+                                    {(columns || []).map((col: string, colIndex: number) => (
+                                        <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
+                                            <RadioGroup><RadioGroupItem value={col} disabled /></RadioGroup>
+                                        </TableCell>
+                                    ))}
+                                    <TableCell><Button variant="ghost" size="icon" onClick={() => handleRemove('rows', rowIndex)}><Trash2 className="w-4"/></Button></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
                  <Button variant="link" size="sm" className="mt-2" onClick={() => handleAdd('rows')}><PlusCircle className="w-4 h-4 mr-2" /> Add Row</Button>
             </div>
         </Card>
     );
 };
+
+const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+    // This is a complex component. For now, a simplified editor.
+    const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    
+    return (
+        <Card className="w-full">
+            <div className="p-4">
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Conjoint Analysis Title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        {question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                     <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                 </div>
+                 <div className="space-y-2">
+                     <Label>Description</Label>
+                     <Textarea value={question.description} onChange={(e) => onUpdate?.({...question, description: e.target.value})} placeholder="Explain the choice task to the user."/>
+                 </div>
+                 <div className="mt-4 space-y-4">
+                    <h4 className="font-semibold">Attributes & Levels</h4>
+                    {(question.attributes || []).map((attr: ConjointAttribute, index: number) => (
+                        <div key={attr.id} className="p-2 border rounded-md">
+                            <Input value={attr.name} onChange={e => {
+                                const newAttrs = produce(question.attributes, (draft: ConjointAttribute[]) => { draft[index].name = e.target.value });
+                                onUpdate?.({...question, attributes: newAttrs});
+                            }} placeholder="Attribute Name (e.g., Brand)" className="font-semibold" />
+                             <Input value={attr.levels.join(', ')} onChange={e => {
+                                const newAttrs = produce(question.attributes, (draft: ConjointAttribute[]) => { draft[index].levels = e.target.value.split(',').map(s => s.trim()) });
+                                onUpdate?.({...question, attributes: newAttrs});
+                            }} placeholder="Levels, comma-separated (e.g., Apple, Samsung)" className="text-sm mt-1" />
+                        </div>
+                    ))}
+                 </div>
+            </div>
+        </Card>
+    );
+};
+
+const RatingConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+    // This component is very similar to the Choice-Based one, just a different type
+    return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} onImageUpload={onImageUpload} styles={styles} />;
+};
+
 
 // ... other question components
 
