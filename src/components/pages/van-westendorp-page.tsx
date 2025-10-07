@@ -4,18 +4,14 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, DollarSign, Info, Brain, LineChart, AlertTriangle, HelpCircle, MoveRight } from 'lucide-react';
-import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import { Label } from '../ui/label';
+import { Sigma, Loader2, DollarSign, Brain, LineChart, AlertTriangle, HelpCircle, MoveRight } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { Input } from '../ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import dynamic from 'next/dynamic';
-import type { Survey, SurveyResponse } from '@/types/survey';
+import type { Survey, SurveyResponse, Question } from '@/types/survey';
 
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
@@ -48,7 +44,8 @@ const StatCard = ({ title, value, unit = '$' }: { title: string, value: number |
 export default function VanWestendorpPage({ survey, responses }: VanWestendorpPageProps) {
     const { toast } = useToast();
     const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     
     const requiredQuestions = ['too cheap', 'cheap/bargain', 'expensive/high side', 'too expensive'];
     
@@ -69,11 +66,13 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
 
     const handleAnalysis = useCallback(async () => {
         if (!canRun) {
-            toast({ variant: 'destructive', title: 'Setup Error', description: 'Not all required Van Westendorp questions were found in the survey.' });
+            setError("Not all required Van Westendorp questions were found in the survey.");
+            setIsLoading(false);
             return;
         }
 
         setIsLoading(true);
+        setError(null);
         setAnalysisResult(null);
 
         const analysisData = responses.map(r => ({
@@ -82,6 +81,12 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
             expensive: Number(r.answers[questionMap.expensive_high_side]),
             too_expensive: Number(r.answers[questionMap.too_expensive]),
         })).filter(row => !Object.values(row).some(isNaN));
+        
+        if (analysisData.length === 0) {
+            setError("No valid numeric responses found for the price sensitivity questions.");
+            setIsLoading(false);
+            return;
+        }
 
         try {
             const response = await fetch('/api/analysis/van-westendorp', {
@@ -109,6 +114,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
 
         } catch (e: any) {
             console.error('Van Westendorp error:', e);
+            setError(e.message);
             toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
         } finally {
             setIsLoading(false);
@@ -116,10 +122,8 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
     }, [responses, canRun, questionMap, toast]);
     
     useEffect(() => {
-        if (canRun) {
-            handleAnalysis();
-        }
-    }, [canRun, handleAnalysis]);
+        handleAnalysis();
+    }, [handleAnalysis]);
     
     const results = analysisResult?.results;
     
@@ -181,13 +185,13 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
       };
     }, [results]);
 
-    if (!canRun) {
-        return (
+    if (error) {
+         return (
             <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Incomplete Survey Setup</AlertTitle>
+                <AlertTitle>Analysis Error</AlertTitle>
                 <AlertDescription>
-                    This survey does not contain all four required questions for Van Westendorp analysis: "Too Cheap", "Cheap/Bargain", "Expensive/High Side", and "Too Expensive".
+                    {error}
                 </AlertDescription>
             </Alert>
         );
@@ -208,7 +212,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                     <CardTitle className="font-headline">Price Sensitivity Meter</CardTitle>
                 </CardHeader>
                 <CardContent>
-                     {plotData && (
+                     {plotData ? (
                          <Plot
                             data={plotData.data}
                             layout={layout}
@@ -216,7 +220,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                             className="w-full h-[500px]"
                             config={{ scrollZoom: true }}
                         />
-                     )}
+                     ) : <p>Could not render plot.</p>}
                 </CardContent>
             </Card>
              <Card>
