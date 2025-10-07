@@ -72,7 +72,7 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                                     <strong>Low Priority (Low Importance, Low Performance):</strong> Don't worry too much about these. Resources are better spent elsewhere.
                                 </li>
                                  <li>
-                                    <strong>Possible Overkill (Low Importance, High Performance):</strong> You may be investing too many resources here for little return in satisfaction. Consider reallocating resources.
+                                    <strong>Possible Overkill (Low Importance, High Performance):</strong> You may be investing too many resources here for little return in satisfaction.
                                 </li>
                             </ul>
                         </div>
@@ -128,6 +128,7 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
     const [isLoading, setIsLoading] = useState(false);
 
     const canRun = useMemo(() => {
+        if (!data || !numericHeaders) return false;
         const hasSatisfaction = numericHeaders.some(h => h.toLowerCase().includes('overall_satisfaction'));
         return data.length > 0 && numericHeaders.length >= 2 && hasSatisfaction;
     }, [data, numericHeaders]);
@@ -174,11 +175,10 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
     }, [data, numericHeaders, toast]);
     
     useEffect(() => {
-        // Automatically run analysis if data is present and page is loaded
-        if (view === 'main' && canRun && !analysisResult) {
+        if (view === 'main' && canRun && !analysisResult && !isLoading) {
             handleAnalysis();
         }
-    }, [view, canRun, analysisResult, handleAnalysis]);
+    }, [view, canRun, analysisResult, isLoading, handleAnalysis]);
     
     if (view === 'intro' || !canRun) {
         return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
