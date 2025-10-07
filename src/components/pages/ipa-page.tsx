@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -143,12 +142,12 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
+    const canRun = useMemo(() => Array.isArray(data) && data.length > 0 && Array.isArray(numericHeaders) && numericHeaders.length >= 2, [data, numericHeaders]);
     
     useEffect(() => {
-        if (data.length > 0) {
+        if (canRun) {
             const satisfactionCols = numericHeaders.filter(h => h.toLowerCase().includes('satisfaction') || h.toLowerCase().includes('rating'));
-            const defaultDepVar = satisfactionCols.find(h => h.toLowerCase().includes('overall')) || satisfactionCols[0] || numericHeaders[numericHeaders.length - 1];
+            const defaultDepVar = satisfactionCols.find(h => h.toLowerCase().includes('overall')) || satisfactionCols[satisfactionCols.length - 1] || numericHeaders[numericHeaders.length - 1];
             setDependentVar(defaultDepVar);
     
             const defaultIndepVars = numericHeaders.filter(h => h !== defaultDepVar && !h.toLowerCase().includes('id'));
@@ -158,9 +157,9 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
         } else {
             setView('intro');
         }
-    }, [data, numericHeaders]);
+    }, [data, numericHeaders, canRun]);
 
-    const availableFeatures = useMemo(() => numericHeaders.filter(h => h !== dependentVar), [numericHeaders, dependentVar]);
+    const availableFeatures = useMemo(() => numericHeaders ? numericHeaders.filter(h => h !== dependentVar) : [], [numericHeaders, dependentVar]);
     
     const handleIndepVarChange = (header: string, checked: boolean) => {
         setIndependentVars(prev => checked ? [...prev, header] : prev.filter(h => h !== header));
