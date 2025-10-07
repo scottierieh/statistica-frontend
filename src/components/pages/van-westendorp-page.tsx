@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -14,7 +15,6 @@ import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
-import { Input } from '../ui/input';
 
 interface AnalysisResults {
     pme: number | null; // Point of Marginal Expensiveness
@@ -48,7 +48,7 @@ const StatCard = ({ title, value, unit = '$' }: { title: string, value: number |
 const InterpretationDisplay = ({ interpretation }: { interpretation: string | undefined }) => {
   const formattedInterpretation = useMemo(() => {
     if (!interpretation) return null;
-    return interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    return interpretation.replace(/\\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   }, [interpretation]);
 
   if (!interpretation) return null;
@@ -105,7 +105,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         setError(null);
         setAnalysisResult(null);
         
-        const analysisData: any[] = responses.map(r => {
+        const analysisData = responses.map(r => {
             const answers = r.answers as any;
             return {
                 too_cheap: answers[questionMap.too_cheap],
@@ -113,7 +113,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                 expensive: answers[questionMap.expensive],
                 too_expensive: answers[questionMap.too_expensive],
             };
-        }).filter(row => Object.values(row).every(val => val !== undefined && val !== null && !isNaN(Number(val))));
+        });
         
         try {
             const response = await fetch('/api/analysis/van-westendorp', {

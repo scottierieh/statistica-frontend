@@ -1,5 +1,4 @@
 
-
 import sys
 import json
 import pandas as pd
@@ -24,21 +23,27 @@ def _to_native_type(obj):
     return obj
 
 def find_intersection(x, y1, y2):
-    """Finds the intersection of two line segments."""
+    """Finds the intersection of two line segments more robustly."""
     try:
+        # Create interpolation functions
         f1 = interpolate.interp1d(x, y1, fill_value="extrapolate", bounds_error=False)
         f2 = interpolate.interp1d(x, y2, fill_value="extrapolate", bounds_error=False)
         
+        # Calculate the difference between the two functions
         diff = f1(x) - f2(x)
         
+        # Find where the sign of the difference changes
         sign_change_indices = np.where(np.diff(np.sign(diff)))[0]
         
         if len(sign_change_indices) == 0:
+            # If no sign change, find the point of minimum absolute difference
             idx = np.argmin(np.abs(diff))
             return x[idx]
 
+        # Use the first sign change to find a more precise intersection
         idx = sign_change_indices[0]
         
+        # Linear interpolation between the two points where the sign changes
         x_a, x_b = x[idx], x[idx+1]
         y_a, y_b = diff[idx], diff[idx+1]
         
@@ -46,6 +51,7 @@ def find_intersection(x, y1, y2):
 
         return x_a - y_a * (x_b - x_a) / (y_b - y_a)
     except Exception:
+        # Fallback to minimum difference if interpolation fails
         diff = np.abs(np.array(y1) - np.array(y2))
         idx = np.argmin(diff)
         return x[idx]
@@ -71,16 +77,26 @@ def generate_interpretation(results):
     )
     return interpretation.strip()
 
-def create_psm_plot(price_range, cumulative_curves, results):
+def create_psm_plot(price_range, too_cheap_cum, cheap_cum, expensive_cum, too_expensive_cum, results):
     fig, ax1 = plt.subplots(figsize=(10, 7))
     
     pmc_price, opp_price, idp_price, pme_price = results.get('pmc'), results.get('opp'), results.get('idp'), results.get('pme')
 
-    # Correct curves for PSM plot
-    ax1.plot(price_range, cumulative_curves['too_cheap'], label='Too Cheap', color='skyblue', linewidth=2, linestyle='--')
-    ax1.plot(price_range, cumulative_curves['cheap'], label='Cheap', color='blue', linewidth=2)
-    ax1.plot(price_range, cumulative_curves['expensive'], label='Expensive', color='orange', linewidth=2)
-    ax1.plot(price_range, cumulative_curves['too_expensive'], label='Too Expensive', color='red', linewidth=2, linestyle='--')
+    # Classic PSM plot curves
+    not_cheap = 100 - cheap_cum
+    not_expensive = 100 - expensive_cum
+
+    ax1.plot(price_range, 100 - too_cheap_cum, label='Not Too Cheap', color='blue', linewidth=2, linestyle='--')
+    ax1.plot(price_range, not_cheap, label='Not Cheap', color='lightblue', linewidth=2)
+    ax1.plot(price_range, expensive_cum, label='Expensive', color='orange', linewidth=2)
+    ax1.plot(price_range, too_expensive_cum, label='Too Expensive', color='red', linewidth=2, linestyle='--')
+
+    # Find intersections for plotting
+    pmc_pct = interpolate.interp1d(price_range, not_cheap)(pmc_price)
+    pme_pct = interpolate.interp1d(price_range, expensive_cum)(pme_price)
+    opp_pct = interpolate.interp1d(price_range, too_expensive_cum)(opp_price)
+    idp_pct = interpolate.interp1d(price_range, expensive_cum)(idp_price)
+
 
     if pmc_price: ax1.axvline(pmc_price, color='purple', linestyle='--', alpha=0.7, label=f'PMC: ${pmc_price:.2f}')
     if opp_price: ax1.axvline(opp_price, color='green', linestyle='-', linewidth=2, alpha=0.9, label=f'OPP: ${opp_price:.2f}')
@@ -103,8 +119,8 @@ def create_psm_plot(price_range, cumulative_curves, results):
 
 def create_acceptance_plot(price_range, too_cheap_cumulative, expensive_cumulative):
     not_too_cheap = 100 - too_cheap_cumulative
-    not_too_expensive = 100 - expensive_cumulative
-    acceptance = np.minimum(not_too_cheap, not_too_expensive)
+    not_expensive = 100 - expensive_cumulative
+    acceptance = np.minimum(not_too_cheap, not_expensive)
     max_acceptance_idx = np.argmax(acceptance)
     max_acceptance_price = price_range[max_acceptance_idx]
     max_acceptance_pct = acceptance[max_acceptance_idx]
@@ -112,7 +128,7 @@ def create_acceptance_plot(price_range, too_cheap_cumulative, expensive_cumulati
     fig, ax2 = plt.subplots(figsize=(10, 7))
 
     ax2.plot(price_range, not_too_cheap, label='Not Too Cheap', color='blue', linewidth=2, linestyle='--')
-    ax2.plot(price_range, not_too_expensive, label='Not Too Expensive', color='red', linewidth=2, linestyle='--')
+    ax2.plot(price_range, not_expensive, label='Not Too Expensive', color='red', linewidth=2, linestyle='--')
     ax2.fill_between(price_range, 0, acceptance, alpha=0.3, color='green', label='Acceptable Range')
     ax2.plot(price_range, acceptance, color='green', linewidth=3, label='Acceptance Curve')
 
@@ -170,26 +186,23 @@ def main():
                 sorted_prices = sorted(prices)
                 df.iloc[i][price_cols] = sorted_prices
 
-        # Determine a sensible price range for interpolation
-        min_price = df[price_cols].values.min()
-        max_price = df[price_cols].values.max()
-        price_range = np.linspace(min_price, max_price, 500)
+        price_range = np.linspace(df[price_cols].values.min(), df[price_cols].values.max(), 500)
         n = len(df)
         
-        # Calculate cumulative percentages correctly
+        # Calculate cumulative percentages correctly for Van Westendorp
         too_cheap_cumulative = np.array([(df[too_cheap_col] <= p).sum() for p in price_range]) / n * 100
         cheap_cumulative = np.array([(df[cheap_col] <= p).sum() for p in price_range]) / n * 100
         expensive_cumulative = np.array([(df[expensive_col] <= p).sum() for p in price_range]) / n * 100
         too_expensive_cumulative = np.array([(df[too_expensive_col] <= p).sum() for p in price_range]) / n * 100
         
-        # The 'not cheap' and 'not expensive' curves are derived from the cumulative percentages.
+        # The 'not cheap' and 'not expensive' curves are the inverse cumulative distributions.
         not_cheap = 100 - cheap_cumulative
         not_expensive = 100 - expensive_cumulative
         
-        # Find intersection points
+        # Find intersection points using the correct curves for each point
         pmc_price = find_intersection(price_range, too_cheap_cumulative, not_cheap)
-        pme_price = find_intersection(price_range, expensive_cumulative, not_cheap)
-        opp_price = find_intersection(price_range, expensive_cumulative, too_cheap_cumulative)
+        pme_price = find_intersection(price_range, expensive_cumulative, not_expensive)
+        opp_price = find_intersection(price_range, not_cheap, expensive_cumulative)
         idp_price = find_intersection(price_range, cheap_cumulative, not_expensive)
         
         results = {
@@ -200,21 +213,10 @@ def main():
         }
         results['interpretation'] = generate_interpretation(results)
         
-        # Prepare data for the classic PSM plot
-        cumulative_curves_for_psm = {
-            'too_cheap': 100 - too_cheap_cumulative, # Reversed for PSM plot
-            'cheap': not_cheap,
-            'expensive': expensive_cumulative,
-            'too_expensive': too_expensive_cumulative
-        }
-        
-        # Re-find intersections for the classic plot presentation
-        results['opp'] = find_intersection(price_range, cumulative_curves_for_psm['too_expensive'], cumulative_curves_for_psm['too_cheap'])
-        results['idp'] = find_intersection(price_range, cumulative_curves_for_psm['expensive'], cumulative_curves_for_psm['cheap'])
+        # Generate plots with correct cumulative data
+        psm_plot = create_psm_plot(price_range, too_cheap_cumulative, cheap_cumulative, expensive_cumulative, too_expensive_cumulative, results)
 
-
-        psm_plot = create_psm_plot(price_range, cumulative_curves_for_psm, results)
-
+        # For acceptance plot, we need 'Too Cheap' and 'Expensive'
         acceptance_plot = create_acceptance_plot(price_range, too_cheap_cumulative, expensive_cumulative)
 
         response = {
