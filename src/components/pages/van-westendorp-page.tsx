@@ -24,7 +24,10 @@ interface AnalysisResults {
 
 interface FullAnalysisResponse {
     results: AnalysisResults;
-    plot: string;
+    plots: {
+        psm_plot: string;
+        acceptance_plot: string;
+    };
 }
 
 interface VanWestendorpPageProps {
@@ -84,13 +87,13 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
             }
         });
         return mapping;
-    }, [survey, requiredQuestions]);
+    }, [survey]);
 
-    const canRun = useMemo(() => Object.keys(questionMap).length === requiredQuestions.length, [questionMap, requiredQuestions]);
+    const canRun = useMemo(() => Object.keys(questionMap).length === requiredQuestions.length, [questionMap]);
 
     const handleAnalysis = useCallback(async () => {
         if (!canRun) {
-            setError("Not all required Van Westendorp questions were found in the survey. Please ensure questions titled 'Too Cheap', 'Cheap/Bargain', 'Expensive/High Side', and 'Too Expensive' exist.");
+            setError("Not all required Van Westendorp questions were found in the survey. Please ensure questions titled 'Too Cheap', 'Cheap/Bargain', 'Expensive/High Side', and 'Too Expensive' exist and are of 'number' type.");
             setIsLoading(false);
             return;
         }
@@ -98,7 +101,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         setIsLoading(true);
         setError(null);
         setAnalysisResult(null);
-
+        
         const analysisData = responses.map(r => {
             return {
                 too_cheap: Number((r.answers as any)[questionMap.too_cheap]),
@@ -175,28 +178,36 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
 
     return (
         <div className="space-y-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Price Sensitivity Meter</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     {analysisResult.plot ? (
-                         <Image src={analysisResult.plot} alt="Van Westendorp Plot" width={1000} height={600} className="w-full rounded-md border"/>
-                     ) : <p>Could not render plot.</p>}
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Key Price Points</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                     <StatCard title="Optimal Price (OPP)" value={results?.opp} />
-                     <StatCard title="Indifference Price (IDP)" value={results?.idp} />
-                     <StatCard title="Marginal Cheapness (PMC)" value={results?.pmc} />
-                     <StatCard title="Marginal Expensiveness (PME)" value={results?.pme} />
-                </CardContent>
-            </Card>
-            <InterpretationDisplay interpretation={results?.interpretation} />
-        </div>
-    );
-}
+             <Tabs defaultValue="visuals" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="visuals"><LineChart className="mr-2 h-4 w-4"/>Charts</TabsTrigger>
+                    <TabsTrigger value="summary"><DollarSign className="mr-2 h-4 w-4"/>Key Metrics</TabsTrigger>
+                </TabsList>
+                <TabsContent value="visuals" className="mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-headline">Price Sensitivity & Acceptance Curves</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-4">
+                             {analysisResult.plots.psm_plot ? (
+                                 <Image src={`data:image/png;base64,${analysisResult.plots.psm_plot}`} alt="Van Westendorp Plot" width={1000} height={700} className="w-full rounded-md border" />
+                             ) : <p>Could not render PSM plot.</p>}
+                              {analysisResult.plots.acceptance_plot ? (
+                                 <Image src={`data:image/png;base64,${analysisResult.plots.acceptance_plot}`} alt="Price Acceptance Plot" width={1000} height={700} className="w-full rounded-md border" />
+                             ) : <p>Could not render Acceptance plot.</p>}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                 <TabsContent value="summary" className="mt-4">
+                    <div className="space-y-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Key Price Points</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <StatCard title="Optimal Price (OPP)" value={results?.opp} />
+                                <StatCard title="Indifference Price (IDP)" value={results?.idp} />
+                                <StatCard title="Marginal Cheapness (PMC)" value={results?.pmc} />
+                                <StatCard title="Marginal Expensiveness (PME)" value={results?.pme} />
+                            </CardContent>
+                        </Card>

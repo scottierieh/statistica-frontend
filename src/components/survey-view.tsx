@@ -418,7 +418,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     };
 
     const handlePrev = () => {
-        if (currentQuestionIndex > -1) {
+        if (currentQuestionIndex >= 0) {
             setCurrentQuestionIndex(prev => prev - 1);
         }
     };
@@ -445,7 +445,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         }
         if(!survey) return false;
         const question = survey.questions[currentQuestionIndex];
-        if (!question) return false;
+        if (!question) return true; // Should not happen, but allow proceeding
         if (question.type === "description") return true;
         if (question.required) {
           const answer = answers[question.id];
@@ -630,8 +630,3 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                              {isSubmitting ? "Submitting..." : "Submit Survey"}
                         </Button>
                     )}
-                </CardFooter>
-            </Card>
-        </div>
-    );
-}
