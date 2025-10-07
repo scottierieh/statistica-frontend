@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import SurveyAnalysisPage from '@/components/pages/survey-analysis-page';
 import type { Survey, SurveyResponse } from '@/types/survey';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,13 +15,17 @@ import TurfPage from '@/components/pages/turf-page';
 
 export default function SurveyAnalysis() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const surveyId = params.id as string;
+    const analysisType = searchParams.get('type');
+
     const [survey, setSurvey] = useState<Survey | null>(null);
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (surveyId) {
+        if (surveyId && surveyId !== 'new') {
+            setLoading(true);
             try {
                 const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
                 const currentSurvey = storedSurveys.find((s: any) => s.id === surveyId);
@@ -34,10 +38,16 @@ export default function SurveyAnalysis() {
             } finally {
                 setLoading(false);
             }
+        } else {
+            setLoading(false);
         }
     }, [surveyId]);
 
     const analysisComponent = useMemo(() => {
+        if (analysisType === 'ahp') {
+            return <AhpPage survey={survey} responses={responses} />;
+        }
+        
         if (!survey) return null;
 
         const hasConjoint = survey.questions.some(q => q.type === 'conjoint');
@@ -55,7 +65,7 @@ export default function SurveyAnalysis() {
         if (hasTurf) return <TurfPage survey={survey} responses={responses} />;
         
         return <SurveyAnalysisPage survey={survey} responses={responses} />;
-    }, [survey, responses]);
+    }, [survey, responses, analysisType]);
 
     if (loading) {
         return (
@@ -66,8 +76,12 @@ export default function SurveyAnalysis() {
         );
     }
 
-    if (!survey) {
+    if (!survey && surveyId !== 'new') {
         return <div>Survey not found.</div>;
+    }
+    
+    if (!analysisComponent) {
+        return <div>Determining analysis type...</div>
     }
 
     return analysisComponent;
