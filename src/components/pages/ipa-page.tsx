@@ -1,9 +1,9 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, Target, Settings, BarChart, TrendingUp, AlertTriangle, CheckCircle, Bot, MoveRight, HelpCircle, FileJson, ShoppingCart, Award } from 'lucide-react';
 import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import { Label } from '../ui/label';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { ScrollArea } from '../ui/scroll-area';
 import { Checkbox } from '../ui/checkbox';
 import Image from 'next/image';
@@ -21,7 +20,7 @@ import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Responsive
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
     const ipaExample = exampleDatasets.find(d => d.id === 'ipa-restaurant');
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
@@ -256,7 +255,7 @@ export default function IpaPage({ data, numericHeaders, onLoadExample }: IpaPage
                 </CardFooter>
             </Card>
 
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[500px] w-full" /></CardContent></Card>}
+            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-[500px] w-full"/></CardContent></Card>}
 
             {results && analysisResult?.plot && (
                 <Tabs defaultValue="matrix" className="w-full">

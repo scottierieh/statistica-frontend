@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -445,6 +444,26 @@ const BestWorstQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles
 
 const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    
+    const handleUpdate = (type: 'rows' | 'columns' | 'scale', index: number, value: string) => {
+        const newArr = [...(question[type] || [])];
+        newArr[index] = value;
+        onUpdate?.({ ...question, [type]: newArr });
+    };
+
+    const handleAdd = (type: 'rows' | 'columns' | 'scale') => {
+        const newArr = [...(question[type] || []), `New ${type.slice(0, -1)}`];
+        onUpdate?.({ ...question, [type]: newArr });
+    };
+
+    const handleRemove = (type: 'rows' | 'columns' | 'scale', index: number) => {
+        const newArr = (question[type] || []).filter((_: any, i: number) => i !== index);
+        onUpdate?.({ ...question, [type]: newArr });
+    };
+
+    const hasScale = question.scale && question.scale.length > 0;
+    const columns = hasScale ? question.scale : question.columns || [];
+    
     return (
         <Card className="w-full">
             <div className="p-4">
@@ -465,262 +484,35 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }:
                      <TableHeader>
                         <TableRow>
                             <TableHead className="w-1/3 min-w-[150px]"></TableHead>
-                            {(question.columns || []).map((header: string, colIndex: number) => <TableHead key={`header-${colIndex}`} className="text-center text-xs min-w-[60px]">{header}</TableHead>)}
+                            {columns.map((header: string, colIndex: number) => (
+                                <TableHead key={`header-${colIndex}`} className="text-center text-xs min-w-[80px]">
+                                    <Input value={header} onChange={e => handleUpdate(hasScale ? 'scale' : 'columns', colIndex, e.target.value)} className="text-center bg-transparent border-none p-0" />
+                                </TableHead>
+                            ))}
+                             <TableHead><Button variant="ghost" size="icon" onClick={() => handleAdd(hasScale ? 'scale' : 'columns')}><PlusCircle className="w-4"/></Button></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {(question.rows || []).map((row: string, rowIndex: number) => (
                             <TableRow key={`row-${rowIndex}`}>
-                                <TableHead>{row}</TableHead>
+                                <TableHead><Input value={row} onChange={e => handleUpdate('rows', rowIndex, e.target.value)} className="font-semibold bg-transparent border-none p-0" /></TableHead>
                                 {(question.columns || []).map((col: string, colIndex: number) => (
                                     <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
                                         <RadioGroup><RadioGroupItem value={col} disabled /></RadioGroup>
                                     </TableCell>
                                 ))}
+                                 <TableCell><Button variant="ghost" size="icon" onClick={() => handleRemove('rows', rowIndex)}><Trash2 className="w-4"/></Button></TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
+                 <Button variant="link" size="sm" className="mt-2" onClick={() => handleAdd('rows')}><PlusCircle className="w-4 h-4 mr-2" /> Add Row</Button>
             </div>
         </Card>
     );
 };
 
-const ConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onUpdate?: any, onDelete?: any }) => {
-    const { attributes = [], designMethod = 'full-factorial', sets = 3, cardsPerSet = 3, profiles = [], title, description } = question;
-
-    const handleAttributeNameChange = (attrIndex: number, newName: string) => {
-        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].name = newName; }));
-    };
-    const handleLevelChange = (attrIndex: number, levelIndex: number, newLevel: string) => {
-        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].levels[levelIndex] = newLevel; }));
-    };
-    const addAttribute = () => {
-        onUpdate(produce(question, (draft: any) => { draft.attributes.push({ id: `attr-${Date.now()}`, name: `Attribute ${draft.attributes.length + 1}`, levels: ['Level 1', 'Level 2'] }); }));
-    };
-    const addLevel = (attrIndex: number) => {
-        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].levels.push(`Level ${draft.attributes[attrIndex].levels.length + 1}`); }));
-    };
-    const removeAttribute = (attrIndex: number) => {
-        onUpdate(produce(question, (draft: any) => { draft.attributes.splice(attrIndex, 1); }));
-    };
-    const removeLevel = (attrIndex: number, levelIndex: number) => {
-        onUpdate(produce(question, (draft: any) => { if (draft.attributes[attrIndex].levels.length > 2) draft.attributes[attrIndex].levels.splice(levelIndex, 1); }));
-    };
-    const generateProfiles = () => {
-        const allCombinations = attributes.reduce((acc: any[], attr: ConjointAttribute) => {
-            if (acc.length === 0) return attr.levels.map(level => ({ [attr.name]: level }));
-            return acc.flatMap((combo: any) => attr.levels.map(level => ({ ...combo, [attr.name]: level })));
-        }, []);
-        
-        for (let i = allCombinations.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [allCombinations[i], allCombinations[j]] = [allCombinations[j], allCombinations[i]];
-        }
-
-        const finalProfiles = Array.from({ length: sets }, (_, i) => 
-            allCombinations.slice(i * cardsPerSet, (i + 1) * cardsPerSet).map((p, j) => ({id: `q${i}_p${j}`, ...p}))
-        );
-
-        onUpdate(produce(question, (draft: any) => { draft.profiles = finalProfiles; }));
-    };
-
-    return (
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle>Conjoint Analysis Setup</CardTitle>
-                    <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
-                </div>
-                 <CardDescription>Define attributes and levels, then generate product profiles for choice-based tasks.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <div>
-                    <Label>Question Title</Label>
-                    <Input value={title} onChange={(e) => onUpdate({...question, title: e.target.value })} placeholder="e.g., Which smartphone would you choose?" />
-                </div>
-                <div>
-                    <Label>Question Description / Instructions</Label>
-                    <Textarea value={description} onChange={(e) => onUpdate({...question, description: e.target.value })} placeholder="e.g., From the options below, please select the one you would be most likely to purchase." />
-                </div>
-                 <div className="space-y-4 p-4 border rounded-lg">
-                    <h4 className="font-semibold">1. Define Attributes and Levels</h4>
-                    {attributes.map((attr: ConjointAttribute, attrIndex: number) => (
-                        <div key={attr.id} className="p-2 border rounded">
-                            <div className="flex justify-between items-center mb-2">
-                                <Input value={attr.name} onChange={(e) => handleAttributeNameChange(attrIndex, e.target.value)} className="text-md font-semibold"/>
-                                <Button variant="ghost" size="icon" onClick={() => removeAttribute(attrIndex)}><Trash2 className="w-4 h-4 text-muted-foreground"/></Button>
-                            </div>
-                            <div className="space-y-2 pl-4">
-                                {attr.levels.map((level, levelIndex) => (
-                                    <div key={levelIndex} className="flex items-center gap-2">
-                                        <Input value={level} onChange={(e) => handleLevelChange(attrIndex, levelIndex, e.target.value)} />
-                                        <Button variant="ghost" size="icon" onClick={() => removeLevel(attrIndex, levelIndex)} disabled={attr.levels.length <= 2}><X className="w-4 h-4 text-muted-foreground"/></Button>
-                                    </div>
-                                ))}
-                                <Button variant="link" size="sm" onClick={() => addLevel(attrIndex)}><PlusCircle className="w-4 h-4 mr-2"/>Add Level</Button>
-                            </div>
-                        </div>
-                    ))}
-                    <Button onClick={addAttribute}><PlusCircle className="mr-2"/> Add Attribute</Button>
-                </div>
-
-                 <div className="space-y-4 p-4 border rounded-lg">
-                     <h4 className="font-semibold">2. Configure Design</h4>
-                     <div className="grid grid-cols-3 gap-4">
-                        <div><Label>Design Method</Label><Select value={designMethod} onValueChange={(v) => onUpdate({...question, designMethod: v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="full-factorial">Full Factorial</SelectItem><SelectItem value="random" disabled>Random</SelectItem></SelectContent></Select></div>
-                        <div><Label>Question Sets</Label><Input type="number" value={sets} onChange={e => onUpdate({...question, sets: Number(e.target.value)})} /></div>
-                        <div><Label>Cards per Set</Label><Input type="number" value={cardsPerSet} onChange={e => onUpdate({...question, cardsPerSet: Number(e.target.value)})}/></div>
-                     </div>
-                 </div>
-
-                 <Button onClick={generateProfiles} className="w-full"><RefreshCw className="mr-2"/> Generate Profiles</Button>
-
-                 {profiles && profiles.length > 0 && (
-                    <div className="space-y-2">
-                        <Label>Generated Profile Preview (Set 1 of {profiles.length})</Label>
-                        <div className="flex gap-4 overflow-x-auto pb-4 p-2 bg-muted rounded-lg">
-                            <div className="flex-shrink-0 w-32 pr-2">
-                                {(attributes || []).map((attr: ConjointAttribute) => (
-                                    <div key={attr.id} className="h-12 flex items-center font-semibold text-sm text-muted-foreground">{attr.name}:</div>
-                                ))}
-                            </div>
-                            {(profiles[0] || []).map((profile: any, index: number) => (
-                                <Card key={profile.id} className="w-48 flex-shrink-0 text-center bg-card">
-                                    <CardContent className="p-2 space-y-1">
-                                        {(attributes || []).map((attr: ConjointAttribute) => (
-                                            <div key={attr.id} className="h-12 flex items-center justify-center text-sm p-1 border-b last:border-b-0">{profile[attr.name]}</div>
-                                        ))}
-                                    </CardContent>
-                                    <CardFooter className="p-2"><Button className="w-full" variant="outline" disabled>Select</Button></CardFooter>
-                                </Card>
-                            ))}
-                        </div>
-                    </div>
-                 )}
-
-            </CardContent>
-        </Card>
-    );
-};
-
-const RatingConjointQuestion = ({ question, onUpdate, onDelete }: { question: any, onUpdate?: any, onDelete?: any }) => {
-    const { attributes = [], designMethod = 'full-factorial', profiles = [], title, description } = question;
-    const cardsPerSet = profiles.length;
-
-    const handleAttributeNameChange = (attrIndex: number, newName: string) => {
-        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].name = newName; }));
-    };
-    const handleLevelChange = (attrIndex: number, levelIndex: number, newLevel: string) => {
-        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].levels[levelIndex] = newLevel; }));
-    };
-    const addAttribute = () => {
-        onUpdate(produce(question, (draft: any) => { draft.attributes.push({ id: `attr-${Date.now()}`, name: `Attribute ${draft.attributes.length + 1}`, levels: ['Level 1', 'Level 2'] }); }));
-    };
-    const addLevel = (attrIndex: number) => {
-        onUpdate(produce(question, (draft: any) => { draft.attributes[attrIndex].levels.push(`Level ${draft.attributes[attrIndex].levels.length + 1}`); }));
-    };
-    const removeAttribute = (attrIndex: number) => {
-        onUpdate(produce(question, (draft: any) => { draft.attributes.splice(attrIndex, 1); }));
-    };
-    const removeLevel = (attrIndex: number, levelIndex: number) => {
-        onUpdate(produce(question, (draft: any) => { if (draft.attributes[attrIndex].levels.length > 2) draft.attributes[attrIndex].levels.splice(levelIndex, 1); }));
-    };
-    const generateProfiles = () => {
-        const allCombinations = attributes.reduce((acc: any[], attr: ConjointAttribute) => {
-            if (acc.length === 0) return attr.levels.map(level => ({ [attr.name]: level }));
-            return acc.flatMap((combo: any) => attr.levels.map(level => ({ ...combo, [attr.name]: level })));
-        }, []);
-        
-        for (let i = allCombinations.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [allCombinations[i], allCombinations[j]] = [allCombinations[j], allCombinations[i]];
-        }
-
-        const finalProfiles = allCombinations.slice(0, cardsPerSet).map((p, i) => ({id: `profile_${i}`, ...p}));
-
-        onUpdate(produce(question, (draft: any) => { draft.profiles = finalProfiles; }));
-    };
-
-    return (
-         <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle>Rating-based Conjoint</CardTitle>
-                    <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
-                </div>
-                 <CardDescription>Define attributes and levels, then generate profiles for rating.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                  <div>
-                    <Label>Question Title</Label>
-                    <Input value={title} onChange={(e) => onUpdate({...question, title: e.target.value })} placeholder="e.g., Please rate the following smartphone profiles." />
-                </div>
-                <div>
-                    <Label>Question Description / Instructions</Label>
-                    <Textarea value={description} onChange={(e) => onUpdate({...question, description: e.target.value })} placeholder="e.g., On a scale of 1 to 10, how likely are you to purchase each of these products?" />
-                </div>
-                  <div className="space-y-4 p-4 border rounded-lg">
-                    <h4 className="font-semibold">1. Define Attributes and Levels</h4>
-                    {attributes.map((attr: ConjointAttribute, attrIndex: number) => (
-                        <div key={attr.id} className="p-2 border rounded">
-                            <div className="flex justify-between items-center mb-2">
-                                <Input value={attr.name} onChange={(e) => handleAttributeNameChange(attrIndex, e.target.value)} className="text-md font-semibold"/>
-                                <Button variant="ghost" size="icon" onClick={() => removeAttribute(attrIndex)}><Trash2 className="w-4 h-4 text-muted-foreground"/></Button>
-                            </div>
-                            <div className="space-y-2 pl-4">
-                                {attr.levels.map((level, levelIndex) => (
-                                    <div key={levelIndex} className="flex items-center gap-2">
-                                        <Input value={level} onChange={(e) => handleLevelChange(attrIndex, levelIndex, e.target.value)} />
-                                        <Button variant="ghost" size="icon" onClick={() => removeLevel(attrIndex, levelIndex)} disabled={attr.levels.length <= 2}><X className="w-4 h-4 text-muted-foreground"/></Button>
-                                    </div>
-                                ))}
-                                <Button variant="link" size="sm" onClick={() => addLevel(attrIndex)}><PlusCircle className="w-4 h-4 mr-2"/>Add Level</Button>
-                            </div>
-                        </div>
-                    ))}
-                    <Button onClick={addAttribute}><PlusCircle className="mr-2"/> Add Attribute</Button>
-                </div>
-
-                 <div className="space-y-4 p-4 border rounded-lg">
-                     <h4 className="font-semibold">2. Configure Design</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div><Label>Design Method</Label><Select value={designMethod} onValueChange={(v) => onUpdate({...question, designMethod: v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="full-factorial">Full Factorial</SelectItem><SelectItem value="random">Random</SelectItem></SelectContent></Select></div>
-                        <div><Label>Number of Profiles</Label><Input type="number" value={cardsPerSet} onChange={e => onUpdate({...question, sets: 1, profiles: Array.from({length: Number(e.target.value)}) })} /></div>
-                     </div>
-                 </div>
-
-                 <Button onClick={generateProfiles} className="w-full"><RefreshCw className="mr-2"/> Generate Profiles</Button>
-
-                 {profiles && profiles.length > 0 && (
-                    <div className="space-y-2">
-                         <Label>Generated Profile Preview</Label>
-                         <div className="flex gap-4 overflow-x-auto pb-4 p-2 bg-muted rounded-lg">
-                             <div className="flex-shrink-0 w-32 pr-2">
-                                {(attributes || []).map((attr: ConjointAttribute) => (
-                                    <div key={attr.id} className="h-12 flex items-center font-semibold text-sm text-muted-foreground">{attr.name}:</div>
-                                ))}
-                                <div className="h-12 flex items-center font-semibold text-sm text-muted-foreground">Rating (1-10):</div>
-                             </div>
-                            {profiles.map((profile: any, index: number) => (
-                                <Card key={profile.id || `profile-${index}`} className="w-48 flex-shrink-0 text-center bg-card">
-                                    <CardContent className="p-2 space-y-1">
-                                        {(attributes || []).map((attr: ConjointAttribute) => (
-                                            <div key={attr.id} className="h-12 flex items-center justify-center text-sm p-1 border-b last:border-b-0">{profile[attr.name]}</div>
-                                        ))}
-                                    </CardContent>
-                                    <CardFooter className="p-2">
-                                        <Input type="number" min="1" max="10" placeholder="1-10" disabled/>
-                                    </CardFooter>
-                                </Card>
-                            ))}
-                         </div>
-                    </div>
-                 )}
-            </CardContent>
-        </Card>
-    );
-};
+// ... other question components
 
 interface QuestionListProps {
     title: string;
@@ -733,7 +525,7 @@ interface QuestionListProps {
     isPreview?: boolean;
 }
 
-export default function QuestionList({ title, setTitle, description, setDescription, questions, setQuestions, styles, isPreview = false }: QuestionListProps) {
+export default function QuestionList({ title, setTitle, setDescription, description, questions, setQuestions, styles, isPreview = false }: QuestionListProps) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 

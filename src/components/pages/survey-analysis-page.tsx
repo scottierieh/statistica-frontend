@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -32,6 +31,7 @@ import html2canvas from 'html2canvas';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import CbcAnalysisPage from './cbc-analysis-page';
 import RatingConjointAnalysisPage from './rating-conjoint-analysis-page';
+import IpaPage from './ipa-page';
 
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
@@ -953,6 +953,13 @@ export default function SurveyAnalysisPage() {
 
     const hasConjoint = useMemo(() => survey?.questions.some((q: Question) => q.type === 'conjoint'), [survey]);
     const hasRatingConjoint = useMemo(() => survey?.questions.some((q: Question) => q.type === 'rating-conjoint'), [survey]);
+    const hasIPA = useMemo(() => {
+        if (!survey) return false;
+        const matrixQuestions = survey.questions.filter(q => q.type === 'matrix');
+        const hasOverall = matrixQuestions.some(q => q.rows?.some(r => r.toLowerCase().includes('overall')));
+        const hasAttributes = matrixQuestions.some(q => q.rows && q.rows.length > 1 && !q.rows.some(r => r.toLowerCase().includes('overall')));
+        return hasOverall && hasAttributes;
+    }, [survey]);
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
       if (!questions || !responses) {
@@ -1110,6 +1117,7 @@ export default function SurveyAnalysisPage() {
                     <TabsTrigger value="results">Results</TabsTrigger>
                     {hasConjoint && <TabsTrigger value="conjoint">Conjoint (CBC)</TabsTrigger>}
                     {hasRatingConjoint && <TabsTrigger value="rating-conjoint">Conjoint (Rating)</TabsTrigger>}
+                    {hasIPA && <TabsTrigger value="ipa">IPA</TabsTrigger>}
                     <TabsTrigger value="further_analysis">Further Analysis</TabsTrigger>
                 </TabsList>
                 <TabsContent value="results" className="mt-4">
@@ -1152,6 +1160,12 @@ export default function SurveyAnalysisPage() {
                  {hasRatingConjoint && (
                     <TabsContent value="rating-conjoint" className="mt-4">
                         <RatingConjointAnalysisPage survey={survey} responses={responses} />
+                    </TabsContent>
+                )}
+                {hasIPA && (
+                    <TabsContent value="ipa" className="mt-4">
+                        {/* IPA Page content will go here */}
+                        <IpaPage survey={survey} responses={responses} />
                     </TabsContent>
                 )}
                 <TabsContent value="further_analysis" className="mt-4">
@@ -1201,5 +1215,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
-    
