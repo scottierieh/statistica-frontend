@@ -198,7 +198,7 @@ def main():
         
         response = {
             'results': results_dict,
-            'plot': f"data:image/png;base64,{plot_image}",
+            'plot': plot_image,
         }
 
         print(json.dumps(response, default=_to_native_type))

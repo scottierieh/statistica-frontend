@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -941,11 +942,11 @@ export default function SurveyAnalysisPage() {
     }, [survey]);
     const hasVanWestendorp = useMemo(() => {
         if (!survey) return false;
+        const requiredTitles = ['too cheap', 'cheap', 'expensive', 'too expensive'];
         const questionTitles = survey.questions.map(q => q.title.toLowerCase());
-        const required = ['too cheap', 'cheap', 'expensive', 'too expensive'];
-        return required.every(keyword => questionTitles.some(title => title.includes(keyword)));
+        return requiredTitles.every(reqTitle => questionTitles.some(qTitle => qTitle.includes(reqTitle)));
     }, [survey]);
-    const hasTurf = useMemo(() => survey?.questions.some(q => q.type === 'multiple'), [survey]);
+     const hasTurf = useMemo(() => survey?.questions.some(q => q.type === 'multiple'), [survey]);
 
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
@@ -1221,7 +1222,7 @@ export default function SurveyAnalysisPage() {
                                          {turfResult.results.interpretation && (
                                             <Alert>
                                                 <AlertTitle className="font-semibold">AI Interpretation</AlertTitle>
-                                                <AlertDescription dangerouslySetInnerHTML={{ __html: turfResult.results.interpretation.replace(/\n/g, '<br />') }} />
+                                                <AlertDescription dangerouslySetInnerHTML={{ __html: turfResult.results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
                                             </Alert>
                                         )}
                                         {turfResult.plot && <Image src={`data:image/png;base64,${turfResult.plot}`} alt="TURF Analysis Plots" width={1600} height={1200} className="w-full rounded-md border" />}
