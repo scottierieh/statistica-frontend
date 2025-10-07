@@ -71,44 +71,22 @@ export const ipaTemplate = {
             content: 'Please rate your satisfaction with the following aspects of your visit on a scale of 1 (Very Dissatisfied) to 5 (Very Satisfied).'
         },
         {
-            id: 'ipa_q_1',
-            type: 'rating',
-            title: 'Food Quality',
-            description: 'How satisfied were you with the quality of the food?',
+            id: 'ipa_q_attributes',
+            type: 'matrix',
+            title: 'Attribute Satisfaction',
             required: true,
-            scale: ['1', '2', '3', '4', '5'],
-        },
-        {
-            id: 'ipa_q_2',
-            type: 'rating',
-            title: 'Service Speed',
-            description: 'How satisfied were you with the speed of service?',
-            required: true,
-            scale: ['1', '2', '3', '4', '5'],
-        },
-        {
-            id: 'ipa_q_3',
-            type: 'rating',
-            title: 'Ambiance',
-            description: 'How satisfied were you with the restaurant\'s atmosphere and decor?',
-            required: true,
-            scale: ['1', '2', '3', '4', '5'],
-        },
-        {
-            id: 'ipa_q_4',
-            type: 'rating',
-            title: 'Value for Money',
-            description: 'How satisfied were you with the value you received for the price you paid?',
-            required: true,
-            scale: ['1', '2', '3', '4', '5'],
+            rows: ['Food Quality', 'Service Speed', 'Ambiance', 'Value for Money'],
+            columns: ['1', '2', '3', '4', '5'],
+            scale: ['Very Dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very Satisfied']
         },
         {
             id: 'ipa_q_overall',
-            type: 'rating',
+            type: 'matrix',
             title: 'Overall Satisfaction',
-            description: 'Overall, how satisfied were you with your experience today?',
             required: true,
-            scale: ['1', '2', '3', '4', '5'],
+            rows: ['Overall, how satisfied were you with your visit?'],
+            columns: ['1', '2', '3', '4', '5'],
+            scale: ['Very Dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very Satisfied']
         }
     ],
 };
