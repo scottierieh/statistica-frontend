@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -13,6 +14,7 @@ import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
+import { Input } from '../ui/input';
 
 interface AnalysisResults {
     pme: number | null; // Point of Marginal Expensiveness
@@ -81,10 +83,9 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         if (!survey) return mapping;
         
         requiredQuestions.forEach(q_title => {
-            const question = survey.questions.find(q => q.title.toLowerCase().includes(q_title));
+            const question = survey.questions.find(q => q.title.toLowerCase().trim() === q_title.toLowerCase().trim());
             if(question) {
-                // Use a consistent key format
-                const key = q_title.replace(/\//g, '_');
+                const key = q_title.replace(/\//g, '_').replace(/\s/g, '_');
                 mapping[key] = question.id;
             }
         });
@@ -104,15 +105,16 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         setError(null);
         setAnalysisResult(null);
         
-        const analysisData = responses.map(r => {
+        const analysisData: any[] = responses.map(r => {
             const answers = r.answers as any;
             return {
                 [questionMap.too_cheap]: answers[questionMap.too_cheap],
-                [questionMap['cheap_bargain']]: answers[questionMap['cheap_bargain']],
-                [questionMap['expensive_high_side']]: answers[questionMap['expensive_high_side']],
+                [questionMap.cheap_bargain]: answers[questionMap.cheap_bargain],
+                [questionMap.expensive_high_side]: answers[questionMap.expensive_high_side],
                 [questionMap.too_expensive]: answers[questionMap.too_expensive],
             };
-        });
+        }).filter(row => Object.values(row).every(val => val !== undefined && val !== null));
+
 
         try {
             const response = await fetch('/api/analysis/van-westendorp', {
@@ -121,8 +123,8 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                 body: JSON.stringify({ 
                     data: analysisData,
                     too_cheap_col: questionMap.too_cheap,
-                    cheap_col: questionMap['cheap_bargain'],
-                    expensive_col: questionMap['expensive_high_side'],
+                    cheap_col: questionMap.cheap_bargain,
+                    expensive_col: questionMap.expensive_high_side,
                     too_expensive_col: questionMap.too_expensive,
                 })
             });
