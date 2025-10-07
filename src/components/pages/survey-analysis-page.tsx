@@ -932,7 +932,7 @@ export default function SurveyAnalysisPage() {
         return requiredTitles.every(reqTitle => questionTitles.some(qTitle => qTitle.includes(reqTitle)));
     }, [survey]);
     const hasTurf = useMemo(() => survey?.questions.some(q => q.type === 'multiple'), [survey]);
-    const hasAHP = useMemo(() => survey?.questions.some(q => q.title.toLowerCase().includes('pairwise comparison')), [survey]);
+    const hasAHP = useMemo(() => survey?.questions.some(q => q.type === 'matrix' && q.title.toLowerCase().includes('pairwise')), [survey]);
 
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
