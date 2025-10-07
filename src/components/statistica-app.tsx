@@ -123,6 +123,7 @@ import { cn } from '@/lib/utils';
 import OneSampleTTestPage from './pages/one-sample-t-test-page';
 import WordCloudPage from './pages/wordcloud-page';
 import IpaPage from './pages/ipa-page';
+import TurfPage from './pages/turf-page';
 
 
 const analysisCategories = [
@@ -247,6 +248,7 @@ const analysisCategories = [
         icon: Target,
         items: [
             { id: 'ipa', label: 'IPA', icon: Target, component: IpaPage },
+            { id: 'turf', label: 'TURF Analysis', icon: ThumbsUp, component: TurfPage },
         ],
     },
 ];
