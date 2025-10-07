@@ -60,7 +60,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
             }
         });
         return mapping;
-    }, [survey]);
+    }, [survey, requiredQuestions]);
 
     const canRun = useMemo(() => requiredQuestions.every(q => Object.keys(questionMap).includes(q.replace('/','_'))), [questionMap, requiredQuestions]);
 
@@ -159,19 +159,19 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
 
       if (results.pme) {
           shapes.push({ type: 'line', x0: results.pme, x1: results.pme, y0: 0, y1: 100, line: { color: 'grey', width: 1, dash: 'dot' } });
-          addAnnotation(results.pme, 95, 'PME');
+          addAnnotation(results.pme, 95, 'Point of Marginal<br>Expensiveness (PME)');
       }
       if (results.ipp) {
           shapes.push({ type: 'line', x0: results.ipp, x1: results.ipp, y0: 0, y1: 100, line: { color: 'grey', width: 1, dash: 'dot' } });
-          addAnnotation(results.ipp, 85, 'IPP');
+          addAnnotation(results.ipp, 85, 'Indifference Price (IPP)');
       }
        if (results.mdp) {
           shapes.push({ type: 'line', x0: results.mdp, x1: results.mdp, y0: 0, y1: 100, line: { color: 'purple', width: 2, dash: 'dash' } });
-           addAnnotation(results.mdp, 75, 'Point of Marginal<br>Cheapness');
+           addAnnotation(results.mdp, 75, 'Point of Marginal<br>Cheapness (PMC)');
       }
       if (results.opp) {
           shapes.push({ type: 'line', x0: results.opp, x1: results.opp, y0: 0, y1: 100, line: { color: 'green', width: 2, dash: 'dash' } });
-           addAnnotation(results.opp, 65, 'Optimal Price Point');
+           addAnnotation(results.opp, 65, 'Optimal Price Point (OPP)');
       }
       
       return {
@@ -237,3 +237,4 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         </div>
     );
 }
+
