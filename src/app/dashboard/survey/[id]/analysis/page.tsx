@@ -24,7 +24,7 @@ export default function SurveyAnalysis() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (surveyId && surveyId !== 'new') {
+        if (surveyId) {
             setLoading(true);
             try {
                 const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
@@ -42,7 +42,7 @@ export default function SurveyAnalysis() {
             setLoading(false);
         }
     }, [surveyId]);
-
+    
     const analysisComponent = useMemo(() => {
         if (analysisType === 'ahp') {
             return <AhpPage survey={survey} responses={responses} />;
@@ -53,7 +53,7 @@ export default function SurveyAnalysis() {
         const hasConjoint = survey.questions.some(q => q.type === 'conjoint');
         const hasRatingConjoint = survey.questions.some(q => q.type === 'rating-conjoint');
         const hasIPA = survey.questions.some(q => q.type === 'matrix' && q.rows?.some(r => r.toLowerCase().includes('overall')));
-        const hasVanWestendorp = survey.questions.some(q => q.title.toLowerCase().includes('too cheap'));
+        const hasVanWestendorp = survey.questions.some(q => ['too cheap', 'cheap', 'expensive', 'too expensive'].every(keyword => survey.questions.some(q => q.title.toLowerCase().includes(keyword))));
         const hasTurf = survey.questions.some(q => q.type === 'multiple');
         const hasAHP = survey.questions.some(q => q.type === 'ahp');
 
@@ -62,7 +62,13 @@ export default function SurveyAnalysis() {
         if (hasRatingConjoint) return <RatingConjointAnalysisPage survey={survey} responses={responses} />;
         if (hasIPA) return <IpaPage survey={survey} responses={responses} />;
         if (hasVanWestendorp) return <VanWestendorpPage survey={survey} responses={responses} />;
-        if (hasTurf) return <TurfPage survey={survey} responses={responses} />;
+        if (hasTurf) {
+            const turfQuestion = survey.questions.find(q => q.type === 'multiple');
+            const turfData = responses.map(r => ({ selection: (r.answers as any)[turfQuestion!.id] })).filter(r => r.selection);
+            if (turfQuestion) {
+                 return <TurfPage data={turfData} categoricalHeaders={[turfQuestion.title]} onLoadExample={() => {}} />;
+            }
+        }
         
         return <SurveyAnalysisPage survey={survey} responses={responses} />;
     }, [survey, responses, analysisType]);
@@ -76,12 +82,8 @@ export default function SurveyAnalysis() {
         );
     }
 
-    if (!survey && surveyId !== 'new') {
+    if (!survey) {
         return <div>Survey not found.</div>;
-    }
-    
-    if (analysisType === 'ahp' && surveyId === 'new') {
-        return <AhpPage survey={null} responses={[]} />;
     }
     
     if (!analysisComponent) {

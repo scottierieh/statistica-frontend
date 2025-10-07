@@ -4,7 +4,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Treemap, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns, Network, DollarSign, Handshake } from 'lucide-react';
@@ -355,7 +355,6 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
 };
   
 const NumericChart = ({ data, title, onDownload }: { data: { mean: number, median: number, std: number, count: number, skewness: number, histogram: {name: string, count: number}[], values: number[] }, title: string, onDownload: () => void }) => {
-    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
     return (
       <AnalysisDisplayShell varName={title}>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -388,6 +387,7 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                                 <TableBody>
                                     <TableRow><TableCell>Mean</TableCell><TableCell className="text-right">{data.mean.toFixed(3)}</TableCell></TableRow>
                                     <TableRow><TableCell>Median</TableCell><TableCell className="text-right">{data.median}</TableCell></TableRow>
+                                    <TableRow><TableCell>Mode</TableCell><TableCell className="text-right">{getNumericStats(data.values).mode}</TableCell></TableRow>
                                     <TableRow><TableCell>Std. Deviation</TableCell><TableCell className="text-right">{data.std.toFixed(3)}</TableCell></TableRow>
                                     <TableRow><TableCell>Total Responses</TableCell><TableCell className="text-right">{data.count}</TableCell></TableRow>
                                 </TableBody>
@@ -897,14 +897,9 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
 };
 
 
-export default function SurveyAnalysisPage() {
-    const params = useParams();
-    const { toast } = useToast();
+export default function SurveyAnalysisPage({ survey, responses }: { survey: Survey; responses: SurveyResponse[] }) {
     const router = useRouter();
     const chartRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
-    const surveyId = params.id as string;
-    const [survey, setSurvey] = useState<Survey | null>(null);
-    const [responses, setResponses] = useState<SurveyResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [analysisData, setAnalysisData] = useState<any[]>([]);
@@ -932,7 +927,7 @@ export default function SurveyAnalysisPage() {
         return requiredTitles.every(reqTitle => questionTitles.some(qTitle => qTitle.includes(reqTitle)));
     }, [survey]);
     const hasTurf = useMemo(() => survey?.questions.some(q => q.type === 'multiple'), [survey]);
-    const hasAHP = useMemo(() => survey?.questions.some(q => q.type === 'matrix' && q.title.toLowerCase().includes('pairwise')), [survey]);
+    const hasAHP = useMemo(() => survey?.questions.some(q => q.type === 'ahp'), [survey]);
 
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
@@ -970,31 +965,23 @@ export default function SurveyAnalysisPage() {
     
     useEffect(() => {
         const loadData = async () => {
-            if (surveyId) {
-                try {
-                    const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
-                    const currentSurvey = storedSurveys.find((s: any) => s.id === surveyId);
-                    setSurvey(currentSurvey || null);
-
-                    const storedResponses = JSON.parse(localStorage.getItem(`${surveyId}_responses`) || '[]');
-                    setResponses(storedResponses);
-
-                    if (currentSurvey && currentSurvey.questions) {
-                      const processed = await processAllData(currentSurvey.questions, storedResponses);
-                      setAnalysisData(processed);
-                    } else {
-                        setError("Survey not found or has no questions.");
-                    }
-                } catch (error) {
-                    console.error("Failed to load survey data:", error);
-                    setError("Failed to load survey.");
-                } finally {
-                    setLoading(false);
+            setLoading(true);
+            try {
+                if (survey && survey.questions) {
+                  const processed = await processAllData(survey.questions, responses);
+                  setAnalysisData(processed);
+                } else if (!survey) {
+                    setError("Survey data could not be loaded.");
                 }
+            } catch (err) {
+                 setError("Failed to process survey responses.");
+                 console.error(err);
+            } finally {
+                setLoading(false);
             }
         };
         loadData();
-    }, [surveyId, processAllData]);
+    }, [survey, responses, processAllData]);
     
     const downloadChartAsPng = useCallback((chartId: string, title: string) => {
         const chartElement = chartRefs.current[chartId];
@@ -1211,5 +1198,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
-    
