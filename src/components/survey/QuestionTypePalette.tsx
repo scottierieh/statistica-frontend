@@ -27,6 +27,7 @@ export const QuestionTypePalette = ({ onSelectType }: { onSelectType: (type: str
     'Advanced': [
         { type: 'conjoint', label: 'Conjoint (Choice)', icon: Network, color: 'text-violet-500' },
         { type: 'rating-conjoint', label: 'Conjoint (Rating)', icon: ClipboardList, color: 'text-orange-500' },
+        { type: 'ahp', label: 'AHP', icon: Network, color: 'text-lime-500' },
     ],
     'Structure': [
          { type: 'description', label: 'Description Block', icon: FileText, color: 'text-gray-400' },

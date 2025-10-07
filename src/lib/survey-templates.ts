@@ -1,4 +1,5 @@
 
+
 import type { Question } from '@/entities/Survey';
 
 export const choiceBasedConjointTemplate = {
@@ -160,78 +161,17 @@ export const turfTemplate = {
     ] as Question[],
 };
 
-export const ahpCriteriaOnlyTemplate = {
-    title: "AHP: Criteria Weighting",
-    description: "Determine the relative importance of different criteria for a decision.",
+export const ahpTemplate = {
+    title: "AHP Survey",
+    description: "Make a complex decision by comparing criteria and alternatives pairwise.",
     questions: [
         {
-            id: 'ahp_criteria_desc',
-            type: 'description',
-            title: 'Instructions',
-            content: 'For the goal of "Choosing the best option", how important is each criterion relative to the others? Use the 9-point scale where 1 means equal importance and 9 means one is extremely more important than the other.'
-        },
-        {
-            id: 'ahp_q_criteria',
-            type: 'matrix',
-            title: 'Pairwise Comparison of Criteria',
-            description: 'Indicate your preference for one criterion over another.',
+            id: 'ahp_1',
+            type: 'ahp',
+            title: 'AHP Analysis for Smartphone Selection',
             required: true,
-            rows: ['Price vs Quality', 'Price vs Service', 'Quality vs Service'],
-            columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
-            scale: ['Left is much more important', '', '', '', 'Equal importance', '', '', '', 'Right is much more important']
-        },
-    ] as Question[],
-};
-
-export const ahpWithAlternativesTemplate = {
-    title: "AHP: Smartphone Selection",
-    description: "Make a complex decision by comparing criteria and then evaluating alternatives against each criterion.",
-    questions: [
-        {
-            id: 'ahp_full_desc',
-            type: 'description',
-            title: 'AHP Instructions',
-            content: 'You will first compare the importance of the main criteria for choosing a smartphone. Then, for each criterion, you will compare the alternatives. Use the 9-point scale to indicate your preference.'
-        },
-        {
-            id: 'ahp_q_criteria',
-            type: 'matrix',
-            title: 'Pairwise Comparison of Criteria',
-            description: 'For choosing a new smartphone, compare the importance of these criteria.',
-            required: true,
-            rows: ['Price vs Performance', 'Price vs Design', 'Performance vs Design'],
-            columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
-            scale: ['Left is much more important', '', '', '', 'Equal importance', '', '', '', 'Right is much more important']
-        },
-        {
-            id: 'ahp_q_price',
-            type: 'matrix',
-            title: 'Pairwise Comparison of Alternatives by Price',
-            description: 'Based on PRICE, how much do you prefer each smartphone?',
-            required: true,
-            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
-            columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
-            scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
-        },
-        {
-            id: 'ahp_q_performance',
-            type: 'matrix',
-            title: 'Pairwise Comparison of Alternatives by Performance',
-            description: 'Based on PERFORMANCE, how much do you prefer each smartphone?',
-            required: true,
-            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
-            columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
-            scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
-        },
-        {
-            id: 'ahp_q_design',
-            type: 'matrix',
-            title: 'Pairwise Comparison of Alternatives by Design',
-            description: 'Based on DESIGN, how much do you prefer each smartphone?',
-            required: true,
-            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
-            columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
-            scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
+            criteria: ['Price', 'Performance', 'Design'],
+            alternatives: ['Phone X', 'Phone Y', 'Phone Z']
         },
     ] as Question[],
 };

@@ -1,4 +1,5 @@
 
+
 export type Question = {
     id: string;
     type: string;
@@ -18,6 +19,9 @@ export type Question = {
     sets?: number;
     cardsPerSet?: number;
     profiles?: any[]; // For generated profiles
+    // For AHP
+    criteria?: string[];
+    alternatives?: string[];
 };
 
 

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -14,13 +14,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X } from "lucide-react";
-import { AnimatePresence } from 'framer-motion';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X, Shuffle, RefreshCw } from "lucide-react";
+import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import type { Question, ConjointAttribute } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 
 // --- Reusable UI Components ---
@@ -565,6 +565,102 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete, styles }: { ques
     return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} styles={styles} />;
 };
 
+const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, onUpdate?: (question: any) => void, onDelete?: (id: string) => void, styles: any }) => {
+  const [showPreview, setShowPreview] = useState(false);
+  const { toast } = useToast();
+
+  const handleItemChange = (type: 'criteria' | 'alternatives', index: number, value: string) => {
+    const newItems = [...(question[type] || [])];
+    newItems[index] = value;
+    onUpdate?.({ ...question, [type]: newItems, rows: [] }); // Reset rows when items change
+    setShowPreview(false);
+  };
+  const addItem = (type: 'criteria' | 'alternatives') => {
+    const newItems = [...(question[type] || []), `New ${type.slice(0, -1)}`];
+    onUpdate?.({ ...question, [type]: newItems, rows: [] });
+    setShowPreview(false);
+  };
+  const removeItem = (type: 'criteria' | 'alternatives', index: number) => {
+    const newItems = (question[type] || []).filter((_: any, i: number) => i !== index);
+    onUpdate?.({ ...question, [type]: newItems, rows: [] });
+    setShowPreview(false);
+  };
+
+  const generatePairs = () => {
+    const criteria = question.criteria || [];
+    const alternatives = question.alternatives || [];
+    if (criteria.length < 2) {
+      toast({ title: "Error", description: "Please define at least 2 criteria."});
+      return;
+    }
+
+    const newRows: string[] = [];
+    // Criteria pairs
+    for (let i = 0; i < criteria.length; i++) {
+      for (let j = i + 1; j < criteria.length; j++) {
+        newRows.push(`${criteria[i]} vs ${criteria[j]}`);
+      }
+    }
+    // Alternative pairs for each criterion
+    if (alternatives.length >= 2) {
+      criteria.forEach((criterion: string) => {
+        for (let i = 0; i < alternatives.length; i++) {
+          for (let j = i + 1; j < alternatives.length; j++) {
+            newRows.push(`[${criterion}] ${alternatives[i]} vs ${alternatives[j]}`);
+          }
+        }
+      });
+    }
+    onUpdate?.({ ...question, rows: newRows });
+    setShowPreview(true);
+  };
+
+  return (
+    <Card className="w-full">
+      <div className="p-4">
+        <div className="flex justify-between items-start mb-4">
+          <Input placeholder="AHP Analysis Title" value={question.title} onChange={e => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" />
+          <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <h4 className="font-semibold mb-2">Criteria</h4>
+            {(question.criteria || ['Quality', 'Price']).map((item: string, index: number) => (
+              <div key={index} className="flex items-center gap-2 mb-2">
+                <Input value={item} onChange={e => handleItemChange('criteria', index, e.target.value)} />
+                <Button variant="ghost" size="icon" onClick={() => removeItem('criteria', index)}><X className="w-4 h-4"/></Button>
+              </div>
+            ))}
+            <Button size="sm" variant="outline" onClick={() => addItem('criteria')}><PlusCircle className="mr-2"/>Add Criterion</Button>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2">Alternatives</h4>
+            {(question.alternatives || ['Brand A', 'Brand B']).map((item: string, index: number) => (
+              <div key={index} className="flex items-center gap-2 mb-2">
+                <Input value={item} onChange={e => handleItemChange('alternatives', index, e.target.value)} />
+                <Button variant="ghost" size="icon" onClick={() => removeItem('alternatives', index)}><X className="w-4 h-4"/></Button>
+              </div>
+            ))}
+            <Button size="sm" variant="outline" onClick={() => addItem('alternatives')}><PlusCircle className="mr-2"/>Add Alternative</Button>
+          </div>
+        </div>
+
+        <div className="flex justify-center mt-4">
+          <Button onClick={generatePairs}><RefreshCw className="mr-2"/>Generate Pairwise Comparisons</Button>
+        </div>
+
+        {showPreview && question.rows && (
+          <div className="mt-6">
+            <h4 className="font-semibold mb-2">Preview</h4>
+            <MatrixQuestion question={{ ...question, columns: ['-9','-7','-5','-3','1','3','5','7','9'], scale: [] }} onUpdate={() => {}} onDelete={() => {}} styles={styles} />
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+};
+
 
 // ... other question components
 
@@ -639,6 +735,7 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     matrix: MatrixQuestion,
     conjoint: ConjointQuestion,
     'rating-conjoint': RatingConjointQuestion,
+    ahp: AHPQuestion,
   };
 
 

@@ -52,10 +52,10 @@ export default function SurveyAnalysis() {
 
         const hasConjoint = survey.questions.some(q => q.type === 'conjoint');
         const hasRatingConjoint = survey.questions.some(q => q.type === 'rating-conjoint');
-        const hasAHP = survey.questions.some(q => q.type === 'matrix' && q.title.toLowerCase().includes('pairwise'));
         const hasIPA = survey.questions.some(q => q.type === 'matrix' && q.rows?.some(r => r.toLowerCase().includes('overall')));
         const hasVanWestendorp = survey.questions.some(q => q.title.toLowerCase().includes('too cheap'));
         const hasTurf = survey.questions.some(q => q.type === 'multiple');
+        const hasAHP = survey.questions.some(q => q.type === 'ahp');
 
         if (hasAHP) return <AhpPage survey={survey} responses={responses} />;
         if (hasConjoint) return <CbcAnalysisPage survey={survey} responses={responses} />;
@@ -78,6 +78,10 @@ export default function SurveyAnalysis() {
 
     if (!survey && surveyId !== 'new') {
         return <div>Survey not found.</div>;
+    }
+    
+    if (analysisType === 'ahp' && surveyId === 'new') {
+        return <AhpPage survey={null} responses={[]} />;
     }
     
     if (!analysisComponent) {
