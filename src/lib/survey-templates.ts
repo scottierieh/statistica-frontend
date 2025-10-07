@@ -140,15 +140,15 @@ export const turfTemplate = {
             id: 'turf_desc',
             type: 'description',
             title: 'Instructions',
-            content: 'From the list below, please select ALL of the new soda flavors you would be interested in purchasing if they were available.'
+            content: 'For each of the following potential new soda flavors, please indicate if you would be interested in purchasing it.'
         },
         {
             id: 'turf_q_1',
-            type: 'multiple',
+            type: 'matrix',
             title: 'Which of the following soda flavors would you consider buying?',
-            description: 'Select all that apply.',
+            description: 'Select one option for each flavor.',
             required: true,
-            options: [
+            rows: [
                 'Classic Cola',
                 'Lemon Lime',
                 'Orange Soda',
@@ -158,6 +158,8 @@ export const turfTemplate = {
                 'Cherry Cola',
                 'Cream Soda'
             ],
+            columns: ['Yes', 'No'],
+            scale: [],
         },
     ] as Question[],
 };
