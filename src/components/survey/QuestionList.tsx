@@ -9,14 +9,14 @@ import { produce } from 'immer';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X, Shuffle, RefreshCw } from "lucide-react";
-import { AnimatePresence, motion } from 'framer-motion';
+import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X } from "lucide-react";
+import { AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import type { Question, ConjointAttribute } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
@@ -443,85 +443,6 @@ const BestWorstQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles
     );
 };
 
-const AHPComparisonEditor = ({ question, onUpdate }: { question: Question, onUpdate?: (q: Question) => void }) => {
-    
-    const handleItemChange = (index: number, value: string) => {
-        const newItems = produce(question.items || [], (draft: string[]) => {
-            draft[index] = value;
-        });
-        onUpdate?.({ ...question, items: newItems });
-    };
-
-    const addItem = () => {
-        const newItems = [...(question.items || []), `Item ${(question.items?.length || 0) + 1}`];
-        onUpdate?.({ ...question, items: newItems });
-    };
-
-    const removeItem = (index: number) => {
-        const newItems = (question.items || []).filter((_, i) => i !== index);
-        onUpdate?.({ ...question, items: newItems });
-    };
-
-    const generatePairs = () => {
-        const items = question.items || [];
-        const newRows = [];
-        for (let i = 0; i < items.length; i++) {
-            for (let j = i + 1; j < items.length; j++) {
-                newRows.push(`${items[i]} vs ${items[j]}`);
-            }
-        }
-        onUpdate?.({ ...question, rows: newRows });
-    };
-
-    return (
-        <div className="p-4 space-y-6">
-            <Textarea value={question.description} onChange={(e) => onUpdate?.({ ...question, description: e.target.value })} placeholder="Enter a description for this comparison set."/>
-            
-            <div className="space-y-2">
-                <Label>Items to Compare</Label>
-                 {(question.items || []).map((item, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                        <Input value={item} onChange={e => handleItemChange(index, e.target.value)} />
-                        <Button variant="ghost" size="icon" onClick={() => removeItem(index)}><Trash2 className="w-4 h-4 text-destructive"/></Button>
-                    </div>
-                 ))}
-                 <Button variant="outline" size="sm" onClick={addItem}><PlusCircle className="mr-2"/> Add Item</Button>
-            </div>
-            
-            <Button onClick={generatePairs}>Generate Pairwise Comparisons</Button>
-
-            {question.rows && question.rows.length > 0 && (
-              <div className="bg-slate-50 p-6 rounded-xl border mt-4">
-                  <h4 className="font-semibold mb-4 text-center">Preview of Comparisons</h4>
-                   {(question.rows || []).map((row: string, rowIndex: number) => {
-                      const [left, right] = row.split(' vs ');
-                      return (
-                          <div key={rowIndex} className="mb-4">
-                              <div className="flex justify-between items-center mb-4">
-                                  <div className="flex-1 text-center font-bold text-lg text-primary">{left}</div>
-                                  <div className="mx-4 text-muted-foreground">vs</div>
-                                  <div className="flex-1 text-center font-bold text-lg text-primary">{right}</div>
-                              </div>
-                              <div className="relative py-5">
-                                  <div className="flex justify-between items-center px-2">
-                                      {[9, 7, 5, 3, 1, -3, -5, -7, -9].map(value => (
-                                          <div key={value} className="w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center font-bold text-sm text-slate-600 z-10 border-slate-300">
-                                              {Math.abs(value)}
-                                          </div>
-                                      ))}
-                                  </div>
-                                  <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 -translate-y-1/2"></div>
-                              </div>
-                          </div>
-                      )
-                  })}
-              </div>
-            )}
-        </div>
-    )
-};
-
-
 const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     
@@ -540,29 +461,6 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
         const newArr = (question[type] || []).filter((_: any, i: number) => i !== index);
         onUpdate?.({ ...question, [type]: newArr });
     };
-
-    const isAHP = (question.columns || []).length === 9 && question.rows && question.rows.some((r: string) => r.includes('vs'));
-
-    if (isAHP) {
-        return (
-            <Card className="w-full">
-                <div className="p-4">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1">
-                            <Input placeholder="AHP Question Title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
-                            {question.required && <span className="text-destructive text-xs">* Required</span>}
-                        </div>
-                        <div className="flex items-center">
-                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
-                            <Label htmlFor={`required-${question.id}`} className="mr-2">Required</Label>
-                            <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
-                        </div>
-                    </div>
-                    <AHPComparisonEditor question={question} onUpdate={onUpdate} />
-                </div>
-            </Card>
-        );
-    }
     
     const hasScale = question.scale && question.scale.length > 0;
     const columns = hasScale ? question.scale : question.columns || [];
@@ -608,7 +506,7 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
                                             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove('rows', rowIndex)}><X className="h-3 w-3"/></Button>
                                         </div>
                                     </TableHead>
-                                    {(columns || []).map((col: string, colIndex: number) => (
+                                    {(question.columns || []).map((col: string, colIndex: number) => (
                                         <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
                                             <RadioGroup><RadioGroupItem value={col} disabled /></RadioGroup>
                                         </TableCell>
