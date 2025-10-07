@@ -488,7 +488,10 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
                                 <TableHead className="w-1/3 min-w-[150px]"></TableHead>
                                 {columns.map((header: string, colIndex: number) => (
                                     <TableHead key={`header-${colIndex}`} className="text-center text-xs min-w-[80px]">
-                                        <Input value={header} onChange={e => handleUpdate(hasScale ? 'scale' : 'columns', colIndex, e.target.value)} className="text-center bg-transparent border-none p-0" />
+                                        <div className="flex items-center gap-1 justify-center">
+                                            <Input value={header} onChange={e => handleUpdate(hasScale ? 'scale' : 'columns', colIndex, e.target.value)} className="text-center bg-transparent border-none p-0" />
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove(hasScale ? 'scale' : 'columns', colIndex)}><X className="h-3 w-3"/></Button>
+                                        </div>
                                     </TableHead>
                                 ))}
                                 <TableHead><Button variant="ghost" size="icon" onClick={() => handleAdd(hasScale ? 'scale' : 'columns')}><PlusCircle className="w-4"/></Button></TableHead>
@@ -497,13 +500,18 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
                         <TableBody>
                             {(question.rows || []).map((row: string, rowIndex: number) => (
                                 <TableRow key={`row-${rowIndex}`}>
-                                    <TableHead><Input value={row} onChange={e => handleUpdate('rows', rowIndex, e.target.value)} className="font-semibold bg-transparent border-none p-0" /></TableHead>
+                                    <TableHead>
+                                        <div className="flex items-center gap-1">
+                                            <Input value={row} onChange={e => handleUpdate('rows', rowIndex, e.target.value)} className="font-semibold bg-transparent border-none p-0" />
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove('rows', rowIndex)}><X className="h-3 w-3"/></Button>
+                                        </div>
+                                    </TableHead>
                                     {(columns || []).map((col: string, colIndex: number) => (
                                         <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
                                             <RadioGroup><RadioGroupItem value={col} disabled /></RadioGroup>
                                         </TableCell>
                                     ))}
-                                    <TableCell><Button variant="ghost" size="icon" onClick={() => handleRemove('rows', rowIndex)}><Trash2 className="w-4"/></Button></TableCell>
+                                    <TableCell></TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -515,8 +523,7 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
     );
 };
 
-const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
-    // This is a complex component. For now, a simplified editor.
+const ConjointQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     
     return (
@@ -553,9 +560,9 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles 
     );
 };
 
-const RatingConjointQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
+const RatingConjointQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
     // This component is very similar to the Choice-Based one, just a different type
-    return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} onImageUpload={onImageUpload} styles={styles} />;
+    return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} styles={styles} />;
 };
 
 
