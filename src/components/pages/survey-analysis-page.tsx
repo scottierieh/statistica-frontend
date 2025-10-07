@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns, Network, DollarSign } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns, Network, DollarSign, Handshake } from 'lucide-react';
 import type { Survey, SurveyResponse } from '@/types/survey';
 import type { Question } from '@/entities/Survey';
 import { Skeleton } from '../ui/skeleton';
@@ -35,6 +35,7 @@ import RatingConjointAnalysisPage from './rating-conjoint-analysis-page';
 import IpaPage from './ipa-page';
 import VanWestendorpPage from './van-westendorp-page';
 import TurfPage from './turf-page';
+import AhpPage from './ahp-page';
 
 
 const Plot = dynamic(() => import('react-plotly.js').then(mod => mod.default), { ssr: false });
@@ -930,7 +931,8 @@ export default function SurveyAnalysisPage() {
         const questionTitles = survey.questions.map(q => q.title.toLowerCase());
         return requiredTitles.every(reqTitle => questionTitles.some(qTitle => qTitle.includes(reqTitle)));
     }, [survey]);
-     const hasTurf = useMemo(() => survey?.questions.some(q => q.type === 'multiple'), [survey]);
+    const hasTurf = useMemo(() => survey?.questions.some(q => q.type === 'multiple'), [survey]);
+    const hasAHP = useMemo(() => survey?.questions.some(q => q.title.toLowerCase().includes('pairwise comparison')), [survey]);
 
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
@@ -1097,6 +1099,7 @@ export default function SurveyAnalysisPage() {
                     {hasIPA && <TabsTrigger value="ipa">IPA</TabsTrigger>}
                     {hasVanWestendorp && <TabsTrigger value="van-westendorp">Price Sensitivity</TabsTrigger>}
                     {hasTurf && <TabsTrigger value="turf">TURF Analysis</TabsTrigger>}
+                    {hasAHP && <TabsTrigger value="ahp">AHP Analysis</TabsTrigger>}
                     <TabsTrigger value="further_analysis">Further Analysis</TabsTrigger>
                 </TabsList>
                 <TabsContent value="results" className="mt-4">
@@ -1154,6 +1157,11 @@ export default function SurveyAnalysisPage() {
                 {hasTurf && turfData && turfQuestion && (
                     <TabsContent value="turf" className="mt-4">
                        <TurfPage data={turfData} categoricalHeaders={[turfQuestion.title]} onLoadExample={() => {}} />
+                    </TabsContent>
+                )}
+                {hasAHP && (
+                    <TabsContent value="ahp" className="mt-4">
+                       <AhpPage survey={survey} responses={responses} />
                     </TabsContent>
                 )}
                 <TabsContent value="further_analysis" className="mt-4">

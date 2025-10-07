@@ -49,7 +49,7 @@ export const ratingBasedConjointTemplate = {
             attributes: [
                 { id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung', 'Google'] },
                 { id: `attr-2`, name: 'Price', levels: ['$999', '$799', '$699'] },
-                { id: `attr-3`, name: 'Screen Size', levels: ['6.1"', '6.7"'] },
+                { id: `attr-3`, name: 'Screen Size', levels: ['6.1"',, '6.7"'] },
             ],
             profiles: [
                 { id: 'profile_1', Brand: 'Apple', Price: '$999', 'Screen Size': '6.7"' },
@@ -149,15 +149,63 @@ export const turfTemplate = {
             description: 'Select all that apply.',
             required: true,
             options: [
-                'Product A: A refreshing classic cola flavor.',
-                'Product B: A zesty and crisp lemon-lime combination.',
-                'Product C: A sweet and tangy orange soda.',
-                'Product D: A bold and fruity grape taste.',
-                'Product E: A creamy and nostalgic root beer.',
-                'Product F: A spicy and soothing ginger ale.',
-                'Product G: A classic cola with a sweet cherry twist.',
-                'Product H: A smooth, sweet, and velvety cream soda.'
+                'Classic Cola',
+                'Zesty Lemon-Lime',
+                'Sweet Orange Soda',
+                'Bold Grape Soda',
+                'Creamy Root Beer',
+                'Spicy Ginger Ale',
             ],
+        },
+    ] as Question[],
+};
+
+export const ahpTemplate = {
+    title: "AHP: Choosing a New Laptop",
+    description: "This survey uses the Analytic Hierarchy Process (AHP) to determine the best laptop choice by comparing criteria and alternatives.",
+    questions: [
+        {
+            id: 'ahp_desc',
+            type: 'description',
+            title: 'AHP Instructions',
+            content: 'You will be asked to make a series of pairwise comparisons. For each pair, please indicate how much more important or preferred one item is over the other using a 9-point scale, where 1 is "Equal Importance" and 9 is "Extreme Importance".'
+        },
+        {
+            id: 'ahp_q_criteria',
+            type: 'matrix',
+            title: 'Pairwise Comparison of Criteria',
+            description: 'For the goal of "Choosing a New Laptop", how important is each criterion relative to the others?',
+            required: true,
+            rows: ['Price', 'Performance', 'Design'],
+            columns: ['Price', 'Performance', 'Design'],
+            scale: ['9', '8', '7', '6', '5', '4', '3', '2', '1', '2', '3', '4', '5', '6', '7', '8', '9'] // This would be better as a slider in a real app
+        },
+        {
+            id: 'ahp_q_price',
+            type: 'matrix',
+            title: 'Pairwise Comparison of Alternatives by Price',
+            description: 'Based on PRICE, how much do you prefer each laptop over the others?',
+            required: true,
+            rows: ['Laptop A', 'Laptop B', 'Laptop C'],
+            columns: ['Laptop A', 'Laptop B', 'Laptop C'],
+        },
+         {
+            id: 'ahp_q_performance',
+            type: 'matrix',
+            title: 'Pairwise Comparison of Alternatives by Performance',
+            description: 'Based on PERFORMANCE, how much do you prefer each laptop over the others?',
+            required: true,
+            rows: ['Laptop A', 'Laptop B', 'Laptop C'],
+            columns: ['Laptop A', 'Laptop B', 'Laptop C'],
+        },
+         {
+            id: 'ahp_q_design',
+            type: 'matrix',
+            title: 'Pairwise Comparison of Alternatives by Design',
+            description: 'Based on DESIGN, how much do you prefer each laptop over the others?',
+            required: true,
+            rows: ['Laptop A', 'Laptop B', 'Laptop C'],
+            columns: ['Laptop A', 'Laptop B', 'Laptop C'],
         },
     ] as Question[],
 };
