@@ -1,9 +1,9 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ interface FullAnalysisResponse {
         psm_plot: string;
         acceptance_plot: string;
     };
+    error?: string;
 }
 
 interface VanWestendorpPageProps {
@@ -82,6 +83,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         requiredQuestions.forEach(q_title => {
             const question = survey.questions.find(q => q.title.toLowerCase().includes(q_title));
             if(question) {
+                // Use a consistent key format
                 const key = q_title.replace(/\//g, '_');
                 mapping[key] = question.id;
             }
@@ -105,23 +107,12 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         const analysisData = responses.map(r => {
             const answers = r.answers as any;
             return {
-                too_cheap: answers[questionMap.too_cheap],
-                cheap: answers[questionMap.cheap_bargain],
-                expensive: answers[questionMap.expensive_high_side],
-                too_expensive: answers[questionMap.too_expensive],
+                [questionMap.too_cheap]: answers[questionMap.too_cheap],
+                [questionMap['cheap_bargain']]: answers[questionMap['cheap_bargain']],
+                [questionMap['expensive_high_side']]: answers[questionMap['expensive_high_side']],
+                [questionMap.too_expensive]: answers[questionMap.too_expensive],
             };
-        }).filter(row => 
-            row.too_cheap != null && !isNaN(Number(row.too_cheap)) &&
-            row.cheap != null && !isNaN(Number(row.cheap)) &&
-            row.expensive != null && !isNaN(Number(row.expensive)) &&
-            row.too_expensive != null && !isNaN(Number(row.too_expensive))
-        );
-        
-        if (analysisData.length < 10) {
-            setError(`Not enough valid numeric responses found. Need at least 10 complete responses, but found ${analysisData.length}.`);
-            setIsLoading(false);
-            return;
-        }
+        });
 
         try {
             const response = await fetch('/api/analysis/van-westendorp', {
@@ -129,10 +120,10 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     data: analysisData,
-                    too_cheap_col: 'too_cheap',
-                    cheap_col: 'cheap',
-                    expensive_col: 'expensive',
-                    too_expensive_col: 'too_expensive',
+                    too_cheap_col: questionMap.too_cheap,
+                    cheap_col: questionMap['cheap_bargain'],
+                    expensive_col: questionMap['expensive_high_side'],
+                    too_expensive_col: questionMap.too_expensive,
                 })
             });
 

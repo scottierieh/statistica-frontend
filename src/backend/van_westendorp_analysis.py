@@ -153,34 +153,44 @@ def main():
         
         price_cols = [too_cheap_col, cheap_col, expensive_col, too_expensive_col]
         for col in price_cols:
+            if col not in df.columns:
+                 raise ValueError(f"Required column '{col}' not found in data.")
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
         df.dropna(subset=price_cols, inplace=True)
 
         if df.shape[0] < 10:
-            raise ValueError("No valid numeric responses found for the price sensitivity questions.")
+            raise ValueError(f"No valid numeric responses found for the price sensitivity questions. Need at least 10 complete responses, but found {df.shape[0]}.")
 
+        # Validate that prices are ordered correctly
         for i in range(len(df)):
             prices = df.iloc[i][price_cols].values.tolist()
             if not all(x <= y for x, y in zip(prices, prices[1:])):
+                # If not sorted, sort them in place. This handles cases where users enter prices out of order.
                 sorted_prices = sorted(prices)
                 df.iloc[i][price_cols] = sorted_prices
 
-        price_range = np.linspace(df[price_cols].values.min(), df[price_cols].values.max(), 500)
+        # Determine a sensible price range for interpolation
+        min_price = df[price_cols].values.min()
+        max_price = df[price_cols].values.max()
+        price_range = np.linspace(min_price, max_price, 500)
         n = len(df)
         
+        # Calculate cumulative percentages correctly
         too_cheap_cumulative = np.array([(df[too_cheap_col] <= p).sum() for p in price_range]) / n * 100
         cheap_cumulative = np.array([(df[cheap_col] <= p).sum() for p in price_range]) / n * 100
         expensive_cumulative = np.array([(df[expensive_col] <= p).sum() for p in price_range]) / n * 100
         too_expensive_cumulative = np.array([(df[too_expensive_col] <= p).sum() for p in price_range]) / n * 100
         
+        # The 'not cheap' and 'not expensive' curves are derived from the cumulative percentages.
         not_cheap = 100 - cheap_cumulative
         not_expensive = 100 - expensive_cumulative
         
-        pmc_price = find_intersection(price_range, too_cheap_cumulative, not_expensive)
+        # Find intersection points
+        pmc_price = find_intersection(price_range, too_cheap_cumulative, not_cheap)
         pme_price = find_intersection(price_range, expensive_cumulative, not_cheap)
-        opp_price = find_intersection(price_range, not_cheap, not_expensive) 
-        idp_price = find_intersection(price_range, cheap_cumulative, expensive_cumulative)
+        opp_price = find_intersection(price_range, expensive_cumulative, too_cheap_cumulative)
+        idp_price = find_intersection(price_range, cheap_cumulative, not_expensive)
         
         results = {
             'pme': pme_price,
@@ -190,13 +200,19 @@ def main():
         }
         results['interpretation'] = generate_interpretation(results)
         
+        # Prepare data for the classic PSM plot
         cumulative_curves_for_psm = {
-            'too_cheap': too_cheap_cumulative,
-            'cheap': cheap_cumulative,
+            'too_cheap': 100 - too_cheap_cumulative, # Reversed for PSM plot
+            'cheap': not_cheap,
             'expensive': expensive_cumulative,
             'too_expensive': too_expensive_cumulative
         }
         
+        # Re-find intersections for the classic plot presentation
+        results['opp'] = find_intersection(price_range, cumulative_curves_for_psm['too_expensive'], cumulative_curves_for_psm['too_cheap'])
+        results['idp'] = find_intersection(price_range, cumulative_curves_for_psm['expensive'], cumulative_curves_for_psm['cheap'])
+
+
         psm_plot = create_psm_plot(price_range, cumulative_curves_for_psm, results)
 
         acceptance_plot = create_acceptance_plot(price_range, too_cheap_cumulative, expensive_cumulative)
