@@ -1,5 +1,4 @@
 
-
 import type { Question } from '@/entities/Survey';
 
 export const choiceBasedConjointTemplate = {
@@ -161,12 +160,27 @@ export const turfTemplate = {
     ] as Question[],
 };
 
-export const ahpTemplate = {
-    title: "AHP Survey",
-    description: "Make a complex decision by comparing criteria and alternatives pairwise.",
+export const ahpCriteriaOnlyTemplate = {
+    title: "AHP: Criteria Weighting",
+    description: "Determine the relative importance of different criteria without evaluating specific alternatives.",
     questions: [
         {
-            id: 'ahp_1',
+            id: 'ahp_criteria_1',
+            type: 'ahp',
+            title: 'AHP Criteria Weighting',
+            required: true,
+            criteria: ['Quality', 'Price', 'Customer Service'],
+            alternatives: []
+        },
+    ] as Question[],
+};
+
+export const ahpWithAlternativesTemplate = {
+    title: "AHP: Full Hierarchy Analysis",
+    description: "Make a complex decision by comparing criteria and then evaluating alternatives against each criterion.",
+    questions: [
+        {
+            id: 'ahp_full_1',
             type: 'ahp',
             title: 'AHP Analysis for Smartphone Selection',
             required: true,

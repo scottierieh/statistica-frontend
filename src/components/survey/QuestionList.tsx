@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
@@ -147,27 +148,27 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
 
 const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
     const handleOptionChange = (index: number, value: string) => {
-        const newOptions = [...(question.options || [])];
-        newOptions[index] = value;
-        onUpdate?.({ ...question, options: newOptions });
-    };
+       const newOptions = [...(question.options || [])];
+       newOptions[index] = value;
+       onUpdate?.({ ...question, options: newOptions });
+   };
 
-    const addOption = () => {
-        const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
-        onUpdate?.({ ...question, options: newOptions });
-    };
+   const addOption = () => {
+       const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
+       onUpdate?.({ ...question, options: newOptions });
+   };
 
-    const deleteOption = (index: number) => {
-        const newOptions = (question.options || []).filter((_: any, i: number) => i !== index);
-        onUpdate?.({ ...question, options: newOptions });
-    };
+   const deleteOption = (index: number) => {
+       const newOptions = (question.options || []).filter((_: any, i: number) => i !== index);
+       onUpdate?.({ ...question, options: newOptions });
+   };
 
-    const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+   const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     const choiceStyle = { fontSize: `${styles.answerTextSize}px` };
     const theme = styles.theme || 'default';
-
-    return (
-        <Card className="w-full">
+   
+   return (
+       <Card className="w-full">
             <div className="p-4">
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
@@ -196,7 +197,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                 <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
             </div>
         </Card>
-    );
+   );
 };
 
 const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
@@ -631,7 +632,7 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, 
             <Button size="sm" variant="outline" onClick={() => addItem('criteria')}><PlusCircle className="mr-2"/>Add Criterion</Button>
           </div>
           <div>
-            <h4 className="font-semibold mb-2">Alternatives</h4>
+            <h4 className="font-semibold mb-2">Alternatives (Optional)</h4>
             {(question.alternatives || ['Brand A', 'Brand B']).map((item: string, index: number) => (
               <div key={index} className="flex items-center gap-2 mb-2">
                 <Input value={item} onChange={e => handleItemChange('alternatives', index, e.target.value)} />
@@ -737,18 +738,10 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     <div className="space-y-6">
        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
       <Card>
-        <CardHeader>
-          <CardTitle>Survey Details</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Survey Details</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label>Title *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} readOnly={isPreview} />
-          </div>
-          <div>
-            <Label>Description</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} readOnly={isPreview}/>
-          </div>
+          <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} readOnly={isPreview} /></div>
+          <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} readOnly={isPreview}/></div>
         </CardContent>
       </Card>
       

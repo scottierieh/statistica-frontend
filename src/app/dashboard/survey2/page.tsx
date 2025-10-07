@@ -133,7 +133,7 @@ export default function Survey2Dashboard() {
                     Create New Survey
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>Create a New Survey</DialogTitle>
                     <DialogDescription>Start from scratch or use one of our expert-designed templates.</DialogDescription>
@@ -153,7 +153,8 @@ export default function Survey2Dashboard() {
                          <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
                          <TemplateCard icon={DollarSign} title="Price Sensitivity" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=van-westendorp"/>
                          <TemplateCard icon={Users} title="TURF Analysis" description="Identify the best combination of items to maximize reach." href="/dashboard/createsurvey?template=turf"/>
-                         <TemplateCard icon={Network} title="AHP Survey" description="Make complex decisions by comparing criteria and alternatives pairwise." href="/dashboard/createsurvey?template=ahp"/>
+                         <TemplateCard icon={Network} title="AHP: Criteria Weighting" description="Determine the relative importance of different decision criteria." href="/dashboard/createsurvey?template=ahp-criteria"/>
+                         <TemplateCard icon={Network} title="AHP: Full Hierarchy" description="Compare criteria and alternatives to make a complex decision." href="/dashboard/createsurvey?template=ahp-full"/>
                          <TemplateCard icon={Users} title="Employee Engagement" description="Gauge employee satisfaction and identify areas for cultural improvement." href="/dashboard/createsurvey?template=employee"/>
                          <TemplateCard icon={ClipboardList} title="Customer Satisfaction" description="Measure overall customer satisfaction (CSAT) and drivers." href="/dashboard/createsurvey?template=csat"/>
                     </div>
