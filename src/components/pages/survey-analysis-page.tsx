@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -367,40 +366,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
 };
   
 const NumericChart = ({ data, title, onDownload }: { data: { mean: number, median: number, std: number, count: number, skewness: number, histogram: {name: string, count: number}[], values: number[] }, title: string, onDownload: () => void }) => {
-    const interpretation = useMemo(() => {
-        if (!data || isNaN(data.mean)) return null;
-        let skewText = '';
-        const skewness = data.skewness;
-        if (!isNaN(skewness)) {
-          if (Math.abs(skewness) > 1) {
-              skewText = `The distribution is <strong>highly ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong> (skewness = ${skewness.toFixed(2)}). This suggests the presence of outliers or a non-symmetrical pattern in responses.`;
-          } else if (Math.abs(skewness) > 0.5) {
-              skewText = `The data is <strong>moderately ${skewness > 0 ? 'right-skewed' : 'left-skewed'}</strong>.`;
-          } else {
-              skewText = `The data appears to be roughly <strong>symmetrical</strong>.`;
-          }
-        }
-        
-        return {
-            title: "Distribution Summary",
-            text: `The average response is <strong>${data.mean.toFixed(2)}</strong> with a standard deviation of <strong>${data.std.toFixed(2)}</strong>. ${skewText}`,
-            variant: Math.abs(skewness) > 1 ? "destructive" : "default"
-        };
-    }, [data]);
-    
-    if (!data || !data.histogram) {
-      return (
-        <Card>
-          <CardHeader>
-            <CardTitle>{title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>No data available for this numeric question.</p>
-          </CardContent>
-        </Card>
-      );
-    }
-    
+     const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
     return (
       <AnalysisDisplayShell varName={title}>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -438,16 +404,6 @@ const NumericChart = ({ data, title, onDownload }: { data: { mean: number, media
                                 </TableBody>
                             </Table>
                          </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" />Key Insights</CardTitle></CardHeader>
-                        <CardContent>{interpretation && (
-                            <Alert variant={interpretation.variant as any}>
-                                <Info className="h-4 w-4" />
-                                <AlertTitle>{interpretation.title}</AlertTitle>
-                                <AlertDescription dangerouslySetInnerHTML={{ __html: interpretation.text }} />
-                            </Alert>
-                        )}</CardContent>
                     </Card>
                 </div>
             </div>
@@ -1265,7 +1221,7 @@ export default function SurveyAnalysisPage() {
                                          {turfResult.results.interpretation && (
                                             <Alert>
                                                 <AlertTitle className="font-semibold">AI Interpretation</AlertTitle>
-                                                <AlertDescription dangerouslySetInnerHTML={{ __html: turfResult.results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                                                <AlertDescription dangerouslySetInnerHTML={{ __html: turfResult.results.interpretation.replace(/\n/g, '<br />') }} />
                                             </Alert>
                                         )}
                                         {turfResult.plot && <Image src={`data:image/png;base64,${turfResult.plot}`} alt="TURF Analysis Plots" width={1600} height={1200} className="w-full rounded-md border" />}
@@ -1322,4 +1278,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-```
