@@ -12,7 +12,7 @@ import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import SurveyView from '@/components/survey-view';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { choiceBasedConjointTemplate, ratingBasedConjointTemplate } from '@/lib/survey-templates';
+import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate } from '@/lib/survey-templates';
 
 
 export default function CreateSurveyPage() {
@@ -59,6 +59,10 @@ export default function CreateSurveyPage() {
             setTitle(ratingBasedConjointTemplate.title);
             setDescription(ratingBasedConjointTemplate.description);
             setQuestions(ratingBasedConjointTemplate.questions);
+        } else if (templateName === 'ipa') {
+            setTitle(ipaTemplate.title);
+            setDescription(ipaTemplate.description);
+            setQuestions(ipaTemplate.questions);
         }
         // Add other templates here
     }
