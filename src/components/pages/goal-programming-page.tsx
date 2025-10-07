@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Sigma, Loader2, Play, Plus, Trash2, HelpCircle, Award, MoveRight } from 'lucide-react';
+import { Sigma, Loader2, Play, FileJson, Asterisk, HelpCircle, Award, MoveRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { produce } from 'immer';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface Goal {
     id: string;
@@ -46,7 +47,7 @@ interface GpResult {
     message?: string;
 }
 
-const IntroPage = ({ onStart }: { onStart: () => void }) => {
+const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: () => void }) => {
     return (
         <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
             <Card className="w-full max-w-4xl shadow-2xl">
@@ -72,8 +73,9 @@ const IntroPage = ({ onStart }: { onStart: () => void }) => {
                         <li><strong>Priorities:</strong> Goals are solved sequentially from the highest priority (P1) to the lowest.</li>
                     </ul>
                 </CardContent>
-                <CardFooter className="flex justify-center p-6 bg-muted/30 rounded-b-lg">
-                    <Button size="lg" onClick={onStart}>Get Started <MoveRight className="ml-2 w-5 h-5"/></Button>
+                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
+                     <Button variant="outline" onClick={onLoadExample}>Load Example</Button>
+                     <Button size="lg" onClick={onStart}>Get Started <MoveRight className="ml-2 w-5 h-5"/></Button>
                 </CardFooter>
             </Card>
         </div>
@@ -187,9 +189,8 @@ export default function GoalProgrammingPage() {
         }
     }, [goals, decisionVars, constraints, toast]);
 
-    
     if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} />;
+        return <IntroPage onStart={() => setView('main')} onLoadExample={() => {}} />;
     }
 
     const finalSolution = analysisResult?.final_solution;
@@ -205,11 +206,17 @@ export default function GoalProgrammingPage() {
                     <CardDescription>Define decision variables, goals (with priorities), and any hard constraints.</CardDescription>
                 </CardHeader>
                  <CardContent className="space-y-6">
-                     <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/50">
-                        <Label htmlFor="num-vars">Decision Variables:</Label>
-                        <Input id="num-vars" type="number" value={numDecisionVars} onChange={e => updateDecisionVars(parseInt(e.target.value))} min="1" className="w-20"/>
+                     <div className="flex flex-wrap items-center gap-4 p-4 border rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-2">
+                           <Label htmlFor="num-vars">Decision Variables:</Label>
+                           <Input id="num-vars" type="number" value={numDecisionVars} onChange={e => updateDecisionVars(parseInt(e.target.value))} min="1" className="w-20"/>
+                        </div>
+                        <Button onClick={handleBoardCreation}>
+                            <Asterisk className="mr-2 h-4 w-4" />Create Board
+                        </Button>
                     </div>
-                     <div className="space-y-4">
+                    
+                    <div className="space-y-4">
                         <h3 className="font-semibold text-lg">Goals (by Priority)</h3>
                         {goals.map(goal => (
                             <Card key={goal.id} className="p-4">

@@ -1,4 +1,5 @@
 
+
 import Papa from 'papaparse';
 
 export type DataPoint = Record<string, number | string>;
@@ -60,7 +61,7 @@ export const parseData = (
             newRow[header] = NaN; // Use NaN for non-numeric values in numeric columns
         }
       } else { // Categorical
-        newRow[header] = value === null || value === undefined ? '' : String(value);
+        newRow[header] = (value === null || value === undefined) ? '' : String(value);
       }
     });
     return newRow;

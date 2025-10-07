@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
@@ -168,7 +169,7 @@ const ChoiceAnalysisDisplay = ({ chartData, tableData, insightsData, varName }: 
                            ) : (
                                <PieChart>
                                  <Pie data={chartData} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={p => `${p.name} (${p.percentage.toFixed(1)}%)`}>
-                                   {chartData.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                   {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                  </Pie>
                                  <Tooltip content={<ChartTooltipContent />} />
                                </PieChart>
@@ -516,7 +517,7 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
                         <Label>Variables for Analysis</Label>
                         <ScrollArea className="h-40 border rounded-lg p-4 mt-2">
                              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                {allHeaders.map(h => (
+                                {allHeaders.filter(h => h).map(h => (
                                     <div key={h} className="flex items-center space-x-2">
                                         <Checkbox 
                                             id={`var-${h}`} 
@@ -580,4 +581,3 @@ export default function DescriptiveStatisticsPage({ data, allHeaders, numericHea
         </div>
     );
 }
-
