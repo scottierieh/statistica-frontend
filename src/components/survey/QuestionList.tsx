@@ -443,6 +443,61 @@ const BestWorstQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles
     );
 };
 
+const AHPComparisonEditor = ({ question, onUpdate }: { question: Question, onUpdate?: (q: Question) => void }) => {
+  const [leftItem, rightItem] = (question.rows && question.rows.length > 0) ? (question.rows[0] || '').split(' vs ') : ['', ''];
+  const scaleDescriptions: {[key: string]: string} = {
+      '9': `Left is absolutely more important`,
+      '7': `Left is very strongly more important`,
+      '5': `Left is strongly more important`,
+      '3': `Left is moderately more important`,
+      '1': `Equal importance`,
+      '-3': `Right is moderately more important`,
+      '-5': `Right is strongly more important`,
+      '-7': `Right is very strongly more important`,
+      '-9': `Right is absolutely more important`
+  };
+    
+  return (
+        <div className="p-4 space-y-6">
+            <Textarea value={question.description} onChange={(e) => onUpdate?.({...question, description: e.target.value})} placeholder="Enter a description for this comparison set."/>
+            
+            {(question.rows || []).map((row: string, rowIndex: number) => {
+                const [left, right] = row.split(' vs ');
+                return (
+                    <div key={rowIndex} className="bg-slate-50 p-6 rounded-xl border">
+                        <div className="flex justify-between items-center mb-4">
+                            <Input className="flex-1 text-center font-bold text-lg text-primary bg-transparent border-none" value={left} onChange={e => {
+                                const newRows = [...question.rows!];
+                                newRows[rowIndex] = `${e.target.value} vs ${right}`;
+                                onUpdate?.({...question, rows: newRows});
+                            }}/>
+                            <div className="mx-4 text-muted-foreground">vs</div>
+                             <Input className="flex-1 text-center font-bold text-lg text-primary bg-transparent border-none" value={right} onChange={e => {
+                                const newRows = [...question.rows!];
+                                newRows[rowIndex] = `${left} vs ${e.target.value}`;
+                                onUpdate?.({...question, rows: newRows});
+                            }}/>
+                        </div>
+
+                        <div className="relative py-5">
+                            <div className="flex justify-between items-center px-2">
+                                {[9, 7, 5, 3, 1, -3, -5, -7, -9].map(value => (
+                                    <div key={value} className="w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center cursor-pointer transition-all z-10 border-slate-300">
+                                        {Math.abs(value)}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 -translate-y-1/2"></div>
+                        </div>
+                    </div>
+                )
+            })}
+             <Button variant="outline" size="sm" onClick={() => onUpdate?.({...question, rows: [...(question.rows || []), 'New Item vs Another']})}><PlusCircle className="w-4 h-4 mr-2" /> Add Comparison</Button>
+        </div>
+    )
+};
+
+
 const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     
@@ -462,6 +517,29 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
         onUpdate?.({ ...question, [type]: newArr });
     };
 
+    const isAHP = (question.columns || []).length === 9 && question.rows && question.rows.some(r => r.includes('vs'));
+
+    if (isAHP) {
+        return (
+            <Card className="w-full">
+                <div className="p-4">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                            <Input placeholder="AHP Question Title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                            {question.required && <span className="text-destructive text-xs">* Required</span>}
+                        </div>
+                        <div className="flex items-center">
+                            <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                            <Label htmlFor={`required-${question.id}`} className="mr-2">Required</Label>
+                            <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                        </div>
+                    </div>
+                    <AHPComparisonEditor question={question} onUpdate={onUpdate} />
+                </div>
+            </Card>
+        );
+    }
+    
     const hasScale = question.scale && question.scale.length > 0;
     const columns = hasScale ? question.scale : question.columns || [];
     
