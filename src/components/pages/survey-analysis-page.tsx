@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -736,7 +735,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { results: { scores
         worstPct: item.worst_pct,
     }));
     
-    const formattedInterpretation = data.results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    const formattedInterpretation = data.results.interpretation?.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
     return (
         <Card>
@@ -1262,7 +1261,7 @@ export default function SurveyAnalysisPage() {
                                     <div className="mt-6 space-y-4">
                                         <Alert>
                                             <AlertTitle className="font-semibold">AI Interpretation</AlertTitle>
-                                            <AlertDescription dangerouslySetInnerHTML={{ __html: turfResult.results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                                            <AlertDescription dangerouslySetInnerHTML={{ __html: turfResult.results.interpretation?.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
                                         </Alert>
                                         <Image src={`data:image/png;base64,${turfResult.plot}`} alt="TURF Analysis Plots" width={1600} height={1200} className="w-full rounded-md border" />
                                     </div>
@@ -1318,4 +1317,3 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
-
