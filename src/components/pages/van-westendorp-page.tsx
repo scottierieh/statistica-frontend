@@ -65,7 +65,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         return mapping;
     }, [survey]);
 
-    const canRun = useMemo(() => requiredQuestions.every(q => Object.keys(questionMap).includes(q.replace('/','_'))), [questionMap]);
+    const canRun = useMemo(() => requiredQuestions.every(q => Object.keys(questionMap).includes(q.replace('/','_'))), [questionMap, requiredQuestions]);
 
     const handleAnalysis = useCallback(async () => {
         if (!canRun) {
