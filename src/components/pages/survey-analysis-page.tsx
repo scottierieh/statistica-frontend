@@ -668,19 +668,19 @@ const TextResponsesDisplay = ({ data, title, onDownload }: { data: string[], tit
 };
 
 
-const BestWorstChart = ({ data, title, onDownload }: { data: { results: { scores: any[], interpretation: string }}, title: string, onDownload: () => void }) => {
+const BestWorstChart = ({ data, title, onDownload }: { data: any, title: string, onDownload: () => void }) => {
     const [chartType, setChartType] = useState<'net_score' | 'best_vs_worst'>('net_score');
 
-    if (!data || !data.results.scores) return null;
+    if (!data || !data.scores) return null;
 
-    const chartData = data.results.scores.map(item => ({
+    const chartData = data.scores.map((item: any) => ({
         name: item.item,
         netScore: item.net_score,
         bestPct: item.best_pct,
         worstPct: item.worst_pct,
     }));
     
-    const formattedInterpretation = data.results.interpretation?.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    const formattedInterpretation = data.interpretation?.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
     return (
         <Card>
@@ -1211,3 +1211,5 @@ export default function SurveyAnalysisPage() {
         </div>
     );
 }
+
+    
