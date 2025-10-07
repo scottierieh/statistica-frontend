@@ -12,7 +12,7 @@ import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import SurveyView from '@/components/survey-view';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate } from '@/lib/survey-templates';
+import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate } from '@/lib/survey-templates';
 
 
 export default function CreateSurveyPage() {
@@ -51,20 +51,26 @@ export default function CreateSurveyPage() {
     };
     
     const loadTemplate = (templateName: string) => {
-        if(templateName === 'cbc') {
-            setTitle(choiceBasedConjointTemplate.title);
-            setDescription(choiceBasedConjointTemplate.description);
-            setQuestions(choiceBasedConjointTemplate.questions);
-        } else if (templateName === 'rating-conjoint') {
-            setTitle(ratingBasedConjointTemplate.title);
-            setDescription(ratingBasedConjointTemplate.description);
-            setQuestions(ratingBasedConjointTemplate.questions);
-        } else if (templateName === 'ipa') {
-            setTitle(ipaTemplate.title);
-            setDescription(ipaTemplate.description);
-            setQuestions(ipaTemplate.questions);
+        let selectedTemplate;
+        switch (templateName) {
+            case 'cbc':
+                selectedTemplate = choiceBasedConjointTemplate;
+                break;
+            case 'rating-conjoint':
+                selectedTemplate = ratingBasedConjointTemplate;
+                break;
+            case 'ipa':
+                selectedTemplate = ipaTemplate;
+                break;
+            case 'van-westendorp':
+                selectedTemplate = vanWestendorpTemplate;
+                break;
+            default:
+                return;
         }
-        // Add other templates here
+        setTitle(selectedTemplate.title);
+        setDescription(selectedTemplate.description);
+        setQuestions(selectedTemplate.questions as Question[]);
     }
 
     if (surveyId) {

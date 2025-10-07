@@ -90,3 +90,44 @@ export const ipaTemplate = {
         }
     ],
 };
+
+export const vanWestendorpTemplate = {
+    title: "New Product Price Sensitivity",
+    description: "We'd like to understand your perceptions of pricing for a new product. Please enter the price you feel corresponds to each question.",
+    questions: [
+        {
+            id: 'psm_desc',
+            type: 'description',
+            title: 'Price Perception Questions',
+            content: 'Considering the new [Product Name], what price comes to mind for each of the following descriptions?'
+        },
+        {
+            id: 'psm_too_expensive',
+            type: 'number',
+            title: 'Too Expensive',
+            description: 'At what price would you consider the product to be so expensive that you would not consider buying it?',
+            required: true,
+        },
+         {
+            id: 'psm_expensive',
+            type: 'number',
+            title: 'Expensive/High Side',
+            description: 'At what price would you consider the product starting to get expensive, so that it is not out of the question, but you would have to give some thought to buying it?',
+            required: true,
+        },
+        {
+            id: 'psm_cheap',
+            type: 'number',
+            title: 'Cheap/Bargain',
+            description: 'At what price would you consider the product to be a bargain—a great buy for the money?',
+            required: true,
+        },
+        {
+            id: 'psm_too_cheap',
+            type: 'number',
+            title: 'Too Cheap',
+            description: 'At what price would you consider the product to be priced so low that you would feel the quality couldn\'t be very good?',
+            required: true,
+        },
+    ] as Question[]
+};
