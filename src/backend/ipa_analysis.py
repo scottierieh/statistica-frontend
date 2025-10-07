@@ -1,13 +1,15 @@
 
+
 import sys
 import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
 from scipy import stats
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import r2_score
 import warnings
 import io
 import base64
@@ -41,159 +43,139 @@ def main():
         
         df = pd.DataFrame(data)
 
-        # --- Regression Analysis ---
-        analysis_data = df[[dependent_var] + independent_vars].dropna()
+        # --- Data Cleaning ---
+        analysis_data = df[[dependent_var] + independent_vars].copy()
+        for col in analysis_data.columns:
+            analysis_data[col] = pd.to_numeric(analysis_data[col], errors='coerce')
+        analysis_data.dropna(inplace=True)
+
         if len(analysis_data) < len(independent_vars) + 2:
-            raise ValueError("Not enough valid data points for regression analysis.")
-            
+            raise ValueError("Not enough valid data points for analysis.")
+
+        # --- 1. Performance Calculation (Mean) ---
+        performance = analysis_data[independent_vars].mean()
+
+        # --- 2. Importance Calculation (Correlation) ---
+        importance_results = []
+        for attr in independent_vars:
+            corr, p_value = stats.pearsonr(analysis_data[attr], analysis_data[dependent_var])
+            r_squared = corr ** 2
+            importance_results.append({
+                'Attribute': attr, 'Correlation': corr, 'R_Squared': r_squared, 'P_Value': p_value
+            })
+        
+        df_importance = pd.DataFrame(importance_results)
+        total_corr_abs = df_importance['Correlation'].abs().sum()
+        df_importance['Relative_Importance'] = (df_importance['Correlation'].abs() / total_corr_abs) * 100 if total_corr_abs > 0 else 0
+
+        # --- 3. IPA Matrix Data Preparation ---
+        ipa_data = []
+        for attr in independent_vars:
+            perf = performance.get(attr, 0)
+            imp_row = df_importance[df_importance['Attribute'] == attr].iloc[0]
+            ipa_data.append({
+                'attribute': attr,
+                'performance': perf,
+                'importance': imp_row['Correlation'],
+                'relative_importance': imp_row['Relative_Importance'],
+                'r_squared': imp_row['R_Squared']
+            })
+        
+        df_ipa = pd.DataFrame(ipa_data)
+        
+        # --- 4. Quadrant Classification ---
+        perf_mean = df_ipa['performance'].mean()
+        imp_mean = df_ipa['importance'].mean()
+        
+        def classify_quadrant(row):
+            if row['importance'] >= imp_mean and row['performance'] >= perf_mean: return 'Q1: Keep Up Good Work'
+            elif row['importance'] >= imp_mean and row['performance'] < perf_mean: return 'Q2: Concentrate Here'
+            elif row['importance'] < imp_mean and row['performance'] < perf_mean: return 'Q3: Low Priority'
+            else: return 'Q4: Possible Overkill'
+        
+        df_ipa['quadrant'] = df_ipa.apply(classify_quadrant, axis=1)
+
+        # --- 5. Advanced Metrics ---
+        max_scale_value = max(analysis_data[independent_vars].max().max(), analysis_data[dependent_var].max())
+        
+        df_ipa['importance_scaled'] = (df_ipa['relative_importance'] / df_ipa['relative_importance'].max() * max_scale_value) if df_ipa['relative_importance'].max() > 0 else 0
+        df_ipa['gap'] = df_ipa['performance'] - df_ipa['importance_scaled']
+        df_ipa['priority_score'] = df_ipa['relative_importance'] * (max_scale_value - df_ipa['performance'])
+
+        # --- 6. Statistical Validation (Multiple Regression) ---
         X = analysis_data[independent_vars]
         y = analysis_data[dependent_var]
         
-        model = LinearRegression()
-        model.fit(X, y)
-        y_pred = model.predict(X)
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        model = LinearRegression().fit(X_scaled, y)
         
-        # --- Advanced Metrics Calculation ---
-        n = len(y)
-        k = len(independent_vars)
-        r2 = r2_score(y, y_pred)
-        adj_r2 = 1 - (1 - r2) * (n - 1) / (n - k - 1) if (n - k - 1) > 0 else 0
+        r2 = model.score(X_scaled, y)
+        adj_r2 = 1 - (1 - r2) * (len(y) - 1) / (len(y) - X.shape[1] - 1)
         
-        mse_model = np.sum((y_pred - y.mean()) ** 2) / k if k > 0 else 0
-        mse_residual = np.sum((y - y_pred) ** 2) / (n - k - 1) if (n - k - 1) > 0 else 0
-        f_stat = mse_model / mse_residual if mse_residual > 0 else np.inf
-        f_pvalue = 1 - stats.f.cdf(f_stat, k, n - k - 1) if k > 0 and (n - k - 1) > 0 else np.nan
-
-        regression_summary = {
-            'r2': r2, 'adj_r2': adj_r2, 'f_stat': f_stat, 'f_pvalue': f_pvalue,
-            'predictions': y_pred.tolist(), 'residuals': (y - y_pred).tolist(),
+        beta_coefficients = pd.DataFrame({
+            'attribute': independent_vars, 'beta': model.coef_
+        }).sort_values('beta', ascending=False)
+        
+        validation_results = {
+            'r2': r2, 'adj_r2': adj_r2,
+            'beta_coefficients': beta_coefficients.to_dict('records')
         }
 
-        # --- IPA Matrix Calculation ---
-        implicit_importance = dict(zip(independent_vars, model.coef_))
-        performance = analysis_data[independent_vars].mean().to_dict()
-        
-        ipa_results_list = []
-        for attr in independent_vars:
-            ipa_results_list.append({
-                'attribute': attr,
-                'importance': implicit_importance.get(attr, 0),
-                'performance': performance.get(attr, 0)
-            })
-        
-        ipa_df = pd.DataFrame(ipa_results_list)
-        
-        imp_mean = ipa_df['importance'].mean()
-        perf_mean = ipa_df['performance'].mean()
-        
-        def classify_quadrant(row):
-            if row['importance'] >= imp_mean and row['performance'] >= perf_mean:
-                return 'Keep Up Good Work'
-            elif row['importance'] >= imp_mean and row['performance'] < perf_mean:
-                return 'Concentrate Here'
-            elif row['importance'] < imp_mean and row['performance'] >= perf_mean:
-                return 'Possible Overkill'
-            else:
-                return 'Low Priority'
-        
-        ipa_df['quadrant'] = ipa_df.apply(classify_quadrant, axis=1)
-        
-        # --- Advanced IPA Metrics ---
-        ipa_df['importance_performance_gap'] = ipa_df['importance'] - ipa_df['performance']
-        max_importance = ipa_df['importance'].max()
-        min_performance = ipa_df['performance'].min()
-        max_performance = ipa_df['performance'].max()
-        
-        if max_importance != 0 and (max_performance - min_performance) != 0:
-            normalized_importance = (ipa_df['importance'] / max_importance) * 100
-            normalized_performance_inv = (1 - (ipa_df['performance'] - min_performance) / (max_performance - min_performance)) * 100
-            ipa_df['priority_score'] = (normalized_importance + normalized_performance_inv) / 2
-        else:
-            ipa_df['priority_score'] = 0
+        # --- 7. Plotting ---
+        fig = plt.figure(figsize=(18, 12))
+        quadrant_colors = {'Q1: Keep Up Good Work': '#4CAF50', 'Q2: Concentrate Here': '#F44336', 'Q3: Low Priority': '#9E9E9E', 'Q4: Possible Overkill': '#FF9800'}
 
-        ipa_df['effectiveness_index'] = (ipa_df['performance'] / ipa_df['importance'].abs()) * 100 if ipa_df['importance'].abs().any() > 0 else 0
-        
-        max_scale = df[independent_vars].max().max()
-        ipa_df['improvement_potential'] = (max_scale - ipa_df['performance']) * ipa_df['importance']
-        
-        # --- Sensitivity Analysis ---
-        sensitivity_results = {}
-        for var in independent_vars:
-            remaining_vars = [v for v in independent_vars if v != var]
-            if not remaining_vars: continue
-            
-            X_temp = analysis_data[remaining_vars]
-            y_temp = analysis_data[dependent_var]
-            
-            temp_model = LinearRegression().fit(X_temp, y_temp)
-            temp_r2 = r2_score(y_temp, temp_model.predict(X_temp))
-            r2_change = r2 - temp_r2
-            
-            sensitivity_results[var] = {
-                'r2_change': r2_change,
-                'relative_importance': (r2_change / r2) * 100 if r2 != 0 else 0
-            }
-            
-        # --- Outlier Detection ---
-        residuals = y - y_pred
-        standardized_residuals = (residuals / residuals.std()).tolist()
-        
-        X_array = X.values
-        try:
-            hat_matrix = X_array @ np.linalg.inv(X_array.T @ X_array) @ X_array.T
-            leverage = np.diag(hat_matrix)
-        except np.linalg.LinAlgError:
-            hat_matrix = X_array @ np.linalg.pinv(X_array.T @ X_array) @ X_array.T
-            leverage = np.diag(hat_matrix)
-        
-        cooks_d = ((residuals**2 / (k * mse_residual)) * (leverage / (1 - leverage)**2)).tolist() if k > 0 and mse_residual > 0 else [0]*n
+        # Main IPA Matrix
+        ax1 = plt.subplot(2, 3, 1)
+        for quadrant, color in quadrant_colors.items():
+            data = df_ipa[df_ipa['quadrant'] == quadrant]
+            ax1.scatter(data['performance'], data['importance'], c=color, s=200, alpha=0.7, label=quadrant, edgecolors='black')
+        for _, row in df_ipa.iterrows():
+            ax1.text(row['performance'], row['importance'], row['attribute'], ha='center', va='center', fontsize=9)
+        ax1.axhline(imp_mean, color='k', ls='--'); ax1.axvline(perf_mean, color='k', ls='--')
+        ax1.set_title('IPA Matrix'); ax1.set_xlabel('Performance'); ax1.set_ylabel('Importance (Correlation)')
 
-        outliers = {
-            'standardized_residuals': standardized_residuals,
-            'cooks_distance': cooks_d
-        }
-        
-        # --- Plotting ---
-        fig, ax = plt.subplots(figsize=(10, 8))
-        colors = {
-            'Keep Up Good Work': '#2E8B57', 'Concentrate Here': '#DC143C',
-            'Possible Overkill': '#4169E1', 'Low Priority': '#808080'
-        }
-        
-        for quadrant, color in colors.items():
-            data_quad = ipa_df[ipa_df['quadrant'] == quadrant]
-            ax.scatter(data_quad['importance'], data_quad['performance'], 
-                      c=color, label=quadrant, s=120, alpha=0.8, edgecolors='white', linewidth=1.5)
-        
-        for idx, row in ipa_df.iterrows():
-            ax.annotate(row['attribute'], (row['importance'], row['performance']),
-                       xytext=(8, 8), textcoords='offset points', fontsize=9, ha='left', va='bottom')
+        # Importance Ranking
+        ax2 = plt.subplot(2, 3, 2)
+        df_imp_sorted = df_ipa.sort_values('relative_importance', ascending=True)
+        ax2.barh(df_imp_sorted['attribute'], df_imp_sorted['relative_importance'], color=[quadrant_colors[q] for q in df_imp_sorted['quadrant']])
+        ax2.set_title('Attribute Importance Ranking'); ax2.set_xlabel('Relative Importance (%)')
 
-        ax.axvline(x=imp_mean, color='gray', linestyle='--', alpha=0.7)
-        ax.axhline(y=perf_mean, color='gray', linestyle='--', alpha=0.7)
+        # Performance Ranking
+        ax3 = plt.subplot(2, 3, 3)
+        df_perf_sorted = df_ipa.sort_values('performance', ascending=True)
+        ax3.barh(df_perf_sorted['attribute'], df_perf_sorted['performance'], color=[quadrant_colors[q] for q in df_perf_sorted['quadrant']])
+        ax3.axvline(perf_mean, color='r', ls='--', label=f'Mean: {perf_mean:.2f}'); ax3.legend()
+        ax3.set_title('Attribute Performance Ranking'); ax3.set_xlabel('Performance Score')
         
-        ax.set_xlabel('Derived Importance (Regression Coefficient)', fontsize=12)
-        ax.set_ylabel('Performance (Mean Rating)', fontsize=12)
-        ax.set_title(f'Importance-Performance Analysis (IPA) Matrix\n(R² = {r2:.3f})', fontsize=14, fontweight='bold')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+        # Bubble Chart
+        ax4 = plt.subplot(2, 3, 4)
+        scatter = ax4.scatter(df_ipa['performance'], [dependent_var]*len(df_ipa), s=df_ipa['r_squared']*1500, c=df_ipa['r_squared'], cmap='viridis', alpha=0.6)
+        for _, row in df_ipa.iterrows(): ax4.text(row['performance'], dependent_var, row['attribute'], ha='center', va='center', fontsize=8)
+        plt.colorbar(scatter, ax=ax4, label='R²'); ax4.set_title('Performance vs. R² (Bubble Size)')
+
+        # Gap Analysis
+        ax5 = plt.subplot(2, 3, 5)
+        df_gap_sorted = df_ipa.sort_values('gap')
+        ax5.barh(df_gap_sorted['attribute'], df_gap_sorted['gap'], color=['red' if g < 0 else 'green' for g in df_gap_sorted['gap']])
+        ax5.axvline(0, color='k', lw=1); ax5.set_title('Performance-Importance Gap')
+
+        # Correlation Heatmap
+        ax6 = plt.subplot(2, 3, 6)
+        corr_matrix = analysis_data.corr()[[dependent_var]].sort_values(dependent_var, ascending=False)
+        sns.heatmap(corr_matrix, annot=True, fmt='.3f', cmap='RdYlGn', center=0, ax=ax6)
+        ax6.set_title(f'Correlation with {dependent_var}')
+
         plt.tight_layout()
-        
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        plt.close(fig)
-        buf.seek(0)
+        buf = io.BytesIO(); plt.savefig(buf, format='png'); plt.close(fig); buf.seek(0)
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
-        
-        # --- Final Response ---
+
         response = {
             'results': {
-                'ipa_matrix': ipa_df.to_dict('records'),
-                'regression_summary': regression_summary,
-                'advanced_metrics': {
-                    'sensitivity': sensitivity_results,
-                    'outliers': outliers
-                }
+                'ipa_matrix': df_ipa.to_dict('records'),
+                'means': {'performance': perf_mean, 'importance': imp_mean},
+                'validation': validation_results,
             },
             'plot': f"data:image/png;base64,{plot_image}"
         }
@@ -206,3 +188,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
