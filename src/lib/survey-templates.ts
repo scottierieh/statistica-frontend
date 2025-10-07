@@ -109,14 +109,14 @@ export const vanWestendorpTemplate = {
             required: true,
         },
          {
-            id: 'psm_expensive',
+            id: 'psm_cheap',
             type: 'number',
             title: 'Expensive/High Side',
             description: 'At what price would you consider the product starting to get expensive, so that it is not out of the question, but you would have to give some thought to buying it?',
             required: true,
         },
         {
-            id: 'psm_cheap',
+            id: 'psm_cheap_bargain',
             type: 'number',
             title: 'Cheap/Bargain',
             description: 'At what price would you consider the product to be a bargain—a great buy for the money?',
@@ -176,9 +176,9 @@ export const ahpTemplate = {
             title: 'Pairwise Comparison of Criteria',
             description: 'For the goal of "Choosing a New Laptop", how important is each criterion relative to the others?',
             required: true,
-            rows: ['Price', 'Performance', 'Design'],
-            columns: ['Price', 'Performance', 'Design'],
-            scale: ['9', '8', '7', '6', '5', '4', '3', '2', '1', '2', '3', '4', '5', '6', '7', '8', '9'] // This would be better as a slider in a real app
+            rows: ['Price vs Performance', 'Price vs Design', 'Performance vs Design'],
+            columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
+            scale: ['Left item is much more important', '', '', '', 'Equal importance', '', '', '', 'Right item is much more important']
         },
         {
             id: 'ahp_q_price',
@@ -186,8 +186,9 @@ export const ahpTemplate = {
             title: 'Pairwise Comparison of Alternatives by Price',
             description: 'Based on PRICE, how much do you prefer each laptop over the others?',
             required: true,
-            rows: ['Laptop A', 'Laptop B', 'Laptop C'],
-            columns: ['Laptop A', 'Laptop B', 'Laptop C'],
+            rows: ['Laptop A vs Laptop B', 'Laptop A vs Laptop C', 'Laptop B vs Laptop C'],
+            columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
+            scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
          {
             id: 'ahp_q_performance',
@@ -195,8 +196,9 @@ export const ahpTemplate = {
             title: 'Pairwise Comparison of Alternatives by Performance',
             description: 'Based on PERFORMANCE, how much do you prefer each laptop over the others?',
             required: true,
-            rows: ['Laptop A', 'Laptop B', 'Laptop C'],
-            columns: ['Laptop A', 'Laptop B', 'Laptop C'],
+            rows: ['Laptop A vs Laptop B', 'Laptop A vs Laptop C', 'Laptop B vs Laptop C'],
+            columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
+            scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
          {
             id: 'ahp_q_design',
@@ -204,8 +206,9 @@ export const ahpTemplate = {
             title: 'Pairwise Comparison of Alternatives by Design',
             description: 'Based on DESIGN, how much do you prefer each laptop over the others?',
             required: true,
-            rows: ['Laptop A', 'Laptop B', 'Laptop C'],
-            columns: ['Laptop A', 'Laptop B', 'Laptop C'],
+            rows: ['Laptop A vs Laptop B', 'Laptop A vs Laptop C', 'Laptop B vs Laptop C'],
+            columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
+            scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
     ] as Question[],
 };
