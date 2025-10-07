@@ -34,7 +34,8 @@ interface IpaResults {
 }
 interface FullAnalysisResponse {
     results: IpaResults;
-    plot: string;
+    main_plot: string;
+    dashboard_plot: string;
 }
 
 interface IpaPageProps {
@@ -65,7 +66,6 @@ const quadrantConfig = {
     },
 };
 
-
 export default function IpaPage({ survey, responses }: IpaPageProps) {
     const { toast } = useToast();
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
@@ -78,23 +78,25 @@ export default function IpaPage({ survey, responses }: IpaPageProps) {
         setAnalysisResult(null);
 
         try {
-            // Find the Overall Satisfaction question
+            if (!survey || !responses) {
+                 throw new Error("Survey or response data is not available.");
+            }
+
             const overallQuestion = survey.questions.find(q =>
                 q.type === 'matrix' && q.rows?.some(r => r.toLowerCase().includes('overall'))
             );
             if (!overallQuestion) {
-                throw new Error("An 'Overall_Satisfaction' question (as a matrix type) is required for IPA.");
+                throw new Error("An 'Overall_Satisfaction' question (as a matrix type with a single row containing 'overall') is required for IPA.");
             }
             const overallQuestionId = overallQuestion.id;
             const overallRowName = overallQuestion.rows!.find(r => r.toLowerCase().includes('overall'))!;
 
-            // Find attribute questions
             const attributeQuestions = survey.questions.filter(q => q.type === 'matrix' && q.id !== overallQuestionId);
             if (attributeQuestions.length === 0) {
                  throw new Error("At least one attribute matrix question is required for IPA.");
             }
             
-            const analysisData = responses.map(response => {
+            const analysisData: any[] = responses.map(response => {
                 const row: { [key: string]: number | string } = {};
                 const overallAnswer = response.answers[overallQuestionId];
                 row['Overall_Satisfaction'] = overallAnswer ? Number(overallAnswer[overallRowName]) : NaN;
@@ -142,10 +144,8 @@ export default function IpaPage({ survey, responses }: IpaPageProps) {
     }, [survey, responses, toast]);
     
     useEffect(() => {
-        if (survey && responses) {
-            handleAnalysis();
-        }
-    }, [survey, responses, handleAnalysis]);
+        handleAnalysis();
+    }, [handleAnalysis]);
     
 
     if (isLoading) {
@@ -203,11 +203,11 @@ export default function IpaPage({ survey, responses }: IpaPageProps) {
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">IPA Matrix Dashboard</CardTitle>
-                    <CardDescription>A comprehensive visual overview of the Importance-Performance Analysis.</CardDescription>
+                    <CardTitle className="font-headline">IPA Matrix</CardTitle>
+                    <CardDescription>Visualizing attribute performance against importance.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Image src={analysisResult.plot} alt="IPA Dashboard" width={1800} height={1200} className="w-full rounded-md border" />
+                    <Image src={`data:image/png;base64,${analysisResult.main_plot}`} alt="IPA Matrix" width={1200} height={800} className="w-full h-auto rounded-md border" />
                 </CardContent>
             </Card>
 
@@ -270,6 +270,16 @@ export default function IpaPage({ survey, responses }: IpaPageProps) {
                             </TableBody>
                         </Table>
                     </ScrollArea>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Additional Visualizations</CardTitle>
+                    <CardDescription>A dashboard of supplementary charts for deeper analysis.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Image src={`data:image/png;base64,${analysisResult.dashboard_plot}`} alt="IPA Dashboard" width={1800} height={800} className="w-full rounded-md border" />
                 </CardContent>
             </Card>
             
