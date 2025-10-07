@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Sigma, Loader2, DollarSign, Brain, LineChart, AlertTriangle, HelpCircle, MoveRight } from 'lucide-react';
+import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -72,7 +73,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     
-    const requiredQuestions = ['too cheap', 'cheap/bargain', 'expensive/high side', 'too expensive'];
+    const requiredQuestions = useMemo(() => ['too cheap', 'cheap/bargain', 'expensive/high side', 'too expensive'], []);
     
     const questionMap = useMemo(() => {
         const mapping: {[key: string]: string} = {};
@@ -81,14 +82,14 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         requiredQuestions.forEach(q_title => {
             const question = survey.questions.find(q => q.title.toLowerCase().includes(q_title));
             if(question) {
-                const key = q_title.toLowerCase().replace(/[\s/]/g, '_');
+                const key = q_title.replace(/\//g, '_');
                 mapping[key] = question.id;
             }
         });
         return mapping;
-    }, [survey]);
+    }, [survey, requiredQuestions]);
 
-    const canRun = useMemo(() => Object.keys(questionMap).length === requiredQuestions.length, [questionMap]);
+    const canRun = useMemo(() => Object.keys(questionMap).length === requiredQuestions.length, [questionMap, requiredQuestions]);
 
     const handleAnalysis = useCallback(async () => {
         if (!canRun) {
@@ -104,12 +105,12 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         const analysisData = responses.map(r => {
             const answers = r.answers as any;
             return {
-                'too_cheap': answers[questionMap.too_cheap],
-                'cheap': answers[questionMap.cheap_bargain],
-                'expensive': answers[questionMap.expensive_high_side],
-                'too_expensive': answers[questionMap.too_expensive],
+                too_cheap: answers[questionMap.too_cheap],
+                cheap: answers[questionMap.cheap_bargain],
+                expensive: answers[questionMap.expensive_high_side],
+                too_expensive: answers[questionMap.too_expensive],
             };
-        }).filter(row => !Object.values(row).some(v => v === undefined || v === null || isNaN(Number(v))));
+        }).filter(row => row.too_cheap != null && row.cheap != null && row.expensive != null && row.too_expensive != null);
         
         if (analysisData.length === 0) {
             setError("No valid numeric responses found for the price sensitivity questions.");
@@ -122,7 +123,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    data: analysisData, 
+                    data: analysisData,
                     too_cheap_col: 'too_cheap',
                     cheap_col: 'cheap',
                     expensive_col: 'expensive',
@@ -218,3 +219,4 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         </div>
     );
 }
+
