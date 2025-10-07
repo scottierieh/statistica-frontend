@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -13,12 +14,46 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj) or np.isinf(obj):
+        if np.isnan(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     return obj
+
+def get_interpretation(results):
+    if not results or not results.get('optimal_portfolios'):
+        return "No data available for interpretation."
+
+    individual_reach = results['individual_reach']
+    optimal_portfolios = results['optimal_portfolios']
+
+    top_item = ""
+    top_reach = 0
+    if individual_reach:
+        top_item = individual_reach[0]['Product']
+        top_reach = individual_reach[0]['Reach (%)']
+    
+    best_combo_size = '2'
+    if '3' in optimal_portfolios:
+        best_combo_size = '3'
+    elif '2' in optimal_portfolios:
+         best_combo_size = '2'
+
+    best_combo_data = optimal_portfolios.get(best_combo_size)
+    best_combo = best_combo_data['combination'] if best_combo_data else "N/A"
+    best_combo_reach = best_combo_data['reach'] if best_combo_data else 0
+    
+    interpretation = (
+        f"The TURF analysis reveals which combination of products maximizes unique customer reach.\n\n"
+        f"**Top Individual Performer:** **'{top_item}'** has the highest individual reach, appealing to **{top_reach:.1f}%** of respondents on its own.\n\n"
+        f"**Optimal Combination:** The combination of **'{best_combo}'** provides high reach for a small portfolio, reaching **{best_combo_reach:.1f}%** of the audience. This suggests a strong starting point for a product line.\n\n"
+        f"**Strategic Recommendations:**\n"
+        f"1. **Anchor Product:** '{top_item}' should be considered a core product due to its strong individual appeal.\n"
+        f"2. **Line Optimization:** Focus on the combinations identified in the 'Optimal Portfolios' table to build product lines that efficiently maximize market coverage without significant overlap.\n"
+        f"3. **Diminishing Returns:** Pay attention to the 'Incremental Reach' chart. If adding another product only adds a small percentage of new customers, it may not be cost-effective."
+    )
+    return interpretation.strip()
 
 def calculate_turf(df, product_list):
     if not product_list:
@@ -87,7 +122,7 @@ def main():
             if results:
                 df_results = pd.DataFrame(results)
                 best_reach = df_results.loc[df_results['reach'].idxmax()]
-                optimal_portfolios[portfolio_size] = best_reach.to_dict()
+                optimal_portfolios[str(portfolio_size)] = best_reach.to_dict()
 
         # 3. Incremental Reach Analysis
         sorted_products = df_individual['Product'].tolist()
@@ -112,6 +147,14 @@ def main():
         
         df_incremental = pd.DataFrame(incremental_results)
 
+        # Prepare results dictionary
+        results_dict = {
+            'individual_reach': df_individual.to_dict('records'),
+            'optimal_portfolios': optimal_portfolios,
+            'incremental_reach': df_incremental.to_dict('records'),
+        }
+        results_dict['interpretation'] = get_interpretation(results_dict)
+
         # 4. Visualization
         fig, axes = plt.subplots(2, 2, figsize=(16, 12))
         fig.suptitle('TURF Analysis Results', fontsize=16)
@@ -130,16 +173,17 @@ def main():
         fig.legend(loc='upper right', bbox_to_anchor=(0.9, 0.9))
 
         # Optimal Portfolio Reach
-        portfolio_sizes = list(optimal_portfolios.keys())
-        optimal_reaches = [optimal_portfolios[size]['reach'] for size in portfolio_sizes]
-        sns.lineplot(x=portfolio_sizes, y=optimal_reaches, marker='o', ax=axes[1, 0])
+        portfolio_sizes_str = list(optimal_portfolios.keys())
+        portfolio_sizes_int = [int(s) for s in portfolio_sizes_str]
+        optimal_reaches = [optimal_portfolios[size]['reach'] for size in portfolio_sizes_str]
+        sns.lineplot(x=portfolio_sizes_int, y=optimal_reaches, marker='o', ax=axes[1, 0])
         axes[1, 0].set_title('Max Reach by Portfolio Size')
         axes[1, 0].set_xlabel('Number of Products in Portfolio')
         axes[1, 0].set_ylabel('Maximum Reach (%)')
         
         # Reach vs Frequency
-        optimal_freqs = [optimal_portfolios[size]['frequency'] for size in portfolio_sizes]
-        sns.scatterplot(x=optimal_reaches, y=optimal_freqs, hue=portfolio_sizes, palette='viridis', s=150, ax=axes[1, 1])
+        optimal_freqs = [optimal_portfolios[size]['frequency'] for size in portfolio_sizes_str]
+        sns.scatterplot(x=optimal_reaches, y=optimal_freqs, hue=portfolio_sizes_int, palette='viridis', s=150, ax=axes[1, 1])
         axes[1, 1].set_title('Reach vs. Frequency Trade-off')
         axes[1, 1].set_xlabel('Reach (%)')
         axes[1, 1].set_ylabel('Average Frequency')
@@ -153,11 +197,7 @@ def main():
         plot_image = base64.b64encode(buf.read()).decode('utf-8')
         
         response = {
-            'results': {
-                'individual_reach': df_individual.to_dict('records'),
-                'optimal_portfolios': optimal_portfolios,
-                'incremental_reach': df_incremental.to_dict('records'),
-            },
+            'results': results_dict,
             'plot': f"data:image/png;base64,{plot_image}",
         }
 
