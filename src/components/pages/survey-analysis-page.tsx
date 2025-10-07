@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns, Network, DollarSign } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns, Network, DollarSign, Handshake } from 'lucide-react';
 import type { Survey, SurveyResponse } from '@/types/survey';
 import type { Question } from '@/entities/Survey';
 import { Skeleton } from '../ui/skeleton';
@@ -52,8 +52,9 @@ interface CrosstabResults {
 
 interface TurfResults {
     individual_reach: { Product: string; 'Reach (%)': number }[];
-    optimal_portfolios: { [key: string]: { combination: string; reach: number; frequency: number; } };
+    optimal_portfolios: { [key: string]: { combination: string; reach: number; frequency: number; n_products: number;} };
     incremental_reach: { Order: number; Product: string; 'Incremental Reach': number; 'Cumulative Reach': number; }[];
+    interpretation: string;
 }
 
 interface FullTurfResponse {
@@ -1105,7 +1106,7 @@ export default function SurveyAnalysisPage() {
         }
     }, [crosstabRow, crosstabCol, responses, toast, survey]);
     
-     const handleRunTurf = useCallback(async () => {
+    const handleRunTurf = useCallback(async () => {
         if (!survey) return;
         const turfQuestion = survey.questions.find(q => q.type === 'multiple');
         
@@ -1152,12 +1153,6 @@ export default function SurveyAnalysisPage() {
             ['single', 'multiple', 'dropdown'].includes(q.type) && q.title && q.title.trim() !== ''
         );
     }, [survey]);
-
-    const multipleChoiceQuestions = useMemo(() => {
-        if (!survey) return [];
-        return survey.questions.filter((q: Question) => q.type === 'multiple');
-    }, [survey]);
-
 
     if (loading) {
         return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-96 w-full" /></div>;
@@ -1252,18 +1247,22 @@ export default function SurveyAnalysisPage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle>TURF Analysis</CardTitle>
-                                <CardDescription>Analyze Total Unduplicated Reach and Frequency to find the optimal product/feature combination.</CardDescription>
+                                <CardDescription>Analyze Total Unduplicated Reach and Frequency to find the optimal product/feature combination. The analysis will automatically use the first multiple-choice question found in the survey.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex justify-center">
                                     <Button onClick={handleRunTurf} disabled={isTurfLoading}>
                                         {isTurfLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sigma className="mr-2 h-4 w-4" />}
-                                        Run TURF Analysis for '{multipleChoiceQuestions[0]?.title}'
+                                        Run TURF Analysis
                                     </Button>
                                 </div>
                                 {isTurfLoading && <Skeleton className="h-64 mt-4" />}
                                 {turfResult?.results && (
-                                    <div className="mt-6">
+                                    <div className="mt-6 space-y-4">
+                                         <Alert>
+                                            <AlertTitle>AI Interpretation</AlertTitle>
+                                            <AlertDescription dangerouslySetInnerHTML={{ __html: turfResult.results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                                        </Alert>
                                         <Image src={`data:image/png;base64,${turfResult.plot}`} alt="TURF Analysis Plots" width={1600} height={1200} className="w-full rounded-md border" />
                                     </div>
                                 )}
@@ -1320,5 +1319,3 @@ export default function SurveyAnalysisPage() {
 }
 
 ```
-- src/lib/stats.ts
-- src/lib/survey-templates.ts
