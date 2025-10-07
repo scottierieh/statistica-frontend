@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import pandas as pd
@@ -32,25 +33,24 @@ def get_interpretation(results):
     top_reach = individual_reach[0]['Reach (%)'] if individual_reach else 0
 
     best_combo_size = recommendation.get('size', 2)
-    best_combo_products = recommendation.get('products', "N/A")
+    best_combo_products = recommendation.get('products', [])
     best_combo_reach = recommendation.get('reach', 0)
     
     interp = (
         f"The TURF analysis reveals which combination of products maximizes unique customer reach.\n\n"
         f"**Top Individual Performer:** **'{top_item}'** has the highest individual reach, appealing to **{top_reach:.1f}%** of respondents on its own, making it a strong anchor product for any portfolio.\n\n"
-        f"**Optimal Portfolio:** To achieve your target reach, the recommended combination of **{best_combo_size} products** is **'{' + '.join(best_combo_products)}'**, which reaches **{best_combo_reach:.1f}%** of the audience. This offers an efficient balance of reach and portfolio size.\n\n"
+        f"**Optimal Portfolio:** To achieve your target reach of {results.get('reach_target', 80)}%, the recommended combination of **{best_combo_size} products** is **'{' + '.join(best_combo_products)}'**, which reaches **{best_combo_reach:.1f}%** of the audience. This offers an efficient balance of reach and portfolio size.\n\n"
         f"**Diminishing Returns:** Based on the incremental reach analysis, adding products beyond the 3rd or 4th item yields significantly smaller gains in new customer reach. This suggests that a portfolio of 3-4 products is likely the most cost-effective sweet spot."
     )
     return interp.strip()
 
 
-def calculate_turf(df, product_list):
+def calculate_turf(df, product_list, n_respondents):
     if not product_list:
-        return {'reach': 0, 'reach_count': 0, 'frequency': 0}
+        return {'reach': 0, 'reach_count': 0, 'frequency': 0, 'n_products': 0}
     
     reach_mask = df[list(product_list)].sum(axis=1) > 0
     reach_count = reach_mask.sum()
-    n_respondents = len(df)
     reach_pct = (reach_count / n_respondents) * 100 if n_respondents > 0 else 0
     
     if reach_count > 0:
@@ -103,7 +103,7 @@ def main():
         max_portfolio_size = min(7, len(products))
 
         for size in range(1, max_portfolio_size + 1):
-            results = [calculate_turf(df, list(combo)) for combo in combinations(products, size)]
+            results = [calculate_turf(df, list(combo), n_respondents) for combo in combinations(products, size)]
             if results:
                 df_results = pd.DataFrame(results).sort_values('reach', ascending=False)
                 optimal_portfolios[str(size)] = df_results.iloc[0].to_dict()
@@ -120,7 +120,10 @@ def main():
             cumulative_reach_mask |= product_reach_mask
             cumulative_reach_pct = (cumulative_reach_mask.sum() / n_respondents) * 100
             incremental_results.append({
-                'Order': i + 1, 'Product': product, 'Incremental Reach (%)': incremental_pct, 'Cumulative Reach (%)': cumulative_reach_pct,
+                'Order': i + 1, 'Product': product, 
+                'Incremental Reach (%)': incremental_pct, 
+                'Incremental Reach (count)': int(new_reach_count),
+                'Cumulative Reach (%)': cumulative_reach_pct,
             })
         
         # 4. Optimal Recommendation
@@ -136,7 +139,7 @@ def main():
         for prod1 in top_5_products:
             for prod2 in top_5_products:
                 if prod1 == prod2:
-                    overlap_matrix.loc[prod1, prod2] = individual_reach_list[products.index(prod1)]['Reach (%)']
+                    overlap_matrix.loc[prod1, prod2] = df_individual[df_individual['Product'] == prod1]['Reach (%)'].iloc[0]
                 else:
                     overlap_count = ((df[prod1] == 1) & (df[prod2] == 1)).sum()
                     overlap_matrix.loc[prod1, prod2] = (overlap_count / n_respondents) * 100
@@ -148,6 +151,7 @@ def main():
             'incremental_reach': incremental_results,
             'recommendation': recommendation,
             'overlap_matrix': overlap_matrix.to_dict('index'),
+            'reach_target': reach_target,
         }
         results_dict['interpretation'] = get_interpretation(results_dict)
 
@@ -155,8 +159,8 @@ def main():
         fig, axes = plt.subplots(2, 2, figsize=(16, 12))
         fig.suptitle('TURF Analysis Dashboard', fontsize=16)
 
-        sns.barplot(x='Reach (%)', y='Product', data=df_individual, ax=axes[0, 0], palette='viridis')
-        axes[0, 0].set_title('Individual Product Reach')
+        sns.barplot(x='Reach (%)', y='Product', data=df_individual.head(10), ax=axes[0, 0], palette='viridis')
+        axes[0, 0].set_title('Individual Product Reach (Top 10)')
 
         df_incremental = pd.DataFrame(incremental_results)
         ax2 = axes[0, 1]
@@ -164,7 +168,7 @@ def main():
         ax2_twin = ax2.twinx()
         ax2_twin.plot(df_incremental['Product'], df_incremental['Cumulative Reach (%)'], color='red', marker='o', label='Cumulative Reach')
         ax2.set_title('Incremental Reach by Product Rank')
-        ax2.tick_params(axis='x', rotation=45)
+        ax2.tick_params(axis='x', rotation=45, labelsize=8)
         fig.legend(loc='upper right', bbox_to_anchor=(0.9, 0.9))
         
         optimal_reaches = [opt['reach'] for opt in optimal_portfolios.values()]
@@ -175,6 +179,7 @@ def main():
         
         sns.heatmap(overlap_matrix, annot=True, cmap='coolwarm', fmt=".1f", ax=axes[1,1])
         axes[1,1].set_title('Top 5 Product Overlap (%)')
+        axes[1,1].tick_params(axis='x', rotation=45)
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         

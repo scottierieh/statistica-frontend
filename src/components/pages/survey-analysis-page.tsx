@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, PieChart, Pie, Cell, Legend, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, LabelList, CartesianGrid, Treemap } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns, Network, DollarSign, Handshake } from 'lucide-react';
+import { AlertTriangle, BarChart as BarChartIcon, Brain, Users, LineChart as LineChartIcon, PieChart as PieChartIcon, Box, ArrowLeft, CheckCircle, XCircle, Star, ThumbsUp, ThumbsDown, Info, ImageIcon, PlusCircle, Trash2, X, Phone, Mail, Share2, Grid3x3, ChevronDown, Sigma, Loader2, Download, Bot, Settings, FileSearch, MoveRight, HelpCircle, CheckSquare, Target, Sparkles, Smartphone, Tablet, Monitor, FileDown, ClipboardList, BeakerIcon, ShieldAlert, ShieldCheck, Columns, Network, DollarSign } from 'lucide-react';
 import type { Survey, SurveyResponse } from '@/types/survey';
 import type { Question } from '@/entities/Survey';
 import { Skeleton } from '../ui/skeleton';
@@ -354,7 +354,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
 };
   
 const NumericChart = ({ data, title, onDownload }: { data: { mean: number, median: number, std: number, count: number, skewness: number, histogram: {name: string, count: number}[], values: number[] }, title: string, onDownload: () => void }) => {
-     const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+    const COLORS = ['#7a9471', '#b5a888', '#c4956a', '#a67b70', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
     return (
       <AnalysisDisplayShell varName={title}>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -750,7 +750,7 @@ const BestWorstChart = ({ data, title, onDownload }: { data: { results: { scores
                         </Table>
                          <Alert>
                             <AlertTitle className="flex items-center gap-2"><Bot/> Interpretation</AlertTitle>
-                            <AlertDescription dangerouslySetInnerHTML={{ __html: formattedInterpretation}} />
+                            <AlertDescription dangerouslySetInnerHTML={{ __html: formattedInterpretation || ''}} />
                         </Alert>
                     </div>
                 </div>
@@ -913,9 +913,6 @@ export default function SurveyAnalysisPage() {
     const [crosstabCol, setCrosstabCol] = useState<string | undefined>();
     const [isCrosstabLoading, setIsCrosstabLoading] = useState(false);
     const [crosstabResult, setCrosstabResult] = useState<CrosstabResults | null>(null);
-    
-    const [isTurfLoading, setIsTurfLoading] = useState(false);
-    const [turfResult, setTurfResult] = useState<FullTurfResponse | null>(null);
 
     const hasConjoint = useMemo(() => survey?.questions.some((q: Question) => q.type === 'conjoint'), [survey]);
     const hasRatingConjoint = useMemo(() => survey?.questions.some((q: Question) => q.type === 'rating-conjoint'), [survey]);
@@ -1052,47 +1049,6 @@ export default function SurveyAnalysisPage() {
             setIsCrosstabLoading(false);
         }
     }, [crosstabRow, crosstabCol, responses, toast, survey]);
-    
-    const handleRunTurf = useCallback(async () => {
-        if (!survey) return;
-        const turfQuestion = survey.questions.find(q => q.type === 'multiple');
-        
-        if (!turfQuestion) {
-            toast({ variant: 'destructive', title: 'Question not found', description: 'No multiple choice question available for TURF analysis.' });
-            return;
-        }
-
-        setIsTurfLoading(true);
-        setTurfResult(null);
-        
-        try {
-            const turfData = responses.map(r => ({
-                selections: (r.answers as any)[turfQuestion.id]?.join(',') || ''
-            }));
-
-            const response = await fetch('/api/analysis/turf', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: turfData, selectionCol: 'selections' })
-            });
-
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || 'Failed to run TURF analysis.');
-            }
-            
-            const result: FullTurfResponse = await response.json();
-            if ((result as any).error) throw new Error((result as any).error);
-
-            setTurfResult(result);
-            toast({ title: "TURF Analysis Complete", description: "Optimal portfolio has been calculated." });
-
-        } catch (e: any) {
-            toast({ variant: 'destructive', title: 'TURF Analysis Error', description: e.message });
-        } finally {
-            setIsTurfLoading(false);
-        }
-    }, [survey, responses, toast]);
     
     const categoricalQuestions = useMemo(() => {
         if (!survey) return [];
