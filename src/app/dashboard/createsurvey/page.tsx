@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -12,7 +13,7 @@ import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import SurveyView from '@/components/survey-view';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate } from '@/lib/survey-templates';
+import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate } from '@/lib/survey-templates';
 
 
 export default function CreateSurveyPage() {
@@ -67,6 +68,12 @@ export default function CreateSurveyPage() {
                 break;
             case 'turf':
                 selectedTemplate = turfTemplate;
+                break;
+            case 'ahp-criteria':
+                selectedTemplate = ahpCriteriaOnlyTemplate;
+                break;
+            case 'ahp-full':
+                selectedTemplate = ahpWithAlternativesTemplate;
                 break;
             default:
                 return;

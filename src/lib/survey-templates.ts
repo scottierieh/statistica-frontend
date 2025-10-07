@@ -160,57 +160,78 @@ export const turfTemplate = {
     ] as Question[],
 };
 
-export const ahpTemplate = {
-    title: "AHP: Choosing a New Smartphone",
-    description: "This survey uses the Analytic Hierarchy Process (AHP) to determine the best smartphone choice by comparing criteria and alternatives.",
+export const ahpCriteriaOnlyTemplate = {
+    title: "AHP: Criteria Weighting",
+    description: "Determine the relative importance of different criteria for a decision.",
     questions: [
         {
-            id: 'ahp_desc',
+            id: 'ahp_criteria_desc',
             type: 'description',
-            title: 'AHP Instructions',
-            content: 'You will be asked to make a series of pairwise comparisons. For each pair, please indicate how much more important or preferred one item is over the other using a 9-point scale, where 1 is "Equal Importance" and 9 is "Extreme Importance".'
+            title: 'Instructions',
+            content: 'For the goal of "Choosing the best option", how important is each criterion relative to the others? Use the 9-point scale where 1 means equal importance and 9 means one is extremely more important than the other.'
         },
         {
             id: 'ahp_q_criteria',
             type: 'matrix',
             title: 'Pairwise Comparison of Criteria',
-            description: 'For the goal of "Choosing a New Smartphone", how important is each criterion relative to the others?',
+            description: 'Indicate your preference for one criterion over another.',
+            required: true,
+            rows: ['Price vs Quality', 'Price vs Service', 'Quality vs Service'],
+            columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
+            scale: ['Left is much more important', '', '', '', 'Equal importance', '', '', '', 'Right is much more important']
+        },
+    ] as Question[],
+};
+
+export const ahpWithAlternativesTemplate = {
+    title: "AHP: Full Hierarchy (Criteria & Alternatives)",
+    description: "Make a complex decision by comparing criteria and then evaluating alternatives against each criterion.",
+    questions: [
+        {
+            id: 'ahp_full_desc',
+            type: 'description',
+            title: 'AHP Instructions',
+            content: 'First, you will compare the importance of the main criteria. Then, for each criterion, you will compare the alternatives. Use the 9-point scale to indicate your preference.'
+        },
+        {
+            id: 'ahp_q_criteria',
+            type: 'matrix',
+            title: 'Pairwise Comparison of Criteria',
+            description: 'For choosing a new smartphone, compare the importance of these criteria.',
             required: true,
             rows: ['Price vs Performance', 'Price vs Design', 'Performance vs Design'],
             columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
-            scale: ['Left item is much more important', '', '', '', 'Equal importance', '', '', '', 'Right item is much more important']
+            scale: ['Left is much more important', '', '', '', 'Equal importance', '', '', '', 'Right is much more important']
         },
         {
             id: 'ahp_q_price',
             type: 'matrix',
             title: 'Pairwise Comparison of Alternatives by Price',
-            description: 'Based on PRICE, how much do you prefer each smartphone over the others?',
+            description: 'Based on PRICE, how much do you prefer each smartphone?',
             required: true,
-            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
+            rows: ['Notebook A vs Notebook B', 'Notebook A vs Notebook C', 'Notebook B vs Notebook C'],
             columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
             scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
-         {
+        {
             id: 'ahp_q_performance',
             type: 'matrix',
             title: 'Pairwise Comparison of Alternatives by Performance',
-            description: 'Based on PERFORMANCE, how much do you prefer each smartphone over the others?',
+            description: 'Based on PERFORMANCE, how much do you prefer each smartphone?',
             required: true,
-            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
+            rows: ['Notebook A vs Notebook B', 'Notebook A vs Notebook C', 'Notebook B vs Notebook C'],
             columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
             scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
-         {
+        {
             id: 'ahp_q_design',
             type: 'matrix',
             title: 'Pairwise Comparison of Alternatives by Design',
-            description: 'Based on DESIGN, how much do you prefer each smartphone over the others?',
+            description: 'Based on DESIGN, how much do you prefer each smartphone?',
             required: true,
-            rows: ['Phone X vs Phone Y', 'Phone X vs Phone Z', 'Phone Y vs Phone Z'],
+            rows: ['Notebook A vs Notebook B', 'Notebook A vs Notebook C', 'Notebook B vs Notebook C'],
             columns: ['9', '7', '5', '3', '1', '3', '5', '7', '9'],
             scale: ['Strongly Prefer Left', '', '', '', 'Equal Preference', '', '', '', 'Strongly Prefer Right']
         },
     ] as Question[],
 };
-
-    
