@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -48,7 +47,16 @@ const StatCard = ({ title, value, unit = '$' }: { title: string, value: number |
 const InterpretationDisplay = ({ interpretation }: { interpretation: string | undefined }) => {
   const formattedInterpretation = useMemo(() => {
     if (!interpretation) return null;
-    return interpretation.replace(/\\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    return interpretation.split('\n\n').map((paragraph, index) => {
+        const parts = paragraph.split('\n');
+        return (
+            <div key={index} className="mb-4">
+                {parts.map((part, partIndex) => (
+                    <p key={partIndex} dangerouslySetInnerHTML={{ __html: part.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                ))}
+            </div>
+        )
+    });
   }, [interpretation]);
 
   if (!interpretation) return null;
@@ -62,7 +70,9 @@ const InterpretationDisplay = ({ interpretation }: { interpretation: string | un
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Strategic Pricing Insights</AlertTitle>
-          <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formattedInterpretation || '' }} />
+          <AlertDescription className="space-y-2">
+            {formattedInterpretation}
+          </AlertDescription>
         </Alert>
       </CardContent>
     </Card>
@@ -85,8 +95,7 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         requiredQuestions.forEach(q_title => {
             const question = survey.questions.find(q => q.title.toLowerCase().includes(q_title));
             if(question) {
-                const key = q_title.replace(/\s/g, '_');
-                mapping[key] = question.id;
+                mapping[q_title] = question.id;
             }
         });
         return mapping;
@@ -108,10 +117,10 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
         const analysisData = responses.map(r => {
             const answers = r.answers as any;
             return {
-                too_cheap: answers[questionMap.too_cheap],
-                cheap: answers[questionMap.cheap],
-                expensive: answers[questionMap.expensive],
-                too_expensive: answers[questionMap.too_expensive],
+                too_cheap: answers[questionMap['too cheap']],
+                cheap: answers[questionMap['cheap']],
+                expensive: answers[questionMap['expensive']],
+                too_expensive: answers[questionMap['too expensive']],
             };
         });
         
@@ -176,43 +185,34 @@ export default function VanWestendorpPage({ survey, responses }: VanWestendorpPa
 
     return (
         <div className="space-y-4">
-             <Tabs defaultValue="visuals" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="visuals"><LineChart className="mr-2 h-4 w-4"/>Charts</TabsTrigger>
-                    <TabsTrigger value="summary"><DollarSign className="mr-2 h-4 w-4"/>Key Metrics</TabsTrigger>
-                </TabsList>
-                <TabsContent value="visuals" className="mt-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline">Price Sensitivity & Acceptance Curves</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-4">
-                             {analysisResult.plots.psm_plot ? (
-                                 <Image src={`data:image/png;base64,${analysisResult.plots.psm_plot}`} alt="Van Westendorp Plot" width={1000} height={700} className="w-full rounded-md border" />
-                             ) : <p>Could not render PSM plot.</p>}
-                              {analysisResult.plots.acceptance_plot ? (
-                                 <Image src={`data:image/png;base64,${analysisResult.plots.acceptance_plot}`} alt="Price Acceptance Plot" width={1000} height={700} className="w-full rounded-md border" />
-                             ) : <p>Could not render Acceptance plot.</p>}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                 <TabsContent value="summary" className="mt-4">
-                    <div className="space-y-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Key Price Points</CardTitle>
-                            </CardHeader>
-                            <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <StatCard title="Optimal Price (OPP)" value={results?.opp} />
-                                <StatCard title="Indifference Price (IDP)" value={results?.idp} />
-                                <StatCard title="Marginal Cheapness (PMC)" value={results?.pmc} />
-                                <StatCard title="Marginal Expensiveness (PME)" value={results?.pme} />
-                            </CardContent>
-                        </Card>
-                        <InterpretationDisplay interpretation={results?.interpretation} />
-                    </div>
-                 </TabsContent>
-            </Tabs>
+             <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Key Price Points</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <StatCard title="Optimal Price (OPP)" value={results?.opp} />
+                    <StatCard title="Indifference Price (IDP)" value={results?.idp} />
+                    <StatCard title="Marginal Cheapness (PMC)" value={results?.pmc} />
+                    <StatCard title="Marginal Expensiveness (PME)" value={results?.pme} />
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Price Sensitivity & Acceptance Curves</CardTitle>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-1 gap-4">
+                     {analysisResult.plots.psm_plot ? (
+                         <Image src={`data:image/png;base64,${analysisResult.plots.psm_plot}`} alt="Van Westendorp Plot" width={1000} height={700} className="w-full rounded-md border" />
+                     ) : <p>Could not render PSM plot.</p>}
+                      {analysisResult.plots.acceptance_plot ? (
+                         <Image src={`data:image/png;base64,${analysisResult.plots.acceptance_plot}`} alt="Price Acceptance Plot" width={1000} height={700} className="w-full rounded-md border" />
+                     ) : <p>Could not render Acceptance plot.</p>}
+                </CardContent>
+            </Card>
+
+            <InterpretationDisplay interpretation={results?.interpretation} />
+
         </div>
     );
 }
