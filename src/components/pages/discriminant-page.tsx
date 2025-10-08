@@ -419,3 +419,5 @@ export default function DiscriminantPage({ data, numericHeaders, categoricalHead
 }
 
     
+
+    
