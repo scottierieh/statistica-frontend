@@ -72,10 +72,10 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
     
     return (
         <Card className="w-full">
-        <div className="p-4">
+        <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
             <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
-                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle}/>
+                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({...question, title: e.target.value})} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle}/>
                      {question.required && <span className="text-destructive text-xs">* Required</span>}
                 </div>
                 <div className="flex items-center">
@@ -105,7 +105,7 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
                         <Label
                             htmlFor={`q${question.id}-o${index}`}
                             className={cn(
-                              "flex flex-1 items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer",
+                              "flex flex-1 items-center space-x-3 p-3 rounded-lg border bg-background transition-colors cursor-pointer",
                               theme === 'flat' && "bg-slate-100",
                               theme === 'modern' && "justify-between",
                             )}
@@ -168,10 +168,10 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
    
    return (
        <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                     <div className="flex items-center">
@@ -187,9 +187,9 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                 {question.imageUrl && <div className="my-4"><Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" /></div>}
                 <div className="space-y-2">
                     {(question.options || []).map((option: string, index: number) => (
-                       <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer", theme === 'flat' && "bg-slate-100")}>
+                       <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border bg-background transition-colors cursor-pointer", theme === 'flat' && "bg-slate-100")}>
                            <Checkbox id={`q${question.id}-o${index}`} disabled/>
-                           <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
+                            <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
                        </Label>
                    ))}
                 </div>
@@ -204,10 +204,10 @@ const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles 
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     return (
         <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                  <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                     <div className="flex items-center">
@@ -233,10 +233,10 @@ const TextQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: {
      const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     return (
         <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                     <div className="flex items-center">
@@ -259,10 +259,10 @@ const NumberQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }:
      const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     return (
         <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                     <div className="flex items-center">
@@ -286,10 +286,10 @@ const PhoneQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: 
      const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     return (
         <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                     <div className="flex items-center">
@@ -312,10 +312,10 @@ const EmailQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: 
      const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     return (
         <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                     <div className="flex items-center">
@@ -338,10 +338,10 @@ const RatingQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }:
      const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     return (
         <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                     <div className="flex items-center">
@@ -366,10 +366,10 @@ const NPSQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { 
      const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     return (
         <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                     <div className="flex items-center">
@@ -395,10 +395,10 @@ const DescriptionBlock = ({ question, onUpdate, onDelete, styles }: { question: 
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     return (
         <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                  <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your title (optional)" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your title (optional)" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
                 </div>
@@ -413,10 +413,10 @@ const BestWorstQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     return (
         <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                     <div className="flex items-center">
@@ -468,10 +468,10 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
     
     return (
         <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                     <div className="flex items-center">
@@ -529,10 +529,10 @@ const ConjointQuestion = ({ question, onUpdate, onDelete, styles }: { question: 
     
     return (
         <Card className="w-full">
-            <div className="p-4">
+            <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
                  <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <Input placeholder="Conjoint Analysis Title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" style={questionStyle} />
+                        <Input placeholder="Conjoint Analysis Title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                         {question.required && <span className="text-destructive text-xs">* Required</span>}
                     </div>
                      <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
@@ -575,12 +575,11 @@ interface QuestionListProps {
     questions: Question[];
     setQuestions: (questions: Question[] | ((prev: Question[]) => Question[])) => void;
     styles: any;
-    isPreview?: boolean;
     saveSurvey: (status: string) => void;
     isSaving: boolean;
 }
 
-export default function QuestionList({ title, setTitle, setDescription, description, questions, setQuestions, styles, isPreview = false, saveSurvey, isSaving }: QuestionListProps) {
+export default function QuestionList({ title, setTitle, setDescription, description, questions, setQuestions, styles, saveSurvey, isSaving }: QuestionListProps) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -651,8 +650,8 @@ export default function QuestionList({ title, setTitle, setDescription, descript
           <CardTitle>Survey Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} readOnly={isPreview} /></div>
-          <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} readOnly={isPreview}/></div>
+          <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+          <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} /></div>
         </CardContent>
       </Card>
       
@@ -685,9 +684,9 @@ export default function QuestionList({ title, setTitle, setDescription, descript
         </SortableContext>
       </DndContext>
       
-      {questions.length > 0 && !isPreview && (
+      {questions.length > 0 && (
           <div className="flex gap-3 sticky bottom-6 bg-white rounded-2xl p-4 shadow-lg border">
-              <Button variant="outline" size="lg" onClick={() => saveSurvey("draft")} disabled={isSaving} className="flex-1"><Save className="w-5 h-5 mr-2" />Save as Draft</Button>
+              <Button variant="outline" size="lg" onClick={() => saveSurvey("draft")} disabled={isSaving} className="flex-1">Save as Draft</Button>
               <Button size="lg" onClick={() => saveSurvey("active")} disabled={isSaving} className="flex-1">{isSaving ? "Publishing..." : "Publish Survey"}</Button>
           </div>
       )}

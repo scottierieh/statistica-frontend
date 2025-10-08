@@ -8,7 +8,7 @@ import { Question } from "@/entities/Survey";
 // A simplified AHP preview component
 const AHPPreview = ({ question, styles }: { question: Question; styles: any }) => {
     return (
-        <div className="p-4 bg-white rounded-lg" style={{ marginBottom: styles.questionSpacing }}>
+        <div className="p-4 bg-background rounded-lg" style={{ marginBottom: styles.questionSpacing }}>
             <h3 className="font-semibold mb-4" style={{ fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor }}>
                 {question.title}
             </h3>
@@ -60,7 +60,7 @@ export default function SurveyPreview({ styles }: { styles: any }) {
 
         <div className="space-y-6">
             {/* Example Single Choice Question */}
-            <div className="p-4 bg-white rounded-lg" style={{ marginBottom: styles.questionSpacing }}>
+            <div className="p-4 bg-background rounded-lg" style={{ marginBottom: styles.questionSpacing }}>
                 <h3 className="font-semibold mb-4" style={questionStyle}>Example Single Choice Question</h3>
                 <RadioGroup className="space-y-3">
                     <Label className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent" style={choiceStyle}>

@@ -4,14 +4,13 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, Eye } from "lucide-react";
+import { ArrowLeft, Eye } from "lucide-react";
 import { motion } from 'framer-motion';
 import type { Question } from '@/entities/Survey';
 import QuestionList from '@/components/survey/QuestionList';
 import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import { SpecialAnalysisPalette } from '@/components/survey/SpecialAnalysisPalette';
-import SurveyPreview from '@/components/survey/SurveyPreview';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate } from '@/lib/survey-templates';
 import { Tabs, TabsTrigger, TabsContent, TabsList } from '@/components/ui/tabs';
@@ -193,11 +192,10 @@ export default function CreateSurveyPage() {
                         </div>
                     </TabsContent>
                     <TabsContent value="design" className="mt-6">
-                        <div className="grid lg:grid-cols-[420px,1fr] gap-8 items-start">
+                        <div className="grid lg:grid-cols-1 gap-8 items-start">
                            <div className="lg:sticky lg:top-24 space-y-6">
                                 <SurveyStylePanel styles={styles} setStyles={setStyles} />
                             </div>
-                            <SurveyPreview styles={styles} />
                         </div>
                     </TabsContent>
                 </Tabs>
