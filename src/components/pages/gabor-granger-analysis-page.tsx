@@ -29,7 +29,7 @@ interface GaborGrangerResults {
 
 interface FullAnalysisResponse {
     results: GaborGrangerResults;
-    // plot field is removed as we will render charts on the client
+    error?: string;
 }
 
 interface GaborGrangerPageProps {
@@ -111,7 +111,7 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
             }
 
             const result: FullAnalysisResponse = await response.json();
-            if ((result as any).error) throw new Error((result as any).error);
+            if (result.error) throw new Error(result.error);
 
             setAnalysisResult(result);
             if(cost !== undefined) {
@@ -280,5 +280,3 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
         </div>
     );
 }
-
-```
