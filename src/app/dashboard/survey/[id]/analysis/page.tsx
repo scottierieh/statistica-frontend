@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import SurveyAnalysisPage from '@/components/pages/survey-analysis-page';
 import type { Survey, SurveyResponse } from '@/types/survey';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,12 +11,17 @@ import RatingConjointAnalysisPage from '@/components/pages/rating-conjoint-analy
 import IpaPage from '@/components/pages/ipa-page';
 import VanWestendorpPage from '@/components/pages/van-westendorp-page';
 import TurfPage from '@/components/pages/turf-page';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
+
 
 export default function SurveyAnalysis() {
     const params = useParams();
-    const searchParams = useSearchParams();
+    const router = useRouter();
     const surveyId = params.id as string;
-    const analysisType = searchParams.get('type');
 
     const [survey, setSurvey] = useState<Survey | null>(null);
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
@@ -41,30 +46,31 @@ export default function SurveyAnalysis() {
             setLoading(false);
         }
     }, [surveyId]);
-    
-    const analysisComponent = useMemo(() => {
-        if (!survey) return null;
 
-        const hasConjoint = survey.questions.some(q => q.type === 'conjoint');
-        const hasRatingConjoint = survey.questions.some(q => q.type === 'rating-conjoint');
-        const hasIPA = survey.questions.some(q => q.type === 'matrix' && q.rows?.some(r => r.toLowerCase().includes('overall')));
-        const hasVanWestendorp = survey.questions.some(q => ['too cheap', 'cheap', 'expensive', 'too expensive'].every(keyword => survey.questions.some(q => q.title.toLowerCase().includes(keyword))));
-        const hasTurf = survey.questions.some(q => q.type === 'multiple');
-        
-        if (hasConjoint) return <CbcAnalysisPage survey={survey} responses={responses} />;
-        if (hasRatingConjoint) return <RatingConjointAnalysisPage survey={survey} responses={responses} />;
-        if (hasIPA) return <IpaPage survey={survey} responses={responses} />;
-        if (hasVanWestendorp) return <VanWestendorpPage survey={survey} responses={responses} />;
-        if (hasTurf) {
-            const turfQuestion = survey.questions.find(q => q.type === 'multiple');
-            const turfData = responses.map(r => ({ selection: (r.answers as any)[turfQuestion!.id] })).filter(r => r.selection);
-            if (turfQuestion) {
-                 return <TurfPage data={turfData} categoricalHeaders={[turfQuestion.title]} onLoadExample={() => {}} />;
+    const specialAnalyses = useMemo(() => {
+        if (!survey) return [];
+        const analyses = [];
+        if (survey.questions.some(q => q.type === 'conjoint')) {
+            analyses.push({ key: 'conjoint', label: 'Conjoint (CBC)', component: <CbcAnalysisPage survey={survey} responses={responses} /> });
+        }
+        if (survey.questions.some(q => q.type === 'rating-conjoint')) {
+             analyses.push({ key: 'rating-conjoint', label: 'Conjoint (Rating)', component: <RatingConjointAnalysisPage survey={survey} responses={responses} /> });
+        }
+        if (survey.questions.some(q => q.type === 'matrix' && q.rows?.some(r => r.toLowerCase().includes('overall')))) {
+            analyses.push({ key: 'ipa', label: 'IPA', component: <IpaPage survey={survey} responses={responses} /> });
+        }
+        if (survey.questions.some(q => ['too cheap', 'cheap', 'expensive', 'too expensive'].every(keyword => survey.questions.some(q => q.title.toLowerCase().includes(keyword))))) {
+            analyses.push({ key: 'van-westendorp', label: 'Price Sensitivity', component: <VanWestendorpPage survey={survey} responses={responses} /> });
+        }
+        const turfQuestion = survey.questions.find(q => q.type === 'multiple');
+        if (turfQuestion) {
+            const turfData = responses.map(r => ({ selection: (r.answers as any)[turfQuestion.id] })).filter(r => r.selection);
+            if (turfData.length > 0) {
+                 analyses.push({ key: 'turf', label: 'TURF Analysis', component: <TurfPage data={turfData} categoricalHeaders={[turfQuestion.title]} onLoadExample={() => {}} /> });
             }
         }
-        
-        return <SurveyAnalysisPage survey={survey} responses={responses} />;
-    }, [survey, responses, analysisType]);
+        return analyses;
+    }, [survey, responses]);
 
     if (loading) {
         return (
@@ -78,10 +84,39 @@ export default function SurveyAnalysis() {
     if (!survey) {
         return <div>Survey not found.</div>;
     }
-    
-    if (!analysisComponent) {
-        return <div>Determining analysis type...</div>
-    }
 
-    return analysisComponent;
+    return (
+        <div className="space-y-6 p-4 md:p-6">
+            <div className="flex items-center gap-4">
+                <Button variant="outline" size="icon" onClick={() => router.push("/dashboard/survey2")}>
+                    <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <div>
+                    <h1 className="font-headline text-3xl">{survey.title}</h1>
+                    <p className="text-muted-foreground">
+                        A summary of <Badge variant="secondary">{responses.length} responses</Badge>.
+                    </p>
+                </div>
+            </div>
+
+            <Tabs defaultValue="results" className="w-full">
+                <TabsList>
+                    <TabsTrigger value="results">Results</TabsTrigger>
+                    {specialAnalyses.map(analysis => (
+                        <TabsTrigger key={analysis.key} value={analysis.key}>{analysis.label}</TabsTrigger>
+                    ))}
+                </TabsList>
+
+                <TabsContent value="results" className="mt-4">
+                    <SurveyAnalysisPage survey={survey} responses={responses} />
+                </TabsContent>
+                
+                {specialAnalyses.map(analysis => (
+                    <TabsContent key={analysis.key} value={analysis.key} className="mt-4">
+                        {analysis.component}
+                    </TabsContent>
+                ))}
+            </Tabs>
+        </div>
+    );
 }
