@@ -37,10 +37,10 @@ interface GaborGrangerPageProps {
     responses: SurveyResponse[];
 }
 
-const StatCard = ({ title, value, unit = '₩' }: { title: string, value: number | undefined | null, unit?: string }) => (
+const StatCard = ({ title, value, unit = '$' }: { title: string, value: number | undefined | null, unit?: string }) => (
     <div className="p-4 bg-muted rounded-lg text-center">
         <p className="text-sm text-muted-foreground">{title}</p>
-        <p className="text-2xl font-bold">{value !== undefined && value !== null ? `${unit}${value.toLocaleString()}` : 'N/A'}</p>
+        <p className="text-2xl font-bold">{value !== undefined && value !== null ? `${unit}${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : 'N/A'}</p>
     </div>
 );
 
@@ -182,20 +182,20 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
                      <StatCard title="Optimal Price (Revenue)" value={results.optimal_revenue_price} />
-                     <StatCard title="Optimal Price (Profit)" value={results.optimal_profit_price} />
                      <StatCard title="Max Revenue Index" value={results.max_revenue} unit="" />
+                     <StatCard title="Optimal Price (Profit)" value={results.optimal_profit_price} />
                      {results.max_profit !== undefined && <StatCard title="Max Profit Index" value={results.max_profit} unit="" />}
                 </CardContent>
             </Card>
             
             <Card>
-                <CardHeader><CardTitle>Demand, Revenue, and Profit Analysis</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Demand, Revenue, and Profit Curves</CardTitle></CardHeader>
                 <CardContent>
                     <ChartContainer config={{}} className="w-full h-96">
                       <ResponsiveContainer>
-                        <RechartsLineChart data={chartData}>
+                        <RechartsLineChart data={chartData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="price" name="Price" unit="₩" />
+                          <XAxis dataKey="price" name="Price" unit="$" />
                           <YAxis yAxisId="left" stroke="#3b82f6" label={{ value: 'Purchase Likelihood (%)', angle: -90, position: 'insideLeft' }} />
                           <YAxis yAxisId="right" orientation="right" stroke="#ef4444" label={{ value: 'Revenue / Profit Index', angle: 90, position: 'insideRight' }} />
                           <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(name === 'likelihood_pct' ? 1 : 2)}${name === 'likelihood_pct' ? '%' : ''}`} />} />
@@ -211,7 +211,7 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                 </CardContent>
             </Card>
             
-            <div className="grid md:grid-cols-2 gap-4">
+             <div className="grid md:grid-cols-2 gap-4">
                 <Card>
                     <CardHeader><CardTitle>Demand Curve Data</CardTitle></CardHeader>
                     <CardContent>
@@ -227,7 +227,7 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                             <TableBody>
                                 {results.demand_curve.map((row) => (
                                     <TableRow key={row.price}>
-                                        <TableCell>₩{row.price.toLocaleString()}</TableCell>
+                                        <TableCell>${row.price.toLocaleString()}</TableCell>
                                         <TableCell className="text-right font-mono">{(row.likelihood * 100).toFixed(1)}%</TableCell>
                                         <TableCell className="text-right font-mono">{row.revenue.toFixed(2)}</TableCell>
                                         {row.profit !== undefined && <TableCell className="text-right font-mono">{row.profit.toFixed(2)}</TableCell>}
