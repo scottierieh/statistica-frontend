@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -307,7 +306,7 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
     const { criteria = [], alternatives = [] } = question;
 
     const allPairs = useMemo(() => {
-        const criteriaPairs = [];
+        const criteriaPairs: { type: 'criteria', pair: [string, string], title: string }[] = [];
         for (let i = 0; i < criteria.length; i++) {
             for (let j = i + 1; j < criteria.length; j++) {
                 criteriaPairs.push({ type: 'criteria', pair: [criteria[i], criteria[j]], title: 'Which criterion is more important?' });
@@ -315,7 +314,7 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
         }
 
         if (alternatives.length < 2) {
-            return criteriaPairs;
+            return { criteria: criteriaPairs, alternatives: [] };
         }
 
         const altPairs: [string, string][] = [];
@@ -325,16 +324,13 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
             }
         }
         
-        const alternativeComparisons = criteria.flatMap(criterion =>
-            altPairs.map(pair => ({
-                type: 'alternative',
-                criterion: criterion,
-                pair: pair,
-                title: `For "${criterion}", which alternative is better?`
-            }))
-        );
+        const alternativeComparisons = criteria.map(criterion => ({
+            criterion,
+            title: `For "${criterion}", which alternative is better?`,
+            pairs: altPairs.map(pair => ({ type: 'alternative', pair }))
+        }));
 
-        return [...criteriaPairs, ...alternativeComparisons];
+        return { criteria: criteriaPairs, alternatives: alternativeComparisons };
     }, [criteria, alternatives]);
 
     const handleValueChange = (pairKey: string, matrixKey: string, value: number) => {
@@ -344,7 +340,7 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
         }));
     };
   
-    const PairwiseComparison = ({ pair, matrixKey, title }: { pair: [string, string], matrixKey: string, title: string }) => {
+    const PairwiseComparison = ({ pair, matrixKey }: { pair: [string, string], matrixKey: string }) => {
         const pairKey = `${pair[0]} vs ${pair[1]}`;
         const value = answer?.[matrixKey]?.[pairKey];
         const radioValues = [-9, -7, -5, -3, -1, 1, 3, 5, 7, 9];
@@ -352,7 +348,6 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
 
         return (
              <div className="p-6 rounded-lg border bg-white mb-4">
-                 <div className="font-semibold text-lg mb-4">{title}</div>
                  <div className="flex flex-col items-center justify-between gap-4">
                     <div className="flex w-full justify-between font-bold text-primary">
                         <span className="text-left w-1/3">{pair[0]}</span>
@@ -380,14 +375,23 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
         <div className="p-4 rounded-lg bg-background shadow-md">
             <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
             {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
-             <div className="space-y-4">
-                {allPairs.map((comparison, index) => (
-                    <PairwiseComparison 
-                        key={index}
-                        pair={comparison.pair} 
-                        matrixKey={comparison.type === 'criteria' ? 'criteria' : comparison.criterion!} 
-                        title={comparison.title}
-                    />
+            
+            <div className="space-y-6">
+                {allPairs.criteria.length > 0 && (
+                    <div>
+                        <h4 className="font-semibold text-xl mb-4 text-center">Which criterion is more important?</h4>
+                        {allPairs.criteria.map((comparison, index) => (
+                            <PairwiseComparison key={index} pair={comparison.pair} matrixKey="criteria" />
+                        ))}
+                    </div>
+                )}
+                {allPairs.alternatives.map(criterionGroup => (
+                    <div key={criterionGroup.criterion}>
+                        <h4 className="font-semibold text-xl mb-4 text-center">{criterionGroup.title}</h4>
+                        {criterionGroup.pairs.map((comparison, index) => (
+                            <PairwiseComparison key={index} pair={comparison.pair} matrixKey={criterionGroup.criterion} />
+                        ))}
+                    </div>
                 ))}
             </div>
         </div>
