@@ -319,34 +319,40 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
     
     const handleSliderChange = (pairKey: string, value: number) => {
         onAnswerChange(produce(answer || {}, (draft: any) => {
-            draft[pairKey] = value;
+            const keys = pairKey.split('.');
+            let current = draft;
+            for (let i = 0; i < keys.length - 1; i++) {
+                current = current[keys[i]] = current[keys[i]] || {};
+            }
+            current[keys[keys.length - 1]] = value;
         }));
     };
     
     const PairwiseComparison = ({ pair, matrixKey }: { pair: [string, string], matrixKey: string }) => {
         const pairKey = `${pair[0]} vs ${pair[1]}`;
         const value = answer?.[matrixKey]?.[pairKey] || 0;
-        const labels = ['9', '7', '5', '3', '1', '3', '5', '7', '9'];
+        const labels = ['9', '8', '7', '6', '5', '4', '3', '2', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
         return (
             <div className="py-4 border-b">
                 <div className="flex justify-between items-center font-semibold mb-2">
-                    <span>{pair[0]}</span>
-                    <span>{pair[1]}</span>
+                    <span className="text-right w-2/5 break-words">{pair[0]}</span>
+                    <span className="w-1/5 text-center text-muted-foreground">vs</span>
+                    <span className="text-left w-2/5 break-words">{pair[1]}</span>
                 </div>
-                <div className="flex items-center gap-4">
-                    <Slider
-                        value={[value]}
-                        onValueChange={(v) => handleSliderChange(`${matrixKey}.${pairKey}`, v[0])}
-                        min={-9}
-                        max={9}
-                        step={1}
-                    />
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
-                     {labels.slice(0, 5).reverse().map(l => <span key={`l-${l}`}>{l}</span>)}
-                     {labels.slice(5).map(l => <span key={`r-${l}`}>{l}</span>)}
-                </div>
+                <RadioGroup 
+                    className="flex justify-center items-center gap-2 md:gap-3" 
+                    value={String(value)}
+                    onValueChange={(v) => handleSliderChange(`${matrixKey}.${pairKey}`, parseInt(v))}
+                >
+                    {[-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(v => (
+                        (v !== 0) &&
+                        <div key={v} className="flex flex-col items-center">
+                            <RadioGroupItem value={String(v)} id={`pair-${matrixKey}-${pair.join('-')}-${v}`} />
+                            <Label htmlFor={`pair-${matrixKey}-${pair.join('-')}-${v}`} className="text-xs mt-1">{Math.abs(v)}</Label>
+                        </div>
+                    ))}
+                </RadioGroup>
             </div>
         );
     };
