@@ -144,7 +144,7 @@ export default function CreateSurveyPage() {
       items: type === 'best-worst' ? ['Item 1', 'Item 2', 'Item 3'] : [],
       rows: type === 'matrix' ? ['Row 1', 'Row 2'] : type === 'semantic-differential' ? ['Low Quality vs High Quality'] : [],
       columns: type === 'matrix' ? ['Col 1', 'Col 2', 'Col 3'] : [],
-      scale: ['semantic-differential'].includes(type) ? ['매우', '다소', '약간', '중립', '약간', '다소', '매우'] : type === 'matrix' ? ['Bad', 'Neutral', 'Good'] : type === 'rating' ? ['1','2','3','4','5'] : [],
+      scale: ['semantic-differential'].includes(type) ? ['Very Unlikely', 'Unlikely', 'Slightly Unlikely', 'Neutral', 'Slightly Likely', 'Likely', 'Very Likely'] : type === 'matrix' ? ['Bad', 'Neutral', 'Good'] : type === 'rating' ? ['1','2','3','4','5'] : [],
       numScalePoints: type === 'semantic-differential' ? 7 : undefined,
       content: type === 'description' ? 'This is a description block.' : '',
       attributes: type === 'conjoint' || type === 'rating-conjoint' ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
