@@ -672,7 +672,7 @@ const LikertQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
         onUpdate?.({ ...question, numScalePoints: newSize, scale: newLabels });
     };
 
-    const numPoints = question.numScalePoints || 7;
+    const numPoints = question.numScalePoints || 5;
     
     return (
         <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
@@ -767,6 +767,53 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete, styles }: { ques
     return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} styles={styles} />;
 };
 
+const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
+  const { toast } = useToast();
+  const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+
+  const handleListChange = (type: 'criteria' | 'alternatives', value: string) => {
+    const items = value.split(',').map(s => s.trim()).filter(Boolean);
+    if (items.length < 2) {
+      toast({
+        variant: 'destructive',
+        title: 'Input Error',
+        description: `Please provide at least two ${type}, separated by commas.`,
+      });
+    }
+    onUpdate?.({ ...question, [type]: items });
+  };
+  
+  return (
+    <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
+      <div className="p-6 space-y-4">
+        <div className="flex justify-between items-start">
+          <Input placeholder="AHP Question Title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
+          <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+        </div>
+        <div>
+          <Label>Criteria</Label>
+          <Textarea
+            value={(question.criteria || []).join(', ')}
+            onChange={(e) => handleListChange('criteria', e.target.value)}
+            placeholder="e.g., Price, Camera, Battery"
+          />
+           <p className="text-xs text-muted-foreground mt-1">Enter criteria separated by commas.</p>
+        </div>
+        <div>
+          <Label>Alternatives (Optional)</Label>
+           <Textarea
+            value={(question.alternatives || []).join(', ')}
+            onChange={(e) => handleListChange('alternatives', e.target.value)}
+            placeholder="e.g., Phone A, Phone B, Phone C"
+          />
+           <p className="text-xs text-muted-foreground mt-1">If you have specific alternatives to compare, enter them here.</p>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+
 
 interface QuestionListProps {
     title: string;
@@ -843,6 +890,7 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     likert: LikertQuestion,
     conjoint: ConjointQuestion,
     'rating-conjoint': RatingConjointQuestion,
+    ahp: AHPQuestion
   };
 
 
