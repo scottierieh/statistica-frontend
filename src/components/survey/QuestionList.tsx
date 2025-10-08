@@ -101,12 +101,13 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
                 <RadioGroup value={answer} onValueChange={setAnswer} className="space-y-2">
                     {(question.options || []).map((option: string, index: number) => (
                         <div key={index} className="flex items-center group">
-                            <Label
+                             <Label
                                 htmlFor={`q${question.id}-o${index}`}
                                 className={cn(
-                                "flex flex-1 items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer",
-                                theme === 'flat' && "bg-slate-100",
-                                theme === 'modern' && "justify-between",
+                                "flex flex-1 items-center space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer",
+                                answer === option 
+                                    ? "bg-primary/10 border-primary shadow-md" 
+                                    : "bg-background hover:bg-accent/50 hover:border-primary/50"
                                 )}
                             >
                                 {theme !== 'modern' && <RadioGroupItem value={option} id={`q${question.id}-o${index}`} disabled />}
@@ -117,7 +118,7 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
                                     value={option}
                                     onChange={(e) => handleOptionChange(index, e.target.value)}
                                 />
-                                {theme === 'modern' && <CheckCircle2 className="w-6 h-6 opacity-0" />}
+                                {theme === 'modern' && <CheckCircle2 className={cn("w-6 h-6 opacity-0", answer === option && "opacity-100 text-primary")} />}
                             </Label>
                             <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={(e) => { e.preventDefault(); deleteOption(index); }}>
                                 <Trash2 className="w-4 h-4 text-destructive"/>
@@ -175,8 +176,8 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                 {question.imageUrl && <div className="my-4"><Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" /></div>}
                 <div className="space-y-2">
                     {(question.options || []).map((option: string, index: number) => (
-                        <div key={index} className="flex items-center group">
-                            <Label htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer", theme === 'flat' && "bg-slate-100")}>
+                       <div key={index} className="flex items-center group">
+                           <Label htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer", 'bg-background hover:bg-accent/50 hover:border-primary/50' )}>
                                <Checkbox id={`q${question.id}-o${index}`} disabled />
                                 <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent flex-1" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
                            </Label>
@@ -186,7 +187,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                         </div>
                    ))}
                 </div>
-                <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
+                 <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
             </div>
         </Card>
    );
@@ -705,6 +706,12 @@ export default function QuestionList({ title, setTitle, setDescription, descript
             </AnimatePresence>
         </SortableContext>
       </DndContext>
+       {!isPreview && questions.length > 0 && (
+            <div className="flex gap-3 sticky bottom-6 bg-white rounded-2xl p-4 shadow-lg border">
+                <Button variant="outline" size="lg" onClick={() => saveSurvey && saveSurvey("draft")} disabled={isSaving} className="flex-1"><Save className="w-5 h-5 mr-2" />Save as Draft</Button>
+                <Button size="lg" onClick={() => saveSurvey && saveSurvey("active")} disabled={isSaving} className="flex-1">{isSaving ? "Publishing..." : "Publish Survey"}</Button>
+            </div>
+        )}
     </div>
   );
 }
