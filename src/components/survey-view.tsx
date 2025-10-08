@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -301,101 +302,107 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
 };
 
 const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: any; onAnswerChange: (value: any) => void; }) => {
-    const { criteria = [], alternatives = [] } = question;
-    const [activeTab, setActiveTab] = useState<'criteria' | string>(alternatives.length > 0 ? 'criteria' : criteria[0] && criteria[1] ? `${criteria[0]} vs ${criteria[1]}` : 'criteria');
-    
-    const getPairs = (items: string[]) => {
-        const pairs: [string, string][] = [];
-        for (let i = 0; i < items.length; i++) {
-            for (let j = i + 1; j < items.length; j++) {
-                pairs.push([items[i], items[j]]);
-            }
-        }
-        return pairs;
-    };
-    
-    const criteriaPairs = getPairs(criteria);
-    const alternativePairs = getPairs(alternatives);
-    
-    const handleSliderChange = (pairKey: string, value: number) => {
-        onAnswerChange(produce(answer || {}, (draft: any) => {
-            const keys = pairKey.split('.');
-            let current = draft;
-            for (let i = 0; i < keys.length - 1; i++) {
-                current = current[keys[i]] = current[keys[i]] || {};
-            }
-            current[keys[keys.length - 1]] = value;
-        }));
-    };
-    
-    const PairwiseComparison = ({ pair, matrixKey }: { pair: [string, string], matrixKey: string }) => {
-        const pairKey = `${pair[0]} vs ${pair[1]}`;
-        const value = answer?.[matrixKey]?.[pairKey] || 0;
-        const labels = ['9', '8', '7', '6', '5', '4', '3', '2', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  const { criteria = [], alternatives = [] } = question;
+  const [activeTab, setActiveTab] = useState<'criteria' | string>(alternatives.length > 0 ? 'criteria' : criteria[0] && criteria[1] ? `${criteria[0]} vs ${criteria[1]}` : 'criteria');
+  
+  const getPairs = (items: string[]) => {
+      const pairs: [string, string][] = [];
+      for (let i = 0; i < items.length; i++) {
+          for (let j = i + 1; j < items.length; j++) {
+              pairs.push([items[i], items[j]]);
+          }
+      }
+      return pairs;
+  };
+  
+  const criteriaPairs = getPairs(criteria);
+  const alternativePairs = getPairs(alternatives);
+  
+  const handleValueChange = (pairKey: string, value: number) => {
+      onAnswerChange(produce(answer || {}, (draft: any) => {
+          const keys = pairKey.split('.');
+          let current = draft;
+          for (let i = 0; i < keys.length - 1; i++) {
+              current = current[keys[i]] = current[keys[i]] || {};
+          }
+          current[keys[keys.length - 1]] = value;
+      }));
+  };
+  
+  const PairwiseComparison = ({ pair, matrixKey }: { pair: [string, string], matrixKey: string }) => {
+      const pairKey = `${pair[0]} vs ${pair[1]}`;
+      const value = answer?.[matrixKey]?.[pairKey] || 0;
+      const scaleValues = [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+      const radioValues = [-9, -7, -5, -3, 1, 3, 5, 7, 9];
+      const scaleLabels = ['9', '7', '5', '3', '1', '3', '5', '7', '9'];
 
-        return (
-            <div className="py-4 border-b">
-                <div className="flex justify-between items-center font-semibold mb-2">
-                    <span className="text-right w-2/5 break-words">{pair[0]}</span>
-                    <span className="w-1/5 text-center text-muted-foreground">vs</span>
-                    <span className="text-left w-2/5 break-words">{pair[1]}</span>
-                </div>
-                <RadioGroup 
-                    className="flex justify-center items-center gap-2 md:gap-3" 
-                    value={String(value)}
-                    onValueChange={(v) => handleSliderChange(`${matrixKey}.${pairKey}`, parseInt(v))}
-                >
-                    {[-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(v => (
-                        (v !== 0) &&
-                        <div key={v} className="flex flex-col items-center">
-                            <RadioGroupItem value={String(v)} id={`pair-${matrixKey}-${pair.join('-')}-${v}`} />
-                            <Label htmlFor={`pair-${matrixKey}-${pair.join('-')}-${v}`} className="text-xs mt-1">{Math.abs(v)}</Label>
-                        </div>
-                    ))}
-                </RadioGroup>
-            </div>
-        );
-    };
+      return (
+          <div className="py-6 border-b">
+              <div className="flex justify-between items-center font-semibold mb-4 text-base md:text-lg">
+                  <span className="text-right w-2/5 break-words text-primary">{pair[0]}</span>
+                  <span className="w-1/5 text-center text-muted-foreground">vs</span>
+                  <span className="text-left w-2/5 break-words" style={{color: "hsl(var(--sidebar-primary))"}}>{pair[1]}</span>
+              </div>
+              <RadioGroup 
+                  className="flex justify-center items-center gap-1 md:gap-2"
+                  value={String(value)}
+                  onValueChange={(v) => handleValueChange(`${matrixKey}.${pairKey}`, parseInt(v))}
+              >
+                  {radioValues.map((v, index) => (
+                      <div key={v} className="flex flex-col items-center">
+                           <RadioGroupItem value={String(v)} id={`pair-${matrixKey}-${pair.join('-')}-${v}`} className="w-6 h-6 md:w-8 md:h-8" />
+                           <Label htmlFor={`pair-${matrixKey}-${pair.join('-')}-${v}`} className="text-xs mt-2">{scaleLabels[index]}</Label>
+                      </div>
+                  ))}
+              </RadioGroup>
+               <div className="flex justify-between text-xs text-muted-foreground mt-2 px-4">
+                  <span>Strongly prefer left</span>
+                  <span>Neutral</span>
+                  <span>Strongly prefer right</span>
+              </div>
+          </div>
+      );
+  };
 
-    return (
-        <div className="p-4 rounded-lg bg-background shadow-md">
-            <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
-            {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
-            
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList>
-                    <TabsTrigger value="criteria">Criteria Comparison</TabsTrigger>
-                    {alternatives.length > 0 && criteria.map(c => (
-                        <TabsTrigger key={c} value={c}>Compare by {c}</TabsTrigger>
-                    ))}
-                </TabsList>
-                
-                <TabsContent value="criteria" className="mt-4">
-                    <Card>
-                        <CardHeader><CardTitle>Compare Criteria Importance</CardTitle></CardHeader>
-                        <CardContent>
-                            {criteriaPairs.map((pair, i) => (
-                                <PairwiseComparison key={i} pair={pair} matrixKey="criteria" />
-                            ))}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-                
-                 {alternatives.length > 0 && criteria.map(criterion => (
-                    <TabsContent key={criterion} value={criterion} className="mt-4">
-                         <Card>
-                            <CardHeader><CardTitle>Compare Alternatives based on &quot;{criterion}&quot;</CardTitle></CardHeader>
-                            <CardContent>
-                                {alternativePairs.map((pair, i) => (
-                                    <PairwiseComparison key={i} pair={pair} matrixKey={criterion} />
-                                ))}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                ))}
-            </Tabs>
-        </div>
-    );
+  return (
+      <div className="p-4 rounded-lg bg-background shadow-md">
+          <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+          {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
+          
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList>
+                  <TabsTrigger value="criteria">Criteria Comparison</TabsTrigger>
+                  {alternatives.length > 0 && criteria.map(c => (
+                      <TabsTrigger key={c} value={c}>Compare by {c}</TabsTrigger>
+                  ))}
+              </TabsList>
+              
+              <TabsContent value="criteria" className="mt-4">
+                  <Card>
+                      <CardHeader><CardTitle>Compare Criteria Importance</CardTitle></CardHeader>
+                      <CardContent>
+                          {criteriaPairs.map((pair, i) => (
+                              <PairwiseComparison key={i} pair={pair} matrixKey="criteria" />
+                          ))}
+                      </CardContent>
+                  </Card>
+              </TabsContent>
+              
+               {alternatives.length > 0 && criteria.map(criterion => (
+                  <TabsContent key={criterion} value={criterion} className="mt-4">
+                       <Card>
+                          <CardHeader><CardTitle>Compare Alternatives based on &quot;{criterion}&quot;</CardTitle></CardHeader>
+                          <CardContent>
+                              {alternativePairs.map((pair, i) => (
+                                  <PairwiseComparison key={i} pair={pair} matrixKey={criterion} />
+                              ))}
+                          </CardContent>
+                      </Card>
+                  </TabsContent>
+              ))}
+          </Tabs>
+      </div>
+  );
 };
 
 const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: string; onAnswerChange: (value: string) => void; }) => {
