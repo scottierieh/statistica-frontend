@@ -11,6 +11,7 @@ import IpaPage from '@/components/pages/ipa-page';
 import VanWestendorpPage from '@/components/pages/van-westendorp-page';
 import TurfPage from '@/components/pages/turf-page';
 import AhpPage from '@/components/pages/ahp-page';
+import GaborGrangerAnalysisPage from '@/components/pages/gabor-granger-analysis-page';
 
 
 export default function SurveyAnalysis() {
@@ -66,6 +67,9 @@ export default function SurveyAnalysis() {
         }
         if (survey.questions.some(q => q.type === 'ahp')) {
             analyses.push({ key: 'ahp', label: 'AHP Analysis', component: <AhpPage survey={survey} responses={responses} /> });
+        }
+        if (survey.questions.some(q => q.type === 'single' && q.title.toLowerCase().includes('if this product was sold for'))) {
+            analyses.push({ key: 'gabor-granger', label: 'Gabor-Granger', component: <GaborGrangerAnalysisPage survey={survey} responses={responses} /> });
         }
         return analyses;
     }, [survey, responses]);
