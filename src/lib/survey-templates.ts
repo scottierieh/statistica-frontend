@@ -226,3 +226,30 @@ export const ahpWithAlternativesTemplate = {
         },
     ],
 };
+
+export const csatTemplate = {
+    title: "Customer Satisfaction (CSAT) Survey",
+    description: "Please rate your satisfaction with our product/service. Your feedback is important to us.",
+    questions: [
+        {
+            id: 'csat_q_1',
+            type: 'rating',
+            title: 'Overall, how satisfied are you with our product/service?',
+            required: true,
+            scale: ['1', '2', '3', '4', '5'],
+            description: '1 - Very Dissatisfied, 5 - Very Satisfied'
+        },
+        {
+            id: 'csat_q_2',
+            type: 'text',
+            title: 'What did you like most about the product/service?',
+            required: false,
+        },
+        {
+            id: 'csat_q_3',
+            type: 'text',
+            title: 'What could be improved?',
+            required: false,
+        }
+    ] as Question[],
+};

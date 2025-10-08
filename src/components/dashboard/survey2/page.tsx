@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -20,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, ahpTemplate } from "@/lib/survey-templates";
+import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate } from "@/lib/survey-templates";
 
 const TemplateCard = ({ icon: Icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) => (
     <Link href={href} className="block">
@@ -151,10 +150,12 @@ export default function Survey2Dashboard() {
                          <TemplateCard icon={Handshake} title="Choice-Based Conjoint" description="Understand how customers value different attributes of a product using choices." href="/dashboard/createsurvey?template=cbc"/>
                          <TemplateCard icon={ClipboardList} title="Rating Conjoint" description="Analyze customer preferences using a rating-based approach." href="/dashboard/createsurvey?template=rating-conjoint"/>
                          <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
-                         <TemplateCard icon={DollarSign} title="Price Sensitivity" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=van-westendorp"/>
+                         <TemplateCard icon={DollarSign} title="Price Sensitivity (PSM)" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=van-westendorp"/>
+                         <TemplateCard icon={DollarSign} title="Gabor-Granger (Seq)" description="Price elasticity by asking sequential purchase likelihood questions." href="/dashboard/createsurvey?template=gabor-granger-1"/>
+                         <TemplateCard icon={DollarSign} title="Gabor-Granger (Rand)" description="Price elasticity by asking questions in a random order." href="/dashboard/createsurvey?template=gabor-granger-2"/>
                          <TemplateCard icon={Users} title="TURF Analysis" description="Identify the best combination of items to maximize reach." href="/dashboard/createsurvey?template=turf"/>
-                         <TemplateCard icon={Network} title="AHP Survey" description="Make complex decisions by comparing criteria and alternatives pairwise." href="/dashboard/createsurvey?template=ahp"/>
-                         <TemplateCard icon={Users} title="Employee Engagement" description="Gauge employee satisfaction and identify areas for cultural improvement." href="/dashboard/createsurvey?template=employee"/>
+                         <TemplateCard icon={Network} title="AHP (Criteria Only)" description="Prioritize criteria using pairwise comparisons." href="/dashboard/createsurvey?template=ahp-criteria"/>
+                         <TemplateCard icon={Network} title="AHP (Full)" description="Make complex decisions by comparing criteria and alternatives." href="/dashboard/createsurvey?template=ahp-full"/>
                          <TemplateCard icon={ClipboardList} title="Customer Satisfaction" description="Measure overall customer satisfaction (CSAT) and drivers." href="/dashboard/createsurvey?template=csat"/>
                     </div>
                 </div>
@@ -246,5 +247,3 @@ export default function Survey2Dashboard() {
     </div>
   );
 }
-
-    

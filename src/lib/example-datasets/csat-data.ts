@@ -1,0 +1,23 @@
+
+export const csatData = `rating,feedback_positive,feedback_negative
+5,"The service was incredibly fast and the staff was so friendly!","Nothing, everything was perfect."
+4,"Good product, it does exactly what it's supposed to do.","The packaging could be a bit more eco-friendly."
+2,"It was very difficult to set up. The instructions were not clear.","The setup process needs to be simplified."
+5,"I love this! I use it every day. I've already recommended it to my friends.",""
+1,"Broke after one week of use. Terrible quality.","The product needs to be more durable. Complete waste of money."
+3,"It's okay. It works, but it doesn't feel premium.","The material feels a bit cheap for the price."
+5,"Customer support was amazing. They solved my issue in minutes.",""
+4,"Works well, but I wish it had a few more features.","Add a dark mode to the app."
+2,"The delivery was delayed by three days without any notification.","Improve the shipping and communication process."
+4,"I'm happy with my purchase. It's a good value for the money.",""
+3,"The battery life is shorter than advertised.","The battery needs to last longer."
+5,"Exceeded my expectations. The quality is outstanding.",""
+1,"The item arrived damaged. I'm still waiting for a response from support.","Customer support needs to be more responsive to issues."
+4,"A solid product. I would probably buy it again.","Maybe offer it in more colors."
+3,"It's fine, but there are better alternatives on the market.","The user interface is a bit clunky."
+5,"Absolutely fantastic! The best purchase I've made all year.",""
+2,"The website was confusing to navigate, and I had trouble finding what I needed.","Make the website more user-friendly."
+4,"I like it. It's simple and gets the job done.",""
+3,"The color in the picture was different from the actual product.","Ensure product photos are more accurate."
+5,"A game-changer! This has saved me so much time.",""
+`;
