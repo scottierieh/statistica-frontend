@@ -108,7 +108,9 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                          <div className="space-y-6">
                             <h3 className="font-semibold text-2xl flex items-center gap-2"><FileSearch className="text-primary"/> Results Interpretation</h3>
                              <ul className="list-disc pl-5 space-y-4 text-muted-foreground">
-                                <li><strong>Wilks' Lambda:</strong> A test of whether the discriminant functions are significant. A p-value less than 0.05 indicates the model can effectively separate the groups.</li>
+                                <li>
+                                    <strong>Wilks' Lambda:</strong> A test of whether the discriminant functions are significant. A p-value less than 0.05 indicates the model can effectively separate the groups.
+                                </li>
                                 <li><strong>Standardized Coefficients:</strong> Show the relative importance of each predictor in the discriminant function. Larger absolute values have more weight.</li>
                                 <li><strong>Structure Matrix (Loadings):</strong> The correlation between each predictor and the discriminant function, helping to interpret the meaning of the function.</li>
                                 <li><strong>Scatterplot:</strong> Visualizes how well the first two discriminant functions separate the groups. Well-separated clusters indicate a good model.</li>
