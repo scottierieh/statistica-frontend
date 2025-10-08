@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -132,29 +131,62 @@ export default function SemanticDifferentialPage({ survey, responses }: Semantic
                     <Image src={plot} alt="Semantic Differential Analysis Plot" width={1600} height={1200} className="w-full h-auto rounded-md border" />
                 </CardContent>
             </Card>
-            <Card>
-                <CardHeader><CardTitle>Detailed Statistics</CardTitle></CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Scale</TableHead>
-                                <TableHead className="text-right">Mean</TableHead>
-                                <TableHead className="text-right">Std. Dev.</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {Object.values(results.statistics).map(stat => (
-                                <TableRow key={stat.scale}>
-                                    <TableCell>{stat.scale}</TableCell>
-                                    <TableCell className="text-right font-mono">{stat.mean.toFixed(2)}</TableCell>
-                                    <TableCell className="text-right font-mono">{stat.std.toFixed(2)}</TableCell>
+            <div className="grid md:grid-cols-2 gap-4">
+                <Card>
+                    <CardHeader><CardTitle>EPA Dimension Scores</CardTitle></CardHeader>
+                    <CardContent>
+                         <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Dimension</TableHead>
+                                    <TableHead className="text-right">Mean Score</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell>Evaluation (평가)</TableCell>
+                                    <TableCell className="text-right font-mono">{results.epa_scores.evaluation.mean.toFixed(2)}</TableCell>
+                                </TableRow>
+                                 <TableRow>
+                                    <TableCell>Potency (힘)</TableCell>
+                                    <TableCell className="text-right font-mono">{results.epa_scores.potency.mean.toFixed(2)}</TableCell>
+                                </TableRow>
+                                 <TableRow>
+                                    <TableCell>Activity (활동)</TableCell>
+                                    <TableCell className="text-right font-mono">{results.epa_scores.activity.mean.toFixed(2)}</TableCell>
+                                </TableRow>
+                                 <TableRow className="font-bold bg-muted/50">
+                                    <TableCell>Overall Average</TableCell>
+                                    <TableCell className="text-right font-mono">{results.overall_mean.toFixed(2)} / 7.00</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader><CardTitle>Semantic Profile</CardTitle></CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Left</TableHead>
+                                    <TableHead className="text-center">Mean</TableHead>
+                                    <TableHead className="text-right">Right</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {results.profile.map((p, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell>{p.left}</TableCell>
+                                        <TableCell className="text-center font-mono">{p.mean.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">{p.right}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
