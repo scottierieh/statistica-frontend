@@ -142,7 +142,7 @@ export default function CreateSurveyPage() {
       required: true,
       options: ['single', 'multiple', 'dropdown', 'best-worst'].includes(type) ? ['Option 1', 'Option 2'] : [],
       items: type === 'best-worst' ? ['Item 1', 'Item 2', 'Item 3'] : [],
-      rows: type === 'matrix' ? ['Row 1', 'Row 2'] : (type === 'semantic-differential' || type === 'likert') ? ['Low Quality vs High Quality'] : [],
+      rows: type === 'matrix' ? ['Row 1', 'Row 2'] : (type === 'semantic-differential') ? ['Low Quality vs High Quality'] : (type === 'likert') ? ['Statement 1', 'Statement 2'] : [],
       columns: type === 'matrix' ? ['Col 1', 'Col 2', 'Col 3'] : [],
       scale: ['semantic-differential', 'likert'].includes(type) ? ['Very Unlikely', 'Unlikely', 'Slightly Unlikely', 'Neutral', 'Slightly Likely', 'Likely', 'Very Likely'] : type === 'matrix' ? ['Bad', 'Neutral', 'Good'] : type === 'rating' ? ['1','2','3','4','5'] : [],
       numScalePoints: ['semantic-differential', 'likert'].includes(type) ? 7 : undefined,
