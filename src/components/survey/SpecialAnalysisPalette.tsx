@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -49,13 +48,7 @@ const specialAnalyses = [
         icon: ClipboardList,
         title: "CSAT Survey",
         description: "Measure overall customer satisfaction (CSAT) and drivers."
-    },
-    {
-        href: "/dashboard/createsurvey?template=semantic-differential",
-        icon: Replace,
-        title: "Semantic Differential",
-        description: "Gauge user perception of a concept on bipolar adjective scales."
-    },
+    }
 ];
 
 
