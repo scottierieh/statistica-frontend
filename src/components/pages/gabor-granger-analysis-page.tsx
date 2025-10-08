@@ -10,11 +10,17 @@ import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 interface GaborGrangerResults {
-    optimal_price: number;
-    purchase_rate: number;
-    demand_curve: { price: number; purchase_rate: number }[];
+    optimal_revenue_price: number;
+    optimal_profit_price?: number;
+    max_revenue: number;
+    max_profit?: number;
+    demand_curve: { price: number; likelihood: number; revenue: number; profit?: number }[];
+    cliff_price: number;
+    acceptable_range: [number, number] | null;
 }
 
 interface FullAnalysisResponse {
@@ -39,8 +45,9 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [unitCost, setUnitCost] = useState<number | undefined>();
 
-    const handleAnalysis = useCallback(async () => {
+    const handleAnalysis = useCallback(async (cost?: number) => {
         if (!survey || !responses || responses.length === 0) {
             setError("No response data available for this survey.");
             setIsLoading(false);
@@ -63,7 +70,7 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
         responses.forEach(resp => {
             gaborGrangerQuestions.forEach(q => {
                 const answer = (resp.answers as any)[q.id];
-                const priceMatch = q.title.match(/\$(\d+)/);
+                const priceMatch = q.title.match(/\$?(\d+)/);
                 if (answer && priceMatch) {
                     analysisData.push({
                         respondent_id: resp.id,
@@ -87,7 +94,8 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                 body: JSON.stringify({
                     data: analysisData,
                     price_col: 'price',
-                    purchase_intent_col: 'purchase_intent'
+                    purchase_intent_col: 'purchase_intent',
+                    unit_cost: cost
                 })
             });
 
@@ -111,8 +119,8 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
     }, [survey, responses, toast]);
     
     useEffect(() => {
-        handleAnalysis();
-    }, [handleAnalysis]);
+        handleAnalysis(unitCost);
+    }, [handleAnalysis, unitCost]);
 
     if (isLoading) {
         return <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /><p>Running Gabor-Granger analysis...</p></CardContent></Card>;
@@ -128,19 +136,40 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
 
     return (
         <div className="space-y-4">
-            <Card>
+             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Gabor-Granger Analysis Results</CardTitle>
-                    <CardDescription>Analysis of price sensitivity and revenue optimization.</CardDescription>
+                    <CardTitle>Analysis Configuration</CardTitle>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-4">
-                     <StatCard title="Optimal Price (Revenue)" value={results.optimal_revenue_price} />
-                     <StatCard title="Optimal Price (Profit)" value={results.optimal_profit_price} />
+                <CardContent>
+                     <div className="max-w-xs">
+                        <Label htmlFor="unit-cost">Unit Cost (Optional)</Label>
+                        <Input 
+                            id="unit-cost"
+                            type="number"
+                            placeholder="Enter cost per unit"
+                            value={unitCost === undefined ? '' : unitCost}
+                            onChange={e => setUnitCost(e.target.value === '' ? undefined : Number(e.target.value))}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Provide a unit cost to calculate profit-optimal pricing.</p>
+                    </div>
                 </CardContent>
             </Card>
 
             <Card>
-                <CardHeader><CardTitle>Demand & Revenue Curves</CardTitle></CardHeader>
+                <CardHeader>
+                    <CardTitle className="font-headline">Gabor-Granger Analysis Results</CardTitle>
+                    <CardDescription>Analysis of price sensitivity and revenue/profit optimization.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                     <StatCard title="Optimal Price (Revenue)" value={results.optimal_revenue_price} />
+                     <StatCard title="Optimal Price (Profit)" value={results.optimal_profit_price} />
+                     <StatCard title="Highest Revenue Index" value={results.max_revenue} unit="" />
+                     {results.max_profit !== undefined && <StatCard title="Highest Profit Index" value={results.max_profit} unit="" />}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader><CardTitle>Demand & Revenue/Profit Curves</CardTitle></CardHeader>
                 <CardContent>
                     <Image src={`data:image/png;base64,${plot}`} alt="Gabor-Granger Plot" width={1000} height={600} className="w-full rounded-md border" />
                 </CardContent>
@@ -155,7 +184,7 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                                 <TableHead>Price</TableHead>
                                 <TableHead className="text-right">Purchase Likelihood</TableHead>
                                 <TableHead className="text-right">Expected Revenue Index</TableHead>
-                                {results.max_profit !== undefined && <TableHead className="text-right">Expected Profit Index</TableHead>}
+                                {results.demand_curve.some(r => r.profit !== undefined) && <TableHead className="text-right">Expected Profit Index</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -174,4 +203,3 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
         </div>
     );
 }
-

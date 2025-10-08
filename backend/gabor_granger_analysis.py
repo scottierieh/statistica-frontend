@@ -69,6 +69,9 @@ def main():
             optimal_profit_row = demand_curve.loc[demand_curve['profit'].idxmax()]
             results_dict['optimal_profit_price'] = optimal_profit_row[price_col]
             results_dict['max_profit'] = optimal_profit_row['profit']
+            # Re-fetch the demand curve records to include profit
+            results_dict['demand_curve'] = demand_curve.to_dict('records')
+
 
         # Find "cliff" price where demand drops most sharply
         demand_curve['demand_drop'] = -demand_curve['likelihood'].diff()
@@ -132,3 +135,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
