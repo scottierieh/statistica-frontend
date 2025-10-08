@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -12,7 +13,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Skeleton } from '../ui/skeleton';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line, CartesianGrid, Bar, BarChart as RechartsBarChart } from 'recharts';
+import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line, CartesianGrid, Bar, BarChart as RechartsBarChart, Cell, ReferenceLine } from 'recharts';
 
 
 interface GaborGrangerResults {
@@ -147,6 +148,8 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
     
     const { results } = analysisResult;
     const chartData = results.demand_curve.map(d => ({...d, likelihood_pct: d.likelihood * 100}));
+    const elasticityData = results.price_elasticity.map(e => ({...e, range: `${e.price_from}-${e.price_to}`}));
+
 
     return (
         <div className="space-y-4">
@@ -235,27 +238,28 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                     </CardContent>
                 </Card>
                  <Card>
-                    <CardHeader><CardTitle>Price Elasticity</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Price Elasticity by Range</CardTitle></CardHeader>
                     <CardContent>
-                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Price Range</TableHead>
-                                    <TableHead className="text-right">Elasticity</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {results.price_elasticity.map((row, i) => (
-                                    <TableRow key={i}>
-                                        <TableCell>₩{row.price_from.toLocaleString()} → ₩{row.price_to.toLocaleString()}</TableCell>
-                                        <TableCell className="text-right font-mono">{row.elasticity.toFixed(3)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                         <ChartContainer config={{elasticity: {label: 'Elasticity'}}} className="w-full h-80">
+                            <ResponsiveContainer>
+                                <RechartsBarChart data={elasticityData} layout="vertical">
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" />
+                                    <YAxis type="category" dataKey="range" width={80} />
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <ReferenceLine x={-1} stroke="hsl(var(--destructive))" strokeDasharray="3 3" />
+                                    <Bar dataKey="elasticity" name="Elasticity">
+                                        {elasticityData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.elasticity < -1 ? "hsl(var(--destructive))" : "hsl(var(--primary))"} />
+                                        ))}
+                                    </Bar>
+                                </RechartsBarChart>
+                            </ResponsiveContainer>
+                         </ChartContainer>
                     </CardContent>
                 </Card>
             </div>
         </div>
     );
 }
+
