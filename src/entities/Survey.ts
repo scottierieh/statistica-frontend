@@ -1,5 +1,3 @@
-
-
 export type Question = {
     id: string;
     type: string;
@@ -13,6 +11,7 @@ export type Question = {
     content?: string;
     imageUrl?: string;
     rows?: string[];
+    numScalePoints?: number;
     // For Conjoint Analysis
     attributes?: ConjointAttribute[];
     designMethod?: 'full-factorial' | 'random';

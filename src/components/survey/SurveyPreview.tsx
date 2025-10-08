@@ -1,25 +1,20 @@
-
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "../ui/label";
 import { Question } from "@/entities/Survey";
+import { cn } from "@/lib/utils";
 
-// A simplified Semantic Differential preview component based on the user's image
 const SemanticDifferentialPreview = ({ question, styles }: { question: Question; styles: any }) => {
     const selectedValue = 6; // Example selected value from the image
 
-    const scalePoints = [
-        { value: 1, label: '매우' },
-        { value: 2, label: '다소' },
-        { value: 3, label: '약간' },
-        { value: 4, label: '중립' },
-        { value: 5, label: '약간' },
-        { value: 6, label: '다소' },
-        { value: 7, label: '매우' },
-    ];
+    const numPoints = question.numScalePoints || 7;
+    const scalePoints = Array.from({ length: numPoints }, (_, i) => ({
+      value: i + 1,
+      label: question.scale?.[i] || `${i + 1}`,
+    }));
     
-    const [leftLabel, rightLabel] = (question.rows?.[0] || '낮은 품질 vs 높은 품질').split('vs').map(s => s.trim());
+    const [leftLabel, rightLabel] = (question.rows?.[0] || '낮은 품질 vs 높은 품질').split(' vs ').map(s => s.trim());
 
     return (
         <div className="p-4 bg-background rounded-lg" style={{ marginBottom: styles.questionSpacing }}>
@@ -35,11 +30,11 @@ const SemanticDifferentialPreview = ({ question, styles }: { question: Question;
                     {scalePoints.map(({ value, label }) => (
                         <div key={value} className="flex flex-col items-center space-y-2">
                             <button
-                                className={`w-12 h-12 rounded-full border-2 transition-all flex items-center justify-center font-bold text-lg
-                                    ${value === selectedValue
-                                        ? 'bg-purple-600 border-purple-600 text-white shadow-lg scale-110'
-                                        : 'bg-white border-gray-300 text-gray-600 hover:border-purple-400'
-                                    }`}
+                                className={cn(`w-12 h-12 rounded-full border-2 transition-all flex items-center justify-center font-bold text-lg`,
+                                    value === selectedValue
+                                        ? 'bg-primary border-primary text-primary-foreground shadow-lg scale-110'
+                                        : 'bg-white border-gray-300 text-gray-600 hover:border-primary/50'
+                                )}
                             >
                                 {value}
                             </button>
@@ -51,6 +46,7 @@ const SemanticDifferentialPreview = ({ question, styles }: { question: Question;
         </div>
     );
 };
+
 
 export default function SurveyPreview({ styles }: { styles: any }) {
 
@@ -88,7 +84,17 @@ export default function SurveyPreview({ styles }: { styles: any }) {
                 </RadioGroup>
             </div>
              {/* Example Semantic Differential Question */}
-            <SemanticDifferentialPreview question={{id: 'sd-preview', type: 'semantic-differential', title: 'Example Semantic Differential Question', rows: ['낮은 품질 vs 높은 품질']}} styles={styles} />
+            <SemanticDifferentialPreview 
+              question={{
+                  id: 'sd-preview', 
+                  type: 'semantic-differential', 
+                  title: 'Example Semantic Differential Question', 
+                  rows: ['낮은 품질 vs 높은 품질'],
+                  scale: ['매우', '다소', '약간', '중립', '약간', '다소', '매우'],
+                  numScalePoints: 7
+              }} 
+              styles={styles} 
+            />
         </div>
       </div>
     </Card>

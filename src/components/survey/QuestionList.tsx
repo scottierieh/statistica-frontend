@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -547,55 +546,98 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles, isLikert = false
     );
 };
 
-const SemanticDifferentialQuestion = (props: any) => {
+const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
+    const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    
+    const handleBipolarScaleChange = (index: number, side: 'left' | 'right', value: string) => {
+        const newRows = produce(question.rows || [], (draft: string[]) => {
+            const parts = (draft[index] || ' vs ').split(' vs ');
+            if (side === 'left') {
+                parts[0] = value;
+            } else {
+                parts[1] = value;
+            }
+            draft[index] = parts.join(' vs ');
+        });
+        onUpdate?.({ ...question, rows: newRows });
+    };
+
+    const handleAddBipolarScale = () => {
+        const newRows = [...(question.rows || []), 'Left Label vs Right Label'];
+        onUpdate?.({ ...question, rows: newRows });
+    };
+    
+    const handleRemoveBipolarScale = (index: number) => {
+        const newRows = (question.rows || []).filter((_: any, i: number) => i !== index);
+        onUpdate?.({ ...question, rows: newRows });
+    };
+    
+    const handleScalePointChange = (newSize: number) => {
+        const oldSize = question.numScalePoints || 7;
+        const currentLabels = question.scale || [];
+        const newLabels = Array(newSize).fill('').map((_, i) => {
+            if (i < oldSize) return currentLabels[i];
+            return `${i + 1}`;
+        });
+         onUpdate?.({ ...question, numScalePoints: newSize, scale: newLabels });
+    };
+
+    const handleScaleLabelChange = (index: number, value: string) => {
+        const newScale = [...(question.scale || [])];
+        newScale[index] = value;
+        onUpdate?.({ ...question, scale: newScale });
+    };
+    
+    const numPoints = question.numScalePoints || 7;
+
     return (
         <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
-            <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                        <Input placeholder="Enter your question title" value={props.question.title} onChange={(e) => props.onUpdate?.({ ...props.question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={{ fontSize: `${props.styles.questionTextSize}px`, color: props.styles.primaryColor }} />
-                        {props.question.required && <span className="text-destructive text-xs">* Required</span>}
-                    </div>
+            <div className="p-6 space-y-4">
+                <div className="flex justify-between items-start mb-2">
+                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
                     <div className="flex items-center">
-                        <div className="flex items-center space-x-2 mr-2">
-                            <Switch id={`required-${props.question.id}`} checked={props.question.required} onCheckedChange={(checked) => props.onUpdate?.({ ...props.question, required: checked })} />
-                            <Label htmlFor={`required-${props.question.id}`}>Required</Label>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={() => props.onDelete?.(props.question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                        <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                        <Label htmlFor={`required-${question.id}`} className="mr-2">Required</Label>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
                     </div>
                 </div>
-                <div className="space-y-2 mt-4">
-                    <Label>Bipolar Scales (e.g., Low Quality vs High Quality)</Label>
-                    {(props.question.rows || []).map((row: string, index: number) => (
-                        <div key={index} className="flex items-center gap-2">
-                            <Input value={row} onChange={(e) => {
-                                const newRows = [...(props.question.rows || [])];
-                                newRows[index] = e.target.value;
-                                props.onUpdate?.({ ...props.question, rows: newRows });
-                            }} placeholder="e.g., Inexpensive vs Expensive" />
-                            <Button variant="ghost" size="icon" onClick={() => {
-                                const newRows = (props.question.rows || []).filter((_: string, i: number) => i !== index);
-                                props.onUpdate?.({ ...props.question, rows: newRows });
-                            }}>
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
-                        </div>
-                    ))}
-                    <Button variant="outline" size="sm" onClick={() => {
-                        const newRows = [...(props.question.rows || []), 'Left Label vs Right Label'];
-                        props.onUpdate?.({ ...props.question, rows: newRows });
-                    }}><PlusCircle className="mr-2 h-4 w-4" /> Add Scale</Button>
+
+                <div>
+                    <Label>Bipolar Scales</Label>
+                    <div className="space-y-2 mt-2">
+                        {(question.rows || []).map((row: string, index: number) => {
+                            const [left, right] = (row || ' vs ').split(' vs ');
+                            return (
+                                <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
+                                    <Input value={left || ''} onChange={e => handleBipolarScaleChange(index, 'left', e.target.value)} placeholder="Left Label" />
+                                    <span>vs</span>
+                                    <Input value={right || ''} onChange={e => handleBipolarScaleChange(index, 'right', e.target.value)} placeholder="Right Label" />
+                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveBipolarScale(index)}><X className="h-4 w-4"/></Button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={handleAddBipolarScale}><PlusCircle className="mr-2 h-4 w-4"/> Add Scale Row</Button>
                 </div>
-                 <div className="space-y-2 mt-4">
-                    <Label>Scale Point Labels (7 points)</Label>
-                    <div className="grid grid-cols-4 gap-2">
-                         {(props.question.scale || []).map((label: string, index: number) => (
-                             <Input key={index} value={label} onChange={e => {
-                                const newScale = [...(props.question.scale || [])];
-                                newScale[index] = e.target.value;
-                                props.onUpdate?.({ ...props.question, scale: newScale });
-                             }}/>
-                         ))}
+                
+                 <div>
+                    <Label>Scale Points</Label>
+                    <Select value={String(numPoints)} onValueChange={v => handleScalePointChange(parseInt(v))}>
+                        <SelectTrigger className="w-40">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {[...Array(8).keys()].map(i => <SelectItem key={i + 2} value={String(i + 2)}>{i + 2} points</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                 </div>
+                 
+                 <div>
+                    <Label>Scale Point Labels</Label>
+                     <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mt-2">
+                        {Array.from({ length: numPoints }).map((_, i) => (
+                             <Input key={i} value={question.scale?.[i] || ''} onChange={e => handleScaleLabelChange(i, e.target.value)} placeholder={`Point ${i+1}`} />
+                        ))}
                     </div>
                  </div>
             </div>

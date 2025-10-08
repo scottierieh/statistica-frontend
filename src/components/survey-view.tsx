@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -255,9 +254,10 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
 };
 
 const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question, answer: any, onAnswerChange: (value: any) => void, styles: any }) => {
-    const scalePoints = (question.scale || ['1', '2', '3', '4', '5', '6', '7']).map((label, index) => ({
-      value: index + 1,
-      label,
+    const numPoints = question.numScalePoints || 7;
+    const scalePoints = Array.from({ length: numPoints }, (_, i) => ({
+      value: i + 1,
+      label: question.scale?.[i] || `${i + 1}`,
     }));
   
     return (
@@ -265,7 +265,7 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
         <h3 className="text-lg font-semibold mb-4" style={{ fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor }}>{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         <div className="space-y-6">
           {(question.rows || []).map((rowText, index) => {
-            const [left, right] = rowText.split('vs').map(s => s.trim());
+            const [left, right] = (rowText || ' vs ').split(' vs ').map(s => s.trim());
             const selectedValue = answer?.[rowText];
             return (
               <div key={index} className="bg-white rounded-lg p-6 border border-gray-200">
@@ -278,11 +278,11 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
                     <div key={value} className="flex flex-col items-center space-y-2">
                       <button
                         onClick={() => onAnswerChange(produce(answer || {}, (draft: any) => { draft[rowText] = value; }))}
-                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full border-2 transition-all flex items-center justify-center font-bold text-lg
-                                  ${value === selectedValue
+                        className={cn(`w-10 h-10 md:w-12 md:h-12 rounded-full border-2 transition-all flex items-center justify-center font-bold text-lg`,
+                                  value === selectedValue
                                     ? 'bg-primary border-primary text-primary-foreground shadow-lg scale-110'
                                     : 'bg-background border-border text-foreground hover:border-primary/50'
-                                  }`}
+                                  )}
                       >
                         {value}
                       </button>
