@@ -239,10 +239,10 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                 </Card>
                  <Card>
                     <CardHeader><CardTitle>Price Elasticity by Range</CardTitle></CardHeader>
-                    <CardContent>
+                    <CardContent className="grid grid-cols-2 gap-4">
                          <ChartContainer config={{elasticity: {label: 'Elasticity'}}} className="w-full h-80">
                             <ResponsiveContainer>
-                                <RechartsBarChart data={elasticityData} layout="vertical">
+                                <RechartsBarChart data={elasticityData} layout="vertical" margin={{ left: 60, right: 30 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis type="number" />
                                     <YAxis type="category" dataKey="range" width={80} />
@@ -256,6 +256,24 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                                 </RechartsBarChart>
                             </ResponsiveContainer>
                          </ChartContainer>
+                         <div className="overflow-y-auto h-80">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Price Range</TableHead>
+                                        <TableHead className="text-right">Elasticity</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {elasticityData.map((item, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell>{item.range}</TableCell>
+                                            <TableCell className="text-right font-mono">{item.elasticity.toFixed(2)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -263,3 +281,4 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
     );
 }
 
+```
