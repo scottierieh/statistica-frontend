@@ -1,13 +1,16 @@
 
-
 import sys
 import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy import interpolate
 import io
 import base64
+import warnings
+
+warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -19,30 +22,6 @@ def _to_native_type(obj):
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     return obj
-
-def generate_interpretation(results):
-    optimal_price = results.get('optimal_revenue_price', 0)
-    max_revenue = results.get('max_revenue', 0)
-    optimal_profit_price = results.get('optimal_profit_price')
-    cliff_price = results.get('cliff_price')
-    
-    interp = f"The analysis identifies several key pricing metrics based on customer purchase intent.\n\n"
-    
-    interp += f"**Revenue-Maximizing Price**: The price point that maximizes potential revenue is **${optimal_price:.2f}**, generating an estimated revenue of ${max_revenue:.2f} per respondent.\n"
-    
-    if optimal_profit_price is not None:
-        interp += f"**Profit-Maximizing Price**: When accounting for a unit cost, the price that maximizes profit is **${optimal_profit_price:.2f}**.\n"
-        
-    if cliff_price is not None:
-        interp += f"**Price Threshold**: A significant drop-off in purchase intent occurs around **${cliff_price:.2f}**. Pricing above this point may lead to a sharp decrease in demand.\n"
-        
-    if 'acceptable_range' in results and results['acceptable_range']:
-        interp += f"**Optimal Price Range**: The range of prices where revenue is maintained within 90% of its maximum is between **${results['acceptable_range'][0]:.2f}** and **${results['acceptable_range'][1]:.2f}**. This can be considered a stable pricing corridor.\n\n"
-        
-    interp += "These points provide a data-driven foundation for balancing market penetration, revenue, and profitability."
-    
-    return interp.strip()
-
 
 def main():
     try:
@@ -103,10 +82,6 @@ def main():
         else:
             results_dict['acceptable_range'] = None
 
-        # Generate interpretation
-        results_dict['interpretation'] = generate_interpretation(results_dict)
-
-
         # --- Plotting ---
         fig, ax1 = plt.subplots(figsize=(10, 6))
 
@@ -130,7 +105,6 @@ def main():
             ax2.plot(demand_curve[price_col], demand_curve['profit'], color='purple', marker='+', linestyle='--', label='Profit Curve')
             if 'optimal_profit_price' in results_dict:
                 ax2.axvline(x=results_dict['optimal_profit_price'], color='purple', linestyle=':', label=f'Optimal Profit Price: ${results_dict["optimal_profit_price"]:.2f}')
-
         
         fig.suptitle('Gabor-Granger Price Analysis', fontsize=16, fontweight='bold')
         lines, labels = ax1.get_legend_handles_labels()
