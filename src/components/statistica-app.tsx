@@ -126,7 +126,6 @@ import WordCloudPage from './pages/wordcloud-page';
 import IpaPage from './pages/ipa-page';
 import TurfPage from './pages/turf-page';
 import HistoryPage from './pages/history-page';
-import GaborGrangerPage from './pages/gabor-granger-page';
 
 
 const analysisCategories = [
@@ -252,7 +251,6 @@ const analysisCategories = [
         items: [
             { id: 'ipa', label: 'IPA', icon: Target, component: IpaPage },
             { id: 'turf', label: 'TURF Analysis', icon: ThumbsUp, component: TurfPage },
-            { id: 'gabor-granger', label: 'Gabor-Granger', icon: DollarSign, component: GaborGrangerPage },
         ],
     },
 ];

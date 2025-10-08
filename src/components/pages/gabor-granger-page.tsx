@@ -1,278 +1,246 @@
-
 'use client';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import type { DataSet } from '@/lib/stats';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Sigma, Loader2, DollarSign, Info, Brain, LineChart, AlertTriangle, HelpCircle, MoveRight } from 'lucide-react';
-import { exampleDatasets, type ExampleDataSet } from '@/lib/example-datasets';
-import Image from 'next/image';
-import { Label } from '../ui/label';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { Input } from '../ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
-interface AnalysisResponse {
-    results: {
-        demand_curve: { price: number; likelihood: number; revenue: number }[];
-        optimal_revenue_price: number;
-        max_revenue: number;
-        optimal_profit_price?: number;
-        max_profit?: number;
-        cliff_price?: number;
-        acceptable_range?: [number, number];
-        interpretation: string;
-    };
-    plot: string;
-}
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
+import StatsCard from "@/components/dashboard/survey2/StatsCard";
+import SurveyCard from "@/components/dashboard/survey2/SurveyCard";
+import EmptyState from "@/components/dashboard/survey2/EmptyState";
+import type { Survey, SurveyResponse } from '@/types/survey';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate } from "@/lib/survey-templates";
 
-const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExample: (e: any) => void }) => {
-    const psmExample = exampleDatasets.find(d => d.id === 'gabor-granger');
-    return (
-        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
-            <Card className="w-full max-w-4xl shadow-2xl">
-                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
-                    <div className="flex justify-center items-center gap-3 mb-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                            <DollarSign size={36} />
-                        </div>
-                    </div>
-                    <CardTitle className="font-headline text-4xl font-bold">Gabor-Granger Pricing Analysis</CardTitle>
-                    <CardDescription className="text-xl pt-2 text-muted-foreground max-w-2xl mx-auto">
-                        A direct pricing technique to determine the price elasticity of a product by measuring purchase likelihood at different price points.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-8 px-8 py-10">
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-xl">How it Works</h3>
-                        <p className="text-muted-foreground">
-                            Respondents are asked a direct question about their likelihood of purchasing a product at various prices (e.g., "Would you buy this product at $10?"). By plotting the percentage of people willing to buy at each price, we can create a demand curve and a corresponding revenue curve to identify optimal pricing points.
-                        </p>
-                    </div>
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-xl">Key Metrics</h3>
-                        <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                            <li><strong>Demand Curve:</strong> Shows how many people are willing to buy as the price changes.</li>
-                            <li><strong>Revenue Curve:</strong> Calculated as (Price × Purchase Likelihood). The peak of this curve shows the revenue-maximizing price.</li>
-                            <li><strong>Price Cliff:</strong> The point where a small price increase causes the largest drop in demand.</li>
-                            <li><strong>Optimal Price:</strong> The price that maximizes total revenue.</li>
-                        </ul>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex justify-between p-6 bg-muted/30 rounded-b-lg">
-                    {psmExample && <Button variant="outline" onClick={() => onLoadExample(psmExample)}>Load Sample Data</Button>}
-                    <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
-                </CardFooter>
-            </Card>
+const TemplateCard = ({ icon: Icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) => (
+    <Link href={href} className="block">
+        <div className="p-4 border rounded-lg hover:bg-accent hover:shadow-md transition-all h-full flex flex-col">
+            <div className="flex items-center gap-3 mb-2">
+                <Icon className="w-6 h-6 text-primary"/>
+                <h4 className="font-semibold">{title}</h4>
+            </div>
+            <p className="text-xs text-muted-foreground flex-1">{description}</p>
+             <Button variant="link" size="sm" className="mt-2 p-0 h-auto self-start">Use Template</Button>
         </div>
-    );
-};
-
-interface GaborGrangerPageProps {
-    data: DataSet;
-    numericHeaders: string[];
-    onLoadExample: (example: ExampleDataSet) => void;
-}
-
-const StatCard = ({ title, value, unit = '$' }: { title: string, value: number | undefined | null, unit?: string }) => (
-    <div className="p-4 bg-muted rounded-lg text-center">
-        <p className="text-sm text-muted-foreground">{title}</p>
-        <p className="text-2xl font-bold">{value !== undefined && value !== null ? `${unit}${value.toFixed(2)}` : 'N/A'}</p>
-    </div>
+    </Link>
 );
 
-export default function GaborGrangerPage({ data, numericHeaders, onLoadExample }: GaborGrangerPageProps) {
-    const { toast } = useToast();
-    const [view, setView] = useState('intro');
-    const [priceCol, setPriceCol] = useState<string | undefined>();
-    const [purchaseIntentCol, setPurchaseIntentCol] = useState<string | undefined>();
-    const [unitCost, setUnitCost] = useState<number | undefined>();
-    
-    const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    
-    const canRun = useMemo(() => data.length > 0 && numericHeaders.length >= 2, [data, numericHeaders]);
-    
-    useEffect(() => {
-        setPriceCol(numericHeaders.find(h => h.toLowerCase().includes('price')));
-        setPurchaseIntentCol(numericHeaders.find(h => h.toLowerCase().includes('intent') || h.toLowerCase().includes('purchase')));
-        setUnitCost(undefined);
-        setAnalysisResult(null);
-        setView(canRun ? 'main' : 'intro');
-    }, [data, numericHeaders, canRun]);
 
-    const handleAnalysis = useCallback(async () => {
-        if (!priceCol || !purchaseIntentCol) {
-            toast({ variant: 'destructive', title: 'Selection Error', description: 'Please select both the price and purchase intent columns.' });
-            return;
-        }
+export default function Survey2Dashboard() {
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [responses, setResponses] = useState<SurveyResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
 
-        setIsLoading(true);
-        setAnalysisResult(null);
+  useEffect(() => {
+    loadData();
+  }, []);
 
-        try {
-            const response = await fetch('/api/analysis/gabor-granger', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    data, 
-                    price_col: priceCol,
-                    purchase_intent_col: purchaseIntentCol,
-                    unit_cost: unitCost
-                })
-            });
+  const loadData = async () => {
+    setIsLoading(true);
+    // Simulating an API call latency
+    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]') as Survey[];
+      const allResponses: SurveyResponse[] = [];
+      
+      storedSurveys.forEach(survey => {
+        const surveyResponses = JSON.parse(localStorage.getItem(`${survey.id}_responses`) || '[]');
+        allResponses.push(...surveyResponses);
+      });
 
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${response.status}`);
-            }
-
-            const result: AnalysisResponse = await response.json();
-            if ((result as any).error) throw new Error((result as any).error);
-            
-            setAnalysisResult(result);
-            toast({ title: "Analysis Complete", description: "Gabor-Granger analysis finished successfully." });
-
-        } catch (e: any) {
-            console.error('Gabor-Granger error:', e);
-            toast({ variant: 'destructive', title: 'Analysis Error', description: e.message });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [data, priceCol, purchaseIntentCol, unitCost, toast]);
-    
-    const results = analysisResult?.results;
-
-    const formattedInterpretation = useMemo(() => {
-        if (!results?.interpretation) return [];
-        return results.interpretation.split('\n').filter(line => line.trim() !== '');
-    }, [results]);
-
-    if (view === 'intro') {
-        return <IntroPage onStart={() => setView('main')} onLoadExample={onLoadExample} />;
+      setSurveys(storedSurveys.sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime()));
+      setResponses(allResponses);
+    } catch (e) {
+      console.error("Failed to load data from localStorage", e);
+      // Handle potential JSON parsing errors, etc.
+    } finally {
+      setIsLoading(false);
     }
-
-    if (!canRun) {
-        const psmExamples = exampleDatasets.filter(ex => ex.analysisTypes.includes('gabor-granger'));
-        return (
-            <div className="flex flex-1 items-center justify-center">
-                <Card className="w-full max-w-2xl text-center">
-                    <CardHeader>
-                        <CardTitle className="font-headline">Gabor-Granger Pricing</CardTitle>
-                        <CardDescription>
-                           To perform this analysis, you need data with a price column and a purchase intent column (e.g., a 1-5 scale).
-                        </CardDescription>
-                    </CardHeader>
-                    {psmExamples.length > 0 && (
-                        <CardContent>
-                             <Button onClick={() => onLoadExample(psmExamples[0])} className="w-full" size="sm">
-                                Load {psmExamples[0].name}
-                            </Button>
-                        </CardContent>
-                    )}
-                </Card>
-            </div>
-        );
-    }
-
-    return (
-        <div className="space-y-4">
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="font-headline">Gabor-Granger Setup</CardTitle>
-                        <Button variant="ghost" size="icon" onClick={() => setView('intro')}><HelpCircle className="w-5 h-5"/></Button>
-                    </div>
-                    <CardDescription>Map the price and purchase intent columns from your data.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>How to Set Up Your Data</AlertTitle>
-                        <AlertDescription>
-                            <ul className="list-disc pl-5 mt-2 text-xs">
-                                <li><strong>Price Column:</strong> Should contain the different price points presented to respondents (e.g., $10, $15, $20).</li>
-                                <li><strong>Purchase Intent Column:</strong> Should contain the respondent's likelihood to purchase at a given price, typically on a scale (e.g., a 1-5 Likert scale where 5 is 'Definitely would buy').</li>
-                                <li><strong>Data Format:</strong> Each row should represent one respondent's answer to one price point. If a respondent sees 5 price points, they will have 5 rows in the data.</li>
-                            </ul>
-                        </AlertDescription>
-                    </Alert>
-                    <div className="grid md:grid-cols-3 gap-4">
-                        <div>
-                            <Label>Price Column</Label>
-                            <Select value={priceCol} onValueChange={setPriceCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                        <div>
-                            <Label>Purchase Intent Column</Label>
-                            <Select value={purchaseIntentCol} onValueChange={setPurchaseIntentCol}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{numericHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent></Select>
-                        </div>
-                        <div>
-                             <Label>Unit Cost (Optional)</Label>
-                            <Input type="number" value={unitCost ?? ''} onChange={e => setUnitCost(e.target.value ? parseFloat(e.target.value) : undefined)} placeholder="Enter cost for profit analysis"/>
-                        </div>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                    <Button onClick={handleAnalysis} disabled={isLoading || !priceCol || !purchaseIntentCol}>
-                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Analyzing...</> : <><Sigma className="mr-2"/>Run Analysis</>}
-                    </Button>
-                </CardFooter>
-            </Card>
-
-            {isLoading && <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>}
-
-            {results && analysisResult?.plot && (
-                <Tabs defaultValue="visuals" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="visuals"><LineChart className="mr-2 h-4 w-4"/>Visualizations</TabsTrigger>
-                        <TabsTrigger value="summary"><DollarSign className="mr-2 h-4 w-4"/>Key Metrics</TabsTrigger>
-                        <TabsTrigger value="interpretation"><Brain className="mr-2 h-4 w-4"/>Interpretation</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="visuals" className="mt-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline">Demand and Revenue/Profit Curves</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Image src={analysisResult.plot} alt="Gabor-Granger Plot" width={1000} height={600} className="w-full rounded-md border" />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="summary" className="mt-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Key Price Points</CardTitle>
-                            </CardHeader>
-                            <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <StatCard title="Revenue-Max Price" value={results.optimal_revenue_price} />
-                                {results.optimal_profit_price && <StatCard title="Profit-Max Price" value={results.optimal_profit_price} />}
-                                {results.cliff_price && <StatCard title="Price Cliff" value={results.cliff_price} />}
-                                {results.acceptable_range && <StatCard title="Acceptable Range (Min)" value={results.acceptable_range[0]} />}
-                                {results.acceptable_range && <StatCard title="Acceptable Range (Max)" value={results.acceptable_range[1]} />}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                     <TabsContent value="interpretation" className="mt-4">
-                        <Card>
-                            <CardHeader><CardTitle className="flex items-center gap-2"><Brain/> Analysis Interpretation</CardTitle></CardHeader>
-                            <CardContent>
-                                <Alert>
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Summary of Findings</AlertTitle>
-                                    <AlertDescription className="space-y-2">
-                                        {formattedInterpretation.map((line, index) => (
-                                          <p key={index} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-                                        ))}
-                                    </AlertDescription>
-                                </Alert>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
-            )}
-        </div>
+  };
+  
+  const handleSurveyUpdate = (updatedSurvey: Survey) => {
+    setSurveys(prevSurveys => 
+      prevSurveys.map(s => s.id === updatedSurvey.id ? updatedSurvey : s)
     );
+  };
+
+  const filteredSurveys = filter === "all" 
+    ? surveys 
+    : surveys.filter(s => {
+        const now = new Date();
+        const startDate = s.startDate ? new Date(s.startDate) : null;
+        const endDate = s.endDate ? new Date(s.endDate) : null;
+
+        let effectiveStatus = s.status;
+
+        if (s.status !== 'closed') {
+            if (startDate && now < startDate) {
+                effectiveStatus = 'scheduled';
+            } else if (endDate && now > endDate) {
+                effectiveStatus = 'closed';
+            } else if (startDate && (!endDate || now <= endDate)) {
+                effectiveStatus = 'active';
+            }
+        }
+        return effectiveStatus === filter;
+    });
+
+  const totalResponses = responses.length;
+  const activeSurveys = surveys.filter(s => {
+      const now = new Date();
+      const startDate = s.startDate ? new Date(s.startDate) : null;
+      const endDate = s.endDate ? new Date(s.endDate) : null;
+      if (s.status === 'closed') return false;
+      if (startDate && now < startDate) return false;
+      if (endDate && now > endDate) return false;
+      return s.status === 'active' || (s.status === 'draft' && !!s.startDate);
+  }).length;
+  
+  const avgResponseRate = surveys.length > 0 
+    ? (totalResponses / surveys.length).toFixed(1) 
+    : "0";
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-10">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+        >
+          <div>
+            <h1 className="text-4xl font-bold text-slate-900 mb-2">
+              Survey Dashboard
+            </h1>
+            <p className="text-slate-600">Manage surveys and analyze results</p>
+          </div>
+           <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
+            <DialogTrigger asChild>
+                 <Button size="lg" className="gap-2">
+                    <Plus className="w-5 h-5" />
+                    Create New Survey
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Create a New Survey</DialogTitle>
+                    <DialogDescription>Start from scratch or use one of our expert-designed templates.</DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                     <Link href="/dashboard/createsurvey">
+                        <div className="p-6 mb-6 rounded-lg border bg-card hover:bg-accent cursor-pointer">
+                            <h3 className="font-semibold text-lg flex items-center gap-2"><Plus className="w-5 h-5"/>Start from Scratch</h3>
+                            <p className="text-sm text-muted-foreground">Build a custom survey for your specific needs.</p>
+                        </div>
+                    </Link>
+                    <h4 className="font-semibold mb-4">Or use a template</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                         <TemplateCard icon={Target} title="IPA Survey" description="Measure Importance vs. Performance to find key improvement areas." href="/dashboard/createsurvey?template=ipa"/>
+                         <TemplateCard icon={Handshake} title="Choice-Based Conjoint" description="Understand how customers value different attributes of a product using choices." href="/dashboard/createsurvey?template=cbc"/>
+                         <TemplateCard icon={ClipboardList} title="Rating Conjoint" description="Analyze customer preferences using a rating-based approach." href="/dashboard/createsurvey?template=rating-conjoint"/>
+                         <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
+                         <TemplateCard icon={DollarSign} title="Price Sensitivity (PSM)" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=van-westendorp"/>
+                         <TemplateCard icon={DollarSign} title="Gabor-Granger" description="Determine price elasticity by asking direct purchase likelihood questions." href="/dashboard/createsurvey?template=gabor-granger"/>
+                         <TemplateCard icon={Users} title="TURF Analysis" description="Identify the best combination of items to maximize reach." href="/dashboard/createsurvey?template=turf"/>
+                         <TemplateCard icon={Network} title="AHP (Criteria Only)" description="Prioritize criteria using pairwise comparisons." href="/dashboard/createsurvey?template=ahp-criteria"/>
+                         <TemplateCard icon={Network} title="AHP (Full)" description="Make complex decisions by comparing criteria and alternatives." href="/dashboard/createsurvey?template=ahp-full"/>
+                    </div>
+                </div>
+            </DialogContent>
+           </Dialog>
+        </motion.div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <StatsCard
+          title="Total Surveys"
+          value={surveys.length.toString()}
+          icon={FileText}
+          gradient="from-blue-400 to-cyan-400"
+          trend={`${activeSurveys} active`}
+        />
+        <StatsCard
+          title="Total Responses"
+          value={totalResponses.toString()}
+          icon={Users}
+          gradient="from-purple-400 to-pink-400"
+          trend="This month"
+        />
+        <StatsCard
+          title="Avg Response Rate"
+          value={`${avgResponseRate}`}
+          icon={TrendingUp}
+          gradient="from-emerald-400 to-teal-400"
+          suffix="/survey"
+        />
+        <StatsCard
+          title="Active Surveys"
+          value={activeSurveys.toString()}
+          icon={BarChart3}
+          gradient="from-orange-400 to-amber-400"
+        />
+      </div>
+
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        {[
+          { key: "all", label: "All" },
+          { key: "active", label: "Active" },
+          { key: "draft", label: "Draft" },
+          { key: "closed", label: "Closed" }
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setFilter(tab.key)}
+            className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-200 whitespace-nowrap ${
+              filter === tab.key
+                ? tab.key === 'all'
+                  ? 'bg-slate-700 text-white shadow-lg'
+                  : 'bg-primary text-primary-foreground shadow-lg'
+                : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white rounded-2xl p-6 border border-slate-200">
+              <Skeleton className="h-6 w-3/4 mb-4" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-2/3 mb-6" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ))}
+        </div>
+      ) : filteredSurveys.length === 0 ? (
+        <EmptyState filter={filter} />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AnimatePresence>
+            {filteredSurveys.map((survey) => (
+              <SurveyCard
+                key={survey.id}
+                survey={survey}
+                responses={responses.filter(r => r.survey_id === survey.id)}
+                onUpdate={handleSurveyUpdate}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
 }
