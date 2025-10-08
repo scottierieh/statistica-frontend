@@ -304,11 +304,10 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
 
 const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: any; onAnswerChange: (value: any) => void; styles: any; }) => {
     const { criteria = [], alternatives = [] } = question;
-    const [currentIndex, setCurrentIndex] = useState(0);
 
     const allPairs = useMemo(() => {
         const createPairs = (items: (string | Criterion)[]) => {
-            const pairs: { pair: [string, string], isSub?: boolean, parent?: string }[] = [];
+            const pairs: { pair: [string, string] }[] = [];
             const itemNames = items.map(i => typeof i === 'string' ? i : i.name);
             for (let i = 0; i < itemNames.length; i++) {
                 for (let j = i + 1; j < itemNames.length; j++) {
@@ -348,7 +347,7 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
             });
         }
 
-        return comparisons.flatMap(group => group.pairs.map(p => ({ ...p, title: group.title, matrixKey: group.matrixKey })));
+        return comparisons;
     }, [criteria, alternatives]);
 
     const handleValueChange = (pairKey: string, matrixKey: string, value: number) => {
@@ -358,46 +357,45 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
         }));
     };
     
-    if (allPairs.length === 0) {
+    if (allPairs.flat().length === 0) {
         return <p>AHP Question not configured correctly.</p>;
     }
 
-    const currentComparison = allPairs[currentIndex];
-    
-    const PairwiseComparison = ({ pair, matrixKey, title }: { pair: [string, string], matrixKey: string, title: string }) => {
+    const PairwiseComparison = ({ pair, matrixKey }: { pair: [string, string], matrixKey: string }) => {
         const pairKey = `${pair[0]} vs ${pair[1]}`;
         const value = answer?.[matrixKey]?.[pairKey];
 
         return (
-            <div className="space-y-6">
-                <h4 className="font-semibold text-xl mb-4 text-center">{title}</h4>
-                <div className="p-6 rounded-lg border bg-white mb-4 shadow-sm">
-                    <div className="relative flex flex-col items-center justify-between gap-4">
-                        <div className="flex w-full justify-between items-center font-bold">
-                            <span className="text-left w-1/3 text-lg" style={{color: styles.primaryColor}}>{pair[0]}</span>
-                            <span className="text-center w-auto text-muted-foreground text-sm">vs</span>
-                            <span className="text-right w-1/3 text-lg" style={{color: styles.primaryColor}}>{pair[1]}</span>
-                        </div>
-                        <RadioGroup 
-                            className="flex justify-between gap-1 sm:gap-2 w-full pt-4"
-                            value={String(value)} 
-                            onValueChange={(v) => handleValueChange(pairKey, matrixKey, parseInt(v))}
-                        >
-                        {[9,7,5,3,1,3,5,7,9].map((v, index) => {
+            <div className="p-6 rounded-lg border bg-white mb-4 shadow-sm">
+                <div className="relative flex flex-col items-center justify-between gap-4">
+                    <div className="flex w-full justify-between font-bold">
+                        <span className="text-left w-1/3 text-primary" style={{ color: styles.primaryColor }}>{pair[0]}</span>
+                        <span className="text-center w-auto px-2 text-muted-foreground">vs</span>
+                        <span className="text-right w-1/3 text-primary" style={{ color: styles.primaryColor }}>{pair[1]}</span>
+                    </div>
+                    <RadioGroup 
+                        className="flex justify-between gap-1 sm:gap-2 w-full"
+                        value={String(value)} 
+                        onValueChange={(v) => handleValueChange(pairKey, matrixKey, parseInt(v))}
+                    >
+                       {[9, 7, 5, 3, 1, 3, 5, 7, 9].map((v, index) => {
                             const radioValue = index < 4 ? -v : v;
                             return (
                                 <div key={index} className="flex flex-col items-center space-y-1">
-                                    <RadioGroupItem value={String(radioValue)} id={`pair-${matrixKey}-${pair.join('-')}-${v}-${index}`} className="h-6 w-6"/>
-                                    <Label htmlFor={`pair-${matrixKey}-${pair.join('-')}-${v}-${index}`} className="text-xs text-muted-foreground">{v}</Label>
+                                    <RadioGroupItem 
+                                        value={String(radioValue)} 
+                                        id={`pair-${matrixKey}-${pair.join('-')}-${radioValue}`} 
+                                        className={cn(value === radioValue && "bg-primary text-primary-foreground")}
+                                    />
+                                    <Label htmlFor={`pair-${matrixKey}-${pair.join('-')}-${radioValue}`} className="text-xs text-muted-foreground">{v}</Label>
                                 </div>
                             )
                         })}
-                        </RadioGroup>
-                        <div className="w-full flex justify-between text-xs text-muted-foreground mt-2 px-1">
-                            <span className="text-left text-[10px] sm:text-xs">Strongly Prefer {pair[0]}</span>
-                            <span className="text-center text-[10px] sm:text-xs">Neutral</span>
-                            <span className="text-right text-[10px] sm:text-xs">Strongly Prefer {pair[1]}</span>
-                        </div>
+                    </RadioGroup>
+                    <div className="w-full flex justify-between text-xs text-muted-foreground mt-2 px-1">
+                        <span className="text-left text-[10px] sm:text-xs">Strongly Prefer {pair[0]}</span>
+                        <span className="text-center text-[10px] sm:text-xs">Neutral</span>
+                        <span className="text-right text-[10px] sm:text-xs">Strongly Prefer {pair[1]}</span>
                     </div>
                 </div>
             </div>
@@ -420,25 +418,19 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
                 </div>
             </div>
 
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={currentIndex}
-                    initial={{ opacity: 0, x: 50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -50 }}
-                >
-                    <PairwiseComparison 
-                        pair={currentComparison.pair} 
-                        matrixKey={currentComparison.matrixKey} 
-                        title={currentComparison.title}
-                    />
-                </motion.div>
-            </AnimatePresence>
-            
-            <div className="flex justify-between items-center mt-6">
-                 <Button onClick={() => setCurrentIndex(p => p - 1)} disabled={currentIndex === 0}>Previous</Button>
-                 <span className="text-sm text-muted-foreground">{currentIndex + 1} / {allPairs.length}</span>
-                 <Button onClick={() => setCurrentIndex(p => p + 1)} disabled={currentIndex === allPairs.length - 1}>Next</Button>
+            <div className="space-y-8">
+            {allPairs.map((group, groupIndex) => (
+                <div key={group.matrixKey}>
+                    <h4 className="font-semibold text-xl mb-4 text-center">{group.title}</h4>
+                    {group.pairs.map((p, pairIndex) => (
+                         <PairwiseComparison 
+                            key={`${group.matrixKey}-${pairIndex}`}
+                            pair={p.pair} 
+                            matrixKey={group.matrixKey}
+                        />
+                    ))}
+                </div>
+            ))}
             </div>
         </div>
     );
@@ -826,3 +818,4 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     );
 }
 
+```
