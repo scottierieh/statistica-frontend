@@ -49,7 +49,7 @@ export const ratingBasedConjointTemplate = {
             attributes: [
                 { id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung', 'Google'] },
                 { id: `attr-2`, name: 'Price', levels: ['$999', '$799', '$699'] },
-                { id: `attr-3`, name: 'Screen Size', levels: ['6.1"',, '6.7"'] },
+                { id: `attr-3`, name: 'Screen Size', levels: ['6.1"', '6.7"'] },
             ],
             profiles: [
                 { id: 'profile_1', Brand: 'Apple', Price: '$999', 'Screen Size': '6.7"' },
@@ -206,4 +206,34 @@ export const gaborGrangerTemplate = {
             options: ['Yes, I would buy', 'No, I would not buy']
         }
     ] as Question[]
+};
+
+export const ahpCriteriaOnlyTemplate = {
+    title: "Feature Prioritization (AHP)",
+    description: "Help us understand which features are most important to you by comparing them against each other.",
+    questions: [
+        {
+            id: 'ahp_criteria_q_1',
+            type: 'ahp',
+            title: 'Which feature is more important to you for a new smartphone?',
+            required: true,
+            criteria: ['Price', 'Camera Quality', 'Battery Life', 'Performance'],
+            alternatives: [],
+        },
+    ],
+};
+
+export const ahpWithAlternativesTemplate = {
+    title: "Smartphone Selection (AHP)",
+    description: "Help us select the best smartphone by providing your preferences on different criteria.",
+    questions: [
+        {
+            id: 'ahp_full_q_1',
+            type: 'ahp',
+            title: 'Which feature is more important for a new smartphone?',
+            required: true,
+            criteria: ['Price', 'Performance', 'Design'],
+            alternatives: ['Phone X', 'Phone Y', 'Phone Z'],
+        },
+    ],
 };
