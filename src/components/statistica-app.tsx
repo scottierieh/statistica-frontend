@@ -61,6 +61,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   CheckSquare,
+  Clock,
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
@@ -124,6 +125,7 @@ import OneSampleTTestPage from './pages/one-sample-t-test-page';
 import WordCloudPage from './pages/wordcloud-page';
 import IpaPage from './pages/ipa-page';
 import TurfPage from './pages/turf-page';
+import HistoryPage from './pages/history-page';
 
 
 const analysisCategories = [
@@ -409,6 +411,7 @@ export default function StatisticaApp() {
   const hasData = data.length > 0;
   
   const ActivePageComponent = useMemo(() => {
+    if (activeAnalysis === 'history') return HistoryPage;
     for (const category of analysisCategories) {
         if ('items' in category) {
             const found = category.items.find(item => item.id === activeAnalysis);
@@ -442,6 +445,17 @@ export default function StatisticaApp() {
             </div>
           </SidebarHeader>
           <SidebarContent>
+            <SidebarMenu>
+               <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setActiveAnalysis('history')}
+                    isActive={activeAnalysis === 'history'}
+                  >
+                    <Clock />
+                    <span>History</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
             <SidebarMenu>
               {analysisCategories.map(category => (
                 <Collapsible key={category.name} open={openCategories.includes(category.name)} onOpenChange={() => toggleCategory(category.name)}>
