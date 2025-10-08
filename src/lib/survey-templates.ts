@@ -159,3 +159,51 @@ export const turfTemplate = {
         },
     ] as Question[],
 };
+
+export const gaborGrangerTemplate = {
+    title: "Gabor-Granger Price Analysis",
+    description: "Please indicate if you would purchase the product at the following prices.",
+    questions: [
+        {
+            id: 'gg_desc',
+            type: 'description',
+            title: 'Instructions',
+            content: 'For each of the prices shown, please indicate whether you would be willing to purchase the product.'
+        },
+        {
+            id: 'gg_q_5000',
+            type: 'single',
+            title: 'If this product was sold for $5000, would you buy it?',
+            required: true,
+            options: ['Yes, I would buy', 'No, I would not buy']
+        },
+        {
+            id: 'gg_q_7000',
+            type: 'single',
+            title: 'If this product was sold for $7000, would you buy it?',
+            required: true,
+            options: ['Yes, I would buy', 'No, I would not buy']
+        },
+        {
+            id: 'gg_q_9000',
+            type: 'single',
+            title: 'If this product was sold for $9000, would you buy it?',
+            required: true,
+            options: ['Yes, I would buy', 'No, I would not buy']
+        },
+        {
+            id: 'gg_q_11000',
+            type: 'single',
+            title: 'If this product was sold for $11000, would you buy it?',
+            required: true,
+            options: ['Yes, I would buy', 'No, I would not buy']
+        },
+        {
+            id: 'gg_q_13000',
+            type: 'single',
+            title: 'If this product was sold for $13000, would you buy it?',
+            required: true,
+            options: ['Yes, I would buy', 'No, I would not buy']
+        }
+    ] as Question[]
+};
