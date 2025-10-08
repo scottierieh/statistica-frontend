@@ -1,6 +1,6 @@
 
 
-import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake } from "lucide-react";
+import { Car, Coffee, Database, ShieldCheck, LucideIcon, BookOpen, Users, BrainCircuit, Network, TrendingUp, FlaskConical, Binary, Copy, Sigma, BarChart, Columns, Target, Component, HeartPulse, Feather, GitBranch, Smile, Scaling, AreaChart, LineChart, Layers, Map, Repeat, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, ClipboardList, Handshake, Replace } from "lucide-react";
 import { likertScaleData } from "./example-datasets/likert-scale-data";
 import { studentPerformanceData } from "./example-datasets/student-performance";
 import { workStressData } from "./example-datasets/work-stress-data";
@@ -45,7 +45,7 @@ import { csatData } from './example-datasets/csat-data';
 
 // The definition for AnalysisType was moved to statistica-app.tsx to avoid circular dependencies.
 // Let's define it here locally for this file's purpose.
-type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | 'classifier-comparison' | 'turf' | 'csat' | string;
+type AnalysisType = 'stats' | 'correlation' | 'one-way-anova' | 'two-way-anova' | 'ancova' | 'manova' | 'reliability' | 'visuals' | 'discriminant' | 'efa' | 'mediation' | 'moderation' | 'nonparametric' | 'hca' | 't-test' | 'regression' | 'logistic-regression' | 'glm' | 'kmeans' | 'kmedoids' | 'hdbscan' | 'frequency' | 'crosstab' | 'sem' | 'conjoint' | 'cbc' | 'ipa' | 'pca' | 'survival' | 'wordcloud' | 'gbm' | 'sentiment' | 'meta-analysis' | 'mds' | 'rm-anova' | 'dbscan' | 'nonlinear-regression' | 'sna' | 'topic-modeling' | 'dea' | 'ahp' | 'did' | 'delphi' | 'survey' | 'van-westendorp' | 'gabor-granger' | 'maxdiff' | 'binomial-test' | 'mixed-model' | 'rm-anova-pingouin' | 'classifier-comparison' | 'turf' | 'csat' | 'semantic-differential' | string;
 
 
 export interface ExampleDataSet {

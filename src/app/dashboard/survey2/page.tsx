@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network } from "lucide-react";
+import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network, Replace } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatsCard from "@/components/dashboard/survey2/StatsCard";
@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate } from "@/lib/survey-templates";
+import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate } from "@/lib/survey-templates";
 
 const TemplateCard = ({ icon: Icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) => (
     <Link href={href} className="block">
@@ -157,6 +157,7 @@ export default function Survey2Dashboard() {
                          <TemplateCard icon={Network} title="AHP (Criteria Only)" description="Prioritize criteria using pairwise comparisons." href="/dashboard/createsurvey?template=ahp-criteria"/>
                          <TemplateCard icon={Network} title="AHP (Full)" description="Make complex decisions by comparing criteria and alternatives." href="/dashboard/createsurvey?template=ahp-full"/>
                          <TemplateCard icon={ClipboardList} title="Customer Satisfaction" description="Measure overall customer satisfaction (CSAT) and drivers." href="/dashboard/createsurvey?template=csat"/>
+                         <TemplateCard icon={Replace} title="Semantic Differential" description="Gauge user perception of a concept on bipolar adjective scales." href="/dashboard/createsurvey?template=semantic-differential"/>
                     </div>
                 </div>
             </DialogContent>

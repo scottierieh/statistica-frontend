@@ -253,3 +253,31 @@ export const csatTemplate = {
         }
     ] as Question[],
 };
+
+export const semanticDifferentialTemplate = {
+    title: "Brand Perception (Semantic Differential)",
+    description: "Please rate your perception of our brand on the following scales.",
+    questions: [
+        {
+            id: 'sd_q_1',
+            type: 'matrix',
+            title: 'Please rate "Our Brand" on the following dimensions.',
+            required: true,
+            rows: [
+                'Low Quality vs High Quality',
+                'Unreliable vs Reliable',
+                'Not Innovative vs Innovative',
+                'Poor Value vs Good Value',
+                'Difficult to Use vs Easy to Use'
+            ],
+            columns: ['1', '2', '3', '4', '5'],
+            scale: [
+                '1 (Very Negative)',
+                '2',
+                '3 (Neutral)',
+                '4',
+                '5 (Very Positive)'
+            ]
+        }
+    ] as Question[],
+};
