@@ -576,9 +576,11 @@ interface QuestionListProps {
     setQuestions: (questions: Question[] | ((prev: Question[]) => Question[])) => void;
     styles: any;
     isPreview?: boolean;
+    saveSurvey: (status: string) => void;
+    isSaving: boolean;
 }
 
-export default function QuestionList({ title, setTitle, setDescription, description, questions, setQuestions, styles, isPreview = false }: QuestionListProps) {
+export default function QuestionList({ title, setTitle, setDescription, description, questions, setQuestions, styles, isPreview = false, saveSurvey, isSaving }: QuestionListProps) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -685,8 +687,8 @@ export default function QuestionList({ title, setTitle, setDescription, descript
       
       {questions.length > 0 && !isPreview && (
           <div className="flex gap-3 sticky bottom-6 bg-white rounded-2xl p-4 shadow-lg border">
-              <Button variant="outline" size="lg" disabled={true} className="flex-1"><Save className="w-5 h-5 mr-2" />Save as Draft</Button>
-              <Button size="lg" disabled={true} className="flex-1">Publish Survey</Button>
+              <Button variant="outline" size="lg" onClick={() => saveSurvey("draft")} disabled={isSaving} className="flex-1"><Save className="w-5 h-5 mr-2" />Save as Draft</Button>
+              <Button size="lg" onClick={() => saveSurvey("active")} disabled={isSaving} className="flex-1">{isSaving ? "Publishing..." : "Publish Survey"}</Button>
           </div>
       )}
     </div>

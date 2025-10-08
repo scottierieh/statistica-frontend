@@ -167,7 +167,6 @@ export default function CreateSurveyPage() {
                              />
                         </DialogContent>
                     </Dialog>
-                     <Button onClick={() => saveSurvey("draft")} disabled={isSaving} className="max-w-fit"><Save className="w-5 h-5 mr-2" />Save Survey</Button>
                 </div>
                  <Tabs defaultValue="questions">
                     <TabsList>
@@ -188,6 +187,8 @@ export default function CreateSurveyPage() {
                                 questions={questions}
                                 setQuestions={setQuestions}
                                 styles={styles}
+                                saveSurvey={saveSurvey}
+                                isSaving={isSaving}
                             />
                         </div>
                     </TabsContent>
