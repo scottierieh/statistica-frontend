@@ -530,9 +530,9 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles, isLikert = false
                                             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove('rows', rowIndex)}><X className="h-3 w-3"/></Button>
                                         </div>
                                     </TableHead>
-                                    {(columns || []).map((col: string, colIndex: number) => (
+                                    {(columns || []).map((_: string, colIndex: number) => (
                                         <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
-                                            <RadioGroup><RadioGroupItem value={col} disabled /></RadioGroup>
+                                            <RadioGroup><RadioGroupItem value={_} disabled /></RadioGroup>
                                         </TableCell>
                                     ))}
                                     <TableCell></TableCell>
@@ -548,8 +548,59 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles, isLikert = false
 };
 
 const SemanticDifferentialQuestion = (props: any) => {
-    // Reuses MatrixQuestion logic, but with a specific scale configuration
-    return <MatrixQuestion {...props} isLikert={true} />;
+    return (
+        <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
+            <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                        <Input placeholder="Enter your question title" value={props.question.title} onChange={(e) => props.onUpdate?.({ ...props.question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={{ fontSize: `${props.styles.questionTextSize}px`, color: props.styles.primaryColor }} />
+                        {props.question.required && <span className="text-destructive text-xs">* Required</span>}
+                    </div>
+                    <div className="flex items-center">
+                        <div className="flex items-center space-x-2 mr-2">
+                            <Switch id={`required-${props.question.id}`} checked={props.question.required} onCheckedChange={(checked) => props.onUpdate?.({ ...props.question, required: checked })} />
+                            <Label htmlFor={`required-${props.question.id}`}>Required</Label>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => props.onDelete?.(props.question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                <div className="space-y-2 mt-4">
+                    <Label>Bipolar Scales (e.g., Low Quality vs High Quality)</Label>
+                    {(props.question.rows || []).map((row: string, index: number) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <Input value={row} onChange={(e) => {
+                                const newRows = [...(props.question.rows || [])];
+                                newRows[index] = e.target.value;
+                                props.onUpdate?.({ ...props.question, rows: newRows });
+                            }} placeholder="e.g., Inexpensive vs Expensive" />
+                            <Button variant="ghost" size="icon" onClick={() => {
+                                const newRows = (props.question.rows || []).filter((_: string, i: number) => i !== index);
+                                props.onUpdate?.({ ...props.question, rows: newRows });
+                            }}>
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                        </div>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={() => {
+                        const newRows = [...(props.question.rows || []), 'Left Label vs Right Label'];
+                        props.onUpdate?.({ ...props.question, rows: newRows });
+                    }}><PlusCircle className="mr-2 h-4 w-4" /> Add Scale</Button>
+                </div>
+                 <div className="space-y-2 mt-4">
+                    <Label>Scale Point Labels (7 points)</Label>
+                    <div className="grid grid-cols-4 gap-2">
+                         {(props.question.scale || []).map((label: string, index: number) => (
+                             <Input key={index} value={label} onChange={e => {
+                                const newScale = [...(props.question.scale || [])];
+                                newScale[index] = e.target.value;
+                                props.onUpdate?.({ ...props.question, scale: newScale });
+                             }}/>
+                         ))}
+                    </div>
+                 </div>
+            </div>
+        </Card>
+    );
 };
 
 
@@ -667,7 +718,7 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     description: DescriptionBlock,
     'best-worst': BestWorstQuestion,
     matrix: MatrixQuestion,
-    'semantic-differential': (props) => <MatrixQuestion {...props} isLikert={true} />,
+    'semantic-differential': SemanticDifferentialQuestion,
     conjoint: ConjointQuestion,
     'rating-conjoint': RatingConjointQuestion,
   };
