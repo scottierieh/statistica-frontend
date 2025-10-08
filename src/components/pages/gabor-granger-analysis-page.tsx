@@ -11,8 +11,8 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line } from 'recharts';
+import Image from 'next/image';
+import { Skeleton } from '../ui/skeleton';
 
 interface GaborGrangerResults {
     optimal_revenue_price: number;
@@ -22,10 +22,12 @@ interface GaborGrangerResults {
     demand_curve: { price: number; likelihood: number; revenue: number; profit?: number }[];
     cliff_price: number;
     acceptable_range: [number, number] | null;
+    price_elasticity: { price_from: number, price_to: number, elasticity: number }[];
 }
 
 interface FullAnalysisResponse {
     results: GaborGrangerResults;
+    plot: string; // This will now be a base64 image string
 }
 
 interface GaborGrangerPageProps {
@@ -142,11 +144,11 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
         return <Card><CardContent className="p-6 text-center text-muted-foreground">No analysis results to display.</CardContent></Card>;
     }
     
-    const { results } = analysisResult;
+    const { results, plot } = analysisResult;
 
     return (
         <div className="space-y-4">
-             <Card>
+            <Card>
                 <CardHeader>
                     <CardTitle>Analysis Configuration</CardTitle>
                 </CardHeader>
@@ -180,55 +182,66 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                      {results.max_profit !== undefined && <StatCard title="Max Profit Index" value={results.max_profit} unit="" />}
                 </CardContent>
             </Card>
-
+            
             <Card>
-                <CardHeader><CardTitle>Demand & Revenue/Profit Curves</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Demand, Revenue, and Profit Analysis</CardTitle></CardHeader>
                 <CardContent>
-                    <ChartContainer config={{}} className="w-full h-96">
-                        <ResponsiveContainer>
-                            <LineChart data={results.demand_curve}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="price" type="number" domain={['dataMin', 'dataMax']} tickFormatter={(tick) => `₩${tick.toLocaleString()}`} />
-                                <YAxis yAxisId="left" label={{ value: 'Purchase Likelihood (%)', angle: -90, position: 'insideLeft' }} />
-                                <YAxis yAxisId="right" orientation="right" label={{ value: 'Revenue / Profit Index', angle: -90, position: 'insideRight' }} />
-                                <Tooltip content={<ChartTooltipContent formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />} />
-                                <Legend />
-                                <Line yAxisId="left" type="monotone" dataKey="likelihood" name="Demand" stroke="#8884d8" strokeWidth={2} dot={{ r: 4 }} unit="%" />
-                                <Line yAxisId="right" type="monotone" dataKey="revenue" name="Revenue" stroke="#82ca9d" strokeWidth={2} />
-                                {results.demand_curve.some(r => r.profit !== undefined) && (
-                                    <Line yAxisId="right" type="monotone" dataKey="profit" name="Profit" stroke="#ffc658" strokeWidth={2} />
-                                )}
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
+                    {plot ? (
+                        <Image src={`data:image/png;base64,${plot}`} alt="Gabor-Granger Analysis Plot" width={1400} height={1000} className="w-full rounded-md border" />
+                    ) : (
+                        <Skeleton className="w-full h-96" />
+                    )}
                 </CardContent>
             </Card>
-
-            <Card>
-                <CardHeader><CardTitle>Demand Curve Data</CardTitle></CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Price</TableHead>
-                                <TableHead className="text-right">Purchase Likelihood</TableHead>
-                                <TableHead className="text-right">Expected Revenue Index</TableHead>
-                                {results.demand_curve.some(r => r.profit !== undefined) && <TableHead className="text-right">Expected Profit Index</TableHead>}
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {results.demand_curve.map((row) => (
-                                <TableRow key={row.price}>
-                                    <TableCell>₩{row.price.toLocaleString()}</TableCell>
-                                    <TableCell className="text-right font-mono">{(row.likelihood * 100).toFixed(1)}%</TableCell>
-                                    <TableCell className="text-right font-mono">{row.revenue.toFixed(2)}</TableCell>
-                                    {row.profit !== undefined && <TableCell className="text-right font-mono">{row.profit.toFixed(2)}</TableCell>}
+            
+            <div className="grid md:grid-cols-2 gap-4">
+                <Card>
+                    <CardHeader><CardTitle>Demand Curve Data</CardTitle></CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Price</TableHead>
+                                    <TableHead className="text-right">Purchase Likelihood</TableHead>
+                                    <TableHead className="text-right">Revenue Index</TableHead>
+                                    {results.demand_curve.some(r => r.profit !== undefined) && <TableHead className="text-right">Profit Index</TableHead>}
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                            </TableHeader>
+                            <TableBody>
+                                {results.demand_curve.map((row) => (
+                                    <TableRow key={row.price}>
+                                        <TableCell>₩{row.price.toLocaleString()}</TableCell>
+                                        <TableCell className="text-right font-mono">{(row.likelihood * 100).toFixed(1)}%</TableCell>
+                                        <TableCell className="text-right font-mono">{row.revenue.toFixed(2)}</TableCell>
+                                        {row.profit !== undefined && <TableCell className="text-right font-mono">{row.profit.toFixed(2)}</TableCell>}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader><CardTitle>Price Elasticity</CardTitle></CardHeader>
+                    <CardContent>
+                         <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Price Range</TableHead>
+                                    <TableHead className="text-right">Elasticity</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {results.price_elasticity.map((row, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell>₩{row.price_from.toLocaleString()} → ₩{row.price_to.toLocaleString()}</TableCell>
+                                        <TableCell className="text-right font-mono">{row.elasticity.toFixed(3)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
