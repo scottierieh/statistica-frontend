@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
     const theme = styles.theme || 'default';
     return (
-        <div className="p-4">
+        <div className="p-4 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
             <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-3">
@@ -32,23 +32,15 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: {
                         key={index}
                         htmlFor={`q${question.id}-o${index}`}
                         className={cn(
-                          "flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer",
-                          theme === 'flat' ? "bg-slate-100" : "bg-background/50",
-                          answer === option && "ring-2 ring-primary border-primary",
-                          theme === 'flat' && answer === option && "bg-primary/10",
-                          theme === 'modern' && "justify-between",
-                          theme === 'modern' && answer === option && "bg-primary text-primary-foreground",
+                          "flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer",
+                          answer === option 
+                            ? "bg-primary/10 border-primary shadow-md" 
+                            : "bg-background hover:bg-accent/50 hover:border-primary/50"
                         )}
                       >
-                         {theme !== 'modern' && (
-                            <RadioGroupItem
-                              value={option}
-                              id={`q${question.id}-o${index}`}
-                              className={cn(theme === 'flat' && answer === option && "border-primary text-primary")}
-                            />
-                        )}
-                        <span className="flex-1">{option}</span>
-                         {answer === option && theme === 'modern' && <CheckCircle2 className="w-6 h-6" />}
+                        <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
+                        <span className="flex-1 font-medium">{option}</span>
+                        {answer === option && <CheckCircle2 className="w-5 h-5 text-primary" />}
                     </Label>
                 ))}
             </RadioGroup>
@@ -66,18 +58,18 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, styl
    }
    const theme = styles.theme || 'default';
    return (
-       <div className="p-4">
+       <div className="p-4 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
            <div className="space-y-3">
                 {(question.options || []).map((option: string, index: number) => (
-                   <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer", theme === 'flat' ? 'bg-slate-100' : 'bg-background/50', answer?.includes(option) && 'ring-2 ring-primary border-primary', theme === 'flat' && answer?.includes(option) && 'bg-primary/10')}>
+                   <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer", answer?.includes(option) ? 'bg-primary/10 border-primary shadow-md' : 'bg-background hover:bg-accent/50 hover:border-primary/50' )}>
                        <Checkbox
                            id={`q${question.id}-o${index}`}
                            checked={answer?.includes(option)}
                            onCheckedChange={(checked) => handleCheckChange(!!checked, option)}
                        />
-                       <span className="flex-1">{option}</span>
+                       <span className="flex-1 font-medium">{option}</span>
                    </Label>
                ))}
            </div>
@@ -87,7 +79,7 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, styl
 
 const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; }) => {
     return (
-        <div className="p-4">
+        <div className="p-4 rounded-lg bg-background shadow-md">
           <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
           {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
           <Select value={answer} onValueChange={onAnswerChange}>
@@ -103,7 +95,7 @@ const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: Ques
 };
 
 const TextQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
-    <div className="p-4">
+    <div className="p-4 rounded-lg bg-background shadow-md">
         <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
         <Textarea placeholder="Your answer..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)}/>
@@ -111,7 +103,7 @@ const TextQuestion = ({ question, answer, onAnswerChange }: { question: Question
 );
 
 const NumberQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: any) => void }) => (
-    <div className="p-4">
+    <div className="p-4 rounded-lg bg-background shadow-md">
         <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
         {question.description && <p className="text-sm text-muted-foreground mb-4 whitespace-pre-wrap">{question.description}</p>}
@@ -130,7 +122,7 @@ const NumberQuestion = ({ question, answer, onAnswerChange }: { question: Questi
 
 
 const PhoneQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
-    <div className="p-4">
+    <div className="p-4 rounded-lg bg-background shadow-md">
         <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
         <Input type="tel" placeholder="Enter phone number..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} />
@@ -138,7 +130,7 @@ const PhoneQuestion = ({ question, answer, onAnswerChange }: { question: Questio
 );
 
 const EmailQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
-    <div className="p-4">
+    <div className="p-4 rounded-lg bg-background shadow-md">
         <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
         {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
         <Input type="email" placeholder="Enter email address..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} />
@@ -148,7 +140,7 @@ const EmailQuestion = ({ question, answer, onAnswerChange }: { question: Questio
 const RatingQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: number; onAnswerChange: (value: number) => void; }) => {
     const scale = question.scale || ['1','2','3','4','5'];
     return (
-        <div className="p-4">
+        <div className="p-4 rounded-lg bg-background shadow-md">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
             <div className="flex items-center gap-2">
@@ -161,7 +153,7 @@ const RatingQuestion = ({ question, answer, onAnswerChange }: { question: Questi
 }
 
 const NPSQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: number; onAnswerChange: (value: number) => void; }) => (
-    <div className="p-4">
+    <div className="p-4 rounded-lg bg-background shadow-md">
       <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
        {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
       <div className="flex items-center justify-between gap-1 flex-wrap">
@@ -187,7 +179,7 @@ const DescriptionBlock = ({ question }: { question: Question }) => (
 
 const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: { best?: string, worst?: string }, onAnswerChange: (value: any) => void }) => {
     return (
-        <div className="p-4">
+        <div className="p-4 rounded-lg bg-background shadow-md">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
             <Table>
@@ -225,7 +217,7 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
     const headers = question.scale && question.scale.length > 0 ? question.scale : (question.columns || []);
     
     return (
-        <div className="p-4">
+        <div className="p-4 rounded-lg bg-background shadow-md">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
@@ -270,7 +262,7 @@ const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Ques
     const profileSet = profiles[0] || [];
 
     return (
-        <div className="p-4">
+        <div className="p-4 rounded-lg bg-background shadow-md">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
              <div className="flex gap-4 overflow-x-auto pb-4">
@@ -311,7 +303,7 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
     if (profiles.length === 0) return <div className="p-4">Conjoint profiles not generated.</div>;
 
     return (
-        <div className="p-4">
+        <div className="p-4 rounded-lg bg-background shadow-md">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
              <div className="flex gap-4 overflow-x-auto pb-4">
@@ -497,17 +489,17 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
 
     if (isPreview && survey) {
         return (
-             <div className="w-full h-full overflow-y-auto bg-card" style={{ backgroundColor: surveyStyles?.secondaryColor, color: surveyStyles?.primaryColor }}>
-                <CardHeader className="text-center p-6 md:p-8">
-                    <CardTitle className="font-headline text-xl" style={{color: surveyStyles?.primaryColor}}>{survey.title}</CardTitle>
-                    {survey.description && <CardDescription style={{color: surveyStyles?.primaryColor}}>{survey.description}</CardDescription>}
-                </CardHeader>
-                <CardContent className="h-full">
-                    {survey.questions.map((q: Question) => {
-                        const QuestionComp = questionComponents[q.type];
-                        return QuestionComp ? <div key={q.id} className="mb-4 border-b pb-4 last:border-b-0"><QuestionComp question={q} answer={answers[q.id]} onAnswerChange={() => {}} styles={surveyStyles} /></div> : null;
-                    })}
-                </CardContent>
+             <div className="w-full h-full overflow-y-auto" style={{ backgroundColor: surveyStyles?.secondaryColor, color: surveyStyles?.primaryColor }}>
+                <div className="p-8">
+                  <h2 className="text-2xl font-bold mb-2">{survey.title}</h2>
+                  <p className="text-sm mb-6">{survey.description}</p>
+                  <div className="space-y-6">
+                      {survey.questions.map((q: Question) => {
+                          const QuestionComp = questionComponents[q.type];
+                          return QuestionComp ? <div key={q.id} className="mb-4"><QuestionComp question={q} answer={answers[q.id]} onAnswerChange={() => {}} styles={surveyStyles} /></div> : null;
+                      })}
+                  </div>
+                </div>
             </div>
         );
     }
@@ -555,7 +547,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     const progress = survey ? ((currentQuestionIndex + 2) / (survey.questions.length + 1)) * 100 : 0;
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 bg-muted/40">
+        <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8" style={{backgroundColor: surveyStyles?.secondaryColor}}>
              <Card className="w-full max-w-md md:max-w-2xl bg-card/80 backdrop-blur-sm rounded-2xl md:rounded-3xl shadow-lg">
                 <CardHeader className="text-center p-6 md:p-8">
                     <CardTitle className="font-headline text-2xl md:text-3xl">{survey.title}</CardTitle>
@@ -638,5 +630,3 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         </div>
     );
 }
-
-    
