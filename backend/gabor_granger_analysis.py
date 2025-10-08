@@ -16,7 +16,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj) or np.isinf(obj):
+        if np.isnan(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
