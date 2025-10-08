@@ -159,33 +159,3 @@ export const turfTemplate = {
         },
     ] as Question[],
 };
-
-export const ahpCriteriaOnlyTemplate = {
-    title: "AHP: Criteria Weighting",
-    description: "Determine the relative importance of different criteria without evaluating specific alternatives.",
-    questions: [
-        {
-            id: 'ahp_criteria_1',
-            type: 'ahp',
-            title: 'AHP Criteria Weighting',
-            required: true,
-            criteria: ['Quality', 'Price', 'Customer Service'],
-            alternatives: []
-        },
-    ] as Question[],
-};
-
-export const ahpWithAlternativesTemplate = {
-    title: "AHP: Full Hierarchy Analysis",
-    description: "Make a complex decision by comparing criteria and then evaluating alternatives against each criterion.",
-    questions: [
-        {
-            id: 'ahp_full_1',
-            type: 'ahp',
-            title: 'AHP Analysis for Smartphone Selection',
-            required: true,
-            criteria: ['Price', 'Performance', 'Design'],
-            alternatives: ['Phone X', 'Phone Y', 'Phone Z']
-        },
-    ] as Question[],
-};

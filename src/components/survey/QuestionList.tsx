@@ -146,7 +146,7 @@ const SingleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, 
 };
 
 const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
-    const handleOptionChange = (index: number, value: string) => {
+   const handleOptionChange = (index: number, value: string) => {
        const newOptions = [...(question.options || [])];
        newOptions[index] = value;
        onUpdate?.({ ...question, options: newOptions });
@@ -566,171 +566,6 @@ const RatingConjointQuestion = ({ question, onUpdate, onDelete, styles }: { ques
     return <ConjointQuestion question={question} onUpdate={onUpdate} onDelete={onDelete} styles={styles} />;
 };
 
-const ScaleButton = ({ value, comparisonValue, onClick }: { value: number, comparisonValue: number, onClick: () => void }) => {
-    const isSelected = Math.abs(comparisonValue - value) < 0.01;
-    return (
-        <div className="flex flex-col items-center">
-            <button
-                onClick={onClick}
-                className={`w-12 h-12 rounded-full border-2 transition-all ${
-                    isSelected 
-                        ? 'bg-blue-600 border-blue-600 shadow-lg scale-110' 
-                        : 'bg-white border-gray-300 hover:border-blue-400 hover:scale-105'
-                }`}
-            >
-                <span className={`text-sm font-semibold ${
-                    isSelected ? 'text-white' : 'text-gray-600'
-                }`}>
-                    {Math.abs(value) === 1 ? 1 : Math.round(1/value) > 1 ? Math.round(1/value) : value}
-                </span>
-            </button>
-        </div>
-    );
-};
-
-const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, onUpdate?: (question: any) => void, onDelete?: (id: string) => void, styles: any }) => {
-  const { toast } = useToast();
-
-  const handleItemChange = (type: 'criteria' | 'alternatives', index: number, value: string) => {
-    const newItems = [...(question[type] || [])];
-    newItems[index] = value;
-    onUpdate?.({ ...question, [type]: newItems });
-  };
-  const addItem = (type: 'criteria' | 'alternatives') => {
-    const newItems = [...(question[type] || []), `New ${type.slice(0, -1)}`];
-    onUpdate?.({ ...question, [type]: newItems });
-  };
-  const removeItem = (type: 'criteria' | 'alternatives', index: number) => {
-    const newItems = (question[type] || []).filter((_: any, i: number) => i !== index);
-    onUpdate?.({ ...question, [type]: newItems });
-  };
-
-  const generatePairs = () => {
-    const criteria = question.criteria || [];
-    const alternatives = question.alternatives || [];
-    
-    // Get existing comparisons to preserve them
-    const existingRows = question.rows || [];
-    const existingData: { [key: string]: number } = {};
-    if (question.answers) { // Assuming answers are stored in a simple object in the question for the builder
-        Object.keys(question.answers).forEach((key, index) => {
-            if(existingRows[index]) {
-                existingData[existingRows[index]] = question.answers[key];
-            }
-        });
-    }
-
-    const newRows: string[] = [];
-    const newAnswers: { [key: string]: number } = {};
-
-    if (criteria.length < 2) {
-      toast({ title: "Error", description: "Please define at least 2 criteria."});
-      return;
-    }
-    // Criteria pairs
-    for (let i = 0; i < criteria.length; i++) {
-      for (let j = i + 1; j < criteria.length; j++) {
-        const key = `${criteria[i]} vs ${criteria[j]}`;
-        newRows.push(key);
-        newAnswers[key] = existingData[key] || 1;
-      }
-    }
-    // Alternative pairs for each criterion
-    if (alternatives.length >= 2) {
-      criteria.forEach((criterion: string) => {
-        for (let i = 0; i < alternatives.length; i++) {
-          for (let j = i + 1; j < alternatives.length; j++) {
-            const key = `[${criterion}] ${alternatives[i]} vs ${alternatives[j]}`;
-            newRows.push(key);
-            newAnswers[key] = existingData[key] || 1;
-          }
-        }
-      });
-    }
-    
-    // Re-map answers to a simple array based on new row order
-    const answerArray = newRows.map(row => newAnswers[row]);
-    onUpdate?.({ ...question, rows: newRows, answers: answerArray });
-  };
-  
-  const renderScaleButtons = (row: string) => {
-    const [left, right] = row.replace(/\[.*?\]\s/,'').split(' vs ');
-    const scaleValues = [1/9, 1/7, 1/5, 1/3, 1, 3, 5, 7, 9];
-    const comparisonValue = 1; // Preview is static
-
-    return (
-      <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-        <div className="flex items-center justify-between mb-6">
-          <span className="font-semibold text-blue-700 text-lg">{left}</span>
-          <span className="text-gray-400 text-sm">vs</span>
-          <span className="font-semibold text-indigo-700 text-lg">{right}</span>
-        </div>
-
-        <div className="flex items-center justify-between mb-4">
-          {scaleValues.map((value, idx) => (
-            <ScaleButton
-              key={idx}
-              value={value}
-              comparisonValue={comparisonValue}
-              onClick={() => {}}
-            />
-          ))}
-        </div>
-        <div className="flex justify-between text-xs text-gray-600 mb-2 px-2">
-          <span className="font-medium">{left}</span>
-          <span className="font-medium">{right}</span>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <Card className="w-full">
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-4">
-          <Input placeholder="AHP Analysis Title" value={question.title} onChange={e => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto" />
-          <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <h4 className="font-semibold mb-2">Criteria</h4>
-            {(question.criteria || ['Quality', 'Price']).map((item: string, index: number) => (
-              <div key={index} className="flex items-center gap-2 mb-2">
-                <Input value={item} onChange={e => handleItemChange('criteria', index, e.target.value)} />
-                <Button variant="ghost" size="icon" onClick={() => removeItem('criteria', index)}><X className="w-4 h-4"/></Button>
-              </div>
-            ))}
-            <Button size="sm" variant="outline" onClick={() => addItem('criteria')}><PlusCircle className="mr-2"/>Add Criterion</Button>
-          </div>
-          <div>
-            <h4 className="font-semibold mb-2">Alternatives (Optional)</h4>
-            {(question.alternatives || ['Brand A', 'Brand B']).map((item: string, index: number) => (
-              <div key={index} className="flex items-center gap-2 mb-2">
-                <Input value={item} onChange={e => handleItemChange('alternatives', index, e.target.value)} />
-                <Button variant="ghost" size="icon" onClick={() => removeItem('alternatives', index)}><X className="w-4 h-4"/></Button>
-              </div>
-            ))}
-            <Button size="sm" variant="outline" onClick={() => addItem('alternatives')}><PlusCircle className="mr-2"/>Add Alternative</Button>
-          </div>
-        </div>
-
-        <div className="flex justify-center mt-4">
-          <Button onClick={generatePairs}><RefreshCw className="mr-2"/>Generate Pairwise Comparisons</Button>
-        </div>
-
-        {question.rows && question.rows.length > 0 && (
-          <div className="mt-6">
-            <h4 className="font-semibold mb-2">Generated Comparison Preview</h4>
-             {renderScaleButtons(question.rows[0])}
-             {question.rows.length > 1 && <p className="text-xs text-center mt-2 text-muted-foreground">+ {question.rows.length - 1} more comparisons</p>}
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-};
-
 
 interface QuestionListProps {
     title: string;
@@ -803,7 +638,6 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     matrix: MatrixQuestion,
     conjoint: ConjointQuestion,
     'rating-conjoint': RatingConjointQuestion,
-    ahp: AHPQuestion,
   };
 
 
@@ -858,5 +692,3 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     </div>
   );
 }
-
-    

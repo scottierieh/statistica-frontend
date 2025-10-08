@@ -6,7 +6,6 @@ import { useParams, useSearchParams } from 'next/navigation';
 import SurveyAnalysisPage from '@/components/pages/survey-analysis-page';
 import type { Survey, SurveyResponse } from '@/types/survey';
 import { Skeleton } from '@/components/ui/skeleton';
-import AhpPage from '@/components/pages/ahp-page';
 import CbcAnalysisPage from '@/components/pages/cbc-analysis-page';
 import RatingConjointAnalysisPage from '@/components/pages/rating-conjoint-analysis-page';
 import IpaPage from '@/components/pages/ipa-page';
@@ -44,10 +43,6 @@ export default function SurveyAnalysis() {
     }, [surveyId]);
     
     const analysisComponent = useMemo(() => {
-        if (analysisType === 'ahp') {
-            return <AhpPage survey={survey} responses={responses} />;
-        }
-        
         if (!survey) return null;
 
         const hasConjoint = survey.questions.some(q => q.type === 'conjoint');
@@ -55,9 +50,7 @@ export default function SurveyAnalysis() {
         const hasIPA = survey.questions.some(q => q.type === 'matrix' && q.rows?.some(r => r.toLowerCase().includes('overall')));
         const hasVanWestendorp = survey.questions.some(q => ['too cheap', 'cheap', 'expensive', 'too expensive'].every(keyword => survey.questions.some(q => q.title.toLowerCase().includes(keyword))));
         const hasTurf = survey.questions.some(q => q.type === 'multiple');
-        const hasAHP = survey.questions.some(q => q.type === 'ahp');
-
-        if (hasAHP) return <AhpPage survey={survey} responses={responses} />;
+        
         if (hasConjoint) return <CbcAnalysisPage survey={survey} responses={responses} />;
         if (hasRatingConjoint) return <RatingConjointAnalysisPage survey={survey} responses={responses} />;
         if (hasIPA) return <IpaPage survey={survey} responses={responses} />;

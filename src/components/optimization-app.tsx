@@ -22,6 +22,7 @@ import {
   Target,
   Truck,
   Award,
+  Building
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -36,16 +37,14 @@ import DataPreview from './data-preview';
 import LinearProgrammingPage from './pages/linear-programming-page';
 import GoalProgrammingPage from './pages/goal-programming-page';
 import TransportationProblemPage from './pages/transportation-problem-page';
-import AhpPage from './pages/ahp-page';
 import DeaPage from './pages/dea-page';
 
-type AnalysisType = 'linear-programming' | 'goal-programming' | 'transportation-problem' | 'ahp' | 'dea';
+type AnalysisType = 'linear-programming' | 'goal-programming' | 'transportation-problem' | 'dea';
 
 const analysisPages: Record<string, React.ComponentType<any>> = {
   'linear-programming': LinearProgrammingPage,
   'goal-programming': GoalProgrammingPage,
   'transportation-problem': TransportationProblemPage,
-  'ahp': AhpPage,
   'dea': DeaPage,
 };
 
@@ -181,15 +180,6 @@ export default function OptimizationApp() {
                 >
                   <Truck />
                   <span>Transportation Problem</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => setActiveAnalysis('ahp')}
-                  isActive={activeAnalysis === 'ahp'}
-                >
-                  <Network />
-                  <span>AHP</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>

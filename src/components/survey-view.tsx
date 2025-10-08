@@ -219,91 +219,6 @@ const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Que
     );
 };
 
-const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: any, onAnswerChange: (value: any) => void }) => {
-    const renderComparison = (row: string) => {
-        const [left, right] = row.replace(/\[.*?\]\s/,'').split(' vs ');
-        const selectedValue = answer?.[row];
-        const scaleValues = [1/9, 1/7, 1/5, 1/3, 1, 3, 5, 7, 9];
-
-        return (
-            <div key={row} className="bg-slate-50 p-6 rounded-xl border">
-                <div className="flex justify-between items-center mb-4">
-                    <div className="flex-1 text-center font-bold text-lg text-primary">{left}</div>
-                    <div className="mx-4 text-muted-foreground">vs</div>
-                    <div className="flex-1 text-center font-bold text-lg text-primary">{right}</div>
-                </div>
-                <div className="relative py-5">
-                    <div className="flex justify-between items-center px-2">
-                        {scaleValues.map((value, idx) => {
-                             const displayValue = value < 1 ? Math.round(1/value) : value;
-                             const actualValue = value;
-                             const isSelected = selectedValue === String(actualValue);
-
-                             return (
-                                <div key={idx} onClick={() => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = String(actualValue); }))}
-                                    className={cn( "w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center cursor-pointer transition-all z-10", isSelected ? "bg-primary text-white border-primary-dark scale-110 shadow-lg" : "border-slate-300 hover:border-primary hover:scale-110" )}>
-                                    {displayValue}
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-                <div className="text-center text-sm text-muted-foreground min-h-[20px] mt-2">
-                    {selectedValue && (selectedValue === '1' ? 'Equally Important' : (Number(selectedValue) > 1 ? `${left} is ${Number(selectedValue).toFixed(0)}x more important` : `${right} is ${(1/Number(selectedValue)).toFixed(0)}x more important`))}
-                </div>
-            </div>
-        )
-    };
-
-    const criteriaPairs = question.rows?.filter(row => !row.startsWith('[')) || [];
-    const alternativePairsByCriterion = useMemo(() => {
-        const grouped: { [key: string]: string[] } = {};
-        (question.rows || []).forEach(row => {
-            if (row.startsWith('[')) {
-                const match = row.match(/\[(.*?)\]/);
-                if (match) {
-                    const criterion = match[1];
-                    if (!grouped[criterion]) grouped[criterion] = [];
-                    grouped[criterion].push(row);
-                }
-            }
-        });
-        return grouped;
-    }, [question.rows]);
-
-    return (
-        <div className="p-4 space-y-8">
-            <h3 className="text-lg font-semibold mb-2">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-            {question.description && <p className="text-sm text-muted-foreground">{question.description}</p>}
-            
-            {criteriaPairs.length > 0 && (
-                <div>
-                    <h4 className="font-semibold text-md mb-4 text-center p-3 bg-muted rounded-lg">Part 1: Criteria Comparison</h4>
-                    <div className="space-y-4">
-                        {criteriaPairs.map(row => renderComparison(row))}
-                    </div>
-                </div>
-            )}
-            
-            {Object.keys(alternativePairsByCriterion).length > 0 && (
-                 <div>
-                    <h4 className="font-semibold text-md mb-4 text-center p-3 bg-muted rounded-lg">Part 2: Alternative Comparison</h4>
-                    <div className="space-y-6">
-                        {Object.entries(alternativePairsByCriterion).map(([criterion, pairs]) => (
-                            <div key={criterion}>
-                                <h5 className="font-semibold text-center mb-2">Regarding: <span className="text-primary">{criterion}</span></h5>
-                                <div className="space-y-4">
-                                    {pairs.map(row => renderComparison(row))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-};
-
 
 const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: any, onAnswerChange: (value: any) => void }) => {
     const headers = question.scale && question.scale.length > 0 ? question.scale : (question.columns || []);
@@ -564,7 +479,6 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         matrix: MatrixQuestion,
         conjoint: ConjointQuestion,
         'rating-conjoint': RatingConjointQuestion,
-        ahp: AHPQuestion,
     };
     
     const currentQuestion = survey?.questions[currentQuestionIndex];
@@ -723,4 +637,3 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         </div>
     );
 }
-
