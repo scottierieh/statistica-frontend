@@ -10,7 +10,7 @@ import type { Question } from '@/entities/Survey';
 import QuestionList from '@/components/survey/QuestionList';
 import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
-import SurveyView from '@/components/survey-view';
+import { SpecialAnalysisPalette } from '@/components/survey/SpecialAnalysisPalette';
 import SurveyPreview from '@/components/survey/SurveyPreview';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate } from '@/lib/survey-templates';
@@ -175,8 +175,9 @@ export default function CreateSurveyPage() {
                     </TabsList>
                      <TabsContent value="questions" className="mt-6">
                         <div className="grid lg:grid-cols-[320px,1fr] gap-8 items-start">
-                             <div className="lg:sticky lg:top-24">
+                             <div className="lg:sticky lg:top-24 space-y-6">
                                 <QuestionTypePalette onSelectType={handleSelectQuestionType} />
+                                <SpecialAnalysisPalette />
                             </div>
                             <QuestionList 
                                 title={title}
