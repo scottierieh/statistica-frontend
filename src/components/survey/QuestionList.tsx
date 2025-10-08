@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -465,7 +466,8 @@ const BestWorstQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles
     );
 };
 
-const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
+
+const MatrixQuestion = ({ question, onUpdate, onDelete, styles, isLikert = false }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; isLikert?: boolean }) => {
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     
     const handleUpdate = (type: 'rows' | 'columns' | 'scale', index: number, value: string) => {
@@ -484,8 +486,8 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
         onUpdate?.({ ...question, [type]: newArr });
     };
     
-    const hasScale = question.scale && question.scale.length > 0;
-    const columns = hasScale ? question.scale : question.columns || [];
+    const columns = isLikert ? question.scale || [] : question.columns || [];
+    const columnType = isLikert ? 'scale' : 'columns';
     
     return (
         <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
@@ -511,12 +513,12 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
                                 {columns.map((header: string, colIndex: number) => (
                                     <TableHead key={`header-${colIndex}`} className="text-center text-xs min-w-[80px]">
                                         <div className="flex items-center gap-1 justify-center">
-                                            <Input value={header} onChange={e => handleUpdate(hasScale ? 'scale' : 'columns', colIndex, e.target.value)} className="text-center bg-transparent border-none p-0" />
-                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove(hasScale ? 'scale' : 'columns', colIndex)}><X className="h-3 w-3"/></Button>
+                                            <Input value={header} onChange={e => handleUpdate(columnType, colIndex, e.target.value)} className="text-center bg-transparent border-none p-0" />
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove(columnType, colIndex)}><X className="h-3 w-3"/></Button>
                                         </div>
                                     </TableHead>
                                 ))}
-                                <TableHead><Button variant="ghost" size="icon" onClick={() => handleAdd(hasScale ? 'scale' : 'columns')}><PlusCircle className="w-4"/></Button></TableHead>
+                                <TableHead><Button variant="ghost" size="icon" onClick={() => handleAdd(columnType)}><PlusCircle className="w-4"/></Button></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -528,7 +530,7 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
                                             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleRemove('rows', rowIndex)}><X className="h-3 w-3"/></Button>
                                         </div>
                                     </TableHead>
-                                    {(question.columns || []).map((col: string, colIndex: number) => (
+                                    {(columns || []).map((col: string, colIndex: number) => (
                                         <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
                                             <RadioGroup><RadioGroupItem value={col} disabled /></RadioGroup>
                                         </TableCell>
@@ -544,6 +546,7 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
         </Card>
     );
 };
+
 
 const ConjointQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
@@ -659,6 +662,7 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     description: DescriptionBlock,
     'best-worst': BestWorstQuestion,
     matrix: MatrixQuestion,
+    likert: (props) => <MatrixQuestion {...props} isLikert />,
     conjoint: ConjointQuestion,
     'rating-conjoint': RatingConjointQuestion,
   };
