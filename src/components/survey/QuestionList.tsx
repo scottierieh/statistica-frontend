@@ -142,7 +142,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
    };
 
    const addOption = () => {
-       const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
+       const newOptions = [...(question.options || []), `Option ${question.options.length + 1}`];
        onUpdate?.({ ...question, options: newOptions });
    };
 
@@ -181,13 +181,13 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                                <Checkbox id={`q${question.id}-o${index}`} disabled />
                                 <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent flex-1" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
                            </Label>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => deleteOption(index)}>
-                                <Trash2 className="w-4 h-4 text-destructive"/>
-                            </Button>
+                           <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => deleteOption(index)}>
+                               <Trash2 className="w-4 h-4 text-destructive"/>
+                           </Button>
                         </div>
                    ))}
                 </div>
-                 <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
+                <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
             </div>
         </Card>
    );
