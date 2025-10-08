@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -34,10 +33,11 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: {
                         htmlFor={`q${question.id}-o${index}`}
                         className={cn(
                           "flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer",
-                          theme === 'flat' && "bg-slate-100",
+                          theme === 'flat' ? "bg-slate-100" : "bg-background/50",
+                          answer === option && "ring-2 ring-primary border-primary",
+                          theme === 'flat' && answer === option && "bg-primary/10",
                           theme === 'modern' && "justify-between",
-                          answer === option && theme === 'flat' && "border-primary ring-2 ring-primary bg-primary/10",
-                           answer === option && theme === 'modern' && "bg-primary text-primary-foreground",
+                          theme === 'modern' && answer === option && "bg-primary text-primary-foreground",
                         )}
                       >
                          {theme !== 'modern' && (
@@ -56,7 +56,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: {
     )
 };
 
-const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { question: Question; answer?: string[]; onAnswerChange: (newAnswer: string[]) => void; }) => {
+const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, styles }: { question: Question; answer?: string[]; onAnswerChange: (newAnswer: string[]) => void; styles:any }) => {
    const handleCheckChange = (checked: boolean, opt: string) => {
        const currentAnswers = answer || [];
        const newAnswers = checked
@@ -64,13 +64,14 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange }: { 
            : currentAnswers.filter((a: string) => a !== opt);
        onAnswerChange(newAnswers);
    }
+   const theme = styles.theme || 'default';
    return (
        <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
            <div className="space-y-3">
                 {(question.options || []).map((option: string, index: number) => (
-                   <Label key={index} htmlFor={`q${question.id}-o${index}`} className="flex items-center space-x-3 p-3 rounded-lg border bg-background/50 hover:bg-accent transition-colors cursor-pointer">
+                   <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer", theme === 'flat' ? 'bg-slate-100' : 'bg-background/50', answer?.includes(option) && 'ring-2 ring-primary border-primary', theme === 'flat' && answer?.includes(option) && 'bg-primary/10')}>
                        <Checkbox
                            id={`q${question.id}-o${index}`}
                            checked={answer?.includes(option)}
@@ -637,3 +638,5 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         </div>
     );
 }
+
+    

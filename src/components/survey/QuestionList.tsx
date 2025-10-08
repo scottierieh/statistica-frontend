@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -187,21 +186,42 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                 {question.imageUrl && <div className="my-4"><Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" /></div>}
                 <div className="space-y-2">
                     {(question.options || []).map((option: string, index: number) => (
-                       <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border bg-background transition-colors cursor-pointer", theme === 'flat' && "bg-slate-100")}>
-                           <Checkbox id={`q${question.id}-o${index}`} disabled/>
-                            <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
-                       </Label>
+                         <div key={index} className="flex items-center group">
+                            <Label htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border bg-background transition-colors cursor-pointer", theme === 'flat' && "bg-slate-100")}>
+                               <Checkbox id={`q${question.id}-o${index}`} disabled />
+                                <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent flex-1" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
+                           </Label>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => deleteOption(index)}>
+                                <Trash2 className="w-4 h-4 text-destructive"/>
+                            </Button>
+                        </div>
                    ))}
                 </div>
-                <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
+                 <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
             </div>
         </Card>
    );
 };
 
 const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; onImageUpload?: (id: string) => void; styles: any; }) => {
-    // Similar implementation as Single/Multiple choice for editing options
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    
+     const handleOptionChange = (index: number, value: string) => {
+        const newOptions = [...(question.options || [])];
+        newOptions[index] = value;
+        onUpdate?.({ ...question, options: newOptions });
+    };
+
+    const addOption = () => {
+        const newOptions = [...(question.options || []), `Option ${(question.options?.length || 0) + 1}`];
+        onUpdate?.({ ...question, options: newOptions });
+    };
+
+    const deleteOption = (index: number) => {
+        const newOptions = (question.options || []).filter((_: any, i: number) => i !== index);
+        onUpdate?.({ ...question, options: newOptions });
+    };
+    
     return (
         <Card className="w-full">
             <div className="p-4" style={{ backgroundColor: styles.secondaryColor }}>
@@ -223,7 +243,18 @@ const DropdownQuestion = ({ question, onUpdate, onDelete, onImageUpload, styles 
                 <Select disabled>
                     <SelectTrigger><SelectValue placeholder="Select an option..." /></SelectTrigger>
                 </Select>
-                 {/* Option editing logic would be similar to other choice components */}
+                 <div className="mt-4 space-y-2">
+                    <Label>Options</Label>
+                    {(question.options || []).map((option: string, index: number) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <Input value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
+                             <Button variant="ghost" size="icon" onClick={() => deleteOption(index)}>
+                                <Trash2 className="w-4 h-4 text-destructive"/>
+                            </Button>
+                        </div>
+                    ))}
+                     <Button variant="outline" size="sm" onClick={addOption}><PlusCircle className="mr-2 h-4 w-4"/> Add Option</Button>
+                </div>
             </div>
         </Card>
     );
@@ -574,12 +605,13 @@ interface QuestionListProps {
     setDescription: (desc: string) => void;
     questions: Question[];
     setQuestions: (questions: Question[] | ((prev: Question[]) => Question[])) => void;
+    isPreview?: boolean;
     styles: any;
-    saveSurvey: (status: string) => void;
-    isSaving: boolean;
+    saveSurvey?: (status: string) => void;
+    isSaving?: boolean;
 }
 
-export default function QuestionList({ title, setTitle, setDescription, description, questions, setQuestions, styles, saveSurvey, isSaving }: QuestionListProps) {
+export default function QuestionList({ title, setTitle, setDescription, description, questions, setQuestions, isPreview, styles, saveSurvey, isSaving }: QuestionListProps) {
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -645,15 +677,15 @@ export default function QuestionList({ title, setTitle, setDescription, descript
   return (
     <div className="space-y-6">
        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
-      <Card>
-        <CardHeader>
-          <CardTitle>Survey Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-          <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-        </CardContent>
-      </Card>
+      {!isPreview && (
+        <Card>
+            <CardHeader><CardTitle>Survey Details</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+                <div><Label>Title *</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+                <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+            </CardContent>
+        </Card>
+      )}
       
       <DndContext 
         sensors={useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))} 
@@ -674,6 +706,7 @@ export default function QuestionList({ title, setTitle, setDescription, descript
                                     onUpdate={handleUpdateQuestion} 
                                     onDelete={() => handleDeleteQuestion(q.id)}
                                     onImageUpload={() => handleImageUploadClick(q.id)}
+                                    isPreview={isPreview}
                                     styles={styles}
                                 />
                             ) : <p>Unknown question type: {q.type}</p>}
@@ -684,7 +717,7 @@ export default function QuestionList({ title, setTitle, setDescription, descript
         </SortableContext>
       </DndContext>
       
-      {questions.length > 0 && (
+       {saveSurvey && !isPreview && questions.length > 0 && (
           <div className="flex gap-3 sticky bottom-6 bg-white rounded-2xl p-4 shadow-lg border">
               <Button variant="outline" size="lg" onClick={() => saveSurvey("draft")} disabled={isSaving} className="flex-1">Save as Draft</Button>
               <Button size="lg" onClick={() => saveSurvey("active")} disabled={isSaving} className="flex-1">{isSaving ? "Publishing..." : "Publish Survey"}</Button>
@@ -693,3 +726,5 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     </div>
   );
 }
+
+    
