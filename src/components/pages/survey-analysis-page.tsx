@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -278,7 +277,7 @@ const CategoricalChart = ({ data, title, onDownload }: { data: {name: string, co
                                   <YAxis dataKey="name" type="category" width={100} />
                                   <Tooltip content={<ChartTooltipContent formatter={(value) => `${value} (${(data.find(d=>d.count === value)?.percentage || 0).toFixed(1)}%)`} />} cursor={{fill: 'hsl(var(--muted))'}} />
                                   <Bar dataKey="count" name="Frequency" radius={4}>
-                                  <LabelList dataKey="count" position="right" style={{ fill: '#000', fontSize: 12}} />                                    {data.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                                  <LabelList dataKey="count" position="right" style={{ fill: '#000', fontSize: 12, fontWeight: 'bold' }} />                                    {data.map((_entry: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                   </Bar>
                             </BarChart>
                             </ResponsiveContainer>
@@ -590,7 +589,7 @@ const NPSChart = ({ data, title, onDownload }: { data: { npsScore: number; promo
                         </TableBody>
                     </Table>
                     <Alert>
-                        <AlertTitle> <Info className="inline-block align-middle h-4 w-4 text-500" /> Summary                        </AlertTitle>
+                        <AlertTitle className="flex items-center gap-2"> <Info className="inline-block align-middle h-4 w-4 text-500" /> Summary                        </AlertTitle>
                         <AlertDescription dangerouslySetInnerHTML={{ __html: formattedInterpretation }} />
                     </Alert>
                 </div>
@@ -1013,15 +1012,16 @@ const MatrixChart = ({ data, title, rows, columns, onDownload }: { data: any, ti
 };
 
 
-export default function SurveyAnalysisPage() {
-    const params = useParams();
+interface SurveyAnalysisPageProps {
+  survey: Survey;
+  responses: SurveyResponse[];
+  specialAnalyses: { key: string; label: string; component: React.ReactNode }[];
+}
+
+export default function SurveyAnalysisPage({ survey, responses, specialAnalyses }: SurveyAnalysisPageProps) {
     const router = useRouter();
     const chartRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
-    const surveyId = params.id as string;
-    const [survey, setSurvey] = useState<any>(null);
-    const [responses, setResponses] = useState<SurveyResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     const [analysisData, setAnalysisData] = useState<any[]>([]);
 
     const processAllData = useCallback(async (questions: Question[], responses: SurveyResponse[]) => {
@@ -1059,31 +1059,14 @@ export default function SurveyAnalysisPage() {
     
     useEffect(() => {
         const loadData = async () => {
-            if (surveyId) {
-                try {
-                    const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
-                    const currentSurvey = storedSurveys.find((s: any) => s.id === surveyId);
-                    setSurvey(currentSurvey || null);
-
-                    const storedResponses = JSON.parse(localStorage.getItem(`${surveyId}_responses`) || '[]');
-                    setResponses(storedResponses);
-
-                    if (currentSurvey && currentSurvey.questions) {
-                      const processed = await processAllData(currentSurvey.questions, storedResponses);
-                      setAnalysisData(processed);
-                    } else {
-                        setError("Survey not found or has no questions.");
-                    }
-                } catch (error) {
-                    console.error("Failed to load survey data:", error);
-                    setError("Failed to load survey.");
-                } finally {
-                    setLoading(false);
-                }
+            if (survey && survey.questions) {
+              const processed = await processAllData(survey.questions, responses);
+              setAnalysisData(processed);
             }
+            setLoading(false);
         };
         loadData();
-    }, [surveyId, processAllData]);
+    }, [survey, responses, processAllData]);
     
     const downloadChartAsPng = useCallback((chartId: string, title: string) => {
         const chartElement = chartRefs.current[chartId];
@@ -1102,13 +1085,15 @@ export default function SurveyAnalysisPage() {
         return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-96 w-full" /></div>;
     }
 
-    if (error) {
-        return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
-    }
-
     if (!survey) {
         return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>Survey not found.</AlertDescription></Alert>;
     }
+    
+    const tabs = [
+        { key: 'results', label: 'Results' },
+        ...specialAnalyses,
+        { key: 'further_analysis', label: 'Further Analysis' }
+    ];
 
     return (
         <div className="space-y-6 p-4 md:p-6">
@@ -1126,8 +1111,7 @@ export default function SurveyAnalysisPage() {
             
              <Tabs defaultValue="results" className="w-full">
                 <TabsList>
-                    <TabsTrigger value="results">Result</TabsTrigger>
-                    <TabsTrigger value="further_analysis">Further Analysis</TabsTrigger>
+                    {tabs.map(tab => <TabsTrigger key={tab.key} value={tab.key}>{tab.label}</TabsTrigger>)}
                 </TabsList>
                 <TabsContent value="results" className="mt-4">
                     <div className="space-y-6">
@@ -1161,6 +1145,11 @@ export default function SurveyAnalysisPage() {
                         })}
                     </div>
                 </TabsContent>
+                {specialAnalyses.map(analysis => (
+                    <TabsContent key={analysis.key} value={analysis.key} className="mt-4">
+                        {analysis.component}
+                    </TabsContent>
+                ))}
                 <TabsContent value="further_analysis" className="mt-4">
                      <Card>
                         <CardHeader>

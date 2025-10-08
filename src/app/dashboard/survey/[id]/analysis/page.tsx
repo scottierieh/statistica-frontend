@@ -10,6 +10,8 @@ import RatingConjointAnalysisPage from '@/components/pages/rating-conjoint-analy
 import IpaPage from '@/components/pages/ipa-page';
 import VanWestendorpPage from '@/components/pages/van-westendorp-page';
 import TurfPage from '@/components/pages/turf-page';
+import AhpPage from '@/components/pages/ahp-page';
+
 
 export default function SurveyAnalysis() {
     const params = useParams();
@@ -48,6 +50,7 @@ export default function SurveyAnalysis() {
         if (survey.questions.some(q => q.type === 'rating-conjoint')) {
              analyses.push({ key: 'rating-conjoint', label: 'Conjoint (Rating)', component: <RatingConjointAnalysisPage survey={survey} responses={responses} /> });
         }
+        // This is the check for an IPA survey. If a matrix question includes a row with "overall", it's an IPA survey.
         if (survey.questions.some(q => q.type === 'matrix' && q.rows?.some(r => r.toLowerCase().includes('overall')))) {
             analyses.push({ key: 'ipa', label: 'IPA', component: <IpaPage survey={survey} responses={responses} /> });
         }
@@ -60,6 +63,9 @@ export default function SurveyAnalysis() {
             if (turfData.length > 0) {
                  analyses.push({ key: 'turf', label: 'TURF Analysis', component: <TurfPage data={turfData} categoricalHeaders={[turfQuestion.title]} onLoadExample={() => {}} /> });
             }
+        }
+        if (survey.questions.some(q => q.type === 'ahp')) {
+            analyses.push({ key: 'ahp', label: 'AHP Analysis', component: <AhpPage survey={survey} responses={responses} /> });
         }
         return analyses;
     }, [survey, responses]);
