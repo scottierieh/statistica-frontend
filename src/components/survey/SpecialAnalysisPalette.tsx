@@ -1,9 +1,10 @@
+
 'use client';
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { motion } from 'framer-motion';
-import { Target, Network, DollarSign, Users, ClipboardList, Handshake } from "lucide-react";
+import { Target, Network, DollarSign, Users, ClipboardList, Handshake, ShieldCheck, Replace } from "lucide-react";
 import Link from 'next/link';
 
 const specialAnalyses = [
@@ -42,6 +43,18 @@ const specialAnalyses = [
         icon: Network,
         title: "AHP Survey",
         description: "Make complex decisions by comparing criteria and alternatives pairwise."
+    },
+    {
+        href: "/dashboard/createsurvey?template=csat",
+        icon: ClipboardList,
+        title: "CSAT Survey",
+        description: "Measure overall customer satisfaction (CSAT) and drivers."
+    },
+    {
+        href: "/dashboard/createsurvey?template=semantic-differential",
+        icon: Replace,
+        title: "Semantic Differential",
+        description: "Gauge user perception of a concept on bipolar adjective scales."
     },
 ];
 
