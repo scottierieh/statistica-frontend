@@ -13,6 +13,7 @@ import VanWestendorpPage from '@/components/pages/van-westendorp-page';
 import TurfPage from '@/components/pages/turf-page';
 import AhpPage from '@/components/pages/ahp-page';
 import GaborGrangerAnalysisPage from '@/components/pages/gabor-granger-analysis-page';
+import SemanticDifferentialPage from '@/components/pages/semantic-differential-page';
 
 
 export default function SurveyAnalysis() {
@@ -71,6 +72,9 @@ export default function SurveyAnalysis() {
         }
         if (survey.questions.some(q => q.type === 'single' && q.title.toLowerCase().includes('if this product was sold for'))) {
             analyses.push({ key: 'gabor-granger', label: 'Gabor-Granger', component: <GaborGrangerAnalysisPage survey={survey} responses={responses} /> });
+        }
+         if (survey.questions.some(q => q.type === 'semantic-differential' || q.type === 'likert')) {
+            analyses.push({ key: 'semantic-differential', label: 'Semantic Differential', component: <SemanticDifferentialPage survey={survey} responses={responses} /> });
         }
         return analyses;
     }, [survey, responses]);
