@@ -1,10 +1,9 @@
-
 'use client';
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { motion } from 'framer-motion';
-import { CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, FileText, Share2, ThumbsUp, Grid3x3, ChevronDown, Sigma, Phone, Mail, Network, ClipboardList } from "lucide-react";
+import { CircleDot, CheckSquare, CaseSensitive, Star, PlusCircle, FileText, Share2, ThumbsUp, Grid3x3, ChevronDown, Sigma, Phone, Mail, Network, ClipboardList, Replace } from "lucide-react";
 
 export const QuestionTypePalette = ({ onSelectType }: { onSelectType: (type: string) => void }) => {
     const questionTypeCategories = {
@@ -23,7 +22,7 @@ export const QuestionTypePalette = ({ onSelectType }: { onSelectType: (type: str
     'Scale': [
         { type: 'rating', label: 'Rating', icon: Star, color: 'text-yellow-500' },
         { type: 'nps', label: 'Net Promoter Score', icon: Share2, color: 'text-sky-500' },
-        { type: 'likert', label: 'Likert Scale', icon: Grid3x3, color: 'text-lime-500' }
+        { type: 'semantic-differential', label: 'Semantic Differential', icon: Replace, color: 'text-lime-500' }
     ],
     'Advanced': [
         { type: 'conjoint', label: 'Conjoint (Choice)', icon: Network, color: 'text-violet-500' },

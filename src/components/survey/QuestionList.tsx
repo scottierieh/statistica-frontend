@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X, Shuffle, RefreshCw, Save } from "lucide-react";
+import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X, Shuffle, RefreshCw, Save, Replace } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import type { Question, ConjointAttribute } from '@/entities/Survey';
@@ -547,6 +547,11 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles, isLikert = false
     );
 };
 
+const SemanticDifferentialQuestion = (props: any) => {
+    // Reuses MatrixQuestion logic, but with a specific scale configuration
+    return <MatrixQuestion {...props} isLikert={true} />;
+};
+
 
 const ConjointQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
@@ -662,7 +667,7 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     description: DescriptionBlock,
     'best-worst': BestWorstQuestion,
     matrix: MatrixQuestion,
-    likert: (props) => <MatrixQuestion {...props} isLikert />,
+    'semantic-differential': (props) => <MatrixQuestion {...props} isLikert={true} />,
     conjoint: ConjointQuestion,
     'rating-conjoint': RatingConjointQuestion,
   };

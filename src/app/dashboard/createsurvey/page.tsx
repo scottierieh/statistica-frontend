@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Eye } from "lucide-react";
@@ -12,7 +12,7 @@ import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import { SpecialAnalysisPalette } from '@/components/survey/SpecialAnalysisPalette';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate } from '@/lib/survey-templates';
+import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate } from '@/lib/survey-templates';
 import { Tabs, TabsTrigger, TabsContent, TabsList } from '@/components/ui/tabs';
 import SurveyView from '@/components/survey-view';
 
@@ -82,6 +82,12 @@ export default function CreateSurveyPage() {
             case 'ahp-full':
                 selectedTemplate = ahpWithAlternativesTemplate;
                 break;
+            case 'csat':
+                selectedTemplate = csatTemplate;
+                break;
+            case 'semantic-differential':
+                selectedTemplate = semanticDifferentialTemplate;
+                break;
             default:
                 return;
         }
@@ -137,9 +143,9 @@ export default function CreateSurveyPage() {
       required: true,
       options: ['single', 'multiple', 'dropdown', 'best-worst'].includes(type) ? ['Option 1', 'Option 2'] : [],
       items: type === 'best-worst' ? ['Item 1', 'Item 2', 'Item 3'] : [],
-      rows: type === 'matrix' || type === 'likert' ? ['Row 1', 'Row 2'] : [],
+      rows: type === 'matrix' || type === 'semantic-differential' ? ['Row 1', 'Row 2'] : [],
       columns: type === 'matrix' ? ['Col 1', 'Col 2', 'Col 3'] : [],
-      scale: type === 'likert' ? ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'] : type === 'matrix' ? [] : type === 'rating' ? ['1','2','3','4','5'] : [],
+      scale: ['semantic-differential'].includes(type) ? ['1', '2', '3', '4', '5', '6', '7'] : type === 'matrix' ? ['Bad', 'Neutral', 'Good'] : type === 'rating' ? ['1','2','3','4','5'] : [],
       content: type === 'description' ? 'This is a description block.' : '',
       attributes: type === 'conjoint' || type === 'rating-conjoint' ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
       criteria: type === 'ahp' ? ['Quality', 'Price', 'Service'] : [],
