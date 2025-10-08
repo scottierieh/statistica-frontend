@@ -66,9 +66,10 @@ def main():
         if unit_cost is not None:
             demand_curve['profit_margin'] = demand_curve[price_col] - unit_cost
             demand_curve['profit'] = demand_curve['profit_margin'] * demand_curve['likelihood']
-            optimal_profit_row = demand_curve.loc[demand_curve['profit'].idxmax()]
-            results_dict['optimal_profit_price'] = optimal_profit_row[price_col]
-            results_dict['max_profit'] = optimal_profit_row['profit']
+            if not demand_curve.empty and not demand_curve['profit'].isnull().all():
+                optimal_profit_row = demand_curve.loc[demand_curve['profit'].idxmax()]
+                results_dict['optimal_profit_price'] = optimal_profit_row[price_col]
+                results_dict['max_profit'] = optimal_profit_row['profit']
             # Re-fetch the demand curve records to include profit
             results_dict['demand_curve'] = demand_curve.to_dict('records')
 
@@ -135,4 +136,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
