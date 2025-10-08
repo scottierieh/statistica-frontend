@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import type { Question, ConjointAttribute, Survey, SurveyResponse } from '@/entities/Survey';
 import { useToast } from '@/hooks/use-toast';
 import { Slider } from './ui/slider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
     const theme = styles.theme || 'default';
@@ -611,8 +612,8 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         conjoint: ConjointQuestion,
         'rating-conjoint': RatingConjointQuestion,
         'semantic-differential': SemanticDifferentialQuestion,
-        'likert': SemanticDifferentialQuestion,
-        'ahp': AHPQuestion,
+        likert: SemanticDifferentialQuestion,
+        ahp: AHPQuestion,
     };
     
     const currentQuestion = survey?.questions[currentQuestionIndex];
