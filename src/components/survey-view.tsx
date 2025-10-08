@@ -19,6 +19,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Question, ConjointAttribute, Survey, SurveyResponse } from '@/entities/Survey';
 import { useToast } from '@/hooks/use-toast';
+import { Slider } from './ui/slider';
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
     const theme = styles.theme || 'default';
@@ -298,6 +299,98 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
     );
 };
 
+const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: any; onAnswerChange: (value: any) => void; }) => {
+    const { criteria = [], alternatives = [] } = question;
+    const [activeTab, setActiveTab] = useState<'criteria' | string>(alternatives.length > 0 ? 'criteria' : criteria[0] && criteria[1] ? `${criteria[0]} vs ${criteria[1]}` : 'criteria');
+    
+    const getPairs = (items: string[]) => {
+        const pairs: [string, string][] = [];
+        for (let i = 0; i < items.length; i++) {
+            for (let j = i + 1; j < items.length; j++) {
+                pairs.push([items[i], items[j]]);
+            }
+        }
+        return pairs;
+    };
+    
+    const criteriaPairs = getPairs(criteria);
+    const alternativePairs = getPairs(alternatives);
+    
+    const handleSliderChange = (pairKey: string, value: number) => {
+        onAnswerChange(produce(answer || {}, (draft: any) => {
+            draft[pairKey] = value;
+        }));
+    };
+    
+    const PairwiseComparison = ({ pair, matrixKey }: { pair: [string, string], matrixKey: string }) => {
+        const pairKey = `${pair[0]} vs ${pair[1]}`;
+        const value = answer?.[matrixKey]?.[pairKey] || 0;
+        const labels = ['9', '7', '5', '3', '1', '3', '5', '7', '9'];
+
+        return (
+            <div className="py-4 border-b">
+                <div className="flex justify-between items-center font-semibold mb-2">
+                    <span>{pair[0]}</span>
+                    <span>{pair[1]}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                    <Slider
+                        value={[value]}
+                        onValueChange={(v) => handleSliderChange(`${matrixKey}.${pairKey}`, v[0])}
+                        min={-9}
+                        max={9}
+                        step={1}
+                    />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
+                     {labels.slice(0, 5).reverse().map(l => <span key={`l-${l}`}>{l}</span>)}
+                     {labels.slice(5).map(l => <span key={`r-${l}`}>{l}</span>)}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="p-4 rounded-lg bg-background shadow-md">
+            <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+            {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
+            
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                    <TabsTrigger value="criteria">Criteria Comparison</TabsTrigger>
+                    {alternatives.length > 0 && criteria.map(c => (
+                        <TabsTrigger key={c} value={c}>Compare by {c}</TabsTrigger>
+                    ))}
+                </TabsList>
+                
+                <TabsContent value="criteria" className="mt-4">
+                    <Card>
+                        <CardHeader><CardTitle>Compare Criteria Importance</CardTitle></CardHeader>
+                        <CardContent>
+                            {criteriaPairs.map((pair, i) => (
+                                <PairwiseComparison key={i} pair={pair} matrixKey="criteria" />
+                            ))}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                
+                 {alternatives.length > 0 && criteria.map(criterion => (
+                    <TabsContent key={criterion} value={criterion} className="mt-4">
+                         <Card>
+                            <CardHeader><CardTitle>Compare Alternatives based on &quot;{criterion}&quot;</CardTitle></CardHeader>
+                            <CardContent>
+                                {alternativePairs.map((pair, i) => (
+                                    <PairwiseComparison key={i} pair={pair} matrixKey={criterion} />
+                                ))}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                ))}
+            </Tabs>
+        </div>
+    );
+};
+
 const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: string; onAnswerChange: (value: string) => void; }) => {
     const { attributes = [], profiles = [] } = question;
     
@@ -519,6 +612,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         'rating-conjoint': RatingConjointQuestion,
         'semantic-differential': SemanticDifferentialQuestion,
         'likert': SemanticDifferentialQuestion,
+        'ahp': AHPQuestion,
     };
     
     const currentQuestion = survey?.questions[currentQuestionIndex];
