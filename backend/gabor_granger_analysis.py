@@ -16,7 +16,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -111,14 +111,21 @@ def main():
             line3, = ax2.plot(demand_curve[price_col], demand_curve['profit'], color='purple', marker='+', linestyle='--', label='Profit Curve')
             lines.append(line3)
             if 'optimal_profit_price' in results_dict:
-                ax2.axvline(x=results_dict['optimal_profit_price'], color='purple', linestyle=':', label=f'Optimal Profit Price: ${results_dict["optimal_profit_price"]:.2f}')
+                ax1.axvline(x=results_dict['optimal_profit_price'], color='purple', linestyle=':', label=f'Optimal Profit Price: ${results_dict["optimal_profit_price"]:.2f}')
         
         fig.suptitle('Gabor-Granger Price Analysis', fontsize=16, fontweight='bold')
         
         # Combine legends
-        ax1_lines, ax1_labels = ax1.get_legend_handles_labels()
-        ax2_lines, ax2_labels = ax2.get_legend_handles_labels()
-        ax2.legend(ax1_lines + ax2_lines, ax1_labels + ax2_labels, loc='upper right')
+        all_lines = lines
+        all_labels = [l.get_label() for l in all_lines]
+        ax1_handles, ax1_labels = ax1.get_legend_handles_labels()
+
+        # Combine all unique handles and labels
+        handles = ax1_handles + [l for l in lines if l.get_label() not in ax1_labels]
+        labels = [l.get_label() for l in handles]
+        
+        ax1.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol=3)
+
 
         plt.tight_layout(rect=[0, 0, 1, 0.96])
 
