@@ -12,7 +12,7 @@ import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import { SpecialAnalysisPalette } from '@/components/survey/SpecialAnalysisPalette';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate } from '@/lib/survey-templates';
+import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate } from '@/lib/survey-templates';
 import { Tabs, TabsTrigger, TabsContent, TabsList } from '@/components/ui/tabs';
 import SurveyView from '@/components/survey-view';
 
@@ -69,6 +69,12 @@ export default function CreateSurveyPage() {
                 break;
             case 'turf':
                 selectedTemplate = turfTemplate;
+                break;
+            case 'gabor-granger-1':
+                selectedTemplate = gaborGrangerTemplate1;
+                break;
+            case 'gabor-granger-2':
+                selectedTemplate = gaborGrangerTemplate2;
                 break;
             case 'ahp-criteria':
                 selectedTemplate = ahpCriteriaOnlyTemplate;

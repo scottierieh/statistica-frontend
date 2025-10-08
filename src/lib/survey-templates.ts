@@ -160,53 +160,42 @@ export const turfTemplate = {
     ] as Question[],
 };
 
-export const gaborGrangerTemplate = {
-    title: "Gabor-Granger Price Analysis",
-    description: "Please indicate if you would purchase the product at the following prices.",
+export const gaborGrangerTemplate1 = {
+    title: "Gabor-Granger (Sequential)",
+    description: "Determine price elasticity by presenting prices sequentially.",
     questions: [
         {
-            id: 'gg_desc',
+            id: 'gg_desc_1',
             type: 'description',
             title: 'Instructions',
             content: 'For each of the prices shown, please indicate whether you would be willing to purchase the product.'
         },
-        {
-            id: 'gg_q_5000',
-            type: 'single',
-            title: 'If this product was sold for $5000, would you buy it?',
-            required: true,
-            options: ['Yes, I would buy', 'No, I would not buy']
-        },
-        {
-            id: 'gg_q_7000',
-            type: 'single',
-            title: 'If this product was sold for $7000, would you buy it?',
-            required: true,
-            options: ['Yes, I would buy', 'No, I would not buy']
-        },
-        {
-            id: 'gg_q_9000',
-            type: 'single',
-            title: 'If this product was sold for $9000, would you buy it?',
-            required: true,
-            options: ['Yes, I would buy', 'No, I would not buy']
-        },
-        {
-            id: 'gg_q_11000',
-            type: 'single',
-            title: 'If this product was sold for $11000, would you buy it?',
-            required: true,
-            options: ['Yes, I would buy', 'No, I would not buy']
-        },
-        {
-            id: 'gg_q_13000',
-            type: 'single',
-            title: 'If this product was sold for $13000, would you buy it?',
-            required: true,
-            options: ['Yes, I would buy', 'No, I would not buy']
-        }
+        { id: 'gg_q_5000', type: 'single', title: 'If this product was sold for $5000, would you buy it?', required: true, options: ['Yes, I would buy', 'No, I would not buy'] },
+        { id: 'gg_q_7000', type: 'single', title: 'If this product was sold for $7000, would you buy it?', required: true, options: ['Yes, I would buy', 'No, I would not buy'] },
+        { id: 'gg_q_9000', type: 'single', title: 'If this product was sold for $9000, would you buy it?', required: true, options: ['Yes, I would buy', 'No, I would not buy'] },
+        { id: 'gg_q_11000', type: 'single', title: 'If this product was sold for $11000, would you buy it?', required: true, options: ['Yes, I would buy', 'No, I would not buy'] },
+        { id: 'gg_q_13000', type: 'single', title: 'If this product was sold for $13000, would you buy it?', required: true, options: ['Yes, I would buy', 'No, I would not buy'] }
     ] as Question[]
 };
+
+export const gaborGrangerTemplate2 = {
+    title: "Gabor-Granger (Random)",
+    description: "Determine price elasticity by presenting prices in a random order.",
+    questions: [
+        {
+            id: 'gg_desc_2',
+            type: 'description',
+            title: 'Instructions',
+            content: 'For each of the prices shown, please indicate whether you would be willing to purchase the product.'
+        },
+        { id: 'gg_q_80', type: 'single', title: 'If this product was sold for $80, would you buy it?', required: true, options: ['Yes, I would buy', 'No, I would not buy'] },
+        { id: 'gg_q_120', type: 'single', title: 'If this product was sold for $120, would you buy it?', required: true, options: ['Yes, I would buy', 'No, I would not buy'] },
+        { id: 'gg_q_100', type: 'single', title: 'If this product was sold for $100, would you buy it?', required: true, options: ['Yes, I would buy', 'No, I would not buy'] },
+        { id: 'gg_q_150', type: 'single', title: 'If this product was sold for $150, would you buy it?', required: true, options: ['Yes, I would buy', 'No, I would not buy'] },
+        { id: 'gg_q_60', type: 'single', title: 'If this product was sold for $60, would you buy it?', required: true, options: ['Yes, I would buy', 'No, I would not buy'] }
+    ] as Question[]
+};
+
 
 export const ahpCriteriaOnlyTemplate = {
     title: "Feature Prioritization (AHP)",
