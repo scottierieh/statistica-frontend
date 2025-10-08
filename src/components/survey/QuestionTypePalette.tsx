@@ -22,7 +22,8 @@ export const QuestionTypePalette = ({ onSelectType }: { onSelectType: (type: str
     'Scale': [
         { type: 'rating', label: 'Rating', icon: Star, color: 'text-yellow-500' },
         { type: 'nps', label: 'Net Promoter Score', icon: Share2, color: 'text-sky-500' },
-        { type: 'semantic-differential', label: 'Semantic Differential', icon: Replace, color: 'text-lime-500' }
+        { type: 'semantic-differential', label: 'Semantic Differential', icon: Replace, color: 'text-lime-500' },
+        { type: 'likert', label: 'Likert Scale', icon: ClipboardList, color: 'text-teal-500' },
     ],
     'Advanced': [
         { type: 'conjoint', label: 'Conjoint (Choice)', icon: Network, color: 'text-violet-500' },

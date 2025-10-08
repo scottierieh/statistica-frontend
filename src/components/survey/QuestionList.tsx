@@ -606,7 +606,7 @@ const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, styles }: 
                     <Label>Bipolar Scales</Label>
                     <div className="space-y-2 mt-2">
                         {(question.rows || []).map((row: string, index: number) => {
-                            const [left, right] = (row || ' vs ').split(' vs ');
+                            const [left, right] = (row || ' vs ').split(' vs ').map(s => s.trim());
                             return (
                                 <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
                                     <Input value={left || ''} onChange={e => handleBipolarScaleChange(index, 'left', e.target.value)} placeholder="Left Label" />
@@ -761,6 +761,7 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     'best-worst': BestWorstQuestion,
     matrix: MatrixQuestion,
     'semantic-differential': SemanticDifferentialQuestion,
+    'likert': SemanticDifferentialQuestion,
     conjoint: ConjointQuestion,
     'rating-conjoint': RatingConjointQuestion,
   };

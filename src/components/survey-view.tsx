@@ -298,7 +298,6 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
     );
 };
 
-
 const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: string; onAnswerChange: (value: string) => void; }) => {
     const { attributes = [], profiles = [] } = question;
     
@@ -519,6 +518,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         conjoint: ConjointQuestion,
         'rating-conjoint': RatingConjointQuestion,
         'semantic-differential': SemanticDifferentialQuestion,
+        'likert': SemanticDifferentialQuestion,
     };
     
     const currentQuestion = survey?.questions[currentQuestionIndex];
