@@ -70,7 +70,7 @@ def main():
                 optimal_profit_row = demand_curve.loc[demand_curve['profit'].idxmax()]
                 results_dict['optimal_profit_price'] = optimal_profit_row[price_col]
                 results_dict['max_profit'] = optimal_profit_row['profit']
-            # Re-fetch the demand curve records to include profit
+            
             results_dict['demand_curve'] = demand_curve.to_dict('records')
 
 
@@ -93,7 +93,7 @@ def main():
         color1 = 'tab:blue'
         ax1.set_xlabel('Price')
         ax1.set_ylabel('Purchase Likelihood', color=color1)
-        ax1.plot(demand_curve[price_col], demand_curve['likelihood'], color=color1, marker='o', label='Demand Curve')
+        line1, = ax1.plot(demand_curve[price_col], demand_curve['likelihood'], color=color1, marker='o', label='Demand Curve')
         ax1.tick_params(axis='y', labelcolor=color1)
         ax1.axvline(x=optimal_revenue_price, color='green', linestyle=':', label=f'Optimal Revenue Price: ${optimal_revenue_price:.2f}')
         
@@ -101,19 +101,24 @@ def main():
         ax2 = ax1.twinx()
         color2 = 'tab:red'
         ax2.set_ylabel('Potential Revenue / Profit', color=color2)
-        ax2.plot(demand_curve[price_col], demand_curve['revenue'], color=color2, marker='x', linestyle='--', label='Revenue Curve')
+        line2, = ax2.plot(demand_curve[price_col], demand_curve['revenue'], color=color2, marker='x', linestyle='--', label='Revenue Curve')
         ax2.tick_params(axis='y', labelcolor=color2)
+        
+        lines = [line1, line2]
 
         # Plot profit if available
         if 'profit' in demand_curve.columns:
-            ax2.plot(demand_curve[price_col], demand_curve['profit'], color='purple', marker='+', linestyle='--', label='Profit Curve')
+            line3, = ax2.plot(demand_curve[price_col], demand_curve['profit'], color='purple', marker='+', linestyle='--', label='Profit Curve')
+            lines.append(line3)
             if 'optimal_profit_price' in results_dict:
                 ax2.axvline(x=results_dict['optimal_profit_price'], color='purple', linestyle=':', label=f'Optimal Profit Price: ${results_dict["optimal_profit_price"]:.2f}')
         
         fig.suptitle('Gabor-Granger Price Analysis', fontsize=16, fontweight='bold')
-        lines, labels = ax1.get_legend_handles_labels()
-        lines2, labels2 = ax2.get_legend_handles_labels()
-        ax2.legend(lines + lines2, labels + labels2, loc='upper right')
+        
+        # Combine legends
+        ax1_lines, ax1_labels = ax1.get_legend_handles_labels()
+        ax2_lines, ax2_labels = ax2.get_legend_handles_labels()
+        ax2.legend(ax1_lines + ax2_lines, ax1_labels + ax2_labels, loc='upper right')
 
         plt.tight_layout(rect=[0, 0, 1, 0.96])
 
