@@ -260,7 +260,7 @@ export const semanticDifferentialTemplate = {
     questions: [
         {
             id: 'sd_q_1',
-            type: 'matrix',
+            type: 'semantic-differential',
             title: 'Please rate "Our Brand" on the following dimensions.',
             required: true,
             rows: [
@@ -270,13 +270,15 @@ export const semanticDifferentialTemplate = {
                 'Poor Value vs Good Value',
                 'Difficult to Use vs Easy to Use'
             ],
-            columns: ['1', '2', '3', '4', '5'],
+            numScalePoints: 7,
             scale: [
-                '1 (Very Negative)',
-                '2',
-                '3 (Neutral)',
-                '4',
-                '5 (Very Positive)'
+                'Very Negative',
+                '',
+                '',
+                'Neutral',
+                '',
+                '',
+                'Very Positive'
             ]
         }
     ] as Question[],
