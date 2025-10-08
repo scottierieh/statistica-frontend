@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -151,8 +150,7 @@ export default function Survey2Dashboard() {
                          <TemplateCard icon={ClipboardList} title="Rating Conjoint" description="Analyze customer preferences using a rating-based approach." href="/dashboard/createsurvey?template=rating-conjoint"/>
                          <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
                          <TemplateCard icon={DollarSign} title="Price Sensitivity (PSM)" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=van-westendorp"/>
-                         <TemplateCard icon={DollarSign} title="Gabor-Granger 1" description="Sequential pricing questions to find price elasticity." href="/dashboard/createsurvey?template=gabor-granger-1"/>
-                         <TemplateCard icon={DollarSign} title="Gabor-Granger 2" description="Randomized pricing questions for demand curve analysis." href="/dashboard/createsurvey?template=gabor-granger-2"/>
+                         <TemplateCard icon={DollarSign} title="Gabor-Granger" description="Determine price elasticity by asking direct purchase likelihood questions." href="/dashboard/gabor-granger"/>
                          <TemplateCard icon={Users} title="TURF Analysis" description="Identify the best combination of items to maximize reach." href="/dashboard/createsurvey?template=turf"/>
                          <TemplateCard icon={Network} title="AHP (Criteria Only)" description="Prioritize criteria using pairwise comparisons." href="/dashboard/createsurvey?template=ahp-criteria"/>
                          <TemplateCard icon={Network} title="AHP (Full)" description="Make complex decisions by comparing criteria and alternatives." href="/dashboard/createsurvey?template=ahp-full"/>
