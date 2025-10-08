@@ -1,5 +1,5 @@
 
-import type { Question } from '@/entities/Survey';
+import type { Question, Criterion } from '@/entities/Survey';
 
 export const choiceBasedConjointTemplate = {
     title: "Smartphone Feature Preference (Choice-Based)",
@@ -206,7 +206,11 @@ export const ahpCriteriaOnlyTemplate = {
             type: 'ahp',
             title: 'Which feature is more important to you for a new smartphone?',
             required: true,
-            criteria: ['Price', 'Camera Quality', 'Battery Life', 'Performance'],
+            criteria: [
+                { id: 'c1', name: 'Performance', subCriteria: [{id: 'sc1', name: 'CPU Speed'}, {id: 'sc2', name: 'GPU Performance'}] },
+                { id: 'c2', name: 'Design' },
+                { id: 'c3', name: 'Camera' }
+            ] as Criterion[],
             alternatives: [],
         },
     ],
@@ -221,7 +225,11 @@ export const ahpWithAlternativesTemplate = {
             type: 'ahp',
             title: 'Which feature is more important for a new smartphone?',
             required: true,
-            criteria: ['Price', 'Performance', 'Design'],
+            criteria: [
+                 { id: 'c1', name: 'Price' },
+                 { id: 'c2', name: 'Performance' },
+                 { id: 'c3', name: 'Design' }
+            ] as Criterion[],
             alternatives: ['Phone X', 'Phone Y', 'Phone Z'],
         },
     ],
@@ -283,3 +291,4 @@ export const semanticDifferentialTemplate = {
         }
     ] as Question[],
 };
+

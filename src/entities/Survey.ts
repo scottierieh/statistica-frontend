@@ -1,7 +1,15 @@
+
+export interface Criterion {
+  id: string;
+  name: string;
+  subCriteria?: { id: string; name: string }[];
+}
+
 export type Question = {
     id: string;
     type: string;
     title: string;
+    text?: string;
     description?: string;
     options?: string[];
     items?: string[];
@@ -19,7 +27,7 @@ export type Question = {
     cardsPerSet?: number;
     profiles?: any[]; // For generated profiles
     // For AHP
-    criteria?: string[];
+    criteria?: Criterion[];
     alternatives?: string[];
 };
 
@@ -87,6 +95,7 @@ export interface Survey {
   created_date: string;
   startDate?: string;
   endDate?: string;
+  styles?: any;
 }
 
 export interface SurveyResponse {
