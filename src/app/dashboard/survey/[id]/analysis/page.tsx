@@ -11,16 +11,9 @@ import RatingConjointAnalysisPage from '@/components/pages/rating-conjoint-analy
 import IpaPage from '@/components/pages/ipa-page';
 import VanWestendorpPage from '@/components/pages/van-westendorp-page';
 import TurfPage from '@/components/pages/turf-page';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
-
 
 export default function SurveyAnalysis() {
     const params = useParams();
-    const router = useRouter();
     const surveyId = params.id as string;
 
     const [survey, setSurvey] = useState<Survey | null>(null);
@@ -86,37 +79,6 @@ export default function SurveyAnalysis() {
     }
 
     return (
-        <div className="space-y-6 p-4 md:p-6">
-            <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" onClick={() => router.push("/dashboard/survey2")}>
-                    <ArrowLeft className="w-4 h-4" />
-                </Button>
-                <div>
-                    <h1 className="font-headline text-3xl">{survey.title}</h1>
-                    <p className="text-muted-foreground">
-                        A summary of <Badge variant="secondary">{responses.length} responses</Badge>.
-                    </p>
-                </div>
-            </div>
-
-            <Tabs defaultValue="results" className="w-full">
-                <TabsList>
-                    <TabsTrigger value="results">Results</TabsTrigger>
-                    {specialAnalyses.map(analysis => (
-                        <TabsTrigger key={analysis.key} value={analysis.key}>{analysis.label}</TabsTrigger>
-                    ))}
-                </TabsList>
-
-                <TabsContent value="results" className="mt-4">
-                    <SurveyAnalysisPage survey={survey} responses={responses} />
-                </TabsContent>
-                
-                {specialAnalyses.map(analysis => (
-                    <TabsContent key={analysis.key} value={analysis.key} className="mt-4">
-                        {analysis.component}
-                    </TabsContent>
-                ))}
-            </Tabs>
-        </div>
+        <SurveyAnalysisPage survey={survey} responses={responses} specialAnalyses={specialAnalyses} />
     );
 }
