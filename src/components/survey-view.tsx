@@ -18,7 +18,7 @@ import { produce } from 'immer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import type { Question, ConjointAttribute, Survey, SurveyResponse } from '@/entities/Survey';
+import type { Question, ConjointAttribute, Survey, SurveyResponse, Criterion } from '@/entities/Survey';
 import { useToast } from '@/hooks/use-toast';
 import { Slider } from './ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -302,36 +302,53 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
     );
 };
 
-const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: any; onAnswerChange: (value: any) => void; }) => {
+const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: any; onAnswerChange: (value: any) => void; styles: any; }) => {
     const { criteria = [], alternatives = [] } = question;
+    const [currentIndex, setCurrentIndex] = useState(0);
 
     const allPairs = useMemo(() => {
-        const createPairs = (items: string[]) => {
-            const pairs = [];
-            for (let i = 0; i < items.length; i++) {
-                for (let j = i + 1; j < items.length; j++) {
-                    pairs.push({ pair: [items[i], items[j]] });
+        const createPairs = (items: (string | Criterion)[]) => {
+            const pairs: { pair: [string, string], isSub?: boolean, parent?: string }[] = [];
+            const itemNames = items.map(i => typeof i === 'string' ? i : i.name);
+            for (let i = 0; i < itemNames.length; i++) {
+                for (let j = i + 1; j < itemNames.length; j++) {
+                    pairs.push({ pair: [itemNames[i], itemNames[j]] });
                 }
             }
             return pairs;
         };
 
-        const criteriaPairs = createPairs(criteria);
-        const alternativePairs = createPairs(alternatives);
+        let comparisons = [{
+            title: "Which criterion is more important?",
+            matrixKey: "criteria",
+            pairs: createPairs(criteria)
+        }];
+
+        criteria.forEach(c => {
+            if (c.subCriteria && c.subCriteria.length > 1) {
+                comparisons.push({
+                    title: `For "${c.name}", which sub-criterion is more important?`,
+                    matrixKey: `sub_criteria_${c.id}`,
+                    pairs: createPairs(c.subCriteria)
+                });
+            }
+        });
         
-        const altComparisons = criteria.map(criterion => ({
-            criterion,
-            title: `For "${criterion}", which alternative is better?`,
-            pairs: alternativePairs,
-        }));
-        
-        return {
-            criteria: {
-                title: "Which criterion is more important?",
-                pairs: criteriaPairs,
-            },
-            alternatives: altComparisons,
-        };
+        if (alternatives.length > 1) {
+            const lowestLevelCriteria = criteria.flatMap(c => 
+                (c.subCriteria && c.subCriteria.length > 0) ? c.subCriteria.map(sc => ({...sc, parent: c.name})) : [{...c, parent: null}]
+            );
+
+            lowestLevelCriteria.forEach(criterion => {
+                comparisons.push({
+                    title: `For "${criterion.parent ? `${criterion.parent} -> ${criterion.name}`: criterion.name}", which alternative is better?`,
+                    matrixKey: `alt_${criterion.id}`,
+                    pairs: createPairs(alternatives)
+                });
+            });
+        }
+
+        return comparisons.flatMap(group => group.pairs.map(p => ({ ...p, title: group.title, matrixKey: group.matrixKey })));
     }, [criteria, alternatives]);
 
     const handleValueChange = (pairKey: string, matrixKey: string, value: number) => {
@@ -340,37 +357,47 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
             draft[matrixKey][pairKey] = value;
         }));
     };
-  
-    const PairwiseComparison = ({ pair, matrixKey }: { pair: [string, string], matrixKey: string }) => {
+    
+    if (allPairs.length === 0) {
+        return <p>AHP Question not configured correctly.</p>;
+    }
+
+    const currentComparison = allPairs[currentIndex];
+    
+    const PairwiseComparison = ({ pair, matrixKey, title }: { pair: [string, string], matrixKey: string, title: string }) => {
         const pairKey = `${pair[0]} vs ${pair[1]}`;
         const value = answer?.[matrixKey]?.[pairKey];
-        const radioValues = [-9, -7, -5, -3, -1, 1, 3, 5, 7, 9].filter(v => v !== -1 || v !== 1);
-        radioValues.splice(4,0,1);
 
         return (
-             <div className="p-6 rounded-lg border bg-white mb-4 shadow-sm">
-                 <div className="relative flex flex-col items-center justify-between gap-4">
-                    <div className="flex w-full justify-between font-bold">
-                        <span className="text-left w-1/3 text-primary">{pair[0]}</span>
-                        <span className="text-center w-1/3 text-muted-foreground">vs</span>
-                        <span className="text-right w-1/3 text-primary">{pair[1]}</span>
-                    </div>
-                    <RadioGroup 
-                        className="flex justify-between gap-2 w-full" 
-                        value={String(value)} 
-                        onValueChange={(v) => handleValueChange(pairKey, matrixKey, parseInt(v))}
-                    >
-                       {[-9,-7,-5,-3,1,3,5,7,9].map((v, index) => (
-                            <div key={v} className="flex flex-col items-center space-y-1">
-                                <Label htmlFor={`pair-${matrixKey}-${pair.join('-')}-${v}`} className="text-xs text-muted-foreground">{Math.abs(v)}</Label>
-                                <RadioGroupItem value={String(v)} id={`pair-${matrixKey}-${pair.join('-')}-${v}`} />
-                            </div>
-                        ))}
-                    </RadioGroup>
-                    <div className="w-full flex justify-between text-xs text-muted-foreground mt-2">
-                        <span className="text-left">Strongly Prefer {pair[0]}</span>
-                        <span className="text-center">Neutral</span>
-                        <span className="text-right">Strongly Prefer {pair[1]}</span>
+            <div className="space-y-6">
+                <h4 className="font-semibold text-xl mb-4 text-center">{title}</h4>
+                <div className="p-6 rounded-lg border bg-white mb-4 shadow-sm">
+                    <div className="relative flex flex-col items-center justify-between gap-4">
+                        <div className="flex w-full justify-between items-center font-bold">
+                            <span className="text-left w-1/3 text-lg" style={{color: styles.primaryColor}}>{pair[0]}</span>
+                            <span className="text-center w-auto text-muted-foreground text-sm">vs</span>
+                            <span className="text-right w-1/3 text-lg" style={{color: styles.primaryColor}}>{pair[1]}</span>
+                        </div>
+                        <RadioGroup 
+                            className="flex justify-between gap-1 sm:gap-2 w-full pt-4"
+                            value={String(value)} 
+                            onValueChange={(v) => handleValueChange(pairKey, matrixKey, parseInt(v))}
+                        >
+                        {[9,7,5,3,1,3,5,7,9].map((v, index) => {
+                            const radioValue = index < 4 ? -v : v;
+                            return (
+                                <div key={index} className="flex flex-col items-center space-y-1">
+                                    <RadioGroupItem value={String(radioValue)} id={`pair-${matrixKey}-${pair.join('-')}-${v}-${index}`} className="h-6 w-6"/>
+                                    <Label htmlFor={`pair-${matrixKey}-${pair.join('-')}-${v}-${index}`} className="text-xs text-muted-foreground">{v}</Label>
+                                </div>
+                            )
+                        })}
+                        </RadioGroup>
+                        <div className="w-full flex justify-between text-xs text-muted-foreground mt-2 px-1">
+                            <span className="text-left text-[10px] sm:text-xs">Strongly Prefer {pair[0]}</span>
+                            <span className="text-center text-[10px] sm:text-xs">Neutral</span>
+                            <span className="text-right text-[10px] sm:text-xs">Strongly Prefer {pair[1]}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -379,38 +406,44 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
 
     return (
         <div className="p-4 rounded-lg bg-background shadow-md">
-            <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+            <h3 className="text-lg font-semibold mb-4" style={{fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor}}>{question.title}</h3>
             {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
             
-            <div className="space-y-6">
-                <div className="legend bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md">
-                    <div className="legend-title font-semibold text-blue-800 mb-2">Importance Scale Guide</div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-blue-700">
-                        <div><strong>1:</strong> Equal Importance</div>
-                        <div><strong>3:</strong> Moderately More Important</div>
-                        <div><strong>5:</strong> Important</div>
-                        <div><strong>7:</strong> Very Important</div>
-                        <div><strong>9:</strong> Extremely More Important</div>
-                    </div>
+            <div className="legend bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mb-6">
+                <div className="legend-title font-semibold text-blue-800 mb-2">Importance Scale Guide</div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-blue-700">
+                    <div><strong>1:</strong> Equal</div>
+                    <div><strong>3:</strong> Moderately Important</div>
+                    <div><strong>5:</strong> Important</div>
+                    <div><strong>7:</strong> Very Important</div>
+                    <div><strong>9:</strong> Extremely Important</div>
                 </div>
+            </div>
 
-                <h4 className="font-semibold text-xl mb-4 text-center">{allPairs.criteria.title}</h4>
-                {allPairs.criteria.pairs.map((comparison, index) => (
-                    <PairwiseComparison key={index} pair={comparison.pair} matrixKey="criteria" />
-                ))}
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={currentIndex}
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                >
+                    <PairwiseComparison 
+                        pair={currentComparison.pair} 
+                        matrixKey={currentComparison.matrixKey} 
+                        title={currentComparison.title}
+                    />
+                </motion.div>
+            </AnimatePresence>
             
-                {allPairs.alternatives.map(criterionGroup => (
-                    <div key={criterionGroup.criterion}>
-                        <h4 className="font-semibold text-xl mb-4 text-center">{criterionGroup.title}</h4>
-                        {criterionGroup.pairs.map((comparison, index) => (
-                            <PairwiseComparison key={index} pair={comparison.pair} matrixKey={criterionGroup.criterion} />
-                        ))}
-                    </div>
-                ))}
+            <div className="flex justify-between items-center mt-6">
+                 <Button onClick={() => setCurrentIndex(p => p - 1)} disabled={currentIndex === 0}>Previous</Button>
+                 <span className="text-sm text-muted-foreground">{currentIndex + 1} / {allPairs.length}</span>
+                 <Button onClick={() => setCurrentIndex(p => p + 1)} disabled={currentIndex === allPairs.length - 1}>Next</Button>
             </div>
         </div>
     );
 };
+
 
 const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: string; onAnswerChange: (value: string) => void; }) => {
     const { attributes = [], profiles = [] } = question;
@@ -792,3 +825,4 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         </div>
     );
 }
+
