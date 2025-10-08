@@ -5,13 +5,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2, DollarSign, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
-import type { Survey, SurveyResponse, Question } from '@/types/survey';
-import Image from 'next/image';
+import { Loader2, DollarSign, AlertTriangle } from 'lucide-react';
+import type { Survey, SurveyResponse } from '@/types/survey';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Line } from 'recharts';
 
 interface GaborGrangerResults {
     optimal_revenue_price: number;
@@ -25,7 +26,6 @@ interface GaborGrangerResults {
 
 interface FullAnalysisResponse {
     results: GaborGrangerResults;
-    plot: string;
 }
 
 interface GaborGrangerPageProps {
@@ -56,7 +56,6 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
 
         setIsLoading(true);
         setError(null);
-        // Do not clear analysisResult if we are just re-calculating with cost
         if (cost === undefined) {
              setAnalysisResult(null);
         }
@@ -143,7 +142,7 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
         return <Card><CardContent className="p-6 text-center text-muted-foreground">No analysis results to display.</CardContent></Card>;
     }
     
-    const { results, plot } = analysisResult;
+    const { results } = analysisResult;
 
     return (
         <div className="space-y-4">
@@ -174,18 +173,34 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                     <CardTitle className="font-headline">Gabor-Granger Analysis Results</CardTitle>
                     <CardDescription>Analysis of price sensitivity and revenue/profit optimization.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
                      <StatCard title="Optimal Price (Revenue)" value={results.optimal_revenue_price} />
                      <StatCard title="Optimal Price (Profit)" value={results.optimal_profit_price} />
-                     <StatCard title="Highest Revenue Index" value={results.max_revenue} unit="" />
-                     {results.max_profit !== undefined && <StatCard title="Highest Profit Index" value={results.max_profit} unit="" />}
+                     <StatCard title="Max Revenue Index" value={results.max_revenue} unit="" />
+                     {results.max_profit !== undefined && <StatCard title="Max Profit Index" value={results.max_profit} unit="" />}
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader><CardTitle>Demand & Revenue/Profit Curves</CardTitle></CardHeader>
                 <CardContent>
-                    <Image src={`data:image/png;base64,${plot}`} alt="Gabor-Granger Plot" width={1000} height={600} className="w-full rounded-md border" />
+                    <ChartContainer config={{}} className="w-full h-96">
+                        <ResponsiveContainer>
+                            <LineChart data={results.demand_curve}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="price" type="number" domain={['dataMin', 'dataMax']} tickFormatter={(tick) => `₩${tick.toLocaleString()}`} />
+                                <YAxis yAxisId="left" label={{ value: 'Purchase Likelihood (%)', angle: -90, position: 'insideLeft' }} />
+                                <YAxis yAxisId="right" orientation="right" label={{ value: 'Revenue / Profit Index', angle: -90, position: 'insideRight' }} />
+                                <Tooltip content={<ChartTooltipContent formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value} />} />
+                                <Legend />
+                                <Line yAxisId="left" type="monotone" dataKey="likelihood" name="Demand" stroke="#8884d8" strokeWidth={2} dot={{ r: 4 }} unit="%" />
+                                <Line yAxisId="right" type="monotone" dataKey="revenue" name="Revenue" stroke="#82ca9d" strokeWidth={2} />
+                                {results.demand_curve.some(r => r.profit !== undefined) && (
+                                    <Line yAxisId="right" type="monotone" dataKey="profit" name="Profit" stroke="#ffc658" strokeWidth={2} />
+                                )}
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
                 </CardContent>
             </Card>
 
