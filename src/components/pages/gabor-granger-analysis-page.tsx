@@ -56,7 +56,10 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
 
         setIsLoading(true);
         setError(null);
-        setAnalysisResult(null);
+        // Do not clear analysisResult if we are just re-calculating with cost
+        if (cost === undefined) {
+             setAnalysisResult(null);
+        }
 
         const gaborGrangerQuestions = survey.questions.filter(q => q.type === 'single' && q.title.toLowerCase().includes('if this product was sold for'));
 
@@ -70,11 +73,11 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
         responses.forEach(resp => {
             gaborGrangerQuestions.forEach(q => {
                 const answer = (resp.answers as any)[q.id];
-                const priceMatch = q.title.match(/\$?(\d+)/);
+                const priceMatch = q.title.match(/\$?([\d,]+)/);
                 if (answer && priceMatch) {
                     analysisData.push({
                         respondent_id: resp.id,
-                        price: Number(priceMatch[1]),
+                        price: Number(priceMatch[1].replace(/,/g, '')),
                         purchase_intent: answer === 'Yes, I would buy' ? 1 : 0,
                     });
                 }
@@ -108,7 +111,11 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
             if ((result as any).error) throw new Error((result as any).error);
 
             setAnalysisResult(result);
-            toast({ title: 'Analysis Complete', description: 'Gabor-Granger analysis finished.' });
+            if(cost !== undefined) {
+                 toast({ title: 'Analysis Updated', description: 'Profit calculations have been added.' });
+            } else {
+                 toast({ title: 'Analysis Complete', description: 'Gabor-Granger analysis finished.' });
+            }
 
         } catch (e: any) {
             setError(e.message);
@@ -119,10 +126,14 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
     }, [survey, responses, toast]);
     
     useEffect(() => {
+        handleAnalysis();
+    }, [handleAnalysis]);
+    
+    const handleUnitCostAnalysis = () => {
         handleAnalysis(unitCost);
-    }, [handleAnalysis, unitCost]);
+    };
 
-    if (isLoading) {
+    if (isLoading && !analysisResult) {
         return <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /><p>Running Gabor-Granger analysis...</p></CardContent></Card>;
     }
     if (error) {
@@ -140,7 +151,7 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                 <CardHeader>
                     <CardTitle>Analysis Configuration</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex items-end gap-4">
                      <div className="max-w-xs">
                         <Label htmlFor="unit-cost">Unit Cost (Optional)</Label>
                         <Input 
@@ -152,6 +163,9 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                         />
                         <p className="text-xs text-muted-foreground mt-1">Provide a unit cost to calculate profit-optimal pricing.</p>
                     </div>
+                     <Button onClick={handleUnitCostAnalysis} disabled={isLoading}>
+                        {isLoading ? <><Loader2 className="mr-2 animate-spin"/>Recalculating...</> : <>Recalculate with Cost</>}
+                    </Button>
                 </CardContent>
             </Card>
 
