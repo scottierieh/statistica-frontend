@@ -17,8 +17,8 @@ def one_sample_ttest(data_series, test_mean):
     # --- Descriptive Statistics ---
     n = len(data_series)
     mean = np.mean(data_series)
-    std_dev = np.std(data_series, ddof=1)
-    std_err = std_dev / np.sqrt(n)
+    std_dev = np.std(data_series, ddof=1) if n > 1 else 0
+    std_err = std_dev / np.sqrt(n) if n > 0 else 0
     
     # --- Effect Size ---
     cohens_d = (mean - test_mean) / std_dev if std_dev > 0 else 0
@@ -35,10 +35,13 @@ def one_sample_ttest(data_series, test_mean):
     # --- Confidence Interval ---
     confidence_level = 0.95
     df = n - 1
-    t_critical = stats.t.ppf((1 + confidence_level) / 2, df)
-    margin_of_error = t_critical * std_err
-    ci_lower = mean - margin_of_error
-    ci_upper = mean + margin_of_error
+    
+    ci_lower, ci_upper = np.nan, np.nan
+    if df > 0 and std_err > 0:
+        t_critical = stats.t.ppf((1 + confidence_level) / 2, df)
+        margin_of_error = t_critical * std_err
+        ci_lower = mean - margin_of_error
+        ci_upper = mean + margin_of_error
     
     results = {
         'summary_stats': {

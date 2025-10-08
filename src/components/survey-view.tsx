@@ -253,6 +253,53 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
     );
 };
 
+const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question, answer: any, onAnswerChange: (value: any) => void, styles: any }) => {
+    const scalePoints = [
+        { value: 1, label: '매우' }, { value: 2, label: '다소' },
+        { value: 3, label: '약간' }, { value: 4, label: '중립' },
+        { value: 5, label: '약간' }, { value: 6, label: '다소' },
+        { value: 7, label: '매우' },
+    ];
+
+    return (
+        <div className="p-4 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+             <h3 className="text-lg font-semibold mb-4" style={{ fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor }}>{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+             <div className="space-y-6">
+                {(question.rows || []).map((rowText, index) => {
+                    const [left, right] = rowText.split('vs').map(s => s.trim());
+                    const selectedValue = answer?.[rowText];
+                    return (
+                        <div key={index} className="bg-white rounded-lg p-6 border border-gray-200">
+                            <div className="flex justify-between items-center text-sm font-semibold text-gray-800 mb-4 px-2">
+                                <span>{left}</span>
+                                <span>{right}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                {scalePoints.map(({ value, label }) => (
+                                    <div key={value} className="flex flex-col items-center space-y-2">
+                                        <button
+                                            onClick={() => onAnswerChange(produce(answer || {}, (draft: any) => { draft[rowText] = value; }))}
+                                            className={`w-12 h-12 rounded-full border-2 transition-all flex items-center justify-center font-bold text-lg
+                                                ${value === selectedValue
+                                                    ? 'bg-purple-600 border-purple-600 text-white shadow-lg scale-110'
+                                                    : 'bg-white border-gray-300 text-gray-600 hover:border-purple-400'
+                                                }`}
+                                        >
+                                            {value}
+                                        </button>
+                                        <span className="text-xs text-gray-500">{label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+
 const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: string; onAnswerChange: (value: string) => void; }) => {
     const { attributes = [], profiles = [] } = question;
     
@@ -472,6 +519,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         matrix: MatrixQuestion,
         conjoint: ConjointQuestion,
         'rating-conjoint': RatingConjointQuestion,
+        'semantic-differential': SemanticDifferentialQuestion,
     };
     
     const currentQuestion = survey?.questions[currentQuestionIndex];

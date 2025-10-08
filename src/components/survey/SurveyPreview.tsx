@@ -17,16 +17,18 @@ const SemanticDifferentialPreview = ({ question, styles }: { question: Question;
         { value: 6, label: '다소' },
         { value: 7, label: '매우' },
     ];
+    
+    const [leftLabel, rightLabel] = (question.rows?.[0] || '낮은 품질 vs 높은 품질').split('vs').map(s => s.trim());
 
     return (
         <div className="p-4 bg-background rounded-lg" style={{ marginBottom: styles.questionSpacing }}>
             <h3 className="font-semibold mb-4" style={{ fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor }}>
-                {question.title}
+                {question.title || "Example Semantic Differential"}
             </h3>
             <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <div className="flex justify-between items-center text-sm font-semibold text-gray-800 mb-4 px-2">
-                    <span>낮은 품질</span>
-                    <span>높은 품질</span>
+                    <span>{leftLabel}</span>
+                    <span>{rightLabel}</span>
                 </div>
                 <div className="flex items-center justify-between">
                     {scalePoints.map(({ value, label }) => (
@@ -85,7 +87,7 @@ export default function SurveyPreview({ styles }: { styles: any }) {
                 </RadioGroup>
             </div>
              {/* Example Semantic Differential Question */}
-            <SemanticDifferentialPreview question={{id: 'sd-preview', type: 'semantic-differential', title: 'Example Semantic Differential Question'}} styles={styles} />
+            <SemanticDifferentialPreview question={{id: 'sd-preview', type: 'semantic-differential', title: 'Example Semantic Differential Question', rows: ['낮은 품질 vs 높은 품질']}} styles={styles} />
         </div>
       </div>
     </Card>
