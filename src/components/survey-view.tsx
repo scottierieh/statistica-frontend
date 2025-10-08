@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -10,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, AlertCircle, Star, ThumbsUp, ThumbsDown } from "lucide-react";
+import { CheckCircle2, AlertCircle, Star, ThumbsUp, ThumbsDown, ArrowLeft, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Textarea } from './ui/textarea';
 import { Progress } from './ui/progress';
@@ -302,107 +301,119 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
 };
 
 const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: any; onAnswerChange: (value: any) => void; }) => {
-  const { criteria = [], alternatives = [] } = question;
-  const [activeTab, setActiveTab] = useState<'criteria' | string>(alternatives.length > 0 ? 'criteria' : criteria[0] && criteria[1] ? `${criteria[0]} vs ${criteria[1]}` : 'criteria');
-  
-  const getPairs = (items: string[]) => {
+    const { criteria = [], alternatives = [] } = question;
+    
+    const criteriaPairs = useMemo(() => {
       const pairs: [string, string][] = [];
-      for (let i = 0; i < items.length; i++) {
-          for (let j = i + 1; j < items.length; j++) {
-              pairs.push([items[i], items[j]]);
-          }
+      for (let i = 0; i < criteria.length; i++) {
+        for (let j = i + 1; j < criteria.length; j++) {
+          pairs.push([criteria[i], criteria[j]]);
+        }
       }
-      return pairs;
-  };
+      return pairs.map(p => ({ type: 'criteria', pair: p, title: 'Which criterion is more important?' }));
+    }, [criteria]);
   
-  const criteriaPairs = getPairs(criteria);
-  const alternativePairs = getPairs(alternatives);
-  
-  const handleValueChange = (pairKey: string, value: number) => {
-      onAnswerChange(produce(answer || {}, (draft: any) => {
-          const keys = pairKey.split('.');
-          let current = draft;
-          for (let i = 0; i < keys.length - 1; i++) {
-              current = current[keys[i]] = current[keys[i]] || {};
-          }
-          current[keys[keys.length - 1]] = value;
-      }));
-  };
-  
-  const PairwiseComparison = ({ pair, matrixKey }: { pair: [string, string], matrixKey: string }) => {
-      const pairKey = `${pair[0]} vs ${pair[1]}`;
-      const value = answer?.[matrixKey]?.[pairKey] || 0;
-      const scaleValues = [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-      const radioValues = [-9, -7, -5, -3, 1, 3, 5, 7, 9];
-      const scaleLabels = ['9', '7', '5', '3', '1', '3', '5', '7', '9'];
+    const alternativeComparisons = useMemo(() => {
+        if(alternatives.length < 2) return [];
+        const altPairs: [string, string][] = [];
+        for (let i = 0; i < alternatives.length; i++) {
+            for (let j = i + 1; j < alternatives.length; j++) {
+                altPairs.push([alternatives[i], alternatives[j]]);
+            }
+        }
+        return criteria.flatMap(criterion => 
+            altPairs.map(pair => ({
+                type: 'alternative',
+                criterion: criterion,
+                pair: pair,
+                title: `For "${criterion}", which alternative is better?`
+            }))
+        );
+    }, [criteria, alternatives]);
 
-      return (
-          <div className="py-6 border-b">
-              <div className="flex justify-between items-center font-semibold mb-4 text-base md:text-lg">
-                  <span className="text-right w-2/5 break-words text-primary">{pair[0]}</span>
-                  <span className="w-1/5 text-center text-muted-foreground">vs</span>
-                  <span className="text-left w-2/5 break-words" style={{color: "hsl(var(--sidebar-primary))"}}>{pair[1]}</span>
-              </div>
-              <RadioGroup 
-                  className="flex justify-center items-center gap-1 md:gap-2"
-                  value={String(value)}
-                  onValueChange={(v) => handleValueChange(`${matrixKey}.${pairKey}`, parseInt(v))}
-              >
-                  {radioValues.map((v, index) => (
-                      <div key={v} className="flex flex-col items-center">
-                           <RadioGroupItem value={String(v)} id={`pair-${matrixKey}-${pair.join('-')}-${v}`} className="w-6 h-6 md:w-8 md:h-8" />
-                           <Label htmlFor={`pair-${matrixKey}-${pair.join('-')}-${v}`} className="text-xs mt-2">{scaleLabels[index]}</Label>
-                      </div>
-                  ))}
-              </RadioGroup>
-               <div className="flex justify-between text-xs text-muted-foreground mt-2 px-4">
-                  <span>Strongly prefer left</span>
-                  <span>Neutral</span>
-                  <span>Strongly prefer right</span>
-              </div>
-          </div>
-      );
-  };
+    const allPairs = useMemo(() => [...criteriaPairs, ...alternativeComparisons], [criteriaPairs, alternativeComparisons]);
+    const [currentPairIndex, setCurrentPairIndex] = useState(0);
 
-  return (
-      <div className="p-4 rounded-lg bg-background shadow-md">
-          <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
-          {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList>
-                  <TabsTrigger value="criteria">Criteria Comparison</TabsTrigger>
-                  {alternatives.length > 0 && criteria.map(c => (
-                      <TabsTrigger key={c} value={c}>Compare by {c}</TabsTrigger>
-                  ))}
-              </TabsList>
-              
-              <TabsContent value="criteria" className="mt-4">
-                  <Card>
-                      <CardHeader><CardTitle>Compare Criteria Importance</CardTitle></CardHeader>
-                      <CardContent>
-                          {criteriaPairs.map((pair, i) => (
-                              <PairwiseComparison key={i} pair={pair} matrixKey="criteria" />
-                          ))}
-                      </CardContent>
-                  </Card>
-              </TabsContent>
-              
-               {alternatives.length > 0 && criteria.map(criterion => (
-                  <TabsContent key={criterion} value={criterion} className="mt-4">
-                       <Card>
-                          <CardHeader><CardTitle>Compare Alternatives based on &quot;{criterion}&quot;</CardTitle></CardHeader>
-                          <CardContent>
-                              {alternativePairs.map((pair, i) => (
-                                  <PairwiseComparison key={i} pair={pair} matrixKey={criterion} />
-                              ))}
-                          </CardContent>
-                      </Card>
-                  </TabsContent>
-              ))}
-          </Tabs>
-      </div>
-  );
+    const handleValueChange = (pairKey: string, matrixKey: string, value: number) => {
+        onAnswerChange(produce(answer || {}, (draft: any) => {
+            if (!draft[matrixKey]) draft[matrixKey] = {};
+            draft[matrixKey][pairKey] = value;
+        }));
+    };
+    
+    const handleNextPair = () => {
+        if (currentPairIndex < allPairs.length - 1) {
+            setCurrentPairIndex(prev => prev + 1);
+        }
+    };
+
+    const handlePrevPair = () => {
+        if (currentPairIndex > 0) {
+            setCurrentPairIndex(prev => prev - 1);
+        }
+    };
+  
+    const PairwiseComparison = ({ pair, matrixKey, title }: { pair: [string, string], matrixKey: string, title: string }) => {
+        const pairKey = `${pair[0]} vs ${pair[1]}`;
+        const value = answer?.[matrixKey]?.[pairKey];
+        const radioValues = [-9, -7, -5, -3, -1, 1, 3, 5, 7, 9];
+        const scaleLabels = ['9', '7', '5', '3', '1', '3', '5', '7', '9'];
+
+        return (
+             <div className="question-card">
+                 <div className="question-text">{title}</div>
+                 <div className="comparison">
+                    <div className="option left">{pair[0]}</div>
+                    <div className="scale-container">
+                       {radioValues.map((v, index) => (
+                            <div key={v} className="scale-item">
+                                <input 
+                                    type="radio" 
+                                    name={`pair-${matrixKey}-${pair.join('-')}`}
+                                    value={String(v)} 
+                                    checked={value === v}
+                                    onChange={() => handleValueChange(pairKey, matrixKey, v)}
+                                    className="scale-radio" 
+                                    id={`pair-${matrixKey}-${pair.join('-')}-${v}`}
+                                />
+                                <label htmlFor={`pair-${matrixKey}-${pair.join('-')}-${v}`} className="scale-label">{scaleLabels[index]}</label>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="option right">{pair[1]}</div>
+                </div>
+                 <div className="scale-description">
+                    <span>← Strongly prefer left</span>
+                    <span>Equal</span>
+                    <span>Strongly prefer right →</span>
+                </div>
+            </div>
+        );
+    };
+
+    const currentComparison = allPairs[currentPairIndex];
+
+    return (
+        <div className="p-4 rounded-lg bg-background shadow-md">
+            <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
+            {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
+            
+            <Progress value={((currentPairIndex + 1) / allPairs.length) * 100} className="mb-4"/>
+
+            {currentComparison && (
+                <PairwiseComparison 
+                    pair={currentComparison.pair} 
+                    matrixKey={currentComparison.type === 'criteria' ? 'criteria' : currentComparison.criterion!} 
+                    title={currentComparison.title}
+                />
+            )}
+            
+            <div className="flex justify-between mt-6">
+                <Button onClick={handlePrevPair} disabled={currentPairIndex === 0}><ArrowLeft className="mr-2"/> Previous</Button>
+                <Button onClick={handleNextPair} disabled={currentPairIndex === allPairs.length - 1}>Next <ArrowRight className="ml-2"/></Button>
+            </div>
+        </div>
+    );
 };
 
 const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: string; onAnswerChange: (value: string) => void; }) => {
@@ -785,3 +796,4 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         </div>
     );
 }
+```
