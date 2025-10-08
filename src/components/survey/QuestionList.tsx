@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -645,7 +646,7 @@ const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, styles }: 
 const LikertQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     
-    const handleUpdate = (type: 'rows' | 'scale', index: number, value: string) => {
+     const handleUpdate = (type: 'rows' | 'scale', index: number, value: string) => {
         const newArr = [...(question[type] || [])];
         newArr[index] = value;
         onUpdate?.({ ...question, [type]: newArr });
@@ -660,6 +661,18 @@ const LikertQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
         const newArr = (question[type] || []).filter((_: any, i: number) => i !== index);
         onUpdate?.({ ...question, [type]: newArr });
     };
+
+    const handleScalePointChange = (newSize: number) => {
+        const oldSize = question.numScalePoints || 7;
+        const currentLabels = question.scale || [];
+        const newLabels = Array(newSize).fill('').map((_, i) => {
+            if (i < oldSize) return currentLabels[i];
+            return `${i + 1}`;
+        });
+        onUpdate?.({ ...question, numScalePoints: newSize, scale: newLabels });
+    };
+
+    const numPoints = question.numScalePoints || 7;
     
     return (
         <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
@@ -672,8 +685,8 @@ const LikertQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
                         <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
                     </div>
                 </div>
-                
-                 <div>
+
+                <div>
                     <Label>Statements (Rows)</Label>
                     <div className="space-y-2 mt-2">
                         {(question.rows || []).map((row: string, index: number) => (
@@ -685,18 +698,27 @@ const LikertQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
                     </div>
                     <Button variant="outline" size="sm" className="mt-2" onClick={() => handleAdd('rows')}><PlusCircle className="mr-2 h-4 w-4"/> Add Statement</Button>
                 </div>
+
+                <div>
+                    <Label>Scale Points</Label>
+                    <Select value={String(numPoints)} onValueChange={v => handleScalePointChange(parseInt(v))}>
+                        <SelectTrigger className="w-40">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {[...Array(8).keys()].map(i => <SelectItem key={i + 2} value={String(i + 2)}>{i + 2} points</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                 </div>
+                 
                  <div>
-                    <Label>Scale Labels (Columns)</Label>
-                    <div className="space-y-2 mt-2">
-                        {(question.scale || []).map((label: string, index: number) => (
-                            <div key={index} className="flex items-center gap-2">
-                                <Input value={label} onChange={e => handleUpdate('scale', index, e.target.value)} placeholder={`Scale Point ${index + 1}`} />
-                                <Button variant="ghost" size="icon" onClick={() => handleRemove('scale', index)}><X className="h-4 w-4"/></Button>
-                            </div>
+                    <Label>Scale Point Labels</Label>
+                     <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mt-2">
+                        {Array.from({ length: numPoints }).map((_, i) => (
+                             <Input key={i} value={question.scale?.[i] || ''} onChange={e => handleUpdate('scale', i, e.target.value)} placeholder={`Point ${i+1}`} />
                         ))}
                     </div>
-                    <Button variant="outline" size="sm" className="mt-2" onClick={() => handleAdd('scale')}><PlusCircle className="mr-2 h-4 w-4"/> Add Scale Point</Button>
-                </div>
+                 </div>
             </div>
         </Card>
     );
@@ -875,4 +897,3 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     </div>
   );
 }
-
