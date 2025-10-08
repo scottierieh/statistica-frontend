@@ -187,7 +187,7 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                         </div>
                    ))}
                 </div>
-                <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
+                 <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
             </div>
         </Card>
    );
@@ -546,7 +546,7 @@ const MatrixQuestion = ({ question, onUpdate, onDelete, styles }: { question: an
 const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
     const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
     
-    const handleBipolarScaleChange = (index: number, side: 'left' | 'right', value: string) => {
+     const handleBipolarScaleChange = (index: number, side: 'left' | 'right', value: string) => {
         const newRows = produce(question.rows || [], (draft: string[]) => {
             const parts = (draft[index] || ' vs ').split(' vs ');
             if (side === 'left') {
@@ -637,6 +637,66 @@ const SemanticDifferentialQuestion = ({ question, onUpdate, onDelete, styles }: 
                         ))}
                     </div>
                  </div>
+            </div>
+        </Card>
+    );
+};
+
+const LikertQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; onUpdate?: (question: any) => void; onDelete?: (id: string) => void; styles: any; }) => {
+    const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+    
+    const handleUpdate = (type: 'rows' | 'scale', index: number, value: string) => {
+        const newArr = [...(question[type] || [])];
+        newArr[index] = value;
+        onUpdate?.({ ...question, [type]: newArr });
+    };
+
+    const handleAdd = (type: 'rows' | 'scale') => {
+        const newArr = [...(question[type] || []), `New ${type === 'rows' ? 'Statement' : 'Scale Point'}`];
+        onUpdate?.({ ...question, [type]: newArr });
+    };
+
+    const handleRemove = (type: 'rows' | 'scale', index: number) => {
+        const newArr = (question[type] || []).filter((_: any, i: number) => i !== index);
+        onUpdate?.({ ...question, [type]: newArr });
+    };
+    
+    return (
+        <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
+            <div className="p-6 space-y-4">
+                 <div className="flex justify-between items-start mb-2">
+                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
+                    <div className="flex items-center">
+                        <Switch id={`required-${question.id}`} checked={question.required} onCheckedChange={(checked) => onUpdate?.({ ...question, required: checked })} />
+                        <Label htmlFor={`required-${question.id}`} className="mr-2">Required</Label>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                    </div>
+                </div>
+                
+                 <div>
+                    <Label>Statements (Rows)</Label>
+                    <div className="space-y-2 mt-2">
+                        {(question.rows || []).map((row: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                                <Input value={row} onChange={e => handleUpdate('rows', index, e.target.value)} placeholder={`Statement ${index + 1}`} />
+                                <Button variant="ghost" size="icon" onClick={() => handleRemove('rows', index)}><X className="h-4 w-4"/></Button>
+                            </div>
+                        ))}
+                    </div>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => handleAdd('rows')}><PlusCircle className="mr-2 h-4 w-4"/> Add Statement</Button>
+                </div>
+                 <div>
+                    <Label>Scale Labels (Columns)</Label>
+                    <div className="space-y-2 mt-2">
+                        {(question.scale || []).map((label: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                                <Input value={label} onChange={e => handleUpdate('scale', index, e.target.value)} placeholder={`Scale Point ${index + 1}`} />
+                                <Button variant="ghost" size="icon" onClick={() => handleRemove('scale', index)}><X className="h-4 w-4"/></Button>
+                            </div>
+                        ))}
+                    </div>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => handleAdd('scale')}><PlusCircle className="mr-2 h-4 w-4"/> Add Scale Point</Button>
+                </div>
             </div>
         </Card>
     );
@@ -758,7 +818,7 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     'best-worst': BestWorstQuestion,
     matrix: MatrixQuestion,
     'semantic-differential': SemanticDifferentialQuestion,
-    likert: MatrixQuestion,
+    likert: LikertQuestion,
     conjoint: ConjointQuestion,
     'rating-conjoint': RatingConjointQuestion,
   };
@@ -815,3 +875,4 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     </div>
   );
 }
+
