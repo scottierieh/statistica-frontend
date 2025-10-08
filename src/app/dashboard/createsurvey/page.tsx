@@ -15,6 +15,7 @@ import SurveyPreview from '@/components/survey/SurveyPreview';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate } from '@/lib/survey-templates';
 import { Tabs, TabsTrigger, TabsContent, TabsList } from '@/components/ui/tabs';
+import SurveyView from '@/components/survey-view';
 
 
 export default function CreateSurveyPage() {
@@ -135,7 +136,7 @@ export default function CreateSurveyPage() {
       columns: type === 'matrix' ? ['1', '2', '3'] : [],
       scale: type === 'matrix' ? ['Bad', 'Neutral', 'Good'] : type === 'rating' ? ['1','2','3','4','5'] : [],
       content: type === 'description' ? 'This is a description block.' : '',
-      attributes: type === 'conjoint' ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
+      attributes: type === 'conjoint' || type === 'rating-conjoint' ? [{ id: `attr-1`, name: 'Brand', levels: ['Apple', 'Samsung'] }, { id: `attr-2`, name: 'Price', levels: ['$999', '$799'] }] : [],
       criteria: type === 'ahp' ? ['Quality', 'Price', 'Service'] : [],
       alternatives: type === 'ahp' ? ['Alternative A', 'Alternative B'] : [],
     };
