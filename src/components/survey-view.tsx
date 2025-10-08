@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -20,7 +21,9 @@ import { cn } from '@/lib/utils';
 import type { Question, ConjointAttribute, Survey, SurveyResponse } from '@/entities/Survey';
 import { useToast } from '@/hooks/use-toast';
 import { Slider } from './ui/slider';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent } from '@radix-ui/react-tabs';
+
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
     const theme = styles.theme || 'default';
@@ -302,7 +305,6 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
 
 const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: any; onAnswerChange: (value: any) => void; }) => {
     const { criteria = [], alternatives = [] } = question;
-    const [currentPairIndex, setCurrentPairIndex] = useState(0);
 
     const allPairs = useMemo(() => {
         const criteriaPairs = [];
@@ -341,18 +343,6 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
             draft[matrixKey][pairKey] = value;
         }));
     };
-    
-    const handleNextPair = () => {
-        if (currentPairIndex < allPairs.length - 1) {
-            setCurrentPairIndex(prev => prev + 1);
-        }
-    };
-
-    const handlePrevPair = () => {
-        if (currentPairIndex > 0) {
-            setCurrentPairIndex(prev => prev - 1);
-        }
-    };
   
     const PairwiseComparison = ({ pair, matrixKey, title }: { pair: [string, string], matrixKey: string, title: string }) => {
         const pairKey = `${pair[0]} vs ${pair[1]}`;
@@ -361,7 +351,7 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
         const scaleLabels = ['9', '7', '5', '3', '1', '3', '5', '7', '9'];
 
         return (
-             <div className="p-6 rounded-lg border bg-white">
+             <div className="p-6 rounded-lg border bg-white mb-4">
                  <div className="font-semibold text-lg mb-4">{title}</div>
                  <div className="flex flex-col items-center justify-between gap-4">
                     <div className="flex w-full justify-between font-bold text-primary">
@@ -386,30 +376,24 @@ const AHPQuestion = ({ question, answer, onAnswerChange }: { question: Question;
         );
     };
 
-    const currentComparison = allPairs[currentPairIndex];
-
     return (
         <div className="p-4 rounded-lg bg-background shadow-md">
             <h3 className="text-lg font-semibold mb-4">{question.title}</h3>
             {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
-            
-            <Progress value={((currentPairIndex + 1) / allPairs.length) * 100} className="mb-4"/>
-
-            {currentComparison && (
-                <PairwiseComparison 
-                    pair={currentComparison.pair} 
-                    matrixKey={currentComparison.type === 'criteria' ? 'criteria' : currentComparison.criterion!} 
-                    title={currentComparison.title}
-                />
-            )}
-            
-            <div className="flex justify-between mt-6">
-                <Button onClick={handlePrevPair} disabled={currentPairIndex === 0}><ArrowLeft className="mr-2"/> Previous</Button>
-                <Button onClick={handleNextPair} disabled={currentPairIndex === allPairs.length - 1}>Next <ArrowRight className="ml-2"/></Button>
+             <div className="space-y-4">
+                {allPairs.map((comparison, index) => (
+                    <PairwiseComparison 
+                        key={index}
+                        pair={comparison.pair} 
+                        matrixKey={comparison.type === 'criteria' ? 'criteria' : comparison.criterion!} 
+                        title={comparison.title}
+                    />
+                ))}
             </div>
         </div>
     );
 };
+
 
 const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: string; onAnswerChange: (value: string) => void; }) => {
     const { attributes = [], profiles = [] } = question;
