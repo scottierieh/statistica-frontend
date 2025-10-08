@@ -1,18 +1,19 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2, DollarSign, AlertTriangle } from 'lucide-react';
+import { Loader2, DollarSign, AlertTriangle, LineChart, BarChart } from 'lucide-react';
 import type { Survey, SurveyResponse } from '@/types/survey';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line, CartesianGrid, Bar, BarChart as RechartsBarChart } from 'recharts';
+
 
 interface GaborGrangerResults {
     optimal_revenue_price: number;
@@ -27,7 +28,7 @@ interface GaborGrangerResults {
 
 interface FullAnalysisResponse {
     results: GaborGrangerResults;
-    plot: string; // This will now be a base64 image string
+    // plot field is removed as we will render charts on the client
 }
 
 interface GaborGrangerPageProps {
@@ -144,7 +145,8 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
         return <Card><CardContent className="p-6 text-center text-muted-foreground">No analysis results to display.</CardContent></Card>;
     }
     
-    const { results, plot } = analysisResult;
+    const { results } = analysisResult;
+    const chartData = results.demand_curve.map(d => ({...d, likelihood_pct: d.likelihood * 100}));
 
     return (
         <div className="space-y-4">
@@ -186,11 +188,23 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
             <Card>
                 <CardHeader><CardTitle>Demand, Revenue, and Profit Analysis</CardTitle></CardHeader>
                 <CardContent>
-                    {plot ? (
-                        <Image src={`data:image/png;base64,${plot}`} alt="Gabor-Granger Analysis Plot" width={1400} height={1000} className="w-full rounded-md border" />
-                    ) : (
-                        <Skeleton className="w-full h-96" />
-                    )}
+                    <ChartContainer config={{}} className="w-full h-96">
+                      <ResponsiveContainer>
+                        <RechartsLineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="price" name="Price" unit="₩" />
+                          <YAxis yAxisId="left" stroke="#3b82f6" label={{ value: 'Purchase Likelihood (%)', angle: -90, position: 'insideLeft' }} />
+                          <YAxis yAxisId="right" orientation="right" stroke="#ef4444" label={{ value: 'Revenue / Profit Index', angle: 90, position: 'insideRight' }} />
+                          <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(name === 'likelihood_pct' ? 1 : 2)}${name === 'likelihood_pct' ? '%' : ''}`} />} />
+                          <Legend />
+                          <Line yAxisId="left" type="monotone" dataKey="likelihood_pct" name="Demand Curve" stroke="#3b82f6" strokeWidth={2} />
+                          <Line yAxisId="right" type="monotone" dataKey="revenue" name="Revenue Curve" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" />
+                          {results.demand_curve.some(d => d.profit !== undefined) && (
+                            <Line yAxisId="right" type="monotone" dataKey="profit" name="Profit Curve" stroke="#8b5cf6" strokeWidth={2} strokeDasharray="5 5" />
+                          )}
+                        </RechartsLineChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
                 </CardContent>
             </Card>
             

@@ -2,26 +2,14 @@ import sys
 import json
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy import interpolate
-import io
-import base64
 import warnings
 
 warnings.filterwarnings('ignore')
 
-# 한글 폰트 설정
-try:
-    plt.rcParams['font.family'] = 'Malgun Gothic'
-    plt.rcParams['axes.unicode_minus'] = False
-except:
-    pass
-
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
-    elif isinstance(obj, np.floating):
+    elif isinstance(obj, (np.floating, float)):
         if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
@@ -116,46 +104,9 @@ def main():
         
         results_dict['price_elasticity'] = elasticities
 
-        # --- Plotting ---
-        fig, ax1 = plt.subplots(figsize=(12, 7))
-
-        ax1.set_xlabel('Price (₩)', fontweight='bold')
-        ax1.set_ylabel('Purchase Likelihood (%)', color='tab:blue', fontweight='bold')
-        ax1.plot(demand_curve[price_col], demand_curve['likelihood'] * 100, color='tab:blue', marker='o', label='Demand Curve')
-        ax1.tick_params(axis='y', labelcolor='tab:blue')
-        ax1.grid(True, alpha=0.3)
-
-        # Instantiate a second axes that shares the same x-axis
-        ax2 = ax1.twinx()
-        ax2.set_ylabel('Revenue / Profit Index', color='tab:red', fontweight='bold')
-        ax2.plot(demand_curve[price_col], demand_curve['revenue'], color='tab:red', linestyle='--', label='Revenue Curve')
-        
-        if 'profit' in demand_curve.columns:
-            ax2.plot(demand_curve[price_col], demand_curve['profit'], color='purple', linestyle=':', label='Profit Curve')
-            if 'optimal_profit_price' in results_dict:
-                 ax1.axvline(x=results_dict['optimal_profit_price'], color='purple', linestyle=':', linewidth=2, label=f'Optimal Profit Price: ₩{results_dict["optimal_profit_price"]:,.0f}')
-
-        ax2.tick_params(axis='y', labelcolor='tab:red')
-
-        ax1.axvline(x=optimal_revenue_price, color='green', linestyle='--', linewidth=2, label=f'Optimal Revenue Price: ₩{optimal_revenue_price:,.0f}')
-        
-        # Combine legends
-        lines, labels = ax1.get_legend_handles_labels()
-        lines2, labels2 = ax2.get_legend_handles_labels()
-        ax2.legend(lines + lines2, labels + labels2, loc='upper center')
-
-        fig.suptitle('Gabor-Granger: Demand & Revenue/Profit Curves', fontsize=16, fontweight='bold')
-        fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-        
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', dpi=100)
-        plt.close(fig)
-        buf.seek(0)
-        plot_image = base64.b64encode(buf.read()).decode('utf-8')
-
         response = {
             'results': results_dict,
-            'plot': f"data:image/png;base64,{plot_image}",
+            # Plot is now generated on the client-side
         }
 
         print(json.dumps(response, default=_to_native_type))
