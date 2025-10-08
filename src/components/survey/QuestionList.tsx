@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { GripVertical, PlusCircle, Trash2, Info, ImageIcon, Star, ThumbsDown, ThumbsUp, Sigma, CheckCircle2, CaseSensitive, Phone, Mail, FileText, Grid3x3, Share2, ChevronDown, Network, X, Shuffle, RefreshCw, Save, Replace } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
-import type { Question, ConjointAttribute } from '@/entities/Survey';
+import type { Question, ConjointAttribute, Criterion } from '@/entities/Survey';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -177,15 +177,13 @@ const MultipleSelectionQuestion = ({ question, onUpdate, onDelete, onImageUpload
                 {question.imageUrl && <div className="my-4"><Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md max-h-60 w-auto object-contain" /></div>}
                 <div className="space-y-2">
                     {(question.options || []).map((option: string, index: number) => (
-                       <div key={index} className="flex items-center group">
-                           <Label htmlFor={`q${question.id}-o${index}`} className={cn("flex flex-1 items-center space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer", 'bg-background hover:bg-accent/50 hover:border-primary/50' )}>
-                               <Checkbox id={`q${question.id}-o${index}`} disabled />
-                                <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent flex-1" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
-                           </Label>
-                           <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => deleteOption(index)}>
+                       <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex items-center space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer", 'bg-background hover:bg-accent/50 hover:border-primary/50' )}>
+                           <Checkbox id={`q${question.id}-o${index}`} disabled />
+                           <Input placeholder={`Option ${index + 1}`} className="border-none focus:ring-0 p-0 h-auto bg-transparent flex-1" style={choiceStyle} value={option} onChange={(e) => handleOptionChange(index, e.target.value)} />
+                           <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 hover:opacity-100" onClick={(e) => { e.preventDefault(); deleteOption(index); }}>
                                <Trash2 className="w-4 h-4 text-destructive"/>
                            </Button>
-                        </div>
+                       </Label>
                    ))}
                 </div>
                  <Button variant="link" size="sm" className="mt-2" onClick={addOption}><PlusCircle className="w-4 h-4 mr-2" /> Add Option</Button>
@@ -773,16 +771,50 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; 
 
   const handleListChange = (type: 'criteria' | 'alternatives', value: string) => {
     const items = value.split(',').map(s => s.trim()).filter(Boolean);
-    if (items.length < 2) {
-      toast({
-        variant: 'destructive',
-        title: 'Input Error',
-        description: `Please provide at least two ${type}, separated by commas.`,
-      });
+    if (type === 'criteria') {
+        const newCriteria = items.map((name, i) => ({ id: `c${i+1}`, name }));
+        onUpdate?.({ ...question, [type]: newCriteria });
+    } else {
+        onUpdate?.({ ...question, [type]: items });
     }
-    onUpdate?.({ ...question, [type]: items });
+  };
+
+  const handleCriterionNameChange = (index: number, value: string) => {
+    const newCriteria = produce(question.criteria, (draft: Criterion[]) => {
+        draft[index].name = value;
+    });
+    onUpdate?.({ ...question, criteria: newCriteria });
   };
   
+  const handleSubCriterionChange = (critIndex: number, subIndex: number, value: string) => {
+      const newCriteria = produce(question.criteria, (draft: Criterion[]) => {
+          if (draft[critIndex].subCriteria) {
+              draft[critIndex].subCriteria![subIndex].name = value;
+          }
+      });
+      onUpdate?.({ ...question, criteria: newCriteria });
+  };
+  
+  const addSubCriterion = (critIndex: number) => {
+    const newCriteria = produce(question.criteria, (draft: Criterion[]) => {
+        if (!draft[critIndex].subCriteria) {
+            draft[critIndex].subCriteria = [];
+        }
+        const newId = `sc${(draft[critIndex].subCriteria?.length || 0) + 1}`;
+        draft[critIndex].subCriteria!.push({ id: newId, name: 'New Sub-criterion' });
+    });
+    onUpdate?.({ ...question, criteria: newCriteria });
+  };
+  
+  const removeSubCriterion = (critIndex: number, subIndex: number) => {
+    const newCriteria = produce(question.criteria, (draft: Criterion[]) => {
+        if (draft[critIndex].subCriteria) {
+            draft[critIndex].subCriteria!.splice(subIndex, 1);
+        }
+    });
+    onUpdate?.({ ...question, criteria: newCriteria });
+  };
+
   return (
     <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
       <div className="p-6 space-y-4">
@@ -792,12 +824,25 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; 
         </div>
         <div>
           <Label>Criteria</Label>
-          <Textarea
-            value={(question.criteria || []).join(', ')}
-            onChange={(e) => handleListChange('criteria', e.target.value)}
-            placeholder="e.g., Price, Camera, Battery"
-          />
-           <p className="text-xs text-muted-foreground mt-1">Enter criteria separated by commas.</p>
+          <div className="space-y-2 mt-2">
+            {(question.criteria || []).map((criterion: Criterion, critIndex: number) => (
+              <Card key={criterion.id} className="p-3">
+                <div className="flex items-center gap-2">
+                  <Input value={criterion.name} onChange={(e) => handleCriterionNameChange(critIndex, e.target.value)} />
+                </div>
+                <div className="pl-6 mt-2 space-y-2">
+                    {(criterion.subCriteria || []).map((sub, subIndex) => (
+                        <div key={sub.id} className="flex items-center gap-2">
+                            <Input value={sub.name} onChange={e => handleSubCriterionChange(critIndex, subIndex, e.target.value)} />
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeSubCriterion(critIndex, subIndex)}><X className="h-4 w-4"/></Button>
+                        </div>
+                    ))}
+                    <Button variant="link" size="sm" onClick={() => addSubCriterion(critIndex)}><PlusCircle className="mr-2 h-4 w-4"/> Add Sub-criterion</Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+           <Button variant="outline" size="sm" className="mt-2" onClick={() => onUpdate?.({ ...question, criteria: [...(question.criteria || []), { id: `c${(question.criteria || []).length + 1}`, name: 'New Criterion'}] })}><PlusCircle className="mr-2 h-4 w-4"/> Add Criterion</Button>
         </div>
         <div>
           <Label>Alternatives (Optional)</Label>
@@ -806,7 +851,7 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; 
             onChange={(e) => handleListChange('alternatives', e.target.value)}
             placeholder="e.g., Phone A, Phone B, Phone C"
           />
-           <p className="text-xs text-muted-foreground mt-1">If you have specific alternatives to compare, enter them here.</p>
+           <p className="text-xs text-muted-foreground mt-1">Enter alternatives separated by commas.</p>
         </div>
       </div>
     </Card>
