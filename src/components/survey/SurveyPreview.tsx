@@ -1,42 +1,53 @@
-
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "../ui/label";
 import { Question } from "@/entities/Survey";
 
-// A simplified AHP preview component
-const AHPPreview = ({ question, styles }: { question: Question; styles: any }) => {
+// A simplified Semantic Differential preview component based on the user's image
+const SemanticDifferentialPreview = ({ question, styles }: { question: Question; styles: any }) => {
+    const selectedValue = 6; // Example selected value from the image
+
+    const scalePoints = [
+        { value: 1, label: '매우' },
+        { value: 2, label: '다소' },
+        { value: 3, label: '약간' },
+        { value: 4, label: '중립' },
+        { value: 5, label: '약간' },
+        { value: 6, label: '다소' },
+        { value: 7, label: '매우' },
+    ];
+
     return (
         <div className="p-4 bg-background rounded-lg" style={{ marginBottom: styles.questionSpacing }}>
             <h3 className="font-semibold mb-4" style={{ fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor }}>
                 {question.title}
             </h3>
-            <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                <div className="flex items-center justify-between mb-6">
-                    <span className="font-semibold text-blue-700 text-lg">Example A</span>
-                    <span className="text-gray-400 text-sm">vs</span>
-                    <span className="font-semibold text-indigo-700 text-lg">Example B</span>
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <div className="flex justify-between items-center text-sm font-semibold text-gray-800 mb-4 px-2">
+                    <span>낮은 품질</span>
+                    <span>높은 품질</span>
                 </div>
-                <div className="flex items-center justify-between mb-4">
-                    {[9, 7, 5, 3, 1, 3, 5, 7, 9].map((scale, idx) => (
-                        <div key={idx} className="flex flex-col items-center">
+                <div className="flex items-center justify-between">
+                    {scalePoints.map(({ value, label }) => (
+                        <div key={value} className="flex flex-col items-center space-y-2">
                             <button
-                                className={`w-12 h-12 rounded-full border-2 transition-all ${
-                                    scale === 1 ? 'bg-blue-600 border-blue-600 shadow-lg scale-110' : 'bg-white border-gray-300'
-                                }`}
+                                className={`w-12 h-12 rounded-full border-2 transition-all flex items-center justify-center font-bold text-lg
+                                    ${value === selectedValue
+                                        ? 'bg-purple-600 border-purple-600 text-white shadow-lg scale-110'
+                                        : 'bg-white border-gray-300 text-gray-600 hover:border-purple-400'
+                                    }`}
                             >
-                                <span className={`text-sm font-semibold ${scale === 1 ? 'text-white' : 'text-gray-600'}`}>
-                                    {scale}
-                                </span>
+                                {value}
                             </button>
+                            <span className="text-xs text-gray-500">{label}</span>
                         </div>
                     ))}
                 </div>
             </div>
         </div>
     );
-}
+};
 
 export default function SurveyPreview({ styles }: { styles: any }) {
 
@@ -73,8 +84,8 @@ export default function SurveyPreview({ styles }: { styles: any }) {
                     </Label>
                 </RadioGroup>
             </div>
-             {/* Example AHP Question */}
-            <AHPPreview question={{id: 'ahp-preview', type: 'ahp', title: 'Example AHP Question'}} styles={styles} />
+             {/* Example Semantic Differential Question */}
+            <SemanticDifferentialPreview question={{id: 'sd-preview', type: 'semantic-differential', title: 'Example Semantic Differential Question'}} styles={styles} />
         </div>
       </div>
     </Card>
