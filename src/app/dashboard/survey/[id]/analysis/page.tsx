@@ -15,6 +15,7 @@ import AhpPage from '@/components/pages/ahp-page';
 import GaborGrangerAnalysisPage from '@/components/pages/gabor-granger-analysis-page';
 import SemanticDifferentialPage from '@/components/pages/semantic-differential-page';
 import BrandFunnelPage from '@/components/pages/brand-funnel-page';
+import ServqualPage from '@/components/pages/servqual-page';
 
 
 export default function SurveyAnalysis() {
@@ -85,6 +86,12 @@ export default function SurveyAnalysis() {
         }
         if (survey.title.toLowerCase().includes('brand funnel')) {
             analyses.push({ key: 'brand-funnel', label: 'Brand Funnel', component: <BrandFunnelPage survey={survey} responses={responses} /> });
+        }
+        if (survey.questions.some(q => q.type === 'servqual' && q.servqualType !== 'Perception')) {
+            analyses.push({ key: 'servqual', label: 'SERVQUAL', component: <ServqualPage survey={survey} responses={responses} /> });
+        }
+        if (survey.questions.some(q => q.type === 'servqual' && q.servqualType === 'Perception')) {
+            analyses.push({ key: 'servperf', label: 'SERVPERF', component: <ServqualPage survey={survey} responses={responses} /> });
         }
         return analyses;
     }, [survey, responses]);
