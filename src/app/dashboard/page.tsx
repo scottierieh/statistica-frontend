@@ -1,7 +1,7 @@
 
 'use client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight } from "lucide-react";
+import { Calculator, BrainCircuit, ClipboardList, FastForward, DollarSign, LineChart, Target, Zap, ChevronRight, Activity, Users, Network } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { UserNav } from "@/components/user-nav";
@@ -18,21 +18,21 @@ const tools = [
     description: "Your intelligent statistical analysis tool. Upload data, run analyses, and generate AI-powered insights.",
     disabled: false,
   },
-  {
-    id: "machine-learning",
-    href: "#",
-    icon: BrainCircuit,
-    title: "Machine Learning",
-    description: "Coming soon...",
-    disabled: true,
-  },
-  {
+   {
     id: "simulation",
-    href: "#",
+    href: "/dashboard/simulation",
     icon: FastForward,
     title: "Simulation",
-    description: "Coming soon...",
-    disabled: true,
+    description: "Explore models like Gradient Descent and Central Limit Theorem through interactive simulations.",
+    disabled: false,
+  },
+  {
+    id: "machine-learning",
+    href: "/dashboard/machine-learning",
+    icon: BrainCircuit,
+    title: "Machine Learning",
+    description: "Build, train, and evaluate predictive models with a guided, user-friendly interface.",
+    disabled: false,
   },
   {
     id: "survey",
@@ -44,19 +44,19 @@ const tools = [
   },
   {
     id: "financial-modeling",
-    href: "#",
+    href: "/dashboard/financial-modeling",
     icon: DollarSign,
     title: "Financial Modeling",
     description: "Coming soon...",
     disabled: true,
   },
   {
-    id: "decision-analytics",
-    href: "#",
+    id: "optimization",
+    href: "/dashboard/optimization",
     icon: Target,
     title: "Decision Analytics",
-    description: "Coming soon...",
-    disabled: true,
+    description: "Solve optimization problems like linear programming and transportation problems to make data-driven decisions.",
+    disabled: false,
   },
 ];
 
@@ -70,7 +70,7 @@ function ToolCard({ tool }: { tool: typeof tools[0] }) {
     tool.disabled ? (
       <div className="h-full">{children}</div>
     ) : (
-      <Link href={tool.href} className="block h-full" target="_blank" rel="noopener noreferrer">
+      <Link href={tool.href} className="block h-full">
         {children}
       </Link>
     );
@@ -79,8 +79,8 @@ function ToolCard({ tool }: { tool: typeof tools[0] }) {
     <motion.div variants={cardVariants} className="h-full">
       <CardWrapper>
         <Card className={cn(
-          "group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-card to-muted/50 p-6 text-center shadow-lg transition-all duration-300",
-          tool.disabled ? "cursor-not-allowed bg-muted/70 opacity-60" : "hover:scale-[1.02] hover:shadow-2xl"
+          "group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-xl bg-card p-6 text-center shadow-lg transition-all duration-300",
+          tool.disabled ? "cursor-not-allowed bg-muted/70 opacity-60" : "hover:scale-[1.02] hover:shadow-primary/20 hover:-translate-y-1"
         )}>
           {!tool.disabled && <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>}
           <div className="relative z-10 flex flex-col items-center">
@@ -106,20 +106,20 @@ function DashboardHub() {
   const { user } = useAuth();
 
   return (
-    <div className="flex flex-col min-h-screen bg-muted/40">
-      <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-background">
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-card">
         <div className="flex items-center gap-2">
           <Calculator className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-headline font-bold">Skarii Dashboard</h1>
         </div>
          <div className="ml-auto flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">Welcome, {user?.name}</span>
+            <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user?.name}</span>
             <UserNav />
         </div>
       </header>
-      <main className="flex-1 p-4 md:p-6 lg:p-8">
+      <main className="flex-1 p-4 md:p-8 lg:p-12">
         <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
-          <h2 className="text-3xl font-bold font-headline mb-8 text-center">Available Tools</h2>
+          <h2 className="text-3xl font-bold font-headline mb-8 text-center text-foreground">Available Tools</h2>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {tools.map((tool) => (
               <ToolCard key={tool.id} tool={tool} />

@@ -2,14 +2,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
 import { useToast } from '@/hooks/use-toast';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
-interface AhpPageProps {
-    survey: Survey;
-    responses: SurveyResponse[];
-}
 
 const AHPResultsVisualization = ({ results }: { results: any }) => {
   const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b'];
@@ -345,6 +342,10 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
   );
 };
 
+interface AhpPageProps {
+    survey: Survey;
+    responses: SurveyResponse[];
+}
 
 export default function AhpPage({ survey, responses }: AhpPageProps) {
     const [results, setResults] = useState<any>(null);
@@ -375,12 +376,13 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
   
           const hierarchy = ahpQuestion.criteria ? [{
               name: ahpQuestion.title || 'Goal',
-              nodes: ahpQuestion.criteria.map(c => ({
-                  name: c.name,
-                  ...(c.subCriteria && c.subCriteria.length > 0 && {
-                      nodes: c.subCriteria.map(sc => ({ name: sc.name }))
-                  })
-              }))
+              nodes: ahpQuestion.criteria.map(c => {
+                  const node: any = { name: c.name };
+                  if (c.subCriteria && c.subCriteria.length > 0) {
+                      node.nodes = c.subCriteria.map(sc => ({ name: sc.name }));
+                  }
+                  return node;
+              })
           }] : [];
   
   
@@ -423,10 +425,11 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
   
       if (survey && responses) {
         fetchResults();
+      } else {
+        setLoading(false);
       }
     }, [survey, responses, toast]);
   
-    // 로딩 상태
     if (loading) {
       return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
@@ -438,7 +441,6 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
       );
     }
   
-    // 에러 상태
     if (error) {
       return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
@@ -456,12 +458,11 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
       );
     }
   
-    // 데이터 없음
     if (!results) {
       return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
           <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6 text-center">
-            <p className="text-gray-600 text-lg">No results available</p>
+            <p className="text-gray-600 text-lg">No results available. Please ensure there are survey responses to analyze.</p>
           </div>
         </div>
       );
