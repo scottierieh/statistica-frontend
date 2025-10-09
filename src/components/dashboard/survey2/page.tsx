@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network } from "lucide-react";
+import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network, Replace, Activity } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatsCard from "@/components/dashboard/survey2/StatsCard";
@@ -19,19 +19,29 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate } from "@/lib/survey-templates";
+import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate } from "@/lib/survey-templates";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-const TemplateCard = ({ icon: Icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) => (
-    <Link href={href} className="block">
-        <div className="p-4 border rounded-lg hover:bg-accent hover:shadow-md transition-all h-full flex flex-col">
+const TemplateCard = ({ icon: Icon, title, description, href, learnMoreLink }: { icon: React.ElementType, title: string, description: string, href: string, learnMoreLink?: string }) => (
+    <div className="p-4 border rounded-lg hover:bg-accent hover:shadow-md transition-all h-full flex flex-col">
+        <Link href={href} className="block flex-1">
             <div className="flex items-center gap-3 mb-2">
                 <Icon className="w-6 h-6 text-primary"/>
                 <h4 className="font-semibold">{title}</h4>
             </div>
-            <p className="text-xs text-muted-foreground flex-1">{description}</p>
-             <Button variant="link" size="sm" className="mt-2 p-0 h-auto self-start">Use Template</Button>
+            <p className="text-xs text-muted-foreground">{description}</p>
+        </Link>
+         <div className="flex items-center justify-between mt-2">
+            <Button variant="link" size="sm" className="p-0 h-auto self-start" asChild>
+                <Link href={href}>Use Template</Link>
+            </Button>
+            {learnMoreLink && (
+                <Button variant="link" size="sm" className="p-0 h-auto self-start text-xs" asChild>
+                    <Link href={learnMoreLink}>Learn More</Link>
+                </Button>
+            )}
         </div>
-    </Link>
+    </div>
 );
 
 
@@ -112,9 +122,8 @@ export default function Survey2Dashboard() {
     : "0";
 
   return (
-<div className="w-full">
-<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -138,28 +147,32 @@ export default function Survey2Dashboard() {
                     <DialogTitle>Create a New Survey</DialogTitle>
                     <DialogDescription>Start from scratch or use one of our expert-designed templates.</DialogDescription>
                 </DialogHeader>
-                <div className="py-4">
-                     <Link href="/dashboard/createsurvey">
-                        <div className="p-6 mb-6 rounded-lg border bg-card hover:bg-accent cursor-pointer">
-                            <h3 className="font-semibold text-lg flex items-center gap-2"><Plus className="w-5 h-5"/>Start from Scratch</h3>
-                            <p className="text-sm text-muted-foreground">Build a custom survey for your specific needs.</p>
+                <ScrollArea className="max-h-[70vh]">
+                    <div className="py-4 pr-6">
+                        <Link href="/dashboard/createsurvey">
+                            <div className="p-6 mb-6 rounded-lg border bg-card hover:bg-accent cursor-pointer">
+                                <h3 className="font-semibold text-lg flex items-center gap-2"><Plus className="w-5 h-5"/>Start from Scratch</h3>
+                                <p className="text-sm text-muted-foreground">Build a custom survey for your specific needs.</p>
+                            </div>
+                        </Link>
+                        <h4 className="font-semibold mb-4">Or use a template</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <TemplateCard icon={Target} title="IPA Survey" description="Measure Importance vs. Performance to find key improvement areas." href="/dashboard/createsurvey?template=ipa" learnMoreLink="/dashboard/statistica?analysis=ipa"/>
+                            <TemplateCard icon={Handshake} title="Choice-Based Conjoint" description="Understand how customers value different attributes of a product using choices." href="/dashboard/createsurvey?template=cbc"/>
+                            <TemplateCard icon={ClipboardList} title="Rating Conjoint" description="Analyze customer preferences using a rating-based approach." href="/dashboard/createsurvey?template=rating-conjoint"/>
+                            <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
+                            <TemplateCard icon={DollarSign} title="Price Sensitivity (PSM)" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=van-westendorp"/>
+                            <TemplateCard icon={DollarSign} title="Gabor-Granger (Seq)" description="Price elasticity by asking sequential purchase likelihood questions." href="/dashboard/createsurvey?template=gabor-granger-1"/>
+                            <TemplateCard icon={DollarSign} title="Gabor-Granger (Rand)" description="Price elasticity by asking questions in a random order." href="/dashboard/createsurvey?template=gabor-granger-2"/>
+                            <TemplateCard icon={Users} title="TURF Analysis" description="Identify the best combination of items to maximize reach." href="/dashboard/createsurvey?template=turf"/>
+                            <TemplateCard icon={Network} title="AHP (Criteria Only)" description="Prioritize criteria using pairwise comparisons." href="/dashboard/createsurvey?template=ahp-criteria"/>
+                            <TemplateCard icon={Network} title="AHP (Full)" description="Make complex decisions by comparing criteria and alternatives." href="/dashboard/createsurvey?template=ahp-full"/>
+                            <TemplateCard icon={ClipboardList} title="Customer Satisfaction" description="Measure overall customer satisfaction (CSAT) and drivers." href="/dashboard/createsurvey?template=csat"/>
+                            <TemplateCard icon={Replace} title="Semantic Differential" description="Gauge user perception of a concept on bipolar adjective scales." href="/dashboard/createsurvey?template=semantic-differential"/>
+                            <TemplateCard icon={Activity} title="Brand Funnel" description="Measure awareness, consideration, preference, and usage for your brand." href="/dashboard/createsurvey?template=brand-funnel"/>
                         </div>
-                    </Link>
-                    <h4 className="font-semibold mb-4">Or use a template</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                         <TemplateCard icon={Target} title="IPA Survey" description="Measure Importance vs. Performance to find key improvement areas." href="/dashboard/createsurvey?template=ipa"/>
-                         <TemplateCard icon={Handshake} title="Choice-Based Conjoint" description="Understand how customers value different attributes of a product using choices." href="/dashboard/createsurvey?template=cbc"/>
-                         <TemplateCard icon={ClipboardList} title="Rating Conjoint" description="Analyze customer preferences using a rating-based approach." href="/dashboard/createsurvey?template=rating-conjoint"/>
-                         <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
-                         <TemplateCard icon={DollarSign} title="Price Sensitivity (PSM)" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=van-westendorp"/>
-                         <TemplateCard icon={DollarSign} title="Gabor-Granger (Seq)" description="Price elasticity by asking sequential purchase likelihood questions." href="/dashboard/createsurvey?template=gabor-granger-1"/>
-                         <TemplateCard icon={DollarSign} title="Gabor-Granger (Rand)" description="Price elasticity by asking questions in a random order." href="/dashboard/createsurvey?template=gabor-granger-2"/>
-                         <TemplateCard icon={Users} title="TURF Analysis" description="Identify the best combination of items to maximize reach." href="/dashboard/createsurvey?template=turf"/>
-                         <TemplateCard icon={Network} title="AHP (Criteria Only)" description="Prioritize criteria using pairwise comparisons." href="/dashboard/createsurvey?template=ahp-criteria"/>
-                         <TemplateCard icon={Network} title="AHP (Full)" description="Make complex decisions by comparing criteria and alternatives." href="/dashboard/createsurvey?template=ahp-full"/>
-                         <TemplateCard icon={ClipboardList} title="Customer Satisfaction" description="Measure overall customer satisfaction (CSAT) and drivers." href="/dashboard/createsurvey?template=csat"/>
                     </div>
-                </div>
+                </ScrollArea>
             </DialogContent>
            </Dialog>
         </motion.div>

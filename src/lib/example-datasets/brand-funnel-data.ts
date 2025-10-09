@@ -1,0 +1,23 @@
+
+export const brandFunnelData = `respondent_id,awareness,consideration,preference,usage
+1,"Brand A,Brand B,Brand C","Brand A,Brand C","Brand A","Brand A"
+2,"Brand A,Brand D","Brand A,Brand D","Brand D","Brand D"
+3,"Brand B,Brand C","Brand B","Brand B",""
+4,"Brand A,Brand B,Brand C,Brand D","Brand A,Brand B,Brand D","Brand B","Brand B"
+5,"Brand C,Brand D","Brand C","Brand C",""
+6,"Brand A","Brand A","Brand A","Brand A"
+7,"Brand A,Brand B,Brand D","Brand D","Brand D",""
+8,"Brand A,Brand C","Brand A,Brand C","Brand C","Brand C"
+9,"Brand B","Brand B","Brand B","Brand B"
+10,"Brand A,Brand C,Brand D","Brand A,Brand C,Brand D","Brand A","Brand A"
+11,"Brand B,Brand D","Brand D","Brand D",""
+12,"Brand A,Brand B","Brand B","Brand B",""
+13,"Brand C","Brand C","Brand C","Brand C"
+14,"Brand A,Brand D","Brand A","Brand A","Brand A"
+15,"Brand B,Brand C,Brand D","Brand B,Brand D","Brand D","Brand D"
+16,"Brand A,Brand B","Brand A","Brand A","Brand A"
+17,"Brand C","Brand C","Brand C",""
+18,"Brand B,Brand D","Brand B","Brand B","Brand B"
+19,"Brand A,Brand B,Brand C","Brand A,Brand B","Brand B",""
+20,"Brand D","Brand D","Brand D","Brand D"
+`.trim();
