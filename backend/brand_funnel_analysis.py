@@ -135,77 +135,6 @@ class BrandFunnelAnalysis:
         
         return market_share
     
-    def visualize_funnel(self, figsize=(16, 10)):
-        """Visualize brand funnel analysis"""
-        fig, axes = plt.subplots(2, 2, figsize=figsize)
-        fig.suptitle('Brand Funnel Analysis', fontsize=16, fontweight='bold')
-        
-        colors = plt.cm.Set3(np.linspace(0, 1, self.n_brands))
-        
-        # 1. Funnel Chart
-        ax1 = axes[0, 0]
-        stages = ['awareness', 'consideration', 'preference', 'usage']
-        x = np.arange(len(stages))
-        width = 0.8 / self.n_brands
-        
-        for i, brand in enumerate(self.funnel_data.index):
-            values = self.funnel_data.loc[brand, stages].values
-            ax1.bar(x + i * width, values, width, label=brand, color=colors[i], alpha=0.8)
-        
-        ax1.set_xlabel('Funnel Stage', fontweight='bold')
-        ax1.set_ylabel('Count', fontweight='bold')
-        ax1.set_title('Brand Funnel by Stage', fontweight='bold')
-        ax1.set_xticks(x + width * (self.n_brands - 1) / 2)
-        ax1.set_xticklabels([s.capitalize() for s in stages])
-        ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-        ax1.grid(axis='y', alpha=0.3)
-        
-        # 2. Conversion Rates Heatmap
-        ax2 = axes[0, 1]
-        conv_data = self.conversion_rates[['awareness_to_consideration', 
-                                           'consideration_to_preference', 
-                                           'preference_to_usage']].T
-        sns.heatmap(conv_data, annot=True, fmt='.1f', cmap='YlOrRd', 
-                   ax=ax2, cbar_kws={'label': 'Conversion Rate (%)'})
-        ax2.set_title('Conversion Rates Between Stages (%)', fontweight='bold')
-        ax2.set_ylabel('Stage Transition', fontweight='bold')
-        ax2.set_yticklabels(['Aware→Consider', 'Consider→Prefer', 'Prefer→Use'], rotation=0)
-        
-        # 3. Market Share by Stage
-        ax3 = axes[1, 0]
-        market_share = self.calculate_market_share()
-        market_share.plot(kind='bar', ax=ax3, color=colors, alpha=0.8)
-        ax3.set_title('Market Share by Funnel Stage', fontweight='bold')
-        ax3.set_xlabel('Brand', fontweight='bold')
-        ax3.set_ylabel('Market Share (%)', fontweight='bold')
-        ax3.legend(['Awareness', 'Consideration', 'Preference', 'Usage'], 
-                  bbox_to_anchor=(1.05, 1), loc='upper left')
-        ax3.set_xticklabels(ax3.get_xticklabels(), rotation=45, ha='right')
-        ax3.grid(axis='y', alpha=0.3)
-        
-        # 4. Funnel Efficiency
-        ax4 = axes[1, 1]
-        efficiency = self.calculate_funnel_efficiency()
-        brands_sorted = efficiency.sort_values('funnel_efficiency').index
-        y_pos = np.arange(len(brands_sorted))
-        
-        bars = ax4.barh(y_pos, efficiency.loc[brands_sorted, 'funnel_efficiency'], 
-                       color=colors, alpha=0.8)
-        ax4.set_yticks(y_pos)
-        ax4.set_yticklabels(brands_sorted)
-        ax4.set_xlabel('Funnel Efficiency (%)', fontweight='bold')
-        ax4.set_title('Overall Funnel Efficiency (Awareness → Usage)', fontweight='bold')
-        ax4.grid(axis='x', alpha=0.3)
-        
-        # Add value labels
-        for i, bar in enumerate(bars):
-            width = bar.get_width()
-            ax4.text(width + 1, bar.get_y() + bar.get_height()/2, 
-                    f'{width:.1f}%', ha='left', va='center', fontweight='bold')
-        
-        plt.tight_layout(rect=[0, 0, 1, 0.95])
-        return fig
-    
     def generate_insights(self) -> Dict:
         """Generate key insights from the analysis"""
         efficiency = self.calculate_funnel_efficiency()
@@ -249,13 +178,6 @@ def main():
 
         analysis = BrandFunnelAnalysis(brands)
         analysis.set_data(funnel_data)
-        
-        fig = analysis.visualize_funnel()
-        buf = io.BytesIO()
-        fig.savefig(buf, format='png')
-        buf.seek(0)
-        plot_image = base64.b64encode(buf.read()).decode('utf-8')
-        plt.close(fig)
 
         results_to_export = {
             'funnel_data': analysis.funnel_data.to_dict(),
@@ -267,8 +189,7 @@ def main():
         }
 
         response = {
-            'results': results_to_export,
-            'plot': f"data:image/png;base64,{plot_image}"
+            'results': results_to_export
         }
 
         print(json.dumps(response, default=_to_native_type, indent=2))

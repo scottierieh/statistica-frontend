@@ -1,15 +1,17 @@
 
 'use client';
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
-import { Button } from '../ui/button';
-import { Loader2, AlertTriangle, BarChart, Users, TrendingUp, Filter } from 'lucide-react';
+import { Loader2, AlertTriangle, Filter } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import Image from 'next/image';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, Cell } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 interface FunnelResults {
     funnel_data: { [key: string]: { [stage: string]: number } };
@@ -22,7 +24,6 @@ interface FunnelResults {
 
 interface FullAnalysisResponse {
     results: FunnelResults;
-    plot: string;
 }
 
 interface BrandFunnelPageProps {
@@ -68,16 +69,16 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
             });
             
             responses.forEach(response => {
-                const awarenessAns = response.answers[stageQuestions.awareness!.id] as string[] || [];
-                const considerationAns = response.answers[stageQuestions.consideration!.id] as string[] || [];
-                const preferenceAns = response.answers[stageQuestions.preference!.id] as string[] || [];
-                const usageAns = response.answers[stageQuestions.usage!.id] as string[] || [];
+                const awarenessAns = (response.answers as any)[stageQuestions.awareness!.id] as string[] || [];
+                const considerationAns = (response.answers as any)[stageQuestions.consideration!.id] as string;
+                const preferenceAns = (response.answers as any)[stageQuestions.preference!.id] as string;
+                const usageAns = (response.answers as any)[stageQuestions.usage!.id] as string;
 
                 brands.forEach(brand => {
                     if (awarenessAns.includes(brand)) funnelCounts[brand].awareness++;
-                    if (considerationAns.includes(brand)) funnelCounts[brand].consideration++;
-                    if (preferenceAns.includes(brand)) funnelCounts[brand].preference++;
-                    if (usageAns.includes(brand)) funnelCounts[brand].usage++;
+                    if (considerationAns === brand) funnelCounts[brand].consideration++;
+                    if (preferenceAns === brand) funnelCounts[brand].preference++;
+                    if (usageAns === brand) funnelCounts[brand].usage++;
                 });
             });
 
@@ -129,14 +130,34 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
     
     if (!analysisResult) return null;
 
-    const { results, plot } = analysisResult;
+    const { results } = analysisResult;
+    const funnelDataForChart = Object.entries(results.funnel_data).flatMap(([brand, stages]) => 
+        Object.entries(stages).map(([stage, count]) => ({brand, stage, count}))
+    );
+
+    const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3'];
 
     return (
         <div className="space-y-4">
             <Card>
-                <CardHeader><CardTitle>Brand Funnel Visualization</CardTitle></CardHeader>
+                <CardHeader>
+                    <CardTitle>Brand Funnel Visualization</CardTitle>
+                </CardHeader>
                 <CardContent>
-                    <Image src={`data:image/png;base64,${plot}`} alt="Brand Funnel Analysis" width={1600} height={1000} className="w-full rounded-md border" />
+                    <ChartContainer config={{}} className="w-full h-[400px]">
+                        <ResponsiveContainer>
+                            <BarChart data={funnelDataForChart}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="stage" />
+                                <YAxis />
+                                <Tooltip content={<ChartTooltipContent />} />
+                                <Legend />
+                                {Object.keys(results.funnel_data).map((brand, i) => (
+                                    <Bar key={brand} dataKey="count" data={funnelDataForChart.filter(d => d.brand === brand)} name={brand} fill={COLORS[i % COLORS.length]} />
+                                ))}
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
                 </CardContent>
             </Card>
 
@@ -260,4 +281,3 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
         </div>
     );
 }
-

@@ -180,7 +180,7 @@ export const gaborGrangerTemplate1 = {
 
 export const gaborGrangerTemplate2 = {
     title: "Gabor-Granger (Random)",
-    description: "Determine price elasticity by presenting prices in a random order.",
+    description: "Determine price elasticity by asking questions in a random order.",
     questions: [
         {
             id: 'gg_desc_2',
