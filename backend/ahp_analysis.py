@@ -5,6 +5,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+class NumpyEncoder(json.JSONEncoder):
+    """Custom JSON encoder for NumPy types"""
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        return super(NumpyEncoder, self).default(obj)
+
 class AHPAnalysis:
     """
     Analytic Hierarchy Process (AHP) Analysis Class
@@ -40,13 +53,13 @@ class AHPAnalysis:
     
     def set_criteria_matrix(self, matrix):
         """Set pairwise comparison matrix for criteria"""
-        self.criteria_matrix = np.array(matrix)
+        self.criteria_matrix = np.array(matrix, dtype=np.float64)
     
     def set_alternative_matrix(self, criterion_name, matrix):
         """Set pairwise comparison matrix for alternatives under a criterion"""
         if not self.has_alternatives:
             raise ValueError("No alternatives defined")
-        self.alternative_matrices[criterion_name] = np.array(matrix)
+        self.alternative_matrices[criterion_name] = np.array(matrix, dtype=np.float64)
 
     def calculate_weights(self, matrix):
         """Calculate priority weights using eigenvalue method"""
@@ -110,33 +123,37 @@ class AHPAnalysis:
         self.ranking = np.argsort(self.final_scores)[::-1]
 
     def get_results(self):
-        """Return analysis results as a dictionary"""
+        """Return analysis results as a dictionary with JSON-safe types"""
         results = {
             'criteria_analysis': {
-                'weights': dict(zip(self.criteria_names, self.criteria_weights)),
+                'weights': {name: float(weight) for name, weight in zip(self.criteria_names, self.criteria_weights)},
                 'consistency': {
-                    'lambda_max': self.criteria_lambda_max,
-                    'CI': self.criteria_CI,
-                    'CR': self.criteria_CR,
-                    'is_consistent': self.criteria_CR < 0.1
+                    'lambda_max': float(self.criteria_lambda_max),
+                    'CI': float(self.criteria_CI),
+                    'CR': float(self.criteria_CR),
+                    'is_consistent': bool(self.criteria_CR < 0.1)
                 }
             }
         }
         
         if self.has_alternatives:
-            results['alternatives_analysis'] = {}
+            results['alternative_weights_by_criterion'] = {}
             for criterion in self.criteria_names:
-                results['alternatives_analysis'][criterion] = {
-                    'weights': dict(zip(self.alternative_names, self.alternative_weights[criterion])),
+                results['alternative_weights_by_criterion'][criterion] = {
+                    'weights': {name: float(weight) for name, weight in zip(self.alternative_names, self.alternative_weights[criterion])},
                     'consistency': {
-                        'lambda_max': self.alternative_lambda_max[criterion],
-                        'CI': self.alternative_CI[criterion],
-                        'CR': self.alternative_CR[criterion],
-                        'is_consistent': self.alternative_CR[criterion] < 0.1
+                        'lambda_max': float(self.alternative_lambda_max[criterion]),
+                        'CI': float(self.alternative_CI[criterion]),
+                        'CR': float(self.alternative_CR[criterion]),
+                        'is_consistent': bool(self.alternative_CR[criterion] < 0.1)
                     }
                 }
             
-            results['final_scores'] = dict(zip(self.alternative_names, self.final_scores))
+            # Final scores as sorted list
+            results['final_scores'] = [
+                {'name': self.alternative_names[i], 'score': float(self.final_scores[i])}
+                for i in self.ranking
+            ]
             results['ranking'] = [self.alternative_names[i] for i in self.ranking]
 
         return results
@@ -146,72 +163,156 @@ def geometric_mean_of_matrices(matrices):
     if not matrices:
         return None
     
-    matrices_array = np.array(matrices)
+    matrices_array = np.array(matrices, dtype=np.float64)
+    
+    # Handle any invalid values
+    matrices_array = np.where(matrices_array <= 0, 1, matrices_array)
+    
     log_matrices = np.log(matrices_array)
     mean_log_matrix = np.mean(log_matrices, axis=0)
     geo_mean_matrix = np.exp(mean_log_matrix)
     
+    # Ensure symmetry
     for i in range(geo_mean_matrix.shape[0]):
         for j in range(i, geo_mean_matrix.shape[1]):
             if i == j:
-                geo_mean_matrix[i, j] = 1
+                geo_mean_matrix[i, j] = 1.0
             else:
-                geo_mean_matrix[j, i] = 1 / geo_mean_matrix[i, j]
+                geo_mean_matrix[j, i] = 1.0 / geo_mean_matrix[i, j]
                 
     return geo_mean_matrix
 
 def main():
     try:
-        payload = json.load(sys.stdin)
+        # Read input from stdin
+        input_data = sys.stdin.read()
         
+        if not input_data.strip():
+            raise ValueError("Empty input received")
+        
+        payload = json.loads(input_data)
+        
+        # Extract data from payload
         hierarchy = payload.get('hierarchy')
         matrices_by_respondent = payload.get('matrices')
         alternatives = payload.get('alternatives')
         goal = payload.get('goal', 'Goal')
 
-        criteria_nodes = [node['name'] for node in hierarchy[0]['nodes']] if hierarchy else []
+        # Validate input
+        if not hierarchy or not isinstance(hierarchy, list) or len(hierarchy) == 0:
+            raise ValueError("Invalid or missing hierarchy data")
+        
+        if not matrices_by_respondent or not isinstance(matrices_by_respondent, dict):
+            raise ValueError("Invalid or missing matrices data")
+
+        # Extract criteria names
+        criteria_nodes = [node['name'] for node in hierarchy[0].get('nodes', [])] if hierarchy else []
 
         if not criteria_nodes:
             raise ValueError("No criteria found in hierarchy")
 
-        has_alternatives = bool(alternatives)
+        has_alternatives = bool(alternatives and len(alternatives) > 0)
         
+        # Initialize AHP
         ahp = AHPAnalysis(criteria_nodes, alternatives if has_alternatives else None)
         
+        # Aggregate matrices using geometric mean
         agg_matrices = {}
         for key, matrix_list in matrices_by_respondent.items():
-            if matrix_list:
-                agg_matrices[key] = geometric_mean_of_matrices(matrix_list)
+            if matrix_list and len(matrix_list) > 0:
+                try:
+                    agg_matrices[key] = geometric_mean_of_matrices(matrix_list)
+                except Exception as e:
+                    raise ValueError(f"Error aggregating matrices for key '{key}': {str(e)}")
 
+        # Set criteria matrix
         if 'goal' in agg_matrices:
             ahp.set_criteria_matrix(agg_matrices['goal'])
         else:
             raise ValueError("Criteria comparison matrix for 'goal' not found in matrices")
 
+        # Set alternative matrices if they exist
         if has_alternatives:
+            missing_criteria = []
+            used_criteria = []
+            
+            # Create a case-insensitive mapping of available matrix keys
+            available_matrix_keys = {k.lower(): k for k in agg_matrices.keys() if k != 'goal'}
+            
             for criterion in criteria_nodes:
                 matrix_key = f"goal.{criterion}"
+                matrix_key_lower = matrix_key.lower()
+                
+                # Try exact match first
                 if matrix_key in agg_matrices:
                     ahp.set_alternative_matrix(criterion, agg_matrices[matrix_key])
+                    used_criteria.append(criterion)
+                # Try case-insensitive match
+                elif matrix_key_lower in available_matrix_keys:
+                    actual_key = available_matrix_keys[matrix_key_lower]
+                    ahp.set_alternative_matrix(criterion, agg_matrices[actual_key])
+                    used_criteria.append(criterion)
                 else:
-                    raise ValueError(f"Alternative comparison matrix for criterion '{criterion}' not found in matrices")
+                    missing_criteria.append(criterion)
+            
+            # If some criteria don't have alternative matrices, 
+            # we need to recalculate using only the criteria with alternatives
+            if missing_criteria and len(used_criteria) > 0:
+                # Find indices of used criteria
+                used_indices = [i for i, c in enumerate(criteria_nodes) if c in used_criteria]
+                
+                # Create a new criteria matrix with only used criteria
+                new_criteria_matrix = ahp.criteria_matrix[np.ix_(used_indices, used_indices)]
+                
+                # Update AHP object with filtered criteria
+                old_alternative_matrices = ahp.alternative_matrices.copy()
+                ahp.criteria_names = used_criteria
+                ahp.n_criteria = len(used_criteria)
+                ahp.criteria_matrix = new_criteria_matrix
+                
+                # Keep only alternative matrices for used criteria
+                ahp.alternative_matrices = {c: old_alternative_matrices[c] for c in used_criteria}
+                
+            elif missing_criteria and len(used_criteria) == 0:
+                available_keys = [k for k in agg_matrices.keys() if k != 'goal']
+                raise ValueError(
+                    f"No alternative comparison matrices found for any criteria. "
+                    f"Expected keys like 'goal.{criteria_nodes[0]}', but available keys are: {available_keys}"
+                )
 
+        # Perform analysis (this must happen after setting all matrices)
         ahp.analyze()
         results_data = ahp.get_results()
 
-        if 'alternatives_analysis' in results_data:
-            results_data['alternative_weights_by_criterion'] = results_data.pop('alternatives_analysis')
-        
-        if has_alternatives and 'final_scores' in results_data:
-            results_data['final_scores'] = sorted([{'name': name, 'score': score} for name, score in results_data['final_scores'].items()], key=lambda x: x['score'], reverse=True)
-
-
+        # Prepare response
         response = {"results": results_data}
         
-        print(json.dumps(response, default=lambda x: x.tolist() if isinstance(x, np.ndarray) else x))
+        # Output JSON with custom encoder
+        print(json.dumps(response, cls=NumpyEncoder, ensure_ascii=False, indent=2))
 
+    except json.JSONDecodeError as e:
+        error_response = {
+            "error": "Invalid JSON input",
+            "details": str(e)
+        }
+        print(json.dumps(error_response, ensure_ascii=False), file=sys.stderr)
+        sys.exit(1)
+        
+    except ValueError as e:
+        error_response = {
+            "error": "Validation error",
+            "details": str(e)
+        }
+        print(json.dumps(error_response, ensure_ascii=False), file=sys.stderr)
+        sys.exit(1)
+        
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        error_response = {
+            "error": "Unexpected error",
+            "details": str(e),
+            "type": type(e).__name__
+        }
+        print(json.dumps(error_response, ensure_ascii=False), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
