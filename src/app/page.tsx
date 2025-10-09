@@ -62,7 +62,7 @@ export default function LandingPage() {
       <main className="flex-1">
         <section className="relative w-full py-20 md:py-32 lg:py-40 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
            <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(to_bottom,white_10%,transparent_90%)]"></div>
-          <div className="container relative px-4 md:px-6">
+          <div className="w-full max-w-6xl mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center space-y-6 text-center">
               <div className="space-y-4">
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl/none font-headline">
@@ -98,7 +98,7 @@ export default function LandingPage() {
         </section>
 
         <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
-          <div className="container px-4 md:px-6 space-y-20">
+          <div className="w-full max-w-6xl mx-auto px-4 md:px-6 space-y-20">
             {securityImage && (
               <div className="grid md:grid-cols-2 gap-12 items-center">
                 <div className="space-y-4">
@@ -110,7 +110,7 @@ export default function LandingPage() {
                     Fully compliant and holding certifications such as General Data Protection Regulation (GDPR), ISO 27001:2022, CCPA, PCI-DSS, Section 508, PHI, and HIPAA. Enjoy peace of mind with your survey data by choosing a platform trusted by major global brands.
                   </p>
                 </div>
-                <div className="flex justify-center md:order-2">
+                <div className="flex justify-center md:order-1">
                    <Image 
                       src={securityImage.imageUrl}
                       alt={securityImage.description}
@@ -124,7 +124,7 @@ export default function LandingPage() {
             )}
              {enterpriseImage && (
               <div className="grid md:grid-cols-2 gap-12 items-center">
-                <div className="flex justify-center md:order-1">
+                <div className="flex justify-center md:order-2">
                    <Image 
                       src={enterpriseImage.imageUrl}
                       alt={enterpriseImage.description}
@@ -134,7 +134,7 @@ export default function LandingPage() {
                       data-ai-hint={enterpriseImage.imageHint}
                     />
                 </div>
-                <div className="space-y-4 md:order-2">
+                <div className="space-y-4 md:order-1">
                   <h2 className="text-3xl font-bold font-headline tracking-tight sm:text-4xl">Built for enterprise</h2>
                    <p className="text-muted-foreground text-lg">
                     Take your insights to the next level by integrating with the full range of your enterprise systems through APIs or FTP sync, for marketing automation and more.
@@ -149,7 +149,7 @@ export default function LandingPage() {
         </section>
         
         <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-white">
-          <div className="container px-4 md:px-6">
+          <div className="w-full max-w-6xl mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
               <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary font-medium">Your All-in-One Data Platform</div>
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">One Tool, Endless Possibilities</h2>
@@ -241,7 +241,7 @@ export default function LandingPage() {
         </section>
         
         <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
-           <div className="container px-4 md:px-6">
+           <div className="w-full max-w-6xl mx-auto px-4 md:px-6">
              <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Easy to Start, Powerful to Use</h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
