@@ -1,15 +1,15 @@
 
 'use client';
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-
+import { Button } from '@/components/ui/button';
+import { Loader2, AlertTriangle, HelpCircle, MoveRight } from 'lucide-react';
+import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const AHPResultsVisualization = ({ results }: { results: any }) => {
-  const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b'];
+  const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
   const criteriaData = useMemo(() => (
     results.criteria_analysis?.weights
@@ -36,7 +36,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
       : []
   ), [results]);
 
-    const finalScoresData = useMemo(() => (
+  const finalScoresData = useMemo(() => (
     results.final_scores?.map((item: any) => ({
       name: item.name,
       score: (item.score * 100).toFixed(1),
@@ -47,9 +47,9 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border-2 border-purple-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-800">{payload[0].payload.name}</p>
-          <p className="text-purple-600 font-bold">{payload[0].value}%</p>
+        <div className="bg-white p-3 border-2 border-primary/30 rounded-lg shadow-lg">
+          <p className="font-semibold text-foreground">{payload[0].payload.name}</p>
+          <p className="text-primary font-bold">{payload[0].value}%</p>
         </div>
       );
     }
@@ -57,12 +57,10 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
+    <div className="w-full max-w-7xl mx-auto p-6 bg-slate-50 rounded-xl">
       <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
         AHP Analysis Results
       </h1>
-
-      {/* Criteria Analysis Section */}
       <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-800">Criteria Weights</h2>
@@ -81,12 +79,10 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
             </span>
           </div>
         </div>
-
         <p className="text-gray-600 text-sm mb-4">
           The criteria weights represent the relative importance of each evaluation criterion in the decision-making process.
           Higher weights indicate more influential criteria in the final decision.
         </p>
-
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={criteriaData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -100,31 +96,30 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">Detailed Criteria Weights</h3>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-purple-100">
-                  <th className="border border-purple-200 px-4 py-2 text-left font-semibold text-gray-700">Rank</th>
-                  <th className="border border-purple-200 px-4 py-2 text-left font-semibold text-gray-700">Criterion</th>
-                  <th className="border border-purple-200 px-4 py-2 text-right font-semibold text-gray-700">Weight</th>
-                  <th className="border border-purple-200 px-4 py-2 text-right font-semibold text-gray-700">Percentage</th>
+                <tr className="bg-primary/10">
+                  <th className="border border-border px-4 py-2 text-left font-semibold text-foreground">Rank</th>
+                  <th className="border border-border px-4 py-2 text-left font-semibold text-foreground">Criterion</th>
+                  <th className="border border-border px-4 py-2 text-right font-semibold text-foreground">Weight</th>
+                  <th className="border border-border px-4 py-2 text-right font-semibold text-foreground">Percentage</th>
                 </tr>
               </thead>
               <tbody>
                 {criteriaData.map((item, index) => (
-                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="border border-gray-200 px-4 py-2 text-center font-semibold text-purple-600">
+                  <tr key={index} className="odd:bg-white even:bg-slate-50">
+                    <td className="border border-border px-4 py-2 text-center font-semibold text-primary">
                       {index + 1}
                     </td>
-                    <td className="border border-gray-200 px-4 py-2 font-medium">{item.name}</td>
-                    <td className="border border-gray-200 px-4 py-2 text-right font-mono">
+                    <td className="border border-border px-4 py-2 font-medium">{item.name}</td>
+                    <td className="border border-border px-4 py-2 text-right font-mono">
                       {item.weightValue.toFixed(4)}
                     </td>
-                    <td className="border border-gray-200 px-4 py-2 text-right">
-                      <span className="font-semibold text-purple-600">{item.weight}%</span>
+                    <td className="border border-border px-4 py-2 text-right">
+                      <span className="font-semibold text-primary">{item.weight}%</span>
                     </td>
                   </tr>
                 ))}
@@ -133,7 +128,6 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
           </div>
         </div>
       </div>
-
       {alternativesByCriterion.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Alternative Weights by Criterion</h2>
@@ -142,8 +136,8 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
             The weights represent the relative preference for each alternative when evaluated solely on that criterion.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {alternativesByCriterion.map((item: any, idx: number) => (
-              <div key={idx} className="border-2 border-purple-100 rounded-lg p-4">
+            {alternativesByCriterion.map((item, idx) => (
+              <div key={idx} className="border-2 border-primary/10 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-bold text-gray-800">{item.criterion}</h3>
                   <span className={`text-xs px-2 py-1 rounded ${item.isConsistent ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -159,7 +153,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                     <Bar dataKey="weight" fill={COLORS[idx % COLORS.length]} radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
-                 <div className="mt-3">
+                <div className="mt-3">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-gray-200">
@@ -169,9 +163,9 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                     </thead>
                     <tbody>
                       {item.alternatives.map((alt: any, altIdx: number) => (
-                        <tr key={altIdx} className="border-b border-gray-100">
+                        <tr key={altIdx} className="border-b border-gray-100 last:border-b-0">
                           <td className="py-1 text-gray-700">{alt.name}</td>
-                          <td className="py-1 text-right font-semibold text-purple-600">{alt.weight}%</td>
+                          <td className="py-1 text-right font-semibold text-primary">{alt.weight}%</td>
                         </tr>
                       ))}
                     </tbody>
@@ -182,7 +176,6 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
           </div>
         </div>
       )}
-
       {finalScoresData.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Final Ranking</h2>
@@ -208,139 +201,12 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Detailed Final Scores</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-yellow-100">
-                    <th className="border border-yellow-200 px-4 py-2 text-left font-semibold text-gray-700">Rank</th>
-                    <th className="border border-yellow-200 px-4 py-2 text-left font-semibold text-gray-700">Alternative</th>
-                    <th className="border border-yellow-200 px-4 py-2 text-right font-semibold text-gray-700">Final Score</th>
-                    <th className="border border-yellow-200 px-4 py-2 text-right font-semibold text-gray-700">Percentage</th>
-                    <th className="border border-yellow-200 px-4 py-2 text-center font-semibold text-gray-700">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {finalScoresData.map((item, index) => (
-                    <tr
-                      key={index}
-                      className={`${
-                        index === 0
-                          ? 'bg-yellow-50 font-bold'
-                          : index % 2 === 0
-                            ? 'bg-white'
-                            : 'bg-gray-50'
-                        }`}
-                    >
-                      <td className="border border-gray-200 px-4 py-2 text-center">
-                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
-                          index === 0
-                            ? 'bg-yellow-400 text-white'
-                            : 'bg-gray-200 text-gray-700'
-                          } font-bold`}>
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td className="border border-gray-200 px-4 py-2 font-medium">
-                        {index === 0 && '🏆 '}{item.name}
-                      </td>
-                      <td className="border border-gray-200 px-4 py-2 text-right font-mono">
-                        {item.scoreValue.toFixed(4)}
-                      </td>
-                      <td className="border border-gray-200 px-4 py-2 text-right">
-                        <span className={`font-semibold ${
-                          index === 0 ? 'text-yellow-600' : 'text-purple-600'
-                        }`}>
-                          {item.score}%
-                        </span>
-                      </td>
-                      <td className="border border-gray-200 px-4 py-2 text-center">
-                        {index === 0 && (
-                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold">
-                            Best Choice
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          {results.ranking && (
-            <div className="mt-6 flex items-center justify-center">
-                <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-8 py-4 rounded-full shadow-lg">
-                <span className="text-lg font-bold">🏆 Best Choice: </span>
-                <span className="text-2xl font-extrabold">{results.ranking[0]}</span>
-                </div>
-            </div>
-          )}
         </div>
       )}
-      <div className="mt-6 bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
-        <h3 className="text-xl font-bold text-blue-900 mb-4">📊 Understanding AHP Results</h3>
-        
-        <div className="space-y-4 text-sm text-gray-700">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <p className="font-semibold text-blue-800 mb-2 text-base">What is Consistency Ratio (CR)?</p>
-            <p>
-              The Consistency Ratio measures how consistent your pairwise comparisons are.
-              A CR less than 10% (0.1) indicates acceptable consistency. Higher values suggest you should review your comparisons.
-            </p>
-          </div>
-
-          <div className="bg-white p-4 rounded-lg shadow">
-            <p className="font-semibold text-blue-800 mb-2 text-base">How to interpret the results?</p>
-            <div className="space-y-1">
-              <p><strong className="text-purple-700">Criteria Weights:</strong> Show the relative importance of each evaluation criterion.</p>
-              <p><strong className="text-purple-700">Alternative Weights:</strong> Show how each option performs under each specific criterion.</p>
-              <p><strong className="text-purple-700">Final Scores:</strong> Combine both to give an overall ranking of alternatives.</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow">
-              <p className="font-semibold text-green-700 mb-2 flex items-center gap-2">
-                <span className="text-lg">✓</span> Current Consistency Status
-              </p>
-              <p className="mb-1">
-                <span className="font-semibold">Criteria CR:</span>{' '}
-                <span className={`font-bold text-lg ${results.criteria_analysis?.consistency?.is_consistent ? 'text-green-600' : 'text-red-600'}`}>
-                  {(results.criteria_analysis?.consistency?.CR * 100).toFixed(2)}%
-                </span>
-              </p>
-              <p className="text-xs text-gray-600">
-                {results.criteria_analysis?.consistency?.is_consistent
-                  ? '✓ Your comparisons are consistent and reliable'
-                  : '✗ Please review your pairwise comparisons'}
-              </p>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg shadow">
-              <p className="font-semibold text-purple-700 mb-2 flex items-center gap-2">
-                <span className="text-lg">📈</span> Key Metrics
-              </p>
-              <div className="space-y-1">
-                <p>
-                  <span className="font-semibold">λmax (Lambda Max):</span>{' '}
-                  <span className="font-mono text-gray-700">{results.criteria_analysis?.consistency?.lambda_max.toFixed(4)}</span>
-                </p>
-                <p>
-                  <span className="font-semibold">CI (Consistency Index):</span>{' '}
-                  <span className="font-mono text-gray-700">{results.criteria_analysis?.consistency?.CI.toFixed(4)}</span>
-                </p>
-              </div>
-              <p className="text-xs text-gray-600 mt-2">
-                Lower values indicate better consistency
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
+
 
 interface AhpPageProps {
     survey: Survey;
@@ -350,7 +216,7 @@ interface AhpPageProps {
 export default function AhpPage({ survey, responses }: AhpPageProps) {
     const [results, setResults] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
   
     useEffect(() => {
@@ -369,7 +235,8 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
               if(answerData) {
                    for (const key in answerData) {
                       if(!aggregatedMatrices[key]) aggregatedMatrices[key] = [];
-                      aggregatedMatrices[key].push(answerData[key]);
+                      const matrix = Object.values(answerData[key]);
+                      aggregatedMatrices[key].push(matrix);
                   }
               }
           });
@@ -425,8 +292,6 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
   
       if (survey && responses) {
         fetchResults();
-      } else {
-        setLoading(false);
       }
     }, [survey, responses, toast]);
   
@@ -434,8 +299,8 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
       return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-4"></div>
-            <p className="text-gray-600 text-lg">Loading AHP analysis results...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mb-4"></div>
+            <p className="text-muted-foreground text-lg">Loading AHP analysis results...</p>
           </div>
         </div>
       );
