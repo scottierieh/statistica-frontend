@@ -3,7 +3,6 @@ import sys
 import json
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Tuple
 import io
 import base64
 
@@ -24,7 +23,7 @@ class BrandFunnelAnalysis:
     Analyzes brand awareness, consideration, preference, and usage
     """
     
-    def __init__(self, brands: List[str]):
+    def __init__(self, brands: list[str]):
         """
         Initialize Brand Funnel Analysis
         
@@ -36,7 +35,7 @@ class BrandFunnelAnalysis:
         self.funnel_data = None
         self.conversion_rates = None
         
-    def set_data(self, data: Dict[str, Dict[str, int]]):
+    def set_data(self, data: dict[str, dict[str, int]]):
         """
         Set funnel data
         
@@ -66,17 +65,19 @@ class BrandFunnelAnalysis:
         
         # Conversion rates
         self.conversion_rates = pd.DataFrame(index=df.index)
+        
+        # Safely calculate conversion rates, avoiding division by zero
         self.conversion_rates['awareness_to_consideration'] = (
-            df['consideration'] / df['awareness'] * 100
+            (df['consideration'] / df['awareness']).replace([np.inf, -np.inf], 0) * 100
         ).fillna(0)
         self.conversion_rates['consideration_to_preference'] = (
-            df['preference'] / df['consideration'] * 100
+            (df['preference'] / df['consideration']).replace([np.inf, -np.inf], 0) * 100
         ).fillna(0)
         self.conversion_rates['preference_to_usage'] = (
-            df['usage'] / df['preference'] * 100
+            (df['usage'] / df['preference']).replace([np.inf, -np.inf], 0) * 100
         ).fillna(0)
         self.conversion_rates['awareness_to_usage'] = (
-            df['usage'] / df['awareness'] * 100
+            (df['usage'] / df['awareness']).replace([np.inf, -np.inf], 0) * 100
         ).fillna(0)
 
 def main():
@@ -90,6 +91,10 @@ def main():
 
         analysis = BrandFunnelAnalysis(brands)
         analysis.set_data(funnel_data)
+        
+        # Ensure no infinity values in the final conversion rates DataFrame
+        if analysis.conversion_rates is not None:
+            analysis.conversion_rates.replace([np.inf, -np.inf], 0, inplace=True)
 
         results_to_export = {
             'funnel_data': analysis.funnel_data.to_dict() if analysis.funnel_data is not None else {},
