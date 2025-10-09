@@ -3,11 +3,11 @@ import sys
 import json
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import Dict, List, Tuple
+import warnings
 import io
 import base64
+
+warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
     if isinstance(obj, np.integer):
@@ -26,7 +26,7 @@ class BrandFunnelAnalysis:
     Analyzes brand awareness, consideration, preference, and usage
     """
     
-    def __init__(self, brands: List[str], total_respondents: int):
+    def __init__(self, brands: list[str], total_respondents: int):
         """
         Initialize Brand Funnel Analysis
         
@@ -40,7 +40,7 @@ class BrandFunnelAnalysis:
         self.funnel_data = None
         self.conversion_rates = None
         
-    def set_data(self, data: Dict[str, Dict[str, int]]):
+    def set_data(self, data: dict[str, dict[str, int]]):
         """
         Set funnel data
         
@@ -143,7 +143,7 @@ class BrandFunnelAnalysis:
         
         return market_share
     
-    def generate_insights(self) -> Dict:
+    def generate_insights(self) -> dict:
         """Generate key insights from the analysis"""
         efficiency = self.calculate_funnel_efficiency().fillna(0)
         bottlenecks = self.identify_bottlenecks()
@@ -208,7 +208,7 @@ def main():
             'results': results_to_export
         }
 
-        print(json.dumps(response, default=_to_native_type, indent=2))
+        print(json.dumps(response, default=_to_native_type))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)

@@ -1,6 +1,7 @@
+
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Loader2, AlertTriangle, Filter } from 'lucide-react';
@@ -85,6 +86,7 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
             const requestBody = {
                 brands,
                 funnel_data: funnelCounts,
+                total_respondents: responses.length,
             };
 
             const apiResponse = await fetch('/api/analysis/brand-funnel', {
@@ -195,10 +197,9 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                 <CardHeader><CardTitle>Detailed Tables</CardTitle></CardHeader>
                 <CardContent>
                     <Tabs defaultValue="funnel">
-                        <TabsList className="grid w-full grid-cols-3">
+                        <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="funnel">Funnel Counts</TabsTrigger>
                             <TabsTrigger value="conversion">Conversion Rates</TabsTrigger>
-                            <TabsTrigger value="share">Market Share</TabsTrigger>
                         </TabsList>
                         <TabsContent value="funnel" className="mt-4">
                              <Table>
@@ -228,24 +229,6 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                                 </TableHeader>
                                 <TableBody>
                                     {Object.entries(results.conversion_rates).map(([brand, stages]) => (
-                                        <TableRow key={brand}>
-                                            <TableCell>{brand}</TableCell>
-                                            {Object.values(stages).map((value, i) => <TableCell key={i} className="text-right">{(value as number).toFixed(1)}%</TableCell>)}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TabsContent>
-                         <TabsContent value="share" className="mt-4">
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Brand</TableHead>
-                                        {Object.keys(results.market_share[Object.keys(results.market_share)[0]]).map(stage => <TableHead key={stage} className="text-right">{stage.replace(/_/g, ' ')}</TableHead>)}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(results.market_share).map(([brand, stages]) => (
                                         <TableRow key={brand}>
                                             <TableCell>{brand}</TableCell>
                                             {Object.values(stages).map((value, i) => <TableCell key={i} className="text-right">{(value as number).toFixed(1)}%</TableCell>)}
