@@ -162,7 +162,7 @@ export const turfTemplate = {
 
 export const gaborGrangerTemplate1 = {
     title: "Gabor-Granger (Sequential)",
-    description: "Determine price elasticity by presenting prices sequentially.",
+    description: "Determine price elasticity by asking sequential purchase likelihood questions.",
     questions: [
         {
             id: 'gg_desc_1',
@@ -296,12 +296,6 @@ export const brandFunnelTemplate = {
     title: "Brand Funnel Analysis",
     description: "Please answer the following questions about your awareness and perception of these brands.",
     questions: [
-        {
-            id: 'bf_desc',
-            type: 'description',
-            title: 'Instructions',
-            content: 'This survey will ask you about your awareness, consideration, preference, and usage of several brands. Please answer as accurately as possible.'
-        },
         {
             id: 'awareness',
             type: 'multiple',
