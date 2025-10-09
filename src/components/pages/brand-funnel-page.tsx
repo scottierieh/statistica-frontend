@@ -1,285 +1,237 @@
-
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
-import { Loader2, AlertTriangle, Filter } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, Cell, CartesianGrid } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, CartesianGrid, Cell } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-
-interface FunnelResults {
-    funnel_data: { [key: string]: { [stage: string]: number } };
-    conversion_rates: { [key: string]: { [stage: string]: number | null } };
-    market_share: { [key: string]: { [stage: string]: number } };
-    efficiency: { [key: string]: { funnel_efficiency: number, drop_off_rate: number } };
-    bottlenecks: { brand: string; bottleneck_stage: string; conversion_rate: number }[];
-    insights: { [key: string]: { brand?: string; efficiency?: number; awareness?: string; usage?: string; bottleneck?: string; rate?: number; description: string } };
+interface BrandStages {
+    awareness: number;
+    consideration: number;
+    preference: number;
+    usage: number;
 }
 
-interface FullAnalysisResponse {
-    results: FunnelResults;
+interface ConversionRates {
+    awareness_to_consideration: number;
+    consideration_to_preference: number;
+    preference_to_usage: number;
+    awareness_to_usage: number;
 }
 
-interface BrandFunnelPageProps {
+interface Results {
+    funnel_data: { [brand: string]: BrandStages };
+    conversion_rates: { [brand: string]: ConversionRates };
+    market_share: { [stage: string]: { [brand: string]: number } };
+    efficiency: { [brand: string]: { funnel_efficiency: number; drop_off_rate: number } };
+    bottlenecks: Array<{ brand: string; bottleneck_stage: string; conversion_rate: number }>;
+    drop_off: { [brand: string]: { [stage: string]: { count: number; rate: number } } };
+    health_scores: { [brand: string]: { total_score: number; conversion_component: number; consistency_component: number; volume_component: number } };
+    insights: {
+        top_performer: { brand: string; efficiency: number; description: string };
+        market_leader: { awareness: string; usage: string; description: string };
+        biggest_opportunity: { brand: string; bottleneck: string; rate: number; description: string };
+        conversion_champion: { brand: string; rate: number; description: string };
+    };
+}
+
+interface Props {
     survey: Survey;
     responses: SurveyResponse[];
 }
 
-export default function BrandFunnelPage({ survey, responses }: BrandFunnelPageProps) {
+const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+
+export default function BrandFunnelPage({ survey, responses }: Props) {
     const { toast } = useToast();
-    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [results, setResults] = useState<Results | null>(null);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const funnelDataForChart = useMemo(() => {
-        if (!analysisResult?.results?.funnel_data) return [];
-        const stages = ['awareness', 'consideration', 'preference', 'usage'];
-        const brands = Object.keys(analysisResult.results.funnel_data);
-
-        return stages.map(stage => {
-            const stageData: { [key: string]: string | number } = { name: stage };
-            brands.forEach(brand => {
-                const safeKey = brand.replace(/\s/g, '_');
-                stageData[safeKey] = analysisResult.results.funnel_data[brand][stage] || 0;
-            });
-            return stageData;
-        });
-    }, [analysisResult]);
-
-
-    const processAndAnalyzeData = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        setAnalysisResult(null);
-
+    const handleAnalysis = useCallback(async () => {
         try {
-            if (!survey || !responses) {
-                throw new Error("Survey data or responses not available.");
+            if (!survey || !responses || responses.length === 0) {
+                throw new Error("No survey data or responses");
             }
 
-            const stageQuestions = {
-                awareness: survey.questions.find(q => q.title.toLowerCase().includes('heard of')),
-                consideration: survey.questions.find(q => q.title.toLowerCase().includes('consider purchasing')),
-                preference: survey.questions.find(q => q.title.toLowerCase().includes('prefer')),
-                usage: survey.questions.find(q => q.title.toLowerCase().includes('used or purchased')),
-            };
-            
-            if (Object.values(stageQuestions).some(q => !q)) {
-                throw new Error("Could not find all required brand funnel questions (awareness, consideration, preference, usage).");
-            }
-            
-            const brands = stageQuestions.awareness?.options || [];
-            if (brands.length === 0) {
-                 throw new Error("No brands found in the awareness question options.");
+            const q_aware = survey.questions.find(q => q.title.toLowerCase().includes('heard of'));
+            const q_consider = survey.questions.find(q => q.title.toLowerCase().includes('consider'));
+            const q_prefer = survey.questions.find(q => q.title.toLowerCase().includes('prefer'));
+            const q_usage = survey.questions.find(q => q.title.toLowerCase().includes('used'));
+
+            if (!q_aware || !q_consider || !q_prefer || !q_usage) {
+                throw new Error("Missing required funnel questions");
             }
 
-            const funnelCounts: { [brand: string]: { awareness: number; consideration: number; preference: number; usage: number } } = {};
+            const brands = q_aware.options || [];
+            if (brands.length === 0) throw new Error("No brands found");
+
+            const counts: { [brand: string]: BrandStages } = {};
             brands.forEach(brand => {
-                funnelCounts[brand] = { awareness: 0, consideration: 0, preference: 0, usage: 0 };
+                counts[brand] = { awareness: 0, consideration: 0, preference: 0, usage: 0 };
             });
-            
-            responses.forEach(response => {
-                const answers = response.answers as any;
-                const awarenessAns = answers[stageQuestions.awareness!.id] as string[] || [];
-                const considerationAns = answers[stageQuestions.consideration!.id] as string[] || [];
-                const preferenceAns = answers[stageQuestions.preference!.id] as string;
-                const usageAns = answers[stageQuestions.usage!.id] as string[] || [];
+
+            responses.forEach(resp => {
+                const ans = resp.answers as any;
+                const aware = (ans[q_aware.id] as string[]) || [];
+                const consider = (ans[q_consider.id] as string[]) || [];
+                const prefer = ans[q_prefer.id] as string;
+                const usage = (ans[q_usage.id] as string[]) || [];
 
                 brands.forEach(brand => {
-                    if (awarenessAns.includes(brand)) funnelCounts[brand].awareness++;
-                    if (considerationAns.includes(brand)) funnelCounts[brand].consideration++;
-                    if (preferenceAns === brand) funnelCounts[brand].preference++;
-                    if (usageAns.includes(brand)) funnelCounts[brand].usage++;
+                    if (aware.includes(brand)) counts[brand].awareness++;
+                    if (consider.includes(brand)) counts[brand].consideration++;
+                    if (prefer === brand) counts[brand].preference++;
+                    if (usage.includes(brand)) counts[brand].usage++;
                 });
             });
 
-            const requestBody = {
-                brands,
-                funnel_data: funnelCounts,
-                total_respondents: responses.length,
-            };
-
-            const apiResponse = await fetch('/api/analysis/brand-funnel', {
+            const response = await fetch('/api/analysis/brand-funnel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody),
+                body: JSON.stringify({ brands, funnel_data: counts, total_respondents: responses.length })
             });
 
-            if (!apiResponse.ok) {
-                const errorData = await apiResponse.json();
-                throw new Error(errorData.error || 'Failed to fetch analysis results');
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || 'API error');
             }
 
-            const data: FullAnalysisResponse = await apiResponse.json();
-            setAnalysisResult(data);
+            const data = await response.json();
+            setResults(data.results);
+
         } catch (err: any) {
             setError(err.message);
-            toast({
-                title: "Error fetching brand funnel results",
-                description: err.message,
-                variant: "destructive"
-            });
+            toast({ title: "Error", description: err.message, variant: "destructive" });
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
-
     }, [survey, responses, toast]);
 
     useEffect(() => {
-        processAndAnalyzeData();
-    }, [processAndAnalyzeData]);
+        setLoading(true);
+        handleAnalysis();
+    }, [handleAnalysis]);
 
-    if (isLoading) {
-        return <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>;
+    const chartData = useMemo(() => {
+        if (!results) return [];
+        
+        const stages = ['awareness', 'consideration', 'preference', 'usage'];
+        const brands = Object.keys(results.funnel_data);
+        
+        return stages.map(stage => {
+            const row: any = { stage: stage.charAt(0).toUpperCase() + stage.slice(1) };
+            brands.forEach(brand => {
+                row[brand] = results.funnel_data[brand][stage as keyof BrandStages];
+            });
+            return row;
+        });
+    }, [results]);
+
+    if (loading) {
+        return <Card><CardContent className="p-8"><Skeleton className="h-96 w-full" /></CardContent></Card>;
     }
-    
+
     if (error) {
-        return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
+        return (
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+        );
     }
-    
-    if (!analysisResult) return null;
-    
-    const results = analysisResult.results;
 
-    const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
-    const marketShareData = Object.entries(results.market_share).map(([stage, brands]) => ({
-      stage: stage.replace('_share', ''),
-      ...brands
-    }));
+    if (!results) {
+        return <Alert><AlertTriangle className="h-4 w-4" /><AlertTitle>No Data</AlertTitle></Alert>;
+    }
+
+    const brands = Object.keys(results.funnel_data);
+    const marketShareData = useMemo(() => {
+        if (!results) return [];
+        return brands.map(brand => ({
+            brand,
+            stages: Object.fromEntries(
+                Object.entries(results.market_share).map(([stageKey, brandShares]) => [
+                    stageKey, brandShares[brand]
+                ])
+            )
+        }));
+    }, [results, brands]);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Brand Funnel Visualization</CardTitle>
+                    <CardTitle>Brand Funnel</CardTitle>
+                    <CardDescription>Respondents at each stage</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ChartContainer config={{}} className="w-full h-[400px]">
-                        <ResponsiveContainer>
-                            <BarChart data={funnelDataForChart}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip content={<ChartTooltipContent />} />
-                                <Legend />
-                                {Object.keys(results.funnel_data).map((brand, i) => (
-                                    <Bar key={brand} dataKey={brand.replace(/\s/g, '_')} name={brand} fill={COLORS[i % COLORS.length]} />
-                                ))}
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
+                    <ResponsiveContainer width="100%" height={400}>
+                        <BarChart data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="stage" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            {brands.map((brand, i) => (
+                                <Bar key={brand} dataKey={brand} fill={COLORS[i % COLORS.length]} name={brand} />
+                            ))}
+                        </BarChart>
+                    </ResponsiveContainer>
                 </CardContent>
             </Card>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-base">Top Performer</CardTitle></CardHeader>
-                    <CardContent>
-                        <p className="text-2xl font-bold">{results.insights.top_performer.brand}</p>
-                        <p className="text-sm text-muted-foreground">Efficiency: {results.insights.top_performer.efficiency?.toFixed(1)}%</p>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-base">Market Leader (Usage)</CardTitle></CardHeader>
-                    <CardContent>
-                        <p className="text-2xl font-bold">{results.insights.market_leader.usage}</p>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-base">Best Overall Conversion</CardTitle></CardHeader>
-                    <CardContent>
-                        <p className="text-2xl font-bold">{results.insights.conversion_champion.brand}</p>
-                        <p className="text-sm text-muted-foreground">Rate: {results.insights.conversion_champion.rate?.toFixed(1)}%</p>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-base">Biggest Opportunity</CardTitle></CardHeader>
-                    <CardContent>
-                        <p className="text-2xl font-bold">{results.insights.biggest_opportunity.brand}</p>
-                         <p className="text-sm text-muted-foreground">At: {results.insights.biggest_opportunity.bottleneck}</p>
-                    </CardContent>
-                </Card>
+            <div className="grid md:grid-cols-4 gap-4">
+                <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Top Performer</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.insights?.top_performer?.brand || 'N/A'}</p><p className="text-sm text-muted-foreground">Efficiency: {results.insights?.top_performer?.efficiency?.toFixed(1)}%</p></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Market Leader (Usage)</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.insights?.market_leader?.usage || 'N/A'}</p></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Best Conversion</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.insights?.conversion_champion?.brand || 'N/A'}</p><p className="text-sm text-muted-foreground">Rate: {results.insights?.conversion_champion?.rate?.toFixed(1)}%</p></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Biggest Opportunity</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.insights?.biggest_opportunity?.brand || 'N/A'}</p><p className="text-sm text-muted-foreground">{results.insights?.biggest_opportunity?.bottleneck || 'N/A'}</p></CardContent></Card>
             </div>
             
             <Card>
-                <CardHeader><CardTitle>Detailed Tables</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Detailed Data</CardTitle></CardHeader>
                 <CardContent>
-                    <Tabs defaultValue="funnel">
-                        <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="funnel">Funnel Counts</TabsTrigger>
-                            <TabsTrigger value="conversion">Conversion Rates</TabsTrigger>
-                            <TabsTrigger value="share">Market Share</TabsTrigger>
+                    <Tabs defaultValue="counts">
+                        <TabsList className="grid w-full grid-cols-4">
+                            <TabsTrigger value="counts">Counts</TabsTrigger>
+                            <TabsTrigger value="conversion">Conversion (%)</TabsTrigger>
+                            <TabsTrigger value="share">Market Share (%)</TabsTrigger>
+                            <TabsTrigger value="dropoff">Drop-off (%)</TabsTrigger>
                         </TabsList>
-                        <TabsContent value="funnel" className="mt-4">
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Brand</TableHead>
-                                        {Object.keys(results.funnel_data[Object.keys(results.funnel_data)[0]]).map(stage => <TableHead key={stage} className="text-right">{stage.charAt(0).toUpperCase() + stage.slice(1)}</TableHead>)}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(results.funnel_data).map(([brand, stages]) => (
-                                        <TableRow key={brand}>
-                                            <TableCell>{brand}</TableCell>
-                                            {Object.values(stages).map((value, i) => <TableCell key={i} className="text-right">{value}</TableCell>)}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TabsContent>
-                        <TabsContent value="conversion" className="mt-4">
-                              <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Brand</TableHead>
-                                        {Object.keys(results.conversion_rates[Object.keys(results.conversion_rates)[0]]).map(stage => <TableHead key={stage} className="text-right">{stage.replace(/_/g, ' ')}</TableHead>)}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(results.conversion_rates).map(([brand, stages]) => (
-                                        <TableRow key={brand}>
-                                            <TableCell>{brand}</TableCell>
-                                            {Object.values(stages).map((value, i) => (
-                                                <TableCell key={i} className="text-right">
-                                                    {(value ?? 0).toFixed(1)}%
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TabsContent>
-                        <TabsContent value="share" className="mt-4">
+
+                        <TabsContent value="counts" className="mt-4">
                             <Table>
-                                <TableHeader>
-                                <TableRow>
-                                    <TableHead>Brand</TableHead>
-                                    {Object.keys(marketShareData[0] || {}).filter(k => k !== 'stage').map(stage => (
-                                        <TableHead key={stage} className="text-right">{stage.replace('_share', '')}</TableHead>
-                                    ))}
-                                </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                {Object.keys(results.market_share[Object.keys(results.market_share)[0]]).map(brand => (
-                                    <TableRow key={brand}>
-                                        <TableCell>{brand}</TableCell>
-                                        {Object.keys(results.market_share).map(stage => (
-                                            <TableCell key={`${brand}-${stage}`} className="text-right">
-                                                {(results.market_share[stage][brand] ?? 0).toFixed(1)}%
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                                </TableBody>
+                                <TableHeader><TableRow><TableHead>Brand</TableHead><TableHead className="text-right">Awareness</TableHead><TableHead className="text-right">Consideration</TableHead><TableHead className="text-right">Preference</TableHead><TableHead className="text-right">Usage</TableHead></TableRow></TableHeader>
+                                <TableBody>{brands.map(brand => (<TableRow key={brand}><TableCell className="font-medium">{brand}</TableCell><TableCell className="text-right">{results.funnel_data[brand].awareness}</TableCell><TableCell className="text-right">{results.funnel_data[brand].consideration}</TableCell><TableCell className="text-right">{results.funnel_data[brand].preference}</TableCell><TableCell className="text-right">{results.funnel_data[brand].usage}</TableCell></TableRow>))}</TableBody>
                             </Table>
                         </TabsContent>
+
+                        <TabsContent value="conversion" className="mt-4">
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Brand</TableHead><TableHead className="text-right">Aware→Consider</TableHead><TableHead className="text-right">Consider→Prefer</TableHead><TableHead className="text-right">Prefer→Usage</TableHead><TableHead className="text-right">Overall (Aware→Usage)</TableHead></TableRow></TableHeader>
+                                <TableBody>{brands.map(brand => (<TableRow key={brand}><TableCell className="font-medium">{brand}</TableCell><TableCell className="text-right">{(results.conversion_rates[brand]?.awareness_to_consideration ?? 0).toFixed(1)}%</TableCell><TableCell className="text-right">{(results.conversion_rates[brand]?.consideration_to_preference ?? 0).toFixed(1)}%</TableCell><TableCell className="text-right">{(results.conversion_rates[brand]?.preference_to_usage ?? 0).toFixed(1)}%</TableCell><TableCell className="text-right font-semibold">{(results.conversion_rates[brand]?.awareness_to_usage ?? 0).toFixed(1)}%</TableCell></TableRow>))}</TableBody>
+                            </Table>
+                        </TabsContent>
+                        
+                        <TabsContent value="share" className="mt-4">
+                           <Table>
+                               <TableHeader><TableRow><TableHead>Brand</TableHead>{Object.keys(results.market_share || {}).map(stage => (<TableHead key={stage} className="text-right">{stage.replace('_share', '')}</TableHead>))}</TableRow></TableHeader>
+                               <TableBody>{marketShareData.map(({ brand, stages }) => (<TableRow key={brand}><TableCell>{brand}</TableCell>{Object.values(stages).map((value, i) => (<TableCell key={i} className="text-right">{(value as number ?? 0).toFixed(1)}%</TableCell>))}</TableRow>))}</TableBody>
+                           </Table>
+                       </TabsContent>
+
+                        <TabsContent value="dropoff" className="mt-4">
+                           <Table>
+                               <TableHeader><TableRow><TableHead>Brand</TableHead><TableHead className="text-right">Aware→Consider</TableHead><TableHead className="text-right">Consider→Prefer</TableHead><TableHead className="text-right">Prefer→Usage</TableHead></TableRow></TableHeader>
+                               <TableBody>{brands.map(brand => (<TableRow key={brand}><TableCell className="font-medium">{brand}</TableCell>{Object.values(results.drop_off[brand] || {}).map((val: any, idx) => (<TableCell key={idx} className="text-right"><div>{val.rate.toFixed(1)}%</div><div className="text-xs text-muted-foreground">({val.count} lost)</div></TableCell>))}</TableRow>))}</TableBody>
+                           </Table>
+                       </TabsContent>
                     </Tabs>
                 </CardContent>
             </Card>
