@@ -302,6 +302,64 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
     );
 };
 
+const ServqualQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: any; onAnswerChange: (value: any) => void; styles: any }) => {
+    const handleRatingChange = (rowText: string, type: 'Expectation' | 'Perception', value: number) => {
+        onAnswerChange(produce(answer || {}, (draft: any) => {
+            if (!draft[rowText]) draft[rowText] = {};
+            draft[rowText][type] = value;
+        }));
+    };
+    
+    const scale = Array.from({ length: 7 }, (_, i) => i + 1);
+
+    return (
+        <div className="p-4 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+            <h3 className="font-semibold mb-4" style={{ fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor }}>
+                {question.title} {question.required && <span className="text-destructive">*</span>}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">Please rate your level of expectation and your perception of our actual performance on a scale of 1 (Strongly Disagree) to 7 (Strongly Agree).</p>
+            <div className="space-y-4">
+                {(question.rows || []).map((rowText, index) => (
+                    <Card key={index}>
+                        <CardHeader className="pb-2"><CardTitle className="text-base">{rowText}</CardTitle></CardHeader>
+                        <CardContent className="grid grid-cols-2 gap-6">
+                             <div>
+                                <Label className="text-sm text-muted-foreground mb-2 block">Expectation</Label>
+                                <div className="flex justify-between">
+                                    {scale.map(value => (
+                                        <Button
+                                            key={`exp-${index}-${value}`}
+                                            variant={answer?.[rowText]?.Expectation === value ? 'default' : 'outline'}
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() => handleRatingChange(rowText, 'Expectation', value)}
+                                        >{value}</Button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <Label className="text-sm text-muted-foreground mb-2 block">Perception</Label>
+                                <div className="flex justify-between">
+                                     {scale.map(value => (
+                                        <Button
+                                            key={`per-${index}-${value}`}
+                                            variant={answer?.[rowText]?.Perception === value ? 'default' : 'outline'}
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() => handleRatingChange(rowText, 'Perception', value)}
+                                        >{value}</Button>
+                                    ))}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+
 const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer: any; onAnswerChange: (value: any) => void; styles: any; }) => {
     const { criteria = [], alternatives = [] } = question;
 
@@ -647,6 +705,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         'semantic-differential': SemanticDifferentialQuestion,
         likert: SemanticDifferentialQuestion,
         ahp: AHPQuestion,
+        servqual: ServqualQuestion,
     };
     
     const currentQuestion = survey?.questions[currentQuestionIndex];

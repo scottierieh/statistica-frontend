@@ -858,6 +858,66 @@ const AHPQuestion = ({ question, onUpdate, onDelete, styles }: { question: any; 
   );
 };
 
+const ServqualQuestion = ({ question, onUpdate, onDelete, styles }: { question: any, onUpdate?: (q: any) => void, onDelete?: (id: string) => void, styles: any }) => {
+    const questionStyle = { fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor };
+
+    const handleRowChange = (index: number, value: string) => {
+        const newRows = [...(question.rows || [])];
+        newRows[index] = value;
+        onUpdate?.({ ...question, rows: newRows });
+    };
+
+    const addRow = () => {
+        const newRows = [...(question.rows || []), `New Statement`];
+        onUpdate?.({ ...question, rows: newRows });
+    };
+
+    const removeRow = (index: number) => {
+        const newRows = (question.rows || []).filter((_: any, i: number) => i !== index);
+        onUpdate?.({ ...question, rows: newRows });
+    };
+    
+    return (
+        <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
+            <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                    <Input placeholder="Enter your question title" value={question.title} onChange={(e) => onUpdate?.({ ...question, title: e.target.value })} className="text-lg font-semibold border-none focus:ring-0 p-0 h-auto bg-transparent" style={questionStyle} />
+                    <Button variant="ghost" size="icon" onClick={() => onDelete?.(question.id)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
+                </div>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-1/2">Statement</TableHead>
+                                <TableHead className="text-center">Expectation</TableHead>
+                                <TableHead className="text-center">Perception</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                         <TableBody>
+                            {(question.rows || []).map((row: string, rowIndex: number) => (
+                                <TableRow key={`row-${rowIndex}`}>
+                                    <TableHead>
+                                        <div className="flex items-center gap-1">
+                                            <Input value={row} onChange={e => handleRowChange(rowIndex, e.target.value)} className="font-semibold bg-transparent border-none p-0" />
+                                            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeRow(rowIndex)}><X className="h-3 w-3"/></Button>
+                                        </div>
+                                    </TableHead>
+                                    <TableCell className="text-center">
+                                        <Input type="number" min="1" max="7" className="w-20 mx-auto" disabled />
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <Input type="number" min="1" max="7" className="w-20 mx-auto" disabled />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+                 <Button variant="link" size="sm" className="mt-2" onClick={addRow}><PlusCircle className="w-4 h-4 mr-2" /> Add Row</Button>
+            </div>
+        </Card>
+    );
+};
 
 
 interface QuestionListProps {
@@ -935,7 +995,8 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     likert: LikertQuestion,
     conjoint: ConjointQuestion,
     'rating-conjoint': RatingConjointQuestion,
-    ahp: AHPQuestion
+    ahp: AHPQuestion,
+    servqual: ServqualQuestion,
   };
 
 
@@ -990,3 +1051,4 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     </div>
   );
 }
+
