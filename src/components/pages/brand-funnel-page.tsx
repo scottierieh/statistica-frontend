@@ -54,8 +54,8 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     const [results, setResults] = useState<Results | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
-    const brands = useMemo(() => results ? Object.keys(results.funnel_data) : [], [results]);
+
+    const brands = useMemo(() => (results?.funnel_data ? Object.keys(results.funnel_data) : []), [results]);
 
     const funnelDataForChart = useMemo(() => {
         if (!results?.funnel_data) return [];
@@ -63,7 +63,8 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
         return stages.map(stage => {
             const row: any = { stage: stage.charAt(0).toUpperCase() + stage.slice(1) };
             brands.forEach(brand => {
-                row[brand.replace(/\s/g, '_')] = results.funnel_data[brand][stage as keyof BrandStages];
+                const safeBrandKey = brand.replace(/\s/g, '_');
+                row[safeBrandKey] = results.funnel_data[brand][stage as keyof BrandStages];
             });
             return row;
         });
@@ -71,15 +72,16 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
 
     const marketShareData = useMemo(() => {
         if (!results?.market_share) return [];
-        return brands.map(brand => ({
-            brand,
-            stages: Object.fromEntries(
-                Object.entries(results.market_share).map(([stageKey, brandShares]) => [
-                    stageKey, brandShares[brand]
-                ])
-            )
-        }));
-    }, [results, brands]);
+        const brands = Object.keys(results.funnel_data);
+        const stages = Object.keys(results.market_share);
+        return brands.map(brand => {
+            const brandShares: { [key: string]: any } = { brand };
+            stages.forEach(stage => {
+                brandShares[stage] = results.market_share[stage]?.[brand];
+            });
+            return brandShares;
+        });
+    }, [results]);
 
     const handleAnalysis = useCallback(async () => {
         setLoading(true);
@@ -210,29 +212,104 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
 
                         <TabsContent value="counts" className="mt-4">
                             <Table>
-                                <TableHeader><TableRow><TableHead>Brand</TableHead><TableHead className="text-right">Awareness</TableHead><TableHead className="text-right">Consideration</TableHead><TableHead className="text-right">Preference</TableHead><TableHead className="text-right">Usage</TableHead></TableRow></TableHeader>
-                                <TableBody>{brands.map(brand => (<TableRow key={brand}><TableCell className="font-medium">{brand}</TableCell><TableCell className="text-right">{results.funnel_data[brand].awareness}</TableCell><TableCell className="text-right">{results.funnel_data[brand].consideration}</TableCell><TableCell className="text-right">{results.funnel_data[brand].preference}</TableCell><TableCell className="text-right">{results.funnel_data[brand].usage}</TableCell></TableRow>))}</TableBody>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Brand</TableHead>
+                                        <TableHead className="text-right">Awareness</TableHead>
+                                        <TableHead className="text-right">Consideration</TableHead>
+                                        <TableHead className="text-right">Preference</TableHead>
+                                        <TableHead className="text-right">Usage</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {brands.map(brand => (
+                                        <TableRow key={brand}>
+                                            <TableCell className="font-medium">{brand}</TableCell>
+                                            <TableCell className="text-right">{results.funnel_data[brand]?.awareness ?? 0}</TableCell>
+                                            <TableCell className="text-right">{results.funnel_data[brand]?.consideration ?? 0}</TableCell>
+                                            <TableCell className="text-right">{results.funnel_data[brand]?.preference ?? 0}</TableCell>
+                                            <TableCell className="text-right">{results.funnel_data[brand]?.usage ?? 0}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
                             </Table>
                         </TabsContent>
 
                         <TabsContent value="conversion" className="mt-4">
                             <Table>
-                                <TableHeader><TableRow><TableHead>Brand</TableHead><TableHead className="text-right">Aware→Consider</TableHead><TableHead className="text-right">Consider→Prefer</TableHead><TableHead className="text-right">Prefer→Usage</TableHead><TableHead className="text-right">Overall (Aware→Usage)</TableHead></TableRow></TableHeader>
-                                <TableBody>{brands.map(brand => (<TableRow key={brand}><TableCell className="font-medium">{brand}</TableCell><TableCell className="text-right">{(results.conversion_rates[brand]?.awareness_to_consideration ?? 0).toFixed(1)}%</TableCell><TableCell className="text-right">{(results.conversion_rates[brand]?.consideration_to_preference ?? 0).toFixed(1)}%</TableCell><TableCell className="text-right">{(results.conversion_rates[brand]?.preference_to_usage ?? 0).toFixed(1)}%</TableCell><TableCell className="text-right font-semibold">{(results.conversion_rates[brand]?.awareness_to_usage ?? 0).toFixed(1)}%</TableCell></TableRow>))}</TableBody>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Brand</TableHead>
+                                        <TableHead className="text-right">Aware→Consider</TableHead>
+                                        <TableHead className="text-right">Consider→Prefer</TableHead>
+                                        <TableHead className="text-right">Prefer→Usage</TableHead>
+                                        <TableHead className="text-right">Overall (Aware→Usage)</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {brands.map(brand => (
+                                        <TableRow key={brand}>
+                                            <TableCell className="font-medium">{brand}</TableCell>
+                                            <TableCell className="text-right">{((results.conversion_rates[brand] as ConversionRates)?.awareness_to_consideration ?? 0).toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right">{((results.conversion_rates[brand] as ConversionRates)?.consideration_to_preference ?? 0).toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right">{((results.conversion_rates[brand] as ConversionRates)?.preference_to_usage ?? 0).toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right font-semibold">{((results.conversion_rates[brand] as ConversionRates)?.awareness_to_usage ?? 0).toFixed(1)}%</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
                             </Table>
                         </TabsContent>
                         
                         <TabsContent value="share" className="mt-4">
                            <Table>
-                               <TableHeader><TableRow><TableHead>Brand</TableHead>{Object.keys(results.market_share || {}).map(stage => (<TableHead key={stage} className="text-right">{stage.replace('_share', '')}</TableHead>))}</TableRow></TableHeader>
-                               <TableBody>{marketShareData.map(({ brand, stages }) => (<TableRow key={brand}><TableCell>{brand}</TableCell>{Object.values(stages).map((value, i) => (<TableCell key={i} className="text-right">{(value ?? 0).toFixed(1)}%</TableCell>))}</TableRow>))}</TableBody>
+                               <TableHeader>
+                                   <TableRow>
+                                       <TableHead>Brand</TableHead>
+                                       {Object.keys(results.market_share || {}).map(stage => (
+                                           <TableHead key={stage} className="text-right">
+                                               {stage.replace('_share', '').charAt(0).toUpperCase() + stage.replace('_share', '').slice(1)}
+                                           </TableHead>
+                                       ))}
+                                   </TableRow>
+                               </TableHeader>
+                               <TableBody>
+                                   {brands.map(brand => (
+                                       <TableRow key={brand}>
+                                           <TableCell className="font-medium">{brand}</TableCell>
+                                           {Object.keys(results.market_share).map(stage => (
+                                               <TableCell key={stage} className="text-right">
+                                                   {(results.market_share[stage][brand] ?? 0).toFixed(1)}%
+                                               </TableCell>
+                                           ))}
+                                       </TableRow>
+                                   ))}
+                               </TableBody>
                            </Table>
                        </TabsContent>
 
                         <TabsContent value="dropoff" className="mt-4">
                            <Table>
-                               <TableHeader><TableRow><TableHead>Brand</TableHead><TableHead className="text-right">Aware→Consider</TableHead><TableHead className="text-right">Consider→Prefer</TableHead><TableHead className="text-right">Prefer→Usage</TableHead></TableRow></TableHeader>
-                               <TableBody>{brands.map(brand => (<TableRow key={brand}><TableCell className="font-medium">{brand}</TableCell>{Object.values(results.drop_off[brand] || {}).map((val: any, idx) => (<TableCell key={idx} className="text-right"><div>{val.rate.toFixed(1)}%</div><div className="text-xs text-muted-foreground">({val.count} lost)</div></TableCell>))}</TableRow>))}</TableBody>
+                               <TableHeader>
+                                   <TableRow>
+                                       <TableHead>Brand</TableHead>
+                                       <TableHead className="text-right">Aware→Consider</TableHead>
+                                       <TableHead className="text-right">Consider→Prefer</TableHead>
+                                       <TableHead className="text-right">Prefer→Usage</TableHead>
+                                   </TableRow>
+                               </TableHeader>
+                               <TableBody>
+                                   {brands.map(brand => (
+                                       <TableRow key={brand}>
+                                           <TableCell className="font-medium">{brand}</TableCell>
+                                           {Object.values(results.drop_off[brand] || {}).map((val: any, idx) => (
+                                               <TableCell key={idx} className="text-right">
+                                                   <div>{val.rate.toFixed(1)}%</div>
+                                                   <div className="text-xs text-muted-foreground">({val.count} lost)</div>
+                                               </TableCell>
+                                           ))}
+                                       </TableRow>
+                                   ))}
+                               </TableBody>
                            </Table>
                        </TabsContent>
                     </Tabs>
