@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,7 +7,7 @@ import { Loader2, AlertTriangle, Filter } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, Cell, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -196,11 +195,10 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                 <CardHeader><CardTitle>Detailed Tables</CardTitle></CardHeader>
                 <CardContent>
                     <Tabs defaultValue="funnel">
-                        <TabsList className="grid w-full grid-cols-4">
+                        <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="funnel">Funnel Counts</TabsTrigger>
                             <TabsTrigger value="conversion">Conversion Rates</TabsTrigger>
                             <TabsTrigger value="share">Market Share</TabsTrigger>
-                            <TabsTrigger value="bottleneck">Bottlenecks</TabsTrigger>
                         </TabsList>
                         <TabsContent value="funnel" className="mt-4">
                              <Table>
@@ -251,26 +249,6 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                                         <TableRow key={brand}>
                                             <TableCell>{brand}</TableCell>
                                             {Object.values(stages).map((value, i) => <TableCell key={i} className="text-right">{(value as number).toFixed(1)}%</TableCell>)}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TabsContent>
-                         <TabsContent value="bottleneck" className="mt-4">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Brand</TableHead>
-                                        <TableHead>Bottleneck Stage</TableHead>
-                                        <TableHead className="text-right">Conversion Rate (%)</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {results.bottlenecks.map(item => (
-                                        <TableRow key={item.brand}>
-                                            <TableCell>{item.brand}</TableCell>
-                                            <TableCell>{item.bottleneck_stage}</TableCell>
-                                            <TableCell className="text-right">{item.conversion_rate.toFixed(1)}%</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
