@@ -44,24 +44,12 @@ class AHPAnalysis:
         """Set pairwise comparison matrix for criteria"""
         self.criteria_matrix = np.array(matrix)
     
-    def input_criteria_comparison(self, i, j, value):
-        """Input pairwise comparison for criteria"""
-        self.criteria_matrix[i][j] = value
-        self.criteria_matrix[j][i] = 1 / value
-    
     def set_alternative_matrix(self, criterion_name, matrix):
         """Set pairwise comparison matrix for alternatives under a criterion"""
         if not self.has_alternatives:
             raise ValueError("No alternatives defined")
         self.alternative_matrices[criterion_name] = np.array(matrix)
-    
-    def input_alternative_comparison(self, criterion_name, i, j, value):
-        """Input pairwise comparison for alternatives under a criterion"""
-        if not self.has_alternatives:
-            raise ValueError("No alternatives defined")
-        self.alternative_matrices[criterion_name][i][j] = value
-        self.alternative_matrices[criterion_name][j][i] = 1 / value
-    
+
     def calculate_weights(self, matrix):
         """Calculate priority weights using eigenvalue method"""
         eigenvalues, eigenvectors = np.linalg.eig(matrix)
@@ -107,7 +95,6 @@ class AHPAnalysis:
                 self.alternative_CR[criterion] = CR
                 self.alternative_CI[criterion] = CI
             
-            # Calculate final scores for alternatives
             self.calculate_final_scores()
     
     def calculate_final_scores(self):
@@ -122,7 +109,6 @@ class AHPAnalysis:
             alternative_weight = self.alternative_weights[criterion]
             self.final_scores += criterion_weight * alternative_weight
         
-        # Create ranking
         self.ranking = np.argsort(self.final_scores)[::-1]
 
     def get_results(self):
@@ -223,7 +209,7 @@ def main():
         if 'alternatives_analysis' in results_data:
             results_data['alternative_weights_by_criterion'] = results_data.pop('alternatives_analysis')
         
-        if has_alternatives:
+        if has_alternatives and 'final_scores' in results_data:
             results_data['final_scores'] = sorted([{'name': name, 'score': score} for name, score in results_data['final_scores'].items()], key=lambda x: x['score'], reverse=True)
 
 
