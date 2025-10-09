@@ -142,31 +142,43 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
             }
 
             const aggregatedMatrices: { [key: string]: number[][][] } = {};
+            
+            const findCriterion = (id: string, criteriaList: Criterion[]): Criterion | null => {
+                for (const crit of criteriaList) {
+                    if (crit.id === id) return crit;
+                    if (crit.subCriteria) {
+                        const found = findCriterion(id, crit.subCriteria);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            };
+
+            const getItemsForMatrix = (key: string, criteria: Criterion[], alternatives: string[]) => {
+                if (key === 'criteria' || key === 'goal') return criteria;
+                if (key.startsWith('alt_')) {
+                    const critId = key.substring(4);
+                    const crit = findCriterion(critId, criteria);
+                    if (crit?.subCriteria && crit.subCriteria.length > 0) {
+                        return crit.subCriteria;
+                    }
+                    return alternatives;
+                }
+                const subCritMatch = key.match(/^sub_criteria_(.*)$/);
+                if (subCritMatch) {
+                    const parentId = subCritMatch[1];
+                    const parent = findCriterion(parentId, criteria);
+                    return parent?.subCriteria || [];
+                }
+                return [];
+            };
+
             responses.forEach(resp => {
                 const answerData = (resp.answers as any)[ahpQuestion.id];
                 if (!answerData || typeof answerData !== 'object') return;
-
+                
                 Object.entries(answerData).forEach(([matrixKey, matrixValues]: [string, any]) => {
-                    const getItemsForMatrix = (key: string) => {
-                        if (key === 'criteria' || key === 'goal') return ahpQuestion.criteria || [];
-                        if (key.startsWith('alt_')) {
-                            const critName = key.substring(4);
-                            const crit = ahpQuestion.criteria?.find(c => c.name === critName);
-                            if (crit?.subCriteria && crit.subCriteria.length > 0) {
-                                return crit.subCriteria;
-                            }
-                            return ahpQuestion.alternatives || [];
-                        }
-                        const subCritMatch = key.match(/^sub_criteria_(.*)$/);
-                        if (subCritMatch) {
-                            const parentName = subCritMatch[1];
-                            const parent = ahpQuestion.criteria?.find(c => c.name === parentName);
-                            return parent?.subCriteria || [];
-                        }
-                        return [];
-                    };
-
-                    const items = getItemsForMatrix(matrixKey);
+                    const items = getItemsForMatrix(matrixKey, ahpQuestion.criteria || [], ahpQuestion.alternatives || []);
                     if (!items || items.length < 2) return;
                     const itemNames = items.map(i => typeof i === 'string' ? i : i.name);
                     const n = itemNames.length;
@@ -192,6 +204,10 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 });
             });
 
+            if (Object.keys(aggregatedMatrices).length === 0) {
+                throw new Error("No valid AHP comparison data found in the responses.");
+            }
+            
             const hierarchy = ahpQuestion.criteria ? [{
                 name: ahpQuestion.title || 'Goal',
                 nodes: ahpQuestion.criteria.map(c => {
