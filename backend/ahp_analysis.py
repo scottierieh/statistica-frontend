@@ -1,4 +1,5 @@
 
+
 import sys
 import json
 import numpy as np
@@ -156,12 +157,33 @@ class AHPAnalysis:
 
         return results
 
+def geometric_mean_of_matrices(matrices):
+    """Calculates the element-wise geometric mean of a list of matrices."""
+    if not matrices:
+        return None
+    
+    matrices_array = np.array(matrices)
+    # Using log-transform to calculate geometric mean to avoid overflow/underflow
+    log_matrices = np.log(matrices_array)
+    mean_log_matrix = np.mean(log_matrices, axis=0)
+    geo_mean_matrix = np.exp(mean_log_matrix)
+    
+    # Normalize to ensure reciprocity
+    for i in range(geo_mean_matrix.shape[0]):
+        for j in range(i, geo_mean_matrix.shape[1]):
+            if i == j:
+                geo_mean_matrix[i, j] = 1
+            else:
+                geo_mean_matrix[j, i] = 1 / geo_mean_matrix[i, j]
+                
+    return geo_mean_matrix
+
 def main():
     try:
         payload = json.load(sys.stdin)
         
         hierarchy = payload.get('hierarchy')
-        matrices = payload.get('matrices')
+        matrices_by_respondent = payload.get('matrices')
         alternatives = payload.get('alternatives')
         goal = payload.get('goal', 'Goal')
 
@@ -174,17 +196,23 @@ def main():
         
         ahp = AHPAnalysis(criteria_nodes, alternatives if has_alternatives else None)
         
+        # Aggregate matrices using geometric mean
+        agg_matrices = {}
+        for key, matrix_list in matrices_by_respondent.items():
+            if matrix_list:
+                agg_matrices[key] = geometric_mean_of_matrices(matrix_list)
+
         # Set criteria matrix
-        if 'goal' in matrices:
-            ahp.set_criteria_matrix(matrices['goal'])
+        if 'goal' in agg_matrices:
+            ahp.set_criteria_matrix(agg_matrices['goal'])
         else:
             raise ValueError("Criteria comparison matrix for 'goal' not found in matrices")
 
         if has_alternatives:
             for criterion in criteria_nodes:
                 matrix_key = f"goal.{criterion}"
-                if matrix_key in matrices:
-                    ahp.set_alternative_matrix(criterion, matrices[matrix_key])
+                if matrix_key in agg_matrices:
+                    ahp.set_alternative_matrix(criterion, agg_matrices[matrix_key])
                 else:
                     raise ValueError(f"Alternative comparison matrix for criterion '{criterion}' not found in matrices")
 
@@ -209,5 +237,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    
