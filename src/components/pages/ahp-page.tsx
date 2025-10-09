@@ -1,10 +1,10 @@
 
 'use client';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, HelpCircle, MoveRight } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -229,27 +229,56 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
               throw new Error("AHP Question not found in survey definition.");
           }
           
-          const aggregatedMatrices: {[key: string]: any[]} = {};
+          const allItemsMap: { [key: string]: string[] } = {};
+          if (ahpQuestion.criteria) {
+              const criteriaNames = ahpQuestion.criteria.map(c => c.name);
+              allItemsMap['criteria'] = criteriaNames;
+
+              if (ahpQuestion.alternatives && ahpQuestion.alternatives.length > 0) {
+                  criteriaNames.forEach(cn => {
+                      allItemsMap[`alt_${cn}`] = ahpQuestion.alternatives || [];
+                  });
+              }
+          }
+          
+          const aggregatedMatrices: { [key: string]: number[][][] } = {};
+          
           responses.forEach(resp => {
               const answerData = (resp.answers as any)[ahpQuestion.id];
               if(answerData) {
-                   for (const key in answerData) {
-                      if(!aggregatedMatrices[key]) aggregatedMatrices[key] = [];
-                      const matrix = Object.values(answerData[key]);
-                      aggregatedMatrices[key].push(matrix);
+                   for (const matrixKey in answerData) {
+                        const items = allItemsMap[matrixKey];
+                        if (!items) continue;
+
+                        const n = items.length;
+                        const matrix = Array(n).fill(null).map(() => Array(n).fill(1.0));
+                        
+                        for (let i = 0; i < n; i++) {
+                            for (let j = i + 1; j < n; j++) {
+                                const pairKey = `${items[i]} vs ${items[j]}`;
+                                const reversePairKey = `${items[j]} vs ${items[i]}`;
+                                let value = 1.0;
+                                if (answerData[matrixKey][pairKey] !== undefined) {
+                                    value = answerData[matrixKey][pairKey];
+                                } else if (answerData[matrixKey][reversePairKey] !== undefined) {
+                                    value = 1 / answerData[matrixKey][reversePairKey];
+                                }
+                                matrix[i][j] = value;
+                                matrix[j][i] = 1 / value;
+                            }
+                        }
+                        if(!aggregatedMatrices[matrixKey]) aggregatedMatrices[matrixKey] = [];
+                        aggregatedMatrices[matrixKey].push(matrix);
                   }
               }
           });
   
           const hierarchy = ahpQuestion.criteria ? [{
               name: ahpQuestion.title || 'Goal',
-              nodes: ahpQuestion.criteria.map(c => {
-                  const node: any = { name: c.name };
-                  if (c.subCriteria && c.subCriteria.length > 0) {
-                      node.nodes = c.subCriteria.map(sc => ({ name: sc.name }));
-                  }
-                  return node;
-              })
+              nodes: ahpQuestion.criteria.map(c => ({
+                  name: c.name,
+                  ...(c.subCriteria && { nodes: c.subCriteria.map(sc => ({ name: sc.name })) })
+              }))
           }] : [];
   
   
@@ -295,6 +324,7 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
       }
     }, [survey, responses, toast]);
   
+    // 로딩 상태
     if (loading) {
       return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
@@ -306,6 +336,7 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
       );
     }
   
+    // 에러 상태
     if (error) {
       return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
@@ -323,6 +354,7 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
       );
     }
   
+    // 데이터 없음
     if (!results) {
       return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
