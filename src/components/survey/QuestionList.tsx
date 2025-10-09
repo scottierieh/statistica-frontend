@@ -877,6 +877,9 @@ const ServqualQuestion = ({ question, onUpdate, onDelete, styles }: { question: 
         onUpdate?.({ ...question, rows: newRows });
     };
     
+    const showExpectation = question.servqualType !== 'Perception';
+    const showPerception = question.servqualType !== 'Expectation';
+
     return (
         <Card className="w-full shadow-md hover:shadow-lg transition-shadow">
             <div className="p-6">
@@ -889,8 +892,8 @@ const ServqualQuestion = ({ question, onUpdate, onDelete, styles }: { question: 
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-1/2">Statement</TableHead>
-                                <TableHead className="text-center">Expectation</TableHead>
-                                <TableHead className="text-center">Perception</TableHead>
+                                {showExpectation && <TableHead className="text-center">Expectation</TableHead>}
+                                {showPerception && <TableHead className="text-center">Perception</TableHead>}
                             </TableRow>
                         </TableHeader>
                          <TableBody>
@@ -902,12 +905,16 @@ const ServqualQuestion = ({ question, onUpdate, onDelete, styles }: { question: 
                                             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => removeRow(rowIndex)}><X className="h-3 w-3"/></Button>
                                         </div>
                                     </TableHead>
-                                    <TableCell className="text-center">
-                                        <Input type="number" min="1" max="7" className="w-20 mx-auto" disabled />
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Input type="number" min="1" max="7" className="w-20 mx-auto" disabled />
-                                    </TableCell>
+                                    {showExpectation && (
+                                        <TableCell className="text-center">
+                                            <Input type="number" min="1" max="7" className="w-20 mx-auto" disabled />
+                                        </TableCell>
+                                    )}
+                                    {showPerception && (
+                                        <TableCell className="text-center">
+                                            <Input type="number" min="1" max="7" className="w-20 mx-auto" disabled />
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -1051,4 +1058,3 @@ export default function QuestionList({ title, setTitle, setDescription, descript
     </div>
   );
 }
-
