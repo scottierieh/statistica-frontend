@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, CartesianGrid, Cell } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface BrandStages {
@@ -54,6 +56,8 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     const [error, setError] = useState<string | null>(null);
 
     const handleAnalysis = useCallback(async () => {
+        setLoading(true);
+        setError(null);
         try {
             if (!survey || !responses || responses.length === 0) {
                 throw new Error("No survey data or responses");
@@ -65,11 +69,11 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
             const q_usage = survey.questions.find(q => q.title.toLowerCase().includes('used'));
 
             if (!q_aware || !q_consider || !q_prefer || !q_usage) {
-                throw new Error("Missing required funnel questions");
+                throw new Error("Missing required funnel questions (awareness, consideration, preference, usage).");
             }
 
             const brands = q_aware.options || [];
-            if (brands.length === 0) throw new Error("No brands found");
+            if (brands.length === 0) throw new Error("No brands found in the awareness question.");
 
             const counts: { [brand: string]: BrandStages } = {};
             brands.forEach(brand => {
@@ -90,7 +94,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                     if (usage.includes(brand)) counts[brand].usage++;
                 });
             });
-
+            
             const response = await fetch('/api/analysis/brand-funnel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -103,8 +107,8 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
             }
 
             const data = await response.json();
+            if (data.error) throw new Error(data.error);
             setResults(data.results);
-
         } catch (err: any) {
             setError(err.message);
             toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -114,24 +118,35 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     }, [survey, responses, toast]);
 
     useEffect(() => {
-        setLoading(true);
         handleAnalysis();
     }, [handleAnalysis]);
 
     const chartData = useMemo(() => {
-        if (!results) return [];
-        
+        if (!results?.funnel_data) return [];
         const stages = ['awareness', 'consideration', 'preference', 'usage'];
         const brands = Object.keys(results.funnel_data);
-        
         return stages.map(stage => {
             const row: any = { stage: stage.charAt(0).toUpperCase() + stage.slice(1) };
             brands.forEach(brand => {
-                row[brand] = results.funnel_data[brand][stage as keyof BrandStages];
+                row[brand.replace(/\s/g, '_')] = results.funnel_data[brand][stage as keyof BrandStages];
             });
             return row;
         });
     }, [results]);
+
+    const brands = useMemo(() => results ? Object.keys(results.funnel_data) : [], [results]);
+
+    const marketShareData = useMemo(() => {
+        if (!results) return [];
+        return brands.map(brand => ({
+            brand,
+            stages: Object.fromEntries(
+                Object.entries(results.market_share).map(([stageKey, brandShares]) => [
+                    stageKey, brandShares[brand]
+                ])
+            )
+        }));
+    }, [results, brands]);
 
     if (loading) {
         return <Card><CardContent className="p-8"><Skeleton className="h-96 w-full" /></CardContent></Card>;
@@ -150,20 +165,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     if (!results) {
         return <Alert><AlertTriangle className="h-4 w-4" /><AlertTitle>No Data</AlertTitle></Alert>;
     }
-
-    const brands = Object.keys(results.funnel_data);
-    const marketShareData = useMemo(() => {
-        if (!results) return [];
-        return brands.map(brand => ({
-            brand,
-            stages: Object.fromEntries(
-                Object.entries(results.market_share).map(([stageKey, brandShares]) => [
-                    stageKey, brandShares[brand]
-                ])
-            )
-        }));
-    }, [results, brands]);
-
+    
     return (
         <div className="space-y-6">
             <Card>
@@ -172,25 +174,27 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                     <CardDescription>Respondents at each stage</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ResponsiveContainer width="100%" height={400}>
-                        <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="stage" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            {brands.map((brand, i) => (
-                                <Bar key={brand} dataKey={brand} fill={COLORS[i % COLORS.length]} name={brand} />
-                            ))}
-                        </BarChart>
-                    </ResponsiveContainer>
+                    <ChartContainer config={{}} className="w-full h-96">
+                        <ResponsiveContainer>
+                            <BarChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="stage" />
+                                <YAxis />
+                                <Tooltip content={<ChartTooltipContent />} />
+                                <Legend />
+                                {brands.map((brand, i) => (
+                                    <Bar key={brand} dataKey={brand.replace(/\s/g, '_')} name={brand} fill={COLORS[i % COLORS.length]} />
+                                ))}
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
                 </CardContent>
             </Card>
 
             <div className="grid md:grid-cols-4 gap-4">
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Top Performer</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.insights?.top_performer?.brand || 'N/A'}</p><p className="text-sm text-muted-foreground">Efficiency: {results.insights?.top_performer?.efficiency?.toFixed(1)}%</p></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Top Performer</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.insights?.top_performer?.brand || 'N/A'}</p><p className="text-sm text-muted-foreground">Efficiency: {(results.insights?.top_performer?.efficiency ?? 0).toFixed(1)}%</p></CardContent></Card>
                 <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Market Leader (Usage)</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.insights?.market_leader?.usage || 'N/A'}</p></CardContent></Card>
-                <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Best Conversion</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.insights?.conversion_champion?.brand || 'N/A'}</p><p className="text-sm text-muted-foreground">Rate: {results.insights?.conversion_champion?.rate?.toFixed(1)}%</p></CardContent></Card>
+                <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Best Conversion</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.insights?.conversion_champion?.brand || 'N/A'}</p><p className="text-sm text-muted-foreground">Rate: {(results.insights?.conversion_champion?.rate ?? 0).toFixed(1)}%</p></CardContent></Card>
                 <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Biggest Opportunity</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{results.insights?.biggest_opportunity?.brand || 'N/A'}</p><p className="text-sm text-muted-foreground">{results.insights?.biggest_opportunity?.bottleneck || 'N/A'}</p></CardContent></Card>
             </div>
             
@@ -222,7 +226,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                         <TabsContent value="share" className="mt-4">
                            <Table>
                                <TableHeader><TableRow><TableHead>Brand</TableHead>{Object.keys(results.market_share || {}).map(stage => (<TableHead key={stage} className="text-right">{stage.replace('_share', '')}</TableHead>))}</TableRow></TableHeader>
-                               <TableBody>{marketShareData.map(({ brand, stages }) => (<TableRow key={brand}><TableCell>{brand}</TableCell>{Object.values(stages).map((value, i) => (<TableCell key={i} className="text-right">{(value as number ?? 0).toFixed(1)}%</TableCell>))}</TableRow>))}</TableBody>
+                               <TableBody>{marketShareData.map(({ brand, stages }) => (<TableRow key={brand}><TableCell>{brand}</TableCell>{Object.values(stages).map((value, i) => (<TableCell key={i} className="text-right">{(value ?? 0).toFixed(1)}%</TableCell>))}</TableRow>))}</TableBody>
                            </Table>
                        </TabsContent>
 
