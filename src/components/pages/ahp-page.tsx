@@ -92,17 +92,18 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
 
 const AHPResultsVisualization = ({ results }: { results: any }) => {
     const mainCriteriaData = useMemo(() => {
-        const weights = results?.criteria_analysis?.weights;
+        const weights = results?.weights;
         if (!weights) return [];
-        
-        const topLevelCriteriaNames = Object.keys(results.criteria_analysis.weights);
-
-        return topLevelCriteriaNames.map(name => ({
+        return Object.entries(weights).map(([name, weight]) => ({
             name,
-            weight: ((weights[name] as number) * 100).toFixed(1),
-            weightValue: weights[name] as number
+            weight: ((weight as number) * 100).toFixed(1),
+            weightValue: weight
         })).sort((a,b) => b.weightValue - a.weightValue);
+    }, [results]);
 
+    const subCriteriaAnalyses = useMemo(() => {
+        if (!results?.sub_criteria_analysis) return [];
+        return Object.entries(results.sub_criteria_analysis);
     }, [results]);
     
     const finalScoresData = useMemo(() => (results?.final_scores?.map((item: any) => ({
@@ -113,80 +114,63 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
     
     const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
-    const renderHierarchicalCharts = (data: any) => {
-        if (!data || !data.criteria_analysis) return null;
-
-        return (
-            <div>
-                {mainCriteriaData.length > 0 && (
-                     <Card className="mb-6">
-                        <CardHeader>
-                            <CardTitle>Main Criteria Weights</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                             {renderBarChart("Main Criteria", mainCriteriaData, data.criteria_analysis.consistency)}
-                        </CardContent>
-                    </Card>
-                )}
-                
-                {data.sub_criteria_analysis && Object.keys(data.sub_criteria_analysis).length > 0 && (
-                    <Card className="mb-6">
-                        <CardHeader>
-                            <CardTitle>Sub-Criteria Weights</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {Object.entries(data.sub_criteria_analysis).map(([parentCriterion, subAnalysis]: [string, any]) => (
-                                <div key={parentCriterion} className="mt-4">
-                                    {renderBarChart(
-                                        `Sub-Criteria for "${parentCriterion}"`,
-                                        Object.entries(subAnalysis.weights).map(([name, weight]) => ({
-                                            name,
-                                            weight: ((weight as number) * 100).toFixed(1),
-                                            weightValue: weight
-                                        })).sort((a: any, b: any) => b.weightValue - a.weightValue),
-                                        subAnalysis.consistency
-                                    )}
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                )}
-
-
-                 {data.alternatives_analysis && Object.keys(data.alternatives_analysis).length > 0 && (
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Alternative Performance by Criterion</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {Object.entries(data.alternatives_analysis).map(([criterion, altAnalysis]: [string, any]) => (
-                                <div key={criterion} className="mt-4">
-                                     {renderBarChart(
-                                        `Performance for "${criterion}"`,
-                                        Object.entries(altAnalysis.weights).map(([name, weight]) => ({
-                                            name,
-                                            weight: ((weight as number) * 100).toFixed(1),
-                                            weightValue: weight
-                                        })).sort((a: any, b: any) => b.weightValue - a.weightValue),
-                                        altAnalysis.consistency
-                                    )}
-                                </div>
-                            ))}
-                        </CardContent>
-                     </Card>
-                )}
-            </div>
-        );
-    };
-
     return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-slate-50 rounded-xl">
             <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
                 AHP Analysis Results
             </h1>
             
-            {renderHierarchicalCharts(results)}
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>Main Criteria</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {renderBarChart("Main Criteria Weights", mainCriteriaData, results.consistency)}
+                </CardContent>
+            </Card>
+
+            {subCriteriaAnalyses.length > 0 && subCriteriaAnalyses.map(([parentCriterion, subAnalysis]: [string, any]) => (
+                <Card key={parentCriterion} className="mb-6">
+                    <CardHeader>
+                        <CardTitle>Sub-Criteria for &quot;{parentCriterion}&quot;</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {renderBarChart(
+                            `Sub-Criteria Weights for "${parentCriterion}"`,
+                            Object.entries(subAnalysis.weights).map(([name, weight]) => ({
+                                name,
+                                weight: ((weight as number) * 100).toFixed(1),
+                                weightValue: weight
+                            })).sort((a: any, b: any) => b.weightValue - a.weightValue),
+                            subAnalysis.consistency
+                        )}
+                    </CardContent>
+                </Card>
+            ))}
             
+            {results.alternatives_analysis && Object.keys(results.alternatives_analysis).length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Alternative Performance by Criterion</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {Object.entries(results.alternatives_analysis).map(([criterion, altAnalysis]: [string, any]) => (
+                            <div key={criterion} className="mt-4">
+                                 {renderBarChart(
+                                    `Performance for "${criterion}"`,
+                                    Object.entries(altAnalysis.weights).map(([name, weight]) => ({
+                                        name,
+                                        weight: ((weight as number) * 100).toFixed(1),
+                                        weightValue: weight
+                                    })).sort((a: any, b: any) => b.weightValue - a.weightValue),
+                                    altAnalysis.consistency
+                                )}
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
+
             {finalScoresData.length > 0 && (
                 <Card>
                     <CardHeader>
@@ -213,7 +197,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                                     return null;
                                 }} />
                                 <Bar dataKey="score" radius={[0, 8, 8, 0]}>
-                                    {finalScoresData.map((entry, index) => (
+                                    {finalScoresData.map((entry: any, index: number) => (
                                         <Cell
                                             key={`cell-${index}`}
                                             fill={index === 0 ? '#fbbf24' : COLORS[index % COLORS.length]}
@@ -234,7 +218,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {finalScoresData.map((item, index) => (
+                                    {finalScoresData.map((item: any, index: number) => (
                                         <TableRow key={index} className={index === 0 ? 'bg-yellow-50' : ''}>
                                             <TableCell className="font-bold">{index + 1}</TableCell>
                                             <TableCell className="font-medium">{item.name}</TableCell>
@@ -300,8 +284,34 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 return null;
             };
             
-            const processHierarchyForKeys = (nodes: Criterion[], matrices: { [key: string]: number[][][] }, respAnswers: any) => {
-                 // Main criteria
+            const buildMatrix = (answerBlock: { [pairKey: string]: number }, itemNames: string[]): number[][] | null => {
+                if (!answerBlock || itemNames.length === 0) return null;
+                const n = itemNames.length;
+                const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(1.0));
+                for (let i = 0; i < n; i++) {
+                    for (let j = i + 1; j < n; j++) {
+                        const pairKey = `${itemNames[i]} vs ${itemNames[j]}`;
+                        const reversePairKey = `${itemNames[j]} vs ${itemNames[i]}`;
+                        let value = 1.0;
+
+                        if (answerBlock[pairKey] !== undefined) {
+                            const rawValue = answerBlock[pairKey];
+                            value = rawValue > 0 ? rawValue : 1 / Math.abs(rawValue);
+                        } else if (answerBlock[reversePairKey] !== undefined) {
+                            const rawValue = answerBlock[reversePairKey];
+                            value = rawValue > 0 ? 1 / rawValue : Math.abs(rawValue);
+                        }
+                        
+                        if (value === 0) value = 1;
+
+                        matrix[i][j] = value;
+                        matrix[j][i] = 1 / value;
+                    }
+                }
+                return matrix;
+            };
+
+            const processHierarchyForMatrices = (nodes: Criterion[], matrices: { [key: string]: number[][][] }, respAnswers: any) => {
                 const mainCriteriaNames = nodes.map(n => n.name);
                 if (mainCriteriaNames.length > 1) {
                     const matrix = buildMatrix(respAnswers['criteria'], mainCriteriaNames);
@@ -312,7 +322,6 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 }
                 
                 nodes.forEach(node => {
-                    // Sub-criteria
                     if (node.subCriteria && node.subCriteria.length > 1) {
                         const subCriteriaNames = node.subCriteria.map(sc => sc.name);
                         const matrixKey = `sub_criteria_${node.id}`;
@@ -323,7 +332,6 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                         }
                     }
                     
-                    // Alternatives
                     const isLeaf = !node.subCriteria || node.subCriteria.length === 0;
                     if (isLeaf && ahpQuestion.alternatives && ahpQuestion.alternatives.length > 1) {
                         const matrixKey = `alt_${node.id}`;
@@ -336,35 +344,10 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 });
             };
 
-            const buildMatrix = (answerBlock: { [pairKey: string]: number }, itemNames: string[]): number[][] | null => {
-                if (!answerBlock || itemNames.length === 0) return null;
-                const n = itemNames.length;
-                const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(1.0));
-                for (let i = 0; i < n; i++) {
-                    for (let j = i + 1; j < n; j++) {
-                        const pairKey = `${itemNames[i]} vs ${itemNames[j]}`;
-                        const reversePairKey = `${itemNames[j]} vs ${itemNames[i]}`;
-                        let value = 1.0;
-
-                        if (answerBlock[pairKey] !== undefined) {
-                            value = answerBlock[pairKey] > 0 ? answerBlock[pairKey] : 1 / Math.abs(answerBlock[pairKey]);
-                        } else if (answerBlock[reversePairKey] !== undefined) {
-                            value = answerBlock[reversePairKey] > 0 ? 1 / answerBlock[reversePairKey] : Math.abs(answerBlock[reversePairKey]);
-                        }
-                        
-                        if (value === 0) value = 1;
-
-                        matrix[i][j] = value;
-                        matrix[j][i] = 1 / value;
-                    }
-                }
-                return matrix;
-            };
-
             responses.forEach(resp => {
                 const answerData = (resp.answers as any)[ahpQuestion.id];
                 if (answerData && typeof(answerData) === 'object' && ahpQuestion.criteria) {
-                    processHierarchyForKeys(ahpQuestion.criteria, aggregatedMatrices, answerData);
+                    processHierarchyForMatrices(ahpQuestion.criteria, aggregatedMatrices, answerData);
                 }
             });
             
