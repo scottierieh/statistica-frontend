@@ -229,44 +229,34 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
               throw new Error("AHP Question not found in survey definition.");
           }
           
-          const allItemsMap: { [key: string]: string[] } = {};
-          if (ahpQuestion.criteria) {
-              const criteriaNames = ahpQuestion.criteria.map(c => c.name);
-              allItemsMap['criteria'] = criteriaNames;
-
-              if (ahpQuestion.alternatives && ahpQuestion.alternatives.length > 0) {
-                  criteriaNames.forEach(cn => {
-                      allItemsMap[`alt_${cn}`] = ahpQuestion.alternatives || [];
-                  });
-              }
-          }
-          
           const aggregatedMatrices: { [key: string]: number[][][] } = {};
           
           responses.forEach(resp => {
               const answerData = (resp.answers as any)[ahpQuestion.id];
               if(answerData) {
                    for (const matrixKey in answerData) {
-                        const items = allItemsMap[matrixKey];
-                        if (!items) continue;
-
+                        const matrixData = answerData[matrixKey];
+                        const items = matrixKey === 'goal' ? (ahpQuestion.criteria || []).map(c => c.name) : ahpQuestion.alternatives || [];
                         const n = items.length;
                         const matrix = Array(n).fill(null).map(() => Array(n).fill(1.0));
-                        
+
                         for (let i = 0; i < n; i++) {
                             for (let j = i + 1; j < n; j++) {
                                 const pairKey = `${items[i]} vs ${items[j]}`;
                                 const reversePairKey = `${items[j]} vs ${items[i]}`;
                                 let value = 1.0;
-                                if (answerData[matrixKey][pairKey] !== undefined) {
-                                    value = answerData[matrixKey][pairKey];
-                                } else if (answerData[matrixKey][reversePairKey] !== undefined) {
-                                    value = 1 / answerData[matrixKey][reversePairKey];
+
+                                if (matrixData[pairKey] !== undefined) {
+                                    value = matrixData[pairKey];
+                                } else if (matrixData[reversePairKey] !== undefined) {
+                                    value = 1 / matrixData[reversePairKey];
                                 }
+
                                 matrix[i][j] = value;
                                 matrix[j][i] = 1 / value;
                             }
                         }
+
                         if(!aggregatedMatrices[matrixKey]) aggregatedMatrices[matrixKey] = [];
                         aggregatedMatrices[matrixKey].push(matrix);
                   }
@@ -277,7 +267,7 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
               name: ahpQuestion.title || 'Goal',
               nodes: ahpQuestion.criteria.map(c => ({
                   name: c.name,
-                  ...(c.subCriteria && { nodes: c.subCriteria.map(sc => ({ name: sc.name })) })
+                  ...(c.subCriteria && c.subCriteria.length > 0 && { nodes: c.subCriteria.map(sc => ({ name: sc.name })) })
               }))
           }] : [];
   
@@ -324,7 +314,6 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
       }
     }, [survey, responses, toast]);
   
-    // 로딩 상태
     if (loading) {
       return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
@@ -336,7 +325,6 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
       );
     }
   
-    // 에러 상태
     if (error) {
       return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
@@ -354,7 +342,6 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
       );
     }
   
-    // 데이터 없음
     if (!results) {
       return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">

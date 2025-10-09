@@ -1,3 +1,4 @@
+
 import sys
 import json
 import numpy as np
@@ -228,56 +229,34 @@ def main():
         # Set criteria matrix
         if 'goal' in agg_matrices:
             ahp.set_criteria_matrix(agg_matrices['goal'])
+        elif 'criteria' in agg_matrices:
+            ahp.set_criteria_matrix(agg_matrices['criteria'])
         else:
-            raise ValueError("Criteria comparison matrix for 'goal' not found in matrices")
+            raise ValueError("Criteria comparison matrix for 'goal' or 'criteria' not found in matrices")
 
         # Set alternative matrices if they exist
         if has_alternatives:
             missing_criteria = []
             used_criteria = []
             
-            # Create a case-insensitive mapping of available matrix keys
-            available_matrix_keys = {k.lower(): k for k in agg_matrices.keys() if k != 'goal'}
-            
             for criterion in criteria_nodes:
-                matrix_key = f"goal.{criterion}"
-                matrix_key_lower = matrix_key.lower()
+                matrix_key_new = f"alt_{criterion}"
+                matrix_key_old = f"goal.{criterion}"
                 
-                # Try exact match first
-                if matrix_key in agg_matrices:
-                    ahp.set_alternative_matrix(criterion, agg_matrices[matrix_key])
+                if matrix_key_new in agg_matrices:
+                    ahp.set_alternative_matrix(criterion, agg_matrices[matrix_key_new])
                     used_criteria.append(criterion)
-                # Try case-insensitive match
-                elif matrix_key_lower in available_matrix_keys:
-                    actual_key = available_matrix_keys[matrix_key_lower]
-                    ahp.set_alternative_matrix(criterion, agg_matrices[actual_key])
+                elif matrix_key_old in agg_matrices: # Fallback for old key format
+                    ahp.set_alternative_matrix(criterion, agg_matrices[matrix_key_old])
                     used_criteria.append(criterion)
                 else:
                     missing_criteria.append(criterion)
             
-            # If some criteria don't have alternative matrices, 
-            # we need to recalculate using only the criteria with alternatives
-            if missing_criteria and len(used_criteria) > 0:
-                # Find indices of used criteria
-                used_indices = [i for i, c in enumerate(criteria_nodes) if c in used_criteria]
-                
-                # Create a new criteria matrix with only used criteria
-                new_criteria_matrix = ahp.criteria_matrix[np.ix_(used_indices, used_indices)]
-                
-                # Update AHP object with filtered criteria
-                old_alternative_matrices = ahp.alternative_matrices.copy()
-                ahp.criteria_names = used_criteria
-                ahp.n_criteria = len(used_criteria)
-                ahp.criteria_matrix = new_criteria_matrix
-                
-                # Keep only alternative matrices for used criteria
-                ahp.alternative_matrices = {c: old_alternative_matrices[c] for c in used_criteria}
-                
-            elif missing_criteria and len(used_criteria) == 0:
-                available_keys = [k for k in agg_matrices.keys() if k != 'goal']
+            if missing_criteria and len(used_criteria) == 0:
+                available_keys = [k for k in agg_matrices.keys() if k not in ['goal', 'criteria']]
                 raise ValueError(
                     f"No alternative comparison matrices found for any criteria. "
-                    f"Expected keys like 'goal.{criteria_nodes[0]}', but available keys are: {available_keys}"
+                    f"Expected keys like 'alt_{criteria_nodes[0]}', but available keys are: {available_keys}"
                 )
 
         # Perform analysis (this must happen after setting all matrices)
