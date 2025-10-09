@@ -1,25 +1,79 @@
 
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Network } from 'lucide-react';
-import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
-import { Skeleton } from '../ui/skeleton';
 
-const AHPResultsVisualization = ({ analysisResult }: { analysisResult: any }) => {
+const AHPResultsVisualization = () => {
+  // 예시 데이터 - 실제로는 백엔드에서 받아온 데이터를 사용
+  const [results] = useState({
+    criteria_analysis: {
+      weights: {
+        Performance: 0.45,
+        Design: 0.35,
+        Price: 0.20
+      },
+      consistency: {
+        lambda_max: 3.037,
+        CI: 0.0185,
+        CR: 0.032,
+        is_consistent: true
+      }
+    },
+    alternative_weights_by_criterion: {
+      Performance: {
+        weights: {
+          'iPhone 15': 0.55,
+          'Galaxy S24': 0.30,
+          'Pixel 8': 0.15
+        },
+        consistency: {
+          CR: 0.021,
+          is_consistent: true
+        }
+      },
+      Design: {
+        weights: {
+          'iPhone 15': 0.45,
+          'Galaxy S24': 0.40,
+          'Pixel 8': 0.15
+        },
+        consistency: {
+          CR: 0.015,
+          is_consistent: true
+        }
+      },
+      Price: {
+        weights: {
+          'iPhone 15': 0.15,
+          'Galaxy S24': 0.30,
+          'Pixel 8': 0.55
+        },
+        consistency: {
+          CR: 0.028,
+          is_consistent: true
+        }
+      }
+    },
+    final_scores: [
+      { name: 'iPhone 15', score: 0.435 },
+      { name: 'Galaxy S24', score: 0.335 },
+      { name: 'Pixel 8', score: 0.230 }
+    ],
+    ranking: ['iPhone 15', 'Galaxy S24', 'Pixel 8']
+  });
+
   const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b'];
 
-  const criteriaData = Object.entries(analysisResult.criteria_analysis.weights).map(([name, weight]) => ({
+  // 기준 가중치 데이터 변환
+  const criteriaData = Object.entries(results.criteria_analysis.weights).map(([name, weight]) => ({
     name,
     weight: ((weight as number) * 100),
     weightValue: weight
-  })).sort((a:any, b:any) => b.weightValue - a.weightValue);
+  })).sort((a, b) => b.weightValue - a.weightValue);
 
-  const alternativesByCriterion = analysisResult.alternative_weights_by_criterion 
-    ? Object.entries(analysisResult.alternative_weights_by_criterion).map(([criterion, data]: [string, any]) => ({
+  // 대안별 기준 점수 데이터 변환
+  const alternativesBycriterion = results.alternative_weights_by_criterion 
+    ? Object.entries(results.alternative_weights_by_criterion).map(([criterion, data]: [string, any]) => ({
         criterion,
         alternatives: Object.entries(data.weights).map(([name, weight]) => ({
           name,
@@ -31,9 +85,10 @@ const AHPResultsVisualization = ({ analysisResult }: { analysisResult: any }) =>
       }))
     : [];
 
-  const finalScoresData = analysisResult.final_scores?.map((item: any) => ({
+  // 최종 점수 데이터 (이미 정렬됨)
+  const finalScoresData = results.final_scores?.map(item => ({
     name: item.name,
-    score: (item.score * 100),
+    score: ((item.score as number) * 100),
     scoreValue: item.score
   })) || [];
 
@@ -50,26 +105,27 @@ const AHPResultsVisualization = ({ analysisResult }: { analysisResult: any }) =>
   };
 
   return (
-    <div className="w-full mx-auto p-6 bg-gradient-to-br from-primary/5 to-blue-50 rounded-xl">
+    <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-primary/5 to-blue-50 rounded-xl">
       <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
         AHP Analysis Results
       </h1>
 
+      {/* Criteria Analysis Section */}
       <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-800">Criteria Weights</h2>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">
-              CR: <span className={`font-bold ${analysisResult.criteria_analysis.consistency.CR < 0.1 ? 'text-green-600' : 'text-red-600'}`}>
-                {(analysisResult.criteria_analysis.consistency.CR * 100).toFixed(2)}%
+              CR: <span className={`font-bold ${results.criteria_analysis.consistency.CR < 0.1 ? 'text-green-600' : 'text-red-600'}`}>
+                {(results.criteria_analysis.consistency.CR * 100).toFixed(2)}%
               </span>
             </span>
             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-              analysisResult.criteria_analysis.consistency.is_consistent 
+              results.criteria_analysis.consistency.is_consistent 
                 ? 'bg-green-100 text-green-800' 
                 : 'bg-red-100 text-red-800'
             }`}>
-              {analysisResult.criteria_analysis.consistency.is_consistent ? '✓ Consistent' : '✗ Inconsistent'}
+              {results.criteria_analysis.consistency.is_consistent ? '✓ Consistent' : '✗ Inconsistent'}
             </span>
           </div>
         </div>
@@ -93,6 +149,7 @@ const AHPResultsVisualization = ({ analysisResult }: { analysisResult: any }) =>
           </BarChart>
         </ResponsiveContainer>
 
+        {/* Criteria Weights Table */}
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">Detailed Criteria Weights</h3>
           <div className="overflow-x-auto">
@@ -126,12 +183,13 @@ const AHPResultsVisualization = ({ analysisResult }: { analysisResult: any }) =>
         </div>
       </div>
 
-      {alternativesByCriterion.length > 0 && (
+      {/* Alternative Analysis by Criterion */}
+      {alternativesBycriterion.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">Alternative Weights by Criterion</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {alternativesByCriterion.map((item, idx) => (
+            {alternativesBycriterion.map((item, idx) => (
               <div key={idx} className="border-2 border-primary/10 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-bold text-gray-800">{item.criterion}</h3>
@@ -157,6 +215,7 @@ const AHPResultsVisualization = ({ analysisResult }: { analysisResult: any }) =>
         </div>
       )}
 
+      {/* Final Ranking */}
       {finalScoresData.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Final Ranking</h2>
@@ -180,25 +239,27 @@ const AHPResultsVisualization = ({ analysisResult }: { analysisResult: any }) =>
             </BarChart>
           </ResponsiveContainer>
 
+          {/* Winner Badge */}
           <div className="mt-6 flex items-center justify-center">
             <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-8 py-4 rounded-full shadow-lg">
               <span className="text-lg font-bold">🏆 Best Choice: </span>
-              <span className="text-2xl font-extrabold">{analysisResult.ranking[0]}</span>
+              <span className="text-2xl font-extrabold">{results.ranking[0]}</span>
             </div>
           </div>
         </div>
       )}
 
+      {/* Consistency Summary */}
       <div className="mt-6 bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
         <h3 className="text-lg font-bold text-blue-900 mb-2">📊 Consistency Summary</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-gray-700">
               <span className="font-semibold">Criteria CR:</span>{' '}
-              <span className={analysisResult.criteria_analysis.consistency.is_consistent ? 'text-green-600' : 'text-red-600'}>
-                {(analysisResult.criteria_analysis.consistency.CR * 100).toFixed(2)}%
+              <span className={results.criteria_analysis.consistency.is_consistent ? 'text-green-600' : 'text-red-600'}>
+                {(results.criteria_analysis.consistency.CR * 100).toFixed(2)}%
               </span>
-              {analysisResult.criteria_analysis.consistency.is_consistent ? ' ✓' : ' ✗'}
+              {results.criteria_analysis.consistency.is_consistent ? ' ✓' : ' ✗'}
             </p>
           </div>
           <div>
@@ -212,133 +273,4 @@ const AHPResultsVisualization = ({ analysisResult }: { analysisResult: any }) =>
   );
 };
 
-interface AhpPageProps {
-    survey: Survey;
-    responses: SurveyResponse[];
-}
-
-export default function AhpPage({ survey, responses }: AhpPageProps) {
-    const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(true);
-    const [analysisResult, setAnalysisResult] = useState<any>(null);
-
-    const handleAnalysis = useCallback(async () => {
-        setIsLoading(true);
-        setAnalysisResult(null);
-
-        try {
-            const ahpQuestion = survey.questions.find(q => q.type === 'ahp');
-            if (!ahpQuestion || !ahpQuestion.criteria) {
-                throw new Error("No AHP question with criteria found in this survey.");
-            }
-
-            const { criteria, alternatives } = ahpQuestion;
-            const hasAlternatives = alternatives && alternatives.length > 0;
-            
-            const allRespondentMatrices: { [key: string]: number[][][] } = {};
-            
-            const criteriaNames = criteria.map((c: Criterion) => c.name);
-            const initMatrix = (size: number) => Array(size).fill(0).map(() => Array(size).fill(1));
-
-            allRespondentMatrices['goal'] = [];
-            if(hasAlternatives) {
-                criteriaNames.forEach(name => {
-                    const matrixKey = `goal.${name}`;
-                    allRespondentMatrices[matrixKey] = [];
-                });
-            }
-
-            responses.forEach(response => {
-                const answer = response.answers[ahpQuestion.id];
-                if (!answer) return;
-
-                if (answer['criteria']) {
-                    const criteriaMatrix = initMatrix(criteriaNames.length);
-                    for (let i = 0; i < criteriaNames.length; i++) {
-                        for (let j = i; j < criteriaNames.length; j++) {
-                             if (i === j) continue;
-                            const pairKey = `${criteriaNames[i]} vs ${criteriaNames[j]}`;
-                            const reversePairKey = `${criteriaNames[j]} vs ${criteriaNames[i]}`;
-                            let value = answer['criteria'][pairKey] ?? (answer['criteria'][reversePairKey] ? 1 / answer['criteria'][reversePairKey] : 1);
-                            if (value < 0) value = 1 / Math.abs(value);
-                            criteriaMatrix[i][j] = value;
-                            criteriaMatrix[j][i] = 1 / value;
-                        }
-                    }
-                    allRespondentMatrices['goal'].push(criteriaMatrix);
-                }
-
-                if (hasAlternatives && alternatives) {
-                    criteria.forEach((c: Criterion) => {
-                        const crit = criteria.find((cr: Criterion) => cr.name === c.name);
-                        if (!crit) return;
-                        const matrixKey = `alt_${crit.id}`;
-                         if (answer[matrixKey]) {
-                            const altMatrix = initMatrix(alternatives.length);
-                             for (let i = 0; i < alternatives.length; i++) {
-                                for (let j = i; j < alternatives.length; j++) {
-                                    if (i === j) continue;
-                                    const pairKey = `${alternatives[i]} vs ${alternatives[j]}`;
-                                    const reversePairKey = `${alternatives[j]} vs ${alternatives[i]}`;
-                                    let value = answer[matrixKey][pairKey] ?? (answer[matrixKey][reversePairKey] ? 1 / answer[matrixKey][reversePairKey] : 1);
-                                    if (value < 0) value = 1 / Math.abs(value);
-                                    altMatrix[i][j] = value;
-                                    altMatrix[j][i] = 1 / value;
-                                }
-                            }
-                            const backendKey = `goal.${c.name}`;
-                            if(allRespondentMatrices[backendKey]) {
-                                allRespondentMatrices[backendKey].push(altMatrix);
-                            }
-                        }
-                    });
-                }
-            });
-
-            const payload = {
-                goal: survey.title,
-                alternatives: hasAlternatives ? alternatives : null,
-                hierarchy: [{ id: 'level-0', name: 'Criteria', nodes: criteria.map(c => ({ id: c.id, name: c.name })) }],
-                matrices: allRespondentMatrices,
-            };
-
-            const apiResponse = await fetch('/api/analysis/ahp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!apiResponse.ok) {
-                const errorResult = await apiResponse.json();
-                throw new Error(errorResult.error || `HTTP error! status: ${apiResponse.status}`);
-            }
-
-            const result = await apiResponse.json();
-            if (result.error) throw new Error(result.error);
-            setAnalysisResult(result.results);
-            
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Analysis Error', description: error.message });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [survey, responses, toast]);
-
-    useEffect(() => {
-        handleAnalysis();
-    }, [handleAnalysis]);
-
-    if (isLoading || !analysisResult) {
-        return (
-            <Card>
-                <CardContent className="p-6 text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                    <p className="mt-4 text-muted-foreground">Running AHP analysis...</p>
-                </CardContent>
-            </Card>
-        );
-    }
-    
-    return <AHPResultsVisualization analysisResult={analysisResult} />;
-}
-
+export default AHPResultsVisualization;
