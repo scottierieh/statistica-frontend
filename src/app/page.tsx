@@ -40,7 +40,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800">
        <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="w-full max-w-7xl mx-auto flex items-center">
+        <div className="w-full max-w-6xl mx-auto flex items-center">
             <div className="flex-1 flex justify-start">
                  <Link href="/" className="flex items-center justify-center gap-2">
                     <Calculator className="h-6 w-6 text-primary" />
@@ -110,7 +110,7 @@ export default function LandingPage() {
                     Fully compliant and holding certifications such as General Data Protection Regulation (GDPR), ISO 27001:2022, CCPA, PCI-DSS, Section 508, PHI, and HIPAA. Enjoy peace of mind with your survey data by choosing a platform trusted by major global brands.
                   </p>
                 </div>
-                <div className="flex justify-center">
+                <div className="flex justify-center md:order-2">
                    <Image 
                       src={securityImage.imageUrl}
                       alt={securityImage.description}
