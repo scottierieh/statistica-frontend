@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
 
 const renderBarChart = (title: string, data: any[], consistency: any) => {
     const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
@@ -40,19 +42,39 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
             <p className="text-gray-600 text-sm mb-4">
                 The weights represent the relative importance of each item within this category.
             </p>
-            <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="name" tick={{ fill: '#4b5563', fontWeight: 600 }} />
-                    <YAxis label={{ value: 'Weight (%)', angle: -90, position: 'insideLeft', fill: '#4b5563' }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="weight" radius={[8, 8, 0, 0]}>
-                        {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                    </Bar>
-                </BarChart>
-            </ResponsiveContainer>
+            <div className="grid md:grid-cols-2 gap-6">
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis dataKey="name" tick={{ fill: '#4b5563', fontWeight: 600 }} />
+                        <YAxis label={{ value: 'Weight (%)', angle: -90, position: 'insideLeft', fill: '#4b5563' }} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="weight" radius={[8, 8, 0, 0]}>
+                            {data.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+                <div className="overflow-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Item</TableHead>
+                                <TableHead className="text-right">Weight (%)</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {data.map((item, index) => (
+                                <TableRow key={index}>
+                                    <TableCell className="font-medium">{item.name}</TableCell>
+                                    <TableCell className="text-right font-mono">{item.weight}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
         </div>
     );
 };
@@ -60,42 +82,21 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
 
 const AHPResultsVisualization = ({ results }: { results: any }) => {
     const mainCriteriaData = useMemo(() => {
-    if (!results?.weights) return [];
+        if (!results?.weights) return [];
 
-    const mainCriteriaKeys = Object.keys(results.weights);
-    
-    // Filter out keys that also appear as parent keys in sub-criteria analysis.
-    // This assumes the structure where sub-criteria parents are keys in `sub_criteria_analysis`.
-    const topLevelCriteriaKeys = mainCriteriaKeys.filter(key => 
-        !results.sub_criteria_analysis || !(key in results.sub_criteria_analysis)
-    );
-
-    // If there are sub-criteria, it's more robust to get top-level from sub-criteria parents.
-    // If there are no sub-criteria, all keys in weights are top-level.
-    const subCriteriaParents = results.sub_criteria_analysis ? Object.keys(results.sub_criteria_analysis) : [];
-    const keysToDisplay = subCriteriaParents.length > 0 
-        ? mainCriteriaKeys.filter(k => subCriteriaParents.includes(k) || !mainCriteriaKeys.some(p => k.startsWith(p) && k !==p))
-        : mainCriteriaKeys;
-
-
-    const finalKeys = Array.from(new Set(Object.keys(results.sub_criteria_analysis || {})));
-     if (finalKeys.length === 0 && results.weights) {
-         return Object.entries(results.weights).map(([name, weight]: [string, any]) => ({
+        const mainCriteriaKeys = Object.keys(results.weights);
+        const subCriteriaParents = results.sub_criteria_analysis ? Object.keys(results.sub_criteria_analysis) : [];
+        const keysToDisplay = mainCriteriaKeys.filter(key => 
+            subCriteriaParents.length > 0 ? subCriteriaParents.includes(key) : true
+        );
+        
+        return keysToDisplay.map(name => ({
             name,
-            weight: (weight * 100).toFixed(1),
-            weightValue: weight
-        })).sort((a, b) => b.weightValue - a.weightValue);
-     }
+            weight: (results.weights[name] * 100).toFixed(1),
+            weightValue: results.weights[name]
+        })).sort((a,b) => b.weightValue - a.weightValue);
 
-
-    return finalKeys.map(name => ({
-        name,
-        weight: (results.weights[name] * 100).toFixed(1),
-        weightValue: results.weights[name]
-    })).sort((a,b) => b.weightValue - a.weightValue);
-
-
-}, [results]);
+    }, [results]);
 
 
     const finalScoresData = useMemo(() => (results?.final_scores?.map((item: any) => ({
@@ -107,7 +108,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
     const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
     const renderHierarchicalCharts = (data: any) => {
-        if (!data || !data.weights) return null;
+        if (!data) return null;
     
         const subCriteriaAnalyses = data.sub_criteria_analysis ? Object.entries(data.sub_criteria_analysis) : [];
         
@@ -140,36 +141,33 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                                         })).sort((a: any, b: any) => b.weightValue - a.weightValue),
                                         subAnalysis.consistency
                                     )}
-                                    {subAnalysis.alternatives_analysis && Object.entries(subAnalysis.alternatives_analysis).map(([subCriterion, altAnalysis]: [string, any]) => (
-                                        <div key={subCriterion} className="mt-4 ml-4 border-l-4 pl-4">
-                                            {renderBarChart(
-                                                `Alternative Performance for "${subCriterion}"`,
-                                                Object.entries(altAnalysis.weights).map(([name, weight]) => ({
-                                                    name,
-                                                    weight: ((weight as number) * 100).toFixed(1),
-                                                    weightValue: weight
-                                                })).sort((a: any, b: any) => b.weightValue - a.weightValue),
-                                                altAnalysis.consistency
-                                            )}
-                                        </div>
-                                    ))}
-                                    {subAnalysis.sub_criteria_analysis && Object.entries(subAnalysis.sub_criteria_analysis).map(([subParent, deeperAnalysis]: [string, any]) => (
-                                        <div key={subParent} className="mt-4 ml-4 border-l-4 pl-4">
-                                             {renderBarChart(
-                                                `Weights within "${subParent}"`,
-                                                Object.entries(deeperAnalysis.weights).map(([name, weight]) => ({
-                                                    name,
-                                                    weight: ((weight as number) * 100).toFixed(1),
-                                                    weightValue: weight
-                                                })).sort((a: any, b: any) => b.weightValue - a.weightValue),
-                                                deeperAnalysis.consistency
-                                            )}
-                                        </div>
-                                    ))}
                                 </CardContent>
                             </Card>
                         ))}
                     </div>
+                )}
+
+                 {data.alternatives_analysis && Object.keys(data.alternatives_analysis).length > 0 && (
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Alternative Performance by Criterion</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {Object.entries(data.alternatives_analysis).map(([criterion, altAnalysis]: [string, any]) => (
+                                <div key={criterion} className="mt-4">
+                                     {renderBarChart(
+                                        `Performance for "${criterion}"`,
+                                        Object.entries(altAnalysis.weights).map(([name, weight]) => ({
+                                            name,
+                                            weight: ((weight as number) * 100).toFixed(1),
+                                            weightValue: weight
+                                        })).sort((a: any, b: any) => b.weightValue - a.weightValue),
+                                        altAnalysis.consistency
+                                    )}
+                                </div>
+                            ))}
+                        </CardContent>
+                     </Card>
                 )}
             </div>
         );
@@ -191,7 +189,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                             The final scores are calculated by combining all criteria and sub-criteria weights with each alternative's performance across all criteria.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="grid md:grid-cols-2 gap-6">
                         <ResponsiveContainer width="100%" height={350}>
                             <BarChart data={finalScoresData} layout="vertical" margin={{ top: 20, right: 30, left: 100, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -220,6 +218,26 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
+                        <div className="overflow-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Rank</TableHead>
+                                        <TableHead>Alternative</TableHead>
+                                        <TableHead className="text-right">Final Score (%)</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {finalScoresData.map((item, index) => (
+                                        <TableRow key={index} className={index === 0 ? 'bg-yellow-50' : ''}>
+                                            <TableCell className="font-bold">{index + 1}</TableCell>
+                                            <TableCell className="font-medium">{item.name}</TableCell>
+                                            <TableCell className="text-right font-mono">{item.score}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </CardContent>
                 </Card>
             )}
@@ -257,11 +275,11 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
 
             const aggregatedMatrices: { [key: string]: number[][][] } = {};
             
-            const findCriterionById = (id: string, criteriaList: Criterion[]): Criterion | null => {
+            const findCriterion = (id: string, criteriaList: Criterion[]): Criterion | null => {
                 for (const crit of criteriaList) {
                     if (crit.id === id) return crit;
                     if (crit.subCriteria) {
-                        const found = findCriterionById(id, crit.subCriteria);
+                        const found = findCriterion(id, crit.subCriteria);
                         if (found) return found;
                     }
                 }
@@ -297,17 +315,17 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 };
                 
                 if (answers.criteria) {
-                    processComparisons('criteria', criteria);
+                    processComparisons('criteria', criteria.map(c => ({id: c.id, name: c.name})));
                 } else if (answers.goal) {
-                    processComparisons('goal', criteria);
+                    processComparisons('goal', criteria.map(c => ({id: c.id, name: c.name})));
                 }
                 
-                const traverse = (criteriaList: Criterion[], parentId?: string) => {
+                const traverse = (criteriaList: Criterion[]) => {
                     for(const criterion of criteriaList) {
                          if (criterion.subCriteria && criterion.subCriteria.length > 0) {
                             const subKey = `sub_criteria_${criterion.id}`;
-                            processComparisons(subKey, criterion.subCriteria);
-                            traverse(criterion.subCriteria, criterion.id);
+                            processComparisons(subKey, criterion.subCriteria.map(sc => ({id: sc.id, name: sc.name})));
+                            traverse(criterion.subCriteria);
                         } else if (alternatives && alternatives.length > 0) {
                              const altKey = `alt_${criterion.id}`;
                              const altItems = alternatives.map((alt) => ({name: alt, id: alt}));
@@ -315,7 +333,6 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                         }
                     }
                 };
-
                 traverse(criteria);
             };
 
