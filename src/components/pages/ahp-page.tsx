@@ -6,6 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { CheckCircle, AlertTriangle } from 'lucide-react';
 
 
 const renderBarChart = (title: string, data: any[], consistency: any) => {
@@ -21,6 +23,8 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
         }
         return null;
     };
+
+    const topItem = data.length > 0 ? data[0] : null;
 
     return (
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
@@ -39,9 +43,7 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
                     </div>
                 )}
             </div>
-            <p className="text-gray-600 text-sm mb-4">
-                The weights represent the relative importance of each item within this category.
-            </p>
+            
             <div className="grid md:grid-cols-2 gap-6">
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -75,6 +77,14 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
                     </Table>
                 </div>
             </div>
+             <Alert className="mt-4" variant={consistency?.is_consistent ? "default" : "destructive"}>
+                {consistency?.is_consistent ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                <AlertTitle>Interpretation</AlertTitle>
+                <AlertDescription>
+                    {topItem && `The most important item in this category is <strong>'${topItem.name}'</strong> with a weight of ${topItem.weight}%. `}
+                    {consistency && `The Consistency Ratio (CR) is <strong>${(consistency.CR * 100).toFixed(2)}%</strong>. Since this is ${consistency.is_consistent ? 'below 10%' : 'above 10%'}, the pairwise comparisons are considered <strong>${consistency.is_consistent ? 'consistent and reliable' : 'inconsistent'}.</strong>`}
+                </AlertDescription>
+            </Alert>
         </div>
     );
 };
@@ -82,16 +92,13 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
 
 const AHPResultsVisualization = ({ results }: { results: any }) => {
     const mainCriteriaData = useMemo(() => {
-        if (!results?.criteria_analysis?.weights) return [];
-        
-        const mainCriteriaKeys = Object.keys(results.criteria_analysis.weights);
-
-        return mainCriteriaKeys.map(name => ({
+        const weights = results?.criteria_analysis?.weights;
+        if (!weights) return [];
+        return Object.entries(weights).map(([name, weight]) => ({
             name,
-            weight: ((results.criteria_analysis.weights[name] as number) * 100).toFixed(1),
-            weightValue: results.criteria_analysis.weights[name] as number
+            weight: ((weight as number) * 100).toFixed(1),
+            weightValue: weight as number
         })).sort((a,b) => b.weightValue - a.weightValue);
-
     }, [results]);
     
     const finalScoresData = useMemo(() => (results?.final_scores?.map((item: any) => ({
@@ -106,16 +113,19 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
         if (!data) return null;
     
         const subCriteriaAnalyses = data.sub_criteria_analysis ? Object.entries(data.sub_criteria_analysis) : [];
+        const topLevelCriteriaNames = results.criteria_analysis?.weights ? Object.keys(results.criteria_analysis.weights) : [];
+        
+        const mainCriteriaDataFiltered = mainCriteriaData.filter(item => topLevelCriteriaNames.includes(item.name));
         
         return (
             <div>
-                 {mainCriteriaData.length > 0 && (
+                {mainCriteriaDataFiltered.length > 0 && (
                     <Card className="mb-6">
                         <CardHeader>
                             <CardTitle>Main Criteria Weights</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             {renderBarChart("Main Criteria", mainCriteriaData, results.criteria_analysis.consistency)}
+                             {renderBarChart("Main Criteria", mainCriteriaDataFiltered, results.criteria_analysis.consistency)}
                         </CardContent>
                     </Card>
                 )}
@@ -229,6 +239,14 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                                     ))}
                                 </TableBody>
                             </Table>
+                            {finalScoresData.length > 0 && (
+                                 <Alert className="mt-4">
+                                    <AlertTitle>Conclusion</AlertTitle>
+                                    <AlertDescription>
+                                        Based on the analysis, <strong>{finalScoresData[0].name}</strong> is the best alternative with a score of <strong>{finalScoresData[0].score}%</strong>.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -278,28 +296,27 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 return null;
             };
 
+            const getItemNames = (key: string): string[] => {
+                if (key === 'criteria' || key === 'goal') {
+                    return (ahpQuestion.criteria || []).map(c => c.name);
+                } else if (key.startsWith('sub_criteria_')) {
+                    const parentId = key.replace('sub_criteria_', '');
+                    const parentCriterion = findCriterion(parentId, ahpQuestion.criteria || []);
+                    return parentCriterion?.subCriteria?.map(sc => sc.name) || [];
+                } else if (key.startsWith('alt_')) {
+                    return ahpQuestion.alternatives || [];
+                }
+                return [];
+            }
+
             responses.forEach(resp => {
                 const answerData = (resp.answers as any)[ahpQuestion.id];
-                if (answerData && typeof answerData === 'object') {
+                if (answerData && typeof(answerData) === 'object') {
                     for (const matrixKey in answerData) {
                         const matrixValues = answerData[matrixKey];
-                        let items: { name: string; id: string }[] = [];
+                        const itemNames = getItemNames(matrixKey);
+                        if (!itemNames.length) continue;
 
-                        if (matrixKey === 'goal' || matrixKey === 'criteria') {
-                            items = (ahpQuestion.criteria || []).map(c => ({ id: c.id, name: c.name }));
-                        } else if (matrixKey.startsWith('sub_criteria_')) {
-                            const parentId = matrixKey.replace('sub_criteria_', '');
-                            const parentCriterion = findCriterion(parentId, ahpQuestion.criteria || []);
-                            if (parentCriterion && parentCriterion.subCriteria) {
-                                items = parentCriterion.subCriteria.map(sc => ({ id: sc.id, name: sc.name }));
-                            }
-                        } else if (matrixKey.startsWith('alt_')) {
-                            items = (ahpQuestion.alternatives || []).map(alt => ({ id: alt, name: alt }));
-                        }
-
-                        if (!items.length) continue;
-
-                        const itemNames = items.map(i => i.name);
                         const n = itemNames.length;
                         const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(1.0));
 
@@ -428,3 +445,5 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
 
     return <AHPResultsVisualization results={results} />;
 }
+
+    
