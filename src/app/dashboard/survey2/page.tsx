@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -22,17 +21,26 @@ import {
 import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate } from "@/lib/survey-templates";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const TemplateCard = ({ icon: Icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) => (
-    <Link href={href} className="block">
-        <div className="p-4 border rounded-lg hover:bg-accent hover:shadow-md transition-all h-full flex flex-col">
+const TemplateCard = ({ icon: Icon, title, description, href, learnMoreLink }: { icon: React.ElementType, title: string, description: string, href: string, learnMoreLink?: string }) => (
+    <div className="p-4 border rounded-lg hover:bg-accent hover:shadow-md transition-all h-full flex flex-col">
+        <Link href={href} className="block flex-1">
             <div className="flex items-center gap-3 mb-2">
                 <Icon className="w-6 h-6 text-primary"/>
                 <h4 className="font-semibold">{title}</h4>
             </div>
-            <p className="text-xs text-muted-foreground flex-1">{description}</p>
-             <Button variant="link" size="sm" className="mt-2 p-0 h-auto self-start">Use Template</Button>
+            <p className="text-xs text-muted-foreground">{description}</p>
+        </Link>
+         <div className="flex items-center justify-between mt-2">
+            <Button variant="link" size="sm" className="p-0 h-auto self-start" asChild>
+                <Link href={href}>Use Template</Link>
+            </Button>
+            {learnMoreLink && (
+                <Button variant="link" size="sm" className="p-0 h-auto self-start text-xs" asChild>
+                    <Link href={learnMoreLink}>Learn More</Link>
+                </Button>
+            )}
         </div>
-    </Link>
+    </div>
 );
 
 
@@ -148,7 +156,7 @@ export default function Survey2Dashboard() {
                         </Link>
                         <h4 className="font-semibold mb-4">Or use a template</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <TemplateCard icon={Target} title="IPA Survey" description="Measure Importance vs. Performance to find key improvement areas." href="/dashboard/createsurvey?template=ipa"/>
+                            <TemplateCard icon={Target} title="IPA Survey" description="Measure Importance vs. Performance to find key improvement areas." href="/dashboard/createsurvey?template=ipa" learnMoreLink="/dashboard/statistica?analysis=ipa"/>
                             <TemplateCard icon={Handshake} title="Choice-Based Conjoint" description="Understand how customers value different attributes of a product using choices." href="/dashboard/createsurvey?template=cbc"/>
                             <TemplateCard icon={ClipboardList} title="Rating Conjoint" description="Analyze customer preferences using a rating-based approach." href="/dashboard/createsurvey?template=rating-conjoint"/>
                             <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
