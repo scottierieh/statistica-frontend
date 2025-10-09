@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -33,7 +32,6 @@ interface ServqualPageProps {
 }
 
 const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
-
 
 export default function ServqualPage({ survey, responses }: ServqualPageProps) {
     const { toast } = useToast();
@@ -79,7 +77,7 @@ export default function ServqualPage({ survey, responses }: ServqualPageProps) {
     }, [handleAnalysis]);
 
     if (isLoading) {
-        return <Card><CardContent className="p-6"><Skeleton className="h-96 w-full" /></CardContent></Card>;
+        return <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /><p>Running analysis...</p></CardContent></Card>;
     }
     if (error) {
         return <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
@@ -90,6 +88,7 @@ export default function ServqualPage({ survey, responses }: ServqualPageProps) {
     
     const results = analysisResult;
     const isServperf = results.analysisType === 'SERVPERF';
+    const chartDataKey = isServperf ? 'perception' : 'gap';
 
     return (
         <div className="space-y-6">
@@ -112,14 +111,18 @@ export default function ServqualPage({ survey, responses }: ServqualPageProps) {
                                 {results.overallGap >= 0 ? 'Positive Perception' : 'Service Gap'}
                             </p>
                         </div>
-                        <ChartContainer config={{}} className="w-full h-80">
+                        <ChartContainer config={{ [chartDataKey]: { label: isServperf ? 'Performance' : 'Gap' } }} className="w-full h-80">
                            <ResponsiveContainer>
                                 <BarChart data={results.dimensionScores} layout="vertical" margin={{ left: 100 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis type="number" />
                                     <YAxis type="category" dataKey="name" width={100} />
                                     <Tooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey={isServperf ? 'perception' : 'gap'} name={isServperf ? 'Performance' : 'Gap'} fill="hsl(var(--primary))" />
+                                    <Bar dataKey={chartDataKey} name={isServperf ? 'Performance' : 'Gap'} >
+                                      {results.dimensionScores.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                      ))}
+                                    </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         </ChartContainer>
