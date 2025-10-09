@@ -83,15 +83,17 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
 const AHPResultsVisualization = ({ results }: { results: any }) => {
     const mainCriteriaData = useMemo(() => {
         if (!results?.criteria_analysis?.weights) return [];
-        return Object.entries(results.criteria_analysis.weights).map(([name, weight]) => ({
+        
+        const mainCriteriaKeys = Object.keys(results.criteria_analysis.weights);
+
+        return mainCriteriaKeys.map(name => ({
             name,
-            weight: ((weight as number) * 100).toFixed(1),
-            weightValue: weight as number
+            weight: ((results.criteria_analysis.weights[name] as number) * 100).toFixed(1),
+            weightValue: results.criteria_analysis.weights[name] as number
         })).sort((a,b) => b.weightValue - a.weightValue);
 
     }, [results]);
-
-
+    
     const finalScoresData = useMemo(() => (results?.final_scores?.map((item: any) => ({
         name: item.name,
         score: (item.score * 100).toFixed(1),
@@ -107,17 +109,19 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
         
         return (
             <div>
-                {mainCriteriaData.length > 0 && (
+                 {mainCriteriaData.length > 0 && (
                     <Card className="mb-6">
-                        <CardHeader><CardTitle>Main Criteria Weights</CardTitle></CardHeader>
+                        <CardHeader>
+                            <CardTitle>Main Criteria Weights</CardTitle>
+                        </CardHeader>
                         <CardContent>
-                            {renderBarChart("Main Criteria", mainCriteriaData, data.criteria_analysis.consistency)}
+                             {renderBarChart("Main Criteria", mainCriteriaData, results.criteria_analysis.consistency)}
                         </CardContent>
                     </Card>
                 )}
                 
                 {subCriteriaAnalyses.length > 0 && subCriteriaAnalyses.map(([parentCriterion, subAnalysis]: [string, any]) => (
-                    <Card key={parentCriterion} className="mb-6">
+                     <Card key={parentCriterion} className="mb-6">
                         <CardHeader>
                             <CardTitle>Sub-Criteria for &quot;{parentCriterion}&quot;</CardTitle>
                         </CardHeader>
@@ -274,60 +278,49 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 return null;
             };
 
-            const populateMatrices = (answers: any, criteria: Criterion[], alternatives: string[]) => {
-                 const processComparisons = (key: string, items: {name: string, id: string}[]) => {
-                    const matrixValues = answers[key];
-                    if (!matrixValues || items.length < 2) return;
-
-                    const itemNames = items.map(i => i.name);
-                    const n = itemNames.length;
-                    const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(1.0));
-
-                    for (let i = 0; i < n; i++) {
-                        for (let j = i + 1; j < n; j++) {
-                            const pairKey = `${itemNames[i]} vs ${itemNames[j]}`;
-                            const reversePairKey = `${itemNames[j]} vs ${itemNames[i]}`;
-                            let value = 1.0;
-
-                            if (matrixValues[pairKey] !== undefined) {
-                                value = matrixValues[pairKey];
-                            } else if (matrixValues[reversePairKey] !== undefined) {
-                                value = 1 / matrixValues[reversePairKey];
-                            }
-                            matrix[i][j] = value;
-                            matrix[j][i] = 1 / value;
-                        }
-                    }
-                    if (!aggregatedMatrices[key]) aggregatedMatrices[key] = [];
-                    aggregatedMatrices[key].push(matrix);
-                };
-                
-                 if (answers.goal) {
-                    processComparisons('goal', criteria.map(c => ({id: c.id, name: c.name})));
-                } else if (answers.criteria) {
-                    processComparisons('criteria', criteria.map(c => ({id: c.id, name: c.name})));
-                }
-                
-                const traverse = (criteriaList: Criterion[]) => {
-                    for(const criterion of criteriaList) {
-                         if (criterion.subCriteria && criterion.subCriteria.length > 0) {
-                            const subKey = `sub_criteria_${criterion.id}`;
-                            processComparisons(subKey, criterion.subCriteria.map(sc => ({id: sc.id, name: sc.name})));
-                            traverse(criterion.subCriteria);
-                        } else if (alternatives && alternatives.length > 0) {
-                             const altKey = `alt_${criterion.id}`;
-                             const altItems = alternatives.map((alt) => ({name: alt, id: alt}));
-                             processComparisons(altKey, altItems);
-                        }
-                    }
-                };
-                traverse(criteria);
-            };
-
             responses.forEach(resp => {
                 const answerData = (resp.answers as any)[ahpQuestion.id];
                 if (answerData && typeof answerData === 'object') {
-                    populateMatrices(answerData, ahpQuestion.criteria || [], ahpQuestion.alternatives || []);
+                    for (const matrixKey in answerData) {
+                        const matrixValues = answerData[matrixKey];
+                        let items: { name: string; id: string }[] = [];
+
+                        if (matrixKey === 'goal' || matrixKey === 'criteria') {
+                            items = (ahpQuestion.criteria || []).map(c => ({ id: c.id, name: c.name }));
+                        } else if (matrixKey.startsWith('sub_criteria_')) {
+                            const parentId = matrixKey.replace('sub_criteria_', '');
+                            const parentCriterion = findCriterion(parentId, ahpQuestion.criteria || []);
+                            if (parentCriterion && parentCriterion.subCriteria) {
+                                items = parentCriterion.subCriteria.map(sc => ({ id: sc.id, name: sc.name }));
+                            }
+                        } else if (matrixKey.startsWith('alt_')) {
+                            items = (ahpQuestion.alternatives || []).map(alt => ({ id: alt, name: alt }));
+                        }
+
+                        if (!items.length) continue;
+
+                        const itemNames = items.map(i => i.name);
+                        const n = itemNames.length;
+                        const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(1.0));
+
+                        for (let i = 0; i < n; i++) {
+                            for (let j = i + 1; j < n; j++) {
+                                const pairKey = `${itemNames[i]} vs ${itemNames[j]}`;
+                                const reversePairKey = `${itemNames[j]} vs ${itemNames[i]}`;
+                                let value = 1.0;
+
+                                if (matrixValues[pairKey] !== undefined) {
+                                    value = matrixValues[pairKey];
+                                } else if (matrixValues[reversePairKey] !== undefined) {
+                                    value = 1 / matrixValues[reversePairKey];
+                                }
+                                matrix[i][j] = value;
+                                matrix[j][i] = 1 / value;
+                            }
+                        }
+                        if (!aggregatedMatrices[matrixKey]) aggregatedMatrices[matrixKey] = [];
+                        aggregatedMatrices[matrixKey].push(matrix);
+                    }
                 }
             });
             
