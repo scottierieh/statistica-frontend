@@ -1,9 +1,10 @@
+
 'use client';
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network, Replace, Activity } from "lucide-react";
+import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network, Replace, Activity, Trash2, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatsCard from "@/components/dashboard/survey2/StatsCard";
@@ -18,8 +19,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate } from "@/lib/survey-templates";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 
 const TemplateCard = ({ icon: Icon, title, description, href, learnMoreLink }: { icon: React.ElementType, title: string, description: string, href: string, learnMoreLink?: string }) => (
     <div className="p-4 border rounded-lg hover:bg-accent hover:shadow-md transition-all h-full flex flex-col">
@@ -50,6 +53,8 @@ export default function Survey2Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [selectedSurveys, setSelectedSurveys] = useState<string[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadData();
@@ -57,7 +62,6 @@ export default function Survey2Dashboard() {
 
   const loadData = async () => {
     setIsLoading(true);
-    // Simulating an API call latency
     await new Promise(resolve => setTimeout(resolve, 500));
     try {
       const storedSurveys = JSON.parse(localStorage.getItem('surveys') || '[]') as Survey[];
@@ -72,7 +76,6 @@ export default function Survey2Dashboard() {
       setResponses(allResponses);
     } catch (e) {
       console.error("Failed to load data from localStorage", e);
-      // Handle potential JSON parsing errors, etc.
     } finally {
       setIsLoading(false);
     }
@@ -84,16 +87,30 @@ export default function Survey2Dashboard() {
     );
   };
 
-  const handleDeleteSurvey = (surveyId: string) => {
-    const updatedSurveys = surveys.filter(s => s.id !== surveyId);
-    const updatedResponses = responses.filter(r => r.survey_id !== surveyId);
-    
+  const handleToggleSelection = (surveyId: string) => {
+    setSelectedSurveys(prev =>
+        prev.includes(surveyId)
+            ? prev.filter(id => id !== surveyId)
+            : [...prev, surveyId]
+    );
+  };
+
+  const handleDeleteSelected = () => {
+    const updatedSurveys = surveys.filter(s => !selectedSurveys.includes(s.id));
+    const updatedResponses = responses.filter(r => !selectedSurveys.includes(r.survey_id));
+
     setSurveys(updatedSurveys);
     setResponses(updatedResponses);
-    
     localStorage.setItem('surveys', JSON.stringify(updatedSurveys));
-    localStorage.removeItem(`${surveyId}_responses`);
+    selectedSurveys.forEach(id => localStorage.removeItem(`${id}_responses`));
+    
+    toast({
+        title: "Surveys Deleted",
+        description: `${selectedSurveys.length} survey(s) and their responses have been deleted.`
+    });
+    setSelectedSurveys([]);
   };
+
 
   const filteredSurveys = filter === "all" 
     ? surveys 
@@ -218,27 +235,51 @@ export default function Survey2Dashboard() {
         />
       </div>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        {[
-          { key: "all", label: "All" },
-          { key: "active", label: "Active" },
-          { key: "draft", label: "Draft" },
-          { key: "closed", label: "Closed" }
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key)}
-            className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-200 whitespace-nowrap ${
-              filter === tab.key
-                ? tab.key === 'all'
-                  ? 'bg-slate-700 text-white shadow-lg'
-                  : 'bg-primary text-primary-foreground shadow-lg'
-                : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+            {[
+            { key: "all", label: "All" },
+            { key: "active", label: "Active" },
+            { key: "draft", label: "Draft" },
+            { key: "closed", label: "Closed" }
+            ].map((tab) => (
+            <button
+                key={tab.key}
+                onClick={() => setFilter(tab.key)}
+                className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-200 whitespace-nowrap ${
+                filter === tab.key
+                    ? tab.key === 'all'
+                    ? 'bg-slate-700 text-white shadow-lg'
+                    : 'bg-primary text-primary-foreground shadow-lg'
+                    : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+                }`}
+            >
+                {tab.label}
+            </button>
+            ))}
+        </div>
+        {selectedSurveys.length > 0 && (
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="gap-2">
+                        <Trash2 className="w-4 h-4" />
+                        Delete ({selectedSurveys.length})
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete {selectedSurveys.length} survey(s) and all associated responses. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteSelected}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        )}
       </div>
 
       {isLoading ? (
@@ -263,7 +304,8 @@ export default function Survey2Dashboard() {
                 survey={survey}
                 responses={responses.filter(r => r.survey_id === survey.id)}
                 onUpdate={handleSurveyUpdate}
-                onDelete={handleDeleteSurvey}
+                isSelected={selectedSurveys.includes(survey.id)}
+                onToggleSelect={handleToggleSelection}
               />
             ))}
           </AnimatePresence>

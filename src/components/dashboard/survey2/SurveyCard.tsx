@@ -1,9 +1,10 @@
+
 'use client';
 import { motion } from "framer-motion";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart, Edit, Users, Clock, Settings, Share2, QrCode, Copy, Download, Calendar as CalendarIcon, AlertCircle, Eye, Trash2 } from "lucide-react";
+import { BarChart, Edit, Users, Clock, Settings, Share2, QrCode, Copy, Download, Calendar as CalendarIcon, AlertCircle, Trash2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -22,15 +23,18 @@ import { Loader2 } from "lucide-react";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 interface SurveyCardProps {
     survey: Survey;
     responses: SurveyResponse[];
     onUpdate: (updatedSurvey: Survey) => void;
-    onDelete: (surveyId: string) => void;
+    isSelected: boolean;
+    onToggleSelect: (surveyId: string) => void;
 }
 
-export default function SurveyCard({ survey, responses, onUpdate, onDelete }: SurveyCardProps) {
+export default function SurveyCard({ survey, responses, onUpdate, isSelected, onToggleSelect }: SurveyCardProps) {
     const { toast } = useToast();
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [qrCodeUrl, setQrCodeUrl] = useState('');
@@ -64,12 +68,10 @@ export default function SurveyCard({ survey, responses, onUpdate, onDelete }: Su
             return 'closed';
         }
         
-        // If dates are set and we are within the active period, it should be active.
         if (startDate && (!endDate || now <= endDate)) {
             return 'active';
         }
 
-        // If no dates are set, fall back to the saved status.
         return survey.status === 'draft' ? 'draft' : 'active';
 
     }, [survey.status, survey.startDate, survey.endDate]);
@@ -127,11 +129,6 @@ export default function SurveyCard({ survey, responses, onUpdate, onDelete }: Su
       onUpdate(updatedSurvey);
       toast({ title: "Settings Saved", description: "Survey activation dates have been updated."});
     };
-
-    const handleDeleteConfirm = () => {
-        onDelete(survey.id);
-        toast({ title: "Survey Deleted", description: `"${survey.title}" and all its responses have been deleted.` });
-    };
     
     useEffect(() => {
         setDate({
@@ -163,11 +160,21 @@ export default function SurveyCard({ survey, responses, onUpdate, onDelete }: Su
             animate="visible"
             exit="hidden"
             layout
-            className="bg-white rounded-2xl p-6 border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-xl transition-shadow duration-300"
+            className={cn(
+                "bg-white rounded-2xl p-6 border-2 flex flex-col justify-between shadow-sm hover:shadow-xl transition-all duration-300",
+                isSelected ? "border-primary shadow-primary/20" : "border-slate-200"
+            )}
         >
             <div>
-                <div className="flex justify-between items-start mb-4">
-                    <h3 className="font-bold text-slate-800 text-lg leading-tight pr-4">{survey.title}</h3>
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-start gap-3">
+                         <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => onToggleSelect(survey.id)}
+                            className="mt-1"
+                        />
+                        <h3 className="font-bold text-slate-800 text-lg leading-tight pr-4">{survey.title}</h3>
+                    </div>
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger>
@@ -244,23 +251,6 @@ export default function SurveyCard({ survey, responses, onUpdate, onDelete }: Su
                         </div>
                     </DialogContent>
                 </Dialog>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="icon" className="shrink-0"><Trash2 className="w-4 h-4" /></Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This will permanently delete the survey "{survey.title}" and all of its {responses.length} responses. This action cannot be undone.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
             </div>
         </motion.div>
     );

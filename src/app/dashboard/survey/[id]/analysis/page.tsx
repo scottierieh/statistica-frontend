@@ -53,10 +53,16 @@ export default function SurveyAnalysis() {
         if (survey.questions.some(q => q.type === 'rating-conjoint')) {
              analyses.push({ key: 'rating-conjoint', label: 'Conjoint (Rating)', component: <RatingConjointAnalysisPage survey={survey} responses={responses} /> });
         }
-        // This is the check for an IPA survey. If a matrix question includes a row with "overall", it's an IPA survey.
-        if (survey.questions.some(q => q.type === 'matrix' && q.rows?.some(r => r.toLowerCase().includes('overall')))) {
+        
+        const ipaQuestion = survey.questions.find(q =>
+            q.type === 'matrix' &&
+            Array.isArray(q.rows) &&
+            q.rows.some(r => typeof r === 'string' && r.toLowerCase().includes('overall'))
+        );
+        if (ipaQuestion) {
             analyses.push({ key: 'ipa', label: 'IPA', component: <IpaPage survey={survey} responses={responses} /> });
         }
+
         if (survey.questions.some(q => ['too cheap', 'cheap', 'expensive', 'too expensive'].every(keyword => survey.questions.some(q => q.title.toLowerCase().includes(keyword))))) {
             analyses.push({ key: 'van-westendorp', label: 'Price Sensitivity', component: <VanWestendorpPage survey={survey} responses={responses} /> });
         }
