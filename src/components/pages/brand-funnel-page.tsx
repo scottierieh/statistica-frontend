@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -71,15 +70,15 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
             responses.forEach(response => {
                 const answers = response.answers as any;
                 const awarenessAns = answers[stageQuestions.awareness!.id] as string[] || [];
-                const considerationAns = answers[stageQuestions.consideration!.id] as string;
+                const considerationAns = answers[stageQuestions.consideration!.id] as string[] || [];
                 const preferenceAns = answers[stageQuestions.preference!.id] as string;
-                const usageAns = answers[stageQuestions.usage!.id] as string;
+                const usageAns = answers[stageQuestions.usage!.id] as string[] || [];
 
                 brands.forEach(brand => {
                     if (awarenessAns.includes(brand)) funnelCounts[brand].awareness++;
-                    if (considerationAns === brand) funnelCounts[brand].consideration++;
+                    if (considerationAns.includes(brand)) funnelCounts[brand].consideration++;
                     if (preferenceAns === brand) funnelCounts[brand].preference++;
-                    if (usageAns === brand) funnelCounts[brand].usage++;
+                    if (usageAns.includes(brand)) funnelCounts[brand].usage++;
                 });
             });
 
@@ -133,9 +132,21 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
     if (!analysisResult) return null;
 
     const { results } = analysisResult;
-    const funnelDataForChart = Object.entries(results.funnel_data).flatMap(([brand, stages]) => 
-        Object.entries(stages).map(([stage, count]) => ({brand, stage, count}))
-    );
+    
+    const funnelDataForChart = useMemo(() => {
+        if (!results?.funnel_data) return [];
+        const stages = ['awareness', 'consideration', 'preference', 'usage'];
+        const brands = Object.keys(results.funnel_data);
+
+        return stages.map(stage => {
+            const stageData: { [key: string]: string | number } = { name: stage };
+            brands.forEach(brand => {
+                stageData[brand] = results.funnel_data[brand][stage] || 0;
+            });
+            return stageData;
+        });
+    }, [results]);
+
 
     const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
@@ -150,12 +161,12 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                         <ResponsiveContainer>
                             <BarChart data={funnelDataForChart}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="stage" />
+                                <XAxis dataKey="name" />
                                 <YAxis />
                                 <Tooltip content={<ChartTooltipContent />} />
                                 <Legend />
                                 {Object.keys(results.funnel_data).map((brand, i) => (
-                                    <Bar key={brand} dataKey="count" data={funnelDataForChart.filter(d => d.brand === brand)} name={brand} fill={COLORS[i % COLORS.length]} />
+                                    <Bar key={brand} dataKey={brand} fill={COLORS[i % COLORS.length]} />
                                 ))}
                             </BarChart>
                         </ResponsiveContainer>
