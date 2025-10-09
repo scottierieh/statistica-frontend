@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -69,19 +68,6 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
             return row;
         });
     }, [results, brands]);
-
-    const marketShareData = useMemo(() => {
-        if (!results?.market_share) return [];
-        const brands = Object.keys(results.funnel_data);
-        const stages = Object.keys(results.market_share);
-        return brands.map(brand => {
-            const brandShares: { [key: string]: any } = { brand };
-            stages.forEach(stage => {
-                brandShares[stage] = results.market_share[stage]?.[brand];
-            });
-            return brandShares;
-        });
-    }, [results]);
 
     const handleAnalysis = useCallback(async () => {
         setLoading(true);
@@ -278,7 +264,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                            <TableCell className="font-medium">{brand}</TableCell>
                                            {Object.keys(results.market_share).map(stage => (
                                                <TableCell key={stage} className="text-right">
-                                                   {(results.market_share[stage][brand] ?? 0).toFixed(1)}%
+                                                   {(results.market_share[stage]?.[brand] ?? 0).toFixed(1)}%
                                                </TableCell>
                                            ))}
                                        </TableRow>
@@ -303,7 +289,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                            <TableCell className="font-medium">{brand}</TableCell>
                                            {Object.values(results.drop_off[brand] || {}).map((val: any, idx) => (
                                                <TableCell key={idx} className="text-right">
-                                                   <div>{val.rate.toFixed(1)}%</div>
+                                                   <div>{(val.rate ?? 0).toFixed(1)}%</div>
                                                    <div className="text-xs text-muted-foreground">({val.count} lost)</div>
                                                </TableCell>
                                            ))}
