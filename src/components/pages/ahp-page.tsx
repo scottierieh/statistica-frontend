@@ -150,17 +150,17 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                     const getItemsForMatrix = (key: string) => {
                         if (key === 'criteria' || key === 'goal') return ahpQuestion.criteria || [];
                         if (key.startsWith('alt_')) {
-                            const critId = key.substring(4);
-                            const crit = ahpQuestion.criteria?.find(c => c.id === critId);
+                            const critName = key.substring(4);
+                            const crit = ahpQuestion.criteria?.find(c => c.name === critName);
                             if (crit?.subCriteria && crit.subCriteria.length > 0) {
                                 return crit.subCriteria;
                             }
                             return ahpQuestion.alternatives || [];
                         }
-                        const subCritMatch = key.match(/^sub_criteria_(c\d+)$/);
+                        const subCritMatch = key.match(/^sub_criteria_(.*)$/);
                         if (subCritMatch) {
-                            const parentId = subCritMatch[1];
-                            const parent = ahpQuestion.criteria?.find(c => c.id === parentId);
+                            const parentName = subCritMatch[1];
+                            const parent = ahpQuestion.criteria?.find(c => c.name === parentName);
                             return parent?.subCriteria || [];
                         }
                         return [];
@@ -248,7 +248,7 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
         return (
             <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
                 <div className="flex flex-col items-center justify-center py-20">
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-4"></div>
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mb-4"></div>
                     <p className="text-gray-600 text-lg">Loading AHP analysis results...</p>
                 </div>
             </div>
@@ -261,7 +261,10 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6">
                     <h2 className="text-xl font-bold text-red-800 mb-2">Error Loading Results</h2>
                     <p className="text-red-600">{error}</p>
-                    <button onClick={handleAnalysis} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                    <button 
+                        onClick={handleAnalysis} 
+                        className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                    >
                         Retry
                     </button>
                 </div>
@@ -273,7 +276,7 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
         return (
             <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
                 <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6 text-center">
-                    <p className="text-gray-600 text-lg">No results available</p>
+                    <p className="text-gray-600 text-lg">No results available. This could be due to insufficient response data.</p>
                 </div>
             </div>
         );
