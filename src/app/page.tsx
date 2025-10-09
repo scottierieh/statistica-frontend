@@ -135,12 +135,12 @@ export default function LandingPage() {
                     />
                 </div>
                 <div className="space-y-4 md:order-1">
-                  <h2 className="text-3xl font-bold font-headline tracking-tight sm:text-4xl">Built for enterprise</h2>
+                  <h2 className="text-3xl font-bold font-headline tracking-tight sm:text-4xl">Comprehensive Survey Platform</h2>
                    <p className="text-muted-foreground text-lg">
-                    Take your insights to the next level by integrating with the full range of your enterprise systems through APIs or FTP sync, for marketing automation and more.
+                    From simple polls to advanced market research, build, distribute, and analyze surveys—all in one place.
                   </p>
                   <p className="text-muted-foreground">
-                    With robust user roles, SSO, advanced reporting, and dashboards that can be distributed via a link for real-time updates or downloaded in various formats, including SPSS, Excel, and PDF.
+                    Leverage a seamless workflow that takes you from question design to insightful analysis without switching tools. Customize themes, colors, and layouts to match your brand, and use specialized templates for complex studies like Conjoint, TURF, and Importance-Performance Analysis (IPA).
                   </p>
                 </div>
               </div>
