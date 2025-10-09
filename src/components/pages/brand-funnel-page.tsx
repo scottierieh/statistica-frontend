@@ -54,6 +54,32 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     const [results, setResults] = useState<Results | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    
+    const brands = useMemo(() => results ? Object.keys(results.funnel_data) : [], [results]);
+
+    const funnelDataForChart = useMemo(() => {
+        if (!results?.funnel_data) return [];
+        const stages = ['awareness', 'consideration', 'preference', 'usage'];
+        return stages.map(stage => {
+            const row: any = { stage: stage.charAt(0).toUpperCase() + stage.slice(1) };
+            brands.forEach(brand => {
+                row[brand.replace(/\s/g, '_')] = results.funnel_data[brand][stage as keyof BrandStages];
+            });
+            return row;
+        });
+    }, [results, brands]);
+
+    const marketShareData = useMemo(() => {
+        if (!results?.market_share) return [];
+        return brands.map(brand => ({
+            brand,
+            stages: Object.fromEntries(
+                Object.entries(results.market_share).map(([stageKey, brandShares]) => [
+                    stageKey, brandShares[brand]
+                ])
+            )
+        }));
+    }, [results, brands]);
 
     const handleAnalysis = useCallback(async () => {
         setLoading(true);
@@ -116,37 +142,10 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
             setLoading(false);
         }
     }, [survey, responses, toast]);
-
+  
     useEffect(() => {
         handleAnalysis();
     }, [handleAnalysis]);
-
-    const chartData = useMemo(() => {
-        if (!results?.funnel_data) return [];
-        const stages = ['awareness', 'consideration', 'preference', 'usage'];
-        const brands = Object.keys(results.funnel_data);
-        return stages.map(stage => {
-            const row: any = { stage: stage.charAt(0).toUpperCase() + stage.slice(1) };
-            brands.forEach(brand => {
-                row[brand.replace(/\s/g, '_')] = results.funnel_data[brand][stage as keyof BrandStages];
-            });
-            return row;
-        });
-    }, [results]);
-
-    const brands = useMemo(() => results ? Object.keys(results.funnel_data) : [], [results]);
-
-    const marketShareData = useMemo(() => {
-        if (!results) return [];
-        return brands.map(brand => ({
-            brand,
-            stages: Object.fromEntries(
-                Object.entries(results.market_share).map(([stageKey, brandShares]) => [
-                    stageKey, brandShares[brand]
-                ])
-            )
-        }));
-    }, [results, brands]);
 
     if (loading) {
         return <Card><CardContent className="p-8"><Skeleton className="h-96 w-full" /></CardContent></Card>;
@@ -176,7 +175,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                 <CardContent>
                     <ChartContainer config={{}} className="w-full h-96">
                         <ResponsiveContainer>
-                            <BarChart data={chartData}>
+                            <BarChart data={funnelDataForChart}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="stage" />
                                 <YAxis />
