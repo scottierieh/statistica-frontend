@@ -66,19 +66,16 @@ class BrandFunnelAnalysis:
         # Conversion rates
         self.conversion_rates = pd.DataFrame(index=df.index)
         
-        # Safely calculate conversion rates, avoiding division by zero
-        self.conversion_rates['awareness_to_consideration'] = (
-            (df['consideration'] / df['awareness']).replace([np.inf, -np.inf], 0) * 100
-        ).fillna(0)
-        self.conversion_rates['consideration_to_preference'] = (
-            (df['preference'] / df['consideration']).replace([np.inf, -np.inf], 0) * 100
-        ).fillna(0)
-        self.conversion_rates['preference_to_usage'] = (
-            (df['usage'] / df['preference']).replace([np.inf, -np.inf], 0) * 100
-        ).fillna(0)
-        self.conversion_rates['awareness_to_usage'] = (
-            (df['usage'] / df['awareness']).replace([np.inf, -np.inf], 0) * 100
-        ).fillna(0)
+        # Safely calculate conversion rates, avoiding division by zero by using np.divide
+        with np.errstate(divide='ignore', invalid='ignore'):
+            self.conversion_rates['awareness_to_consideration'] = np.divide(df['consideration'], df['awareness']) * 100
+            self.conversion_rates['consideration_to_preference'] = np.divide(df['preference'], df['consideration']) * 100
+            self.conversion_rates['preference_to_usage'] = np.divide(df['usage'], df['preference']) * 100
+            self.conversion_rates['awareness_to_usage'] = np.divide(df['usage'], df['awareness']) * 100
+        
+        # Replace NaN and Inf with None for JSON compatibility later
+        self.conversion_rates.replace([np.inf, -np.inf], np.nan, inplace=True)
+
 
 def main():
     try:
@@ -91,10 +88,17 @@ def main():
 
         analysis = BrandFunnelAnalysis(brands)
         analysis.set_data(funnel_data)
+        
+        # Ensure no infinity values in the final conversion rates DataFrame
+        if analysis.conversion_rates is not None:
+            # Replace NaN with None before converting to dict
+            conversion_rates_dict = analysis.conversion_rates.where(pd.notnull(analysis.conversion_rates), None).to_dict()
+        else:
+            conversion_rates_dict = {}
 
         results_to_export = {
             'funnel_data': analysis.funnel_data.to_dict() if analysis.funnel_data is not None else {},
-            'conversion_rates': analysis.conversion_rates.to_dict() if analysis.conversion_rates is not None else {},
+            'conversion_rates': conversion_rates_dict,
         }
 
         response = {
