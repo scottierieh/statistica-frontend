@@ -28,7 +28,7 @@ interface ConversionRates {
 interface Results {
     funnel_data: { [brand: string]: BrandStages };
     conversion_rates: { [brand: string]: ConversionRates };
-    market_share: { [stage: string]: { [brand: string]: number } };
+    market_share: { [brand: string]: { [stage: string]: number } };
     efficiency: { [brand: string]: { funnel_efficiency: number; drop_off_rate: number } };
     bottlenecks: Array<{ brand: string; bottleneck_stage: string; conversion_rate: number }>;
     drop_off: { [brand: string]: { [stage: string]: { count: number; rate: number } } };
@@ -55,10 +55,11 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     const [error, setError] = useState<string | null>(null);
 
     const brands = useMemo(() => (results?.funnel_data ? Object.keys(results.funnel_data) : []), [results]);
-
+    
     const funnelDataForChart = useMemo(() => {
         if (!results?.funnel_data) return [];
         const stages = ['awareness', 'consideration', 'preference', 'usage'];
+        const brands = Object.keys(results.funnel_data);
         return stages.map(stage => {
             const row: any = { stage: stage.charAt(0).toUpperCase() + stage.slice(1) };
             brands.forEach(brand => {
@@ -67,7 +68,18 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
             });
             return row;
         });
-    }, [results, brands]);
+    }, [results]);
+    
+    const marketShareData = useMemo(() => {
+        if (!results) return [];
+        return Object.entries(results.market_share).map(([brand, stages]) => ({
+            brand,
+            awareness: stages.awareness_share,
+            consideration: stages.consideration_share,
+            preference: stages.preference_share,
+            usage: stages.usage_share
+        }));
+    }, [results]);
 
     const handleAnalysis = useCallback(async () => {
         setLoading(true);
@@ -247,31 +259,29 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                         </TabsContent>
                         
                         <TabsContent value="share" className="mt-4">
-                           <Table>
-                               <TableHeader>
-                                   <TableRow>
-                                       <TableHead>Brand</TableHead>
-                                       {Object.keys(results.market_share || {}).map(stage => (
-                                           <TableHead key={stage} className="text-right">
-                                               {stage.replace('_share', '').charAt(0).toUpperCase() + stage.replace('_share', '').slice(1)}
-                                           </TableHead>
-                                       ))}
-                                   </TableRow>
-                               </TableHeader>
-                               <TableBody>
-                                   {brands.map(brand => (
-                                       <TableRow key={brand}>
-                                           <TableCell className="font-medium">{brand}</TableCell>
-                                           {Object.keys(results.market_share).map(stage => (
-                                               <TableCell key={stage} className="text-right">
-                                                   {(results.market_share[stage]?.[brand] ?? 0).toFixed(1)}%
-                                               </TableCell>
-                                           ))}
-                                       </TableRow>
-                                   ))}
-                               </TableBody>
-                           </Table>
-                       </TabsContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Brand</TableHead>
+                                        <TableHead className="text-right">Awareness</TableHead>
+                                        <TableHead className="text-right">Consideration</TableHead>
+                                        <TableHead className="text-right">Preference</TableHead>
+                                        <TableHead className="text-right">Usage</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {marketShareData.map(({ brand, awareness, consideration, preference, usage }) => (
+                                        <TableRow key={brand}>
+                                            <TableCell className="font-medium">{brand}</TableCell>
+                                            <TableCell className="text-right">{(awareness ?? 0).toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right">{(consideration ?? 0).toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right">{(preference ?? 0).toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right">{(usage ?? 0).toFixed(1)}%</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TabsContent>
 
                         <TabsContent value="dropoff" className="mt-4">
                            <Table>
