@@ -172,31 +172,32 @@ class BrandFunnelAnalysis:
     
     def generate_insights(self) -> dict:
         """Generate key insights from the analysis"""
-        efficiency = self.calculate_funnel_efficiency().where(pd.notnull(self.calculate_funnel_efficiency()), 0)
-        bottlenecks = self.identify_bottlenecks()
-        market_share = self.calculate_market_share().where(pd.notnull(self.calculate_market_share()), 0)
-        
+        efficiency_df = self.calculate_funnel_efficiency().where(pd.notnull(self.calculate_funnel_efficiency()), 0)
+        bottlenecks_df = self.identify_bottlenecks()
+        market_share_df = self.calculate_market_share().where(pd.notnull(self.calculate_market_share()), 0)
+        conversion_rates_df = self.conversion_rates.copy()
+
         insights = {
             'top_performer': {
-                'brand': efficiency.index[0] if not efficiency.empty else 'N/A',
-                'efficiency': float(efficiency.iloc[0]['funnel_efficiency']) if not efficiency.empty else 0,
-                'description': f"{efficiency.index[0] if not efficiency.empty else 'N/A'} has the highest funnel efficiency"
+                'brand': efficiency_df['funnel_efficiency'].idxmax() if not efficiency_df.empty else 'N/A',
+                'efficiency': float(efficiency_df['funnel_efficiency'].max()) if not efficiency_df.empty else 0,
+                'description': f"{efficiency_df['funnel_efficiency'].idxmax() if not efficiency_df.empty else 'N/A'} has the highest funnel efficiency"
             },
             'market_leader': {
-                'awareness': market_share['awareness_share'].idxmax() if not market_share.empty else 'N/A',
-                'usage': market_share['usage_share'].idxmax() if not market_share.empty else 'N/A',
-                'description': f"Market leader in awareness: {market_share['awareness_share'].idxmax() if not market_share.empty else 'N/A'}, in usage: {market_share['usage_share'].idxmax() if not market_share.empty else 'N/A'}"
+                'awareness': market_share_df['awareness_share'].idxmax() if not market_share_df.empty else 'N/A',
+                'usage': market_share_df['usage_share'].idxmax() if not market_share_df.empty else 'N/A',
+                'description': f"Market leader in awareness: {market_share_df['awareness_share'].idxmax() if not market_share_df.empty else 'N/A'}, in usage: {market_share_df['usage_share'].idxmax() if not market_share_df.empty else 'N/A'}"
             },
             'biggest_opportunity': {
-                'brand': bottlenecks.iloc[0]['brand'] if not bottlenecks.empty else 'N/A',
-                'bottleneck': bottlenecks.iloc[0]['bottleneck_stage'] if not bottlenecks.empty else 'N/A',
-                'rate': float(bottlenecks.iloc[0]['conversion_rate']) if not bottlenecks.empty else 0,
-                'description': f"{bottlenecks.iloc[0]['brand'] if not bottlenecks.empty else 'N/A'} has the biggest opportunity to improve at {bottlenecks.iloc[0]['bottleneck_stage'] if not bottlenecks.empty else 'N/A'}"
+                'brand': bottlenecks_df.iloc[0]['brand'] if not bottlenecks_df.empty else 'N/A',
+                'bottleneck': bottlenecks_df.iloc[0]['bottleneck_stage'] if not bottlenecks_df.empty else 'N/A',
+                'rate': float(bottlenecks_df.iloc[0]['conversion_rate']) if not bottlenecks_df.empty else 0,
+                'description': f"{bottlenecks_df.iloc[0]['brand'] if not bottlenecks_df.empty else 'N/A'} has the biggest opportunity to improve at {bottlenecks_df.iloc[0]['bottleneck_stage'] if not bottlenecks_df.empty else 'N/A'}"
             },
             'conversion_champion': {
-                'brand': self.conversion_rates['awareness_to_usage'].idxmax() if not self.conversion_rates.empty and self.conversion_rates['awareness_to_usage'].notna().any() else 'N/A',
-                'rate': float(self.conversion_rates['awareness_to_usage'].max()) if not self.conversion_rates.empty and self.conversion_rates['awareness_to_usage'].notna().any() else 0,
-                'description': f"{self.conversion_rates['awareness_to_usage'].idxmax() if not self.conversion_rates.empty and self.conversion_rates['awareness_to_usage'].notna().any() else 'N/A'} has the best overall conversion rate"
+                'brand': conversion_rates_df['awareness_to_usage'].idxmax() if not conversion_rates_df.empty and conversion_rates_df['awareness_to_usage'].notna().any() else 'N/A',
+                'rate': float(conversion_rates_df['awareness_to_usage'].max()) if not conversion_rates_df.empty and conversion_rates_df['awareness_to_usage'].notna().any() else 0,
+                'description': f"{conversion_rates_df['awareness_to_usage'].idxmax() if not conversion_rates_df.empty and conversion_rates_df['awareness_to_usage'].notna().any() else 'N/A'} has the best overall conversion rate"
             }
         }
         
