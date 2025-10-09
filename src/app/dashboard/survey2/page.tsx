@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network, Replace, Activity, Trash2, AlertCircle, CheckSquare } from "lucide-react";
+import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network, Replace, Activity, Trash2, AlertCircle, CheckSquare, Gauge } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatsCard from "@/components/dashboard/survey2/StatsCard";
@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate } from "@/lib/survey-templates";
+import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate, servqualTemplate } from "@/lib/survey-templates";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -215,6 +215,7 @@ export default function Survey2Dashboard() {
                             <TemplateCard icon={ClipboardList} title="Customer Satisfaction" description="Measure overall customer satisfaction (CSAT) and drivers." href="/dashboard/createsurvey?template=csat"/>
                             <TemplateCard icon={Replace} title="Semantic Differential" description="Gauge user perception of a concept on bipolar adjective scales." href="/dashboard/createsurvey?template=semantic-differential"/>
                             <TemplateCard icon={Activity} title="Brand Funnel" description="Measure awareness, consideration, preference, and usage for your brand." href="/dashboard/createsurvey?template=brand-funnel"/>
+                            <TemplateCard icon={Gauge} title="SERVQUAL" description="Measure service quality by comparing customer expectations vs. perceptions." href="/dashboard/createsurvey?template=servqual"/>
                         </div>
                     </div>
                 </ScrollArea>

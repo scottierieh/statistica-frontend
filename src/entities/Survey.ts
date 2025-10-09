@@ -29,6 +29,8 @@ export type Question = {
     // For AHP
     criteria?: Criterion[];
     alternatives?: string[];
+    // For SERVQUAL
+    servqualType?: 'Expectation' | 'Perception';
 };
 
 
