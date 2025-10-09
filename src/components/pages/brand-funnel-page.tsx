@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -35,6 +36,22 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
     const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+     const funnelDataForChart = useMemo(() => {
+        if (!analysisResult?.results?.funnel_data) return [];
+        const stages = ['awareness', 'consideration', 'preference', 'usage'];
+        const brands = Object.keys(analysisResult.results.funnel_data);
+
+        return stages.map(stage => {
+            const stageData: { [key: string]: string | number } = { name: stage };
+            brands.forEach(brand => {
+                const safeKey = brand.replace(/\s/g, '_');
+                stageData[safeKey] = analysisResult.results.funnel_data[brand][stage] || 0;
+            });
+            return stageData;
+        });
+    }, [analysisResult]);
+
 
     const processAndAnalyzeData = useCallback(async () => {
         setIsLoading(true);
@@ -118,22 +135,6 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
         processAndAnalyzeData();
     }, [processAndAnalyzeData]);
 
-    const results = analysisResult?.results;
-
-    const funnelDataForChart = useMemo(() => {
-        if (!results?.funnel_data) return [];
-        const stages = ['awareness', 'consideration', 'preference', 'usage'];
-        const brands = Object.keys(results.funnel_data);
-
-        return stages.map(stage => {
-            const stageData: { [key: string]: string | number } = { name: stage };
-            brands.forEach(brand => {
-                stageData[brand] = results.funnel_data[brand][stage] || 0;
-            });
-            return stageData;
-        });
-    }, [results]);
-    
     if (isLoading) {
         return <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>;
     }
@@ -142,7 +143,9 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
         return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
     }
     
-    if (!analysisResult || !results) return null;
+    if (!analysisResult) return null;
+    
+    const results = analysisResult.results;
 
     const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
@@ -162,7 +165,7 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                                 <Tooltip content={<ChartTooltipContent />} />
                                 <Legend />
                                 {Object.keys(results.funnel_data).map((brand, i) => (
-                                    <Bar key={brand} dataKey={brand} fill={COLORS[i % COLORS.length]} />
+                                    <Bar key={brand} dataKey={brand.replace(/\s/g, '_')} name={brand} fill={COLORS[i % COLORS.length]} />
                                 ))}
                             </BarChart>
                         </ResponsiveContainer>
