@@ -5,6 +5,12 @@
       "description": "An abstract representation of data charts and graphs.",
       "imageUrl": "https://picsum.photos/seed/stat1/600/400",
       "imageHint": "data abstract"
+    },
+    {
+      "id": "hero-image",
+      "description": "A hero image for the main landing page, showing data and insights.",
+      "imageUrl": "https://picsum.photos/seed/hero/1200/600",
+      "imageHint": "data analysis"
     }
   ]
 }

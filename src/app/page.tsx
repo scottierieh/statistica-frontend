@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ArrowRight, BarChart2, CheckCircle, ClipboardList, Cpu, MoveRight, Users, TrendingUp, Link2, GitBranch, Network, Layers, Map, ScanSearch, Atom, MessagesSquare, Share2, GitCommit, DollarSign, ThumbsUp, FlaskConical, LineChart, Target, Calculator, Handshake, Palette, FileUp, Database, BrainCircuit, Activity, ZoomIn, HeartPulse } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const features = {
   stats: [
@@ -30,6 +32,8 @@ const features = {
 }
 
 export default function LandingPage() {
+  const heroImage = PlaceHolderImages.find(img => img.id === 'hero-image');
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800">
        <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -73,6 +77,19 @@ export default function LandingPage() {
                   <Link href="/dashboard/survey2">Create a Survey</Link>
                 </Button>
               </div>
+               {heroImage && (
+                <div className="mt-12 w-full max-w-5xl">
+                    <Image 
+                        src={heroImage.imageUrl} 
+                        alt={heroImage.description}
+                        width={1200}
+                        height={600}
+                        className="rounded-xl shadow-2xl"
+                        data-ai-hint={heroImage.imageHint}
+                        priority
+                    />
+                </div>
+              )}
             </div>
           </div>
         </section>
