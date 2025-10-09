@@ -1,10 +1,11 @@
+
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Network, MoveRight } from 'lucide-react';
+import { Loader2, Network } from 'lucide-react';
 import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
 import { Skeleton } from '../ui/skeleton';
 
@@ -73,6 +74,11 @@ const AHPResultsVisualization = ({ analysisResult }: { analysisResult: any }) =>
           </div>
         </div>
         
+        <p className="text-gray-600 text-sm mb-4">
+          The criteria weights represent the relative importance of each evaluation criterion in the decision-making process. 
+          Higher weights indicate more influential criteria in the final decision.
+        </p>
+        
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={criteriaData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -86,6 +92,38 @@ const AHPResultsVisualization = ({ analysisResult }: { analysisResult: any }) =>
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Detailed Criteria Weights</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-primary/10">
+                  <th className="border border-primary/20 px-4 py-2 text-left font-semibold text-gray-700">Rank</th>
+                  <th className="border border-primary/20 px-4 py-2 text-left font-semibold text-gray-700">Criterion</th>
+                  <th className="border border-primary/20 px-4 py-2 text-right font-semibold text-gray-700">Weight</th>
+                  <th className="border border-primary/20 px-4 py-2 text-right font-semibold text-gray-700">Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {criteriaData.map((item, index) => (
+                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="border border-gray-200 px-4 py-2 text-center font-semibold text-primary">
+                      {index + 1}
+                    </td>
+                    <td className="border border-gray-200 px-4 py-2 font-medium">{item.name}</td>
+                    <td className="border border-gray-200 px-4 py-2 text-right font-mono">
+                      {item.weightValue.toFixed(4)}
+                    </td>
+                    <td className="border border-gray-200 px-4 py-2 text-right">
+                      <span className="font-semibold text-primary">{item.weight}%</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {alternativesByCriterion.length > 0 && (
@@ -199,7 +237,7 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
             
             const allRespondentMatrices: { [key: string]: number[][][] } = {};
             
-            const criteriaNames = criteria.map(c => c.name);
+            const criteriaNames = criteria.map((c: Criterion) => c.name);
             const initMatrix = (size: number) => Array(size).fill(0).map(() => Array(size).fill(1));
 
             allRespondentMatrices['goal'] = [];
@@ -231,8 +269,8 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 }
 
                 if (hasAlternatives && alternatives) {
-                    criteria.forEach(c => {
-                        const crit = criteria.find(cr => cr.name === c.name);
+                    criteria.forEach((c: Criterion) => {
+                        const crit = criteria.find((cr: Criterion) => cr.name === c.name);
                         if (!crit) return;
                         const matrixKey = `alt_${crit.id}`;
                          if (answer[matrixKey]) {
@@ -303,3 +341,4 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
     
     return <AHPResultsVisualization analysisResult={analysisResult} />;
 }
+
