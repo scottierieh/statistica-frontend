@@ -406,3 +406,88 @@ export const servqualTemplate = {
         }
     ] as Question[],
 };
+
+export const servperfTemplate = {
+    title: "Service Performance Survey (SERVPERF)",
+    description: "Please rate your perceptions of our service quality across different dimensions.",
+    questions: [
+        {
+            id: 'servperf_desc',
+            type: 'description',
+            title: 'Instructions',
+            content: 'For each statement, please rate your perception of our actual performance on a scale of 1 (Strongly Disagree) to 7 (Strongly Agree).'
+        },
+        {
+            id: 'servperf_tangibles',
+            type: 'servqual',
+            servqualType: 'Perception',
+            title: 'Tangibles (Physical Facilities, Equipment, and Appearance of Personnel)',
+            required: true,
+            rows: [
+                'Have up-to-date equipment.',
+                'Physical facilities are visually appealing.',
+                'Employees are well-dressed and appear neat.',
+                'Materials associated with the service (such as pamphlets or statements) are visually appealing.'
+            ],
+            scale: ['1','2','3','4','5','6','7']
+        },
+        {
+            id: 'servperf_reliability',
+            type: 'servqual',
+            servqualType: 'Perception',
+            title: 'Reliability (Ability to perform the promised service dependably and accurately)',
+            required: true,
+            rows: [
+                'When they promise to do something by a certain time, they do so.',
+                'When you have a problem, they show a sincere interest in solving it.',
+                'Perform the service right the first time.',
+                'Provide their services at the time they promise to do so.',
+                'Maintain error-free records.'
+            ],
+            scale: ['1','2','3','4','5','6','7']
+        },
+        {
+            id: 'servperf_responsiveness',
+            type: 'servqual',
+            servqualType: 'Perception',
+            title: 'Responsiveness (Willingness to help customers and provide prompt service)',
+            required: true,
+            rows: [
+                'Tell customers exactly when services will be performed.',
+                'Give prompt service to customers.',
+                'Are always willing to help customers.',
+                'Are never too busy to respond to customer requests.'
+            ],
+            scale: ['1','2','3','4','5','6','7']
+        },
+        {
+            id: 'servperf_assurance',
+            type: 'servqual',
+            servqualType: 'Perception',
+            title: 'Assurance (Knowledge and courtesy of employees and their ability to inspire trust and confidence)',
+            required: true,
+            rows: [
+                'The behavior of employees instills confidence in customers.',
+                'Customers feel safe in their transactions.',
+                'Employees are consistently courteous with customers.',
+                'Employees have the knowledge to answer customer questions.'
+            ],
+            scale: ['1','2','3','4','5','6','7']
+        },
+        {
+            id: 'servperf_empathy',
+            type: 'servqual',
+            servqualType: 'Perception',
+            title: 'Empathy (Caring, individualized attention the firm provides its customers)',
+            required: true,
+            rows: [
+                'Give customers individual attention.',
+                'Have operating hours convenient to all their customers.',
+                'Have employees who give customers personal attention.',
+                'Have the customers’ best interests at heart.',
+                'The employees understand the specific needs of their customers.'
+            ],
+            scale: ['1','2','3','4','5','6','7']
+        }
+    ] as Question[],
+};

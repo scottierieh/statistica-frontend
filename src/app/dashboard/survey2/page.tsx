@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate, servqualTemplate } from "@/lib/survey-templates";
+import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate, servqualTemplate, servperfTemplate } from "@/lib/survey-templates";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -216,6 +216,7 @@ export default function Survey2Dashboard() {
                             <TemplateCard icon={Replace} title="Semantic Differential" description="Gauge user perception of a concept on bipolar adjective scales." href="/dashboard/createsurvey?template=semantic-differential"/>
                             <TemplateCard icon={Activity} title="Brand Funnel" description="Measure awareness, consideration, preference, and usage for your brand." href="/dashboard/createsurvey?template=brand-funnel"/>
                             <TemplateCard icon={Gauge} title="SERVQUAL" description="Measure service quality by comparing customer expectations vs. perceptions." href="/dashboard/createsurvey?template=servqual"/>
+                            <TemplateCard icon={TrendingUp} title="SERVPERF" description="Measure service quality based on customer perceptions of performance." href="/dashboard/createsurvey?template=servperf"/>
                         </div>
                     </div>
                 </ScrollArea>
