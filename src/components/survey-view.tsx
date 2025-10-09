@@ -322,30 +322,30 @@ const ServqualQuestion = ({ question, answer, onAnswerChange, styles }: { questi
                 {(question.rows || []).map((rowText, index) => (
                     <Card key={index}>
                         <CardHeader className="pb-2"><CardTitle className="text-base">{rowText}</CardTitle></CardHeader>
-                        <CardContent className="grid grid-cols-2 gap-6">
-                             <div>
-                                <Label className="text-sm text-muted-foreground mb-2 block">Expectation</Label>
+                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <div className="p-4 border-l-4 border-blue-300 bg-blue-50 rounded-r-lg">
+                                <Label className="text-sm font-bold text-blue-800 mb-3 block">Expectation</Label>
                                 <div className="flex justify-between">
                                     {scale.map(value => (
                                         <Button
                                             key={`exp-${index}-${value}`}
                                             variant={answer?.[rowText]?.Expectation === value ? 'default' : 'outline'}
                                             size="icon"
-                                            className="h-8 w-8"
+                                            className={cn("h-8 w-8", answer?.[rowText]?.Expectation === value && "bg-blue-600 hover:bg-blue-700")}
                                             onClick={() => handleRatingChange(rowText, 'Expectation', value)}
                                         >{value}</Button>
                                     ))}
                                 </div>
                             </div>
-                            <div>
-                                <Label className="text-sm text-muted-foreground mb-2 block">Perception</Label>
+                            <div className="p-4 border-l-4 border-green-300 bg-green-50 rounded-r-lg">
+                                <Label className="text-sm font-bold text-green-800 mb-3 block">Perception</Label>
                                 <div className="flex justify-between">
                                      {scale.map(value => (
                                         <Button
                                             key={`per-${index}-${value}`}
                                             variant={answer?.[rowText]?.Perception === value ? 'default' : 'outline'}
                                             size="icon"
-                                            className="h-8 w-8"
+                                             className={cn("h-8 w-8", answer?.[rowText]?.Perception === value && "bg-green-600 hover:bg-green-700")}
                                             onClick={() => handleRatingChange(rowText, 'Perception', value)}
                                         >{value}</Button>
                                     ))}
@@ -864,4 +864,3 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         </div>
     );
 }
-
