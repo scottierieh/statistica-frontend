@@ -1,9 +1,10 @@
+
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Bot, Brain } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -28,7 +29,7 @@ interface ConversionRates {
 interface Results {
     funnel_data: { [brand: string]: BrandStages };
     conversion_rates: { [brand: string]: ConversionRates };
-    market_share: { [brand: string]: { [stage: string]: number } };
+    market_share: { [stage: string]: { [brand: string]: number } };
     efficiency: { [brand: string]: { funnel_efficiency: number; drop_off_rate: number } };
     bottlenecks: Array<{ brand: string; bottleneck_stage: string; conversion_rate: number }>;
     drop_off: { [brand: string]: { [stage: string]: { count: number; rate: number } } };
@@ -39,6 +40,7 @@ interface Results {
         biggest_opportunity: { brand: string; bottleneck: string; rate: number; description: string };
         conversion_champion: { brand: string; rate: number; description: string };
     };
+    interpretation: string;
 }
 
 interface Props {
@@ -59,27 +61,27 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     const funnelDataForChart = useMemo(() => {
         if (!results?.funnel_data) return [];
         const stages = ['awareness', 'consideration', 'preference', 'usage'];
-        const brands = Object.keys(results.funnel_data);
         return stages.map(stage => {
             const row: any = { stage: stage.charAt(0).toUpperCase() + stage.slice(1) };
             brands.forEach(brand => {
                 const safeBrandKey = brand.replace(/\s/g, '_');
-                row[safeBrandKey] = results.funnel_data[brand][stage as keyof BrandStages];
+                row[safeBrandKey] = results.funnel_data[brand]?.[stage as keyof BrandStages] ?? 0;
             });
             return row;
         });
-    }, [results]);
+    }, [results, brands]);
     
     const marketShareData = useMemo(() => {
-        if (!results) return [];
-        return Object.entries(results.market_share).map(([brand, stages]) => ({
-            brand,
-            awareness: stages.awareness_share,
-            consideration: stages.consideration_share,
-            preference: stages.preference_share,
-            usage: stages.usage_share
-        }));
-    }, [results]);
+        if (!results?.market_share) return [];
+        const stages = ['awareness_share', 'consideration_share', 'preference_share', 'usage_share'];
+        return brands.map(brand => {
+            const row: { [key: string]: string | number } = { brand };
+            stages.forEach(stage => {
+                row[stage] = results.market_share[stage]?.[brand] ?? 0;
+            });
+            return row;
+        });
+    }, [results, brands]);
 
     const handleAnalysis = useCallback(async () => {
         setLoading(true);
@@ -167,6 +169,19 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     
     return (
         <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>AI-Powered Interpretation</CardTitle>
+                </CardHeader>
+                 <CardContent>
+                    <Alert>
+                        <Brain className="h-4 w-4" />
+                        <AlertTitle>Strategic Insights</AlertTitle>
+                        <AlertDescription className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: results.interpretation.replace(/\n/g, '<br/>') }} />
+                    </Alert>
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle>Brand Funnel</CardTitle>
@@ -263,20 +278,20 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Brand</TableHead>
-                                        <TableHead className="text-right">Awareness</TableHead>
-                                        <TableHead className="text-right">Consideration</TableHead>
-                                        <TableHead className="text-right">Preference</TableHead>
-                                        <TableHead className="text-right">Usage</TableHead>
+                                        <TableHead className="text-right">Awareness Share</TableHead>
+                                        <TableHead className="text-right">Consideration Share</TableHead>
+                                        <TableHead className="text-right">Preference Share</TableHead>
+                                        <TableHead className="text-right">Usage Share</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {marketShareData.map(({ brand, awareness, consideration, preference, usage }) => (
-                                        <TableRow key={brand}>
-                                            <TableCell className="font-medium">{brand}</TableCell>
-                                            <TableCell className="text-right">{(awareness ?? 0).toFixed(1)}%</TableCell>
-                                            <TableCell className="text-right">{(consideration ?? 0).toFixed(1)}%</TableCell>
-                                            <TableCell className="text-right">{(preference ?? 0).toFixed(1)}%</TableCell>
-                                            <TableCell className="text-right">{(usage ?? 0).toFixed(1)}%</TableCell>
+                                    {marketShareData.map(row => (
+                                        <TableRow key={row.brand}>
+                                            <TableCell className="font-medium">{row.brand}</TableCell>
+                                            <TableCell className="text-right">{(row.awareness_share as number ?? 0).toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right">{(row.consideration_share as number ?? 0).toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right">{(row.preference_share as number ?? 0).toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right">{(row.usage_share as number ?? 0).toFixed(1)}%</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

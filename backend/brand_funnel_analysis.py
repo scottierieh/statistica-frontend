@@ -27,6 +27,26 @@ def _to_native_type(obj):
         return None
     return obj
 
+def generate_interpretation(results: dict) -> str:
+    """Generates a detailed text interpretation of the brand funnel analysis."""
+    insights = results.get('insights')
+    if not insights:
+        return "Not enough data to generate a full interpretation."
+
+    top_performer = insights.get('top_performer', {})
+    market_leader = insights.get('market_leader', {})
+    biggest_opportunity = insights.get('biggest_opportunity', {})
+    conversion_champion = insights.get('conversion_champion', {})
+
+    interp = f"**Overall Performance:**\nThe analysis reveals distinct performance profiles for each brand. **{top_performer.get('brand', 'N/A')}** emerges as the top performer with the highest overall funnel efficiency of **{top_performer.get('efficiency', 0):.1f}%** from awareness to usage. In terms of market presence, **{market_leader.get('awareness', 'N/A')}** leads in brand awareness, while **{market_leader.get('usage', 'N/A')}** commands the largest share of actual usage.\n\n"
+
+    interp += f"**Conversion Insights:**\n**{conversion_champion.get('brand', 'N/A')}** is the 'Conversion Champion,' successfully converting **{conversion_champion.get('rate', 0):.1f}%** of aware customers into users. This indicates a highly effective marketing and product experience.\n\n"
+
+    interp += f"**Strategic Recommendations:**\nThe biggest opportunity for growth lies with **{biggest_opportunity.get('brand', 'N/A')}**, which sees its most significant customer drop-off at the **'{biggest_opportunity.get('bottleneck', 'N/A')}'** stage. Focusing marketing efforts and product improvements at this specific point could yield the highest return on investment. For other brands, analyzing their respective bottlenecks will reveal the most critical areas for strategic intervention."
+    
+    return interp.strip()
+
+
 class BrandFunnelAnalysis:
     """
     Brand Funnel Analysis
@@ -216,6 +236,10 @@ class BrandFunnelAnalysis:
             'health_scores': self.calculate_health_scores(),
             'insights': self.generate_insights()
         }
+        
+        # Add interpretation to the results
+        results['interpretation'] = generate_interpretation(results)
+
         return _to_native_type(results)
 
 def main():
@@ -240,3 +264,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
