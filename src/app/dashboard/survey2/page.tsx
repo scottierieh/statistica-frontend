@@ -1,10 +1,9 @@
-
 'use client';
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network, Replace, Activity, Trash2, AlertCircle } from "lucide-react";
+import { Plus, BarChart3, Users, FileText, TrendingUp, ClipboardList, Handshake, ShieldCheck, DollarSign, Target, Network, Replace, Activity, Trash2, AlertCircle, CheckSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatsCard from "@/components/dashboard/survey2/StatsCard";
@@ -23,6 +22,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate } from "@/lib/survey-templates";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
 
 const TemplateCard = ({ icon: Icon, title, description, href, learnMoreLink }: { icon: React.ElementType, title: string, description: string, href: string, learnMoreLink?: string }) => (
     <div className="p-4 border rounded-lg hover:bg-accent hover:shadow-md transition-all h-full flex flex-col">
@@ -54,6 +55,7 @@ export default function Survey2Dashboard() {
   const [filter, setFilter] = useState("all");
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [selectedSurveys, setSelectedSurveys] = useState<string[]>([]);
+  const [selectionModeActive, setSelectionModeActive] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -97,10 +99,17 @@ export default function Survey2Dashboard() {
 
   const handleDeleteSelected = () => {
     const updatedSurveys = surveys.filter(s => !selectedSurveys.includes(s.id));
-    const updatedResponses = responses.filter(r => !selectedSurveys.includes(r.survey_id));
+    
+    // This part assumes responses are linked to surveys by survey.id, which might need adjustment
+    // based on actual data structure. Let's assume survey_id exists in response.
+    const updatedResponses: SurveyResponse[] = [];
+    updatedSurveys.forEach(survey => {
+      const surveyResponses = JSON.parse(localStorage.getItem(`${survey.id}_responses`) || '[]');
+      updatedResponses.push(...surveyResponses);
+    });
 
     setSurveys(updatedSurveys);
-    setResponses(updatedResponses);
+    setResponses(updatedResponses); // This line is for local state, actual persistence is next
     localStorage.setItem('surveys', JSON.stringify(updatedSurveys));
     selectedSurveys.forEach(id => localStorage.removeItem(`${id}_responses`));
     
@@ -109,6 +118,14 @@ export default function Survey2Dashboard() {
         description: `${selectedSurveys.length} survey(s) and their responses have been deleted.`
     });
     setSelectedSurveys([]);
+    setSelectionModeActive(false);
+  };
+
+  const handleToggleSelectionMode = () => {
+    if (selectionModeActive) {
+      setSelectedSurveys([]);
+    }
+    setSelectionModeActive(!selectionModeActive);
   };
 
 
@@ -258,28 +275,42 @@ export default function Survey2Dashboard() {
             </button>
             ))}
         </div>
-        {selectedSurveys.length > 0 && (
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="gap-2">
-                        <Trash2 className="w-4 h-4" />
-                        Delete ({selectedSurveys.length})
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This will permanently delete {selectedSurveys.length} survey(s) and all associated responses. This action cannot be undone.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteSelected}>Delete</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        )}
+        <div className="flex items-center gap-2">
+            <Button
+                variant="outline"
+                size="icon"
+                onClick={handleToggleSelectionMode}
+                className={cn(selectionModeActive && "bg-primary text-primary-foreground")}
+            >
+                <CheckSquare className="w-5 h-5" />
+            </Button>
+            <AnimatePresence>
+                {selectionModeActive && selectedSurveys.length > 0 && (
+                    <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }}>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="gap-2">
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete ({selectedSurveys.length})
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will permanently delete {selectedSurveys.length} survey(s) and all associated responses. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteSelected}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
       </div>
 
       {isLoading ? (
@@ -305,7 +336,8 @@ export default function Survey2Dashboard() {
                 responses={responses.filter(r => r.survey_id === survey.id)}
                 onUpdate={handleSurveyUpdate}
                 isSelected={selectedSurveys.includes(survey.id)}
-                onToggleSelect={handleToggleSelection}
+                onToggleSelect={() => handleToggleSelection(survey.id)}
+                selectionModeActive={selectionModeActive}
               />
             ))}
           </AnimatePresence>

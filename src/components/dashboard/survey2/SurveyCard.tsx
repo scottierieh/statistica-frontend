@@ -1,4 +1,3 @@
-
 'use client';
 import { motion } from "framer-motion";
 import Link from 'next/link';
@@ -31,10 +30,11 @@ interface SurveyCardProps {
     responses: SurveyResponse[];
     onUpdate: (updatedSurvey: Survey) => void;
     isSelected: boolean;
-    onToggleSelect: (surveyId: string) => void;
+    onToggleSelect: () => void;
+    selectionModeActive: boolean;
 }
 
-export default function SurveyCard({ survey, responses, onUpdate, isSelected, onToggleSelect }: SurveyCardProps) {
+export default function SurveyCard({ survey, responses, onUpdate, isSelected, onToggleSelect, selectionModeActive }: SurveyCardProps) {
     const { toast } = useToast();
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [qrCodeUrl, setQrCodeUrl] = useState('');
@@ -168,11 +168,17 @@ export default function SurveyCard({ survey, responses, onUpdate, isSelected, on
             <div>
                  <div className="flex justify-between items-start mb-4">
                     <div className="flex items-start gap-3">
-                         <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => onToggleSelect(survey.id)}
-                            className="mt-1"
-                        />
+                        <AnimatePresence>
+                         {selectionModeActive && (
+                            <motion.div initial={{opacity: 0, width: 0}} animate={{opacity: 1, width: 'auto'}} exit={{opacity: 0, width: 0}}>
+                                 <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={onToggleSelect}
+                                    className="mt-1"
+                                />
+                            </motion.div>
+                         )}
+                        </AnimatePresence>
                         <h3 className="font-bold text-slate-800 text-lg leading-tight pr-4">{survey.title}</h3>
                     </div>
                     <TooltipProvider>
