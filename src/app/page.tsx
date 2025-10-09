@@ -124,7 +124,7 @@ export default function LandingPage() {
             )}
              {enterpriseImage && (
               <div className="grid md:grid-cols-2 gap-12 items-center">
-                <div className="flex justify-center md:order-2">
+                <div className="flex justify-center md:order-1">
                    <Image 
                       src={enterpriseImage.imageUrl}
                       alt={enterpriseImage.description}
@@ -134,7 +134,7 @@ export default function LandingPage() {
                       data-ai-hint={enterpriseImage.imageHint}
                     />
                 </div>
-                <div className="space-y-4 md:order-1">
+                <div className="space-y-4 md:order-2">
                   <h2 className="text-3xl font-bold font-headline tracking-tight sm:text-4xl">Built for enterprise</h2>
                    <p className="text-muted-foreground text-lg">
                     Take your insights to the next level by integrating with the full range of your enterprise systems through APIs or FTP sync, for marketing automation and more.
