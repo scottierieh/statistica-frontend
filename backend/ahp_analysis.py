@@ -183,6 +183,61 @@ def geometric_mean_of_matrices(matrices):
                 
     return geo_mean_matrix
 
+def process_hierarchy_level(level_nodes, matrices_by_respondent, alternatives, all_criteria_names):
+    """
+    Recursively process a level of the hierarchy.
+    """
+    analysis_results = {}
+    
+    level_criteria_names = [node['name'] for node in level_nodes]
+    
+    # --- Main criteria analysis for this level ---
+    matrix_key = f"sub_criteria_{level_nodes[0].get('parent_id')}" if 'parent_id' in level_nodes[0] else 'criteria'
+
+    if matrix_key not in matrices_by_respondent:
+         if 'goal' in matrices_by_respondent and matrix_key == 'criteria':
+             matrix_key = 'goal'
+         else:
+            return {} # Not enough data for this level
+
+    agg_matrix = geometric_mean_of_matrices(matrices_by_respondent[matrix_key])
+    
+    if agg_matrix is not None:
+        ahp = AHPAnalysis(level_criteria_names)
+        ahp.set_criteria_matrix(agg_matrix)
+        ahp.analyze()
+        analysis_results = ahp.get_results()['criteria_analysis']
+
+    # --- Sub-criteria and alternatives analysis ---
+    analysis_results['sub_criteria_analysis'] = {}
+    
+    for node in level_nodes:
+        criterion_name = node['name']
+        
+        # Analyze sub-criteria if they exist
+        if 'nodes' in node and node['nodes']:
+            sub_analysis = process_hierarchy_level(node['nodes'], matrices_by_respondent, alternatives, all_criteria_names)
+            if sub_analysis:
+                analysis_results['sub_criteria_analysis'][criterion_name] = sub_analysis
+        
+        # Analyze alternatives for this criterion if it's a leaf node in the criteria hierarchy
+        elif alternatives:
+            alt_matrix_key = f"alt_{node['id']}" # Key based on ID from frontend
+            alt_matrix_key_by_name = f"alt_{criterion_name}" # Key based on name
+            
+            if alt_matrix_key in matrices_by_respondent or alt_matrix_key_by_name in matrices_by_respondent:
+                key_to_use = alt_matrix_key if alt_matrix_key in matrices_by_respondent else alt_matrix_key_by_name
+                agg_alt_matrix = geometric_mean_of_matrices(matrices_by_respondent[key_to_use])
+                
+                if agg_alt_matrix is not None:
+                    alt_ahp = AHPAnalysis(alternatives)
+                    alt_ahp.set_criteria_matrix(agg_alt_matrix)
+                    alt_ahp.analyze()
+                    analysis_results.setdefault('alternatives_analysis', {})[criterion_name] = alt_ahp.get_results()['criteria_analysis']
+                    
+    return analysis_results
+
+
 def main():
     try:
         # Read input from stdin
@@ -207,64 +262,19 @@ def main():
             raise ValueError("Invalid or missing matrices data")
 
         # Extract criteria names
-        criteria_nodes = [node['name'] for node in hierarchy[0].get('nodes', [])] if hierarchy else []
+        criteria_nodes = hierarchy[0].get('nodes', []) if hierarchy else []
 
         if not criteria_nodes:
             raise ValueError("No criteria found in hierarchy")
+        
+        all_criteria_names = [node['name'] for node in criteria_nodes]
 
         has_alternatives = bool(alternatives and len(alternatives) > 0)
         
-        # Initialize AHP
-        ahp = AHPAnalysis(criteria_nodes, alternatives if has_alternatives else None)
-        
-        # Aggregate matrices using geometric mean
-        agg_matrices = {}
-        for key, matrix_list in matrices_by_respondent.items():
-            if matrix_list and len(matrix_list) > 0:
-                try:
-                    agg_matrices[key] = geometric_mean_of_matrices(matrix_list)
-                except Exception as e:
-                    raise ValueError(f"Error aggregating matrices for key '{key}': {str(e)}")
+        # Perform hierarchical analysis
+        full_results = process_hierarchy_level(criteria_nodes, matrices_by_respondent, alternatives, all_criteria_names)
 
-        # Set criteria matrix
-        if 'goal' in agg_matrices:
-            ahp.set_criteria_matrix(agg_matrices['goal'])
-        elif 'criteria' in agg_matrices:
-            ahp.set_criteria_matrix(agg_matrices['criteria'])
-        else:
-            raise ValueError("Criteria comparison matrix for 'goal' or 'criteria' not found in matrices")
-
-        # Set alternative matrices if they exist
-        if has_alternatives:
-            missing_criteria = []
-            used_criteria = []
-            
-            for criterion in criteria_nodes:
-                matrix_key_new = f"alt_{criterion}"
-                matrix_key_old = f"goal.{criterion}"
-                
-                if matrix_key_new in agg_matrices:
-                    ahp.set_alternative_matrix(criterion, agg_matrices[matrix_key_new])
-                    used_criteria.append(criterion)
-                elif matrix_key_old in agg_matrices: # Fallback for old key format
-                    ahp.set_alternative_matrix(criterion, agg_matrices[matrix_key_old])
-                    used_criteria.append(criterion)
-                else:
-                    missing_criteria.append(criterion)
-            
-            if missing_criteria and len(used_criteria) == 0:
-                available_keys = [k for k in agg_matrices.keys() if k not in ['goal', 'criteria']]
-                raise ValueError(
-                    f"No alternative comparison matrices found for any criteria. "
-                    f"Expected keys like 'alt_{criteria_nodes[0]}', but available keys are: {available_keys}"
-                )
-
-        # Perform analysis (this must happen after setting all matrices)
-        ahp.analyze()
-        results_data = ahp.get_results()
-
-        # Prepare response
-        response = {"results": results_data}
+        response = {"results": full_results}
         
         # Output JSON with custom encoder
         print(json.dumps(response, cls=NumpyEncoder, ensure_ascii=False, indent=2))

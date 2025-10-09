@@ -9,26 +9,15 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 const AHPResultsVisualization = ({ results }: { results: any }) => {
     const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
-    const criteriaData = results.criteria_analysis?.weights
+    const mainCriteriaData = results.criteria_analysis?.weights
         ? Object.entries(results.criteria_analysis.weights).map(([name, weight]: [string, any]) => ({
             name,
             weight: (weight * 100).toFixed(1),
             weightValue: weight
         })).sort((a, b) => b.weightValue - a.weightValue)
         : [];
-
-    const alternativesBycriterion = results.alternative_weights_by_criterion
-        ? Object.entries(results.alternative_weights_by_criterion).map(([criterion, data]: [string, any]) => ({
-            criterion,
-            alternatives: Object.entries(data.weights).map(([name, weight]: [string, any]) => ({
-                name,
-                weight: (weight * 100).toFixed(1),
-                weightValue: weight
-            })),
-            cr: data.consistency.CR,
-            isConsistent: data.consistency.is_consistent
-        }))
-        : [];
+    
+    const subCriteriaAnalyses = results.sub_criteria_analysis ? Object.entries(results.sub_criteria_analysis) : [];
 
     const finalScoresData = results.final_scores?.map((item: any) => ({
         name: item.name,
@@ -48,55 +37,73 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
         return null;
     };
 
+    const renderBarChart = (title: string, data: any[], consistency: any) => (
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+                {consistency && (
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm text-gray-600">
+                            CR: <span className={`font-bold ${consistency.CR < 0.1 ? 'text-green-600' : 'text-red-600'}`}>
+                                {(consistency.CR * 100).toFixed(2)}%
+                            </span>
+                        </span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${consistency.is_consistent ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {consistency.is_consistent ? '✓ Consistent' : '✗ Inconsistent'}
+                        </span>
+                    </div>
+                )}
+            </div>
+            <p className="text-gray-600 text-sm mb-4">
+                The weights represent the relative importance of each item within this category.
+            </p>
+            <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="name" tick={{ fill: '#4b5563', fontWeight: 600 }} />
+                    <YAxis label={{ value: 'Weight (%)', angle: -90, position: 'insideLeft', fill: '#4b5563' }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="weight" radius={[8, 8, 0, 0]}>
+                        {data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+
     return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-slate-50 rounded-xl">
             <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
                 AHP Analysis Results
             </h1>
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-bold text-gray-800">Criteria Weights</h2>
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm text-gray-600">
-                            CR: <span className={`font-bold ${results.criteria_analysis.consistency.CR < 0.1 ? 'text-green-600' : 'text-red-600'}`}>
-                                {(results.criteria_analysis.consistency.CR * 100).toFixed(2)}%
-                            </span>
-                        </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${results.criteria_analysis.consistency.is_consistent ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {results.criteria_analysis.consistency.is_consistent ? '✓ Consistent' : '✗ Inconsistent'}
-                        </span>
-                    </div>
-                </div>
-                <p className="text-gray-600 text-sm mb-4">
-                    The criteria weights represent the relative importance of each evaluation criterion in the decision-making process.
-                    Higher weights indicate more influential criteria in the final decision.
-                </p>
-                <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={criteriaData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis dataKey="name" tick={{ fill: '#4b5563', fontWeight: 600 }} />
-                        <YAxis label={{ value: 'Weight (%)', angle: -90, position: 'insideLeft', fill: '#4b5563' }} />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="weight" radius={[8, 8, 0, 0]}>
-                            {criteriaData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
-            </div>
+            
+            {renderBarChart("Main Criteria Weights", mainCriteriaData, results.criteria_analysis?.consistency)}
+
+            {subCriteriaAnalyses.map(([parentCriterion, subAnalysis]: [string, any]) => (
+                renderBarChart(
+                    `Sub-Criteria Weights for "${parentCriterion}"`,
+                    Object.entries(subAnalysis.weights).map(([name, weight]) => ({
+                        name,
+                        weight: (weight as number * 100).toFixed(1),
+                        weightValue: weight
+                    })).sort((a: any, b: any) => b.weightValue - a.weightValue),
+                    subAnalysis.consistency
+                )
+            ))}
+
             {finalScoresData.length > 0 && (
                 <div className="bg-white rounded-lg shadow-lg p-6">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Final Ranking</h2>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Final Ranking of Alternatives</h2>
                     <p className="text-gray-600 text-sm mb-4">
-                        The final scores are calculated by combining the criteria weights with each alternative's performance across all criteria.
-                        This represents the overall preference ranking based on the complete AHP analysis.
+                        The final scores are calculated by combining all criteria and sub-criteria weights with each alternative's performance across all criteria.
                     </p>
                     <ResponsiveContainer width="100%" height={350}>
                         <BarChart data={finalScoresData} layout="vertical" margin={{ top: 20, right: 30, left: 100, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                             <XAxis type="number" label={{ value: 'Final Score (%)', position: 'insideBottom', offset: -5, fill: '#4b5563' }} />
-                            <YAxis type="category" dataKey="name" tick={{ fill: '#4b5563', fontWeight: 600 }} />
+                            <YAxis type="category" dataKey="name" tick={{ fill: '#4b5563', fontWeight: 600 }} width={100} />
                             <Tooltip content={<CustomTooltip />} />
                             <Bar dataKey="score" radius={[0, 8, 8, 0]}>
                                 {finalScoresData.map((entry, index) => (
@@ -154,32 +161,24 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 return null;
             };
 
-            const getItemsForMatrix = (key: string, criteria: Criterion[], alternatives: string[]) => {
-                if (key === 'criteria' || key === 'goal') return criteria;
-                if (key.startsWith('alt_')) {
-                    const critId = key.substring(4);
-                    const crit = findCriterion(critId, criteria);
-                    if (crit?.subCriteria && crit.subCriteria.length > 0) {
-                        return crit.subCriteria;
-                    }
-                    return alternatives;
-                }
-                const subCritMatch = key.match(/^sub_criteria_(.*)$/);
-                if (subCritMatch) {
-                    const parentId = subCritMatch[1];
-                    const parent = findCriterion(parentId, criteria);
-                    return parent?.subCriteria || [];
-                }
-                return [];
-            };
-
             responses.forEach(resp => {
                 const answerData = (resp.answers as any)[ahpQuestion.id];
                 if (!answerData || typeof answerData !== 'object') return;
                 
                 Object.entries(answerData).forEach(([matrixKey, matrixValues]: [string, any]) => {
-                    const items = getItemsForMatrix(matrixKey, ahpQuestion.criteria || [], ahpQuestion.alternatives || []);
+                    let items: (Criterion | string)[] = [];
+                    if (matrixKey === 'criteria' || matrixKey === 'goal') {
+                        items = ahpQuestion.criteria!;
+                    } else if (matrixKey.startsWith('alt_')) {
+                        items = ahpQuestion.alternatives || [];
+                    } else if (matrixKey.startsWith('sub_criteria_')) {
+                        const parentId = matrixKey.replace('sub_criteria_', '');
+                        const parentCriterion = findCriterion(parentId, ahpQuestion.criteria!);
+                        items = parentCriterion?.subCriteria || [];
+                    }
+
                     if (!items || items.length < 2) return;
+                    
                     const itemNames = items.map(i => typeof i === 'string' ? i : i.name);
                     const n = itemNames.length;
                     const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(1.0));
