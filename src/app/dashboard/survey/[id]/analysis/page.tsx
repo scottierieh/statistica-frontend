@@ -16,6 +16,7 @@ import GaborGrangerAnalysisPage from '@/components/pages/gabor-granger-analysis-
 import SemanticDifferentialPage from '@/components/pages/semantic-differential-page';
 import BrandFunnelPage from '@/components/pages/brand-funnel-page';
 import ServqualPage from '@/components/pages/servqual-page';
+import ServperfPage from '@/components/pages/servperf-page';
 
 
 export default function SurveyAnalysis() {
@@ -75,8 +76,8 @@ export default function SurveyAnalysis() {
                  analyses.push({ key: 'turf', label: 'TURF Analysis', component: <TurfPage data={turfData} categoricalHeaders={[turfQuestion.title]} onLoadExample={() => {}} /> });
             }
         }
-        if (survey.questions.some(q => q.type === 'ahp')) {
-            analyses.push({ key: 'ahp', label: 'AHP Analysis', component: <AhpPage survey={survey} responses={responses} /> });
+        if (survey.questions.some(q => q.type === 'ahp' || q.type === 'anp')) {
+            analyses.push({ key: 'ahp', label: 'AHP/ANP Analysis', component: <AhpPage survey={survey} responses={responses} /> });
         }
         if (survey.questions.some(q => q.type === 'single' && q.title.toLowerCase().includes('if this product was sold for'))) {
             analyses.push({ key: 'gabor-granger', label: 'Gabor-Granger', component: <GaborGrangerAnalysisPage survey={survey} responses={responses} /> });
@@ -91,7 +92,7 @@ export default function SurveyAnalysis() {
             analyses.push({ key: 'servqual', label: 'SERVQUAL', component: <ServqualPage survey={survey} responses={responses} /> });
         }
         if (survey.questions.some(q => q.type === 'servqual' && q.servqualType === 'Perception')) {
-            analyses.push({ key: 'servperf', label: 'SERVPERF', component: <ServqualPage survey={survey} responses={responses} /> });
+            analyses.push({ key: 'servperf', label: 'SERVPERF', component: <ServperfPage survey={survey} responses={responses} /> });
         }
         return analyses;
     }, [survey, responses]);

@@ -6,11 +6,26 @@ import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse } from '@/types/survey';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Skeleton } from '../ui/skeleton';
-import { Loader2, Zap, Brain, BarChart as BarChartIcon, DollarSign, LineChart, Users, Star, ThumbsDown, GitCommit } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, TrendingDown, TrendingUp, AlertCircle } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, CartesianGrid, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+    ResponsiveContainer, 
+    BarChart, 
+    XAxis, 
+    YAxis, 
+    Tooltip, 
+    Legend, 
+    Bar, 
+    CartesianGrid, 
+    Cell,
+    RadarChart,
+    Radar,
+    PolarGrid,
+    PolarAngleAxis,
+    PolarRadiusAxis
+} from 'recharts';
 
 interface ServqualResults {
     dimensionScores: {
@@ -21,11 +36,6 @@ interface ServqualResults {
     }[];
     overallGap: number;
     analysisType: 'SERVQUAL' | 'SERVPERF';
-}
-
-interface FullAnalysisResponse {
-    results: ServqualResults;
-    error?: string;
 }
 
 interface ServqualPageProps {
@@ -40,16 +50,11 @@ export default function ServqualPage({ survey, responses }: ServqualPageProps) {
     const [analysisResult, setAnalysisResult] = useState<ServqualResults | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState('comparison');
 
     const handleAnalysis = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
-            if (!survey || !responses || responses.length === 0) {
-                throw new Error("No survey data or responses available.");
-            }
-
             const response = await fetch('/api/analysis/servqual', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -72,167 +77,215 @@ export default function ServqualPage({ survey, responses }: ServqualPageProps) {
             setIsLoading(false);
         }
     }, [survey, responses, toast]);
-  
+
     useEffect(() => {
         handleAnalysis();
     }, [handleAnalysis]);
 
     if (isLoading) {
-        return <Card><CardContent className="p-6 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /><p>Running analysis...</p></CardContent></Card>;
+        return <Card><CardContent className="p-12 text-center"><Loader2 className="h-12 w-12 animate-spin mx-auto text-primary mb-4" /><p className="text-lg font-medium">Running SERVQUAL Analysis...</p><p className="text-sm text-muted-foreground mt-2">Analyzing {responses.length} responses</p></CardContent></Card>;
     }
-    if (error) {
-        return <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
-    }
-    if (!analysisResult) {
-        return <Card><CardContent className="p-6 text-center text-muted-foreground">No results to display.</CardContent></Card>;
+
+    if (error || !analysisResult) {
+        return <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{error || "Could not load analysis results."}</AlertDescription></Alert>;
     }
     
     const results = analysisResult;
     const isServperf = results.analysisType === 'SERVPERF';
-
-    const priorityData = [...results.dimensionScores].sort((a, b) => (isServperf ? a.perception - b.perception : (a.gap ?? 0) - (b.gap ?? 0)));
     
-    const chartDataKey = isServperf ? 'perception' : 'gap';
+    const priorityData = [...results.dimensionScores].sort((a, b) => (a.gap || 0) - (b.gap || 0));
+
+    const comparisonData = results.dimensionScores.map(d => ({
+        name: d.name,
+        Expectation: d.expectation,
+        Perception: d.perception
+    }));
+
+    const getSeverity = (gap: number) => {
+        const absGap = Math.abs(gap);
+        if (absGap > 1.0) return { label: 'Critical', color: 'destructive' };
+        if (absGap > 0.5) return { label: 'warning', color: 'orange' };
+        return { label: 'Minor', color: 'default' };
+    };
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
-        <div className="max-w-7xl mx-auto">
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">{isServperf ? 'SERVPERF' : 'SERVQUAL'} Analysis Dashboard</h1>
-              <p className="text-gray-600">Service Quality Gap Analysis</p>
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                        {isServperf ? 'SERVPERF' : 'SERVQUAL'} Analysis Results
+                    </CardTitle>
+                    <CardDescription>
+                        {isServperf 
+                            ? "Measuring service quality based on customer perceptions of performance."
+                            : "Measuring service quality by comparing customer expectations vs. perceptions."
+                        }
+                    </CardDescription>
+                </CardHeader>
+            </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="text-center">
+                            <p className="text-sm text-gray-600 mb-1">Overall Gap Score</p>
+                            <p className="text-4xl font-bold text-red-600">{results.overallGap.toFixed(2)}</p>
+                             <div className="flex items-center justify-center gap-2 mt-2">
+                                <TrendingDown className="h-4 w-4 text-red-600" />
+                                <span className="text-sm font-semibold text-red-600">Service Gap</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="text-center">
+                             <p className="text-sm text-gray-600 mb-1">Sample Size</p>
+                            <p className="text-4xl font-bold text-blue-600">{responses.length}</p>
+                            <p className="text-xs text-gray-500 mt-2">Customer responses</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="text-center">
+                            <p className="text-sm text-gray-600 mb-1">Dimensions Analyzed</p>
+                            <p className="text-4xl font-bold text-green-600">{results.dimensionScores.length}</p>
+                            <p className="text-xs text-gray-500 mt-2">SERVQUAL model</p>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <div className="text-sm text-gray-600 mb-1">Overall {isServperf ? 'Performance' : 'Gap'} Score</div>
-                <div className={`text-3xl font-bold ${results.overallGap < 0 && !isServperf ? 'text-red-600' : 'text-green-600'}`}>{results.overallGap.toFixed(3)}</div>
-                {!isServperf && <div className="text-xs text-gray-500 mt-2">Perception - Expectation</div>}
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <div className="text-sm text-gray-600 mb-1">Sample Size</div>
-                <div className="text-3xl font-bold text-blue-600">{responses.length}</div>
-                <div className="text-xs text-gray-500 mt-2">Customer responses</div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <div className="text-sm text-gray-600 mb-1">Dimensions Analyzed</div>
-                <div className="text-3xl font-bold text-green-600">{results.dimensionScores.length}</div>
-                <div className="text-xs text-gray-500 mt-2">{isServperf ? 'SERVPERF' : 'SERVQUAL'} model</div>
-              </div>
-            </div>
-
-            <Tabs defaultValue="comparison" className="w-full bg-white rounded-lg shadow-lg mb-6">
+            <Tabs defaultValue="gaps" className="space-y-4">
                 <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="comparison">Expectation vs Perception</TabsTrigger>
                     <TabsTrigger value="gaps">Gap Analysis</TabsTrigger>
-                    <TabsTrigger value="radar">Radar Chart</TabsTrigger>
+                    <TabsTrigger value="comparison">Comparison</TabsTrigger>
+                    <TabsTrigger value="radar">Radar View</TabsTrigger>
                     <TabsTrigger value="priority">Priority</TabsTrigger>
                 </TabsList>
-                <TabsContent value="comparison" className="p-6">
-                    <h3 className="text-xl font-bold mb-4">Expectation vs Perception by Dimension</h3>
-                    <ResponsiveContainer width="100%" height={400}>
-                      <BarChart data={results.dimensionScores}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis domain={isServperf ? [0, 'auto'] : [0, 7]} />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Legend />
-                        {!isServperf && <Bar dataKey="expectation" fill="#3b82f6" name="Expectation" />}
-                        <Bar dataKey="perception" fill="#ef4444" name="Perception" />
-                      </BarChart>
-                    </ResponsiveContainer>
+
+                <TabsContent value="gaps">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Service Quality Gap Scores</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <ChartContainer config={{ gap: { label: 'Gap' } }} className="w-full h-96">
+                                <ResponsiveContainer>
+                                    <BarChart data={results.dimensionScores} layout="vertical" margin={{ left: 120 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis type="number" domain={[-1.5, 0.5]} />
+                                        <YAxis type="category" dataKey="name" width={110} />
+                                        <Tooltip content={<ChartTooltipContent />} />
+                                        <Bar dataKey="gap" name="Gap Score">
+                                            {results.dimensionScores.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={(entry.gap || 0) < 0 ? '#ef4444' : '#10b981'} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                            <div className="mt-4 p-4 bg-red-50 rounded">
+                                <p className="text-sm text-gray-700">
+                                    <strong>Gap Score Formula:</strong> Perception - Expectation<br/>
+                                    <strong>Negative gaps</strong> (red) indicate expectations exceed perceptions, requiring improvement.
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
-                <TabsContent value="gaps" className="p-6">
-                     <h3 className="text-xl font-bold mb-4">Service Quality Gap Scores</h3>
-                    <ResponsiveContainer width="100%" height={400}>
-                      <BarChart data={priorityData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" domain={isServperf ? [0, 'auto'] : [-1.5, 0.5]} />
-                        <YAxis type="category" dataKey="name" width={100} />
-                        <Tooltip content={<ChartTooltipContent />}/>
-                        <Bar dataKey={chartDataKey} name={isServperf ? 'Performance Score' : 'Gap Score'}>
-                          {priorityData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={(isServperf ? entry.perception > 4 : (entry.gap ?? 0) >= 0) ? '#10b981' : '#ef4444'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                    {!isServperf &&
-                      <div className="mt-4 p-4 bg-red-50 rounded">
-                        <p className="text-sm text-gray-700">
-                          <strong>Gap Score Formula:</strong> Perception - Expectation<br/>
-                          <strong>Negative gaps</strong> (red) indicate expectations exceed perceptions, requiring improvement.
-                        </p>
-                      </div>
-                    }
+
+                <TabsContent value="comparison">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Expectation vs Perception</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <ChartContainer config={{ Expectation: { label: 'Expectation', color: '#3b82f6' }, Perception: { label: 'Perception', color: '#ef4444' } }} className="w-full h-96">
+                                <ResponsiveContainer>
+                                    <BarChart data={comparisonData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" />
+                                        <YAxis domain={[0, 7]} />
+                                        <Tooltip content={<ChartTooltipContent />} />
+                                        <Legend />
+                                        <Bar dataKey="Expectation" fill="#3b82f6" />
+                                        <Bar dataKey="Perception" fill="#ef4444" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
-                <TabsContent value="radar" className="p-6">
-                    <h3 className="text-xl font-bold mb-4">SERVQUAL Radar Comparison</h3>
-                    <ResponsiveContainer width="100%" height={450}>
-                      <RadarChart data={results.dimensionScores}>
-                        <PolarGrid />
-                        <PolarAngleAxis dataKey="name" />
-                        <PolarRadiusAxis domain={[0, isServperf ? 'auto' : 7]} />
-                        {!isServperf && <Radar name="Expectation" dataKey="expectation" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />}
-                        <Radar name="Perception" dataKey="perception" stroke="#ef4444" fill="#ef4444" fillOpacity={0.3} />
-                        <Legend />
-                        <Tooltip />
-                      </RadarChart>
-                    </ResponsiveContainer>
+                
+                 <TabsContent value="radar">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>SERVQUAL Radar Comparison</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex justify-center">
+                            <ChartContainer config={{ expectation: { label: 'Expectation' }, perception: { label: 'Perception' } }} className="w-full h-[500px]">
+                                <ResponsiveContainer>
+                                    <RadarChart data={results.dimensionScores}>
+                                        <PolarGrid />
+                                        <PolarAngleAxis dataKey="name" />
+                                        <PolarRadiusAxis domain={[0, 7]} />
+                                        <Radar name="Expectation" dataKey="expectation" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+                                        <Radar name="Perception" dataKey="perception" stroke="#ef4444" fill="#ef4444" fillOpacity={0.3} />
+                                        <Legend />
+                                        <Tooltip />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
-                 <TabsContent value="priority" className="p-6">
-                     <h3 className="text-xl font-bold mb-4">Improvement Priority Ranking</h3>
-                    <div className="overflow-x-auto">
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Priority</TableHead>
-                                <TableHead>Dimension</TableHead>
-                                {!isServperf && <TableHead>Expectation</TableHead>}
-                                <TableHead>Perception</TableHead>
-                                <TableHead>{isServperf ? 'Performance' : 'Gap Score'}</TableHead>
-                                <TableHead>Status</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {priorityData.map((item, index) => {
-                                const dim = results.dimensionScores.find(d => d.name === item.name);
-                                return (
-                                  <TableRow key={item.name}>
-                                    <TableCell>
-                                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                        #{index + 1}
-                                      </span>
-                                    </TableCell>
-                                    <TableCell className="font-medium text-gray-900">{item.name}</TableCell>
-                                    {!isServperf && <TableCell className="text-gray-700">{dim?.expectation?.toFixed(2)}</TableCell>}
-                                    <TableCell className="text-gray-700">{dim?.perception?.toFixed(2)}</TableCell>
-                                    <TableCell>
-                                      <span className={`font-bold ${(item.gap ?? 0) < 0 && !isServperf ? 'text-red-600' : 'text-green-600'}`}>
-                                        {(isServperf ? item.perception : item.gap ?? 0).toFixed(2)}
-                                      </span>
-                                    </TableCell>
-                                    <TableCell>
-                                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                        isServperf ? (item.perception > 4 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800') :
-                                        Math.abs(item.gap ?? 0) > 0.8 ? 'bg-red-100 text-red-800' : 
-                                        Math.abs(item.gap ?? 0) > 0.5 ? 'bg-yellow-100 text-yellow-800' : 
-                                        'bg-green-100 text-green-800'
-                                      }`}>
-                                         {isServperf ? (item.perception > 4 ? 'Strong' : 'Okay') : (Math.abs(item.gap ?? 0) > 0.8 ? 'Critical' : Math.abs(item.gap ?? 0) > 0.5 ? 'Moderate' : 'Minor')}
-                                      </span>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
-                    </div>
+                
+                 <TabsContent value="priority">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Improvement Priority Ranking</CardTitle>
+                            <CardDescription>Ranked by gap size. Larger negative gaps indicate higher priority.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Priority</TableHead>
+                                        <TableHead>Dimension</TableHead>
+                                        <TableHead className="text-right">Expectation</TableHead>
+                                        <TableHead className="text-right">Perception</TableHead>
+                                        <TableHead className="text-right">Gap Score</TableHead>
+                                        <TableHead className="text-right">Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {priorityData.map((item, index) => {
+                                         const severity = getSeverity(item.gap || 0);
+                                         return (
+                                            <TableRow key={item.name}>
+                                                <TableCell><Badge variant="outline">#{index + 1}</Badge></TableCell>
+                                                <TableCell className="font-semibold">{item.name}</TableCell>
+                                                <TableCell className="text-right font-mono">{item.expectation?.toFixed(2)}</TableCell>
+                                                <TableCell className="text-right font-mono">{item.perception.toFixed(2)}</TableCell>
+                                                <TableCell className={`text-right font-mono font-bold ${(item.gap || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                    {item.gap?.toFixed(2)}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Badge variant={severity.color as any}>{severity.label}</Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                         );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
         </div>
-      </div>
-    </div>
     );
 }
