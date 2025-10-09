@@ -6,18 +6,25 @@ import pandas as pd
 import warnings
 import io
 import base64
+import math
 
 warnings.filterwarnings('ignore')
 
 def _to_native_type(obj):
-    if isinstance(obj, np.integer):
+    if isinstance(obj, dict):
+        return {k: _to_native_type(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_to_native_type(v) for v in obj]
+    elif isinstance(obj, (np.integer, int)):
         return int(obj)
     elif isinstance(obj, (np.floating, float)):
-        if np.isnan(obj) or np.isinf(obj):
+        if math.isnan(obj) or math.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
-        return obj.tolist()
+        return _to_native_type(obj.tolist())
+    elif pd.isna(obj):
+        return None
     return obj
 
 class BrandFunnelAnalysis:
@@ -177,17 +184,15 @@ class BrandFunnelAnalysis:
     
     def export_results(self):
         """Export analysis results to JSON-serializable dictionary"""
-        conversion_rates_dict = self.conversion_rates.where(pd.notnull(self.conversion_rates), None).to_dict() if self.conversion_rates is not None else {}
-        
         results = {
             'funnel_data': self.funnel_data.to_dict(),
-            'conversion_rates': conversion_rates_dict,
-            'market_share': self.calculate_market_share().fillna(0).to_dict(),
-            'efficiency': self.calculate_funnel_efficiency().fillna(0).to_dict(),
+            'conversion_rates': self.conversion_rates.to_dict(),
+            'market_share': self.calculate_market_share().to_dict(),
+            'efficiency': self.calculate_funnel_efficiency().to_dict(),
             'bottlenecks': self.identify_bottlenecks().to_dict('records'),
             'insights': self.generate_insights()
         }
-        return results
+        return _to_native_type(results)
 
 def main():
     try:
@@ -208,7 +213,7 @@ def main():
             'results': results_to_export
         }
 
-        print(json.dumps(response, default=_to_native_type))
+        print(json.dumps(response))
 
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
@@ -216,6 +221,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-    
