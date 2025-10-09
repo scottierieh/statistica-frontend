@@ -102,15 +102,15 @@ export default function LandingPage() {
             {securityImage && (
               <div className="grid md:grid-cols-2 gap-12 items-center">
                 <div className="space-y-4">
-                  <h2 className="text-3xl font-bold font-headline tracking-tight sm:text-4xl">Security is our priority</h2>
+                  <h2 className="text-3xl font-bold font-headline tracking-tight sm:text-4xl">Powerful Analysis, Made Simple</h2>
                   <p className="text-muted-foreground text-lg">
-                    Caring for our customers' information is critical and complex. The Skarii system has been built with data privacy, protection, anonymity, and compliance in every layer.
+                    Statistica is a comprehensive statistical analysis tool that simplifies complex data analysis. Upload your data, select your analysis, and get results in seconds.
                   </p>
                   <p className="text-muted-foreground">
-                    Fully compliant and holding certifications such as General Data Protection Regulation (GDPR), ISO 27001:2022, CCPA, PCI-DSS, Section 508, PHI, and HIPAA. Enjoy peace of mind with your survey data by choosing a platform trusted by major global brands.
+                   Go beyond numbers with AI-generated interpretations, APA-style reports, and actionable recommendations. Our extensive toolkit includes over 40 analyses, from basic descriptive statistics to advanced structural equation modeling, ensuring you have the right tool for any research question.
                   </p>
                 </div>
-                <div className="flex justify-center md:order-1">
+                <div className="md:order-1 flex justify-center">
                    <Image 
                       src={securityImage.imageUrl}
                       alt={securityImage.description}
@@ -124,7 +124,7 @@ export default function LandingPage() {
             )}
              {enterpriseImage && (
               <div className="grid md:grid-cols-2 gap-12 items-center">
-                <div className="flex justify-center md:order-2">
+                <div className="md:order-2 flex justify-center">
                    <Image 
                       src={enterpriseImage.imageUrl}
                       alt={enterpriseImage.description}
