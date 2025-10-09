@@ -73,11 +73,10 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
     
     const marketShareData = useMemo(() => {
         if (!results?.market_share) return [];
-        const stages = ['awareness_share', 'consideration_share', 'preference_share', 'usage_share'];
         return brands.map(brand => {
-            const row: { [key: string]: string | number } = { brand };
-            stages.forEach(stage => {
-                row[stage] = results.market_share[stage]?.[brand] ?? 0;
+            const row: any = { brand };
+            Object.keys(results.market_share).forEach(stageKey => {
+                row[stageKey] = results.market_share[stageKey]?.[brand] ?? 0;
             });
             return row;
         });
@@ -171,7 +170,7 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>AI-Powered Interpretation</CardTitle>
+                    <CardTitle>Interpretation</CardTitle>
                 </CardHeader>
                  <CardContent>
                     <Alert>
@@ -276,24 +275,24 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                         <TabsContent value="share" className="mt-4">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Brand</TableHead>
-                                        <TableHead className="text-right">Awareness Share</TableHead>
-                                        <TableHead className="text-right">Consideration Share</TableHead>
-                                        <TableHead className="text-right">Preference Share</TableHead>
-                                        <TableHead className="text-right">Usage Share</TableHead>
-                                    </TableRow>
+                                <TableRow>
+                                    <TableHead>Brand</TableHead>
+                                    <TableHead className="text-right">Awareness Share</TableHead>
+                                    <TableHead className="text-right">Consideration Share</TableHead>
+                                    <TableHead className="text-right">Preference Share</TableHead>
+                                    <TableHead className="text-right">Usage Share</TableHead>
+                                </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {marketShareData.map(row => (
-                                        <TableRow key={row.brand}>
-                                            <TableCell className="font-medium">{row.brand}</TableCell>
-                                            <TableCell className="text-right">{(row.awareness_share as number ?? 0).toFixed(1)}%</TableCell>
-                                            <TableCell className="text-right">{(row.consideration_share as number ?? 0).toFixed(1)}%</TableCell>
-                                            <TableCell className="text-right">{(row.preference_share as number ?? 0).toFixed(1)}%</TableCell>
-                                            <TableCell className="text-right">{(row.usage_share as number ?? 0).toFixed(1)}%</TableCell>
-                                        </TableRow>
-                                    ))}
+                                {marketShareData.map(row => (
+                                    <TableRow key={row.brand}>
+                                        <TableCell className="font-medium">{row.brand}</TableCell>
+                                        <TableCell className="text-right">{(row.awareness_share ?? 0).toFixed(1)}%</TableCell>
+                                        <TableCell className="text-right">{(row.consideration_share ?? 0).toFixed(1)}%</TableCell>
+                                        <TableCell className="text-right">{(row.preference_share ?? 0).toFixed(1)}%</TableCell>
+                                        <TableCell className="text-right">{(row.usage_share ?? 0).toFixed(1)}%</TableCell>
+                                    </TableRow>
+                                ))}
                                 </TableBody>
                             </Table>
                         </TabsContent>
