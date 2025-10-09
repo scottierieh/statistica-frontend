@@ -2,9 +2,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
 import { useToast } from '@/hooks/use-toast';
+
+interface AhpPageProps {
+    survey: Survey;
+    responses: SurveyResponse[];
+}
 
 const AHPResultsVisualization = ({ results }: { results: any }) => {
   const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b'];
@@ -249,7 +254,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                       <td className="border border-gray-200 px-4 py-2 text-right">
                         <span className={`font-semibold ${
                           index === 0 ? 'text-yellow-600' : 'text-purple-600'
-                          }`}>
+                        }`}>
                           {item.score}%
                         </span>
                       </td>
@@ -278,6 +283,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
       )}
       <div className="mt-6 bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
         <h3 className="text-xl font-bold text-blue-900 mb-4">📊 Understanding AHP Results</h3>
+        
         <div className="space-y-4 text-sm text-gray-700">
           <div className="bg-white p-4 rounded-lg shadow">
             <p className="font-semibold text-blue-800 mb-2 text-base">What is Consistency Ratio (CR)?</p>
@@ -286,6 +292,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
               A CR less than 10% (0.1) indicates acceptable consistency. Higher values suggest you should review your comparisons.
             </p>
           </div>
+
           <div className="bg-white p-4 rounded-lg shadow">
             <p className="font-semibold text-blue-800 mb-2 text-base">How to interpret the results?</p>
             <div className="space-y-1">
@@ -294,6 +301,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
               <p><strong className="text-purple-700">Final Scores:</strong> Combine both to give an overall ranking of alternatives.</p>
             </div>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-white p-4 rounded-lg shadow">
               <p className="font-semibold text-green-700 mb-2 flex items-center gap-2">
@@ -311,6 +319,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                   : '✗ Please review your pairwise comparisons'}
               </p>
             </div>
+            
             <div className="bg-white p-4 rounded-lg shadow">
               <p className="font-semibold text-purple-700 mb-2 flex items-center gap-2">
                 <span className="text-lg">📈</span> Key Metrics
@@ -336,10 +345,6 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
   );
 };
 
-interface AhpPageProps {
-    survey: Survey;
-    responses: SurveyResponse[];
-}
 
 export default function AhpPage({ survey, responses }: AhpPageProps) {
     const [results, setResults] = useState<any>(null);
@@ -370,7 +375,12 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
   
           const hierarchy = ahpQuestion.criteria ? [{
               name: ahpQuestion.title || 'Goal',
-              nodes: ahpQuestion.criteria.map(c => ({ name: c.name, subCriteria: c.subCriteria }))
+              nodes: ahpQuestion.criteria.map(c => ({
+                  name: c.name,
+                  ...(c.subCriteria && c.subCriteria.length > 0 && {
+                      nodes: c.subCriteria.map(sc => ({ name: sc.name }))
+                  })
+              }))
           }] : [];
   
   
@@ -456,7 +466,6 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
         </div>
       );
     }
-
+  
     return <AHPResultsVisualization results={results} />;
 }
-```
