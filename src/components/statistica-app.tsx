@@ -44,6 +44,10 @@ import {
   ThumbsUp,
   ClipboardList,
   Handshake,
+  Replace,
+  Activity,
+  ZoomIn,
+  HeartPulse as HeartPulseIcon,
   FlaskConical,
   Binary,
   Copy,
@@ -126,6 +130,7 @@ import WordCloudPage from './pages/wordcloud-page';
 import IpaPage from './pages/ipa-page';
 import TurfPage from './pages/turf-page';
 import HistoryPage from './pages/history-page';
+import BrandFunnelPage from './pages/brand-funnel-page';
 
 
 const analysisCategories = [
@@ -251,6 +256,7 @@ const analysisCategories = [
         items: [
             { id: 'ipa', label: 'IPA', icon: Target, component: IpaPage },
             { id: 'turf', label: 'TURF Analysis', icon: ThumbsUp, component: TurfPage },
+            { id: 'brand-funnel', label: 'Brand Funnel', icon: Filter, component: BrandFunnelPage },
         ],
     },
 ];

@@ -14,6 +14,7 @@ import TurfPage from '@/components/pages/turf-page';
 import AhpPage from '@/components/pages/ahp-page';
 import GaborGrangerAnalysisPage from '@/components/pages/gabor-granger-analysis-page';
 import SemanticDifferentialPage from '@/components/pages/semantic-differential-page';
+import BrandFunnelPage from '@/components/pages/brand-funnel-page';
 
 
 export default function SurveyAnalysis() {
@@ -81,6 +82,9 @@ export default function SurveyAnalysis() {
         }
          if (survey.questions.some(q => q.type === 'semantic-differential' || q.type === 'likert')) {
             analyses.push({ key: 'semantic-differential', label: 'Semantic Differential', component: <SemanticDifferentialPage survey={survey} responses={responses} /> });
+        }
+        if (survey.title.toLowerCase().includes('brand funnel')) {
+            analyses.push({ key: 'brand-funnel', label: 'Brand Funnel', component: <BrandFunnelPage survey={survey} responses={responses} /> });
         }
         return analyses;
     }, [survey, responses]);
