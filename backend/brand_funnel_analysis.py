@@ -63,7 +63,7 @@ class BrandFunnelAnalysis:
         - total_respondents: The total number of survey respondents
         """
         self.brands = brands
-        self.funnel_data = pd.DataFrame(funnel_data).T.reindex(brands).fillna(0).astype(int)
+        self.funnel_data = pd.DataFrame.from_dict(funnel_data, orient='index').reindex(brands).fillna(0).astype(int)
         self.total_respondents = total_respondents
         self.conversion_rates = pd.DataFrame()
         
@@ -264,6 +264,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
