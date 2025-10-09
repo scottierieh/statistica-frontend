@@ -297,6 +297,12 @@ export const brandFunnelTemplate = {
     description: "Please answer the following questions about your awareness and perception of these brands.",
     questions: [
         {
+            id: 'bf_desc',
+            type: 'description',
+            title: 'Instructions',
+            content: 'This survey will ask you about your awareness, consideration, preference, and usage of several brands. Please answer as accurately as possible.'
+        },
+        {
             id: 'awareness',
             type: 'multiple',
             title: 'Which of the following brands have you heard of?',
