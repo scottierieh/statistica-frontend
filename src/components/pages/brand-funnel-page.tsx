@@ -100,9 +100,6 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
             }
 
             const data: FullAnalysisResponse = await apiResponse.json();
-            if ((data as any).error) {
-                throw new Error((data as any).error);
-            }
             setAnalysisResult(data);
         } catch (err: any) {
             setError(err.message);
@@ -120,19 +117,9 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
     useEffect(() => {
         processAndAnalyzeData();
     }, [processAndAnalyzeData]);
-    
-    if (isLoading) {
-        return <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>;
-    }
-    
-    if (error) {
-        return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
-    }
-    
-    if (!analysisResult) return null;
 
-    const { results } = analysisResult;
-    
+    const results = analysisResult?.results;
+
     const funnelDataForChart = useMemo(() => {
         if (!results?.funnel_data) return [];
         const stages = ['awareness', 'consideration', 'preference', 'usage'];
@@ -146,7 +133,16 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
             return stageData;
         });
     }, [results]);
-
+    
+    if (isLoading) {
+        return <Card><CardContent className="p-6"><Skeleton className="h-96 w-full"/></CardContent></Card>;
+    }
+    
+    if (error) {
+        return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
+    }
+    
+    if (!analysisResult || !results) return null;
 
     const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
@@ -242,7 +238,11 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                                     {Object.entries(results.conversion_rates).map(([brand, stages]) => (
                                         <TableRow key={brand}>
                                             <TableCell>{brand}</TableCell>
-                                            {Object.values(stages).map((value, i) => <TableCell key={i} className="text-right">{(value ?? 0).toFixed(1)}%</TableCell>)}
+                                            {Object.values(stages).map((value, i) => (
+                                                <TableCell key={i} className="text-right">
+                                                    {(value ?? 0).toFixed(1)}%
+                                                </TableCell>
+                                            ))}
                                         </TableRow>
                                     ))}
                                 </TableBody>
