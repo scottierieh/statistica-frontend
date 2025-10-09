@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from "react";
@@ -83,6 +82,17 @@ export default function Survey2Dashboard() {
     setSurveys(prevSurveys => 
       prevSurveys.map(s => s.id === updatedSurvey.id ? updatedSurvey : s)
     );
+  };
+
+  const handleDeleteSurvey = (surveyId: string) => {
+    const updatedSurveys = surveys.filter(s => s.id !== surveyId);
+    const updatedResponses = responses.filter(r => r.survey_id !== surveyId);
+    
+    setSurveys(updatedSurveys);
+    setResponses(updatedResponses);
+    
+    localStorage.setItem('surveys', JSON.stringify(updatedSurveys));
+    localStorage.removeItem(`${surveyId}_responses`);
   };
 
   const filteredSurveys = filter === "all" 
@@ -253,6 +263,7 @@ export default function Survey2Dashboard() {
                 survey={survey}
                 responses={responses.filter(r => r.survey_id === survey.id)}
                 onUpdate={handleSurveyUpdate}
+                onDelete={handleDeleteSurvey}
               />
             ))}
           </AnimatePresence>

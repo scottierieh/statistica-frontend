@@ -1,10 +1,9 @@
-
 'use client';
 import { motion } from "framer-motion";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart, Edit, Users, Clock, Settings, Share2, QrCode, Copy, Download, Calendar as CalendarIcon, AlertCircle, Eye } from "lucide-react";
+import { BarChart, Edit, Users, Clock, Settings, Share2, QrCode, Copy, Download, Calendar as CalendarIcon, AlertCircle, Eye, Trash2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/tooltip"
 import type { Survey, SurveyResponse } from '@/types/survey';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -27,9 +27,10 @@ interface SurveyCardProps {
     survey: Survey;
     responses: SurveyResponse[];
     onUpdate: (updatedSurvey: Survey) => void;
+    onDelete: (surveyId: string) => void;
 }
 
-export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardProps) {
+export default function SurveyCard({ survey, responses, onUpdate, onDelete }: SurveyCardProps) {
     const { toast } = useToast();
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [qrCodeUrl, setQrCodeUrl] = useState('');
@@ -125,6 +126,11 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
       };
       onUpdate(updatedSurvey);
       toast({ title: "Settings Saved", description: "Survey activation dates have been updated."});
+    };
+
+    const handleDeleteConfirm = () => {
+        onDelete(survey.id);
+        toast({ title: "Survey Deleted", description: `"${survey.title}" and all its responses have been deleted.` });
     };
     
     useEffect(() => {
@@ -238,6 +244,23 @@ export default function SurveyCard({ survey, responses, onUpdate }: SurveyCardPr
                         </div>
                     </DialogContent>
                 </Dialog>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon" className="shrink-0"><Trash2 className="w-4 h-4" /></Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete the survey "{survey.title}" and all of its {responses.length} responses. This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </motion.div>
     );
