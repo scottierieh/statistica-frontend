@@ -16,14 +16,12 @@ interface AhpPageProps {
 
 
 const AHPResultsVisualization = ({ survey, responses }: AhpPageProps) => {
-  // 예시 데이터 - 실제로는 백엔드에서 받아온 데이터를 사용
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    // 백엔드에서 AHP 분석 결과 가져오기
     const fetchResults = async () => {
       try {
         setLoading(true);
@@ -46,7 +44,15 @@ const AHPResultsVisualization = ({ survey, responses }: AhpPageProps) => {
 
         const hierarchy = ahpQuestion.criteria ? [{
             name: ahpQuestion.title || 'Goal',
-            nodes: ahpQuestion.criteria.map(c => ({ name: c.name }))
+            nodes: ahpQuestion.criteria.map(c => {
+                if (c.subCriteria && c.subCriteria.length > 0) {
+                    return {
+                        name: c.name,
+                        nodes: c.subCriteria.map(sc => ({ name: sc.name }))
+                    };
+                }
+                return { name: c.name };
+            })
         }] : [];
 
 
