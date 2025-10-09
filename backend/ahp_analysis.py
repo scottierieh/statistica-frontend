@@ -211,8 +211,8 @@ def main():
         if has_alternatives:
             for criterion in criteria_nodes:
                 matrix_key = f"goal.{criterion}"
-                if matrixKey in agg_matrices:
-                    ahp.set_alternative_matrix(criterion, agg_matrices[matrixKey])
+                if matrix_key in agg_matrices:
+                    ahp.set_alternative_matrix(criterion, agg_matrices[matrix_key])
                 else:
                     raise ValueError(f"Alternative comparison matrix for criterion '{criterion}' not found in matrices")
 
