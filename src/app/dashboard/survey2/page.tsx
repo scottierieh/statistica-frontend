@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ipaTemplate, choiceBasedConjointTemplate, ratingBasedConjointTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate } from "@/lib/survey-templates";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const TemplateCard = ({ icon: Icon, title, description, href }: { icon: React.ElementType, title: string, description: string, href: string }) => (
     <Link href={href} className="block">
@@ -137,29 +138,31 @@ export default function Survey2Dashboard() {
                     <DialogTitle>Create a New Survey</DialogTitle>
                     <DialogDescription>Start from scratch or use one of our expert-designed templates.</DialogDescription>
                 </DialogHeader>
-                <div className="py-4">
-                     <Link href="/dashboard/createsurvey">
-                        <div className="p-6 mb-6 rounded-lg border bg-card hover:bg-accent cursor-pointer">
-                            <h3 className="font-semibold text-lg flex items-center gap-2"><Plus className="w-5 h-5"/>Start from Scratch</h3>
-                            <p className="text-sm text-muted-foreground">Build a custom survey for your specific needs.</p>
+                <ScrollArea className="max-h-[70vh]">
+                    <div className="py-4 pr-6">
+                        <Link href="/dashboard/createsurvey">
+                            <div className="p-6 mb-6 rounded-lg border bg-card hover:bg-accent cursor-pointer">
+                                <h3 className="font-semibold text-lg flex items-center gap-2"><Plus className="w-5 h-5"/>Start from Scratch</h3>
+                                <p className="text-sm text-muted-foreground">Build a custom survey for your specific needs.</p>
+                            </div>
+                        </Link>
+                        <h4 className="font-semibold mb-4">Or use a template</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <TemplateCard icon={Target} title="IPA Survey" description="Measure Importance vs. Performance to find key improvement areas." href="/dashboard/createsurvey?template=ipa"/>
+                            <TemplateCard icon={Handshake} title="Choice-Based Conjoint" description="Understand how customers value different attributes of a product using choices." href="/dashboard/createsurvey?template=cbc"/>
+                            <TemplateCard icon={ClipboardList} title="Rating Conjoint" description="Analyze customer preferences using a rating-based approach." href="/dashboard/createsurvey?template=rating-conjoint"/>
+                            <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
+                            <TemplateCard icon={DollarSign} title="Price Sensitivity (PSM)" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=van-westendorp"/>
+                            <TemplateCard icon={DollarSign} title="Gabor-Granger (Seq)" description="Price elasticity by asking sequential purchase likelihood questions." href="/dashboard/createsurvey?template=gabor-granger-1"/>
+                            <TemplateCard icon={DollarSign} title="Gabor-Granger (Rand)" description="Price elasticity by asking questions in a random order." href="/dashboard/createsurvey?template=gabor-granger-2"/>
+                            <TemplateCard icon={Users} title="TURF Analysis" description="Identify the best combination of items to maximize reach." href="/dashboard/createsurvey?template=turf"/>
+                            <TemplateCard icon={Network} title="AHP (Criteria Only)" description="Prioritize criteria using pairwise comparisons." href="/dashboard/createsurvey?template=ahp-criteria"/>
+                            <TemplateCard icon={Network} title="AHP (Full)" description="Make complex decisions by comparing criteria and alternatives." href="/dashboard/createsurvey?template=ahp-full"/>
+                            <TemplateCard icon={ClipboardList} title="Customer Satisfaction" description="Measure overall customer satisfaction (CSAT) and drivers." href="/dashboard/createsurvey?template=csat"/>
+                            <TemplateCard icon={Replace} title="Semantic Differential" description="Gauge user perception of a concept on bipolar adjective scales." href="/dashboard/createsurvey?template=semantic-differential"/>
                         </div>
-                    </Link>
-                    <h4 className="font-semibold mb-4">Or use a template</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                         <TemplateCard icon={Target} title="IPA Survey" description="Measure Importance vs. Performance to find key improvement areas." href="/dashboard/createsurvey?template=ipa"/>
-                         <TemplateCard icon={Handshake} title="Choice-Based Conjoint" description="Understand how customers value different attributes of a product using choices." href="/dashboard/createsurvey?template=cbc"/>
-                         <TemplateCard icon={ClipboardList} title="Rating Conjoint" description="Analyze customer preferences using a rating-based approach." href="/dashboard/createsurvey?template=rating-conjoint"/>
-                         <TemplateCard icon={ShieldCheck} title="NPS Survey" description="Measure customer loyalty with the Net Promoter Score." href="/dashboard/createsurvey?template=nps"/>
-                         <TemplateCard icon={DollarSign} title="Price Sensitivity (PSM)" description="Use the Van Westendorp model to find optimal price points." href="/dashboard/createsurvey?template=van-westendorp"/>
-                         <TemplateCard icon={DollarSign} title="Gabor-Granger (Seq)" description="Price elasticity by asking sequential purchase likelihood questions." href="/dashboard/createsurvey?template=gabor-granger-1"/>
-                         <TemplateCard icon={DollarSign} title="Gabor-Granger (Rand)" description="Price elasticity by asking questions in a random order." href="/dashboard/createsurvey?template=gabor-granger-2"/>
-                         <TemplateCard icon={Users} title="TURF Analysis" description="Identify the best combination of items to maximize reach." href="/dashboard/createsurvey?template=turf"/>
-                         <TemplateCard icon={Network} title="AHP (Criteria Only)" description="Prioritize criteria using pairwise comparisons." href="/dashboard/createsurvey?template=ahp-criteria"/>
-                         <TemplateCard icon={Network} title="AHP (Full)" description="Make complex decisions by comparing criteria and alternatives." href="/dashboard/createsurvey?template=ahp-full"/>
-                         <TemplateCard icon={ClipboardList} title="Customer Satisfaction" description="Measure overall customer satisfaction (CSAT) and drivers." href="/dashboard/createsurvey?template=csat"/>
-                         <TemplateCard icon={Replace} title="Semantic Differential" description="Gauge user perception of a concept on bipolar adjective scales." href="/dashboard/createsurvey?template=semantic-differential"/>
                     </div>
-                </div>
+                </ScrollArea>
             </DialogContent>
            </Dialog>
         </motion.div>

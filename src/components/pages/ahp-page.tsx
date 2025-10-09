@@ -49,7 +49,11 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
                     <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis dataKey="name" tick={{ fill: '#4b5563', fontWeight: 600 }} />
-                        <YAxis label={{ value: 'Weight (%)', angle: -90, position: 'insideLeft', fill: '#4b5563' }} />
+                        <YAxis 
+                        label={{ value: 'Weight (%)', angle: -90, position: 'insideLeft', fill: '#4b5563' }}
+                        domain={[0, 100]}
+                        tickFormatter={(value) => `${value}%`}
+                         />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="weight" radius={[8, 8, 0, 0]}>
                             {data.map((entry, index) => (
