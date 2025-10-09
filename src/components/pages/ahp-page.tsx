@@ -407,12 +407,14 @@ const AHPResultsVisualization = ({ survey, responses }: AhpPageProps) => {
           </div>
 
           {/* Winner Badge */}
-          <div className="mt-6 flex items-center justify-center">
-            <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-8 py-4 rounded-full shadow-lg">
-              <span className="text-lg font-bold">🏆 Best Choice: </span>
-              <span className="text-2xl font-extrabold">{results.ranking[0]}</span>
+          {results.ranking && (
+            <div className="mt-6 flex items-center justify-center">
+                <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-8 py-4 rounded-full shadow-lg">
+                <span className="text-lg font-bold">🏆 Best Choice: </span>
+                <span className="text-2xl font-extrabold">{results.ranking[0]}</span>
+                </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
