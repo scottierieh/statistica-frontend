@@ -196,7 +196,7 @@ def main():
         funnel_data = payload.get('funnel_data')
         total_respondents = payload.get('total_respondents')
 
-        if not all([brands, funnel_data, total_respondents]):
+        if not all([brands, funnel_data, total_respondents is not None]):
             raise ValueError("Missing 'brands', 'funnel_data', or 'total_respondents'")
 
         analysis = BrandFunnelAnalysis(brands, total_respondents)
@@ -216,3 +216,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
