@@ -293,40 +293,36 @@ export const semanticDifferentialTemplate = {
 };
 
 export const brandFunnelTemplate = {
-  title: "Brand Funnel Analysis",
-  description: "Please answer the following questions about your awareness and perception of these brands.",
-  questions: [
-    {
-      id: 'awareness_q',
-      type: 'multiple',
-      title: 'Which of the following brands have you heard of?',
-      description: 'Select all that apply.',
-      required: true,
-      options: ['Brand A', 'Brand B', 'Brand C', 'Brand D'],
-    },
-    {
-      id: 'consideration_q',
-      type: 'multiple',
-      title: 'Of the brands you have heard of, which would you consider purchasing?',
-      description: 'Select all that apply.',
-      required: true,
-      options: ['Brand A', 'Brand B', 'Brand C', 'Brand D'],
-    },
-    {
-      id: 'preference_q',
-      type: 'multiple',
-      title: 'Of the brands you are considering, which do you prefer?',
-      description: 'Select all that apply.',
-      required: true,
-      options: ['Brand A', 'Brand B', 'Brand C', 'Brand D'],
-    },
-    {
-      id: 'usage_q',
-      type: 'multiple',
-      title: 'Which of these brands have you actually used or purchased?',
-      description: 'Select all that apply.',
-      required: true,
-      options: ['Brand A', 'Brand B', 'Brand C', 'Brand D'],
-    },
-  ] as Question[],
+    title: "Brand Funnel Analysis",
+    description: "Please answer the following questions about your awareness and perception of these brands.",
+    questions: [
+        {
+            id: 'awareness',
+            type: 'multiple',
+            title: 'Which of the following brands have you heard of?',
+            required: true,
+            options: ['Brand A', 'Brand B', 'Brand C', 'Brand D'],
+        },
+        {
+            id: 'consideration',
+            type: 'multiple',
+            title: 'Of the brands you have heard of, which would you consider purchasing?',
+            required: true,
+            options: ['Brand A', 'Brand B', 'Brand C', 'Brand D'],
+        },
+        {
+            id: 'preference',
+            type: 'multiple',
+            title: 'Of the brands you are considering, which do you prefer?',
+            required: true,
+            options: ['Brand A', 'Brand B', 'Brand C', 'Brand D'],
+        },
+        {
+            id: 'usage',
+            type: 'multiple',
+            title: 'Which of these brands have you actually used or purchased?',
+            required: true,
+            options: ['Brand A', 'Brand B', 'Brand C', 'Brand D'],
+        },
+    ] as Question[],
 };
