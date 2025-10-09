@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -15,7 +14,7 @@ interface AhpPageProps {
 }
 
 
-const AHPResultsVisualization = ({ survey, responses }: AhpPageProps) => {
+export default function AhpPage({ survey, responses }: AhpPageProps) {
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,15 +43,7 @@ const AHPResultsVisualization = ({ survey, responses }: AhpPageProps) => {
 
         const hierarchy = ahpQuestion.criteria ? [{
             name: ahpQuestion.title || 'Goal',
-            nodes: ahpQuestion.criteria.map(c => {
-                if (c.subCriteria && c.subCriteria.length > 0) {
-                    return {
-                        name: c.name,
-                        nodes: c.subCriteria.map(sc => ({ name: sc.name }))
-                    };
-                }
-                return { name: c.name };
-            })
+            nodes: ahpQuestion.criteria.map(c => ({ name: c.name }))
         }] : [];
 
 
@@ -71,7 +62,7 @@ const AHPResultsVisualization = ({ survey, responses }: AhpPageProps) => {
         
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error?.details || errorData.error || 'Failed to fetch AHP results');
+          throw new Error(errorData.details || errorData.error || 'Failed to fetch AHP results');
         }
         
         const data = await response.json();
