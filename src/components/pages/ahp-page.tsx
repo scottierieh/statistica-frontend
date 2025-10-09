@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +33,7 @@ const AHPResultsVisualization = ({ survey, responses }: AhpPageProps) => {
         
         const aggregatedMatrices: {[key: string]: any[]} = {};
         responses.forEach(resp => {
-            const answerData = resp.answers[ahpQuestion.id];
+            const answerData = (resp.answers as any)[ahpQuestion.id];
             if(answerData) {
                  for (const key in answerData) {
                     if(!aggregatedMatrices[key]) aggregatedMatrices[key] = [];
@@ -301,7 +301,7 @@ const AHPResultsVisualization = ({ survey, responses }: AhpPageProps) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {item.alternatives.map((alt, altIdx) => (
+                      {item.alternatives.map((alt: any, altIdx: number) => (
                         <tr key={altIdx} className="border-b border-gray-100">
                           <td className="py-1 text-gray-700">{alt.name}</td>
                           <td className="py-1 text-right font-semibold text-purple-600">{alt.weight}%</td>
@@ -447,12 +447,12 @@ const AHPResultsVisualization = ({ survey, responses }: AhpPageProps) => {
               </p>
               <p className="mb-1">
                 <span className="font-semibold">Criteria CR:</span>{' '}
-                <span className={`font-bold text-lg ${results.criteria_analysis.consistency.is_consistent ? 'text-green-600' : 'text-red-600'}`}>
-                  {(results.criteria_analysis.consistency.CR * 100).toFixed(2)}%
+                <span className={`font-bold text-lg ${results.criteria_analysis?.consistency?.is_consistent ? 'text-green-600' : 'text-red-600'}`}>
+                  {(results.criteria_analysis?.consistency?.CR * 100).toFixed(2)}%
                 </span>
               </p>
               <p className="text-xs text-gray-600">
-                {results.criteria_analysis.consistency.is_consistent 
+                {results.criteria_analysis?.consistency?.is_consistent 
                   ? '✓ Your comparisons are consistent and reliable' 
                   : '✗ Please review your pairwise comparisons'}
               </p>
@@ -465,11 +465,11 @@ const AHPResultsVisualization = ({ survey, responses }: AhpPageProps) => {
               <div className="space-y-1">
                 <p>
                   <span className="font-semibold">λmax (Lambda Max):</span>{' '}
-                  <span className="font-mono text-gray-700">{results.criteria_analysis.consistency.lambda_max.toFixed(4)}</span>
+                  <span className="font-mono text-gray-700">{results.criteria_analysis?.consistency?.lambda_max.toFixed(4)}</span>
                 </p>
                 <p>
                   <span className="font-semibold">CI (Consistency Index):</span>{' '}
-                  <span className="font-mono text-gray-700">{results.criteria_analysis.consistency.CI.toFixed(4)}</span>
+                  <span className="font-mono text-gray-700">{results.criteria_analysis?.consistency?.CI.toFixed(4)}</span>
                 </p>
               </div>
               <p className="text-xs text-gray-600 mt-2">
