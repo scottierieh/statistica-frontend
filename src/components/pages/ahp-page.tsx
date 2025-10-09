@@ -6,25 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-const AHPResultsVisualization = ({ results }: { results: any }) => {
+const renderBarChart = (title: string, data: any[], consistency: any) => {
     const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
-
-    const mainCriteriaData = results.weights
-        ? Object.entries(results.weights).map(([name, weight]: [string, any]) => ({
-            name,
-            weight: (weight * 100).toFixed(1),
-            weightValue: weight
-        })).sort((a, b) => b.weightValue - a.weightValue)
-        : [];
-    
-    const subCriteriaAnalyses = results.sub_criteria_analysis ? Object.entries(results.sub_criteria_analysis) : [];
-
-    const finalScoresData = results.final_scores?.map((item: any) => ({
-        name: item.name,
-        score: (item.score * 100).toFixed(1),
-        scoreValue: item.score
-    })) || [];
-
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
             return (
@@ -37,10 +20,10 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
         return null;
     };
 
-    const renderBarChart = (title: string, data: any[], consistency: any) => (
+    return (
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+                <h3 className="text-xl font-bold text-gray-800">{title}</h3>
                 {consistency && (
                     <div className="flex items-center gap-4">
                         <span className="text-sm text-gray-600">
@@ -72,6 +55,79 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
             </ResponsiveContainer>
         </div>
     );
+};
+
+
+const AHPResultsVisualization = ({ results }: { results: any }) => {
+    const mainCriteriaData = useMemo(() => (results?.weights
+        ? Object.entries(results.weights).map(([name, weight]: [string, any]) => ({
+            name,
+            weight: (weight * 100).toFixed(1),
+            weightValue: weight
+        })).sort((a, b) => b.weightValue - a.weightValue)
+        : []), [results]);
+
+    const finalScoresData = useMemo(() => (results?.final_scores?.map((item: any) => ({
+        name: item.name,
+        score: (item.score * 100).toFixed(1),
+        scoreValue: item.score
+    })) || []), [results]);
+    
+    const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+
+    const renderHierarchicalCharts = (data: any) => {
+        if (!data || !data.weights) return null;
+
+        const subCriteriaAnalyses = data.sub_criteria_analysis ? Object.entries(data.sub_criteria_analysis) : [];
+        
+        return (
+             <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>Main Criteria Weights</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {renderBarChart("Main Criteria", mainCriteriaData, data.consistency)}
+                    
+                    {subCriteriaAnalyses.length > 0 && (
+                        <div className="mt-8">
+                            <h3 className="text-2xl font-bold text-center mb-4">Sub-Criteria Analysis</h3>
+                            {subCriteriaAnalyses.map(([parentCriterion, subAnalysis]: [string, any]) => (
+                                <Card key={parentCriterion} className="mb-6">
+                                     <CardHeader>
+                                        <CardTitle>Sub-Criteria for &quot;{parentCriterion}&quot;</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {renderBarChart(
+                                            `Weights within "${parentCriterion}"`,
+                                            Object.entries(subAnalysis.weights).map(([name, weight]) => ({
+                                                name,
+                                                weight: (weight as number * 100).toFixed(1),
+                                                weightValue: weight
+                                            })).sort((a: any, b: any) => b.weightValue - a.weightValue),
+                                            subAnalysis.consistency
+                                        )}
+                                        {subAnalysis.alternatives_analysis && Object.entries(subAnalysis.alternatives_analysis).map(([subCriterion, altAnalysis]: [string, any]) => (
+                                            <div key={subCriterion} className="mt-4 ml-4 border-l-4 pl-4">
+                                                 {renderBarChart(
+                                                    `Alternative Performance for "${subCriterion}"`,
+                                                    Object.entries(altAnalysis.weights).map(([name, weight]) => ({
+                                                        name,
+                                                        weight: (weight as number * 100).toFixed(1),
+                                                        weightValue: weight
+                                                    })).sort((a: any, b: any) => b.weightValue - a.weightValue),
+                                                    altAnalysis.consistency
+                                                )}
+                                            </div>
+                                        ))}
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        );
+    };
 
     return (
         <div className="w-full max-w-7xl mx-auto p-6 bg-slate-50 rounded-xl">
@@ -79,47 +135,47 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
                 AHP Analysis Results
             </h1>
             
-            {renderBarChart("Main Criteria Weights", mainCriteriaData, results.consistency)}
-
-            {subCriteriaAnalyses.map(([parentCriterion, subAnalysis]: [string, any]) => (
-                <div key={parentCriterion}>
-                  {renderBarChart(
-                      `Sub-Criteria Weights for "${parentCriterion}"`,
-                      Object.entries(subAnalysis.weights).map(([name, weight]) => ({
-                          name,
-                          weight: (weight as number * 100).toFixed(1),
-                          weightValue: weight
-                      })).sort((a: any, b: any) => b.weightValue - a.weightValue),
-                      subAnalysis.consistency
-                  )}
-                </div>
-            ))}
-
+            {renderHierarchicalCharts(results)}
+            
             {finalScoresData.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Final Ranking of Alternatives</h2>
-                    <p className="text-gray-600 text-sm mb-4">
-                        The final scores are calculated by combining all criteria and sub-criteria weights with each alternative's performance across all criteria.
-                    </p>
-                    <ResponsiveContainer width="100%" height={350}>
-                        <BarChart data={finalScoresData} layout="vertical" margin={{ top: 20, right: 30, left: 100, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                            <XAxis type="number" label={{ value: 'Final Score (%)', position: 'insideBottom', offset: -5, fill: '#4b5563' }} />
-                            <YAxis type="category" dataKey="name" tick={{ fill: '#4b5563', fontWeight: 600 }} width={100} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Bar dataKey="score" radius={[0, 8, 8, 0]}>
-                                {finalScoresData.map((entry, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={index === 0 ? '#fbbf24' : COLORS[index % COLORS.length]}
-                                        stroke={index === 0 ? '#f59e0b' : 'none'}
-                                        strokeWidth={index === 0 ? 3 : 0}
-                                    />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Final Ranking of Alternatives</CardTitle>
+                        <CardDescription>
+                            The final scores are calculated by combining all criteria and sub-criteria weights with each alternative's performance across all criteria.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ResponsiveContainer width="100%" height={350}>
+                            <BarChart data={finalScoresData} layout="vertical" margin={{ top: 20, right: 30, left: 100, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                <XAxis type="number" label={{ value: 'Final Score (%)', position: 'insideBottom', offset: -5, fill: '#4b5563' }} />
+                                <YAxis type="category" dataKey="name" tick={{ fill: '#4b5563', fontWeight: 600 }} width={100} />
+                                <Tooltip content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                        return (
+                                            <div className="bg-white p-3 border-2 border-primary/30 rounded-lg shadow-lg">
+                                                <p className="font-semibold text-foreground">{payload[0].payload.name}</p>
+                                                <p className="text-primary font-bold">{payload[0].value}%</p>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                }} />
+                                <Bar dataKey="score" radius={[0, 8, 8, 0]}>
+                                    {finalScoresData.map((entry, index) => (
+                                        <Cell
+                                            key={`cell-${index}`}
+                                            fill={index === 0 ? '#fbbf24' : COLORS[index % COLORS.length]}
+                                            stroke={index === 0 ? '#f59e0b' : 'none'}
+                                            strokeWidth={index === 0 ? 3 : 0}
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
             )}
         </div>
     );
@@ -155,11 +211,11 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
 
             const aggregatedMatrices: { [key: string]: number[][][] } = {};
             
-            const findCriterion = (id: string, criteriaList: Criterion[]): Criterion | null => {
+            const findCriterionById = (id: string, criteriaList: Criterion[]): Criterion | null => {
                 for (const crit of criteriaList) {
                     if (crit.id === id) return crit;
                     if (crit.subCriteria) {
-                        const found = findCriterion(id, crit.subCriteria);
+                        const found = findCriterionById(id, crit.subCriteria);
                         if (found) return found;
                     }
                 }
@@ -167,10 +223,10 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
             };
 
             const populateMatrices = (answers: any, criteria: Criterion[], alternatives: string[]) => {
-                const processComparisons = (key: string, items: {id: string, name: string}[]) => {
+                const processComparisons = (key: string, items: {name: string}[]) => {
                     const matrixValues = answers[key];
                     if (!matrixValues || items.length < 2) return;
-                    
+
                     const itemNames = items.map(i => i.name);
                     const n = itemNames.length;
                     const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(1.0));
@@ -194,26 +250,21 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                     aggregatedMatrices[key].push(matrix);
                 };
                 
-                // Process main criteria
                 if (answers.criteria) {
                     processComparisons('criteria', criteria);
-                } else if (answers.goal) { // Fallback for older data format
+                } else if (answers.goal) {
                     processComparisons('goal', criteria);
                 }
                 
-                // Process sub-criteria and alternatives
                 const traverse = (criteriaList: Criterion[]) => {
                     for(const criterion of criteriaList) {
-                        // Sub-criteria comparisons
                         if(criterion.subCriteria && criterion.subCriteria.length > 0) {
                             const subKey = `sub_criteria_${criterion.id}`;
                             processComparisons(subKey, criterion.subCriteria);
-                            traverse(criterion.subCriteria); // Recurse for deeper levels
-                        } 
-                        // Alternatives comparisons for leaf nodes
-                        else if (alternatives && alternatives.length > 0) {
+                            traverse(criterion.subCriteria);
+                        } else if (alternatives && alternatives.length > 0) {
                              const altKey = `alt_${criterion.id}`;
-                             const altItems = alternatives.map((alt, index) => ({id: `alt-${index}`, name: alt}));
+                             const altItems = alternatives.map((alt) => ({name: alt}));
                              processComparisons(altKey, altItems);
                         }
                     }
@@ -225,7 +276,7 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
             responses.forEach(resp => {
                 const answerData = (resp.answers as any)[ahpQuestion.id];
                 if (answerData && typeof answerData === 'object') {
-                    populateMatrices(answerData, ahpQuestion.criteria!, ahpQuestion.alternatives || []);
+                    populateMatrices(answerData, ahpQuestion.criteria || [], ahpQuestion.alternatives || []);
                 }
             });
 
@@ -233,9 +284,45 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 throw new Error("No valid AHP comparison data found in the responses.");
             }
             
+            const findNodeById = (nodes: Criterion[], id: string): Criterion | undefined => {
+                for (const node of nodes) {
+                    if (node.id === id) return node;
+                    if (node.subCriteria) {
+                        const found = findNodeById(node.subCriteria, id);
+                        if (found) return found;
+                    }
+                }
+                return undefined;
+            };
+
+            const getParentId = (nodes: Criterion[], childId: string, parentId: string | null = null): string | null => {
+                for(const node of nodes) {
+                    if (node.id === childId) return parentId;
+                    if (node.subCriteria) {
+                        const foundParentId = getParentId(node.subCriteria, childId, node.id);
+                        if(foundParentId !== null) return foundParentId;
+                    }
+                }
+                return null;
+            }
+            
+            const buildHierarchy = (nodes: Criterion[], parentId: string | null = null): any[] => {
+                return nodes.map(node => {
+                    const hierarchyNode: any = { id: node.id, name: node.name };
+                     if (parentId) {
+                        hierarchyNode.parent_id = parentId;
+                    }
+                    if (node.subCriteria && node.subCriteria.length > 0) {
+                        hierarchyNode.nodes = buildHierarchy(node.subCriteria, node.id);
+                    }
+                    return hierarchyNode;
+                });
+            };
+
             const hierarchy = ahpQuestion.criteria ? [{
                 name: ahpQuestion.title || 'Goal',
-                nodes: ahpQuestion.criteria
+                id: 'goal',
+                nodes: buildHierarchy(ahpQuestion.criteria)
             }] : [];
 
             const requestBody = {
