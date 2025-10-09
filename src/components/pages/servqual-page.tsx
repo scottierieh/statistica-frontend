@@ -37,10 +37,10 @@ const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565'
 
 export default function ServqualPage({ survey, responses }: ServqualPageProps) {
     const { toast } = useToast();
-    const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
+    const [analysisResult, setAnalysisResult] = useState<ServqualResults | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     const handleAnalysis = useCallback(async () => {
         setIsLoading(true);
         setError(null);
@@ -62,7 +62,7 @@ export default function ServqualPage({ survey, responses }: ServqualPageProps) {
                 throw new Error(errorResult.error || 'API error');
             }
             
-            const result: FullAnalysisResponse = await response.json();
+            const result = await response.json();
             if (result.error) throw new Error(result.error);
             setAnalysisResult(result);
 
@@ -88,7 +88,7 @@ export default function ServqualPage({ survey, responses }: ServqualPageProps) {
         return <Card><CardContent className="p-6 text-center text-muted-foreground">No results to display.</CardContent></Card>;
     }
     
-    const { results } = analysisResult;
+    const results = analysisResult;
     const isServperf = results.analysisType === 'SERVPERF';
 
     return (
