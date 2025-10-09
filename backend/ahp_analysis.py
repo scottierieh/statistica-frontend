@@ -1,5 +1,3 @@
-
-
 import sys
 import json
 import numpy as np
@@ -149,12 +147,10 @@ def geometric_mean_of_matrices(matrices):
         return None
     
     matrices_array = np.array(matrices)
-    # Using log-transform to calculate geometric mean to avoid overflow/underflow
     log_matrices = np.log(matrices_array)
     mean_log_matrix = np.mean(log_matrices, axis=0)
     geo_mean_matrix = np.exp(mean_log_matrix)
     
-    # Normalize to ensure reciprocity
     for i in range(geo_mean_matrix.shape[0]):
         for j in range(i, geo_mean_matrix.shape[1]):
             if i == j:
@@ -182,13 +178,11 @@ def main():
         
         ahp = AHPAnalysis(criteria_nodes, alternatives if has_alternatives else None)
         
-        # Aggregate matrices using geometric mean
         agg_matrices = {}
         for key, matrix_list in matrices_by_respondent.items():
             if matrix_list:
                 agg_matrices[key] = geometric_mean_of_matrices(matrix_list)
 
-        # Set criteria matrix
         if 'goal' in agg_matrices:
             ahp.set_criteria_matrix(agg_matrices['goal'])
         else:
@@ -205,7 +199,6 @@ def main():
         ahp.analyze()
         results_data = ahp.get_results()
 
-        # Rename keys to be more frontend-friendly
         if 'alternatives_analysis' in results_data:
             results_data['alternative_weights_by_criterion'] = results_data.pop('alternatives_analysis')
         

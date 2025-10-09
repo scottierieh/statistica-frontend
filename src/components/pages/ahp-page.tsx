@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { DataSet } from '@/lib/stats';
@@ -17,9 +16,9 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
     const ahpExample = exampleDatasets.find(d => d.id === 'ahp-smartphone');
 
     return (
-        <div className="flex flex-1 items-center justify-center p-4">
-            <Card className="w-full max-w-4xl shadow-lg">
-                <CardHeader className="text-center p-8">
+        <div className="flex flex-1 items-center justify-center p-4 bg-muted/20">
+            <Card className="w-full max-w-4xl shadow-2xl">
+                <CardHeader className="text-center p-8 bg-muted/50 rounded-t-lg">
                     <div className="flex justify-center items-center gap-3 mb-4">
                         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                             <Network size={36} />
@@ -31,12 +30,20 @@ const IntroPage = ({ onStart, onLoadExample }: { onStart: () => void, onLoadExam
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 px-8 py-10">
-                    <div className="text-center">
-                        <h2 className="text-2xl font-semibold mb-4">Why Use AHP?</h2>
-                        <p className="max-w-3xl mx-auto text-muted-foreground">
-                            AHP is a structured technique for organizing and analyzing complex decisions, based on mathematics and psychology. It provides a comprehensive and rational framework for structuring a decision problem, representing and quantifying its elements, relating those elements to overall goals, and evaluating alternative solutions.
-                        </p>
-                    </div>
+                    <p className="text-center max-w-3xl mx-auto text-muted-foreground">
+                        AHP is a structured technique for organizing and analyzing complex decisions, based on mathematics and psychology. It provides a comprehensive and rational framework for structuring a decision problem, representing and quantifying its elements, relating those elements to overall goals, and evaluating alternative solutions.
+                    </p>
+                    {ahpExample && (
+                        <div className="flex justify-center">
+                            <Card className="p-4 bg-muted/50 rounded-lg space-y-2 text-center flex flex-col items-center justify-center cursor-pointer hover:shadow-md transition-shadow w-full max-w-sm" onClick={() => onLoadExample(ahpExample)}>
+                                <Network className="mx-auto h-8 w-8 text-primary"/>
+                                <div>
+                                    <h4 className="font-semibold">{ahpExample.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{ahpExample.description}</p>
+                                </div>
+                            </Card>
+                        </div>
+                    )}
                 </CardContent>
                 <CardFooter className="flex justify-end p-6 bg-muted/30 rounded-b-lg">
                     <Button size="lg" onClick={onStart}>Start New Analysis <MoveRight className="ml-2 w-5 h-5"/></Button>
@@ -72,13 +79,15 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
             const hasAlternatives = alternatives && alternatives.length > 0;
             
             const allRespondentMatrices: { [key: string]: number[][][] } = {};
+            
+            const criteriaNames = criteria.map(c => c.name);
             const initMatrix = (size: number) => Array(size).fill(0).map(() => Array(size).fill(1));
 
             // Initialize collectors
             allRespondentMatrices['goal'] = [];
             if(hasAlternatives) {
-                criteria.forEach(c => {
-                    const matrixKey = `goal.${c.name}`;
+                criteriaNames.forEach(name => {
+                    const matrixKey = `goal.${name}`;
                     allRespondentMatrices[matrixKey] = [];
                 });
             }
@@ -90,12 +99,12 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
 
                 // Process criteria matrix for this respondent
                 if (answer['criteria']) {
-                    const criteriaMatrix = initMatrix(criteria.length);
-                    for (let i = 0; i < criteria.length; i++) {
-                        for (let j = i; j < criteria.length; j++) {
-                             if (i === j) continue; // Already 1
-                            const pairKey = `${criteria[i].name} vs ${criteria[j].name}`;
-                            const reversePairKey = `${criteria[j].name} vs ${criteria[i].name}`;
+                    const criteriaMatrix = initMatrix(criteriaNames.length);
+                    for (let i = 0; i < criteriaNames.length; i++) {
+                        for (let j = i; j < criteriaNames.length; j++) {
+                             if (i === j) continue;
+                            const pairKey = `${criteriaNames[i]} vs ${criteriaNames[j]}`;
+                            const reversePairKey = `${criteriaNames[j]} vs ${criteriaNames[i]}`;
                             let value = answer['criteria'][pairKey] ?? (answer['criteria'][reversePairKey] ? 1 / answer['criteria'][reversePairKey] : 1);
                             if (value < 0) value = 1 / Math.abs(value);
                             criteriaMatrix[i][j] = value;
@@ -106,9 +115,12 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                 }
 
                 // Process alternative matrices for this respondent
-                if (hasAlternatives) {
-                    criteria.forEach(c => {
-                        const matrixKey = `alt_${c.id}`;
+                if (hasAlternatives && alternatives) {
+                    criteriaNames.forEach(cName => {
+                        const crit = criteria.find(c => c.name === cName);
+                        if (!crit) return;
+
+                        const matrixKey = `alt_${crit.id}`;
                          if (answer[matrixKey]) {
                             const altMatrix = initMatrix(alternatives.length);
                              for (let i = 0; i < alternatives.length; i++) {
@@ -122,7 +134,7 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
                                     altMatrix[j][i] = 1 / value;
                                 }
                             }
-                            const backendKey = `goal.${c.name}`;
+                            const backendKey = `goal.${cName}`;
                             if(allRespondentMatrices[backendKey]) {
                                 allRespondentMatrices[backendKey].push(altMatrix);
                             }
@@ -133,8 +145,7 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
 
             const payload = {
                 goal: survey.title,
-                hasAlternatives,
-                alternatives,
+                alternatives: hasAlternatives ? alternatives : null,
                 hierarchy: [{ id: 'level-0', name: 'Criteria', nodes: criteria.map(c => ({ id: c.id, name: c.name })) }],
                 matrices: allRespondentMatrices,
             };
