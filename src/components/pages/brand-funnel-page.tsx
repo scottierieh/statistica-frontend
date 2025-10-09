@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
@@ -69,10 +69,11 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
             });
             
             responses.forEach(response => {
-                const awarenessAns = (response.answers as any)[stageQuestions.awareness!.id] as string[] || [];
-                const considerationAns = (response.answers as any)[stageQuestions.consideration!.id] as string;
-                const preferenceAns = (response.answers as any)[stageQuestions.preference!.id] as string;
-                const usageAns = (response.answers as any)[stageQuestions.usage!.id] as string;
+                const answers = response.answers as any;
+                const awarenessAns = answers[stageQuestions.awareness!.id] as string[] || [];
+                const considerationAns = answers[stageQuestions.consideration!.id] as string;
+                const preferenceAns = answers[stageQuestions.preference!.id] as string;
+                const usageAns = answers[stageQuestions.usage!.id] as string;
 
                 brands.forEach(brand => {
                     if (awarenessAns.includes(brand)) funnelCounts[brand].awareness++;
@@ -135,7 +136,7 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
         Object.entries(stages).map(([stage, count]) => ({brand, stage, count}))
     );
 
-    const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3'];
+    const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
 
     return (
         <div className="space-y-4">
@@ -195,10 +196,11 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                 <CardHeader><CardTitle>Detailed Tables</CardTitle></CardHeader>
                 <CardContent>
                     <Tabs defaultValue="funnel">
-                        <TabsList>
+                        <TabsList className="grid w-full grid-cols-5">
                             <TabsTrigger value="funnel">Funnel Counts</TabsTrigger>
                             <TabsTrigger value="conversion">Conversion Rates</TabsTrigger>
                             <TabsTrigger value="share">Market Share</TabsTrigger>
+                            <TabsTrigger value="efficiency">Funnel Efficiency</TabsTrigger>
                             <TabsTrigger value="bottleneck">Bottlenecks</TabsTrigger>
                         </TabsList>
                         <TabsContent value="funnel" className="mt-4">
@@ -250,6 +252,26 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                                         <TableRow key={brand}>
                                             <TableCell>{brand}</TableCell>
                                             {Object.values(stages).map((value, i) => <TableCell key={i} className="text-right">{(value as number).toFixed(1)}%</TableCell>)}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TabsContent>
+                        <TabsContent value="efficiency" className="mt-4">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Brand</TableHead>
+                                        <TableHead className="text-right">Funnel Efficiency (%)</TableHead>
+                                        <TableHead className="text-right">Drop-off Rate (%)</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {Object.entries(results.efficiency).map(([brand, metrics]) => (
+                                        <TableRow key={brand}>
+                                            <TableCell>{brand}</TableCell>
+                                            <TableCell className="text-right">{(metrics.funnel_efficiency as number).toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right">{(metrics.drop_off_rate as number).toFixed(1)}%</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
