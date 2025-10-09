@@ -37,7 +37,7 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-     const funnelDataForChart = useMemo(() => {
+    const funnelDataForChart = useMemo(() => {
         if (!analysisResult?.results?.funnel_data) return [];
         const stages = ['awareness', 'consideration', 'preference', 'usage'];
         const brands = Object.keys(analysisResult.results.funnel_data);
@@ -148,6 +148,10 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
     const results = analysisResult.results;
 
     const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+    const marketShareData = Object.entries(results.market_share).map(([stage, brands]) => ({
+      stage: stage.replace('_share', ''),
+      ...brands
+    }));
 
     return (
         <div className="space-y-4">
@@ -207,9 +211,10 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                 <CardHeader><CardTitle>Detailed Tables</CardTitle></CardHeader>
                 <CardContent>
                     <Tabs defaultValue="funnel">
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="funnel">Funnel Counts</TabsTrigger>
                             <TabsTrigger value="conversion">Conversion Rates</TabsTrigger>
+                            <TabsTrigger value="share">Market Share</TabsTrigger>
                         </TabsList>
                         <TabsContent value="funnel" className="mt-4">
                              <Table>
@@ -248,6 +253,30 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                                             ))}
                                         </TableRow>
                                     ))}
+                                </TableBody>
+                            </Table>
+                        </TabsContent>
+                        <TabsContent value="share" className="mt-4">
+                            <Table>
+                                <TableHeader>
+                                <TableRow>
+                                    <TableHead>Brand</TableHead>
+                                    {Object.keys(marketShareData[0] || {}).filter(k => k !== 'stage').map(stage => (
+                                        <TableHead key={stage} className="text-right">{stage.replace('_share', '')}</TableHead>
+                                    ))}
+                                </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                {Object.keys(results.market_share[Object.keys(results.market_share)[0]]).map(brand => (
+                                    <TableRow key={brand}>
+                                        <TableCell>{brand}</TableCell>
+                                        {Object.keys(results.market_share).map(stage => (
+                                            <TableCell key={`${brand}-${stage}`} className="text-right">
+                                                {(results.market_share[stage][brand] ?? 0).toFixed(1)}%
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
                                 </TableBody>
                             </Table>
                         </TabsContent>
