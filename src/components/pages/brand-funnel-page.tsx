@@ -196,11 +196,10 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                 <CardHeader><CardTitle>Detailed Tables</CardTitle></CardHeader>
                 <CardContent>
                     <Tabs defaultValue="funnel">
-                        <TabsList className="grid w-full grid-cols-5">
+                        <TabsList className="grid w-full grid-cols-4">
                             <TabsTrigger value="funnel">Funnel Counts</TabsTrigger>
                             <TabsTrigger value="conversion">Conversion Rates</TabsTrigger>
                             <TabsTrigger value="share">Market Share</TabsTrigger>
-                            <TabsTrigger value="efficiency">Funnel Efficiency</TabsTrigger>
                             <TabsTrigger value="bottleneck">Bottlenecks</TabsTrigger>
                         </TabsList>
                         <TabsContent value="funnel" className="mt-4">
@@ -252,26 +251,6 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                                         <TableRow key={brand}>
                                             <TableCell>{brand}</TableCell>
                                             {Object.values(stages).map((value, i) => <TableCell key={i} className="text-right">{(value as number).toFixed(1)}%</TableCell>)}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TabsContent>
-                        <TabsContent value="efficiency" className="mt-4">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Brand</TableHead>
-                                        <TableHead className="text-right">Funnel Efficiency (%)</TableHead>
-                                        <TableHead className="text-right">Drop-off Rate (%)</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {Object.entries(results.efficiency).map(([brand, metrics]) => (
-                                        <TableRow key={brand}>
-                                            <TableCell>{brand}</TableCell>
-                                            <TableCell className="text-right">{(metrics.funnel_efficiency as number).toFixed(1)}%</TableCell>
-                                            <TableCell className="text-right">{(metrics.drop_off_rate as number).toFixed(1)}%</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
