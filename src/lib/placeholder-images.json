@@ -11,6 +11,18 @@
       "description": "A hero image for the main landing page, showing data and insights.",
       "imageUrl": "https://picsum.photos/seed/hero/1200/600",
       "imageHint": "data analysis"
+    },
+    {
+      "id": "security-feature",
+      "description": "An image representing data security and compliance certifications.",
+      "imageUrl": "https://picsum.photos/seed/security/600/500",
+      "imageHint": "security privacy"
+    },
+    {
+      "id": "enterprise-feature",
+      "description": "An image representing enterprise system integrations and dashboards.",
+      "imageUrl": "https://picsum.photos/seed/enterprise/600/500",
+      "imageHint": "dashboard integration"
     }
   ]
 }

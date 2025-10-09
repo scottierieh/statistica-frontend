@@ -33,6 +33,9 @@ const features = {
 
 export default function LandingPage() {
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-image');
+  const securityImage = PlaceHolderImages.find(img => img.id === 'security-feature');
+  const enterpriseImage = PlaceHolderImages.find(img => img.id === 'enterprise-feature');
+
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800">
@@ -91,6 +94,57 @@ export default function LandingPage() {
                 </div>
               )}
             </div>
+          </div>
+        </section>
+
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
+          <div className="container px-4 md:px-6 space-y-20">
+            {securityImage && (
+              <div className="grid md:grid-cols-2 gap-12 items-center">
+                <div className="space-y-4">
+                  <h2 className="text-3xl font-bold font-headline tracking-tight sm:text-4xl">Security is our priority</h2>
+                  <p className="text-muted-foreground text-lg">
+                    Caring for our customers' information is critical and complex. The Skarii system has been built with data privacy, protection, anonymity, and compliance in every layer.
+                  </p>
+                  <p className="text-muted-foreground">
+                    Fully compliant and holding certifications such as General Data Protection Regulation (GDPR), ISO 27001:2022, CCPA, PCI-DSS, Section 508, PHI, and HIPAA. Enjoy peace of mind with your survey data by choosing a platform trusted by major global brands.
+                  </p>
+                </div>
+                <div className="flex justify-center">
+                   <Image 
+                      src={securityImage.imageUrl}
+                      alt={securityImage.description}
+                      width={600}
+                      height={500}
+                      className="rounded-xl shadow-lg"
+                      data-ai-hint={securityImage.imageHint}
+                    />
+                </div>
+              </div>
+            )}
+             {enterpriseImage && (
+              <div className="grid md:grid-cols-2 gap-12 items-center">
+                <div className="flex justify-center md:order-2">
+                   <Image 
+                      src={enterpriseImage.imageUrl}
+                      alt={enterpriseImage.description}
+                      width={600}
+                      height={500}
+                      className="rounded-xl shadow-lg"
+                      data-ai-hint={enterpriseImage.imageHint}
+                    />
+                </div>
+                <div className="space-y-4 md:order-1">
+                  <h2 className="text-3xl font-bold font-headline tracking-tight sm:text-4xl">Built for enterprise</h2>
+                   <p className="text-muted-foreground text-lg">
+                    Take your insights to the next level by integrating with the full range of your enterprise systems through APIs or FTP sync, for marketing automation and more.
+                  </p>
+                  <p className="text-muted-foreground">
+                    With robust user roles, SSO, advanced reporting, and dashboards that can be distributed via a link for real-time updates or downloaded in various formats, including SPSS, Excel, and PDF.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </section>
         
