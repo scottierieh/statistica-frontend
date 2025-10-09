@@ -273,15 +273,15 @@ export default function BrandFunnelPage({ survey, responses }: Props) {
                         </TabsContent>
                         
                         <TabsContent value="share" className="mt-4">
-                            <Table>
+                           <Table>
                                 <TableHeader>
-                                <TableRow>
-                                    <TableHead>Brand</TableHead>
-                                    <TableHead className="text-right">Awareness Share</TableHead>
-                                    <TableHead className="text-right">Consideration Share</TableHead>
-                                    <TableHead className="text-right">Preference Share</TableHead>
-                                    <TableHead className="text-right">Usage Share</TableHead>
-                                </TableRow>
+                                    <TableRow>
+                                        <TableHead>Brand</TableHead>
+                                        <TableHead className="text-right">Awareness Share</TableHead>
+                                        <TableHead className="text-right">Consideration Share</TableHead>
+                                        <TableHead className="text-right">Preference Share</TableHead>
+                                        <TableHead className="text-right">Usage Share</TableHead>
+                                    </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                 {marketShareData.map(row => (
