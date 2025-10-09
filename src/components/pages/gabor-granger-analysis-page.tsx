@@ -238,7 +238,7 @@ export default function GaborGrangerAnalysisPage({ survey, responses }: GaborGra
                           <YAxis yAxisId="right" orientation="right" stroke="#ef4444" label={{ value: 'Revenue / Profit Index', angle: 90, position: 'insideRight' }} />
                           <Tooltip content={<ChartTooltipContent formatter={(value, name) => `${(value as number).toFixed(name === 'likelihood_pct' ? 1 : 2)}${name === 'likelihood_pct' ? '%' : ''}`} />} />
                           <Legend />
-                          <Line yAxisId="left" type="monotone" dataKey="likelihood_pct" name="Demand Curve" stroke="#3b82f6" strokeWidth={2} dot={false}/>
+                          <Line yAxisId="left" type="monotone" dataKey="likelihood_pct" name="Willingness to Pay (Demand)" stroke="#3b82f6" strokeWidth={2} dot={false}/>
                           <Line yAxisId="right" type="monotone" dataKey="revenue" name="Revenue Curve" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" dot={false}/>
                           {results.demand_curve.some(d => d.profit !== undefined) && (
                             <Line yAxisId="right" type="monotone" dataKey="profit" name="Profit Curve" stroke="#8b5cf6" strokeWidth={2} strokeDasharray="5 5" dot={false}/>
