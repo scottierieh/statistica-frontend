@@ -7,7 +7,7 @@ import type { Survey, SurveyResponse, Question } from '@/types/survey';
 import { Loader2, AlertTriangle, Filter } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Legend, Bar, Cell, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface FunnelResults {
     funnel_data: { [key: string]: { [stage: string]: number } };
-    conversion_rates: { [key: string]: { [stage: string]: number } };
+    conversion_rates: { [key: string]: { [stage: string]: number | null } };
     market_share: { [key: string]: { [stage: string]: number } };
     efficiency: { [key: string]: { funnel_efficiency: number, drop_off_rate: number } };
     bottlenecks: { brand: string; bottleneck_stage: string; conversion_rate: number }[];
@@ -231,7 +231,7 @@ export default function BrandFunnelPage({ survey, responses }: BrandFunnelPagePr
                                     {Object.entries(results.conversion_rates).map(([brand, stages]) => (
                                         <TableRow key={brand}>
                                             <TableCell>{brand}</TableCell>
-                                            {Object.values(stages).map((value, i) => <TableCell key={i} className="text-right">{(value as number).toFixed(1)}%</TableCell>)}
+                                            {Object.values(stages).map((value, i) => <TableCell key={i} className="text-right">{(value ?? 0).toFixed(1)}%</TableCell>)}
                                         </TableRow>
                                     ))}
                                 </TableBody>
