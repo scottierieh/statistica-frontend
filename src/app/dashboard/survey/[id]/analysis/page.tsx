@@ -70,7 +70,7 @@ export default function SurveyAnalysis() {
             analyses.push({ key: 'van-westendorp', label: 'Price Sensitivity', component: <VanWestendorpPage survey={survey} responses={responses} /> });
         }
         const turfQuestion = survey.questions.find(q => q.type === 'multiple');
-        if (turfQuestion) {
+        if (turfQuestion && survey.title.toLowerCase().includes('turf')) {
             const turfData = responses.map(r => ({ selection: (r.answers as any)[turfQuestion.id] })).filter(r => r.selection);
             if (turfData.length > 0) {
                  analyses.push({ key: 'turf', label: 'TURF Analysis', component: <TurfPage data={turfData} categoricalHeaders={[turfQuestion.title]} onLoadExample={() => {}} /> });
