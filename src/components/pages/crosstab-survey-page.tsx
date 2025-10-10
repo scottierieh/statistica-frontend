@@ -1,15 +1,16 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Sigma, Columns, AlertTriangle } from 'lucide-react';
+import { Loader2, Sigma, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '../ui/skeleton';
-import type { Survey, SurveyResponse } from '@/types/survey';
+import type { Survey, SurveyResponse, Question } from '@/types/survey';
 
 interface CrosstabResults {
   contingency_table: { [key: string]: { [key: string]: number } };
@@ -42,10 +43,7 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
   // Get all questions that can be used for crosstab
   const questionOptions = useMemo(() => {
     return survey.questions
-      .filter(q => {
-        // Include single choice, multiple choice, dropdown, and matrix questions
-        return q.type === 'single';
-      })
+      .filter(q => q.type === 'single')
       .flatMap(q => {
         // For matrix questions, create an option for each row
         if (q.type === 'matrix' && q.rows) {
@@ -68,13 +66,18 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
 
   // Set initial values
   useEffect(() => {
-    if (questionOptions.length > 0 && !rowVar) {
+    if (questionOptions.length > 0) {
       setRowVar(questionOptions[0].value);
       if (questionOptions.length > 1) {
         setColVar(questionOptions[1].value);
+      } else {
+        setColVar('');
       }
+    } else {
+        setRowVar('');
+        setColVar('');
     }
-  }, [questionOptions, rowVar]);
+  }, [questionOptions]);
 
   const handleAnalysis = useCallback(async () => {
     if (!rowVar || !colVar) {
@@ -207,7 +210,6 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
                     <SelectItem 
                       key={opt.value} 
                       value={opt.value}
-                      disabled={opt.value === colVar}
                     >
                       {opt.label}
                     </SelectItem>
@@ -290,7 +292,7 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
             <CardHeader>
               <CardTitle>Statistical Summary</CardTitle>
               <CardDescription>
-                Chi-Squared test results and effect size
+                Chi-squared test results and effect size
               </CardDescription>
             </CardHeader>
             <CardContent>
