@@ -18,6 +18,7 @@ import SemanticDifferentialPage from '@/components/pages/semantic-differential-p
 import BrandFunnelPage from '@/components/pages/brand-funnel-page';
 import ServqualPage from '@/components/pages/servqual-page';
 import ServperfPage from '@/components/pages/servperf-page';
+import CrosstabSurveyPage from '@/components/pages/crosstab-survey-page';
 
 
 export default function SurveyAnalysis() {
@@ -92,6 +93,12 @@ export default function SurveyAnalysis() {
         if (survey.questions.some(q => q.type === 'servqual' && q.servqualType === 'Perception')) {
             analyses.push({ key: 'servperf', label: 'SERVPERF', component: <ServperfPage survey={survey} responses={responses} /> });
         }
+        
+        // Add crosstab analysis
+        if (survey.questions.length > 1) {
+            analyses.push({ key: 'crosstab', label: 'Crosstab Analysis', component: <CrosstabSurveyPage survey={survey} responses={responses} /> });
+        }
+        
         return analyses;
     }, [survey, responses]);
 
