@@ -1,158 +1,142 @@
 
-import React from 'react';
-import { Check, Info } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+'use client';
+
+import React, { useState } from 'react';
+import { Check, Info, ArrowRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
-interface FeatureItemProps {
-  text: string;
-  hasInfo?: boolean;
-}
-
-const FeatureItem: React.FC<FeatureItemProps> = ({ text, hasInfo }) => (
-  <li className="flex items-center space-x-2">
-    <Check className="h-4 w-4 text-green-500" />
-    <span>{text}</span>
-    {hasInfo && <Info className="h-3 w-3 text-muted-foreground" />}
-  </li>
-);
 
 const PricingSection: React.FC = () => {
-  return (
-    <section className="py-12 bg-white">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
 
-          {/* Essential Plan */}
-          <Card className="flex flex-col">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold mb-2">Essential</CardTitle>
-              <p className="text-green-500 text-3xl font-bold mb-4">Free</p>
-              <Button variant="outline" className="w-full">Get Started</Button>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <h3 className="text-green-500 font-semibold mb-3">What's Included</h3>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <FeatureItem text="Form Library" hasInfo />
-                <ul className="pl-4 space-y-1 text-xs">
-                  <FeatureItem text="Open-Source on GitHub" />
-                  <FeatureItem text="APIs and learning materials (code snippets, online documentation)" />
-                  <FeatureItem text="Unlimited Forms" />
-                  <FeatureItem text="Unlimited Form Submissions" />
-                  <FeatureItem text="Unlimited File Uploads" />
-                  <FeatureItem text="All Data on Your Own Servers" />
-                  <FeatureItem text="No Watermarks/Nag Screens/Referral Badges" />
-                  <FeatureItem text="Native Support for React, Angular, Knockout, and Vue3" />
-                  <FeatureItem text="Any Server & Database" />
-                  <FeatureItem text="Dynamic JSON-Driven Forms" />
-                  <FeatureItem text="20+ Accessible Input Types" />
-                </ul>
-              </ul>
-            </CardContent>
-          </Card>
+    const plans = {
+        survey: {
+            monthly: { price: 49, id: 'price_survey_monthly' },
+            yearly: { price: 490, id: 'price_survey_yearly' },
+            features: [
+                'Unlimited Surveys',
+                'Unlimited Questions',
+                'Advanced Question Types (Conjoint, AHP)',
+                'Customizable Themes',
+                'Response Analytics Dashboard',
+                'Data Export (CSV, Excel)',
+            ],
+            title: "Survey Pro",
+            description: "Advanced tools for insightful feedback."
+        },
+        statistica: {
+            monthly: { price: 49, id: 'price_statistica_monthly' },
+            yearly: { price: 490, id: 'price_statistica_yearly' },
+            features: [
+                'All Statistical Analyses (40+)',
+                'Advanced Data Visualizations',
+                'AI-Powered Insights & Reports',
+                'No Watermarks on Exports',
+                'High-Performance Python Backend',
+                'Load Custom Datasets',
+            ],
+            title: "Statistica Pro",
+            description: "Unlock the full power of your data."
+        },
+        bundle: {
+            monthly: { price: 79, id: 'price_bundle_monthly' },
+            yearly: { price: 790, id: 'price_bundle_yearly' },
+            features: [
+                'Includes everything in Survey Pro',
+                'Includes everything in Statistica Pro',
+                'Seamless Integration Between Tools',
+                'Priority Support',
+                'Early Access to New Features',
+                'Best Value'
+            ],
+            title: "Full Access Bundle",
+            description: "The complete toolkit for experts."
+        }
+    };
 
-          {/* Basic Plan */}
-          <Card className="flex flex-col">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold mb-2">Basic</CardTitle>
-              <div className="flex items-center space-x-2 mb-2">
-                <span className="px-2 py-0.5 bg-gray-200 text-xs rounded-full">License</span>
-                <span className="px-2 py-0.5 bg-gray-200 text-xs rounded-full">Renewal</span>
-              </div>
-              <p className="text-green-500 text-3xl font-bold mb-1">$589</p>
-              <p className="text-sm text-gray-500 mb-4">once per developer <br />(includes updates and support for the first 12 mo)</p>
-              <Button className="w-full bg-green-500 hover:bg-green-600 text-white">Buy Now</Button>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <h3 className="text-green-500 font-semibold mb-3">What's Included</h3>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li className="font-bold">Everything in Essential, plus...</li>
-                <FeatureItem text="Survey Creator" hasInfo />
-                <ul className="pl-4 space-y-1 text-xs">
-                  <FeatureItem text="Open-Source on GitHub" />
-                  <FeatureItem text="APIs and learning materials (code snippets, online documentation)" />
-                  <FeatureItem text="Fully Integrates in Your App (Self-Hosted)" />
-                  <FeatureItem text="Any Web Application (including SaaS)" />
-                  <FeatureItem text="White-Labeled" />
-                  <FeatureItem text="Opportunity to Implement User Access Control (integrates with any user management system)" />
-                  <FeatureItem text="Unlimited Admins" />
-                  <FeatureItem text="Unlimited Form Creators" />
-                  <FeatureItem text="Unlimited Forms" />
-                </ul>
-              </ul>
-            </CardContent>
-          </Card>
+    return (
+        <section className="py-12 md:py-20 lg:py-24 bg-gradient-to-b from-slate-50 to-white">
+            <div className="container mx-auto px-4">
+                <div className="text-center mb-12">
+                    <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">Find the Right Plan for You</h1>
+                    <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+                        Start for free, then upgrade to unlock powerful features for professional-grade analysis and surveying.
+                    </p>
+                </div>
 
-          {/* PRO Plan */}
-          <Card className="relative flex flex-col border-2 border-green-500 shadow-lg">
-            <div className="absolute top-0 right-0 bg-yellow-400 text-xs font-bold px-3 py-1 -mt-3 -mr-3 transform rotate-45 translate-x-1/2 -translate-y-1/2">BEST VALUE</div>
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold mb-2">PRO</CardTitle>
-              <div className="flex items-center space-x-2 mb-2">
-                <span className="px-2 py-0.5 bg-gray-200 text-xs rounded-full">License</span>
-                <span className="px-2 py-0.5 bg-gray-200 text-xs rounded-full">Renewal</span>
-              </div>
-              <p className="text-green-500 text-3xl font-bold mb-1">$1069</p>
-              <p className="text-sm text-gray-500 mb-4">once per developer <br />(includes updates and support for the first 12 mo)</p>
-              <Button className="w-full bg-green-500 hover:bg-green-600 text-white">Buy Now</Button>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <h3 className="text-green-500 font-semibold mb-3">What's Included</h3>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li className="font-bold">Everything in Basic, plus...</li>
-                <FeatureItem text="Dashboard" hasInfo />
-                <ul className="pl-4 space-y-1 text-xs">
-                  <FeatureItem text="Open-Source on GitHub" />
-                  <FeatureItem text="All Processed Data on Your Own Servers" />
-                  <FeatureItem text="Real-time Data Updates" />
-                  <FeatureItem text="Export Form Submission Data in Excel, CSV, and PDF" />
-                  <FeatureItem text="Interactive Reports" />
-                  <FeatureItem text="All popular Chart Types: Bar Chart, Line Chart, Pie Chart, Plotly Gauge Chart" />
-                </ul>
-                <FeatureItem text="PDF Generator" hasInfo />
-                <ul className="pl-4 space-y-1 text-xs">
-                  <FeatureItem text="Open-Source on GitHub" />
-                  <FeatureItem text="Generate Editable PDF Forms" />
-                </ul>
-              </ul>
-            </CardContent>
-          </Card>
+                <div className="flex items-center justify-center space-x-4 mb-10">
+                    <Label htmlFor="billing-cycle" className={cn(billingCycle === 'monthly' ? 'text-primary' : 'text-muted-foreground')}>
+                        Monthly
+                    </Label>
+                    <Switch
+                        id="billing-cycle"
+                        checked={billingCycle === 'yearly'}
+                        onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
+                    />
+                    <Label htmlFor="billing-cycle" className={cn(billingCycle === 'yearly' ? 'text-primary' : 'text-muted-foreground')}>
+                        Yearly <span className="text-green-500 font-semibold">(Save 20%)</span>
+                    </Label>
+                </div>
 
-          {/* Enterprise Plan */}
-          <Card className="flex flex-col bg-blue-500 text-white">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold mb-2">Enterprise</CardTitle>
-              <p className="text-3xl font-bold mb-1">Starts at $2379</p>
-              <p className="text-sm mb-4">Tell us about your project and see what SurveyJS can do for you.</p>
-              <Button variant="secondary" className="w-full bg-blue-600 hover:bg-blue-700 text-white">Contact Us</Button>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <h3 className="font-semibold mb-3">What's Included</h3>
-              <ul className="space-y-2 text-sm">
-                <li className="font-bold">Developer licenses, plus...</li>
-                <ul className="pl-4 space-y-1 text-xs">
-                  <FeatureItem text="Priority Support" hasInfo />
-                  <FeatureItem text="Technical Account Manager" hasInfo />
-                  <FeatureItem text="Priority Bug Fixes" hasInfo />
-                  <FeatureItem text="Best Practices Sessions" hasInfo />
-                  <FeatureItem text="Integration Sessions" hasInfo />
-                  <FeatureItem text="Code Review Sessions" hasInfo />
-                  <FeatureItem text="On-demand releases" hasInfo />
-                </ul>
-                <li className="font-bold mt-4">Opportunity to request:</li>
-                <ul className="pl-4 space-y-1 text-xs">
-                  <FeatureItem text="Add-on Feature Development" hasInfo />
-                  <FeatureItem text="Prioritized Implementation of High Demand Roadmap Tasks" hasInfo />
-                </ul>
-                <li className="mt-4 text-xs"><a href="#" className="underline">See All Features</a></li>
-              </ul>
-            </CardContent>
-          </Card>
-
-        </div>
-      </div>
-    </section>
-  );
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+                    {Object.entries(plans).map(([key, plan]) => {
+                        const price = billingCycle === 'yearly' ? plan.yearly.price : plan.monthly.price;
+                        const period = billingCycle === 'yearly' ? '/year' : '/month';
+                        const isBundle = key === 'bundle';
+                        
+                        return (
+                            <Card key={key} className={cn("flex flex-col shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300", isBundle && "border-2 border-primary ring-4 ring-primary/10")}>
+                                {isBundle && <div className="absolute top-0 right-4 -mt-3 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">BEST VALUE</div>}
+                                <CardHeader className="text-center pb-4">
+                                    <CardTitle className="text-2xl font-bold mb-2">{plan.title}</CardTitle>
+                                    <CardDescription>{plan.description}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex-1 flex flex-col justify-between">
+                                    <div className="text-center mb-8">
+                                        <AnimatePresence mode="wait">
+                                            <motion.div
+                                                key={billingCycle}
+                                                initial={{ opacity: 0, y: -10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 10 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="flex justify-center items-baseline"
+                                            >
+                                                <span className="text-4xl font-extrabold tracking-tight">${price}</span>
+                                                <span className="ml-1 text-xl font-medium text-muted-foreground">{period}</span>
+                                            </motion.div>
+                                        </AnimatePresence>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold mb-4 text-center">What's Included:</h3>
+                                        <ul className="space-y-3 text-sm text-gray-700">
+                                            {plan.features.map((feature, i) => (
+                                                 <li key={i} className="flex items-start">
+                                                    <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                                                    <span>{feature}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </CardContent>
+                                <CardFooter className="mt-8">
+                                    <Button className={cn("w-full text-lg py-6", isBundle && "bg-primary hover:bg-primary/90")}>
+                                        Get Started
+                                        <ArrowRight className="ml-2 h-5 w-5" />
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        )
+                    })}
+                </div>
+            </div>
+        </section>
+    );
 };
 
 export default PricingSection;
