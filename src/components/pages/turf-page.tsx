@@ -1,16 +1,14 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import type { DataSet } from '@/lib/stats';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Loader2, ThumbsUp, AlertTriangle, TrendingUp, Target, Package } from 'lucide-react';
 import type { Survey, SurveyResponse, Question } from '@/types/survey';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, TrendingUp, Target, Package, AlertTriangle } from 'lucide-react';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { 
     ResponsiveContainer, 
@@ -31,6 +29,7 @@ import {
     Radar
 } from 'recharts';
 import Image from 'next/image';
+import { Skeleton } from '../ui/skeleton';
 
 interface TurfResults {
     individual_reach: { Product: string; 'Reach (%)': number }[];
@@ -46,6 +45,7 @@ interface TurfResults {
 interface FullAnalysisResponse {
     results: TurfResults;
     plot: string;
+    error?: string;
 }
 
 interface TurfPageProps {
@@ -155,6 +155,13 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
             reach: item['Reach (%)']
         }));
     }, [analysisResult]);
+    
+    const results = analysisResult?.results;
+    
+    const formattedInterpretation = useMemo(() => {
+        if (!results?.interpretation) return null;
+        return results.interpretation.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    }, [results]);
 
     if (isLoading) {
         return (
@@ -181,15 +188,13 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
         );
     }
 
-    if (!analysisResult) {
+    if (!analysisResult || !results) {
         return (
             <div className="text-center text-muted-foreground py-10">
                 <p>No analysis results to display.</p>
             </div>
         );
     }
-    
-    const results = analysisResult.results;
 
     return (
         <div className="space-y-6">
@@ -273,13 +278,13 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
                                 </CardContent>
                             </Card>
                         )}
-                        {results.interpretation && (
+                        {formattedInterpretation && (
                             <Alert>
                                 <AlertTriangle className="h-4 w-4" />
                                 <AlertTitle>Strategic Recommendations</AlertTitle>
                                 <AlertDescription 
                                     dangerouslySetInnerHTML={{ 
-                                        __html: results.interpretation.replace(/\n/g, '&lt;br /&gt;').replace(/\*\*(.*?)\*\*/g, '&lt;strong&gt;$1&lt;/strong&gt;')
+                                        __html: formattedInterpretation
                                     }} 
                                 />
                             </Alert>
@@ -406,3 +411,4 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
             </Tabs>
         </div>
     );
+}
