@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, Star, ArrowLeft, ArrowRight } from "lucide-react";
+import { CheckCircle2, Star, ArrowLeft, ArrowRight, ThumbsUp, ThumbsDown } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Textarea } from './ui/textarea';
 import { Progress } from './ui/progress';
@@ -462,7 +462,7 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
                                            {[9, 7, 5, 3, 1, 3, 5, 7, 9].map((v, index) => {
                                                 const radioValue = index < 4 ? -v : v;
                                                 return (
-                                                    <div key={index} className="flex flex-col items-center space-y-1">
+                                                    <div key={index} className="flex flex-col items-center space-y-2">
                                                          <RadioGroupItem 
                                                             value={String(radioValue)} 
                                                             id={`pair-${group.matrixKey}-${pair.join('-')}-${radioValue}`} 
