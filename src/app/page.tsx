@@ -36,7 +36,6 @@ export default function LandingPage() {
   const securityImage = PlaceHolderImages.find(img => img.id === 'security-feature');
   const enterpriseImage = PlaceHolderImages.find(img => img.id === 'enterprise-feature');
 
-
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800">
        <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -240,7 +239,7 @@ export default function LandingPage() {
           </div>
         </section>
         
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
+        <section id="pricing" className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
            <div className="w-full max-w-6xl mx-auto px-4 md:px-6">
              <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Easy to Start, Powerful to Use</h2>
