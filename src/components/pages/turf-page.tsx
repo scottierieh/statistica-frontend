@@ -155,6 +155,22 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
             reach: item['Reach (%)']
         }));
     }, [analysisResult]);
+
+    const topCombinationsData = useMemo(() => {
+        if (!analysisResult?.results.top_combinations?.['3']) return [];
+        return analysisResult.results.top_combinations['3'].slice(0, 5).map((c: any) => ({
+            name: cleanCombination(c.combination).split(' + ').map((p: string) => p.length > 15 ? p.substring(0, 15) + '...' : p).join(' + '),
+            reach: c.reach
+        }));
+    }, [analysisResult]);
+
+    const individualReachData = useMemo(() => {
+        if (!analysisResult?.results.individual_reach) return [];
+        return analysisResult.results.individual_reach.map(item => ({
+            product: item.Product.split(':')[0].replace('Product ', ''),
+            reach: item['Reach (%)']
+        }));
+    }, [analysisResult]);
     
     const results = analysisResult?.results;
     
@@ -262,22 +278,52 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
 
                 <TabsContent value="overview" className="mt-4">
                     <div className="space-y-6">
-                        {analysisResult.plot && (
+                        <div className="grid grid-cols-1 gap-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Analysis Visualization</CardTitle>
+                                    <CardTitle>Top Product Combinations</CardTitle>
+                                    <CardDescription>Reach by best performing 3-product portfolios</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Image 
-                                        src={`data:image/png;base64,${analysisResult.plot}`} 
-                                        alt="TURF Analysis Plots" 
-                                        width={1600} 
-                                        height={1200} 
-                                        className="w-full rounded-lg border shadow-sm" 
-                                    />
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart data={topCombinationsData} layout="vertical">
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis type="number" domain={[0, 100]} />
+                                            <YAxis type="category" dataKey="name" width={150} />
+                                            <Tooltip />
+                                            <Bar dataKey="reach" fill="#3b82f6" name="Reach (%)">
+                                                {topCombinationsData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
                                 </CardContent>
                             </Card>
-                        )}
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Individual Product Preference</CardTitle>
+                                    <CardDescription>Standalone reach percentage by product</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart data={individualReachData}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="product" angle={-45} textAnchor="end" height={100} />
+                                            <YAxis domain={[0, 100]} />
+                                            <Tooltip />
+                                            <Bar dataKey="reach" fill="#10b981" name="Reach (%)">
+                                                {individualReachData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        </div>
+
                         {formattedInterpretation && (
                             <Alert>
                                 <AlertTriangle className="h-4 w-4" />
@@ -294,43 +340,53 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
 
                 <TabsContent value="charts" className="mt-4">
                      <div className="space-y-8">
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Portfolio Performance by Size</h3>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={portfolioChartData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="size" />
-                                    <YAxis yAxisId="left" label={{ value: 'Reach (%)', angle: -90, position: 'insideLeft' }} />
-                                    <YAxis yAxisId="right" orientation="right" label={{ value: 'Frequency', angle: 90, position: 'insideRight' }} />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Line yAxisId="left" type="monotone" dataKey="reach" stroke="#3b82f6" strokeWidth={2} name="Reach (%)" />
-                                    <Line yAxisId="right" type="monotone" dataKey="frequency" stroke="#10b981" strokeWidth={2} name="Frequency" />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Portfolio Performance by Size</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <LineChart data={portfolioChartData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="size" />
+                                        <YAxis yAxisId="left" label={{ value: 'Reach (%)', angle: -90, position: 'insideLeft' }} />
+                                        <YAxis yAxisId="right" orientation="right" label={{ value: 'Frequency', angle: 90, position: 'insideRight' }} />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Line yAxisId="left" type="monotone" dataKey="reach" stroke="#3b82f6" strokeWidth={2} name="Reach (%)" />
+                                        <Line yAxisId="right" type="monotone" dataKey="frequency" stroke="#10b981" strokeWidth={2} name="Frequency" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
 
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Individual Product Reach Comparison</h3>
-                            <ResponsiveContainer width="100%" height={400}>
-                                <RadarChart data={radarChartData}>
-                                    <PolarGrid />
-                                    <PolarAngleAxis dataKey="product" />
-                                    <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                                    <Radar name="Reach %" dataKey="reach" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
-                                    <Tooltip />
-                                </RadarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Individual Product Reach Comparison</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={400}>
+                                    <RadarChart data={radarChartData}>
+                                        <PolarGrid />
+                                        <PolarAngleAxis dataKey="product" />
+                                        <PolarRadiusAxis angle={90} domain={[0, 100]} />
+                                        <Radar name="Reach %" dataKey="reach" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
+                                        <Tooltip />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
                     </div>
                 </TabsContent>
 
                 <TabsContent value="tables" className="mt-4">
                     <div className="space-y-6">
                         <div className="grid lg:grid-cols-2 gap-6">
-                            <div>
-                                <h3 className="text-lg font-semibold mb-3">Optimal Portfolios by Size</h3>
-                                <div className="border rounded-lg overflow-hidden">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Optimal Portfolios by Size</CardTitle>
+                                </CardHeader>
+                                <CardContent>
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
@@ -351,12 +407,14 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
                                             ))}
                                         </TableBody>
                                     </Table>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
 
-                            <div>
-                                <h3 className="text-lg font-semibold mb-3">Incremental Reach Analysis</h3>
-                                <div className="border rounded-lg overflow-hidden">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Incremental Reach Analysis</CardTitle>
+                                </CardHeader>
+                                <CardContent>
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
@@ -368,7 +426,7 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
                                         <TableBody>
                                             {results.incremental_reach.map(r => (
                                                 <TableRow key={r.Order}>
-                                                    <TableCell className="font-medium">{r.Order}. {r.Product}</TableCell>
+                                                    <TableCell className="font-medium">{r.Order}. {cleanCombination(r.Product)}</TableCell>
                                                     <TableCell className="text-right font-mono text-green-600">
                                                         +{r['Incremental Reach (%)'].toFixed(2)}% ({r['Incremental Reach (count)']})
                                                     </TableCell>
@@ -377,13 +435,15 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
                                             ))}
                                         </TableBody>
                                     </Table>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
                         </div>
 
-                        <div>
-                            <h3 className="text-lg font-semibold mb-3">Top 10 Three-Product Combinations</h3>
-                            <div className="border rounded-lg overflow-hidden">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Top 10 Three-Product Combinations</CardTitle>
+                            </CardHeader>
+                            <CardContent>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -404,11 +464,13 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
                                         ))}
                                     </TableBody>
                                 </Table>
-                            </div>
-                        </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </TabsContent>
             </Tabs>
         </div>
     );
 }
+
+    
