@@ -168,7 +168,7 @@ export default function CreateSurveyPage() {
   
   const deviceWidths = {
     desktop: 'max-w-6xl',
-    tablet: 'w-[820px]',
+    tablet: 'max-w-3xl',
     mobile: 'max-w-md',
   };
 
