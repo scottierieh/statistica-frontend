@@ -1,23 +1,22 @@
-
 'use client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { Survey, SurveyResponse, Question, Criterion } from '@/types/survey';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertTriangle } from 'lucide-react';
 
 
 const renderBarChart = (title: string, data: any[], consistency: any) => {
-    const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+    const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+    
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-white p-3 border-2 border-primary/30 rounded-lg shadow-lg">
-                    <p className="font-semibold text-foreground">{payload[0].payload.name}</p>
-                    <p className="text-primary font-bold">{payload[0].value}%</p>
+                <div className="bg-white p-3 border-2 border-blue-200 rounded-lg shadow-lg">
+                    <p className="font-semibold text-gray-900">{payload[0].payload.name}</p>
+                    <p className="text-blue-600 font-bold">{payload[0].value}%</p>
                 </div>
             );
         }
@@ -25,35 +24,41 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
     };
 
     const topItem = data.length > 0 ? data[0] : null;
+    const showConsistency = consistency && data.length > 2; // Only show CR for 3+ items
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-800">{title}</h3>
-                {consistency && (
-                    <div className="flex items-center gap-4">
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+                {showConsistency && (
+                    <div className="flex items-center gap-3">
                         <span className="text-sm text-gray-600">
                             CR: <span className={`font-bold ${consistency.CR < 0.1 ? 'text-green-600' : 'text-red-600'}`}>
-                                {(consistency.CR * 100).toFixed(2)}%
+                                {(consistency.CR * 100).toFixed(1)}%
                             </span>
                         </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${consistency.is_consistent ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${consistency.is_consistent ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                             {consistency.is_consistent ? '✓ Consistent' : '✗ Inconsistent'}
                         </span>
                     </div>
                 )}
+                {!showConsistency && data.length === 2 && (
+                    <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                        N/A (2 items)
+                    </span>
+                )}
             </div>
             
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-8">
                 <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <BarChart data={data} margin={{ top: 20, right: 20, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis dataKey="name" tick={{ fill: '#4b5563', fontWeight: 600 }} />
+                        <XAxis dataKey="name" tick={{ fill: '#374151', fontSize: 12 }} />
                         <YAxis 
-                        label={{ value: 'Weight (%)', angle: -90, position: 'insideLeft', fill: '#4b5563' }}
-                        domain={[0, 100]}
-                        tickFormatter={(value) => `${value}%`}
-                         />
+                            label={{ value: 'Weight (%)', angle: -90, position: 'insideLeft', fill: '#374151' }}
+                            domain={[0, 'auto']}
+                            tickFormatter={(value) => `${value}%`}
+                        />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="weight" radius={[8, 8, 0, 0]}>
                             {data.map((entry, index) => (
@@ -62,33 +67,38 @@ const renderBarChart = (title: string, data: any[], consistency: any) => {
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>
-                <div className="overflow-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Item</TableHead>
-                                <TableHead className="text-right">Weight (%)</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {data.map((item, index) => (
-                                <TableRow key={index}>
-                                    <TableCell className="font-medium">{item.name}</TableCell>
-                                    <TableCell className="text-right font-mono">{item.weight}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                
+                <div className="space-y-2">
+                    <h4 className="font-semibold text-gray-700 mb-3">Ranking</h4>
+                    {data.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div className="flex items-center gap-3">
+                                <span className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full font-bold text-sm">
+                                    {index + 1}
+                                </span>
+                                <span className="font-medium text-gray-900">{item.name}</span>
+                            </div>
+                            <span className="text-lg font-bold text-blue-600">{item.weight}%</span>
+                        </div>
+                    ))}
                 </div>
             </div>
-             <Alert className="mt-4">
-                {consistency?.is_consistent ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                <AlertTitle>Interpretation</AlertTitle>
-                <AlertDescription>
-                    {topItem && `The most important item in this category is '${topItem.name}' with a weight of ${topItem.weight}%. `}
-                    {consistency && `The Consistency Ratio (CR) is ${(consistency.CR * 100).toFixed(2)}%. Since this is ${consistency.is_consistent ? 'below 10%' : 'above 10%'}, the pairwise comparisons are considered ${consistency.is_consistent ? 'consistent and reliable' : 'inconsistent'}.`}
-                </AlertDescription>
-            </Alert>
+            
+            {topItem && (
+                <Alert className="mt-6 bg-blue-50 border-blue-200">
+                    <CheckCircle className="h-5 w-5 text-blue-600" />
+                    <AlertTitle className="text-gray-900">Analysis Summary</AlertTitle>
+                    <AlertDescription className="text-gray-700">
+                        The most important factor is <strong>{topItem.name}</strong> with {topItem.weight}% weight.
+                        {showConsistency && (
+                            <> The Consistency Ratio is {(consistency.CR * 100).toFixed(1)}%, which is {consistency.is_consistent ? 'acceptable (below 10%)' : 'too high (above 10%)'}.</>
+                        )}
+                        {data.length === 2 && (
+                            <> Consistency Ratio is not applicable for pairwise comparisons (always consistent).</>
+                        )}
+                    </AlertDescription>
+                </Alert>
+            )}
         </div>
     );
 };
@@ -102,7 +112,7 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
             name,
             weight: ((weight as number) * 100).toFixed(1),
             weightValue: weight
-        })).sort((a,b) => b.weightValue - a.weightValue);
+        })).sort((a,b) => (b.weightValue as number) - (a.weightValue as number));
     }, [results]);
 
     const subCriteriaAnalyses = useMemo(() => {
@@ -110,35 +120,75 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
         return Object.entries(results.sub_criteria_analysis);
     }, [results]);
     
-    const finalScoresData = useMemo(() => (results?.final_scores?.map((item: any) => ({
-        name: item.name,
-        score: (item.score * 100).toFixed(1),
-        scoreValue: item.score
-    })).sort((a: any, b: any) => b.scoreValue - a.scoreValue) || []), [results]);
-    
-    const COLORS = ['#a67b70', '#b5a888', '#c4956a', '#7a9471', '#8ba3a3', '#6b7565', '#d4c4a8', '#9a8471', '#a8b5a3'];
+    const finalScoresData = useMemo(() => {
+        // If final_scores doesn't exist but alternatives_analysis does, calculate it
+        if (!results?.final_scores && results?.alternatives_analysis && results?.weights) {
+            const alternatives = new Set<string>();
+            const scores: { [key: string]: number } = {};
+            
+            // Get all alternative names
+            Object.values(results.alternatives_analysis).forEach((criterion: any) => {
+                if (criterion.weights) {
+                    Object.keys(criterion.weights).forEach(alt => alternatives.add(alt));
+                }
+            });
+            
+            // Initialize scores
+            alternatives.forEach(alt => scores[alt] = 0);
+            
+            // Calculate weighted scores
+            Object.entries(results.alternatives_analysis).forEach(([criterionName, criterion]: [string, any]) => {
+                const criterionWeight = results.weights[criterionName] || 0;
+                
+                if (criterion.weights) {
+                    Object.entries(criterion.weights).forEach(([altName, altWeight]) => {
+                        scores[altName] += criterionWeight * (altWeight as number);
+                    });
+                }
+            });
+            
+            return Object.entries(scores)
+                .map(([name, score]) => ({
+                    name,
+                    score: (score * 100).toFixed(1),
+                    scoreValue: score
+                }))
+                .sort((a, b) => b.scoreValue - a.scoreValue);
+        }
+        
+        return (results?.final_scores?.map((item: any) => ({
+            name: item.name,
+            score: (item.score * 100).toFixed(1),
+            scoreValue: item.score
+        })).sort((a: any, b: any) => b.scoreValue - a.scoreValue) || []);
+    }, [results]);
 
     return (
-        <div className="w-full max-w-7xl mx-auto p-6 bg-slate-50 rounded-xl">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-                AHP Analysis Results
-            </h1>
+        <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+            <div className="mb-8 text-center">
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                    AHP Analysis Results
+                </h1>
+                <p className="text-gray-600">Analytic Hierarchy Process - Decision Making Analysis</p>
+            </div>
             
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle>Main Criteria</CardTitle>
+            <Card className="mb-6 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                    <CardTitle className="text-2xl">Main Criteria</CardTitle>
+                    <CardDescription className="text-blue-100">Priority weights for decision factors</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-6">
                     {renderBarChart("Main Criteria Weights", mainCriteriaData, results.consistency)}
                 </CardContent>
             </Card>
 
             {subCriteriaAnalyses.length > 0 && subCriteriaAnalyses.map(([parentCriterion, subAnalysis]: [string, any]) => (
-                <Card key={parentCriterion} className="mb-6">
-                    <CardHeader>
-                        <CardTitle>Sub-Criteria for &quot;{parentCriterion}&quot;</CardTitle>
+                <Card key={parentCriterion} className="mb-6 shadow-lg">
+                    <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                        <CardTitle className="text-xl">Sub-Criteria: {parentCriterion}</CardTitle>
+                        <CardDescription className="text-green-100">Detailed breakdown</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-6">
                         {renderBarChart(
                             `Sub-Criteria Weights for "${parentCriterion}"`,
                             Object.entries(subAnalysis.weights).map(([name, weight]) => ({
@@ -153,14 +203,15 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
             ))}
             
             {results.alternatives_analysis && Object.keys(results.alternatives_analysis).length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Alternative Performance by Criterion</CardTitle>
+                <Card className="shadow-lg mb-6">
+                    <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                        <CardTitle className="text-2xl">Alternative Performance</CardTitle>
+                        <CardDescription className="text-purple-100">Performance by criterion</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-6">
                         {Object.entries(results.alternatives_analysis).map(([criterion, altAnalysis]: [string, any]) => (
-                            <div key={criterion} className="mt-4">
-                                 {renderBarChart(
+                            <div key={criterion} className="mt-4 first:mt-0">
+                                {renderBarChart(
                                     `Performance for "${criterion}"`,
                                     Object.entries(altAnalysis.weights).map(([name, weight]) => ({
                                         name,
@@ -176,70 +227,67 @@ const AHPResultsVisualization = ({ results }: { results: any }) => {
             )}
 
             {finalScoresData.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Final Ranking of Alternatives</CardTitle>
-                        <CardDescription>
-                            The final scores are calculated by combining all criteria and sub-criteria weights with each alternative's performance across all criteria.
+                <Card className="shadow-lg">
+                    <CardHeader className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
+                        <CardTitle className="text-2xl flex items-center gap-2">
+                            <span className="text-3xl">🏆</span>
+                            Final Ranking
+                        </CardTitle>
+                        <CardDescription className="text-yellow-100">
+                            Overall scores combining all criteria
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="grid md:grid-cols-2 gap-6">
-                        <ResponsiveContainer width="100%" height={350}>
-                            <BarChart data={finalScoresData} layout="vertical" margin={{ top: 20, right: 30, left: 100, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                <XAxis type="number" label={{ value: 'Final Score (%)', position: 'insideBottom', offset: -5, fill: '#4b5563' }} />
-                                <YAxis type="category" dataKey="name" tick={{ fill: '#4b5563', fontWeight: 600 }} width={100} />
-                                <Tooltip content={({ active, payload }) => {
-                                    if (active && payload && payload.length) {
-                                        return (
-                                            <div className="bg-white p-3 border-2 border-primary/30 rounded-lg shadow-lg">
-                                                <p className="font-semibold text-foreground">{payload[0].payload.name}</p>
-                                                <p className="text-primary font-bold">{payload[0].value}%</p>
+                    <CardContent className="p-6">
+                        <div className="space-y-4">
+                            {finalScoresData.map((item: any, index: number) => (
+                                <div
+                                    key={index}
+                                    className={`p-6 rounded-xl border-2 transition-all ${
+                                        index === 0 ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-400 shadow-md' :
+                                        'bg-white border-gray-200 hover:border-blue-300'
+                                    }`}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold ${
+                                                index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500 text-white shadow-lg' :
+                                                index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white shadow-md' :
+                                                index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-white shadow-md' :
+                                                'bg-blue-100 text-blue-700'
+                                            }`}>
+                                                {index + 1}
                                             </div>
-                                        );
-                                    }
-                                    return null;
-                                }} />
-                                <Bar dataKey="score" radius={[0, 8, 8, 0]}>
-                                    {finalScoresData.map((entry: any, index: number) => (
-                                        <Cell
-                                            key={`cell-${index}`}
-                                            fill={index === 0 ? '#fbbf24' : COLORS[index % COLORS.length]}
-                                            stroke={index === 0 ? '#f59e0b' : 'none'}
-                                            strokeWidth={index === 0 ? 3 : 0}
-                                        />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                        <div className="overflow-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Rank</TableHead>
-                                        <TableHead>Alternative</TableHead>
-                                        <TableHead className="text-right">Final Score (%)</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {finalScoresData.map((item: any, index: number) => (
-                                        <TableRow key={index} className={index === 0 ? 'bg-yellow-50' : ''}>
-                                            <TableCell className="font-bold">{index + 1}</TableCell>
-                                            <TableCell className="font-medium">{item.name}</TableCell>
-                                            <TableCell className="text-right font-mono">{item.score}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                            {finalScoresData.length > 0 && (
-                                 <Alert className="mt-4">
-                                    <AlertTitle>Conclusion</AlertTitle>
-                                    <AlertDescription>
-                                        Based on the analysis, {finalScoresData[0].name} is the best alternative with a score of {finalScoresData[0].score}%.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
+                                            <div>
+                                                <h4 className="text-xl font-bold text-gray-900">{item.name}</h4>
+                                                <p className="text-sm text-gray-600">Rank #{index + 1}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-3xl font-bold text-blue-600">{item.score}%</p>
+                                            <p className="text-sm text-gray-600">Final Score</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4">
+                                        <div className="w-full bg-gray-200 rounded-full h-2">
+                                            <div
+                                                className={`h-2 rounded-full ${index === 0 ? 'bg-yellow-500' : 'bg-blue-500'}`}
+                                                style={{ width: `${(parseFloat(item.score) / parseFloat(finalScoresData[0].score)) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
+                        
+                        {finalScoresData.length > 0 && (
+                            <Alert className="mt-6 bg-green-50 border-green-200">
+                                <CheckCircle className="h-5 w-5 text-green-600" />
+                                <AlertTitle className="text-gray-900">Recommendation</AlertTitle>
+                                <AlertDescription className="text-gray-700">
+                                    Based on the comprehensive analysis, <strong>{finalScoresData[0].name}</strong> is the optimal choice with a final score of <strong>{finalScoresData[0].score}%</strong>.
+                                </AlertDescription>
+                            </Alert>
+                        )}
                     </CardContent>
                 </Card>
             )}
@@ -276,17 +324,6 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
             }
 
             const aggregatedMatrices: { [key: string]: number[][][] } = {};
-            
-            const findCriterion = (id: string, criteriaList: Criterion[]): Criterion | null => {
-                for (const crit of criteriaList) {
-                    if (crit.id === id) return crit;
-                    if (crit.subCriteria) {
-                        const found = findCriterion(id, crit.subCriteria);
-                        if (found) return found;
-                    }
-                }
-                return null;
-            };
             
             const buildMatrix = (answerBlock: { [pairKey: string]: number }, itemNames: string[]): number[][] | null => {
                 if (!answerBlock || itemNames.length === 0) return null;
@@ -421,10 +458,11 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
 
     if (loading) {
         return (
-            <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
-                <div className="flex flex-col items-center justify-center py-20">
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mb-4"></div>
-                    <p className="text-gray-600 text-lg">Loading AHP analysis results...</p>
+            <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+                <div className="flex flex-col items-center justify-center py-32">
+                    <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-blue-600 mb-6"></div>
+                    <p className="text-gray-700 text-xl font-medium">Analyzing AHP data...</p>
+                    <p className="text-gray-500 text-sm mt-2">This may take a few moments</p>
                 </div>
             </div>
         );
@@ -432,27 +470,38 @@ export default function AhpPage({ survey, responses }: AhpPageProps) {
 
     if (error) {
         return (
-            <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
-                <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6">
-                    <h2 className="text-xl font-bold text-red-800 mb-2">Error Loading Results</h2>
-                    <p className="text-red-600">{error}</p>
-                    <button 
-                        onClick={handleAnalysis} 
-                        className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                    >
-                        Retry
-                    </button>
-                </div>
+            <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+                <Card className="bg-red-50 border-2 border-red-300 shadow-lg">
+                    <CardHeader>
+                        <CardTitle className="text-red-800 flex items-center gap-2">
+                            <AlertTriangle className="h-6 w-6" />
+                            Analysis Error
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-red-700 mb-4">{error}</p>
+                        <button 
+                            onClick={handleAnalysis} 
+                            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+                        >
+                            Retry Analysis
+                        </button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     if (!results) {
         return (
-            <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl">
-                <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6 text-center">
-                    <p className="text-gray-600 text-lg">No results available. This could be due to insufficient response data.</p>
-                </div>
+            <div className="w-full max-w-7xl mx-auto p-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+                <Card className="bg-yellow-50 border-2 border-yellow-300 shadow-lg">
+                    <CardContent className="p-12 text-center">
+                        <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-yellow-600" />
+                        <p className="text-gray-700 text-lg">No results available</p>
+                        <p className="text-gray-500 mt-2">Please ensure there is sufficient response data</p>
+                    </CardContent>
+                </Card>
             </div>
         );
     }

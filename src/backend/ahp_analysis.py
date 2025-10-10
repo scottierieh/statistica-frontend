@@ -54,6 +54,8 @@ class AHPAnalysis:
     def set_criteria_matrix(self, matrix):
         """Set pairwise comparison matrix for criteria"""
         self.criteria_matrix = np.array(matrix, dtype=np.float64)
+        print(f"DEBUG: Criteria matrix set:", file=sys.stderr)
+        print(self.criteria_matrix, file=sys.stderr)
     
     def set_alternative_matrix(self, criterion_name, matrix):
         """Set pairwise comparison matrix for alternatives under a criterion"""
@@ -68,6 +70,11 @@ class AHPAnalysis:
         max_eigenvalue = eigenvalues[max_eigenvalue_index].real
         priority_vector = eigenvectors[:, max_eigenvalue_index].real
         weights = priority_vector / np.sum(priority_vector)
+        
+        print(f"DEBUG: Eigenvalues: {eigenvalues}", file=sys.stderr)
+        print(f"DEBUG: Max eigenvalue: {max_eigenvalue}", file=sys.stderr)
+        print(f"DEBUG: Weights: {weights}", file=sys.stderr)
+        
         return weights, max_eigenvalue
     
     def calculate_consistency_ratio(self, matrix, max_eigenvalue):
@@ -79,16 +86,31 @@ class AHPAnalysis:
         CI = (max_eigenvalue - n) / (n - 1) if n > 1 else 0
         CR = CI / RI[n] if n in RI and RI[n] != 0 else 0
         
+        print(f"DEBUG CR Calculation:", file=sys.stderr)
+        print(f"  Matrix size n = {n}", file=sys.stderr)
+        print(f"  Max eigenvalue = {max_eigenvalue}", file=sys.stderr)
+        print(f"  CI = ({max_eigenvalue} - {n}) / ({n} - 1) = {CI}", file=sys.stderr)
+        print(f"  RI[{n}] = {RI.get(n, 'N/A')}", file=sys.stderr)
+        print(f"  CR = {CI} / {RI.get(n, 0)} = {CR}", file=sys.stderr)
+        
         return CR, CI
     
     def analyze(self):
         """Perform complete AHP analysis"""
+        print("\n" + "="*60, file=sys.stderr)
+        print("ANALYZING CRITERIA", file=sys.stderr)
+        print("="*60, file=sys.stderr)
+        
         # Calculate criteria weights
         self.criteria_weights, self.criteria_lambda_max = self.calculate_weights(self.criteria_matrix)
         self.criteria_CR, self.criteria_CI = self.calculate_consistency_ratio(
             self.criteria_matrix, self.criteria_lambda_max)
         
         if self.has_alternatives:
+            print("\n" + "="*60, file=sys.stderr)
+            print("ANALYZING ALTERNATIVES", file=sys.stderr)
+            print("="*60, file=sys.stderr)
+            
             # Calculate alternative weights for each criterion
             self.alternative_weights = {}
             self.alternative_CR = {}
@@ -96,6 +118,7 @@ class AHPAnalysis:
             self.alternative_lambda_max = {}
             
             for criterion in self.criteria_names:
+                print(f"\n--- Criterion: {criterion} ---", file=sys.stderr)
                 weights, lambda_max = self.calculate_weights(
                     self.alternative_matrices[criterion])
                 CR, CI = self.calculate_consistency_ratio(
@@ -121,6 +144,9 @@ class AHPAnalysis:
             self.final_scores += criterion_weight * alternative_weight
         
         self.ranking = np.argsort(self.final_scores)[::-1]
+        
+        print(f"\nDEBUG Final Scores: {self.final_scores}", file=sys.stderr)
+        print(f"DEBUG Ranking: {[self.alternative_names[i] for i in self.ranking]}", file=sys.stderr)
 
     def get_results(self):
         """Return analysis results as a dictionary with JSON-safe types"""
@@ -163,6 +189,8 @@ def geometric_mean_of_matrices(matrices):
     if not matrices:
         return None
     
+    print(f"DEBUG: Calculating geometric mean of {len(matrices)} matrices", file=sys.stderr)
+    
     matrices_array = np.array(matrices, dtype=np.float64)
     
     # Handle any invalid values
@@ -179,6 +207,9 @@ def geometric_mean_of_matrices(matrices):
                 geo_mean_matrix[i, j] = 1.0
             else:
                 geo_mean_matrix[j, i] = 1.0 / geo_mean_matrix[i, j]
+    
+    print(f"DEBUG: Result matrix:", file=sys.stderr)
+    print(geo_mean_matrix, file=sys.stderr)
                 
     return geo_mean_matrix
 
@@ -196,6 +227,12 @@ def main():
         alternatives = payload.get('alternatives')
         goal = payload.get('goal', 'Goal')
 
+        print("="*60, file=sys.stderr)
+        print("AHP ANALYSIS STARTED", file=sys.stderr)
+        print("="*60, file=sys.stderr)
+        print(f"Number of matrix sets: {len(matrices_by_respondent)}", file=sys.stderr)
+        print(f"Matrix keys: {list(matrices_by_respondent.keys())}", file=sys.stderr)
+
         if not hierarchy or not isinstance(hierarchy, list) or len(hierarchy) == 0:
             raise ValueError(f"Invalid or missing hierarchy data. Received: {hierarchy}")
         
@@ -210,6 +247,9 @@ def main():
         if not criteria_nodes:
             raise ValueError("No criteria found in hierarchy structure.")
 
+        print(f"Criteria found: {criteria_nodes}", file=sys.stderr)
+        print(f"Alternatives: {alternatives}", file=sys.stderr)
+
         has_alternatives = bool(alternatives and len(alternatives) > 0)
         
         ahp = AHPAnalysis(criteria_nodes, alternatives if has_alternatives else None)
@@ -217,11 +257,12 @@ def main():
         agg_matrices = {}
         for key, matrix_list in matrices_by_respondent.items():
             if matrix_list and len(matrix_list) > 0:
+                print(f"\nAggregating matrices for key: {key}", file=sys.stderr)
                 agg_matrices[key] = geometric_mean_of_matrices(matrix_list)
 
         if 'criteria' in agg_matrices:
              ahp.set_criteria_matrix(agg_matrices['criteria'])
-        elif 'goal' in agg_matrices: # Fallback for older key
+        elif 'goal' in agg_matrices:
             ahp.set_criteria_matrix(agg_matrices['goal'])
         else:
             raise ValueError("Criteria comparison matrix for 'goal' or 'criteria' not found in matrices")
@@ -231,15 +272,15 @@ def main():
                 matrix_key = f"alt_{criterion}"
                 if matrix_key in agg_matrices:
                     ahp.set_alternative_matrix(criterion, agg_matrices[matrix_key])
-                else:
-                    # For sub-criteria, the key might be different
-                    # This logic needs to be robust to handle nested structures if they exist
-                    pass
 
         ahp.analyze()
         results_data = ahp.get_results()
 
         response = {"results": results_data}
+        
+        print("\n" + "="*60, file=sys.stderr)
+        print("ANALYSIS COMPLETE", file=sys.stderr)
+        print("="*60 + "\n", file=sys.stderr)
         
         print(json.dumps(response, cls=NumpyEncoder, ensure_ascii=False, indent=2))
 

@@ -4,17 +4,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye } from "lucide-react";
+import { ArrowLeft, Eye, Monitor, Tablet, Smartphone } from "lucide-react";
 import { motion } from 'framer-motion';
 import type { Question } from '@/entities/Survey';
 import QuestionList from '@/components/survey/QuestionList';
 import SurveyStylePanel from '@/components/survey/SurveyStylePanel';
 import { QuestionTypePalette } from '@/components/survey/QuestionTypePalette';
 import { SpecialAnalysisPalette } from '@/components/survey/SpecialAnalysisPalette';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { choiceBasedConjointTemplate, ratingBasedConjointTemplate, ipaTemplate, vanWestendorpTemplate, turfTemplate, gaborGrangerTemplate1, gaborGrangerTemplate2, ahpCriteriaOnlyTemplate, ahpWithAlternativesTemplate, csatTemplate, semanticDifferentialTemplate, brandFunnelTemplate, servqualTemplate, servperfTemplate } from '@/lib/survey-templates';
 import { Tabs, TabsTrigger, TabsContent, TabsList } from '@/components/ui/tabs';
 import SurveyView from '@/components/survey-view';
+import { cn } from '@/lib/utils';
 
 
 export default function CreateSurveyPage() {
@@ -37,6 +38,7 @@ export default function CreateSurveyPage() {
     questionTextSize: 22,
     answerTextSize: 16
   });
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
   useEffect(() => {
     const loadSurvey = async () => {
@@ -163,6 +165,12 @@ export default function CreateSurveyPage() {
     };
     setQuestions(prev => [...prev, newQuestion]);
   };
+  
+  const deviceWidths = {
+    desktop: 'max-w-4xl',
+    tablet: 'max-w-md',
+    mobile: 'max-w-sm',
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -177,15 +185,23 @@ export default function CreateSurveyPage() {
                         <DialogTrigger asChild>
                             <Button variant="outline"><Eye className="w-5 h-5 mr-2" />Preview</Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-                           <DialogHeader className="sr-only">
-                            <DialogTitle>Survey Preview</DialogTitle>
+                         <DialogContent className={cn("h-[90vh] flex flex-col p-0 transition-all duration-300", deviceWidths[previewDevice])}>
+                           <DialogHeader className="p-4 border-b">
+                                <DialogTitle>Survey Preview</DialogTitle>
+                                <DialogDescription>See how your survey will look on different devices.</DialogDescription>
+                                <div className="flex justify-center items-center gap-2 pt-2">
+                                     <Button variant={previewDevice === 'desktop' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('desktop')}><Monitor/></Button>
+                                     <Button variant={previewDevice === 'tablet' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('tablet')}><Tablet/></Button>
+                                     <Button variant={previewDevice === 'mobile' ? 'secondary' : 'ghost'} size="icon" onClick={() => setPreviewDevice('mobile')}><Smartphone/></Button>
+                                </div>
                            </DialogHeader>
-                           <SurveyView 
-                                survey={{ id: 'preview', title, description, questions, status: 'active', created_date: '' }}
-                                isPreview={true}
-                                previewStyles={styles}
-                             />
+                           <div className="flex-1 overflow-y-auto">
+                                <SurveyView 
+                                    survey={{ id: 'preview', title, description, questions, status: 'active', created_date: '' }}
+                                    isPreview={true}
+                                    previewStyles={styles}
+                                />
+                           </div>
                         </DialogContent>
                     </Dialog>
                 </div>
