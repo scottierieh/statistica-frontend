@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import SurveyAnalysisPage from '@/components/pages/survey-analysis-page';
 import type { Survey, SurveyResponse } from '@/types/survey';
@@ -71,10 +72,7 @@ export default function SurveyAnalysis() {
         }
         const turfQuestion = survey.questions.find(q => q.type === 'multiple');
         if (turfQuestion && survey.title.toLowerCase().includes('turf')) {
-            const turfData = responses.map(r => ({ selection: (r.answers as any)[turfQuestion.id] })).filter(r => r.selection);
-            if (turfData.length > 0) {
-                 analyses.push({ key: 'turf', label: 'TURF Analysis', component: <TurfPage data={turfData} categoricalHeaders={[turfQuestion.title]} onLoadExample={() => {}} /> });
-            }
+            analyses.push({ key: 'turf', label: 'TURF Analysis', component: <TurfPage survey={survey} responses={responses} turfQuestion={turfQuestion} /> });
         }
         if (survey.questions.some(q => q.type === 'ahp' || q.type === 'anp')) {
             analyses.push({ key: 'ahp', label: 'AHP/ANP Analysis', component: <AhpPage survey={survey} responses={responses} /> });
