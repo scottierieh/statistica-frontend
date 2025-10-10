@@ -44,7 +44,10 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
   const questionOptions = useMemo(() => {
     if (!survey || !survey.questions) return [];
     return survey.questions
-      .filter(q => q.type === 'single') // Filter for single choice questions
+      .filter(q => {
+        // Include rating questions
+        return q.type === 'rating';
+      })
       .map(q => {
         return {
           label: q.title,
@@ -112,7 +115,7 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
         // Get column value
         colValue = r.answers[colOption.questionId];
 
-        // Handle array values (for multiple choice, though currently filtered out)
+        // Handle array values (for multiple choice)
         if (Array.isArray(rowValue)) {
           rowValue = rowValue.join(', ');
         }
@@ -121,10 +124,10 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
         }
 
         return {
-          [rowVar]: rowValue,
-          [colVar]: colValue
+          [rowOption.label]: rowValue,
+          [colOption.label]: colValue
         };
-      }).filter(row => row[rowVar] !== undefined && row[colVar] !== undefined);
+      }).filter(row => row[rowOption.label] !== undefined && row[colOption.label] !== undefined);
 
       if (dataForAnalysis.length === 0) {
         throw new Error('No valid data found for the selected variables');
@@ -135,8 +138,8 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           data: dataForAnalysis, 
-          rowVar, 
-          colVar 
+          rowVar: rowOption.label, 
+          colVar: colOption.label 
         })
       });
 
@@ -228,7 +231,7 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Note</AlertTitle>
             <AlertDescription>
-              This analysis works best with categorical variables. 
+              This analysis works best with categorical variables (e.g., single choice, multiple choice, matrix rows). 
               Results may not be meaningful for numeric or text-based questions.
             </AlertDescription>
           </Alert>
@@ -316,7 +319,7 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="font-bold">{rowLabel} \ {colLabel}</TableHead>
+                      <TableHead className="font-bold">{rowLabel}</TableHead>
                       {Object.keys(results.contingency_table).map(col => (
                         <TableHead key={col} className="text-right font-bold">{col}</TableHead>
                       ))}
@@ -325,7 +328,7 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
                   <TableBody>
                     {Object.entries(Object.values(results.contingency_table)[0] || {}).map(([rowKey]) => (
                       <TableRow key={rowKey}>
-                        <TableHead>{rowKey}</TableHead>
+                        <TableCell className="font-semibold">{rowKey}</TableCell>
                         {Object.keys(results.contingency_table).map(colKey => (
                           <TableCell key={colKey} className="text-right">
                             {results.contingency_table[colKey]?.[rowKey] || 0}
