@@ -53,7 +53,7 @@ export default function LandingPage() {
             </nav>
             <div className="flex-1 flex justify-end items-center gap-4">
                 <Button variant="ghost" asChild><Link href="/login">Login</Link></Button>
-                <Button asChild><Link href="/register">Sign Up</Button>
+                <Button asChild><Link href="/register">Sign Up</Link></Button>
             </div>
         </div>
       </header>
@@ -239,7 +239,7 @@ export default function LandingPage() {
           </div>
         </section>
         
-        <section id="pricing" className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
+        <section id="pricing-cta" className="w-full py-12 md:py-24 lg:py-32 bg-muted/40">
            <div className="w-full max-w-6xl mx-auto px-4 md:px-6">
              <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Easy to Start, Powerful to Use</h2>
