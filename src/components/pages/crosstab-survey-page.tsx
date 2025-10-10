@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -40,13 +39,17 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
   const [analysisResult, setAnalysisResult] = useState<FullAnalysisResponse | null>(null);
 
   const questionOptions = useMemo(() => {
-    return survey.questions.map(q => ({ label: q.title, value: q.id }));
+    return survey.questions
+      .filter(q => ['single', 'multiple', 'dropdown', 'rating', 'nps'].includes(q.type))
+      .map(q => ({ label: q.title, value: q.id }));
   }, [survey.questions]);
 
   useEffect(() => {
-    if (questionOptions.length > 1) {
+    if (questionOptions.length > 0) {
       setRowVar(questionOptions[0].value);
-      setColVar(questionOptions[1].value);
+      if (questionOptions.length > 1) {
+        setColVar(questionOptions[1].value);
+      }
     }
   }, [questionOptions]);
 
