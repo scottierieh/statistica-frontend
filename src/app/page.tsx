@@ -6,32 +6,32 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
-const features = {
-  stats: [
-    { icon: BarChart2, text: 'Descriptive Statistics' },
-    { icon: TrendingUp, text: 'Advanced Regression Models' },
-    { icon: Users, text: 'ANOVA & T-Tests' },
-    { icon: Link2, text: 'Correlation & Partial Correlation' },
-    { icon: GitBranch, text: 'Mediation & Moderation' },
-    { icon: Cpu, text: 'Factor Analysis (EFA, CFA)' },
-    { icon: Layers, text: 'MANOVA & ANCOVA' },
-    { icon: LineChart, text: 'Time Series Forecasting' },
-    { icon: Network, text: 'Social Network Analysis (SNA)' },
-    { icon: BrainCircuit, text: 'Clustering (K-Means, DBSCAN)'},
-    { icon: HeartPulse, text: 'Survival Analysis'},
-    { icon: Target, text: 'And 30+ more...' },
-  ],
-  surveys: [
-    { icon: Target, text: 'Importance-Performance Analysis' },
-    { icon: Handshake, text: 'Conjoint & CBC Analysis' },
-    { icon: ThumbsUp, text: 'MaxDiff Scaling' },
-    { icon: Share2, text: 'Net Promoter Score (NPS)' },
-    { icon: DollarSign, text: 'Price Sensitivity Meter (PSM)' },
-    { icon: ClipboardList, text: 'Customer Satisfaction (CSAT)' },
-  ]
-}
-
 export default function LandingPage() {
+  const features = {
+    stats: [
+      { icon: BarChart2, text: 'Descriptive Statistics' },
+      { icon: TrendingUp, text: 'Advanced Regression Models' },
+      { icon: Users, text: 'ANOVA & T-Tests' },
+      { icon: Link2, text: 'Correlation & Partial Correlation' },
+      { icon: GitBranch, text: 'Mediation & Moderation' },
+      { icon: Cpu, text: 'Factor Analysis (EFA, CFA)' },
+      { icon: Layers, text: 'MANOVA & ANCOVA' },
+      { icon: LineChart, text: 'Time Series Forecasting' },
+      { icon: Network, text: 'Social Network Analysis (SNA)' },
+      { icon: BrainCircuit, text: 'Clustering (K-Means, DBSCAN)'},
+      { icon: HeartPulse, text: 'Survival Analysis'},
+      { icon: Target, text: 'And 30+ more...' },
+    ],
+    surveys: [
+      { icon: Target, text: 'Importance-Performance Analysis' },
+      { icon: Handshake, text: 'Conjoint & CBC Analysis' },
+      { icon: ThumbsUp, text: 'MaxDiff Scaling' },
+      { icon: Share2, text: 'Net Promoter Score (NPS)' },
+      { icon: DollarSign, text: 'Price Sensitivity Meter (PSM)' },
+      { icon: ClipboardList, text: 'Customer Satisfaction (CSAT)' },
+    ]
+  };
+
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-image');
   const securityImage = PlaceHolderImages.find(img => img.id === 'security-feature');
   const enterpriseImage = PlaceHolderImages.find(img => img.id === 'enterprise-feature');
@@ -49,12 +49,12 @@ export default function LandingPage() {
             </div>
             <nav className="flex items-center gap-4 sm:gap-6">
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="#features">Features</Link>
-                <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">Pricing</Link>
+                <Link className="text-sm font-medium hover:underline underline-offset-4" href="/pricing">Pricing</Link>
                 <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">About</Link>
             </nav>
             <div className="flex-1 flex justify-end items-center gap-4">
                 <Button variant="ghost" asChild><Link href="/login">Login</Link></Button>
-                <Button asChild><Link href="/register">Sign Up</Link></Button>
+                <Button asChild><Link href="/register">Sign Up</Button>
             </div>
         </div>
       </header>
