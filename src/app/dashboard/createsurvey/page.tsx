@@ -167,9 +167,9 @@ export default function CreateSurveyPage() {
   };
   
   const deviceWidths = {
-    desktop: 'max-w-4xl',
-    tablet: 'max-w-md',
-    mobile: 'max-w-sm',
+    desktop: 'max-w-6xl',
+    tablet: 'max-w-2xl',
+    mobile: 'max-w-md',
   };
 
   return (

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -25,18 +24,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; styles: any; }) => {
-    const theme = styles.theme || 'default';
     return (
-        <div className="p-4 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
-            <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-3">
+        <div className="p-3 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+            <RadioGroup value={answer} onValueChange={onAnswerChange} className="space-y-2">
                 {(question.options || []).map((option: string, index: number) => (
                      <Label
                         key={index}
                         htmlFor={`q${question.id}-o${index}`}
                         className={cn(
-                          "flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer",
+                          "flex items-center space-x-2 p-3 rounded-lg border-2 transition-all cursor-pointer text-sm",
                           answer === option 
                             ? "bg-primary/10 border-primary shadow-md" 
                             : "bg-background hover:bg-accent/50 hover:border-primary/50"
@@ -44,7 +42,7 @@ const SingleSelectionQuestion = ({ question, answer, onAnswerChange, styles }: {
                       >
                         <RadioGroupItem value={option} id={`q${question.id}-o${index}`} />
                         <span className="flex-1 font-medium">{option}</span>
-                        {answer === option && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                        {answer === option && <CheckCircle2 className="w-4 h-4 text-primary" />}
                     </Label>
                 ))}
             </RadioGroup>
@@ -60,14 +58,13 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, styl
            : currentAnswers.filter((a: string) => a !== opt);
        onAnswerChange(newAnswers);
    }
-   const theme = styles.theme || 'default';
    return (
-       <div className="p-4 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-           {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
-           <div className="space-y-3">
+       <div className="p-3 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+           {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+           <div className="space-y-2">
                 {(question.options || []).map((option: string, index: number) => (
-                   <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer", answer?.includes(option) ? 'bg-primary/10 border-primary shadow-md' : 'bg-background hover:bg-accent/50 hover:border-primary/50' )}>
+                   <Label key={index} htmlFor={`q${question.id}-o${index}`} className={cn("flex items-center space-x-2 p-3 rounded-lg border-2 transition-all cursor-pointer text-sm", answer?.includes(option) ? 'bg-primary/10 border-primary shadow-md' : 'bg-background hover:bg-accent/50 hover:border-primary/50' )}>
                        <Checkbox
                            id={`q${question.id}-o${index}`}
                            checked={answer?.includes(option)}
@@ -83,9 +80,9 @@ const MultipleSelectionQuestion = ({ question, answer = [], onAnswerChange, styl
 
 const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer?: string; onAnswerChange: (value: string) => void; }) => {
     return (
-        <div className="p-4 rounded-lg bg-background shadow-md">
-          <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-          {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
+        <div className="p-3 rounded-lg bg-background shadow-sm">
+          <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+          {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
           <Select value={answer} onValueChange={onAnswerChange}>
             <SelectTrigger><SelectValue placeholder="Select an option..." /></SelectTrigger>
             <SelectContent>
@@ -99,18 +96,18 @@ const DropdownQuestion = ({ question, answer, onAnswerChange }: { question: Ques
 };
 
 const TextQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
-    <div className="p-4 rounded-lg bg-background shadow-md">
-        <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-        {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
-        <Textarea placeholder="Your answer..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)}/>
+    <div className="p-3 rounded-lg bg-background shadow-sm">
+        <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+        {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+        <Textarea placeholder="Your answer..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} className="text-sm"/>
     </div>
 );
 
 const NumberQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: any) => void }) => (
-    <div className="p-4 rounded-lg bg-background shadow-md">
-        <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-        {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
-        {question.description && <p className="text-sm text-muted-foreground mb-4 whitespace-pre-wrap">{question.description}</p>}
+    <div className="p-3 rounded-lg bg-background shadow-sm">
+        <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+        {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+        {question.description && <p className="text-xs text-muted-foreground mb-3 whitespace-pre-wrap">{question.description}</p>}
         <Input 
             type="number" 
             placeholder="Enter a number..." 
@@ -120,36 +117,37 @@ const NumberQuestion = ({ question, answer, onAnswerChange }: { question: Questi
                 const parsed = parseFloat(value);
                 onAnswerChange(value === '' ? null : (isNaN(parsed) ? value : parsed));
             }}
+            className="text-sm"
         />
     </div>
 );
 
 
 const PhoneQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
-    <div className="p-4 rounded-lg bg-background shadow-md">
-        <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-        {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
-        <Input type="tel" placeholder="Enter phone number..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} />
+    <div className="p-3 rounded-lg bg-background shadow-sm">
+        <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+        {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+        <Input type="tel" placeholder="Enter phone number..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} className="text-sm"/>
     </div>
 );
 
 const EmailQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: string, onAnswerChange: (value: string) => void }) => (
-    <div className="p-4 rounded-lg bg-background shadow-md">
-        <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-        {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
-        <Input type="email" placeholder="Enter email address..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} />
+    <div className="p-3 rounded-lg bg-background shadow-sm">
+        <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+        {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+        <Input type="email" placeholder="Enter email address..." value={answer || ''} onChange={e => onAnswerChange(e.target.value)} className="text-sm"/>
     </div>
 );
 
 const RatingQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: number; onAnswerChange: (value: number) => void; }) => {
     const scale = question.scale || ['1','2','3','4','5'];
     return (
-        <div className="p-4 rounded-lg bg-background shadow-md">
-            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
-            <div className="flex items-center gap-2">
+        <div className="p-3 rounded-lg bg-background shadow-sm">
+            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+            <div className="flex items-center justify-center gap-2">
                 {scale.map((_, index) => (
-                    <Star key={index} className={cn("w-8 h-8 text-yellow-400 cursor-pointer hover:text-yellow-500 transition-colors", (index + 1) <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(index + 1)}/>
+                    <Star key={index} className={cn("w-7 h-7 text-yellow-400 cursor-pointer hover:text-yellow-500 transition-colors", (index + 1) <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(index + 1)}/>
                 ))}
             </div>
         </div>
@@ -157,61 +155,73 @@ const RatingQuestion = ({ question, answer, onAnswerChange }: { question: Questi
 }
 
 const NPSQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: number; onAnswerChange: (value: number) => void; }) => (
-    <div className="p-4 rounded-lg bg-background shadow-md">
-      <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-       {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
-      <div className="flex items-center justify-between gap-1 flex-wrap">
+    <div className="p-3 rounded-lg bg-background shadow-sm">
+      <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+       {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+      <div className="flex items-center justify-between gap-1">
         {[...Array(11)].map((_, i) => (
-            <Button key={i} variant={answer === i ? 'default' : 'outline'} size="icon" className="h-10 w-8 text-xs transition-transform hover:scale-110 active:scale-95" onClick={() => onAnswerChange?.(i)}>
+            <Button 
+                key={i} 
+                variant={answer === i ? 'default' : 'outline'} 
+                size="sm" 
+                className="h-8 w-7 text-xs p-0 transition-transform hover:scale-110 active:scale-95" 
+                onClick={() => onAnswerChange?.(i)}
+            >
                 {i}
             </Button>
         ))}
       </div>
-       <div className="flex justify-between text-xs text-muted-foreground mt-2 px-1">
-          <span>Not at all likely</span>
-          <span>Extremely likely</span>
+       <div className="flex justify-between text-[10px] text-muted-foreground mt-2">
+          <span>Not likely</span>
+          <span>Very likely</span>
       </div>
     </div>
 );
 
 const DescriptionBlock = ({ question }: { question: Question }) => (
-    <div className="p-4 prose dark:prose-invert">
-      <h3 className="text-lg font-semibold">{question.title}</h3>
-      <p>{question.content}</p>
+    <div className="p-3 prose dark:prose-invert max-w-none prose-sm">
+      <h3 className="text-base font-semibold">{question.title}</h3>
+      <p className="text-sm">{question.content}</p>
     </div>
 );
 
 const BestWorstQuestion = ({ question, answer, onAnswerChange }: { question: Question, answer: { best?: string, worst?: string }, onAnswerChange: (value: any) => void }) => {
     return (
-        <div className="p-4 rounded-lg bg-background shadow-md">
-            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-2/3">Item</TableHead>
-                        <TableHead className="text-center"><ThumbsUp className="mx-auto"/></TableHead>
-                        <TableHead className="text-center"><ThumbsDown className="mx-auto"/></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {(question.items || []).map((item: string, index: number) => (
-                        <TableRow key={index}>
-                            <TableCell>{item}</TableCell>
-                            <TableCell className="text-center">
-                                <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })}>
-                                    <RadioGroupItem value={item} />
-                                </RadioGroup>
-                            </TableCell>
-                            <TableCell className="text-center">
-                                <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })}>
-                                    <RadioGroupItem value={item} />
-                                </RadioGroup>
-                            </TableCell>
+        <div className="p-3 rounded-lg bg-background shadow-sm">
+            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+            <div className="overflow-x-auto -mx-3 px-3">
+                <Table className="text-xs">
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[50%] text-xs">Item</TableHead>
+                            <TableHead className="text-center w-[25%]"><ThumbsUp className="mx-auto w-4 h-4"/></TableHead>
+                            <TableHead className="text-center w-[25%]"><ThumbsDown className="mx-auto w-4 h-4"/></TableHead>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {(question.items || []).map((item: string, index: number) => (
+                            <TableRow key={index}>
+                                <TableCell className="text-xs py-2">{item}</TableCell>
+                                <TableCell className="text-center py-2">
+                                    <RadioGroup value={answer?.best} onValueChange={(value) => onAnswerChange({ ...answer, best: value })}>
+                                        <div className="flex justify-center">
+                                            <RadioGroupItem value={item} className="h-4 w-4"/>
+                                        </div>
+                                    </RadioGroup>
+                                </TableCell>
+                                <TableCell className="text-center py-2">
+                                    <RadioGroup value={answer?.worst} onValueChange={(value) => onAnswerChange({ ...answer, worst: value })}>
+                                        <div className="flex justify-center">
+                                            <RadioGroupItem value={item} className="h-4 w-4"/>
+                                        </div>
+                                    </RadioGroup>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
         </div>
     );
 };
@@ -221,17 +231,17 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
     const headers = question.scale && question.scale.length > 0 ? question.scale : (question.columns || []);
     
     return (
-        <div className="p-4 rounded-lg bg-background shadow-md">
-            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-            {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
-            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={400} height={300} className="rounded-md mb-4 max-h-60 w-auto" />}
-            <div className="overflow-x-auto">
-                 <Table>
+        <div className="p-3 rounded-lg bg-background shadow-sm">
+            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
+            {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
+            <div className="overflow-x-auto -mx-3 px-3">
+                 <Table className="text-xs">
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-1/3 min-w-[150px]"></TableHead>
+                            <TableHead className="w-[30%] min-w-[80px] text-xs"></TableHead>
                             {(headers).map((header, colIndex) => (
-                                <TableHead key={`header-${colIndex}`} className="text-center text-xs min-w-[60px]">
+                                <TableHead key={`header-${colIndex}`} className="text-center text-[10px] min-w-[40px] p-1">
                                     {header}
                                 </TableHead>
                             ))}
@@ -240,11 +250,13 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
                     <TableBody>
                         {(question.rows || []).map((row: string, rowIndex: number) => (
                             <TableRow key={`row-${rowIndex}`}>
-                                <TableHead>{row}</TableHead>
+                                <TableHead className="text-xs py-2">{row}</TableHead>
                                 {(question.columns || []).map((col: string, colIndex: number) => (
-                                    <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center">
+                                    <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center p-1">
                                         <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                            <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`}/>
+                                            <div className="flex justify-center">
+                                                <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`} className="h-4 w-4"/>
+                                            </div>
                                         </RadioGroup>
                                     </TableCell>
                                 ))}
@@ -265,32 +277,32 @@ const SemanticDifferentialQuestion = ({ question, answer, onAnswerChange, styles
     }));
   
     return (
-      <div className="p-4 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-        <h3 className="text-lg font-semibold mb-4" style={{ fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor }}>{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-        <div className="space-y-6">
+      <div className="p-3 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+        <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+        <div className="space-y-3">
           {(question.rows || []).map((rowText, index) => {
             const [left, right] = (rowText || ' vs ').split(' vs ').map(s => s.trim());
             const selectedValue = answer?.[rowText];
             return (
-              <div key={index} className="bg-white rounded-lg p-6 border border-gray-200">
-                <div className="flex justify-between items-center text-sm font-semibold text-gray-800 mb-4 px-2">
-                  <span>{left}</span>
-                  <span>{right}</span>
+              <div key={index} className="bg-white rounded-lg p-2 border border-gray-200">
+                <div className="flex justify-between items-center text-[11px] font-semibold text-gray-800 mb-2">
+                  <span className="text-left w-[30%]">{left}</span>
+                  <span className="text-right w-[30%]">{right}</span>
                 </div>
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-between gap-0.5">
                   {scalePoints.map(({ value, label }) => (
-                    <div key={value} className="flex flex-col items-center space-y-2">
+                    <div key={value} className="flex flex-col items-center space-y-1">
                       <button
                         onClick={() => onAnswerChange(produce(answer || {}, (draft: any) => { draft[rowText] = value; }))}
-                        className={cn(`w-10 h-10 md:w-12 md:h-12 rounded-full border-2 transition-all flex items-center justify-center font-bold text-lg`,
+                        className={cn(`w-7 h-7 rounded-full border-2 transition-all flex items-center justify-center font-bold text-xs`,
                                   value === selectedValue
-                                    ? 'bg-primary border-primary text-primary-foreground shadow-lg scale-110'
+                                    ? 'bg-primary border-primary text-primary-foreground shadow-md scale-105'
                                     : 'bg-background border-border text-foreground hover:border-primary/50'
                                   )}
                       >
                         {value}
                       </button>
-                      <span className="text-xs text-muted-foreground text-center">{label}</span>
+                      <span className="text-[9px] text-muted-foreground text-center hidden">{label}</span>
                     </div>
                   ))}
                 </div>
@@ -316,26 +328,24 @@ const ServqualQuestion = ({ question, answer, onAnswerChange, styles }: { questi
     const showPerception = question.servqualType !== 'Expectation';
 
     return (
-        <div className="p-4 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-            <h3 className="font-semibold mb-4" style={{ fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor }}>
-                {question.title} {question.required && <span className="text-destructive">*</span>}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">Please rate your level of expectation and your perception of our actual performance on a scale of 1 (Strongly Disagree) to 7 (Strongly Agree).</p>
-            <div className="space-y-4">
+        <div className="p-3 rounded-lg bg-background" style={{ marginBottom: styles.questionSpacing, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            <p className="text-xs text-muted-foreground mb-3">Rate 1 (Strongly Disagree) to 7 (Strongly Agree)</p>
+            <div className="space-y-3">
                 {(question.rows || []).map((rowText, index) => (
                     <Card key={index}>
-                        <CardHeader className="pb-2"><CardTitle className="text-base">{rowText}</CardTitle></CardHeader>
-                        <CardContent className={cn("grid grid-cols-1 gap-6", showExpectation && showPerception && "md:grid-cols-2")}>
+                        <CardHeader className="pb-2 p-3"><CardTitle className="text-sm">{rowText}</CardTitle></CardHeader>
+                        <CardContent className="grid grid-cols-1 gap-3 p-3">
                              {showExpectation && (
-                                <div className="p-4 border-l-4 border-blue-300 bg-blue-50 rounded-r-lg">
-                                    <Label className="text-sm font-bold text-blue-800 mb-3 block">Expectation</Label>
-                                    <div className="flex justify-between">
+                                <div className="p-2 border-l-4 border-blue-300 bg-blue-50 rounded-r-lg">
+                                    <Label className="text-xs font-bold text-blue-800 mb-2 block">Expectation</Label>
+                                    <div className="flex justify-between gap-1">
                                         {scale.map(value => (
                                             <Button
                                                 key={`exp-${index}-${value}`}
                                                 variant={answer?.[rowText]?.Expectation === value ? 'default' : 'outline'}
-                                                size="icon"
-                                                className={cn("h-8 w-8", answer?.[rowText]?.Expectation === value && "bg-blue-600 hover:bg-blue-700")}
+                                                size="sm"
+                                                className={cn("h-7 w-7 p-0 text-xs", answer?.[rowText]?.Expectation === value && "bg-blue-600 hover:bg-blue-700")}
                                                 onClick={() => handleRatingChange(rowText, 'Expectation', value)}
                                             >{value}</Button>
                                         ))}
@@ -343,15 +353,15 @@ const ServqualQuestion = ({ question, answer, onAnswerChange, styles }: { questi
                                 </div>
                             )}
                             {showPerception && (
-                                <div className="p-4 border-l-4 border-green-300 bg-green-50 rounded-r-lg">
-                                    <Label className="text-sm font-bold text-green-800 mb-3 block">Perception</Label>
-                                    <div className="flex justify-between">
+                                <div className="p-2 border-l-4 border-green-300 bg-green-50 rounded-r-lg">
+                                    <Label className="text-xs font-bold text-green-800 mb-2 block">Perception</Label>
+                                    <div className="flex justify-between gap-1">
                                          {scale.map(value => (
                                             <Button
                                                 key={`per-${index}-${value}`}
                                                 variant={answer?.[rowText]?.Perception === value ? 'default' : 'outline'}
-                                                size="icon"
-                                                 className={cn("h-8 w-8", answer?.[rowText]?.Perception === value && "bg-green-600 hover:bg-green-700")}
+                                                size="sm"
+                                                 className={cn("h-7 w-7 p-0 text-xs", answer?.[rowText]?.Perception === value && "bg-green-600 hover:bg-green-700")}
                                                 onClick={() => handleRatingChange(rowText, 'Perception', value)}
                                             >{value}</Button>
                                         ))}
@@ -424,59 +434,59 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
     };
     
     return (
-        <div className="p-4 rounded-lg bg-background shadow-md">
-            <h3 className="text-lg font-semibold mb-4" style={{fontSize: `${styles.questionTextSize}px`, color: styles.primaryColor}}>{question.title}</h3>
-            {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
+        <div className="p-3 rounded-lg bg-background shadow-sm">
+            <h3 className="text-base font-semibold mb-3">{question.title}</h3>
+            {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
             
-             <div className="legend bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mb-6">
-                <div className="legend-title font-semibold text-blue-800 mb-2">Importance Scale Guide</div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-blue-700">
+             <div className="bg-blue-50 border-l-4 border-blue-500 p-2 rounded-md mb-4">
+                <div className="font-semibold text-blue-800 mb-1 text-xs">Scale Guide</div>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] text-blue-700">
                     <div><strong>1:</strong> Equal</div>
-                    <div><strong>3:</strong> Moderately Important</div>
+                    <div><strong>3:</strong> Moderate</div>
                     <div><strong>5:</strong> Important</div>
-                    <div><strong>7:</strong> Very Important</div>
-                    <div><strong>9:</strong> Extremely Important</div>
+                    <div><strong>7:</strong> Very</div>
+                    <div><strong>9:</strong> Extreme</div>
                 </div>
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-4">
                 {allPairs.map(group => (
                     <div key={group.matrixKey}>
-                         <h4 className="font-semibold text-xl mb-4 text-center">{group.title}</h4>
+                         <h4 className="font-semibold text-sm mb-3 text-center">{group.title}</h4>
                         {group.pairs.map(({ pair }) => {
                              const pairKey = `${pair[0]} vs ${pair[1]}`;
                             const value = answer?.[group.matrixKey]?.[pairKey];
                             return (
-                                <div key={pairKey} className="p-6 rounded-lg border bg-white mb-4 shadow-sm">
-                                    <div className="relative flex flex-col items-center justify-between gap-4">
-                                        <div className="flex w-full justify-between font-bold">
-                                            <span className="text-left w-1/3 text-primary" style={{ color: styles.primaryColor }}>{pair[0]}</span>
-                                            <span className="text-center w-auto px-2 text-muted-foreground">vs</span>
-                                            <span className="text-right w-1/3 text-primary" style={{ color: styles.primaryColor }}>{pair[1]}</span>
+                                <div key={pairKey} className="p-3 rounded-lg border bg-white mb-3 shadow-sm">
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex justify-between font-bold text-xs">
+                                            <span className="text-left w-[40%] text-primary">{pair[0]}</span>
+                                            <span className="text-center text-muted-foreground">vs</span>
+                                            <span className="text-right w-[40%] text-primary">{pair[1]}</span>
                                         </div>
                                         <RadioGroup 
-                                            className="flex justify-between gap-1 sm:gap-2 w-full"
+                                            className="flex justify-between gap-0.5"
                                             value={String(value)} 
                                             onValueChange={(v) => handleValueChange(pairKey, group.matrixKey, parseInt(v))}
                                         >
                                            {[9, 7, 5, 3, 1, 3, 5, 7, 9].map((v, index) => {
                                                 const radioValue = index < 4 ? -v : v;
                                                 return (
-                                                    <div key={index} className="flex flex-col items-center space-y-2">
+                                                    <div key={index} className="flex flex-col items-center space-y-1">
                                                          <RadioGroupItem 
                                                             value={String(radioValue)} 
                                                             id={`pair-${group.matrixKey}-${pair.join('-')}-${radioValue}`} 
-                                                            className={cn("h-8 w-8", value === radioValue && "bg-primary text-primary-foreground")}
+                                                            className={cn("h-6 w-6", value === radioValue && "bg-primary text-primary-foreground")}
                                                         />
-                                                        <Label htmlFor={`pair-${group.matrixKey}-${pair.join('-')}-${radioValue}`} className="text-xs text-muted-foreground">{v}</Label>
+                                                        <Label htmlFor={`pair-${group.matrixKey}-${pair.join('-')}-${radioValue}`} className="text-[10px] text-muted-foreground">{v}</Label>
                                                     </div>
                                                 )
                                             })}
                                         </RadioGroup>
-                                        <div className="w-full flex justify-between text-xs text-muted-foreground mt-2 px-1">
-                                            <span className="text-left text-[10px] sm:text-xs">Strongly Prefer {pair[0]}</span>
-                                            <span className="text-center text-[10px] sm:text-xs">Neutral</span>
-                                            <span className="text-right text-[10px] sm:text-xs">Strongly Prefer {pair[1]}</span>
+                                        <div className="flex justify-between text-[9px] text-muted-foreground">
+                                            <span className="text-left">Prefer {pair[0]}</span>
+                                            <span className="text-center">Neutral</span>
+                                            <span className="text-right">Prefer {pair[1]}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -493,30 +503,30 @@ const AHPQuestion = ({ question, answer, onAnswerChange, styles }: { question: Q
 const ConjointQuestion = ({ question, answer, onAnswerChange }: { question: Question; answer: string; onAnswerChange: (value: string) => void; }) => {
     const { attributes = [], profiles = [] } = question;
     
-    if (profiles.length === 0) return <div className="p-4">Conjoint profiles not generated.</div>;
+    if (profiles.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
     
-    // Assuming profiles are structured in sets
     const profileSet = profiles[0] || [];
 
     return (
-        <div className="p-4 rounded-lg bg-background shadow-md">
-            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-            {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
-             <div className="flex gap-4 overflow-x-auto pb-4">
-                 <div className="flex-shrink-0 w-32 pr-2">
-                    {(attributes || []).map(attr => (
-                        <div key={attr.id} className="h-16 flex items-center font-semibold text-sm text-muted-foreground">{attr.name}:</div>
-                    ))}
-                 </div>
+        <div className="p-3 rounded-lg bg-background shadow-sm">
+            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
+             <div className="grid grid-cols-2 gap-2">
                 {profileSet.map((profile: any, index: number) => (
-                    <Card key={profile.id} className={cn("w-48 flex-shrink-0 text-center transition-all", answer === profile.id && "ring-2 ring-primary")}>
-                        <CardContent className="p-4 space-y-2">
+                    <Card key={profile.id} className={cn("text-center transition-all", answer === profile.id && "ring-2 ring-primary")}>
+                        <CardHeader className="p-2 pb-1">
+                            <CardTitle className="text-xs font-semibold">Option {index + 1}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-2 space-y-1">
                              {(attributes || []).map(attr => (
-                                <div key={attr.id} className="h-16 flex items-center justify-center text-sm">{profile[attr.name]}</div>
+                                <div key={attr.id} className="flex justify-between items-center text-xs py-1 border-b last:border-b-0">
+                                    <span className="font-medium text-muted-foreground w-16 text-left">{attr.name}:</span>
+                                    <span className="font-semibold flex-1 text-right">{profile[attr.name]}</span>
+                                </div>
                             ))}
                         </CardContent>
                         <CardFooter className="p-2">
-                            <Button className="w-full" variant={answer === profile.id ? 'default' : 'outline'} onClick={() => onAnswerChange(profile.id)}>
+                            <Button size="sm" className="w-full text-xs h-7" variant={answer === profile.id ? 'default' : 'outline'} onClick={() => onAnswerChange(profile.id)}>
                                 {answer === profile.id ? 'Selected' : 'Select'}
                             </Button>
                         </CardFooter>
@@ -537,24 +547,24 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
         }
     };
 
-    if (profiles.length === 0) return <div className="p-4">Conjoint profiles not generated.</div>;
+    if (profiles.length === 0) return <div className="p-3 text-sm">Conjoint profiles not generated.</div>;
 
     return (
-        <div className="p-4 rounded-lg bg-background shadow-md">
-            <h3 className="text-lg font-semibold mb-4">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
-            {question.description && <p className="text-sm text-muted-foreground mb-4">{question.description}</p>}
-             <div className="flex gap-4 overflow-x-auto pb-4">
-                 <div className="flex-shrink-0 w-32 pr-2">
-                    {(attributes || []).map(attr => (
-                        <div key={attr.id} className="h-16 flex items-center font-semibold text-sm text-muted-foreground">{attr.name}:</div>
-                    ))}
-                     <div className="h-12 flex items-center font-semibold text-sm text-muted-foreground">Rating (1-10):</div>
-                 </div>
-                {profiles.map((profile: any) => (
-                    <Card key={profile.id} className="w-48 flex-shrink-0 text-center">
-                        <CardContent className="p-4 space-y-2">
+        <div className="p-3 rounded-lg bg-background shadow-sm">
+            <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
+            {question.description && <p className="text-xs text-muted-foreground mb-3">{question.description}</p>}
+             <div className="grid grid-cols-2 gap-2">
+                {profiles.map((profile: any, index: number) => (
+                    <Card key={profile.id} className="text-center">
+                        <CardHeader className="p-2 pb-1">
+                            <CardTitle className="text-xs font-semibold">Option {index + 1}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-2 space-y-1">
                              {(attributes || []).map(attr => (
-                                <div key={attr.id} className="h-16 flex items-center justify-center text-sm">{profile[attr.name]}</div>
+                                <div key={attr.id} className="flex justify-between items-center text-xs py-1 border-b last:border-b-0">
+                                    <span className="font-medium text-muted-foreground w-16 text-left">{attr.name}:</span>
+                                    <span className="font-semibold flex-1 text-right">{profile[attr.name]}</span>
+                                </div>
                             ))}
                         </CardContent>
                         <CardFooter className="p-2">
@@ -565,6 +575,7 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
                                 placeholder="1-10"
                                 value={answer?.[profile.id] || ''}
                                 onChange={(e) => handleRatingChange(profile.id, e.target.value)}
+                                className="h-8 text-xs"
                             />
                         </CardFooter>
                     </Card>
@@ -575,9 +586,81 @@ const RatingConjointQuestion = ({ question, answer, onAnswerChange }: { question
 };
 
 
+// 디바이스 프레임 컴포넌트
+const DeviceFrame = ({ device = 'mobile', children }: { device?: 'mobile' | 'tablet'; children: React.ReactNode }) => {
+    const frameStyles = {
+        mobile: {
+            width: '375px',
+            height: '667px',
+            borderRadius: '36px',
+        },
+        tablet: {
+            width: '768px',
+            height: '1024px',
+            borderRadius: '24px',
+        }
+    };
+
+    const style = frameStyles[device];
+
+    return (
+        <div className="relative mx-auto" style={{ width: style.width, height: style.height }}>
+            <div 
+                className="relative overflow-hidden bg-black"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: style.borderRadius,
+                    border: device === 'mobile' ? '12px solid #1f2937' : '16px solid #1f2937',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.3), inset 0 0 6px rgba(255,255,255,0.1)',
+                }}
+            >
+
+                
+                <div className="w-full h-full overflow-y-auto bg-white">
+                    {children}
+                </div>
+                
+                {device === 'mobile' && (
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-gray-400 rounded-full" />
+                )}
+            </div>
+            
+            <div 
+                className="absolute bg-gray-700 rounded-r"
+                style={{
+                    right: '-4px',
+                    top: device === 'mobile' ? '120px' : '180px',
+                    width: '4px',
+                    height: '60px',
+                }}
+            />
+            
+            <div 
+                className="absolute bg-gray-700 rounded-l"
+                style={{
+                    left: '-4px',
+                    top: device === 'mobile' ? '100px' : '150px',
+                    width: '4px',
+                    height: '40px',
+                }}
+            />
+            <div 
+                className="absolute bg-gray-700 rounded-l"
+                style={{
+                    left: '-4px',
+                    top: device === 'mobile' ? '150px' : '200px',
+                    width: '4px',
+                    height: '40px',
+                }}
+            />
+        </div>
+    );
+};
+
 
 interface SurveyViewProps {
-  survey?: any; // For preview mode
+  survey?: any;
   isPreview?: boolean;
   previewStyles?: any;
 }
@@ -597,6 +680,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     const [respondentEmail, setRespondentEmail] = useState("");
     const [loading, setLoading] = useState(!isPreview);
     const [isSurveyActive, setIsSurveyActive] = useState(false);
+    const [deviceView, setDeviceView] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
 
     useEffect(() => {
         if (isPreview) {
@@ -617,11 +701,11 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                     if (loadedSurvey.status === 'closed') {
                         setIsSurveyActive(false);
                     } else if (startDate && now < startDate) {
-                        setIsSurveyActive(false); // Scheduled for later
+                        setIsSurveyActive(false);
                     } else if (endDate && now > endDate) {
-                        setIsSurveyActive(false); // Ended
+                        setIsSurveyActive(false);
                     } else {
-                        setIsSurveyActive(true); // Active now
+                        setIsSurveyActive(true);
                     }
 
                 } else {
@@ -677,7 +761,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
         }
         if(!survey) return false;
         const question = survey.questions[currentQuestionIndex];
-        if (!question) return true; // Should not happen, but allow proceeding
+        if (!question) return true;
         if (question.type === "description") return true;
         if (question.required) {
           const answer = answers[question.id];
@@ -719,27 +803,135 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     const QuestionComponent = currentQuestion ? questionComponents[currentQuestion.type] : null;
 
     if (loading) {
-        return <div className="min-h-screen flex items-center justify-center">Loading survey...</div>;
+        return <div className="min-h-screen flex items-center justify-center text-sm">Loading survey...</div>;
     }
 
     if (error) {
-        return <div className="min-h-screen flex items-center justify-center">{error}</div>;
+        return <div className="min-h-screen flex items-center justify-center text-sm">{error}</div>;
     }
     
     const surveyStyles = isPreview ? previewStyles : survey?.styles;
 
     if (isPreview && survey) {
+        const surveyContent = (
+            <div className="w-full h-full p-6" style={{ backgroundColor: surveyStyles?.secondaryColor, color: surveyStyles?.primaryColor }}>
+                <h2 className="text-lg font-bold mb-2">{survey.title}</h2>
+                <p className="text-xs mb-4">{survey.description}</p>
+                <div className="space-y-3">
+                    {survey.questions.map((q: Question) => {
+                        const QuestionComp = questionComponents[q.type];
+                        return QuestionComp ? (
+                            <div key={q.id}>
+                                <QuestionComp 
+                                    question={q} 
+                                    answer={answers[q.id]} 
+                                    onAnswerChange={() => {}} 
+                                    styles={surveyStyles} 
+                                />
+                            </div>
+                        ) : null;
+                    })}
+                </div>
+            </div>
+        );
+
         return (
-             <div className="w-full h-full overflow-y-auto" style={{ backgroundColor: surveyStyles?.secondaryColor, color: surveyStyles?.primaryColor }}>
-                <div className="p-8">
-                  <h2 className="text-2xl font-bold mb-2">{survey.title}</h2>
-                  <p className="text-sm mb-6">{survey.description}</p>
-                  <div className="space-y-6">
-                      {survey.questions.map((q: Question) => {
-                          const QuestionComp = questionComponents[q.type];
-                          return QuestionComp ? <div key={q.id} className="mb-4"><QuestionComp question={q} answer={answers[q.id]} onAnswerChange={() => {}} styles={surveyStyles} /></div> : null;
-                      })}
-                  </div>
+            <div className="fixed inset-0 bg-white z-50 flex">
+                {/* 왼쪽 Dock */}
+                <div className="w-20 bg-gray-50 border-r border-gray-200 flex flex-col items-center py-6 gap-4">
+                    <button
+                        onClick={() => setDeviceView('mobile')}
+                        className={cn(
+                            "w-14 h-14 rounded-2xl flex items-center justify-center transition-all",
+                            deviceView === 'mobile' 
+                                ? 'bg-blue-500 shadow-lg scale-110' 
+                                : 'bg-white hover:bg-gray-100 border border-gray-200'
+                        )}
+                    >
+                        <span className="text-3xl">📱</span>
+                    </button>
+                    <button
+                        onClick={() => setDeviceView('tablet')}
+                        className={cn(
+                            "w-14 h-14 rounded-2xl flex items-center justify-center transition-all",
+                            deviceView === 'tablet' 
+                                ? 'bg-blue-500 shadow-lg scale-110' 
+                                : 'bg-white hover:bg-gray-100 border border-gray-200'
+                        )}
+                    >
+                        <span className="text-3xl">📱</span>
+                    </button>
+                    <button
+                        onClick={() => setDeviceView('desktop')}
+                        className={cn(
+                            "w-14 h-14 rounded-2xl flex items-center justify-center transition-all",
+                            deviceView === 'desktop' 
+                                ? 'bg-blue-500 shadow-lg scale-110' 
+                                : 'bg-white hover:bg-gray-100 border border-gray-200'
+                        )}
+                    >
+                        <span className="text-3xl">💻</span>
+                    </button>
+                </div>
+
+                {/* 메인 프리뷰 영역 */}
+                <div className="flex-1 flex items-center justify-center p-12 bg-gradient-to-br from-gray-50 to-gray-100">
+                    {deviceView === 'mobile' ? (
+                        <DeviceFrame device="mobile">
+                            <div className="w-full h-full overflow-y-auto">
+                                {surveyContent}
+                            </div>
+                        </DeviceFrame>
+                    ) : deviceView === 'tablet' ? (
+                        <DeviceFrame device="tablet">
+                            <div className="w-full h-full overflow-y-auto">
+                                {surveyContent}
+                            </div>
+                        </DeviceFrame>
+                    ) : (
+                        // 데스크톱 화면
+                        <div className="relative w-full max-w-7xl h-full">
+                            <div className="relative bg-gray-900 rounded-t-3xl pt-10 px-10 pb-0 shadow-2xl h-full flex flex-col">
+                                {/* 맥북 상단 버튼 */}
+                                <div className="absolute top-4 left-8 flex gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                </div>
+                                
+                                {/* 카메라 */}
+                                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-gray-700"></div>
+                                
+                                {/* 화면 */}
+                                <div className="flex-1 bg-white rounded-t-2xl shadow-inner overflow-hidden flex flex-col min-h-0">
+                                    {/* 브라우저 상단 바 */}
+                                    <div className="h-10 bg-gray-100 border-b border-gray-200 flex items-center px-6 gap-4 flex-shrink-0">
+                                        <div className="flex items-center gap-2">
+                                            <div className="text-sm font-semibold">🌐 Survey Preview</div>
+                                        </div>
+                                        <div className="flex-1 bg-white rounded-lg px-4 py-1.5 text-xs text-gray-500 border border-gray-200">
+                                            https://survey.example.com/preview
+                                        </div>
+                                    </div>
+                                    
+                                    {/* 설문 내용 - 스크롤 가능 */}
+                                    <div className="flex-1 overflow-y-auto min-h-0">
+                                        <div className="max-w-3xl mx-auto">
+                                            {surveyContent}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* 맥북 베이스 */}
+                            <div className="h-4 bg-gradient-to-b from-gray-800 to-gray-700 rounded-b-3xl shadow-xl"></div>
+                            <div className="relative h-8 mt-1">
+                                <div className="absolute inset-0 bg-gray-700 rounded-b-[40px] shadow-2xl" style={{ 
+                                    clipPath: 'polygon(8% 0%, 92% 0%, 100% 100%, 0% 100%)'
+                                }}></div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         );
@@ -747,11 +939,11 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
 
     if (!isSurveyActive) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-muted/40">
-                <Card className="w-full max-w-lg text-center p-8">
+            <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
+                <Card className="w-full max-w-md text-center p-6">
                     <CardHeader>
-                        <CardTitle className="text-2xl">Survey Closed</CardTitle>
-                        <CardDescription>This survey is not currently accepting responses. Thank you for your interest.</CardDescription>
+                        <CardTitle className="text-xl">Survey Closed</CardTitle>
+                        <CardDescription className="text-sm">This survey is not currently accepting responses.</CardDescription>
                     </CardHeader>
                 </Card>
             </div>
@@ -764,20 +956,20 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                 <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white rounded-3xl p-12 shadow-2xl max-w-md w-full text-center"
+                className="bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full text-center"
                 >
                 <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.2, type: "spring" }}
-                    className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-cyan-500/30"
+                    className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/30"
                 >
-                    <CheckCircle2 className="w-10 h-10 text-white" />
+                    <CheckCircle2 className="w-8 h-8 text-white" />
                 </motion.div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-3">
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">
                     Thank You!
                 </h2>
-                <p className="text-slate-600 text-lg">
+                <p className="text-slate-600 text-sm">
                     Your response has been recorded.
                 </p>
                 </motion.div>
@@ -788,14 +980,14 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
     const progress = survey ? ((currentQuestionIndex + 2) / (survey.questions.length + 1)) * 100 : 0;
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8" style={{backgroundColor: surveyStyles?.secondaryColor}}>
-             <Card className="w-full max-w-md md:max-w-2xl bg-card/80 backdrop-blur-sm rounded-2xl md:rounded-3xl shadow-lg">
-                <CardHeader className="text-center p-6 md:p-8">
-                    <CardTitle className="font-headline text-2xl md:text-3xl">{survey.title}</CardTitle>
-                    <CardDescription>{survey.description}</CardDescription>
-                     <Progress value={progress} className="mt-4" />
+        <div className="min-h-screen flex items-center justify-center p-4" style={{backgroundColor: surveyStyles?.secondaryColor}}>
+             <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg">
+                <CardHeader className="text-center p-4">
+                    <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
+                    <CardDescription className="text-xs">{survey.description}</CardDescription>
+                     <Progress value={progress} className="mt-3 h-2" />
                 </CardHeader>
-                <CardContent className="min-h-[300px] overflow-hidden">
+                <CardContent className="min-h-[300px] overflow-hidden p-4">
                     <AnimatePresence mode="wait">
                     {currentQuestionIndex === -1 ? (
                         <motion.div
@@ -803,22 +995,21 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                           initial={{ opacity: 0, x: 50 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -50 }}
-                          className="p-4 md:p-8"
                         >
-                          <div className="space-y-6">
+                          <div className="space-y-4">
                             <div>
-                              <Label className="text-slate-900 font-semibold mb-2 block">
+                              <Label className="text-slate-900 font-semibold mb-2 block text-sm">
                                 Name *
                               </Label>
                               <Input
                                 value={respondentName}
                                 onChange={(e) => setRespondentName(e.target.value)}
                                 placeholder="Enter your name"
-                                className="h-12 rounded-xl border-slate-200"
+                                className="h-10 rounded-xl border-slate-200 text-sm"
                               />
                             </div>
                             <div>
-                              <Label className="text-slate-900 font-semibold mb-2 block">
+                              <Label className="text-slate-900 font-semibold mb-2 block text-sm">
                                 Email *
                               </Label>
                               <Input
@@ -826,7 +1017,7 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                                 value={respondentEmail}
                                 onChange={(e) => setRespondentEmail(e.target.value)}
                                 placeholder="email@example.com"
-                                className="h-12 rounded-xl border-slate-200"
+                                className="h-10 rounded-xl border-slate-200 text-sm"
                               />
                             </div>
                           </div>
@@ -837,7 +1028,6 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                            initial={{ opacity: 0, x: 50 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -50 }}
-                           className="p-2 sm:p-4"
                         >
                             {QuestionComponent && survey && (
                                 <div key={currentQuestion.id}>
@@ -853,17 +1043,17 @@ export default function SurveyView({ survey: surveyProp, isPreview = false, prev
                     )}
                     </AnimatePresence>
                 </CardContent>
-                <CardFooter className="flex justify-between p-6 md:p-8">
-                    <Button onClick={handlePrev} disabled={currentQuestionIndex === -1} variant="outline" className="transition-transform active:scale-95">
-                        <ArrowLeft className="mr-2 h-4 w-4" /> Previous
+                <CardFooter className="flex justify-between p-4">
+                    <Button onClick={handlePrev} disabled={currentQuestionIndex === -1} variant="outline" size="sm" className="transition-transform active:scale-95">
+                        <ArrowLeft className="mr-1 h-4 w-4" /> Previous
                     </Button>
                     {currentQuestionIndex < survey.questions.length - 1 ? (
-                        <Button onClick={currentQuestionIndex === -1 ? () => setCurrentQuestionIndex(0) : handleNext} disabled={!canProceed()} className="transition-transform active:scale-95">
-                            {currentQuestionIndex === -1 ? "Start Survey" : "Next"} <ArrowRight className="ml-2 h-4 w-4" />
+                        <Button onClick={currentQuestionIndex === -1 ? () => setCurrentQuestionIndex(0) : handleNext} disabled={!canProceed()} size="sm" className="transition-transform active:scale-95">
+                            {currentQuestionIndex === -1 ? "Start" : "Next"} <ArrowRight className="ml-1 h-4 w-4" />
                         </Button>
                     ) : (
-                        <Button onClick={handleSubmit} disabled={!canProceed() || isSubmitting} className="transition-transform active:scale-95">
-                             {isSubmitting ? "Submitting..." : "Submit Survey"}
+                        <Button onClick={handleSubmit} disabled={!canProceed() || isSubmitting} size="sm" className="transition-transform active:scale-95">
+                             {isSubmitting ? "Submitting..." : "Submit"}
                         </Button>
                     )}
                 </CardFooter>
