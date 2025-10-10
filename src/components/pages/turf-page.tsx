@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -23,10 +22,10 @@ import {
     LineChart,
     Line,
     RadarChart,
+    Radar,
     PolarGrid,
     PolarAngleAxis,
-    PolarRadiusAxis,
-    Radar
+    PolarRadiusAxis
 } from 'recharts';
 import Image from 'next/image';
 import { Skeleton } from '../ui/skeleton';
@@ -289,7 +288,7 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
                                         <BarChart data={topCombinationsData} layout="vertical">
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis type="number" domain={[0, 100]} />
-                                            <YAxis type="category" dataKey="name" width={150} />
+                                            <YAxis type="category" dataKey="name" width={250} tick={{ fontSize: 10 }} />
                                             <Tooltip />
                                             <Bar dataKey="reach" fill="#3b82f6" name="Reach (%)">
                                                 {topCombinationsData.map((entry, index) => (
@@ -472,5 +471,3 @@ export default function TurfPage({ survey, responses, turfQuestion }: TurfPagePr
         </div>
     );
 }
-
-    
