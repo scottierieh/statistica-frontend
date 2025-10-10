@@ -42,8 +42,8 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
 
   // Get all questions that can be used for crosstab
   const questionOptions = useMemo(() => {
+    if (!survey || !survey.questions) return [];
     return survey.questions
-      .filter(q => q.type === 'single')
       .flatMap(q => {
         // For matrix questions, create an option for each row
         if (q.type === 'matrix' && q.rows) {
@@ -210,6 +210,7 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
                     <SelectItem 
                       key={opt.value} 
                       value={opt.value}
+                      disabled={opt.value === colVar}
                     >
                       {opt.label}
                     </SelectItem>
@@ -250,7 +251,7 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Note</AlertTitle>
             <AlertDescription>
-              This analysis works best with categorical variables (e.g., single choice, multiple choice). 
+              This analysis works best with categorical variables. 
               Results may not be meaningful for numeric or text-based questions.
             </AlertDescription>
           </Alert>
