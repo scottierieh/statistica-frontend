@@ -14,7 +14,7 @@ def _to_native_type(obj):
     if isinstance(obj, np.integer):
         return int(obj)
     elif isinstance(obj, np.floating):
-        if np.isnan(obj):
+        if np.isnan(obj) or np.isinf(obj):
             return None
         return float(obj)
     elif isinstance(obj, np.ndarray):
@@ -72,22 +72,49 @@ def main():
         payload = json.load(sys.stdin)
         data = payload.get('data')
         selection_col = payload.get('selectionCol')
-        reach_target = float(payload.get('reachTarget', 80))
 
         if not data or not selection_col:
             raise ValueError("Missing 'data' or 'selectionCol'")
 
         df_raw = pd.DataFrame(data)
+        
         df_raw.dropna(subset=[selection_col], inplace=True)
         
-        s = df_raw[selection_col].str.get_dummies(sep=',')
+        def clean_selection(x):
+            if isinstance(x, list):
+                return [str(item).strip().strip("[]'\" ") for item in x if item]
+            elif isinstance(x, str):
+                # Handles cases like "['A', 'B']"
+                cleaned = x.strip("[]'\" ")
+                return [item.strip().strip("[]'\" ") for item in cleaned.split(',') if item.strip()]
+            else:
+                return []
         
-        products = s.columns.tolist()
-        df = s.copy()
+        df_raw['parsed_selection'] = df_raw[selection_col].apply(clean_selection)
+        
+        df_raw = df_raw[df_raw['parsed_selection'].apply(len) > 0]
+        
+        if len(df_raw) == 0:
+            raise ValueError("No valid responses found after parsing.")
+        
+        all_products = set()
+        for selection_list in df_raw['parsed_selection']:
+            for product in selection_list:
+                if product:
+                    all_products.add(product)
+        
+        products = sorted(list(all_products))
+        
+        binary_data = []
+        for selection_list in df_raw['parsed_selection']:
+            row = {product: 1 if product in selection_list else 0 for product in products}
+            binary_data.append(row)
+        
+        df = pd.DataFrame(binary_data)
         n_respondents = len(df)
         
         if n_respondents == 0:
-             raise ValueError("No valid responses found.")
+             raise ValueError("No valid responses found after one-hot encoding.")
 
         # 1. Individual Product Reach
         individual_reach_list = []
@@ -129,9 +156,18 @@ def main():
         # 4. Optimal Recommendation
         recommendation = {}
         for size_str, portfolio in optimal_portfolios.items():
-            if portfolio['reach'] >= reach_target:
+            if portfolio['reach'] >= 80.0:
                 recommendation = {'size': int(size_str), 'products': portfolio['products'], 'reach': portfolio['reach']}
                 break
+        if not recommendation and optimal_portfolios: # Fallback if target not met
+            last_size = str(max_portfolio_size)
+            if last_size in optimal_portfolios:
+                recommendation = {
+                    'size': int(last_size), 
+                    'products': optimal_portfolios[last_size]['products'], 
+                    'reach': optimal_portfolios[last_size]['reach']
+                }
+
         
         # 5. Overlap Analysis
         top_5_products = df_individual['Product'].head(5).tolist()
@@ -151,7 +187,7 @@ def main():
             'incremental_reach': incremental_results,
             'recommendation': recommendation,
             'overlap_matrix': overlap_matrix.to_dict('index'),
-            'reach_target': reach_target,
+            'reach_target': 80.0,
         }
         results_dict['interpretation'] = get_interpretation(results_dict)
 
@@ -198,3 +234,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
