@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -40,7 +41,7 @@ export default function CrosstabSurveyPage({ survey, responses }: CrosstabSurvey
 
   const questionOptions = useMemo(() => {
     return survey.questions
-      .filter(q => ['single', 'multiple', 'dropdown', 'rating', 'nps'].includes(q.type))
+      .filter(q => ['single', 'multiple', 'dropdown'].includes(q.type))
       .map(q => ({ label: q.title, value: q.id }));
   }, [survey.questions]);
 
