@@ -179,11 +179,11 @@ export default function CreateSurveyPage() {
                         <DialogTrigger asChild>
                             <Button variant="outline"><Eye className="w-5 h-5 mr-2" />Preview</Button>
                         </DialogTrigger>
-                         <DialogContent className="max-w-[95vw] h-[95vh] flex flex-col p-0">
+                         <DialogContent className="max-w-3xl h-[95vh] flex flex-col p-0">
                            <DialogHeader className="p-4 border-b flex-row items-center justify-between space-y-0">
                                 <DialogTitle>Survey Preview</DialogTitle>
                            </DialogHeader>
-                           <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-8">
+                           <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 p-8">
                                 <SurveyView 
                                     isPreview={true}
                                     previewDevice={previewDevice}
@@ -231,6 +231,4 @@ export default function CreateSurveyPage() {
     </div>
   );
 }
-
-
 

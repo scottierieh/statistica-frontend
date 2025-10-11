@@ -616,7 +616,7 @@ const DeviceFrame = ({ device = 'mobile', children }: { device?: 'mobile' | 'tab
             <div className="absolute left-0 top-28 h-16 w-1 bg-gray-700 rounded-r-sm"></div>
             <div className="absolute right-0 top-24 h-16 w-1 bg-gray-700 rounded-l-sm"></div>
             <div className="h-full w-full bg-white rounded-[24px] overflow-hidden">
-                {children}
+                 <div className="h-full w-full">{children}</div>
             </div>
         </div>
     );
@@ -781,7 +781,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     
     const surveyStyles = survey?.styles || {};
 
-    if (!isSurveyActive && !isPreview) {
+    if (!isSurveyActive) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
                 <Card className="w-full max-w-md text-center p-6">
@@ -822,8 +822,8 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     }
 
     const surveyContent = (
-             <div className="min-h-screen flex items-center justify-center p-4" style={{backgroundColor: surveyStyles?.secondaryColor}}>
-                 <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg">
+             <div className="min-h-screen p-4" style={{backgroundColor: surveyStyles?.secondaryColor}}>
+                 <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg mx-auto">
                     <CardHeader className="text-center p-4">
                         <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
                         <CardDescription className="text-xs">{survey.description}</CardDescription>
