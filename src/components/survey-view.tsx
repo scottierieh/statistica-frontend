@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -149,8 +148,8 @@ const RatingQuestion = ({ question, answer, onAnswerChange }: { question: Questi
             <h3 className="text-base font-semibold mb-3">{question.title} {question.required && <span className="text-destructive">*</span>}</h3>
             {question.imageUrl && <Image src={question.imageUrl} alt="Question image" width={300} height={200} className="rounded-md mb-3 max-h-40 w-auto" />}
             <div className="flex items-center justify-center gap-2">
-                {scale.map((_, index) => (
-                    <Star key={index} className={cn("w-7 h-7 text-yellow-400 cursor-pointer hover:text-yellow-500 transition-colors", (index + 1) <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(index + 1)}/>
+                {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={cn("w-7 h-7 text-yellow-400 cursor-pointer hover:text-yellow-500 transition-colors", (index + 1) <= answer && "fill-yellow-400")} onClick={() => onAnswerChange(index + 1)}/>
                 ))}
             </div>
         </div>
@@ -254,15 +253,17 @@ const MatrixQuestion = ({ question, answer, onAnswerChange }: { question: Questi
                         {(question.rows || []).map((row: string, rowIndex: number) => (
                             <TableRow key={`row-${rowIndex}`}>
                                 <TableHead className="text-xs py-2">{row}</TableHead>
-                                {(question.columns || []).map((col: string, colIndex: number) => (
-                                    <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center p-1">
-                                        <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))}>
-                                            <div className="flex justify-center">
-                                                <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`} className="h-4 w-4"/>
-                                            </div>
-                                        </RadioGroup>
-                                    </TableCell>
-                                ))}
+                                <RadioGroup value={answer?.[row]} onValueChange={(value) => onAnswerChange(produce(answer || {}, (draft: any) => { draft[row] = value; }))} asChild>
+                                    <>
+                                        {(question.columns || []).map((col: string, colIndex: number) => (
+                                            <TableCell key={`cell-${rowIndex}-${colIndex}`} className="text-center p-1">
+                                                <div className="flex justify-center">
+                                                    <RadioGroupItem value={col} id={`q${question.id}-r${rowIndex}-c${colIndex}`} className="h-4 w-4"/>
+                                                </div>
+                                            </TableCell>
+                                        ))}
+                                    </>
+                                </RadioGroup>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -592,7 +593,7 @@ const DeviceFrame = ({ device = 'desktop', children }: { device?: 'mobile' | 'ta
   const frameStyles = {
     mobile: 'w-[320px] h-[640px] rounded-[32px] p-2 shadow-lg bg-gray-800',
     tablet: 'w-full max-w-[500px] aspect-[3/4] h-auto rounded-[24px] p-3 shadow-xl bg-gray-800',
-    desktop: 'w-full max-w-lg aspect-[1/1.414] h-auto rounded-lg p-3 bg-white shadow-2xl',
+    desktop: 'w-full max-w-lg aspect-[1/1.414] h-auto rounded-lg p-3',
   };
   const innerFrameStyles = {
       mobile: 'rounded-[24px]',
@@ -867,7 +868,7 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
 
     const surveyContent = (
              <div className="h-full flex flex-col" style={{backgroundColor: surveyStyles?.secondaryColor}}>
-                 <Card className="w-full bg-card/80 backdrop-blur-sm rounded-2xl shadow-lg flex-1 flex flex-col">
+                 <Card className="w-full bg-card/80 backdrop-blur-sm rounded-2xl flex-1 flex flex-col border-0 shadow-none">
                     <CardHeader className="text-center p-4">
                         <CardTitle className="font-headline text-xl">{survey.title}</CardTitle>
                         <CardDescription className="text-xs">{survey.description}</CardDescription>
@@ -927,3 +928,5 @@ export default function SurveyView({ survey: surveyProp, previewStyles, isPrevie
     // Default/Live survey rendering
     return surveyContent;
 }
+
+    
