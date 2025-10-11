@@ -166,6 +166,12 @@ export default function CreateSurveyPage() {
     setQuestions(prev => [...prev, newQuestion]);
   };
 
+  const deviceWidths = {
+    desktop: 'max-w-5xl',
+    tablet: 'max-w-3xl',
+    mobile: 'max-w-sm',
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -179,11 +185,16 @@ export default function CreateSurveyPage() {
                         <DialogTrigger asChild>
                             <Button variant="outline"><Eye className="w-5 h-5 mr-2" />Preview</Button>
                         </DialogTrigger>
-                         <DialogContent className="max-w-3xl h-[95vh] flex flex-col p-0">
+                         <DialogContent className={cn("h-[95vh] flex flex-col p-0 w-full", deviceWidths[previewDevice])}>
                            <DialogHeader className="p-4 border-b flex-row items-center justify-between space-y-0">
                                 <DialogTitle>Survey Preview</DialogTitle>
+                               <div className="flex items-center gap-2 rounded-lg bg-muted p-1">
+                                    <Button size="icon" variant={previewDevice === 'desktop' ? 'secondary' : 'ghost'} onClick={() => setPreviewDevice('desktop')}><Monitor className="w-5 h-5"/></Button>
+                                    <Button size="icon" variant={previewDevice === 'tablet' ? 'secondary' : 'ghost'} onClick={() => setPreviewDevice('tablet')}><Tablet className="w-5 h-5"/></Button>
+                                    <Button size="icon" variant={previewDevice === 'mobile' ? 'secondary' : 'ghost'} onClick={() => setPreviewDevice('mobile')}><Smartphone className="w-5 h-5"/></Button>
+                                </div>
                            </DialogHeader>
-                           <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+                           <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-8">
                                 <SurveyView 
                                     isPreview={true}
                                     previewDevice={previewDevice}
@@ -231,4 +242,3 @@ export default function CreateSurveyPage() {
     </div>
   );
 }
-
