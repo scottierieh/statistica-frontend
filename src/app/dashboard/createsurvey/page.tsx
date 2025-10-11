@@ -138,22 +138,40 @@ export default function CreateSurveyPage() {
 
     setIsSaving(true);
     try {
-        const allSurveys = JSON.parse(localStorage.getItem('surveys') || '[]');
+        const allSurveys = JSON.parse(localStorage.getItem('surveys') || '[]') as Survey[];
         
-        let finalSurvey = { ...survey, status, styles };
+        let finalSurvey: Survey;
 
         if (surveyId) {
-            const index = allSurveys.findIndex((s: any) => s.id === surveyId);
+            const index = allSurveys.findIndex((s) => s.id === surveyId);
             if (index > -1) {
-                finalSurvey.created_date = allSurveys[index].created_date; // Preserve original creation date
+                const existingSurvey = allSurveys[index];
+                finalSurvey = {
+                    ...existingSurvey,
+                    ...survey,
+                    status,
+                    styles,
+                    created_date: existingSurvey.created_date, // Preserve original creation date
+                };
                 allSurveys[index] = finalSurvey;
             } else {
-                 finalSurvey.created_date = new Date().toISOString();
-                 allSurveys.push(finalSurvey);
+                 finalSurvey = {
+                    ...survey,
+                    status,
+                    styles,
+                    id: surveyId,
+                    created_date: new Date().toISOString(),
+                };
+                allSurveys.push(finalSurvey);
             }
         } else {
-            finalSurvey.id = Date.now().toString();
-            finalSurvey.created_date = new Date().toISOString();
+             finalSurvey = {
+                ...survey,
+                status,
+                styles,
+                id: Date.now().toString(),
+                created_date: new Date().toISOString(),
+            };
             allSurveys.push(finalSurvey);
         }
 
@@ -166,6 +184,7 @@ export default function CreateSurveyPage() {
         setIsSaving(false);
     }
   };
+
 
   const handleSelectQuestionType = (type: string) => {
     const newQuestion: Question = {
@@ -187,11 +206,29 @@ export default function CreateSurveyPage() {
     setSurvey(prev => ({...prev, questions: [...prev.questions, newQuestion]}));
   };
   
-  const handleQuestionsUpdate = (newQuestions: Question[] | ((prev: Question[]) => Question[])) => {
-    if (typeof newQuestions === 'function') {
-      setSurvey(prev => ({ ...prev, questions: newQuestions(prev.questions) }));
+  const handleQuestionsUpdate = (updater: Question[] | ((prev: Question[]) => Question[])) => {
+    if (typeof updater === 'function') {
+      setSurvey(prev => ({ ...prev, questions: updater(prev.questions) }));
     } else {
-      setSurvey(prev => ({ ...prev, questions: newQuestions }));
+      setSurvey(prev => ({ ...prev, questions: updater }));
+    }
+  };
+
+  const handleImageUpload = (target: { type: 'question'; id: string } | { type: 'startPage'; field: 'logo' | 'image' }) => {
+    // This is a placeholder for the actual image upload logic
+    console.log("Upload image for:", target);
+  };
+  
+  const handleDuplicateQuestion = (questionId: string) => {
+    const questionToDuplicate = survey.questions.find(q => q.id === questionId);
+    if (questionToDuplicate) {
+        const newQuestion = { ...questionToDuplicate, id: Date.now().toString() };
+        const index = survey.questions.findIndex(q => q.id === questionId);
+        setSurvey(prev => {
+            const newQuestions = [...prev.questions];
+            newQuestions.splice(index + 1, 0, newQuestion);
+            return { ...prev, questions: newQuestions };
+        });
     }
   };
 
@@ -228,42 +265,41 @@ export default function CreateSurveyPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
-                 <Tabs defaultValue="questions">
-                    <TabsList>
+                 <Tabs defaultValue="questions" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="questions">Questions</TabsTrigger>
+                        <TabsTrigger value="templates">Analysis Templates</TabsTrigger>
                         <TabsTrigger value="design">Design</TabsTrigger>
                     </TabsList>
-                     <TabsContent value="questions" className="mt-6">
-                        <div className="grid lg:grid-cols-[320px,1fr] gap-8 items-start">
-                             <div className="lg:sticky lg:top-24 space-y-6">
+                    <div className="mt-6 grid lg:grid-cols-[320px,1fr] gap-8 items-start">
+                        <div>
+                             <TabsContent value="questions" className="lg:sticky lg:top-24 space-y-6 m-0">
                                 <QuestionTypePalette onSelectType={handleSelectQuestionType} />
+                            </TabsContent>
+                             <TabsContent value="templates" className="lg:sticky lg:top-24 space-y-6 m-0">
                                 <SpecialAnalysisPalette />
-                            </div>
+                            </TabsContent>
+                            <TabsContent value="design" className="lg:sticky lg:top-24 space-y-6 m-0">
+                                <SurveyStylePanel styles={styles} setStyles={setStyles} />
+                            </TabsContent>
+                        </div>
+                        <div className="min-w-0">
                             <QuestionList 
-                                title={survey.title}
-                                setTitle={(newTitle) => setSurvey(prev => ({...prev, title: newTitle}))}
-                                description={survey.description || ''}
-                                setDescription={(newDesc) => setSurvey(prev => ({...prev, description: newDesc}))}
-                                questions={survey.questions}
-                                setQuestions={handleQuestionsUpdate}
+                                survey={survey}
+                                setSurvey={setSurvey}
+                                onImageUpload={handleImageUpload}
+                                onDuplicate={handleDuplicateQuestion}
+                                onUpdate={handleQuestionsUpdate}
                                 styles={styles}
                                 saveSurvey={saveSurveyAction}
                                 isSaving={isSaving}
-                                survey={survey}
-                                setSurvey={setSurvey}
                             />
                         </div>
-                    </TabsContent>
-                    <TabsContent value="design" className="mt-6">
-                        <div className="grid lg:grid-cols-1 gap-8 items-start">
-                           <div className="lg:sticky lg:top-24 space-y-6">
-                                <SurveyStylePanel styles={styles} setStyles={setStyles} />
-                            </div>
-                        </div>
-                    </TabsContent>
+                    </div>
                 </Tabs>
             </motion.div>
         </div>
     </div>
   );
 }
+
